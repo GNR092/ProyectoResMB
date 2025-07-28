@@ -124,3 +124,27 @@ _modules/*
 
 /results/
 /phpunit*.xml
+
+#-------------------------
+# Node.js
+#-------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log*
+.npm/
+.cache/
+dist/
+build/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.next/
+out/
+coverage/
+.eslintcache
+*.tsbuildinfo
