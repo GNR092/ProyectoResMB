@@ -148,3 +148,8 @@ out/
 coverage/
 .eslintcache
 *.tsbuildinfo
+
+#-------------------------
+# db
+#-------------------------
+*.sql
