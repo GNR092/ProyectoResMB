@@ -175,3 +175,8 @@ public/js/reportesScript.min.js
 AGENTS.md
 CLAUDE.md
 Pruebas/PresupuestoMensual.png
+
+#-------------------------
+# db
+#-------------------------
+*.sql
