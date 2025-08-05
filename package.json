@@ -8,8 +8,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:product": "postcss styless.css -o public/css/styless.css --minify",
-    "watch": "postcss styless.css -o public/css/styless.css --watch"
+    "build:product": "postcss input.css -o public/css/styless.css --minify",
+    "watch": "postcss input.css -o public/css/styless.css --watch"
   },
   "repository": {
     "type": "git",
