@@ -9,12 +9,10 @@
 
 <!-- Barra lateral -->
 <aside class="w-64 bg-[#4A4A4A] text-white flex flex-col">
-    <!-- Logo -->
     <div class="p-4 border-b border-gray-600">
         <img src="<?= base_url('images/logo.png') ?>" alt="Logo" class="mx-auto h-20 object-contain">
     </div>
 
-    <!-- Menú dinámico -->
     <nav class="flex-1 mt-4 px-4 space-y-2">
         <?php if (!empty($opcionesDinamicas)) : ?>
             <?php foreach ($opcionesDinamicas as $key => $opcion) : ?>
@@ -28,9 +26,7 @@
         <?php endif; ?>
     </nav>
 
-    <!-- Opciones fijas -->
     <nav class="px-4 py-4 border-t border-gray-600 space-y-2">
-
         <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.573-1.066z" />
@@ -50,30 +46,26 @@
 
 <!-- Contenido principal -->
 <div class="flex-1 flex flex-col bg-gray-100">
-    <!-- Barra superior -->
     <header class="h-12 bg-white border-b border-gray-300 flex items-center justify-end px-6 text-sm text-gray-600 shadow-sm">
         <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc($departamento_usuario ?? 'Departamento') ?>
     </header>
 
-    <!-- Área de trabajo -->
     <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
-        <!-- Logo transparente de fondo -->
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-15">
             <img src="<?= base_url('images/logo.png') ?>" alt="Logo" class="max-w-xs" />
         </div>
 
-        <!-- Contenido dinámico -->
         <div class="relative z-10">
             <?= $this->renderSection('contenido') ?>
         </div>
 
-        <!-- Modal (solo dentro del área de trabajo) -->
+        <!-- Modal general -->
         <div id="modal-general" class="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 hidden">
             <div class="bg-white bg-opacity-95 rounded-lg shadow-2xl max-w-4xl mx-auto mt-20 p-6 relative">
                 <button onclick="cerrarModal()" class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
                 <h2 id="modal-title" class="text-xl font-semibold mb-4 text-gray-800"></h2>
                 <div id="modal-contenido" class="text-gray-700 space-y-2">
-                    <!-- Aquí se carga el contenido dinámico -->
+                    <!-- Contenido cargado por AJAX -->
                 </div>
             </div>
         </div>
@@ -86,67 +78,151 @@
         const titulo = document.getElementById('modal-title');
         const contenido = document.getElementById('modal-contenido');
 
-        switch (opcion) {
-            case 'solicitar_material':
-                titulo.innerText = 'Solicitar Material';
-                contenido.innerHTML = `<p>
+        let titulos = {
+            'solicitar_material': 'Solicitar Material',
+            'ver_historial': 'Historial',
+            'revisar_solicitudes': 'Revisar Solicitudes',
+            'proveedores': 'Proveedores',
+            'ordenes_compra': 'Órdenes de Compra',
+            'enviar_revision': 'Enviar a Revisión',
+            'usuarios': 'Usuarios',
+            'dictamen_solicitudes': 'Dictamen de Solicitudes',
+            'crud_proveedores': 'CRUD Proveedores',
+            'limpiar_almacenamiento': 'Limpiar Almacenamiento',
+            'pagos_pendientes': 'Pagos Pendientes'
+        };
 
+        titulo.innerText = titulos[opcion] ?? 'Opción';
 
+        fetch(`<?= base_url('modales/') ?>${opcion}`)
+            .then(response => response.text())
+            .then(html => {
+                contenido.innerHTML = html;
+                modal.classList.remove('hidden');
 
-</p>`;
-                break;
-            case 'ver_historial':
-                titulo.innerText = 'Historial';
-                contenido.innerHTML = `<p>Historial de solicitudes realizadas.</p>`;
-                break;
-            case 'revisar_solicitudes':
-                titulo.innerText = 'Revisar Solicitudes';
-                contenido.innerHTML = `<p>Listado de solicitudes pendientes de revisión.</p>`;
-                break;
-            case 'proveedores':
-                titulo.innerText = 'Proveedores';
-                contenido.innerHTML = `<p>Administración de proveedores registrados.</p>`;
-                break;
-            case 'ordenes_compra':
-                titulo.innerText = 'Órdenes de Compra';
-                contenido.innerHTML = `<p>Generación y control de órdenes de compra.</p>`;
-                break;
-            case 'enviar_revision':
-                titulo.innerText = 'Enviar a Revisión';
-                contenido.innerHTML = `<p>Enviar solicitudes a revisión.</p>`;
-                break;
-            case 'usuarios':
-                titulo.innerText = 'Usuarios';
-                contenido.innerHTML = `<p>Administración de usuarios del sistema.</p>`;
-                break;
-            case 'dictamen_solicitudes':
-                titulo.innerText = 'Dictamen de Solicitudes';
-                contenido.innerHTML = `<p>Emitir dictámenes sobre solicitudes.</p>`;
-                break;
-            case 'crud_proveedores':
-                titulo.innerText = 'CRUD Proveedores';
-                contenido.innerHTML = `<p>Crear, editar o eliminar proveedores.</p>`;
-                break;
-            case 'limpiar_almacenamiento':
-                titulo.innerText = 'Limpiar Almacenamiento';
-                contenido.innerHTML = `<p>Herramienta para liberar espacio o eliminar archivos antiguos.</p>`;
-                break;
-            case 'pagos_pendientes':
-                titulo.innerText = 'Pagos Pendientes';
-                contenido.innerHTML = `<p>Gestión de pagos que están pendientes.</p>`;
-                break;
-            default:
-                titulo.innerText = 'Opción no reconocida';
-                contenido.innerHTML = `<p>No hay contenido definido aún para esta opción.</p>`;
-        }
-
-        modal.classList.remove('hidden');
+                // Ejecutar lógica específica según la opción
+                if (opcion === 'solicitar_material') {
+                    initSolicitarMaterial();
+                }
+            })
+            .catch(error => {
+                contenido.innerHTML = '<p class="text-red-500">Error al cargar el contenido del modal.</p>';
+                modal.classList.remove('hidden');
+            });
     }
 
     function cerrarModal() {
         document.getElementById('modal-general').classList.add('hidden');
     }
+
+
+    function initSolicitarMaterial() {
+        const tabla = document.getElementById('tabla-productos');
+        const agregarBtn = document.getElementById('agregar-fila');
+        const totalCostoTd = document.getElementById('total-costo');
+
+        function actualizarNumeros() {
+            tabla.querySelectorAll('tr').forEach((fila, i) => {
+                const celdaNumero = fila.querySelector('.numero-fila');
+                if (celdaNumero) {
+                    celdaNumero.textContent = i + 1;
+                }
+            });
+        }
+
+        function actualizarBotonesEliminar() {
+            const filas = tabla.querySelectorAll('tr');
+            filas.forEach(fila => {
+                const btnEliminar = fila.querySelector('.eliminar-fila');
+                if (btnEliminar) {
+                    btnEliminar.style.display = (filas.length === 1) ? 'none' : 'inline-block';
+                }
+            });
+        }
+
+        // Nueva función para actualizar el total sumando todos los costos
+        function actualizarTotal() {
+            let suma = 0;
+            tabla.querySelectorAll('tr').forEach(fila => {
+                const costoTd = fila.querySelector('.costo');
+                if (costoTd) {
+                    // Quitamos el signo $ y comas, parseamos a float
+                    const valor = parseFloat(costoTd.textContent.replace(/[$,]/g, '')) || 0;
+                    suma += valor;
+                }
+            });
+            totalCostoTd.textContent = '$' + suma.toFixed(2);
+        }
+
+        function asignarEventosFila(fila) {
+            const cantidadInput = fila.querySelector('.cantidad');
+            const importeInput = fila.querySelector('.importe');
+            const costoTd = fila.querySelector('.costo');
+            const eliminarBtn = fila.querySelector('.eliminar-fila');
+
+            function actualizarCosto() {
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const importe = parseFloat(importeInput.value) || 0;
+                const costo = cantidad * importe;
+                costoTd.textContent = '$' + costo.toFixed(2);
+                actualizarTotal();  // Actualizar total cuando cambie el costo
+            }
+
+            cantidadInput.addEventListener('input', actualizarCosto);
+            importeInput.addEventListener('input', actualizarCosto);
+
+            eliminarBtn.addEventListener('click', () => {
+                if (tabla.querySelectorAll('tr').length > 1) {
+                    fila.remove();
+                    actualizarNumeros();
+                    actualizarBotonesEliminar();
+                    actualizarTotal();  // Actualizar total al eliminar fila
+                }
+            });
+
+            actualizarCosto(); // Cálculo inicial
+        }
+
+        tabla.querySelectorAll('tr').forEach(fila => {
+            asignarEventosFila(fila);
+        });
+
+        actualizarBotonesEliminar();
+        actualizarTotal();
+
+        agregarBtn.addEventListener('click', () => {
+            const nuevaFila = tabla.insertRow();
+
+            nuevaFila.innerHTML = `
+            <td class="numero-fila border px-3 py-1 text-center"></td>
+            <td class="border px-3 py-1">
+                <input type="text" class="w-full border rounded px-2 py-1" placeholder="Producto" name="producto[]">
+            </td>
+            <td class="border px-3 py-1">
+                <input type="number" class="cantidad w-full border rounded px-2 py-1" min="1" step="1" value="1" name="cantidad[]">
+            </td>
+            <td class="border px-3 py-1">
+                <input type="number" class="importe w-full border rounded px-2 py-1" min="0" step="1" value="0" name="importe[]">
+            </td>
+            <td class="costo border px-3 py-1 text-right">$0.00</td>
+            <td class="border px-3 py-1 text-center">
+                <button type="button" class="eliminar-fila text-red-600 hover:text-red-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                        </button>
+            </td>
+        `;
+
+            asignarEventosFila(nuevaFila);
+            actualizarNumeros();
+            actualizarBotonesEliminar();
+            actualizarTotal();
+        });
+    }
+
 </script>
+
 
 </body>
 </html>
