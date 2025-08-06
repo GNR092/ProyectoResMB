@@ -7,7 +7,6 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build:product": "postcss input.css -o public/css/styless.css --minify",
     "watch": "postcss input.css -o public/css/styless.css --watch"
   },
@@ -21,7 +20,7 @@
   "bugs": {
     "url": "https://github.com/GNR092/ProyectoResMB/issues"
   },
-  "homepage": "https://github.com/GNR092/ProyectoResM B#readme",
+  "homepage": "https://github.com/GNR092/ProyectoResMB#readme",
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.11",
     "postcss": "^8.5.6",
