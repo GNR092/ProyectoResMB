@@ -60,8 +60,8 @@
         </div>
 
         <!-- Modal general -->
-        <div id="modal-general" class="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 hidden">
-            <div class="bg-white bg-opacity-95 rounded-lg shadow-2xl max-w-4xl mx-auto mt-20 p-6 relative">
+        <div id="modal-general" class="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 hidden flex items-start justify-center pt-10 overflow-auto">
+            <div class="bg-white bg-opacity-95 rounded-lg shadow-2xl max-w-4xl w-full mx-4 sm:mx-auto p-6 relative">
                 <button onclick="cerrarModal()" class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
                 <h2 id="modal-title" class="text-xl font-semibold mb-4 text-gray-800"></h2>
                 <div id="modal-contenido" class="text-gray-700 space-y-2">
@@ -100,9 +100,10 @@
                 contenido.innerHTML = html;
                 modal.classList.remove('hidden');
 
-                // Ejecutar lógica específica según la opción
                 if (opcion === 'solicitar_material') {
                     initSolicitarMaterial();
+                } else if (opcion === 'ver_historial') {
+                    initPaginacionHistorial();
                 }
             })
             .catch(error => {
@@ -110,7 +111,6 @@
                 modal.classList.remove('hidden');
             });
     }
-
     function cerrarModal() {
         document.getElementById('modal-general').classList.add('hidden');
     }
@@ -221,8 +221,79 @@
         });
     }
 
-</script>
+    function initPaginacionHistorial() {
+        const tabla = document.getElementById('tabla-historial');
+        const filasOriginales = Array.from(tabla.querySelectorAll('tbody tr'));
+        const filasPorPagina = 10;
+        let paginaActual = 1;
 
+        const filtroFecha = document.getElementById('filtro-fecha');
+        const filtroEstado = document.getElementById('filtro-estado');
+
+        function aplicarFiltros() {
+            const fechaFiltro = filtroFecha.value;
+            const estadoFiltro = filtroEstado.value.toLowerCase();
+
+            return filasOriginales.filter(fila => {
+                const fecha = fila.querySelector('.col-fecha')?.textContent.trim();
+                const estado = fila.querySelector('.col-estado')?.textContent.trim().toLowerCase();
+
+                const coincideFecha = !fechaFiltro || fecha === fechaFiltro;
+                const coincideEstado = !estadoFiltro || estado === estadoFiltro;
+
+                return coincideFecha && coincideEstado;
+            });
+        }
+
+        function mostrarPagina(pagina, filasFiltradas) {
+            paginaActual = pagina;
+            const inicio = (pagina - 1) * filasPorPagina;
+            const fin = inicio + filasPorPagina;
+
+            filasOriginales.forEach(fila => fila.style.display = 'none');
+            filasFiltradas.slice(inicio, fin).forEach(fila => fila.style.display = '');
+
+            renderizarControlesPaginacion(filasFiltradas.length);
+        }
+
+        function renderizarControlesPaginacion(totalFilas) {
+            let contenedor = document.getElementById('paginacion-historial');
+            if (!contenedor) {
+                contenedor = document.createElement('div');
+                contenedor.id = 'paginacion-historial';
+                contenedor.className = 'flex justify-center mt-4 space-x-2';
+                tabla.parentElement.appendChild(contenedor);
+            }
+            contenedor.innerHTML = '';
+
+            const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+            if (totalPaginas <= 1) return;
+
+            for (let i = 1; i <= totalPaginas; i++) {
+                const boton = document.createElement('button');
+                boton.textContent = i;
+                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.addEventListener('click', () => {
+                    mostrarPagina(i, aplicarFiltros());
+                });
+                contenedor.appendChild(boton);
+            }
+        }
+
+        function actualizarTabla() {
+            const filtradas = aplicarFiltros();
+            mostrarPagina(1, filtradas);
+        }
+
+        filtroFecha?.addEventListener('input', actualizarTabla);
+        filtroEstado?.addEventListener('change', actualizarTabla);
+
+        actualizarTabla();
+    }
+
+    document.addEventListener('DOMContentLoaded', initPaginacionHistorial);
+
+</script>
 
 </body>
 </html>
