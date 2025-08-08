@@ -2,12 +2,10 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\Controller;
 use PDO;
 use PDOException;
-use CodeIgniter\Validation\Exceptions\ValidationException;
 
-class Installer extends Controller
+class Installer extends BaseController
 {
     public function index()
     {

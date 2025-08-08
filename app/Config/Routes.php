@@ -22,4 +22,7 @@ if (!file_exists($installerLockFile)) {
     $routes->get('archivo', 'Archivo::index');
     $routes->post('archivo/subir', 'Archivo::subir');
     $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
+    $routes->get('/auth', 'Auth::login');
+    $routes->match(['GET', 'POST'], 'auth/login', 'Auth::login');
+    $routes->get('test', 'Test::index');
 }
