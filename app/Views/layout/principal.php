@@ -51,8 +51,8 @@
     </header>
 
     <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
-        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-15">
-            <img src="<?= base_url('images/logo.png') ?>" alt="Logo" class="max-w-xs" />
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+            <img src="<?= base_url('images/logo.png') ?>" alt="Logo" class="max-w-xs filter invert" />
         </div>
 
         <div class="relative z-10">
@@ -117,16 +117,17 @@
 
 
     function initSolicitarMaterial() {
-        const tabla = document.getElementById('tabla-productos');
+        const tabla = document.getElementById('tabla-productos'); // tbody
         const agregarBtn = document.getElementById('agregar-fila');
         const totalCostoTd = document.getElementById('total-costo');
 
+        if (!tabla) return;
+
         function actualizarNumeros() {
+            // numerar solo las filas actuales
             tabla.querySelectorAll('tr').forEach((fila, i) => {
                 const celdaNumero = fila.querySelector('.numero-fila');
-                if (celdaNumero) {
-                    celdaNumero.textContent = i + 1;
-                }
+                if (celdaNumero) celdaNumero.textContent = i + 1;
             });
         }
 
@@ -140,13 +141,11 @@
             });
         }
 
-        // Nueva función para actualizar el total sumando todos los costos
         function actualizarTotal() {
             let suma = 0;
             tabla.querySelectorAll('tr').forEach(fila => {
                 const costoTd = fila.querySelector('.costo');
                 if (costoTd) {
-                    // Quitamos el signo $ y comas, parseamos a float
                     const valor = parseFloat(costoTd.textContent.replace(/[$,]/g, '')) || 0;
                     suma += valor;
                 }
@@ -155,70 +154,81 @@
         }
 
         function asignarEventosFila(fila) {
+            if (!fila) return;
+
             const cantidadInput = fila.querySelector('.cantidad');
             const importeInput = fila.querySelector('.importe');
+            const codigoInput = fila.querySelector('.codigo'); // nuevo campo código (si lo necesitas para lógica adicional)
             const costoTd = fila.querySelector('.costo');
             const eliminarBtn = fila.querySelector('.eliminar-fila');
 
             function actualizarCosto() {
-                const cantidad = parseFloat(cantidadInput.value) || 0;
-                const importe = parseFloat(importeInput.value) || 0;
+                const cantidad = parseFloat(cantidadInput?.value) || 0;
+                const importe = parseFloat(importeInput?.value) || 0;
                 const costo = cantidad * importe;
-                costoTd.textContent = '$' + costo.toFixed(2);
-                actualizarTotal();  // Actualizar total cuando cambie el costo
+                if (costoTd) costoTd.textContent = '$' + costo.toFixed(2);
+                actualizarTotal();
             }
 
-            cantidadInput.addEventListener('input', actualizarCosto);
-            importeInput.addEventListener('input', actualizarCosto);
+            if (cantidadInput) cantidadInput.addEventListener('input', actualizarCosto);
+            if (importeInput) importeInput.addEventListener('input', actualizarCosto);
 
-            eliminarBtn.addEventListener('click', () => {
-                if (tabla.querySelectorAll('tr').length > 1) {
-                    fila.remove();
-                    actualizarNumeros();
-                    actualizarBotonesEliminar();
-                    actualizarTotal();  // Actualizar total al eliminar fila
-                }
-            });
+            if (eliminarBtn) {
+                eliminarBtn.addEventListener('click', () => {
+                    if (tabla.querySelectorAll('tr').length > 1) {
+                        fila.remove();
+                        actualizarNumeros();
+                        actualizarBotonesEliminar();
+                        actualizarTotal();
+                    }
+                });
+            }
 
-            actualizarCosto(); // Cálculo inicial
+            // Cálculo inicial para mostrar costo desde valores por defecto
+            actualizarCosto();
         }
 
-        tabla.querySelectorAll('tr').forEach(fila => {
-            asignarEventosFila(fila);
-        });
+        // Asignar eventos a las filas existentes
+        tabla.querySelectorAll('tr').forEach(fila => asignarEventosFila(fila));
 
         actualizarBotonesEliminar();
+        actualizarNumeros();
         actualizarTotal();
 
-        agregarBtn.addEventListener('click', () => {
-            const nuevaFila = tabla.insertRow();
-
-            nuevaFila.innerHTML = `
-            <td class="numero-fila border px-3 py-1 text-center"></td>
-            <td class="border px-3 py-1">
-                <input type="text" class="w-full border rounded px-2 py-1" placeholder="Producto" name="producto[]">
-            </td>
-            <td class="border px-3 py-1">
-                <input type="number" class="cantidad w-full border rounded px-2 py-1" min="1" step="1" value="1" name="cantidad[]">
-            </td>
-            <td class="border px-3 py-1">
-                <input type="number" class="importe w-full border rounded px-2 py-1" min="0" step="1" value="0" name="importe[]">
-            </td>
-            <td class="costo border px-3 py-1 text-right">$0.00</td>
-            <td class="border px-3 py-1 text-center">
-                <button type="button" class="eliminar-fila text-red-600 hover:text-red-800">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                            </svg>
-                        </button>
-            </td>
-        `;
-
-            asignarEventosFila(nuevaFila);
-            actualizarNumeros();
-            actualizarBotonesEliminar();
-            actualizarTotal();
-        });
+        // Añadir nueva fila
+        if (agregarBtn) {
+            agregarBtn.addEventListener('click', () => {
+                // Crear nueva fila y mantener exactamente la estructura de la plantilla
+                const nuevaFila = tabla.insertRow();
+                nuevaFila.innerHTML = `
+                <td class="numero-fila border px-3 py-1 text-center"></td>
+                <td class="border px-3 py-1">
+                    <input type="text" name="codigo[]" class="w-full border rounded px-2 py-1 codigo" placeholder="Código">
+                </td>
+                <td class="border px-3 py-1">
+                    <input type="text" name="producto[]" class="w-full border rounded px-2 py-1" placeholder="Producto">
+                </td>
+                <td class="border px-3 py-1">
+                    <input type="number" name="cantidad[]" class="cantidad w-full border rounded px-2 py-1" min="1" step="1" value="1">
+                </td>
+                <td class="border px-3 py-1">
+                    <input type="number" name="importe[]" class="importe w-full border rounded px-2 py-1" min="0" step="1" value="0">
+                </td>
+                <td class="costo border px-3 py-1 text-right">$0.00</td>
+                <td class="border px-3 py-1 text-center">
+                    <button type="button" class="eliminar-fila text-red-600 hover:text-red-800" title="Eliminar fila">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </button>
+                </td>
+            `;
+                asignarEventosFila(nuevaFila);
+                actualizarNumeros();
+                actualizarBotonesEliminar();
+                actualizarTotal();
+            });
+        }
     }
 
     function initPaginacionHistorial() {
