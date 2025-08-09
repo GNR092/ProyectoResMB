@@ -146,10 +146,7 @@ class Installer extends BaseController
             // AHORA QUE SABEMOS QUE EL ARCHIVO EXISTE, LO ACTUALIZAMOS
             $this->updateEnvFile($dbHost, $dbPort, $dbName, $dbUser, $dbPass);
 
-            // Crear el archivo de bloqueo
-            file_put_contents(WRITEPATH . 'installer.lock', 'Installation successful.');
-
-            return redirect()->to('installer/success');
+            
 
         } catch (PDOException $e) {
             $error_message = 'Error en la conexión o en la creación de la base de datos: ';
@@ -173,6 +170,7 @@ class Installer extends BaseController
                 'validation' => $this->validator
             ]);
         }
+        return redirect()->to('installer/success');
     }
 
     public function success()
@@ -183,21 +181,60 @@ class Installer extends BaseController
 
     private function updateEnvFile($host, $port, $dbname, $user, $pass)
     {
-        $envPath = ROOTPATH . '.env';
-        $envContent = file_get_contents($envPath);
-        $envLines = explode("\n", $envContent);
+        // Define las líneas de PostgreSQL que se deben añadir
+        $linesToAdd = [
+            'database.default.DBDriver = Postgre',
+            'database.default.schema = public',
+            'database.default.charset = utf8',
+        ];
 
+        $envPath = ROOTPATH . '.env';
+        // Leer el archivo .env de forma segura
+        $envLines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         $newEnvLines = [];
+        $addedPostgreLines = false;
+
         foreach ($envLines as $line) {
-            if (str_starts_with($line, 'database.default.hostname')) {
+            // Limpiamos los espacios y el '#' al inicio de cada línea
+            $trimmedLine = trim($line, "# \t\n\r\0\x0B");
+
+            if (str_starts_with($trimmedLine, 'database.default.hostname')) {
                 $newEnvLines[] = "database.default.hostname = $host";
-            } elseif (str_starts_with($line, 'database.default.database')) {
+            } elseif (str_starts_with($trimmedLine, 'database.default.database')) {
                 $newEnvLines[] = "database.default.database = $dbname";
-            } elseif (str_starts_with($line, 'database.default.username')) {
+            } elseif (str_starts_with($trimmedLine, 'database.default.username')) {
                 $newEnvLines[] = "database.default.username = $user";
-            } elseif (str_starts_with($line, 'database.default.password')) {
+            } elseif (str_starts_with($trimmedLine, 'database.default.password')) {
                 $newEnvLines[] = "database.default.password = $pass";
-            } elseif (str_starts_with($line, 'database.default.port')) {
+
+                // Lógica para añadir las líneas de PostgreSQL si no existen
+                if (!$addedPostgreLines) {
+                    // Verificar si las líneas ya están presentes
+                    $foundAll = true;
+                    foreach ($linesToAdd as $lineCheck) {
+                        $key = explode('=', $lineCheck)[0];
+                        $keyFound = false;
+                        foreach ($envLines as $originalLine) {
+                            if (str_starts_with(trim($originalLine, "# \t"), $key)) {
+                                $keyFound = true;
+                                break;
+                            }
+                        }
+                        if (!$keyFound) {
+                            $foundAll = false;
+                            break;
+                        }
+                    }
+
+                    // Si no existen, las añade en este punto
+                    if (!$foundAll) {
+                        foreach ($linesToAdd as $newLine) {
+                            $newEnvLines[] = $newLine;
+                        }
+                    }
+                    $addedPostgreLines = true;
+                }
+            } elseif (str_starts_with($trimmedLine, 'database.default.port')) {
                 $newEnvLines[] = "database.default.port = $port";
             } else {
                 $newEnvLines[] = $line;
@@ -206,5 +243,23 @@ class Installer extends BaseController
 
         $newEnvContent = implode("\n", $newEnvLines);
         file_put_contents($envPath, $newEnvContent);
+        $this->migrate();
     }
+    public function migrate()
+{
+    // Ahora, al ser una nueva petición, CodeIgniter ya ha cargado
+    // los nuevos datos del .env
+    try {
+        $migrate = \Config\Services::migrations();
+        $migrate->latest();
+        
+        // Crear el archivo de bloqueo si la migración fue exitosa
+        file_put_contents(WRITEPATH . 'installer.lock', 'Installation successful.');
+        
+    } catch (\Throwable $e) {
+        // En caso de error en la migración
+        echo "Error al ejecutar las migraciones: " . $e->getMessage();
+        // Puedes agregar lógica para mostrar una vista de error
+    }
+}
 }
