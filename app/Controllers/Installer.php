@@ -19,21 +19,36 @@ class Installer extends BaseController
 
         // Validación solo para los campos de conexión
         $rules = [
-            'db_hostname' => 'required',
-            'db_port' => 'required|is_natural_no_zero',
+            'superuser_password' => [
+                'label' => 'Contraseña de Superusuario',
+                'rules' => 'required',
+                'errors' => [
+                    'required' => 'La contraseña de superusuario es obligatoria.'
+                ]
+            ],
+            'db_hostname' => [
+                'label' => 'Hostname del Servidor PostgreSQL',
+                'rules' => 'required',
+                'errors' => [
+                    'required' => 'El hostname es obligatorio.'
+                ]
+            ],
+            'db_port' => [
+                'label' => 'Contraseña de Superusuario',
+                'rules' => 'required|is_natural_no_zero',
+                'errors' => [
+                    'required' => 'El puerto es obligatorio.',
+                    'is_natural_no_zero' => 'El puerto debe ser un número natural mayor que cero.'
+                ]
+            ],
         ];
-
-        // La contraseña de superusuario puede ser opcional para una simple prueba de conexión
-        // Esto permite probar si el servidor está en línea sin necesidad de credenciales válidas
-        // si el usuario 'postgres' no tiene contraseña, por ejemplo.
-        $superuserPass = $post['superuser_password'] ?? '';
 
         if (!$this->validate($rules)) {
             return view('installer/db_config', [
                 'validation' => $this->validator
             ]);
         }
-
+        $superuserPass = $post['superuser_password'];
         $dbHost = $post['db_hostname'];
         $dbPort = $post['db_port'];
 
@@ -64,11 +79,45 @@ class Installer extends BaseController
     {
         helper('form');
         $rules = [
-            'superuser_password' => 'required',
-            'ci_username' => 'required|alpha_dash|min_length[3]',
-            'ci_user_password' => 'required|min_length[8]',
-            'db_hostname' => 'required',
-            'db_port' => 'required|is_natural_no_zero',
+            'superuser_password' => [
+                'label' => 'Contraseña de Superusuario',
+                'rules' => 'required',
+                'errors' => [
+                    'required' => 'La contraseña de superusuario es obligatoria.'
+                ]
+            ],
+            'ci_username' => [
+                'label' => 'Nombre de Usuario',
+                'rules' => 'required|alpha_dash|min_length[3]',
+                'errors' => [
+                    'required' => 'El {field} es obligatorio.',
+                    'alpha_dash' => 'El {field} solo puede contener letras, números y guiones bajos.',
+                    'min_length' => 'El {field} debe tener al menos {param} caracteres'
+                ]
+            ],
+            'ci_user_password' => [
+                'label' => 'Contraseña de Usuario',
+                'rules' => 'required|min_length[8]',
+                'errors' => [
+                    'required' => 'La contraseña es obligatoria.',
+                    'min_length' => 'La contraseña debe tener al menos {param} caracteres.'
+                ]
+            ],
+            'db_hostname' => [
+                'label' => 'Hostname del Servidor PostgreSQL',
+                'rules' => 'required',
+                'errors' => [
+                    'required' => 'El hostname es obligatorio.'
+                ]
+            ],
+            'db_port' => [
+                'label' => 'Contraseña de Superusuario',
+                'rules' => 'required|is_natural_no_zero',
+                'errors' => [
+                    'required' => 'El puerto es obligatorio.',
+                    'is_natural_no_zero' => 'El puerto debe ser un número natural mayor que cero.'
+                ]
+            ],
         ];
 
         if (!$this->validate($rules)) {
