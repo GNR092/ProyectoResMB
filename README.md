@@ -1,68 +1,39 @@
-# CodeIgniter 4 Application Starter
+# Sistema de Compras
 
-## What is CodeIgniter?
+Una de las características clave es su **asistente de instalación web**, que simplifica enormemente la configuración inicial de la base de datos y el entorno, haciendo que el despliegue sea rápido y sin complicaciones.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+## ✨ Características Principales
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+- **Asistente de Instalación Web**: Configura la base de datos (PostgreSQL), crea el usuario, actualiza el archivo `.env` y ejecuta las migraciones automáticamente desde el navegador.
+- **Backend Robusto**: Construido sobre CodeIgniter 4, un framework PHP potente y ligero.
+- **Frontend Moderno**: Interfaz de usuario estilizada con Tailwind CSS v4 y componentes dinámicos gracias a Alpine.js.
+- **Seguridad**: El instalador se bloquea automáticamente después del primer uso.
+- **Base de Datos**: Diseñado para funcionar con PostgreSQL.
+- **Entorno de Desarrollo**: Scripts preconfigurados para compilar CSS y servir la aplicación localmente.
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## 🚀 Tecnologías Utilizadas
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+- **Backend**:
+  - PHP 8.1+
+  - CodeIgniter 4
+  - Composer
+- **Frontend**:
+  - Tailwind CSS v4
+  - Alpine.js v3
+  - PostCSS
+  - npm
+- **Base de Datos**:
+  - PostgreSQL
 
-## Installation & updates
+## 📋 Requisitos Previos
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+Tener instalado lo siguiente en tu entorno de desarrollo:
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+- PHP 8.1 o superior
+- Composer
+- Node.js y npm
+- Un servidor de base de datos PostgreSQL en ejecución.
 
-## Setup
+## 📄 Licencia
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
-
-## Important Change with index.php
-
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
-
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
-
-**Please** read the user guide for a better explanation of how CI4 works!
-
-## Repository Management
-
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
-
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
-
-## Server Requirements
-
-PHP version 8.1 or higher is required, with the following extensions installed:
-
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
-
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
-> - The end of life date for PHP 8.1 will be December 31, 2025.
-
-Additionally, make sure that the following extensions are enabled in your PHP:
-
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+Este proyecto está bajo la Licencia ISC. Consulta el archivo `package.json` para más detalles.
