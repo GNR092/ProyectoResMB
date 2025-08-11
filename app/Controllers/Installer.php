@@ -23,29 +23,29 @@ class Installer extends BaseController
                 'label' => 'Contraseña de Superusuario',
                 'rules' => 'required',
                 'errors' => [
-                    'required' => 'La contraseña de superusuario es obligatoria.'
-                ]
+                    'required' => 'La contraseña de superusuario es obligatoria.',
+                ],
             ],
             'db_hostname' => [
                 'label' => 'Hostname del Servidor PostgreSQL',
                 'rules' => 'required',
                 'errors' => [
-                    'required' => 'El hostname es obligatorio.'
-                ]
+                    'required' => 'El hostname es obligatorio.',
+                ],
             ],
             'db_port' => [
                 'label' => 'Contraseña de Superusuario',
                 'rules' => 'required|is_natural_no_zero',
                 'errors' => [
                     'required' => 'El puerto es obligatorio.',
-                    'is_natural_no_zero' => 'El puerto debe ser un número natural mayor que cero.'
-                ]
+                    'is_natural_no_zero' => 'El puerto debe ser un número natural mayor que cero.',
+                ],
             ],
         ];
 
         if (!$this->validate($rules)) {
             return view('installer/db_config', [
-                'validation' => $this->validator
+                'validation' => $this->validator,
             ]);
         }
         $superuserPass = $post['superuser_password'];
@@ -61,16 +61,16 @@ class Installer extends BaseController
             return view('installer/db_config', [
                 'testResult' => [
                     'success' => true,
-                    'message' => '¡Conexión exitosa al servidor de PostgreSQL!'
-                ]
+                    'message' => '¡Conexión exitosa al servidor de PostgreSQL!',
+                ],
             ]);
         } catch (PDOException $e) {
             $message = 'Error al intentar conectar: ' . $e->getMessage();
             return view('installer/db_config', [
                 'testResult' => [
                     'success' => false,
-                    'message' => $message
-                ]
+                    'message' => $message,
+                ],
             ]);
         }
     }
@@ -83,46 +83,47 @@ class Installer extends BaseController
                 'label' => 'Contraseña de Superusuario',
                 'rules' => 'required',
                 'errors' => [
-                    'required' => 'La contraseña de superusuario es obligatoria.'
-                ]
+                    'required' => 'La contraseña de superusuario es obligatoria.',
+                ],
             ],
             'ci_username' => [
                 'label' => 'Nombre de Usuario',
                 'rules' => 'required|alpha_dash|min_length[3]',
                 'errors' => [
                     'required' => 'El {field} es obligatorio.',
-                    'alpha_dash' => 'El {field} solo puede contener letras, números y guiones bajos.',
-                    'min_length' => 'El {field} debe tener al menos {param} caracteres'
-                ]
+                    'alpha_dash' =>
+                        'El {field} solo puede contener letras, números y guiones bajos.',
+                    'min_length' => 'El {field} debe tener al menos {param} caracteres',
+                ],
             ],
             'ci_user_password' => [
                 'label' => 'Contraseña de Usuario',
                 'rules' => 'required|min_length[8]',
                 'errors' => [
                     'required' => 'La contraseña es obligatoria.',
-                    'min_length' => 'La contraseña debe tener al menos {param} caracteres.'
-                ]
+                    'min_length' => 'La contraseña debe tener al menos {param} caracteres.',
+                ],
             ],
             'db_hostname' => [
                 'label' => 'Hostname del Servidor PostgreSQL',
                 'rules' => 'required',
                 'errors' => [
-                    'required' => 'El hostname es obligatorio.'
-                ]
+                    'required' => 'El hostname es obligatorio.',
+                ],
             ],
             'db_port' => [
                 'label' => 'Contraseña de Superusuario',
                 'rules' => 'required|is_natural_no_zero',
                 'errors' => [
                     'required' => 'El puerto es obligatorio.',
-                    'is_natural_no_zero' => 'El puerto debe ser un número natural mayor que cero.'
-                ]
+                    'is_natural_no_zero' => 'El puerto debe ser un número natural mayor que cero.',
+                ],
             ],
         ];
 
         if (!$this->validate($rules)) {
             return view('installer/db_config', [
-                'validation' => $this->validator
+                'validation' => $this->validator,
             ]);
         }
 
@@ -165,7 +166,7 @@ class Installer extends BaseController
             $pdoAppUser->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
             // Verificamos si la base de datos ya existe. Esto es una consulta de SELECT segura.
-            $sqlCheckDb = "SELECT 1 FROM pg_database WHERE datname = :dbname";
+            $sqlCheckDb = 'SELECT 1 FROM pg_database WHERE datname = :dbname';
             $stmt = $pdoAppUser->prepare($sqlCheckDb);
             $stmt->execute([':dbname' => $dbName]);
             $dbExists = $stmt->fetch();
@@ -188,35 +189,35 @@ class Installer extends BaseController
             if (!file_exists($envPath) && file_exists($envTemplatePath)) {
                 // Si no existe, copia el archivo 'env' a '.env'
                 if (!copy($envTemplatePath, $envPath)) {
-                    throw new \Exception("No se pudo copiar el archivo de plantilla 'env' a '.env'. Verifique los permisos de la carpeta del proyecto.");
+                    throw new \Exception(
+                        "No se pudo copiar el archivo de plantilla 'env' a '.env'. Verifique los permisos de la carpeta del proyecto.",
+                    );
                 }
             }
 
             // AHORA QUE SABEMOS QUE EL ARCHIVO EXISTE, LO ACTUALIZAMOS
             $this->updateEnvFile($dbHost, $dbPort, $dbName, $dbUser, $dbPass);
-
-            
-
         } catch (PDOException $e) {
             $error_message = 'Error en la conexión o en la creación de la base de datos: ';
 
             if (strpos($e->getMessage(), 'password authentication failed') !== false) {
                 $error_message .= 'La contraseña de superusuario es incorrecta.';
             } elseif (strpos($e->getMessage(), 'could not connect to server') !== false) {
-                $error_message .= 'No se pudo conectar al servidor de PostgreSQL. Verifique que el hostname y el puerto sean correctos.';
+                $error_message .=
+                    'No se pudo conectar al servidor de PostgreSQL. Verifique que el hostname y el puerto sean correctos.';
             } else {
                 $error_message .= $e->getMessage();
             }
 
             return view('installer/db_config', [
                 'error' => $error_message,
-                'validation' => $this->validator
+                'validation' => $this->validator,
             ]);
         } catch (\Exception $e) {
             // Manejar errores de copia de archivos
             return view('installer/db_config', [
                 'error' => 'Error de archivos: ' . $e->getMessage(),
-                'validation' => $this->validator
+                'validation' => $this->validator,
             ]);
         }
         return redirect()->to('installer/success');
@@ -224,7 +225,6 @@ class Installer extends BaseController
 
     public function success()
     {
-
         return view('installer/success');
     }
 
@@ -295,20 +295,19 @@ class Installer extends BaseController
         $this->migrate();
     }
     public function migrate()
-{
-    // Ahora, al ser una nueva petición, CodeIgniter ya ha cargado
-    // los nuevos datos del .env
-    try {
-        $migrate = \Config\Services::migrations();
-        $migrate->latest();
-        
-        // Crear el archivo de bloqueo si la migración fue exitosa
-        file_put_contents(WRITEPATH . 'installer.lock', 'Installation successful.');
-        
-    } catch (\Throwable $e) {
-        // En caso de error en la migración
-        echo "Error al ejecutar las migraciones: " . $e->getMessage();
-        // Puedes agregar lógica para mostrar una vista de error
+    {
+        // Ahora, al ser una nueva petición, CodeIgniter ya ha cargado
+        // los nuevos datos del .env
+        try {
+            $migrate = \Config\Services::migrations();
+            $migrate->latest();
+
+            // Crear el archivo de bloqueo si la migración fue exitosa
+            file_put_contents(WRITEPATH . 'installer.lock', 'Installation successful.');
+        } catch (\Throwable $e) {
+            // En caso de error en la migración
+            echo 'Error al ejecutar las migraciones: ' . $e->getMessage();
+            // Puedes agregar lógica para mostrar una vista de error
+        }
     }
-}
 }
