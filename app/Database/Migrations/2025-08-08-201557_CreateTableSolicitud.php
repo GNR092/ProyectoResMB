@@ -40,13 +40,13 @@ class CreateTableSolicitud extends Migration
                 'type' => 'VARCHAR',
                 'constraint' => '50',
                 'unique' => true,
-                'null' => true, // Assuming it can be null if not generated immediately
+                'null' => true,
             ],
         ]);
 
         $this->forge->addKey('ID_Solicitud', true);
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('ID_Dpto', 'Departamento', 'ID_Dpto', 'CASCADE', 'CASCADE'); // Assuming 'Departamentos' in SQL is 'Departamento' table
+        $this->forge->addForeignKey('ID_Dpto', 'Departamento', 'ID_Dpto', 'CASCADE', 'CASCADE');
         $this->forge->createTable('Solicitud');
     }
 

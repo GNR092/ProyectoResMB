@@ -1,0 +1,29 @@
+{
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "tsconfig.json": "tsconfig.*.json, env.d.ts",
+    "vite.config.*": "jsconfig*, vitest.config.*, cypress.config.*, playwright.config.*",
+    "package.json": "package-lock.json, pnpm*, .yarnrc*, yarn*, .eslint*, eslint*, .oxlint*, oxlint*, .prettier*, prettier*, .editorconfig",
+    "composer.json": "composer.lock"
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "php.executablePath": "${workspaceFolder}\\..\\php\\php.exe",
+  "php.validate.executablePath": "${workspaceFolder}\\..\\php\\php.exe",
+  "terminal.integrated.defaultProfile.windows": "Command Prompt",
+  "terminal.integrated.env.windows": {
+    "PATH": "${workspaceFolder}\\..\\php;${env:PATH}"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": false,
+  "[php]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[env]": {
+    "editor.defaultFormatter": "IronGeek.vscode-env"
+  }
+}

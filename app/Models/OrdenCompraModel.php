@@ -6,13 +6,13 @@ use CodeIgniter\Model;
 
 class OrdenCompraModel extends Model
 {
-    protected $table            = 'ordencompra';
-    protected $primaryKey       = 'id_ordencompra';
+    protected $table            = 'Orden_Compra';
+    protected $primaryKey       = 'ID_OrdenCompra';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['id_cotizacion', 'id_proveedor'];
+    protected $allowedFields    = ['ID_Cotizacion', 'ID_Proveedor'];
 
     // Dates
     protected $useTimestamps = false;

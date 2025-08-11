@@ -6,13 +6,13 @@ use CodeIgniter\Model;
 
 class ProveedorModel extends Model
 {
-    protected $table            = 'proveedor';
-    protected $primaryKey       = 'id_proveedor';
+    protected $table            = 'Proveedor';
+    protected $primaryKey       = 'ID_Proveedor';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['nombre', 'rfc', 'direccion', 'razon_social', 'clabe', 'referencia'];
+    protected $allowedFields    = ['Nombre', 'Nombre_Comercial', 'Direccion', 'Razon_Social', 'Clabe', 'Referencia','Cuenta_Bancaria', 'Correo', 'Numero'];
 
     // Dates
     protected $useTimestamps = false;

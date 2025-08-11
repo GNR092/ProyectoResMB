@@ -6,13 +6,13 @@ use CodeIgniter\Model;
 
 class CotizacionModel extends Model
 {
-    protected $table            = 'cotizacion';
-    protected $primaryKey       = 'id_cotizacion';
+    protected $table            = 'Cotizacion';
+    protected $primaryKey       = 'ID_Cotizacion';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['id_solicitud', 'id_proveedor', 'total'];
+    protected $allowedFields    = ['ID_Solicitud', 'ID_Proveedor', 'Total'];
 
     // Dates
     protected $useTimestamps = false;

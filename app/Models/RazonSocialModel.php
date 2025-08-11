@@ -4,15 +4,15 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class DepartamentoModel extends Model
+class RazonSocialModel extends Model
 {
-    protected $table            = 'departamento';
-    protected $primaryKey       = 'id_dpto';
+    protected $table            = 'RazonSocial';
+    protected $primaryKey       = 'ID_RazonSocial';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['nombre'];
+    protected $allowedFields    = ['Nombre'];
 
     // Dates
     protected $useTimestamps = false;

@@ -122,7 +122,9 @@ _modules/*
 /api/
 
 # Visual Studio Code
-.vscode/
+# Ignora todo en .vscode excepto los archivos de configuración del proyecto
+.vscode/*
+!.vscode/settings.json
 
 /results/
 /phpunit*.xml

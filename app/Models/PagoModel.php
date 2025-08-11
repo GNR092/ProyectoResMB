@@ -6,13 +6,13 @@ use CodeIgniter\Model;
 
 class PagoModel extends Model
 {
-    protected $table            = 'pago';
-    protected $primaryKey       = 'id_pago';
+    protected $table            = 'Pago';
+    protected $primaryKey       = 'ID_Pago';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['id_ordencompra', 'id_proveedor', 'tipo', 'fecha_solicitud', 'fecha_pago', 'folio', 'concepto'];
+    protected $allowedFields    = ['ID_OrdenCompra', 'ID_Proveedor', 'Tipo', 'Fecha_Solicitud', 'Fecha_Pago', 'Folio', 'Concepto', 'Forma'];
 
     // Dates
     protected $useTimestamps = false;

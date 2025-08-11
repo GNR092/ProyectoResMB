@@ -6,13 +6,13 @@ use CodeIgniter\Model;
 
 class SolicitudModel extends Model
 {
-    protected $table            = 'solicitud';
-    protected $primaryKey       = 'id_solicitud';
+    protected $table            = 'Solicitud';
+    protected $primaryKey       = 'ID_Solicitud';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['id_usuario', 'id_dpto', 'fecha', 'estado', 'no_folio'];
+    protected $allowedFields    = ['ID_Usuario', 'ID_Dpto', 'Fecha', 'Estado', 'No_Folio'];
 
     // Dates
     protected $useTimestamps = false;

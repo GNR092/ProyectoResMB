@@ -28,7 +28,7 @@ class CreateTableDetalle extends Migration
             ],
             'Cantidad' => [
                 'type' => 'INT',
-                'constraint' => 11, // Assuming a reasonable integer constraint
+                'constraint' => 11,
                 'null' => false,
             ],
             'Costo' => [
