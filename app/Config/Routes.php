@@ -29,6 +29,9 @@ if (!file_exists($installerLockFile)) {
     $routes->post('auth/login', 'Auth::login');
     $routes->get('auth/logout', 'Auth::logout');
 
+    //Registrar usuarios
+    $routes->post('modales/registrarUsuario', 'Modales::registrarUsuario');
+
     // Otros
     $routes->get('/', 'Home::index');
     $routes->get('archivo', 'Archivo::index');
@@ -46,4 +49,6 @@ if (ENVIRONMENT === 'development') {
     $routes->get('installer', 'Installer::index');
     $routes->post('installer/process', 'Installer::process');
     $routes->post('installer/testConnection', 'Installer::testConnection');
+
+
 }

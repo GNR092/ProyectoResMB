@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -104,6 +105,8 @@
                     initSolicitarMaterial();
                 } else if (opcion === 'ver_historial') {
                     initPaginacionHistorial();
+                } else if (opcion === 'usuarios') {
+                    initUsuarios();
                 }
             })
             .catch(error => {
@@ -230,7 +233,6 @@
             });
         }
     }
-
     function initPaginacionHistorial() {
         const tabla = document.getElementById('tabla-historial');
         const filasOriginales = Array.from(tabla.querySelectorAll('tbody tr'));
@@ -300,6 +302,95 @@
 
         actualizarTabla();
     }
+
+    function initUsuarios() {
+        const modalContenido = document.getElementById('modal-contenido');
+        if (!modalContenido) return;
+
+        const form = modalContenido.querySelector('#form-register');
+        const mensajeDiv = modalContenido.querySelector('#mensaje');
+
+        if (!form) {
+            console.warn('initUsuarios: no se encontró #form-register dentro del modal');
+            return;
+        }
+
+        // Evitar agregar listeners duplicados
+        if (form.dataset.init === '1') return;
+        form.dataset.init = '1';
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // limpiar mensaje previo
+            if (mensajeDiv) {
+                mensajeDiv.textContent = '';
+                mensajeDiv.classList.remove('text-green-600', 'text-red-600');
+            }
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const prevBtnHtml = submitBtn ? submitBtn.innerHTML : null;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Guardando...';
+            }
+
+            try {
+                const formData = new FormData(form);
+
+                const resp = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest', // <- IMPORTANT (para que CI4 isAJAX() sea true)
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const text = await resp.text();
+
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (err) {
+                    console.error('Respuesta no JSON recibida al registrar usuario:', text);
+                    if (mensajeDiv) mensajeDiv.innerHTML = '<span class="text-red-600">Error: respuesta inesperada del servidor.</span>';
+                    return;
+                }
+
+                if (data.success) {
+                    if (mensajeDiv) {
+                        mensajeDiv.innerHTML = `<span class="text-green-600">${data.message || 'Registro correcto.'}</span>`;
+                    }
+                    
+                    // Volver a solicitar la vista del modal usuarios para dejar contenido vacío actualizado.
+                    const urlReload = `<?= base_url('modales/') ?>usuarios`;
+                    const reloadResp = await fetch(urlReload);
+                    const html = await reloadResp.text();
+                    modalContenido.innerHTML = html;
+                    // Re-inicializar la funcionalidad para la nueva vista
+                    initUsuarios();
+
+                } else {
+                    if (mensajeDiv) {
+                        mensajeDiv.innerHTML = `<span class="text-red-600">${data.message || 'Error al registrar usuario.'}</span>`;
+                    }
+                }
+
+            } catch (err) {
+                console.error('Error en la solicitud:', err);
+                if (mensajeDiv) mensajeDiv.innerHTML = `<span class="text-red-600">Error en la solicitud: ${err.message}</span>`;
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = prevBtnHtml;
+                }
+            }
+        });
+    }
+
+
+
 
     document.addEventListener('DOMContentLoaded', initPaginacionHistorial);
 
