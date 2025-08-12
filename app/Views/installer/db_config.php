@@ -91,13 +91,19 @@
             <div x-data="{show_ci_password: false}" class="space-y-4">
                 <h2 class="text-2xl font-bold text-gray-700">Configuración del Usuario de la Aplicación</h2>
                 <p class="text-gray-600">Estos serán los datos que usará CodeIgniter para conectarse.</p>
-                <div>
-                    <!-- Nombre de usuario para la aplicación -->
-                    <label for="ci_username" class="block text-gray-700 font-medium">Nombre de Usuario para la
-                        Aplicación:</label>
-                    <input type="text" id="ci_username" name="ci_username" value="<?= old('ci_username') ?>" required
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                </div>
+               <!-- Bloque con Alpine.js para el nombre de usuario -->
+                <div x-data="{ username: '<?= old('ci_username', '') ?>' }">
+                   <label for="ci_username" class="block text-gray-700 font-medium">Nombre de Usuario para la
+                       Aplicación:</label>
+                   <input type="text" 
+                          id="ci_username" 
+                          name="ci_username" 
+                          x-model="username"
+                          @input="username = username.toLowerCase().replace(/[^a-z]/g, '')"
+                          required
+                          class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="solo letras minúsculas, sin espacios">
+               </div>
                 <div>
                     <!-- Contraseña para el usuario de la aplicación -->
                     <label for="ci_user_password" class="block text-gray-700 font-medium">Contraseña para el usuario de

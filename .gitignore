@@ -152,3 +152,4 @@ out/
 coverage/
 .eslintcache
 *.tsbuildinfo
+Tasks.md

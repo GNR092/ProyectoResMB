@@ -10,9 +10,16 @@ class Modales extends BaseController
 {
     public function mostrar($opcion)
     {
+        $session = session();
+        $data = [
+            'departamentos' => $session->get('departamentos'),
+            'nombre_usuario' => $session->get('nombre_usuario'),
+            'departamento_usuario' => $session->get('departamento_usuario'),
+        ];
+
         switch ($opcion) {
             case 'solicitar_material':
-                return view('modales/solicitar_material');
+                return view('modales/solicitar_material', $data);
             case 'ver_historial':
                 return view('modales/ver_historial');
             case 'revisar_solicitudes':

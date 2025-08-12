@@ -1,3 +1,5 @@
+<?php
+$session = session(); ?>
 
 <!DOCTYPE html>
 <html lang="es">
@@ -11,18 +13,20 @@
 <!-- Barra lateral -->
 <aside class="w-64 bg-[#4A4A4A] text-white flex flex-col">
     <div class="p-4 border-b border-gray-600">
-        <img src="<?= base_url('images/logo.png') ?>" alt="Logo" class="mx-auto h-20 object-contain">
+        <img src="<?= base_url(
+            'images/logo.png',
+        ) ?>" alt="Logo" class="mx-auto h-20 object-contain">
     </div>
 
     <nav class="flex-1 mt-4 px-4 space-y-2">
-        <?php if (!empty($opcionesDinamicas)) : ?>
-            <?php foreach ($opcionesDinamicas as $key => $opcion) : ?>
+        <?php if (!empty($opcionesDinamicas)): ?>
+            <?php foreach ($opcionesDinamicas as $key => $opcion): ?>
                 <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2" onclick="abrirModal('<?= $key ?>')">
                     <?= $opcion['icon'] ?>
                     <span><?= esc($opcion['label']) ?></span>
                 </a>
             <?php endforeach; ?>
-        <?php else : ?>
+        <?php else: ?>
             <p class="text-gray-400 text-sm">Sin opciones disponibles</p>
         <?php endif; ?>
     </nav>
@@ -36,7 +40,9 @@
             <span>Ajustes</span>
         </a>
 
-        <a href="<?= base_url('logout') ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
+        <a href="<?= base_url(
+            'auth/logout',
+        ) ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m-3-3h12m0 0l-3.75-3.75M24 12l-3.75 3.75" />
             </svg>
@@ -48,12 +54,16 @@
 <!-- Contenido principal -->
 <div class="flex-1 flex flex-col bg-gray-100">
     <header class="h-12 bg-white border-b border-gray-300 flex items-center justify-end px-6 text-sm text-gray-600 shadow-sm">
-        <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc($departamento_usuario ?? 'Departamento') ?>
+        <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc(
+     $departamento_usuario ?? 'Departamento',
+ ) ?>
     </header>
 
     <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-            <img src="<?= base_url('images/logo.png') ?>" alt="Logo" class="max-w-xs filter invert" />
+            <img src="<?= base_url(
+                'images/logo.png',
+            ) ?>" alt="Logo" class="max-w-xs filter invert" />
         </div>
 
         <div class="relative z-10">
@@ -61,7 +71,7 @@
         </div>
 
         <!-- Modal general -->
-        <div id="modal-general" class="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 hidden flex items-start justify-center pt-10 overflow-auto">
+        <div id="modal-general" class="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 hidden items-start justify-center pt-10 overflow-auto">
             <div class="bg-white bg-opacity-95 rounded-lg shadow-2xl max-w-4xl w-full mx-4 sm:mx-auto p-6 relative">
                 <button onclick="cerrarModal()" class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
                 <h2 id="modal-title" class="text-xl font-semibold mb-4 text-gray-800"></h2>
@@ -114,10 +124,10 @@
                 modal.classList.remove('hidden');
             });
     }
+
     function cerrarModal() {
         document.getElementById('modal-general').classList.add('hidden');
     }
-
 
     function initSolicitarMaterial() {
         const tabla = document.getElementById('tabla-productos'); // tbody
@@ -204,27 +214,8 @@
                 // Crear nueva fila y mantener exactamente la estructura de la plantilla
                 const nuevaFila = tabla.insertRow();
                 nuevaFila.innerHTML = `
-                <td class="numero-fila border px-3 py-1 text-center"></td>
-                <td class="border px-3 py-1">
-                    <input type="text" name="codigo[]" class="w-full border rounded px-2 py-1 codigo" placeholder="Código">
-                </td>
-                <td class="border px-3 py-1">
-                    <input type="text" name="producto[]" class="w-full border rounded px-2 py-1" placeholder="Producto">
-                </td>
-                <td class="border px-3 py-1">
-                    <input type="number" name="cantidad[]" class="cantidad w-full border rounded px-2 py-1" min="1" step="1" value="1">
-                </td>
-                <td class="border px-3 py-1">
-                    <input type="number" name="importe[]" class="importe w-full border rounded px-2 py-1" min="0" step="1" value="0">
-                </td>
-                <td class="costo border px-3 py-1 text-right">$0.00</td>
-                <td class="border px-3 py-1 text-center">
-                    <button type="button" class="eliminar-fila text-red-600 hover:text-red-800" title="Eliminar fila">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                    </button>
-                </td>
+                <?= $this->include('layout/productTable') ?>
+                <?= $this->renderSection('ProductTable') ?>
             `;
                 asignarEventosFila(nuevaFila);
                 actualizarNumeros();
@@ -232,7 +223,56 @@
                 actualizarTotal();
             });
         }
+
+        const formulario = document.getElementById('form-upload');
+        if (!formulario) return;
+
+        formulario.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(formulario);
+            const url = "<?= base_url('archivo/subir') ?>";
+            const MessageContainer = document.getElementById('mensajes-form');
+            const submitButton = document.getElementById('btn-enviar');
+
+            submitButton.disabled = true;
+            submitButton.querySelector('span').textContent = 'Enviando...';
+            if (MessageContainer) MessageContainer.innerHTML = ''; 
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    MessageContainer.innerHTML = `<p class="text-green-600">${data.message}</p>`;
+                } else {
+                    let errores = '';
+                    if (data.errors) {
+                        for (const key in data.errors) {
+                            errores += `<li>${data.errors[key]}</li>`;
+                        }
+                    } else {
+                        errores = `<li>${data.message || 'Ocurrió un error desconocido.'}</li>`;
+                    }
+                    if (MessageContainer) MessageContainer.innerHTML = `<ul class="list-disc list-inside text-red-600">${errores}</ul>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (MessageContainer) MessageContainer.innerHTML = `<p class="text-red-600">Ocurrió un error de red. Por favor, intente de nuevo.</p>`;
+            } finally {
+                submitButton.disabled = false;
+                submitButton.querySelector('span').textContent = 'Enviar';
+            }
+        });
     }
+
     function initPaginacionHistorial() {
         const tabla = document.getElementById('tabla-historial');
         const filasOriginales = Array.from(tabla.querySelectorAll('tbody tr'));
@@ -395,6 +435,6 @@
     document.addEventListener('DOMContentLoaded', initPaginacionHistorial);
 
 </script>
-
+<script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
 </body>
 </html>
