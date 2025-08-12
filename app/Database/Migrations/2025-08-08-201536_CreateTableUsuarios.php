@@ -82,7 +82,7 @@ class CreateTableUsuarios extends Migration
             'ID_RazonSocial' => $razonSocialId,
             'Nombre'         => 'Admin',
             'Correo'         => 'admin@example.com',
-            'Contraseña'     => $hashedPassword,
+            'Contrasena'     => $hashedPassword,
             'Numero'       => '+019999999999',
         ];
 
