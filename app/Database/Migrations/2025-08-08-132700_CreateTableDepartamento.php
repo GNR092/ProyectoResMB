@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreateTableDepartamento extends Migration
+class CreateTableDepartamentos extends Migration
 {
     public function up()
     {
@@ -22,11 +22,11 @@ class CreateTableDepartamento extends Migration
             ],
         ]);
         $this->forge->addKey('ID_Dpto', true);
-        $this->forge->createTable('Departamento');
+        $this->forge->createTable('Departamentos');
     }
 
     public function down()
     {
-        $this->forge->dropTable('Departamento');
+        $this->forge->dropTable('Departamentos');
     }
 }

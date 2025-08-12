@@ -10,7 +10,7 @@
     "*.css": "tailwindcss"
   },
   "php.executablePath": "${workspaceFolder}\\..\\php\\php.exe",
-  "php.validate.executablePath": "${workspaceFolder}\\..\\php\\php.exe",
+  "php.validate.executablePath": "..\\php\\php.exe",
   "terminal.integrated.defaultProfile.windows": "Command Prompt",
   "terminal.integrated.env.windows": {
     "PATH": "${workspaceFolder}\\..\\php;${env:PATH}"
@@ -25,5 +25,8 @@
   },
   "[env]": {
     "editor.defaultFormatter": "IronGeek.vscode-env"
+  },
+  "[sql]": {
+    "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode"
   }
 }
