@@ -9,8 +9,8 @@ class InsertDepartamento extends Migration
     public function up()
     {
         // Forzar verificación de estructura
-        if (!$this->db->tableExists('Departamento')) {
-            throw new \RuntimeException('La tabla Departamento no existe');
+        if (!$this->db->tableExists('Departamentos')) {
+            throw new \RuntimeException('La tabla Departamentos no existe');
         }
 
         // Lista completa de departamentos
@@ -24,13 +24,13 @@ class InsertDepartamento extends Migration
 
         foreach ($departamentos as $depto) {
             // Verificación con escape de caracteres
-            $exists = $this->db->table('Departamento')
+            $exists = $this->db->table('Departamentos')
                 ->where('Nombre', $depto)
                 ->countAllResults();
 
             if (!$exists) {
-                $this->db->table('Departamento')->insert(['Nombre' => $depto]);
-                log_message('info', "Insertado departamento: {$depto}");
+                $this->db->table('Departamentos')->insert(['Nombre' => $depto]);
+                log_message('info', "Insertado departamentos: {$depto}");
             }
         }
     }
