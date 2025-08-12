@@ -43,10 +43,10 @@ class CreateTableUsuarios extends Migration
                 'constraint' => '255',
                 'null' => false,
             ],
-            'Complejo' => [
+            'Numero' => [
                 'type' => 'VARCHAR',
                 'constraint' => '100',
-                'null' => true,
+                'null' => false,
             ],
         ]);
 
@@ -82,8 +82,8 @@ class CreateTableUsuarios extends Migration
             'ID_RazonSocial' => $razonSocialId,
             'Nombre'         => 'Admin',
             'Correo'         => 'admin@example.com',
-            'Contrasena'     => $hashedPassword,
-            'Complejo'       => 'Principal',
+            'Contraseña'     => $hashedPassword,
+            'Numero'       => '+019999999999',
         ];
 
         $this->db->table('Usuarios')->insert($data);
