@@ -18,10 +18,10 @@ class Modales extends BaseController
         ];
 
         switch ($opcion) {
-            case 'solicitar_material':
-                return view('modales/solicitar_material', $data);
             case 'ver_historial':
                 return view('modales/ver_historial');
+            case 'solicitar_material':
+                return view('modales/solicitar_material', $data);
             case 'revisar_solicitudes':
                 return view('modales/revisar_solicitudes');
             case 'proveedores':
@@ -48,10 +48,18 @@ class Modales extends BaseController
                 return view('modales/limpiar_almacenamiento');
             case 'pagos_pendientes':
                 return view('modales/pagos_pendientes');
+            case 'registrar_productos':
+                return view('modales/registrar_productos');
+            case 'crud_productos':
+                return view('modales/crud_productos');
+            case 'entrega_productos':
+                return view('modales/entrega_productos');
+
             default:
                 return 'Opción no válida';
         }
     }
+
 
     public function registrarUsuario()
     {

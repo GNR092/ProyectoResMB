@@ -100,8 +100,12 @@ $session = session(); ?>
             'dictamen_solicitudes': 'Dictamen de Solicitudes',
             'crud_proveedores': 'CRUD Proveedores',
             'limpiar_almacenamiento': 'Limpiar Almacenamiento',
-            'pagos_pendientes': 'Pagos Pendientes'
+            'pagos_pendientes': 'Pagos Pendientes',
+            'registrar_productos': 'Registrar Productos',
+            'crud_productos': 'Existencias',
+            'entrega_productos': 'Entrega de Productos'
         };
+
 
         titulo.innerText = titulos[opcion] ?? 'Opción';
 
