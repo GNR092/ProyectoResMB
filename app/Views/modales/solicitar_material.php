@@ -57,20 +57,38 @@
                 </tbody>
             </table>
             <!-- Total costo -->
+            <!-- Subtotal -->
             <div class="w-full overflow-auto mt-3">
                 <table class="w-full text-sm border border-gray-300">
                     <tbody>
                     <tr class="bg-gray-200 text-gray-700 font-semibold">
                         <td class="px-3 py-2 border text-left" style="width: 70%;">
-                            Total:
+                            Subtotal:
                         </td>
-                        <td id="total-costo" class="px-3 py-2 border text-right" style="width: 30%;">
+                        <td id="subtotal-costo" class="px-3 py-2 border text-right" style="width: 30%;">
+                            $0.00
+                        </td>
+                    </tr>
+                    <!-- Total con IVA opcional -->
+                    <tr class="bg-gray-100 text-gray-700 font-semibold">
+                        <td class="px-3 py-2 border text-left">
+                            <div class="flex items-center gap-2">
+                                Total:
+                                <label class="flex items-center gap-1 text-sm font-normal">
+                                    <input type="checkbox" id="agregar-iva" class="accent-blue-600">
+                                    Agregar IVA
+                                </label>
+                            </div>
+                        </td>
+                        <td id="total-costo" class="px-3 py-2 border text-right">
                             $0.00
                         </td>
                     </tr>
                     </tbody>
                 </table>
             </div>
+
+
             <!-- Botón para agregar fila -->
             <div class="flex justify-end mt-2">
                 <button id="agregar-fila" type="button" class="flex items-center gap-2 px-3 py-2 text-green-600 rounded" title="Agregar fila">
@@ -81,6 +99,8 @@
                 </button>
             </div>
         </div>
+
+
         <!-- Referencia o cotización -->
         <div class="mt-6">
             <h2 class="text-lg font-semibold text-gray-800 mb-2">Referencia o cotización</h2>

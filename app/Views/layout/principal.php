@@ -136,12 +136,15 @@ $session = session(); ?>
     function initSolicitarMaterial() {
         const tabla = document.getElementById('tabla-productos'); // tbody
         const agregarBtn = document.getElementById('agregar-fila');
-        const totalCostoTd = document.getElementById('total-costo');
+
+        // NUEVOS refs para subtotal/total/IVA
+        const subtotalTd = document.getElementById('subtotal-costo'); // nuevo id en la vista
+        const totalTd    = document.getElementById('total-costo');    // ahora muestra el total final
+        const chkIVA     = document.getElementById('agregar-iva');    // checkbox "Agregar IVA"
 
         if (!tabla) return;
 
         function actualizarNumeros() {
-            // numerar solo las filas actuales
             tabla.querySelectorAll('tr').forEach((fila, i) => {
                 const celdaNumero = fila.querySelector('.numero-fila');
                 if (celdaNumero) celdaNumero.textContent = i + 1;
@@ -158,6 +161,7 @@ $session = session(); ?>
             });
         }
 
+        // === MODIFICADO: ahora calcula SUBTOTAL y TOTAL (con/ sin IVA) ===
         function actualizarTotal() {
             let suma = 0;
             tabla.querySelectorAll('tr').forEach(fila => {
@@ -167,28 +171,36 @@ $session = session(); ?>
                     suma += valor;
                 }
             });
-            totalCostoTd.textContent = '$' + suma.toFixed(2);
+
+            // Subtotal
+            if (subtotalTd) subtotalTd.textContent = '$' + suma.toFixed(2);
+
+            // Total (aplica 16% si está marcado "Agregar IVA")
+            let total = suma;
+            if (chkIVA && chkIVA.checked) {
+                total = suma * 1.16;
+            }
+            if (totalTd) totalTd.textContent = '$' + total.toFixed(2);
         }
 
         function asignarEventosFila(fila) {
             if (!fila) return;
 
             const cantidadInput = fila.querySelector('.cantidad');
-            const importeInput = fila.querySelector('.importe');
-            const codigoInput = fila.querySelector('.codigo'); // nuevo campo código (si lo necesitas para lógica adicional)
-            const costoTd = fila.querySelector('.costo');
-            const eliminarBtn = fila.querySelector('.eliminar-fila');
+            const importeInput  = fila.querySelector('.importe');
+            const costoTd       = fila.querySelector('.costo');
+            const eliminarBtn   = fila.querySelector('.eliminar-fila');
 
             function actualizarCosto() {
                 const cantidad = parseFloat(cantidadInput?.value) || 0;
-                const importe = parseFloat(importeInput?.value) || 0;
-                const costo = cantidad * importe;
+                const importe  = parseFloat(importeInput?.value)  || 0;
+                const costo    = cantidad * importe;
                 if (costoTd) costoTd.textContent = '$' + costo.toFixed(2);
-                actualizarTotal();
+                actualizarTotal(); // <- recalcula subtotal/total
             }
 
             if (cantidadInput) cantidadInput.addEventListener('input', actualizarCosto);
-            if (importeInput) importeInput.addEventListener('input', actualizarCosto);
+            if (importeInput)  importeInput.addEventListener('input',  actualizarCosto);
 
             if (eliminarBtn) {
                 eliminarBtn.addEventListener('click', () => {
@@ -201,21 +213,25 @@ $session = session(); ?>
                 });
             }
 
-            // Cálculo inicial para mostrar costo desde valores por defecto
+            // cálculo inicial
             actualizarCosto();
         }
 
-        // Asignar eventos a las filas existentes
+        // Asignar eventos a filas existentes
         tabla.querySelectorAll('tr').forEach(fila => asignarEventosFila(fila));
 
         actualizarBotonesEliminar();
         actualizarNumeros();
         actualizarTotal();
 
+        // Reaccionar cuando marquen/desmarquen "Agregar IVA"
+        if (chkIVA) {
+            chkIVA.addEventListener('change', actualizarTotal);
+        }
+
         // Añadir nueva fila
         if (agregarBtn) {
             agregarBtn.addEventListener('click', () => {
-                // Crear nueva fila y mantener exactamente la estructura de la plantilla
                 const nuevaFila = tabla.insertRow();
                 nuevaFila.innerHTML = `
                 <?= $this->include('layout/productTable') ?>
@@ -228,6 +244,7 @@ $session = session(); ?>
             });
         }
 
+        // ------- tu lógica de envío se queda igual -------
         const formulario = document.getElementById('form-upload');
         if (!formulario) return;
 
@@ -241,15 +258,13 @@ $session = session(); ?>
 
             submitButton.disabled = true;
             submitButton.querySelector('span').textContent = 'Enviando...';
-            if (MessageContainer) MessageContainer.innerHTML = ''; 
+            if (MessageContainer) MessageContainer.innerHTML = '';
 
             try {
                 const response = await fetch(url, {
                     method: 'POST',
                     body: formData,
-                    headers: {
-                        'Accept': 'application/json'
-                    }
+                    headers: { 'Accept': 'application/json' }
                 });
 
                 const data = await response.json();
@@ -276,6 +291,7 @@ $session = session(); ?>
             }
         });
     }
+
 
     function initPaginacionHistorial() {
         const tabla = document.getElementById('tabla-historial');
