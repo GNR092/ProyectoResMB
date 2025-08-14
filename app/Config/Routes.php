@@ -24,6 +24,7 @@ if (!file_exists($installerLockFile)) {
     // --- Rutas de la Aplicación ---
     // Estas rutas solo están disponibles si el archivo de bloqueo YA existe.
     $routes->get('installer/success', 'Installer::success');
+    $routes->get('/', 'Home::index');
     // Login
     $routes->get('auth', 'Auth::index');
     $routes->post('auth/login', 'Auth::login');
@@ -38,7 +39,6 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/registrarUsuario', 'Modales::registrarUsuario');
 
         // Otros
-        $routes->get('/', 'Home::index');
         $routes->get('archivo', 'Archivo::index');
         $routes->post('archivo/subir', 'Archivo::subir');
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
