@@ -8,47 +8,47 @@ class Auth extends BaseController
 {
     public function index()
     {
-        return view("auth/login");
+        return view('auth/login');
     }
 
     public function login()
     {
         $post = $this->request->getPost();
 
-        $email = $post["email"];
-        $password = $post["password"];
+        $email = $post['email'];
+        $password = $post['password'];
 
         $rules = [
-            "email" => "required|valid_email",
-            "password" => "required|min_length[3]",
+            'email' => 'required|valid_email',
+            'password' => 'required|min_length[3]',
         ];
 
         if (!$this->validate($rules)) {
-            return view("auth/login", [
-                "error" => $this->validator->getErrors(),
+            return view('auth/login', [
+                'error' => $this->validator->getErrors(),
             ]);
         }
 
         $userModel = new UsuarioModel();
-        $user = $userModel->where("Correo", $email)->first();
+        $user = $userModel->where('Correo', $email)->first();
 
-        if ($user && password_verify($password, $user["Contrasena"])) {
+        if ($user && password_verify($password, $user['Contrasena'])) {
             $ses_data = [
-                "id" => $user["ID_Usuario"],
-                "name" => $user["Nombre"],
-                "email" => $user["Correo"],
-                "isLoggedIn" => true,
+                'id' => $user['ID_Usuario'],
+                'name' => $user['Nombre'],
+                'email' => $user['Correo'],
+                'isLoggedIn' => true,
             ];
             $this->session->set($ses_data);
 
-            return redirect()->to("/");
+            return redirect()->to('/');
         }
 
-        return view("auth/login", ["error" => "Invalid email or password."]);
+        return view('auth/login', ['error' => 'Correo electrónico o contraseña no válidos.']);
     }
     public function logout()
     {
         $this->session->destroy();
-        return redirect()->to("/auth");
+        return redirect()->to('/auth');
     }
 }

@@ -27,19 +27,23 @@ if (!file_exists($installerLockFile)) {
     // Login
     $routes->get('auth', 'Auth::index');
     $routes->post('auth/login', 'Auth::login');
-    $routes->get('auth/logout', 'Auth::logout');
 
-    //Registrar usuarios
-    $routes->post('modales/registrarUsuario', 'Modales::registrarUsuario');
+    /*
+     **
+     * Proteccion de rutas para evitar que se mande o filtre información sensible
+     * Agregar nuevas rutas despues del $routes->group('/', ['filter' => 'auth'], function ($routes)
+     */
+    $routes->group('/', ['filter' => 'auth'], function ($routes) {
+        //Registrar usuarios
+        $routes->post('modales/registrarUsuario', 'Modales::registrarUsuario');
 
-    // Otros
-    $routes->get('/', 'Home::index');
-    $routes->get('archivo', 'Archivo::index');
-    $routes->post('archivo/subir', 'Archivo::subir');
-    $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
-
-    // Ruta de autenticación
-    $routes->match(['GET', 'POST'], 'login', 'Auth::login');
+        // Otros
+        $routes->get('/', 'Home::index');
+        $routes->get('archivo', 'Archivo::index');
+        $routes->post('archivo/subir', 'Archivo::subir');
+        $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
+        $routes->get('auth/logout', 'Auth::logout');
+    });
 }
 
 // --- Rutas para Modo de Desarrollo ---
@@ -49,6 +53,4 @@ if (ENVIRONMENT === 'development') {
     $routes->get('installer', 'Installer::index');
     $routes->post('installer/process', 'Installer::process');
     $routes->post('installer/testConnection', 'Installer::testConnection');
-
-
 }
