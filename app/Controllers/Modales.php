@@ -20,16 +20,33 @@ class Modales extends BaseController
         switch ($opcion) {
             case 'ver_historial':
                 return view('modales/ver_historial');
+
             case 'solicitar_material':
                 return view('modales/solicitar_material', $data);
+
             case 'revisar_solicitudes':
                 return view('modales/revisar_solicitudes');
+
             case 'proveedores':
                 return view('modales/proveedores');
+
             case 'ordenes_compra':
                 return view('modales/ordenes_compra');
+
             case 'enviar_revision':
-                return view('modales/enviar_revision');
+                $solicitudModel = new \App\Models\SolicitudModel();
+
+                $data['solicitudes'] = $solicitudModel
+                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->findAll();
+
+                return view('modales/enviar_revision', $data);
+
+
+
             case 'usuarios':
                 $departamentosModel = new DepartamentosModel();
                 $razonSocialModel = new RazonSocialModel();
@@ -40,18 +57,25 @@ class Modales extends BaseController
                 ];
 
                 return view('modales/usuarios', $data);
+
             case 'dictamen_solicitudes':
                 return view('modales/dictamen_solicitudes');
+
             case 'crud_proveedores':
                 return view('modales/crud_proveedores');
+
             case 'limpiar_almacenamiento':
                 return view('modales/limpiar_almacenamiento');
+
             case 'pagos_pendientes':
                 return view('modales/pagos_pendientes');
+
             case 'registrar_productos':
                 return view('modales/registrar_productos');
+
             case 'crud_productos':
                 return view('modales/crud_productos');
+
             case 'entrega_productos':
                 return view('modales/entrega_productos');
 

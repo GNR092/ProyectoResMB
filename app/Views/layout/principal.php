@@ -119,7 +119,10 @@ $session = session(); ?>
                     initPaginacionHistorial();
                 } else if (opcion === 'usuarios') {
                     initUsuarios();
+                }else if (opcion === 'enviar_revision') {
+                    initEnviarRevision();
                 }
+
             })
             .catch(error => {
                 contenido.innerHTML = '<p class="text-red-500">Error al cargar el contenido del modal.</p>';
@@ -131,6 +134,7 @@ $session = session(); ?>
         document.getElementById('modal-general').classList.add('hidden');
     }
 
+    //SolicitarMaterial
     function initSolicitarMaterial() {
         const tabla = document.getElementById('tabla-productos'); // tbody
         const agregarBtn = document.getElementById('agregar-fila');
@@ -290,7 +294,7 @@ $session = session(); ?>
         });
     }
 
-
+    //PaginacionHistorial
     function initPaginacionHistorial() {
         const tabla = document.getElementById('tabla-historial');
         const filasOriginales = Array.from(tabla.querySelectorAll('tbody tr'));
@@ -361,6 +365,7 @@ $session = session(); ?>
         actualizarTabla();
     }
 
+    //Usuarios
     function initUsuarios() {
         const modalContenido = document.getElementById('modal-contenido');
         if (!modalContenido) return;
@@ -447,6 +452,59 @@ $session = session(); ?>
         });
     }
 
+    //EnviarRevision
+    function initEnviarRevision() {
+        const tabla = document.getElementById('tabla-enviar-revision').parentElement; // tbody -> div overflow
+        const filas = document.querySelectorAll('#tabla-enviar-revision tr');
+        const paginacion = document.getElementById('paginacion-enviar-revision');
+
+        let paginaActual = 1;
+        const filasPorPagina = 10;
+        const totalFilas = filas.length;
+        const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+
+        function mostrarPagina(pagina) {
+            paginaActual = pagina;
+            filas.forEach((fila, index) => {
+                // Ocultar fila de encabezado si la hubiera en tbody
+                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
+            });
+            renderPaginacion();
+        }
+
+        function renderPaginacion() {
+            paginacion.innerHTML = '';
+            for (let i = 1; i <= totalPaginas; i++) {
+                const boton = document.createElement('button');
+                boton.textContent = i;
+                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.addEventListener('click', () => mostrarPagina(i));
+                paginacion.appendChild(boton);
+            }
+        }
+
+        mostrarPagina(1); // Mostrar la primera página
+    }
+
+    // Funciones para mostrar VER y COTIZAR
+    function mostrarVer(idSolicitud) {
+        document.getElementById('div-tabla').classList.add('hidden');
+        document.getElementById('div-ver').classList.remove('hidden');
+        console.log("VER solicitud ID:", idSolicitud); // Aquí puedes cargar los detalles
+    }
+
+    function mostrarCotizar(idSolicitud) {
+        document.getElementById('div-tabla').classList.add('hidden');
+        document.getElementById('div-cotizar').classList.remove('hidden');
+        console.log("COTIZAR solicitud ID:", idSolicitud); // Aquí puedes cargar el formulario
+    }
+
+    // Función para regresar a la tabla
+    function regresarTabla() {
+        document.getElementById('div-ver').classList.add('hidden');
+        document.getElementById('div-cotizar').classList.add('hidden');
+        document.getElementById('div-tabla').classList.remove('hidden');
+    }
 
 
 
