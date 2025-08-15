@@ -6,6 +6,9 @@ use CodeIgniter\Controller;
 use App\Models\SolicitudModel;
 use App\Models\UsuarioModel;
 use App\Models\DepartamentosModel;
+use App\Models\ProductoModel;
+use App\Models\DetalleModel;
+use App\Models\RazonSocialModel;
 
 class Archivo extends BaseController
 {
@@ -33,47 +36,63 @@ class Archivo extends BaseController
         }*/
 
         $post = $this->request->getPost();
+        /*------------------ Modelos ------------------ */
+        $razonsocial = new RazonSocialModel()->find($post['razon_social']);
+        $usuario = new UsuarioModel()->find(session('id'));
+        $solicitud = new SolicitudModel();
+        $departamentos = new DepartamentosModel();
+        $productos = new ProductoModel();
+        $detalles = new DetalleModel();
+        /*------------------ Variables ------------------*/
+        $fecha = $post['fecha'];
+        $departamento = $post['departamento'];
+        /*------------------ Productos ------------------*/
         $codigos = $post['codigo'];
-        $productos = $post['producto'];
+        $producto = $post['producto'];
         $cantidades = $post['cantidad'];
         $importes = $post['importe'];
-        $usuario = new UsuarioModel()->find(session('id'));
+        $ivas = $post['iva'] ?? null;
 
-        $datosParaInsertar = [];
+        $datosSolicitud = [];
+        $datosProductos = [];
+
+        $datosSolicitud = [
+            'ID_Usuario' => $usuario['ID_Usuario'],
+            'ID_Dpto' => $departamentos->where('Nombre', $departamento)->first()['ID_Dpto'],
+            'Fecha' => $fecha,
+            'Estado' => 'En espera',
+            'No_Folio' => null,
+        ];
+
         for ($i = 0; $i < count($codigos); $i++) {
             // Se puede calcular el costo aquí o en el frontend
             $costo = $cantidades[$i] * $importes[$i];
 
-            $datosParaInsertar[] = [
-                'ID_Solicitud' => 0,
-                'usuario' => $usuario['Nombre'],
+            $datosProductos[] = [
                 'codigo' => $codigos[$i],
-                'nombre_producto' => $productos[$i],
+                'nombre_producto' => $producto[$i],
                 'cantidad' => $cantidades[$i],
                 'importe' => $importes[$i],
                 'costo' => $costo,
             ];
         }
 
-        $solicitud = new SolicitudModel();
-        
-        $departamentos = new DepartamentosModel();
-        $jsondata = json_encode($datosParaInsertar);
+        try {
+            $solicitud->insert($datosSolicitud);
+            $solicitudId = $solicitud->insertID();
+            $solicitud->update($solicitudId, [
+                'No_Folio' => 'mbsp-' . $solicitudId,
+            ]);
 
-
-        if (true) {
-            // Pruebas
             return $this->response->setJSON([
                 'success' => true,
-                'message' => $jsondata,
+                'message' => 'Solicitud registrada correctamente',
             ]);
-        } else {
+        } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
-                'errors' => $this->validator->getErrors(),
+                'errors' => $e->getMessage(),
             ]);
         }
-
-       
     }
 }

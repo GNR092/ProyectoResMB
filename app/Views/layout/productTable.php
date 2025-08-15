@@ -8,7 +8,7 @@
                     <input type="number" name="cantidad[]" class="cantidad w-full border rounded px-2 py-1" min="1" step="1" value="1">
                 </td>
                 <td class="border px-3 py-1">
-                    <input type="number" name="importe[]" class="importe w-full border rounded px-2 py-1" min="0" step="1" value="0">
+                    <input type="number" name="importe[]" class="importe w-full border rounded px-2 py-1" min="0" step="0.01" value="0">
                 </td>
                 <td class="costo border px-3 py-1 text-right">$0.00</td>
                 <td class="border px-3 py-1 text-center">
