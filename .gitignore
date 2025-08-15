@@ -153,3 +153,4 @@ coverage/
 .eslintcache
 *.tsbuildinfo
 Tasks.md
+[tT]est.php
