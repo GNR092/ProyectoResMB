@@ -71,7 +71,10 @@ class Modales extends BaseController
                 return view('modales/pagos_pendientes');
 
             case 'registrar_productos':
-                return view('modales/registrar_productos');
+                $productoModel = new \App\Models\ProductoModel();
+                $data['productos'] = $productoModel->findAll();
+                return view('modales/registrar_productos', $data);
+
 
             case 'crud_productos':
                 return view('modales/crud_productos');
@@ -120,6 +123,40 @@ class Modales extends BaseController
                 ->with('error', 'Error al registrar usuario.');
         }
     }
+
+    public function registrarMaterial()
+    {
+        try {
+            $codigo = $this->request->getPost('Codigo');
+            $nombre = $this->request->getPost('Nombre');
+            $existencia = $this->request->getPost('Existencia');
+
+            if (empty($codigo) || empty($nombre) || $existencia === null) {
+                throw new \Exception("Datos incompletos: " . json_encode($this->request->getPost()));
+            }
+
+            $productoModel = new \App\Models\ProductoModel();
+            $productoModel->insert([
+                'Codigo'     => $codigo,
+                'Nombre'     => $nombre,
+                'Existencia' => $existencia
+            ]);
+
+            if ($productoModel->db->affectedRows() <= 0) {
+                throw new \Exception("No se pudo insertar el producto");
+            }
+
+            return $this->response->setJSON(['success' => true]);
+
+        } catch (\Throwable $e) {
+            log_message('error', '[Registrar Producto] ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Ocurrió un error al registrar el producto.'
+            ]);
+        }
+    }
+
 
 
 }

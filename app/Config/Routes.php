@@ -37,6 +37,9 @@ if (!file_exists($installerLockFile)) {
     $routes->group('/', ['filter' => 'auth'], function ($routes) {
         //Registrar usuarios
         $routes->post('modales/registrarUsuario', 'Modales::registrarUsuario');
+        // Ruta POST para registrar productos
+        $routes->post('modales/registrarMaterial', 'Modales::registrarMaterial');
+
 
         // Otros
         $routes->get('archivo', 'Archivo::index');

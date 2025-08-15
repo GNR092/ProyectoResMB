@@ -82,6 +82,7 @@ $session = session(); ?>
 </div>
 
 <script>
+    //Abrir-Cerrar modal
     function abrirModal(opcion) {
         const modal = document.getElementById('modal-general');
         const titulo = document.getElementById('modal-title');
@@ -104,7 +105,6 @@ $session = session(); ?>
             'entrega_productos': 'Entrega de Productos'
         };
 
-
         titulo.innerText = titulos[opcion] ?? 'Opción';
 
         fetch(`<?= base_url('modales/') ?>${opcion}`)
@@ -119,8 +119,10 @@ $session = session(); ?>
                     initPaginacionHistorial();
                 } else if (opcion === 'usuarios') {
                     initUsuarios();
-                }else if (opcion === 'enviar_revision') {
+                } else if (opcion === 'enviar_revision') {
                     initEnviarRevision();
+                } else if (opcion === 'registrar_productos') {
+                    initRegistrarMaterial();
                 }
 
             })
@@ -129,7 +131,6 @@ $session = session(); ?>
                 modal.classList.remove('hidden');
             });
     }
-
     function cerrarModal() {
         document.getElementById('modal-general').classList.add('hidden');
     }
@@ -405,13 +406,12 @@ $session = session(); ?>
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest', // <- IMPORTANT (para que CI4 isAJAX() sea true)
+                        'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
                     }
                 });
 
                 const text = await resp.text();
-
                 let data;
                 try {
                     data = JSON.parse(text);
@@ -425,15 +425,8 @@ $session = session(); ?>
                     if (mensajeDiv) {
                         mensajeDiv.innerHTML = `<span class="text-green-600">${data.message || 'Registro correcto.'}</span>`;
                     }
-                    
-                    // Volver a solicitar la vista del modal usuarios para dejar contenido vacío actualizado.
-                    const urlReload = `<?= base_url('modales/') ?>usuarios`;
-                    const reloadResp = await fetch(urlReload);
-                    const html = await reloadResp.text();
-                    modalContenido.innerHTML = html;
-                    // Re-inicializar la funcionalidad para la nueva vista
-                    initUsuarios();
-
+                    form.reset(); // Solo limpia el formulario sin cerrar el modal
+                    form.querySelector('input, select, textarea')?.focus(); // Opcional: vuelve al primer campo
                 } else {
                     if (mensajeDiv) {
                         mensajeDiv.innerHTML = `<span class="text-red-600">${data.message || 'Error al registrar usuario.'}</span>`;
@@ -451,6 +444,7 @@ $session = session(); ?>
             }
         });
     }
+
 
     //EnviarRevision
     function initEnviarRevision() {
@@ -486,24 +480,56 @@ $session = session(); ?>
         mostrarPagina(1); // Mostrar la primera página
     }
 
-    // Funciones para mostrar VER y COTIZAR
+    // Funciones para movimientos de revision
     function mostrarVer(idSolicitud) {
         document.getElementById('div-tabla').classList.add('hidden');
         document.getElementById('div-ver').classList.remove('hidden');
         console.log("VER solicitud ID:", idSolicitud); // Aquí puedes cargar los detalles
     }
-
     function mostrarCotizar(idSolicitud) {
         document.getElementById('div-tabla').classList.add('hidden');
         document.getElementById('div-cotizar').classList.remove('hidden');
         console.log("COTIZAR solicitud ID:", idSolicitud); // Aquí puedes cargar el formulario
     }
-
-    // Función para regresar a la tabla
     function regresarTabla() {
         document.getElementById('div-ver').classList.add('hidden');
         document.getElementById('div-cotizar').classList.add('hidden');
         document.getElementById('div-tabla').classList.remove('hidden');
+    }
+
+    //Funciones para almacen
+    function initRegistrarMaterial() {
+        console.log("Inicializando función Registrar Material");
+
+        const form = document.getElementById('formRegistrarProducto');
+        if (!form) {
+            console.warn("No se encontró el formulario de registrar material");
+            return;
+        }
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Producto registrado correctamente");
+                        form.reset(); // Solo limpia el formulario, no cierra el modal
+                    } else {
+                        alert("Error al registrar producto: " + (data.message || 'Desconocido'));
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Error al procesar la solicitud");
+                });
+        });
     }
 
 
