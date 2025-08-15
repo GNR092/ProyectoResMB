@@ -5,19 +5,19 @@
         <div class="flex justify-between gap-4">
             <div class="w-1/3">
                 <label class="text-sm text-gray-700 font-medium">Fecha:</label>
-                <input type="date" class="w-full px-3 py-2 border rounded" value="<?= date(
+                <input type="date" class="w-full px-3 py-2 border rounded" name="fecha" value="<?= date(
                     'Y-m-d',
                 ) ?>" readonly>
             </div>
             <div class="w-1/3">
                 <label class="text-sm text-gray-700 font-medium">Usuario:</label>
-                <input type="text" class="w-full px-3 py-2 border rounded" value="<?= esc(
+                <input type="text" class="w-full px-3 py-2 border rounded" name="usuario" value="<?= esc(
                     $nombre_usuario,
                 ) ?>" readonly>
             </div>
             <div class="w-1/3">
                 <label class="text-sm text-gray-700 font-medium">Departamento:</label>
-                <input type="text" class="w-full px-3 py-2 border rounded" value="<?= esc(
+                <input type="text" class="w-full px-3 py-2 border rounded" name="departamento" value="<?= esc(
                     $departamento_usuario,
                 ) ?>" readonly>
             </div>
@@ -75,7 +75,7 @@
                             <div class="flex items-center gap-2">
                                 Total:
                                 <label class="flex items-center gap-1 text-sm font-normal">
-                                    <input type="checkbox" id="agregar-iva" class="accent-blue-600">
+                                    <input type="checkbox" id="agregar-iva" class="accent-blue-600" name="iva">
                                     Agregar IVA
                                 </label>
                             </div>

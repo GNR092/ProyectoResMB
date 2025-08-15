@@ -6,12 +6,12 @@ $session = session(); ?>
 <head>
     <meta charset="UTF-8">
     <title>Pantalla principal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>">
 </head>
 <body class="h-screen flex">
 
 <!-- Barra lateral -->
-<aside class="w-64 bg-[#4A4A4A] text-white flex flex-col overflow-auto">
+<aside class="font-montserrat w-64 bg-carbon text-white flex flex-col overflow-auto">
     <div class="p-4 border-b border-gray-600">
         <img src="<?= base_url(
             'images/logo.png',
