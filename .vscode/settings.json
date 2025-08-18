@@ -9,11 +9,11 @@
   "files.associations": {
     "*.css": "tailwindcss"
   },
-  "php.executablePath": "${workspaceFolder}\\..\\php\\php.exe",
-  "php.validate.executablePath": "..\\php\\php.exe",
+  "php.executablePath": "../php/php.exe",
+  "php.validate.executablePath": "../php/php.exe",
   "terminal.integrated.defaultProfile.windows": "Command Prompt",
   "terminal.integrated.env.windows": {
-    "PATH": "${workspaceFolder}\\..\\php;${env:PATH}"
+    "PATH": "${workspaceFolder}\\..\\php;${workspaceFolder}\\..\\composer;${env:PATH}"
   },
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": false,
@@ -21,6 +21,9 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[env]": {
