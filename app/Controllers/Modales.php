@@ -3,7 +3,7 @@
 namespace App\Controllers;
 use App\Models\DepartamentosModel;
 use App\Models\RazonSocialModel;
-use App\Models\UsuarioModel;
+use App\Models\UsuariosModel;
 
 
 class Modales extends BaseController
@@ -90,7 +90,7 @@ class Modales extends BaseController
 
     public function registrarUsuario()
     {
-        $usuarioModel = new UsuarioModel();
+        $usuarioModel = new UsuariosModel();
 
         $datos = [
             'ID_Dpto'        => $this->request->getPost('departamento'),

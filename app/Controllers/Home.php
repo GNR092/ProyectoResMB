@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use Config\MenuOptions;
 use App\Models\DepartamentosModel;
-use App\Models\UsuarioModel;
+use App\Models\UsuariosModel;
 
 
 class Home extends BaseController
@@ -20,7 +20,7 @@ class Home extends BaseController
         $opcionesDisponibles = $configMenu->opciones;
 
         $departamentos = new DepartamentosModel();
-        $usuarios = new UsuarioModel();
+        $usuarios = new UsuariosModel();
         $usuario = $usuarios->find(session('id'));
         
         $departamento = $departamentos->find($usuario['ID_Dpto']);

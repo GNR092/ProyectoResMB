@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Models\UsuarioModel;
+use App\Models\UsuariosModel;
 
 class Auth extends BaseController
 {
@@ -29,7 +29,7 @@ class Auth extends BaseController
             ]);
         }
 
-        $userModel = new UsuarioModel();
+        $userModel = new UsuariosModel();
         $user = $userModel->where('Correo', $email)->first();
 
         if ($user && password_verify($password, $user['Contrasena'])) {

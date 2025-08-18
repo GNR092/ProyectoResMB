@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use CodeIgniter\Controller;
 use App\Models\SolicitudModel;
-use App\Models\UsuarioModel;
+use App\Models\UsuariosModel;
 use App\Models\DepartamentosModel;
 use App\Models\ProductoModel;
 use App\Models\DetalleModel;
@@ -38,7 +38,7 @@ class Archivo extends BaseController
         $post = $this->request->getPost();
         /*------------------ Modelos ------------------ */
         $razonsocial = new RazonSocialModel()->find($post['razon_social']);
-        $usuario = new UsuarioModel()->find(session('id'));
+        $usuario = new UsuariosModel()->find(session('id'));
         $solicitud = new SolicitudModel();
         $departamentos = new DepartamentosModel();
         $productos = new ProductoModel();
