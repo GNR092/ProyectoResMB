@@ -9,6 +9,7 @@ use App\Models\DepartamentosModel;
 use App\Models\ProductoModel;
 use App\Models\DetalleModel;
 use App\Models\RazonSocialModel;
+use App\Libraries\Status;
 
 class Archivo extends BaseController
 {
@@ -37,8 +38,10 @@ class Archivo extends BaseController
 
         $post = $this->request->getPost();
         /*------------------ Modelos ------------------ */
-        $razonsocial = new RazonSocialModel()->find($post['razon_social']);
-        $usuario = new UsuariosModel()->find(session('id'));
+        $razonsocialModel = new RazonSocialModel();
+        $razonsocial = $razonsocialModel->find($post['razon_social']);
+        $usuariosModel = new UsuariosModel();
+        $usuario = $usuariosModel->find(session('id'))->first();
         $solicitud = new SolicitudModel();
         $departamentos = new DepartamentosModel();
         $productos = new ProductoModel();
@@ -60,7 +63,7 @@ class Archivo extends BaseController
             'ID_Usuario' => $usuario['ID_Usuario'],
             'ID_Dpto' => $departamentos->where('Nombre', $departamento)->first()['ID_Dpto'],
             'Fecha' => $fecha,
-            'Estado' => 'En espera',
+            'Estado' => Status::En_espera,
             'No_Folio' => null,
         ];
 

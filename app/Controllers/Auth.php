@@ -3,6 +3,9 @@
 namespace App\Controllers;
 
 use App\Models\UsuariosModel;
+use \App\Models\TokenModel;
+use App\Libraries\Rest;
+use App\Libraries\HttpStatus;
 
 class Auth extends BaseController
 {
@@ -33,6 +36,14 @@ class Auth extends BaseController
         $user = $userModel->where('Correo', $email)->first();
 
         if ($user && password_verify($password, $user['Contrasena'])) {
+            $token = new Rest();
+            $tokenModel = new TokenModel(); // Assuming you have a TokenModel
+            $existingToken = $tokenModel->where('ID_Usuario', $user['ID_Usuario'])->first();
+            if ($existingToken) {
+                $token->updateToken($user['ID_Usuario'], $token->generatetoken($user['ID_Usuario']));
+            } else {
+                $token->generateUserToken($user['ID_Usuario']);
+            }
             $ses_data = [
                 'id' => $user['ID_Usuario'],
                 'name' => $user['Nombre'],
@@ -48,6 +59,12 @@ class Auth extends BaseController
     }
     public function logout()
     {
+        $token = new Rest();
+        $userModel = new UsuariosModel();
+        $user = $userModel->find($this->session->get('id'));
+        if ($user) {
+            $token->updateToken($user['ID_Usuario'], null);
+        }
         $this->session->destroy();
         return redirect()->to('/auth');
     }

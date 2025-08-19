@@ -28,6 +28,8 @@ if (!file_exists($installerLockFile)) {
     // Login
     $routes->get('auth', 'Auth::index');
     $routes->post('auth/login', 'Auth::login');
+    // API Token Generation
+    $routes->post('api/gentoken', 'Api::gentoken');
 
     /*
      **
@@ -46,8 +48,8 @@ if (!file_exists($installerLockFile)) {
         $routes->post('archivo/subir', 'Archivo::subir');
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('auth/logout', 'Auth::logout');
-        // API para búsqueda de productos
-        //$routes->get('api/search', 'Api::search');
+        // API Restful
+        $routes->get('api/product/search', 'Api::search');
         
     });
 }
@@ -59,5 +61,6 @@ if (ENVIRONMENT === 'development') {
     $routes->get('installer', 'Installer::index');
     $routes->post('installer/process', 'Installer::process');
     $routes->post('installer/testConnection', 'Installer::testConnection');
-    $routes->get('api/search', 'Api::search');
+    $routes->get('api/product/search', 'Api::search');
+    $routes->get('api/gentoken', 'Api::gentoken');
 }
