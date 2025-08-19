@@ -119,7 +119,7 @@ $session = session(); ?>
                     initPaginacionHistorial();
                 } else if (opcion === 'usuarios') {
                     initUsuarios();
-                } else if (opcion === 'enviar_revision') {
+                } else if (opcion === 'revisar_solicitudes') {
                     initEnviarRevision();
                 } else if (opcion === 'registrar_productos') {
                     initRegistrarMaterial();

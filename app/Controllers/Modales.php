@@ -25,15 +25,6 @@ class Modales extends BaseController
                 return view('modales/solicitar_material', $data);
 
             case 'revisar_solicitudes':
-                return view('modales/revisar_solicitudes');
-
-            case 'proveedores':
-                return view('modales/proveedores');
-
-            case 'ordenes_compra':
-                return view('modales/ordenes_compra');
-
-            case 'enviar_revision':
                 $solicitudModel = new \App\Models\SolicitudModel();
 
                 $data['solicitudes'] = $solicitudModel
@@ -43,9 +34,16 @@ class Modales extends BaseController
                     ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                     ->findAll();
 
-                return view('modales/enviar_revision', $data);
+                return view('modales/revisar_solicitudes', $data);
 
+            case 'proveedores':
+                return view('modales/proveedores');
 
+            case 'ordenes_compra':
+                return view('modales/ordenes_compra');
+
+            case 'enviar_revision':
+                return view('modales/enviar_revision');
 
             case 'usuarios':
                 $departamentosModel = new DepartamentosModel();
