@@ -75,8 +75,19 @@ class Modales extends BaseController
                 break;
 
             case 'dictamen_solicitudes':
-                return view('modales/dictamen_solicitudes');
+                $solicitudModel = new \App\Models\SolicitudModel();
+
+                $data['solicitudes'] = $solicitudModel
+                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                    ->where('Solicitud.Estado', 'En revision')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->findAll();
+
+                return view('modales/dictamen_solicitudes', $data);
                 break;
+
 
             case 'crud_proveedores':
                 return view('modales/crud_proveedores');

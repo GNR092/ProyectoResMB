@@ -2,7 +2,7 @@
     <h2 class="text-xl font-bold mb-4">Enviar a Revisión</h2>
 
     <div class="overflow-x-auto">
-        <table id="tablaEnviarRevision" class="min-w-full border border-gray-300">
+        <table id="tabla-enviar" class="min-w-full border border-gray-300">
             <thead class="bg-gray-100">
             <tr>
                 <th class="py-3 px-6 text-left">Usuario</th>
@@ -22,7 +22,7 @@
                         <td class="py-3 px-6 text-left"><?= esc($s['Estado']) ?></td>
                         <td class="py-3 px-6 text-left">
                             <button
-                                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded enviar-btn">
+                                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded btn-enviar">
                                 Enviar
                             </button>
                         </td>
@@ -38,4 +38,7 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Contenedor de paginación -->
+    <div id="paginacion-enviar-revision" class="flex justify-center mt-4 space-x-2"></div>
 </div>

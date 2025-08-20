@@ -120,11 +120,13 @@ $session = session(); ?>
                 } else if (opcion === 'usuarios') {
                     initUsuarios();
                 } else if (opcion === 'revisar_solicitudes') {
-                    initREvisarSolicitud();
+                    initRevisarSolicitud();
                 } else if (opcion === 'registrar_productos') {
                     initRegistrarMaterial();
                 }else if (opcion === 'enviar_revision') {
                     initEnviarRevision();
+                }else if (opcion === 'dictamen_solicitudes') {
+                    initDictamenSolicitudes();
                 }
 
             })
@@ -448,7 +450,7 @@ $session = session(); ?>
     }
 
     //Revisar solicitudes
-    function initREvisarSolicitud() {
+    function initRevisarSolicitud() {
         const tabla = document.getElementById('tablaRevisarSolicitud').parentElement; // tbody -> div overflow
         const filas = document.querySelectorAll('#tablaRevisarSolicitud tr');
         const paginacion = document.getElementById('paginacion-enviar-revision');
@@ -536,14 +538,42 @@ $session = session(); ?>
         const tabla = document.getElementById('tabla-enviar');
         if (!tabla) return; // evita errores si no existe
 
-        // ejemplo: asignar eventos a botones de enviar
+        const filas = tabla.querySelectorAll('tbody tr');
+        const paginacion = document.getElementById('paginacion-enviar-revision');
+
+        let paginaActual = 1;
+        const filasPorPagina = 10;
+        const totalFilas = filas.length;
+        const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+
+        function mostrarPagina(pagina) {
+            paginaActual = pagina;
+            filas.forEach((fila, index) => {
+                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
+            });
+            renderPaginacion();
+        }
+
+        function renderPaginacion() {
+            paginacion.innerHTML = '';
+            for (let i = 1; i <= totalPaginas; i++) {
+                const boton = document.createElement('button');
+                boton.textContent = i;
+                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.addEventListener('click', () => mostrarPagina(i));
+                paginacion.appendChild(boton);
+            }
+        }
+
+        // Eventos de botones
         const botonesEnviar = tabla.querySelectorAll('.btn-enviar');
         botonesEnviar.forEach(btn => {
             btn.removeEventListener('click', enviarRevisionHandler); // evitar duplicados
             btn.addEventListener('click', enviarRevisionHandler);
         });
-    }
 
+        mostrarPagina(1); // Mostrar la primera página
+    }
     function enviarRevisionHandler(event) {
         const fila = event.target.closest('tr');
         const idSolicitud = fila.dataset.id; // asumiendo que cada fila tiene data-id
@@ -552,7 +582,50 @@ $session = session(); ?>
         console.log('Enviando a revisión la solicitud:', idSolicitud);
     }
 
+    //Funcion para dictamen de solicitudes
+    function initDictamenSolicitudes() {
+        const tabla = document.getElementById('tablaDictamenSolicitudes').parentElement;
+        const filas = document.querySelectorAll('#tablaDictamenSolicitudes tr');
+        const paginacion = document.getElementById('paginacion-dictamen');
 
+        let paginaActual = 1;
+        const filasPorPagina = 10;
+        const totalFilas = filas.length;
+        const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+
+        function mostrarPagina(pagina) {
+            paginaActual = pagina;
+            filas.forEach((fila, index) => {
+                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
+            });
+            renderPaginacion();
+        }
+
+        function renderPaginacion() {
+            paginacion.innerHTML = '';
+            for (let i = 1; i <= totalPaginas; i++) {
+                const boton = document.createElement('button');
+                boton.textContent = i;
+                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.addEventListener('click', () => mostrarPagina(i));
+                paginacion.appendChild(boton);
+            }
+        }
+
+        mostrarPagina(1);
+    }
+    function mostrarVerDictamen(idSolicitud) {
+        document.getElementById('div-tabla').classList.add('hidden');
+        document.getElementById('div-ver-dictamen').classList.remove('hidden');
+
+        console.log("VER solicitud dictamen ID:", idSolicitud);
+        // Aquí se puede hacer fetch para traer los detalles de la solicitud
+        document.getElementById('detallesDictamen').innerHTML = `<p>Cargando detalles de la solicitud ${idSolicitud}...</p>`;
+    }
+    function regresarTablaDictamen() {
+        document.getElementById('div-ver-dictamen').classList.add('hidden');
+        document.getElementById('div-tabla').classList.remove('hidden');
+    }
 
 
     document.addEventListener('DOMContentLoaded', initPaginacionHistorial);
