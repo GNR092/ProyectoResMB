@@ -120,9 +120,11 @@ $session = session(); ?>
                 } else if (opcion === 'usuarios') {
                     initUsuarios();
                 } else if (opcion === 'revisar_solicitudes') {
-                    initEnviarRevision();
+                    initREvisarSolicitud();
                 } else if (opcion === 'registrar_productos') {
                     initRegistrarMaterial();
+                }else if (opcion === 'enviar_revision') {
+                    initEnviarRevision();
                 }
 
             })
@@ -445,11 +447,10 @@ $session = session(); ?>
         });
     }
 
-
-    //EnviarRevision
-    function initEnviarRevision() {
-        const tabla = document.getElementById('tabla-enviar-revision').parentElement; // tbody -> div overflow
-        const filas = document.querySelectorAll('#tabla-enviar-revision tr');
+    //Revisar solicitudes
+    function initREvisarSolicitud() {
+        const tabla = document.getElementById('tablaRevisarSolicitud').parentElement; // tbody -> div overflow
+        const filas = document.querySelectorAll('#tablaRevisarSolicitud tr');
         const paginacion = document.getElementById('paginacion-enviar-revision');
 
         let paginaActual = 1;
@@ -479,8 +480,6 @@ $session = session(); ?>
 
         mostrarPagina(1); // Mostrar la primera página
     }
-
-    // Funciones para movimientos de revision
     function mostrarVer(idSolicitud) {
         document.getElementById('div-tabla').classList.add('hidden');
         document.getElementById('div-ver').classList.remove('hidden');
@@ -531,6 +530,28 @@ $session = session(); ?>
                 });
         });
     }
+
+    //Funcion para enviar a revision
+    function initEnviarRevision() {
+        const tabla = document.getElementById('tabla-enviar');
+        if (!tabla) return; // evita errores si no existe
+
+        // ejemplo: asignar eventos a botones de enviar
+        const botonesEnviar = tabla.querySelectorAll('.btn-enviar');
+        botonesEnviar.forEach(btn => {
+            btn.removeEventListener('click', enviarRevisionHandler); // evitar duplicados
+            btn.addEventListener('click', enviarRevisionHandler);
+        });
+    }
+
+    function enviarRevisionHandler(event) {
+        const fila = event.target.closest('tr');
+        const idSolicitud = fila.dataset.id; // asumiendo que cada fila tiene data-id
+
+        // aquí iría la lógica de enviar la solicitud a revisión
+        console.log('Enviando a revisión la solicitud:', idSolicitud);
+    }
+
 
 
 

@@ -15,7 +15,7 @@
                     <th></th> <!-- COTIZAR -->
                 </tr>
                 </thead>
-                <tbody id="tabla-enviar-revision">
+                <tbody id="tablaRevisarSolicitud">
                 <?php if (!empty($solicitudes)): ?>
                     <?php foreach ($solicitudes as $solicitud): ?>
                         <tr class="hover:bg-gray-50">
