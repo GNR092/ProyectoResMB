@@ -10,64 +10,72 @@ class CreateTableProveedor extends Migration
     {
         $this->forge->addField([
             'ID_Proveedor' => [
-                'type'           => 'INT',
-                'constraint'     => 5,
-                'unsigned'       => true,
+                'type' => 'BIGINT',
+                'constraint' => 20,
+                'unsigned' => true,
                 'auto_increment' => true,
             ],
             'Nombre' => [
-                'type'       => 'VARCHAR',
+                'type' => 'VARCHAR',
                 'constraint' => '100',
-                'null'       => false,
+                'null' => false,
             ],
             'Nombre_Comercial' => [
-                'type'       => 'VARCHAR',
+                'type' => 'VARCHAR',
                 'constraint' => '100',
-                'null'       => true,
+                'null' => true,
             ],
-            'Direccion' => [
-                'type'       => 'VARCHAR',
-                'constraint' => '200',
-                'null'       => true,
+            'RFC' => [
+                'type' => 'VARCHAR',
+                'constraint' => '20',
+                'unique' => true,
+                'null' => true,
             ],
-            'Razon_Social' => [
-                'type'       => 'VARCHAR',
-                'constraint' => '200',
-                'null'       => true,
+            'Banco' => [
+                'type' => 'VARCHAR',
+                'constraint' => '50',
+                'null' => true,
+            ],
+            'Cuenta' => [
+                'type' => 'VARCHAR',
+                'constraint' => '20',
+                'null' => true,
             ],
             'Clabe' => [
-                'type'       => 'VARCHAR',
-                'constraint' => '20',
-                'null'       => true,
+                'type' => 'CHAR',
+                'constraint' => '18',
+                'null' => true,
             ],
-            'Referencia' => [
-                'type'       => 'VARCHAR',
+            'Tel_Contacto' => [
+                'type' => 'VARCHAR',
+                'constraint' => '50',
+                'null' => true,
+            ],
+            'Nombre_Contacto' => [
+                'type' => 'VARCHAR',
                 'constraint' => '100',
-                'null'       => true,
+                'null' => true,
             ],
-            'Cuenta_Bancaria' => [
-                'type'       => 'VARCHAR',
-                'constraint' => '20',
-                'null'       => true,
-            ],
-            'Correo' => [
-                'type'       => 'VARCHAR',
+            'Servicio' => [
+                'type' => 'VARCHAR',
                 'constraint' => '100',
-                'null'       => true,
-            ],
-            'Numero' => [
-                'type'       => 'VARCHAR',
-                'constraint' => '20',
-                'null'       => true,
+                'null' => true,
             ],
         ]);
         $this->forge->addKey('ID_Proveedor', true);
         $this->forge->createTable('Proveedor');
+        if ($this->db->DBDriver === 'Postgre') {
+            $this->db->query(
+                'ALTER TABLE "Proveedor" ADD CONSTRAINT "chk_cuenta_format" CHECK (LENGTH("Cuenta") > 0 AND "Cuenta" ~ \'^\d+$\')',
+            );
+            $this->db->query(
+                'ALTER TABLE "Proveedor" ADD CONSTRAINT "chk_clabe_format" CHECK (LENGTH("Clabe") = 18 AND "Clabe" ~ \'^\d+$\')',
+            );
+        }
     }
 
     public function down()
     {
         $this->forge->dropTable('Proveedor');
-
     }
 }
