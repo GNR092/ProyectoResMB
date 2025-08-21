@@ -20,11 +20,11 @@ class Modales extends BaseController
         switch ($opcion) {
             case 'ver_historial':
                 return view('modales/ver_historial');
-                break;
+
 
             case 'solicitar_material':
                 return view('modales/solicitar_material', $data);
-                break;
+
 
             case 'revisar_solicitudes':
                 $solicitudModel = new \App\Models\SolicitudModel();
@@ -38,15 +38,15 @@ class Modales extends BaseController
                     ->findAll();
 
                 return view('modales/revisar_solicitudes', $data);
-                break;
+
 
             case 'proveedores':
                 return view('modales/proveedores');
-                break;
+
 
             case 'ordenes_compra':
                 return view('modales/ordenes_compra');
-                break;
+
 
             case 'enviar_revision':
                 $solicitudModel = new \App\Models\SolicitudModel();
@@ -60,7 +60,6 @@ class Modales extends BaseController
                     ->findAll();
 
                 return view('modales/enviar_revision', $data);
-                break;
 
             case 'usuarios':
                 $departamentosModel = new DepartamentosModel();
@@ -72,7 +71,6 @@ class Modales extends BaseController
                 ];
 
                 return view('modales/usuarios', $data);
-                break;
 
             case 'dictamen_solicitudes':
                 $solicitudModel = new \App\Models\SolicitudModel();
@@ -86,36 +84,29 @@ class Modales extends BaseController
                     ->findAll();
 
                 return view('modales/dictamen_solicitudes', $data);
-                break;
-
 
             case 'crud_proveedores':
                 return view('modales/crud_proveedores');
-                break;
+
 
             case 'limpiar_almacenamiento':
                 return view('modales/limpiar_almacenamiento');
-                break;
+
 
             case 'pagos_pendientes':
                 return view('modales/pagos_pendientes');
-                break;
 
             case 'registrar_productos':
                 $productoModel = new \App\Models\ProductoModel();
                 $data['productos'] = $productoModel->findAll();
 
                 return view('modales/registrar_productos', $data);
-                break;
-
 
             case 'crud_productos':
                 return view('modales/crud_productos');
-                break;
 
             case 'entrega_productos':
                 return view('modales/entrega_productos');
-                break;
 
             default:
                 return 'Opción no válida';

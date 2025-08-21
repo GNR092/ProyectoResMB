@@ -41,7 +41,7 @@ class Archivo extends BaseController
         $razonsocialModel = new RazonSocialModel();
         $razonsocial = $razonsocialModel->find($post['razon_social']);
         $usuariosModel = new UsuariosModel();
-        $usuario = $usuariosModel->find(session('id'))->first();
+        $usuario = $usuariosModel->find(session('id'));
         $solicitud = new SolicitudModel();
         $departamentos = new DepartamentosModel();
         $productos = new ProductoModel();
