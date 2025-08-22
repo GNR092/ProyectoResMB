@@ -41,6 +41,10 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/registrarUsuario', 'Modales::registrarUsuario');
         // Ruta POST para registrar productos
         $routes->post('modales/registrarMaterial', 'Modales::registrarMaterial');
+        // Ruta POST para eliminar productos
+        $routes->post('modales/eliminarProducto/(:num)', 'Modales::eliminarProducto/$1');
+        //Ruta POST para editar productos
+        $routes->post('modales/editarProducto/(:num)', 'Modales::editarProducto/$1');
 
 
         // Otros

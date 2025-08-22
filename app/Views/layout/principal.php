@@ -127,6 +127,8 @@ $session = session(); ?>
                     initEnviarRevision();
                 }else if (opcion === 'dictamen_solicitudes') {
                     initDictamenSolicitudes();
+                }else if (opcion === 'crud_productos') {
+                    initCrudProductos();
                 }
 
             })
@@ -626,6 +628,172 @@ $session = session(); ?>
         document.getElementById('div-ver-dictamen').classList.add('hidden');
         document.getElementById('div-tabla').classList.remove('hidden');
     }
+
+
+    //CRUD Productos
+    function initCrudProductos() {
+        const tbody = document.getElementById('tablaCrudProductos');
+        if (!tbody) return;
+
+        const tableWrapper = tbody.closest('.overflow-x-auto') || tbody.closest('table')?.parentElement;
+        let paginacion = document.getElementById('paginacion-crud-productos');
+        const inputBusqueda = document.getElementById('buscarProducto');
+
+        // Crea el contenedor de paginación si no existe en la vista
+        if (!paginacion) {
+            paginacion = document.createElement('div');
+            paginacion.id = 'paginacion-crud-productos';
+            paginacion.className = 'flex justify-center mt-4 space-x-2';
+            (tableWrapper || tbody.parentElement).appendChild(paginacion);
+        }
+
+        const filasOriginales = Array.from(tbody.querySelectorAll('tr'));
+
+        let paginaActual = 1;
+        const filasPorPagina = 10;
+
+        function aplicarFiltro() {
+            const termino = (inputBusqueda?.value || '').trim().toLowerCase();
+            if (!termino) return filasOriginales;
+
+            return filasOriginales.filter(fila => {
+                const codigo = (fila.cells[0]?.textContent || '').toLowerCase();
+                const nombre = (fila.cells[1]?.textContent || '').toLowerCase();
+                return codigo.includes(termino) || nombre.includes(termino);
+            });
+        }
+
+        function mostrarPagina(pagina, filasFiltradas) {
+            paginaActual = pagina;
+
+            // Oculta todas
+            filasOriginales.forEach(f => (f.style.display = 'none'));
+
+            // Muestra el bloque de la página actual
+            const inicio = (pagina - 1) * filasPorPagina;
+            const fin = inicio + filasPorPagina;
+            filasFiltradas.slice(inicio, fin).forEach(f => (f.style.display = ''));
+
+            renderPaginacion(filasFiltradas.length);
+        }
+
+        function renderPaginacion(totalFiltradas) {
+            paginacion.innerHTML = '';
+
+            const totalPaginas = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina));
+
+            for (let i = 1; i <= totalPaginas; i++) {
+                const boton = document.createElement('button');
+                boton.textContent = i;
+                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.addEventListener('click', () => mostrarPagina(i, aplicarFiltro()));
+                paginacion.appendChild(boton);
+            }
+
+            // Oculta la paginación si no hace falta
+            paginacion.style.display = totalFiltradas > filasPorPagina ? '' : 'none';
+        }
+
+        function actualizar() {
+            const filtradas = aplicarFiltro();
+            mostrarPagina(1, filtradas);
+        }
+
+        // Inicializa
+        actualizar();
+
+        // Evita listeners duplicados si reabres el modal
+        if (inputBusqueda && !inputBusqueda.dataset.bound) {
+            inputBusqueda.addEventListener('input', actualizar);
+            inputBusqueda.dataset.bound = '1';
+        }
+    }
+    function eliminarProducto(idProducto) {
+        if (!confirm("¿Estás seguro de que deseas eliminar este producto?")) return;
+
+        fetch(`index.php/modales/eliminarProducto/${idProducto}`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`);
+                    if (fila) fila.remove();
+                    alert(data.message);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error("Error al eliminar el producto:", error);
+                alert("Ocurrió un error al eliminar el producto.");
+            });
+    }
+    function editarProducto(idProducto) {
+        // Ocultar tabla y barra de búsqueda
+        document.getElementById('div-tabla').classList.add('hidden');
+        document.getElementById('div-busqueda').classList.add('hidden');
+        document.getElementById('div-editar').classList.remove('hidden');
+
+        // Obtener la fila usando data-id
+        const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`);
+        if (fila) {
+            document.getElementById('editarID_Producto').value = idProducto;
+            document.getElementById('editarCodigo').value = fila.children[0].textContent.trim();
+            document.getElementById('editarNombre').value = fila.children[1].textContent.trim();
+            document.getElementById('editarExistencia').value = fila.children[2].textContent.trim();
+        }
+    }
+    function regresarTablaProductos() {
+        document.getElementById('div-tabla').classList.remove('hidden');
+        document.getElementById('div-busqueda').classList.remove('hidden');
+        document.getElementById('div-editar').classList.add('hidden');
+    }
+    function guardarEdicion() {
+        const id = document.getElementById('editarID_Producto').value;
+        const codigo = document.getElementById('editarCodigo').value;
+        const nombre = document.getElementById('editarNombre').value;
+        const existenciaNueva = parseInt(document.getElementById('editarExistencia').value);
+
+        // Obtener existencia actual de la fila
+        const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${id}']`);
+        const existenciaActual = parseInt(fila.children[2].textContent.trim());
+
+        if (existenciaNueva < existenciaActual) {
+            alert("No se puede reducir la existencia. Solo se puede aumentar.");
+            return;
+        }
+
+        // Enviar datos al backend
+        fetch(`modales/editarProducto/${id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                Codigo: codigo,
+                Nombre: nombre,
+                Existencia: existenciaNueva
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Producto actualizado correctamente");
+                    // Actualizar fila en la tabla sin recargar
+                    fila.children[1].textContent = nombre;
+                    fila.children[2].textContent = existenciaNueva;
+                    regresarTablaProductos();
+                } else {
+                    alert(data.message || "Error al actualizar el producto");
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+
 
 
     document.addEventListener('DOMContentLoaded', initPaginacionHistorial);

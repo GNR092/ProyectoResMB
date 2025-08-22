@@ -25,7 +25,6 @@ class Modales extends BaseController
             case 'solicitar_material':
                 return view('modales/solicitar_material', $data);
 
-
             case 'revisar_solicitudes':
                 $solicitudModel = new \App\Models\SolicitudModel();
 
@@ -39,14 +38,11 @@ class Modales extends BaseController
 
                 return view('modales/revisar_solicitudes', $data);
 
-
             case 'proveedores':
                 return view('modales/proveedores');
 
-
             case 'ordenes_compra':
                 return view('modales/ordenes_compra');
-
 
             case 'enviar_revision':
                 $solicitudModel = new \App\Models\SolicitudModel();
@@ -88,10 +84,8 @@ class Modales extends BaseController
             case 'crud_proveedores':
                 return view('modales/crud_proveedores');
 
-
             case 'limpiar_almacenamiento':
                 return view('modales/limpiar_almacenamiento');
-
 
             case 'pagos_pendientes':
                 return view('modales/pagos_pendientes');
@@ -103,7 +97,16 @@ class Modales extends BaseController
                 return view('modales/registrar_productos', $data);
 
             case 'crud_productos':
-                return view('modales/crud_productos');
+                $productoModel = new \App\Models\ProductoModel();
+
+                // Orden numérico ascendente por el campo texto "Codigo"
+                $data['productos'] = $productoModel
+                    ->select('Producto.*')
+                    ->orderBy('CAST("Producto"."Codigo" AS INTEGER)', 'ASC', false)
+                    ->findAll();
+
+                return view('modales/crud_productos', $data);
+
 
             case 'entrega_productos':
                 return view('modales/entrega_productos');
@@ -114,6 +117,7 @@ class Modales extends BaseController
     }
 
 
+    //Funciones para usuarios
     public function registrarUsuario()
     {
         $usuarioModel = new UsuariosModel();
@@ -150,6 +154,7 @@ class Modales extends BaseController
         }
     }
 
+    //Funciones para mataeriales
     public function registrarMaterial()
     {
         try {
@@ -182,6 +187,63 @@ class Modales extends BaseController
             ]);
         }
     }
+
+    //Funciones para almacen
+    public function eliminarProducto($id = null)
+    {
+        try {
+            if (!$id) {
+                throw new \Exception("ID de producto no proporcionado.");
+            }
+
+            $productoModel = new \App\Models\ProductoModel();
+
+            if ($productoModel->delete($id)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Producto eliminado correctamente.'
+                ]);
+            } else {
+                throw new \Exception("No se pudo eliminar el producto.");
+            }
+
+        } catch (\Throwable $e) {
+            log_message('error', '[Eliminar Producto] ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Ocurrió un error al eliminar el producto.'
+            ]);
+        }
+    }
+    public function editarProducto($id)
+    {
+        $productoModel = new \App\Models\ProductoModel();
+        $data = $this->request->getJSON(true);
+
+        // Verificar existencia actual en DB
+        $productoActual = $productoModel->find($id);
+        if (!$productoActual) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Producto no encontrado'
+            ]);
+        }
+
+        if ($data['Existencia'] < $productoActual['Existencia']) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se puede reducir la existencia. Solo se puede aumentar.'
+            ]);
+        }
+
+        $productoModel->update($id, [
+            'Nombre'     => $data['Nombre'],
+            'Existencia' => $data['Existencia']
+        ]);
+
+        return $this->response->setJSON(['success' => true]);
+    }
+
 
 
 
