@@ -15,11 +15,21 @@ class InsertDepartamento extends Migration
 
         // Lista completa de departamentos
         $departamentos = [
-            'Sistemas',
-            'Direccion',
+            'Administracion',
+            'Almacen',
+            'Cobranza proyectos',
+            'Construccion',
             'Compras',
+            'Direccion',
+            'Marketing',
+            'Juridico',
+            'Operacion orlando',
+            'Proyectos', 
+            'Recepcion city',
+            'Recursos humanos',
+            'Sistemas',
             'Tesoreria',
-            'Almacen'
+            'Ventas',
         ];
 
         foreach ($departamentos as $depto) {
