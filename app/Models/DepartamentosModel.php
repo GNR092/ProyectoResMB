@@ -12,7 +12,7 @@ class DepartamentosModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['Nombre'];
+    protected $allowedFields    = ['ID_Place', 'Nombre'];
 
     // Dates
     protected $useTimestamps = false;
