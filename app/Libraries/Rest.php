@@ -1,11 +1,31 @@
 <?php
 namespace App\Libraries;
+use App\Models\CotizacionModel;
+use App\Models\DepartamentosModel;
+use App\Models\DetalleModel;
+use App\Models\OrdenCompraModel;
+use App\Models\PagoModel;
+use App\Models\PlacesModel;
+use App\Models\ProductoModel;
+use App\Models\ProveedoresModel;
+use App\Models\RazonSocialModel;
+use App\Models\SolicitudModel;
 use App\Models\TokenModel;
-use App\Libraries\HttpStatus;
 use App\Models\UsuariosModel;
+use App\Libraries\HttpStatus;
+
+
+use CodeIgniter\Database\BaseBuilder;
 
 class Rest
 {
+    protected $db;
+
+    public function __construct()
+    {
+        $this->db = \Config\Database::connect();
+    }
+    //region Tokens
     /**
      * Genera un nuevo token API.
      *
@@ -48,7 +68,7 @@ class Rest
 
         return $tokenhash;
     }
-    
+
     public function updateToken(int $userid, ?string $token): bool
     {
         $tokenModel = new TokenModel();
@@ -57,9 +77,9 @@ class Rest
         if (!$tokenData) {
             return false;
         }
- 
+
         $dataToUpdate = [
-            'token'      => $token,
+            'token' => $token,
             'updated_at' => date('Y-m-d H:i:s'),
         ];
         return $tokenModel->update($tokenData['ID_Token'], $dataToUpdate);
@@ -95,4 +115,302 @@ class Rest
         $tokens = $tokenModel->findall();
         return $tokens;
     }
+    //endregion
+
+    //region cotizacione
+    public function getCotizacionById(int $id): ?array
+    {
+        $cotizacionModel = new CotizacionModel();
+        $result = $cotizacionModel->find($id);
+        return $result ?: null;
+    }
+    public function getCotizaciones(): array
+    {
+        $cotizacionModel = new CotizacionModel();
+        $results = $cotizacionModel->findAll();
+        return $results ?: [];
+    }
+    //endregion
+
+
+    //region Usuarios
+    /**
+     * Obtiene un usuario por su ID.
+     *
+     * @param int $id El ID del usuario
+     * @return array|null El usuario encontrado o null si no se encuentra
+     */
+    public function getUserById(int $id): ?array
+    {
+        $usuariosModel = new UsuariosModel();
+        $result = $usuariosModel->find($id);
+        return $result ?: null;
+    }
+    /**
+     * Obtiene un usuario por su nombre.
+     *
+     * @param string $name El nombre del usuario
+     * @return array|null El usuario encontrado o null si no se encuentra
+     */
+    public function getUserByName(string $name): ?array
+    {
+        $usuariosModel = new UsuariosModel();
+        $result = $usuariosModel->where('Nombre', $name)->first();
+        return $result ?: null;
+    }
+        /**
+        * Obtiene un usuario por su correo electrónico.
+        *
+        * @param string $email El correo electrónico del usuario
+        * @return array|null El usuario encontrado o null si no se encuentra
+        */
+    public function getUserByEmail(string $email): ?array
+    {
+        $usuariosModel = new UsuariosModel();
+        $result = $usuariosModel->where('Correo', $email)->first();
+        return $result ?: null;
+    }
+    /**
+     * Obtiene usuarios por departamento.
+     *
+     * @param int $departmentId El ID del departamento
+     * @return array Los usuarios encontrados
+     */
+    public function getUsersByDepartament(int $departmentId): array
+    {
+        $usuariosModel = new UsuariosModel();
+        $results = $usuariosModel->where('ID_Dpto', $departmentId)->findAll();
+        return $results ?: [];
+    }
+    /**
+     * Obtiene todos los usuarios.
+     *
+     * @return array Los usuarios encontrados
+     */
+    public function getAllUsers(): array
+    {
+        $usuariosModel = new UsuariosModel();
+        $results = $usuariosModel->findAll();
+        return $results ?: [];
+    }
+    /**
+     * Agrega un nuevo usuario.
+     *
+     * @param array $data Los datos del usuario a agregar
+     * @return bool True si el usuario se agregó correctamente, false en caso contrario.
+     */
+    public function addUser(array $data): bool
+    {
+        $usuariosModel = new UsuariosModel();
+        return $usuariosModel->insert($data) !== false;
+    }
+    /**
+     * Actualiza un usuario por su ID.
+     *
+     * @param int $id El ID del usuario a actualizar
+     * @param array $data Los datos a actualizar
+     * @return bool True si el usuario se actualizó correctamente, false en caso contrario.
+     */
+    public function updateUser(int $id, array $data): bool
+    {
+        $usuariosModel = new UsuariosModel();
+        return $usuariosModel->update($id, $data);
+    }
+    /**
+     * Elimina un usuario por su ID.
+     *
+     * @param int $id El ID del usuario a eliminar
+     * @return bool True si el usuario se eliminó correctamente, false en caso contrario.
+     */
+    public function deleteUser(int $id): bool
+    {
+        $usuariosModel = new UsuariosModel();
+        return $usuariosModel->delete($id);
+    }
+    //endregion
+
+    //region productos
+    /**
+     * Obtiene productos por consulta y tipo.
+     *
+     * @param string $query La consulta de búsqueda
+     * @param string $type El tipo de búsqueda ('Código' o 'Producto')
+     * @return array Los productos encontrados
+     */
+    public function getProductsByQuery(string $query, string $type): array
+    {
+        $results = [];
+        if ($type === 'Código' || $type === 'Codigo' || $type === 'codigo') {
+            $results = $this->getProductsByCode($query, 10);
+        } elseif ($type === 'Producto' || $type === 'producto') {
+            $results = $this->getProductsByName($query, 10);
+        }
+        return $results;
+    }
+    /**
+     * Obtiene un producto por su ID.
+     *
+     * @param int $id El ID del producto
+     * @return array|null El producto encontrado o null si no se encuentra
+     */
+    public function getProductById(int $id): ?array
+    {
+        $producto = new ProductoModel();
+        $result = $producto->find($id);
+        return $result ?: null;
+    }
+    /**
+     * Obtiene productos por código.
+     *
+     * @param string $code El código del producto
+     * @param int $limit El número máximo de resultados a devolver
+     * @return array Los productos encontrados
+     */
+    public function getProductsByCode(string $code, int $limit = 0): array
+    {
+        $producto = new ProductoModel();
+        $results = $producto->like('Codigo', $code, 'both', null, true)->findAll($limit);
+        return $results;
+    }
+    /**
+     * Obtiene productos por nombre.
+     *
+     * @param string $name El nombre del producto
+     * @param int $limit El número máximo de resultados a devolver
+     * @return array Los productos encontrados
+     */
+    public function getProductsByName(string $name, int $limit = 0): array
+    {
+        $sql = 'SELECT * FROM "Producto" WHERE "Nombre" ILIKE ?' . ($limit > 0 ? ' LIMIT ?' : '');
+        $params = [$name . '%'];
+        if ($limit > 0) {
+            $params[] = $limit;
+            $query = $this->db->query($sql, $params);
+            return $query->getResultArray();
+        }
+        return [];
+    }
+    /**
+     * Registra un nuevo producto.
+     *
+     * @param array $data Los datos del producto a registrar
+     * @return bool True si el producto se registró correctamente, false en caso contrario.
+     */
+    public function registrarProductoArray(array $data): bool
+    {
+        $producto = new ProductoModel();
+        return $producto->insert($data) !== false;
+    }
+    /**
+     * Registra un nuevo producto.
+     *
+     * @param string $codigo El código del producto
+     * @param string $nombre El nombre del producto
+     * @param int $existencia La existencia del producto
+     * @return bool True si el producto se registró correctamente, false en caso contrario.
+     */
+    public function registrarProducto($codigo , $nombre, $existencia): bool
+    {
+        $producto = new ProductoModel();
+        $data = [
+            'Codigo'     => $codigo,
+            'Nombre'     => $nombre,
+            'Existencia' => $existencia,
+        ];
+        return $producto->insert($data) !== false;
+    }
+    
+    /**
+     *  Elimina un producto por su ID.
+     * * @param int $id
+     * @return bool|\CodeIgniter\Database\BaseResult true si el producto se eliminó correctamente, false en caso contrario.
+     */
+    public function eliminarProductoById(int $id): bool
+    {
+        $producto = new ProductoModel();
+        return $producto->delete($id);
+    }
+    /**
+     * Actualiza un producto por su ID.
+     *
+     * @param int $id El ID del producto a actualizar
+     * @param array $data Los datos a actualizar
+     * @return bool True si el producto se actualizó correctamente, false en caso contrario.
+     */
+    public function actualizarProducto(int $id, array $data): bool
+    {
+        $producto = new ProductoModel();
+        return $producto->update($id, $data);
+    }
+     /**
+     * Obtiene todos los productos.
+     *
+     * @return array Los productos encontrados
+     */
+    public function getAllProducts(): array
+    {
+        $producto = new ProductoModel();
+        $results = $producto->findAll();
+        if (empty($results)) {
+            return [];
+        }
+        return $results;
+    }
+    //endregion
+
+    //region departamentos
+    /**
+     * Obtiene todos los departamentos.
+     *
+     * @return array Los departamentos encontrados
+     */
+    public function getAllDepartments(): array
+    {
+        $departamentosModel = new DepartamentosModel();
+        $results = $departamentosModel
+            ->select(
+                'Departamentos.ID_Dpto, Departamentos.Nombre, Departamentos.ID_Place, Places.Nombre_Corto as Place',
+            )
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+            ->findAll();
+
+        if (empty($results)) {
+            return [];
+        }
+
+        return $results;
+    }
+    /**
+     * Obtiene un departamento por su ID.
+     *
+     * @param int $id El ID del departamento
+     * @param bool $long Si se debe devolver el nombre completo o solo el nombre corto
+     * @return string|null El departamento encontrado o null si no se encuentra
+     *
+     */
+    public function getPlaceById(int $id, bool $long = false): ?string
+    {
+        $places = new PlacesModel();
+        $result = $places->find($id);
+        if ($result) {
+            return $long ? $result['Nombre_Completo'] : $result['Nombre_Corto'];
+        } else {
+            return null;
+        }
+    }
+    //endregion
+
+    //region misceláneos
+    public function CreateFolder(string $path): bool
+    {
+        if (!is_dir($path)) {
+            if (mkdir($path, 0755, true)) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+    //endregion
 }

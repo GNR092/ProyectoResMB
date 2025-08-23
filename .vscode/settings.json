@@ -9,8 +9,8 @@
   "files.associations": {
     "*.css": "tailwindcss"
   },
-  "php.executablePath": "../php/php.exe",
-  "php.validate.executablePath": "../php/php.exe",
+  "php.executablePath": "D:/MBProject/php/php.exe",
+  "php.validate.executablePath": "D:/MBProject/php/php.exe",
   "terminal.integrated.defaultProfile.windows": "Command Prompt",
   "terminal.integrated.env.windows": {
     "PATH": "${workspaceFolder}\\..\\php;${workspaceFolder}\\..\\composer;${env:PATH}"
@@ -31,5 +31,12 @@
   },
   "[sql]": {
     "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode"
-  }
+  },
+  "php.problems.exclude": {
+        "**/*": [
+            "PHP6609",
+            "PHP0424",
+            "PHP0418"
+        ]
+    },
 }

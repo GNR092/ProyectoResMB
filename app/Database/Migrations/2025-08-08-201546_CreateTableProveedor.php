@@ -42,7 +42,7 @@ class CreateTableProveedor extends Migration
                 'null' => true,
             ],
             'Clabe' => [
-                'type' => 'CHAR',
+                'type' => 'VARCHAR',
                 'constraint' => '18',
                 'null' => true,
             ],
@@ -67,10 +67,10 @@ class CreateTableProveedor extends Migration
         $this->forge->createTable('Proveedor');
         if ($this->db->DBDriver === 'Postgre') {
             $this->db->query(
-                'ALTER TABLE "Proveedor" ADD CONSTRAINT "chk_cuenta_format" CHECK (LENGTH("Cuenta") > 0 AND "Cuenta" ~ \'^\d+$\')',
+                'ALTER TABLE "Proveedor" ADD CONSTRAINT "chk_cuenta_format" CHECK ("Cuenta" IS NULL OR "Cuenta" ~ \'^[0-9]+$\')'
             );
             $this->db->query(
-                'ALTER TABLE "Proveedor" ADD CONSTRAINT "chk_clabe_format" CHECK (LENGTH("Clabe") = 18 AND "Clabe" ~ \'^\d+$\')',
+                'ALTER TABLE "Proveedor" ADD CONSTRAINT "chk_clabe_format" CHECK ("Clabe" IS NULL OR (LENGTH("Clabe") = 18 AND "Clabe" ~ \'^[0-9]+$\'))'
             );
         }
     }

@@ -4,12 +4,19 @@ namespace App\Controllers;
 use App\Models\DepartamentosModel;
 use App\Models\RazonSocialModel;
 use App\Models\UsuariosModel;
-
+use App\Libraries\Rest;
 
 class Modales extends BaseController
 {
+    protected $api;
+
+    public function __construct()
+    {
+        $this->api = new Rest();
+    }
     public function mostrar($opcion)
     {
+        //agregar el lugar de los de partamentos
         $session = session();
         $data = [
             'departamentos' => $session->get('departamentos'),
@@ -21,7 +28,6 @@ class Modales extends BaseController
             case 'ver_historial':
                 return view('modales/ver_historial');
 
-
             case 'solicitar_material':
                 return view('modales/solicitar_material', $data);
 
@@ -29,7 +35,9 @@ class Modales extends BaseController
                 $solicitudModel = new \App\Models\SolicitudModel();
 
                 $data['solicitudes'] = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En espera')
@@ -48,7 +56,9 @@ class Modales extends BaseController
                 $solicitudModel = new \App\Models\SolicitudModel();
 
                 $data['solicitudes'] = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'Cotizado')
@@ -72,7 +82,9 @@ class Modales extends BaseController
                 $solicitudModel = new \App\Models\SolicitudModel();
 
                 $data['solicitudes'] = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En revision')
@@ -107,7 +119,6 @@ class Modales extends BaseController
 
                 return view('modales/crud_productos', $data);
 
-
             case 'entrega_productos':
                 return view('modales/entrega_productos');
 
@@ -116,74 +127,86 @@ class Modales extends BaseController
         }
     }
 
-
     //Funciones para usuarios
     public function registrarUsuario()
     {
         $usuarioModel = new UsuariosModel();
 
         $datos = [
-            'ID_Dpto'        => $this->request->getPost('departamento'),
+            'ID_Dpto' => $this->request->getPost('departamento'),
             'ID_RazonSocial' => $this->request->getPost('razon_social'),
-            'Nombre'         => $this->request->getPost('nombre'),
-            'Correo'         => $this->request->getPost('correo'),
-            'Contrasena'     => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'Numero'         => $this->request->getPost('telefono'),
+            'Nombre' => $this->request->getPost('nombre'),
+            'Correo' => $this->request->getPost('correo'),
+            'Contrasena' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+            'Numero' => $this->request->getPost('telefono'),
         ];
 
-        if ($usuarioModel->insert($datos)) {
+        if ($this->api->addUser($datos)) {
             // Si es una solicitud AJAX, respondemos con JSON
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
                     'success' => true,
-                    'message' => 'Usuario registrado correctamente.'
+                    'message' => 'Usuario registrado correctamente.',
                 ]);
             }
-            return redirect()->to(site_url('modales/usuarios'))
+            return redirect()
+                ->to(site_url('modales/usuarios'))
                 ->with('success', 'Usuario registrado correctamente.');
         } else {
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Error al registrar usuario.'
+                    'message' => 'Error al registrar usuario.',
                 ]);
             }
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Error al registrar usuario.');
+            return redirect()->back()->withInput()->with('error', 'Error al registrar usuario.');
         }
     }
 
-    //Funciones para mataeriales
+    //Funciones para materiales
     public function registrarMaterial()
     {
-        try {
-            $codigo = $this->request->getPost('Codigo');
-            $nombre = $this->request->getPost('Nombre');
-            $existencia = $this->request->getPost('Existencia');
+        // 1. Usar la validación de CodeIgniter
+        $rules = [
+            'Codigo' => 'required|is_unique[Producto.Codigo]',
+            'Nombre' => 'required',
+            'Existencia' => 'required|numeric',
+        ];
 
-            if (empty($codigo) || empty($nombre) || $existencia === null) {
-                throw new \Exception("Datos incompletos: " . json_encode($this->request->getPost()));
-            }
-
-            $productoModel = new \App\Models\ProductoModel();
-            $productoModel->insert([
-                'Codigo'     => $codigo,
-                'Nombre'     => $nombre,
-                'Existencia' => $existencia
+        if (!$this->validate($rules)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Error de validación.',
+                'errors' => $this->validator->getErrors(),
             ]);
+        }
 
-            if ($productoModel->db->affectedRows() <= 0) {
-                throw new \Exception("No se pudo insertar el producto");
+        try {
+            $data = [
+                'Codigo' => $this->request->getPost('Codigo'),
+                'Nombre' => $this->request->getPost('Nombre'),
+                'Existencia' => $this->request->getPost('Existencia'),
+            ];
+
+            $newId = $this->api->registrarProductoArray($data);
+
+            if ($newId === false) {
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'No se pudo registrar el producto en la base de datos.',
+                ]);
             }
 
-            return $this->response->setJSON(['success' => true]);
-
+            return $this->response->setStatusCode(201)->setJSON([
+                'success' => true,
+                'message' => 'Producto registrado correctamente.',
+                'id' => $newId,
+            ]);
         } catch (\Throwable $e) {
             log_message('error', '[Registrar Producto] ' . $e->getMessage());
-            return $this->response->setJSON([
+            return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
-                'message' => 'Ocurrió un error al registrar el producto.'
+                'message' => 'Ocurrió un error inesperado al registrar el producto.',
             ]);
         }
     }
@@ -192,59 +215,90 @@ class Modales extends BaseController
     public function eliminarProducto($id = null)
     {
         try {
-            if (!$id) {
-                throw new \Exception("ID de producto no proporcionado.");
-            }
-
             $productoModel = new \App\Models\ProductoModel();
 
-            if ($productoModel->delete($id)) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Producto eliminado correctamente.'
+            if (!$id || !$this->api->getProductById($id)) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'success' => false,
+                    'message' => 'Producto no encontrado o ID no válido.',
                 ]);
-            } else {
-                throw new \Exception("No se pudo eliminar el producto.");
             }
 
+            if ($this->api->eliminarProductoById($id)) {
+                return $this->response->setStatusCode(200)->setJSON([
+                    'success' => true,
+                    'message' => 'Producto eliminado correctamente.',
+                ]);
+            } else {
+                log_message(
+                    'error',
+                    '[Eliminar Producto] Error de la base de datos al eliminar el producto ID: ' .
+                        $id .
+                        ' Errores: ' .
+                        json_encode($productoModel->errors()),
+                );
+                return $this->response->setStatusCode(500)->setJSON([
+                    'success' => false,
+                    'message' => 'No se pudo eliminar el producto.',
+                ]);
+            }
         } catch (\Throwable $e) {
             log_message('error', '[Eliminar Producto] ' . $e->getMessage());
-            return $this->response->setJSON([
+            return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
-                'message' => 'Ocurrió un error al eliminar el producto.'
+                'message' => 'Ocurrió un error inesperado al eliminar el producto.',
             ]);
         }
     }
     public function editarProducto($id)
     {
-        $productoModel = new \App\Models\ProductoModel();
+        // 1. Reglas de validación para los datos de entrada
+        $rules = [
+            'Nombre' => 'required|string|max_length[255]',
+            'Existencia' => 'required|numeric|greater_than_equal_to[0]',
+        ];
+
         $data = $this->request->getJSON(true);
 
-        // Verificar existencia actual en DB
-        $productoActual = $productoModel->find($id);
-        if (!$productoActual) {
-            return $this->response->setJSON([
+        if (!$this->validateData($data, $rules)) {
+            return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
-                'message' => 'Producto no encontrado'
+                'message' => 'Datos de entrada inválidos.',
+                'errors' => $this->validator->getErrors(),
             ]);
         }
 
-        if ($data['Existencia'] < $productoActual['Existencia']) {
-            return $this->response->setJSON([
+        try {
+            $productoActual = $this->api->getProductById($id);
+            if (!$productoActual) {
+                return $this->response
+                    ->setStatusCode(404)
+                    ->setJSON(['success' => false, 'message' => 'Producto no encontrado.']);
+            }
+
+            if ($data['Existencia'] < $productoActual['Existencia']) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'No se puede reducir la existencia. Solo se puede aumentar.',
+                ]);
+            }
+
+            if ($this->api->actualizarProducto($id, $data)) {
+                return $this->response->setStatusCode(200)->setJSON([
+                    'success' => true,
+                    'message' => 'Producto actualizado correctamente.',
+                ]);
+            }
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON(['success' => false, 'message' => 'No se pudo actualizar el producto.']);
+        } catch (\Throwable $e) {
+            log_message('error', '[Editar Producto] ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
-                'message' => 'No se puede reducir la existencia. Solo se puede aumentar.'
+                'message' => 'Ocurrió un error inesperado al editar el producto.',
             ]);
         }
-
-        $productoModel->update($id, [
-            'Nombre'     => $data['Nombre'],
-            'Existencia' => $data['Existencia']
-        ]);
-
-        return $this->response->setJSON(['success' => true]);
     }
-
-
-
-
 }

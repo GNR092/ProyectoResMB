@@ -15,7 +15,7 @@
     <div class="text-red-600 mb-2"><?= session()->getFlashdata('error') ?></div>
 <?php endif; ?>
 
-<form action="<?= base_url('archivo/subir') ?>" method="post" enctype="multipart/form-data">
+<form action="<?= base_url('solicitudes/registrar') ?>" method="post" enctype="multipart/form-data">
     <input type="file" name="archivo" required class="block mb-4">
     <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Subir</button>
 </form>

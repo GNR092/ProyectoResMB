@@ -261,7 +261,7 @@ $session = session(); ?>
             event.preventDefault();
 
             const formData = new FormData(formulario);
-            const url = "<?= base_url('archivo/subir') ?>";
+            const url = "<?= base_url('solicitudes/registrar') ?>";
             const MessageContainer = document.getElementById('mensajes-form');
             const submitButton = document.getElementById('btn-enviar');
 

@@ -46,15 +46,21 @@ if (!file_exists($installerLockFile)) {
         //Ruta POST para editar productos
         $routes->post('modales/editarProducto/(:num)', 'Modales::editarProducto/$1');
 
-
         // Otros
         $routes->get('archivo', 'Archivo::index');
-        $routes->post('archivo/subir', 'Archivo::subir');
+        $routes->post('solicitudes/registrar', 'Archivo::subir');
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('auth/logout', 'Auth::logout');
         // API Restful
+        //region productos
         $routes->get('api/product/search', 'Api::search');
-        
+        $routes->get('api/product/all', 'Api::allProducts');
+        $routes->get('api/product/(:num)', 'Api::getProductById/$1');
+        $routes->get('api/product', 'Api::allProducts');
+        //endregion
+        //region departamentos
+        $routes->get('api/departments/all', 'Api::getDepartments');
+        //endregion
     });
 }
 
@@ -66,5 +72,10 @@ if (ENVIRONMENT === 'development') {
     $routes->post('installer/process', 'Installer::process');
     $routes->post('installer/testConnection', 'Installer::testConnection');
     $routes->get('api/product/search', 'Api::search');
+    $routes->get('api/product/all', 'Api::allProducts');
+    $routes->get('api/product/(:num)', 'Api::getProductById/$1');
+    $routes->get('api/product', 'Api::allProducts');
+    $routes->get('api/departments/all', 'Api::getDepartments');
+
     $routes->get('api/gentoken', 'Api::gentoken');
 }
