@@ -7,7 +7,7 @@ use App\Models\OrdenCompraModel;
 use App\Models\PagoModel;
 use App\Models\PlacesModel;
 use App\Models\ProductoModel;
-use App\Models\ProveedoresModel;
+use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
 use App\Models\SolicitudModel;
 use App\Models\TokenModel;
@@ -16,11 +16,19 @@ use App\Libraries\HttpStatus;
 
 
 use CodeIgniter\Database\BaseBuilder;
-
+/**
+ * Clase Rest
+ * 
+ * Proporciona métodos para interactuar con la base de datos y realizar operaciones relacionadas con usuarios, productos, proveedores, departamentos y otros.
+ */
 class Rest
 {
+    
     protected $db;
-
+    /**
+     * Constructor de la clase Rest.
+     * Inicializa la conexión a la base de datos.
+     */
     public function __construct()
     {
         $this->db = \Config\Database::connect();
@@ -354,6 +362,43 @@ class Rest
         if (empty($results)) {
             return [];
         }
+        return $results;
+    }
+    //endregion
+
+    //region Proveedor
+    /**
+     * Obtiene un proveedor por su ID.
+     *
+     * @param int $id El ID del proveedor
+     * @return array|null El proveedor encontrado o null si no se encuentra
+     */
+    public function getProveedorById(int $id): ?array
+    {
+        $proveedorModel = new ProveedorModel();
+        $result = $proveedorModel->find($id);
+        return $result ?: null;
+    }
+    /**
+     * Obtiene todos los proveedores.
+     *
+     * @return array Los proveedores encontrados
+     */
+    public function getAllProveedores(): array
+    {
+        $proveedorModel = new ProveedorModel();
+        $results = $proveedorModel->findAll();
+        return $results ?: [];
+    }
+    /**
+     * Obtiene todos los proveedores con solo ID y Nombre.
+     *
+     * @return array Los proveedores encontrados
+     */
+    public function getAllProveedorName(): array
+    {
+        $proveedorModel = new ProveedorModel();
+        $results = $proveedorModel->select('ID_Proveedor, Nombre')->findAll();
         return $results;
     }
     //endregion

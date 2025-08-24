@@ -4,15 +4,15 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class RazonSocialModel extends Model
+class SolicitudProductModel extends Model
 {
-    protected $table            = 'RazonSocial';
-    protected $primaryKey       = 'ID_RazonSocial';
+    protected $table            = 'Solicitud_Producto';
+    protected $primaryKey       = 'ID_SolicitudProducto';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['Nombre, RFC'];
+    protected $allowedFields    = ['ID_Solicitud', 'Codigo', 'Nombre', 'Cantidad', 'Importe'];
 
     // Dates
     protected $useTimestamps = false;

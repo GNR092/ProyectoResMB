@@ -71,7 +71,7 @@ class CreateTableUsuarios extends Migration
         if ($defaultRS) {
             $razonSocialId = $defaultRS->ID_RazonSocial;
         } else {
-            $this->db->table('RazonSocial')->insert(['Nombre' => 'Interna']);
+            $this->db->table('RazonSocial')->insert(['Nombre' => 'Interna', 'RFC' => 'INTERNAL123']);
             $razonSocialId = $this->db->insertID();
         }
 

@@ -20,6 +20,11 @@ class CreateTableRazonSocial extends Migration
                 'constraint' => '200',
                 'null'       => false,
             ],
+            'RFC' => [
+                'type'       => 'VARCHAR',
+                'constraint' => '200',
+                'null'       => false,
+            ],
         ]);
         $this->forge->addKey('ID_RazonSocial', true);
         $this->forge->createTable('RazonSocial');

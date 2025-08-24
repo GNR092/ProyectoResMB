@@ -3,85 +3,98 @@ $session = session(); ?>
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Pantalla principal</title>
     <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>">
 </head>
+
 <body class="h-screen flex">
 
-<!-- Barra lateral -->
-<aside class="font-montserrat w-64 bg-carbon text-white flex flex-col overflow-auto">
-    <div class="p-4 border-b border-gray-600">
-        <img src="<?= base_url(
-            'images/logo.png',
-        ) ?>" alt="Logo" class="mx-auto h-20 object-contain">
-    </div>
-
-    <nav class="flex-1 mt-4 px-4 space-y-2">
-        <?php if (!empty($opcionesDinamicas)): ?>
-            <?php foreach ($opcionesDinamicas as $key => $opcion): ?>
-                <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2" onclick="abrirModal('<?= $key ?>')">
-                    <?= $opcion['icon'] ?>
-                    <span><?= esc($opcion['label']) ?></span>
-                </a>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <p class="text-gray-400 text-sm">Sin opciones disponibles</p>
-        <?php endif; ?>
-
-        <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.573-1.066z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>Ajustes</span>
-        </a>
-
-        <a href="<?= base_url(
-            'auth/logout',
-        ) ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m-3-3h12m0 0l-3.75-3.75M24 12l-3.75 3.75" />
-            </svg>
-            <span>Cerrar sesión</span>
-        </a>
-    </nav>
-</aside>
-
-<!-- Contenido principal -->
-<div class="flex-1 flex flex-col bg-gray-100">
-    <header class="h-12 bg-white border-b border-gray-300 flex items-center justify-end px-6 text-sm text-gray-600 shadow-sm">
-        <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc(
-     $departamento_usuario ?? 'Departamento',
- ) ?>
-    </header>
-
-    <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
-        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+    <!-- Barra lateral -->
+    <aside class="font-montserrat w-64 bg-carbon text-white flex flex-col overflow-auto">
+        <div class="p-4 border-b border-gray-600">
             <img src="<?= base_url(
                 'images/logo.png',
-            ) ?>" alt="Logo" class="max-w-xs filter invert" />
+            ) ?>" alt="Logo" class="mx-auto h-20 object-contain">
         </div>
 
-        <div class="relative z-10">
-            <?= $this->renderSection('contenido') ?>
-        </div>
+        <nav class="flex-1 mt-4 px-4 space-y-2">
+            <?php if (!empty($opcionesDinamicas)): ?>
+            <?php foreach ($opcionesDinamicas as $key => $opcion): ?>
+            <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
+                onclick="abrirModal('<?= $key ?>')">
+                <?= $opcion['icon'] ?>
+                <span><?= esc($opcion['label']) ?></span>
+            </a>
+            <?php endforeach; ?>
+            <?php else: ?>
+            <p class="text-gray-400 text-sm">Sin opciones disponibles</p>
+            <?php endif; ?>
 
-        <!-- Modal general -->
-        <div id="modal-general" class="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 hidden items-start justify-center pt-10 overflow-auto">
-            <div class="bg-white bg-opacity-95 rounded-lg shadow-2xl max-w-4xl w-full mx-4 sm:mx-auto p-6 relative">
-                <button onclick="cerrarModal()" class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
-                <h2 id="modal-title" class="text-xl font-semibold mb-4 text-gray-800"></h2>
-                <div id="modal-contenido" class="text-gray-700 space-y-2">
-                    <!-- Contenido cargado por AJAX -->
+            <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.573-1.066z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Ajustes</span>
+            </a>
+
+            <a href="<?= base_url(
+                'auth/logout',
+            ) ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m-3-3h12m0 0l-3.75-3.75M24 12l-3.75 3.75" />
+                </svg>
+                <span>Cerrar sesión</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Contenido principal -->
+    <div class="flex-1 flex flex-col bg-gray-100">
+        <header
+            class="h-12 bg-white border-b border-gray-300 flex items-center justify-end px-6 text-sm text-gray-600 shadow-sm">
+            <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc(
+     $departamento_usuario ?? 'Departamento',
+ ) ?>
+        </header>
+
+        <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
+                <img src="<?= base_url(
+                    'images/logo.png',
+                ) ?>" alt="Logo" class="max-w-xs filter invert" />
+            </div>
+
+            <div class="relative z-10">
+                <?= $this->renderSection('contenido') ?>
+            </div>
+
+            <!-- Modal general -->
+            <div id="modal-general"
+                class="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 hidden items-start justify-center pt-10 overflow-auto">
+                <div class="bg-white bg-opacity-95 rounded-lg shadow-2xl max-w-4xl w-full mx-4 sm:mx-auto p-6 relative">
+                    <button onclick="cerrarModal()"
+                        class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
+                    <h2 id="modal-title" class="text-xl font-semibold mb-4 text-gray-800"></h2>
+                    <div id="modal-contenido" class="text-gray-700 space-y-2">
+                        <!-- Contenido cargado por AJAX -->
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
-</div>
+        </main>
+    </div>
 
-<script>
+    <script>
+    const BASE_URL = "<?php echo base_url(); ?>";
+
     //Abrir-Cerrar modal
     function abrirModal(opcion) {
         const modal = document.getElementById('modal-general');
@@ -123,11 +136,11 @@ $session = session(); ?>
                     initRevisarSolicitud();
                 } else if (opcion === 'registrar_productos') {
                     initRegistrarMaterial();
-                }else if (opcion === 'enviar_revision') {
+                } else if (opcion === 'enviar_revision') {
                     initEnviarRevision();
-                }else if (opcion === 'dictamen_solicitudes') {
+                } else if (opcion === 'dictamen_solicitudes') {
                     initDictamenSolicitudes();
-                }else if (opcion === 'crud_productos') {
+                } else if (opcion === 'crud_productos') {
                     initCrudProductos();
                 }
 
@@ -137,6 +150,7 @@ $session = session(); ?>
                 modal.classList.remove('hidden');
             });
     }
+
     function cerrarModal() {
         document.getElementById('modal-general').classList.add('hidden');
     }
@@ -148,8 +162,8 @@ $session = session(); ?>
 
         // NUEVOS refs para subtotal/total/IVA
         const subtotalTd = document.getElementById('subtotal-costo'); // nuevo id en la vista
-        const totalTd    = document.getElementById('total-costo');    // ahora muestra el total final
-        const chkIVA     = document.getElementById('agregar-iva');    // checkbox "Agregar IVA"
+        const totalTd = document.getElementById('total-costo'); // ahora muestra el total final
+        const chkIVA = document.getElementById('agregar-iva'); // checkbox "Agregar IVA"
 
         if (!tabla) return;
 
@@ -196,20 +210,20 @@ $session = session(); ?>
             if (!fila) return;
 
             const cantidadInput = fila.querySelector('.cantidad');
-            const importeInput  = fila.querySelector('.importe');
-            const costoTd       = fila.querySelector('.costo');
-            const eliminarBtn   = fila.querySelector('.eliminar-fila');
+            const importeInput = fila.querySelector('.importe');
+            const costoTd = fila.querySelector('.costo');
+            const eliminarBtn = fila.querySelector('.eliminar-fila');
 
             function actualizarCosto() {
                 const cantidad = parseFloat(cantidadInput?.value) || 0;
-                const importe  = parseFloat(importeInput?.value)  || 0;
-                const costo    = cantidad * importe;
+                const importe = parseFloat(importeInput?.value) || 0;
+                const costo = cantidad * importe;
                 if (costoTd) costoTd.textContent = '$' + costo.toFixed(2);
                 actualizarTotal(); // <- recalcula subtotal/total
             }
 
             if (cantidadInput) cantidadInput.addEventListener('input', actualizarCosto);
-            if (importeInput)  importeInput.addEventListener('input',  actualizarCosto);
+            if (importeInput) importeInput.addEventListener('input', actualizarCosto);
 
             if (eliminarBtn) {
                 eliminarBtn.addEventListener('click', () => {
@@ -253,52 +267,17 @@ $session = session(); ?>
             });
         }
 
-        // ------- tu lógica de envío se queda igual -------
-        const formulario = document.getElementById('form-upload');
-        if (!formulario) return;
+        loadRazonSocial(); //cambiar a razon social
 
-        formulario.addEventListener('submit', async (event) => {
-            event.preventDefault();
+        const formulario = document.getElementById('form-upload')
+        if (!formulario) return
 
-            const formData = new FormData(formulario);
-            const url = "<?= base_url('solicitudes/registrar') ?>";
-            const MessageContainer = document.getElementById('mensajes-form');
-            const submitButton = document.getElementById('btn-enviar');
-
-            submitButton.disabled = true;
-            submitButton.querySelector('span').textContent = 'Enviando...';
-            if (MessageContainer) MessageContainer.innerHTML = '';
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'Accept': 'application/json' }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    MessageContainer.innerHTML = `<p class="text-green-600">${data.message}</p>`;
-                } else {
-                    let errores = '';
-                    if (data.errors) {
-                        for (const key in data.errors) {
-                            errores += `<li>${data.errors[key]}</li>`;
-                        }
-                    } else {
-                        errores = `<li>${data.message || 'Ocurrió un error desconocido.'}</li>`;
-                    }
-                    if (MessageContainer) MessageContainer.innerHTML = `<ul class="list-disc list-inside text-red-600">${errores}</ul>`;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                if (MessageContainer) MessageContainer.innerHTML = `<p class="text-red-600">Ocurrió un error de red. Por favor, intente de nuevo.</p>`;
-            } finally {
-                submitButton.disabled = false;
-                submitButton.querySelector('span').textContent = 'Enviar';
-            }
-        });
+        try {
+            formulario.addEventListener('submit', SendData);
+        } catch (error) {
+         console.log(error);
+        }
+        
     }
 
     //PaginacionHistorial
@@ -353,7 +332,8 @@ $session = session(); ?>
             for (let i = 1; i <= totalPaginas; i++) {
                 const boton = document.createElement('button');
                 boton.textContent = i;
-                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.className =
+                    `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
                 boton.addEventListener('click', () => {
                     mostrarPagina(i, aplicarFiltros());
                 });
@@ -389,7 +369,7 @@ $session = session(); ?>
         if (form.dataset.init === '1') return;
         form.dataset.init = '1';
 
-        form.addEventListener('submit', async function (e) {
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             // limpiar mensaje previo
@@ -423,25 +403,30 @@ $session = session(); ?>
                     data = JSON.parse(text);
                 } catch (err) {
                     console.error('Respuesta no JSON recibida al registrar usuario:', text);
-                    if (mensajeDiv) mensajeDiv.innerHTML = '<span class="text-red-600">Error: respuesta inesperada del servidor.</span>';
+                    if (mensajeDiv) mensajeDiv.innerHTML =
+                        '<span class="text-red-600">Error: respuesta inesperada del servidor.</span>';
                     return;
                 }
 
                 if (data.success) {
                     if (mensajeDiv) {
-                        mensajeDiv.innerHTML = `<span class="text-green-600">${data.message || 'Registro correcto.'}</span>`;
+                        mensajeDiv.innerHTML =
+                            `<span class="text-green-600">${data.message || 'Registro correcto.'}</span>`;
                     }
                     form.reset(); // Solo limpia el formulario sin cerrar el modal
-                    form.querySelector('input, select, textarea')?.focus(); // Opcional: vuelve al primer campo
+                    form.querySelector('input, select, textarea')
+                        ?.focus(); // Opcional: vuelve al primer campo
                 } else {
                     if (mensajeDiv) {
-                        mensajeDiv.innerHTML = `<span class="text-red-600">${data.message || 'Error al registrar usuario.'}</span>`;
+                        mensajeDiv.innerHTML =
+                            `<span class="text-red-600">${data.message || 'Error al registrar usuario.'}</span>`;
                     }
                 }
 
             } catch (err) {
                 console.error('Error en la solicitud:', err);
-                if (mensajeDiv) mensajeDiv.innerHTML = `<span class="text-red-600">Error en la solicitud: ${err.message}</span>`;
+                if (mensajeDiv) mensajeDiv.innerHTML =
+                    `<span class="text-red-600">Error en la solicitud: ${err.message}</span>`;
             } finally {
                 if (submitBtn) {
                     submitBtn.disabled = false;
@@ -466,7 +451,8 @@ $session = session(); ?>
             paginaActual = pagina;
             filas.forEach((fila, index) => {
                 // Ocultar fila de encabezado si la hubiera en tbody
-                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
+                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina *
+                    filasPorPagina) ? '' : 'none';
             });
             renderPaginacion();
         }
@@ -476,7 +462,8 @@ $session = session(); ?>
             for (let i = 1; i <= totalPaginas; i++) {
                 const boton = document.createElement('button');
                 boton.textContent = i;
-                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.className =
+                    `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
                 boton.addEventListener('click', () => mostrarPagina(i));
                 paginacion.appendChild(boton);
             }
@@ -484,16 +471,19 @@ $session = session(); ?>
 
         mostrarPagina(1); // Mostrar la primera página
     }
+
     function mostrarVer(idSolicitud) {
         document.getElementById('div-tabla').classList.add('hidden');
         document.getElementById('div-ver').classList.remove('hidden');
         console.log("VER solicitud ID:", idSolicitud); // Aquí puedes cargar los detalles
     }
+
     function mostrarCotizar(idSolicitud) {
         document.getElementById('div-tabla').classList.add('hidden');
         document.getElementById('div-cotizar').classList.remove('hidden');
         console.log("COTIZAR solicitud ID:", idSolicitud); // Aquí puedes cargar el formulario
     }
+
     function regresarTabla() {
         document.getElementById('div-ver').classList.add('hidden');
         document.getElementById('div-cotizar').classList.add('hidden');
@@ -510,15 +500,15 @@ $session = session(); ?>
             return;
         }
 
-        form.addEventListener('submit', function (e) {
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
 
             const formData = new FormData(form);
 
             fetch(form.action, {
-                method: 'POST',
-                body: formData
-            })
+                    method: 'POST',
+                    body: formData
+                })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -551,7 +541,8 @@ $session = session(); ?>
         function mostrarPagina(pagina) {
             paginaActual = pagina;
             filas.forEach((fila, index) => {
-                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
+                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina *
+                    filasPorPagina) ? '' : 'none';
             });
             renderPaginacion();
         }
@@ -561,7 +552,8 @@ $session = session(); ?>
             for (let i = 1; i <= totalPaginas; i++) {
                 const boton = document.createElement('button');
                 boton.textContent = i;
-                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.className =
+                    `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
                 boton.addEventListener('click', () => mostrarPagina(i));
                 paginacion.appendChild(boton);
             }
@@ -576,6 +568,7 @@ $session = session(); ?>
 
         mostrarPagina(1); // Mostrar la primera página
     }
+
     function enviarRevisionHandler(event) {
         const fila = event.target.closest('tr');
         const idSolicitud = fila.dataset.id; // asumiendo que cada fila tiene data-id
@@ -598,7 +591,8 @@ $session = session(); ?>
         function mostrarPagina(pagina) {
             paginaActual = pagina;
             filas.forEach((fila, index) => {
-                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
+                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina *
+                    filasPorPagina) ? '' : 'none';
             });
             renderPaginacion();
         }
@@ -608,7 +602,8 @@ $session = session(); ?>
             for (let i = 1; i <= totalPaginas; i++) {
                 const boton = document.createElement('button');
                 boton.textContent = i;
-                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.className =
+                    `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
                 boton.addEventListener('click', () => mostrarPagina(i));
                 paginacion.appendChild(boton);
             }
@@ -616,14 +611,17 @@ $session = session(); ?>
 
         mostrarPagina(1);
     }
+
     function mostrarVerDictamen(idSolicitud) {
         document.getElementById('div-tabla').classList.add('hidden');
         document.getElementById('div-ver-dictamen').classList.remove('hidden');
 
         console.log("VER solicitud dictamen ID:", idSolicitud);
         // Aquí se puede hacer fetch para traer los detalles de la solicitud
-        document.getElementById('detallesDictamen').innerHTML = `<p>Cargando detalles de la solicitud ${idSolicitud}...</p>`;
+        document.getElementById('detallesDictamen').innerHTML =
+            `<p>Cargando detalles de la solicitud ${idSolicitud}...</p>`;
     }
+
     function regresarTablaDictamen() {
         document.getElementById('div-ver-dictamen').classList.add('hidden');
         document.getElementById('div-tabla').classList.remove('hidden');
@@ -685,7 +683,8 @@ $session = session(); ?>
             for (let i = 1; i <= totalPaginas; i++) {
                 const boton = document.createElement('button');
                 boton.textContent = i;
-                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.className =
+                    `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
                 boton.addEventListener('click', () => mostrarPagina(i, aplicarFiltro()));
                 paginacion.appendChild(boton);
             }
@@ -708,16 +707,17 @@ $session = session(); ?>
             inputBusqueda.dataset.bound = '1';
         }
     }
+
     function eliminarProducto(idProducto) {
         if (!confirm("¿Estás seguro de que deseas eliminar este producto?")) return;
 
         fetch(`index.php/modales/eliminarProducto/${idProducto}`, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/json'
-            }
-        })
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -733,6 +733,7 @@ $session = session(); ?>
                 alert("Ocurrió un error al eliminar el producto.");
             });
     }
+
     function editarProducto(idProducto) {
         // Ocultar tabla y barra de búsqueda
         document.getElementById('div-tabla').classList.add('hidden');
@@ -748,11 +749,13 @@ $session = session(); ?>
             document.getElementById('editarExistencia').value = fila.children[2].textContent.trim();
         }
     }
+
     function regresarTablaProductos() {
         document.getElementById('div-tabla').classList.remove('hidden');
         document.getElementById('div-busqueda').classList.remove('hidden');
         document.getElementById('div-editar').classList.add('hidden');
     }
+
     function guardarEdicion() {
         const id = document.getElementById('editarID_Producto').value;
         const codigo = document.getElementById('editarCodigo').value;
@@ -770,14 +773,16 @@ $session = session(); ?>
 
         // Enviar datos al backend
         fetch(`modales/editarProducto/${id}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                Codigo: codigo,
-                Nombre: nombre,
-                Existencia: existenciaNueva
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    Codigo: codigo,
+                    Nombre: nombre,
+                    Existencia: existenciaNueva
+                })
             })
-        })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -797,8 +802,9 @@ $session = session(); ?>
 
 
     document.addEventListener('DOMContentLoaded', initPaginacionHistorial);
-
-</script>
-<script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
+    </script>
+    <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
+    <script src="<?= base_url() ?>js/mbscript.js"></script>
 </body>
+
 </html>

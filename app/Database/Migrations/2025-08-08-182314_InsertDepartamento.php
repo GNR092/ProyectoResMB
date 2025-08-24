@@ -15,7 +15,7 @@ class InsertDepartamento extends Migration
 
         // Lista completa de departamentos
         $departamentos = [
-            'Administracion',
+            'Administración',
             'Almacen',
             'Cobranza proyectos',
             'Construccion',

@@ -15,8 +15,18 @@ class InsertRazonSocial extends Migration
 
         // Datos a insertar
         $razones = [
-            ['Nombre' => 'MBSignature'],
-            ['Nombre' => 'Otros']
+            ['Nombre' => 'MB SIGNATURE PROPERTIES',
+              'RFC' => 'MSP220504I99'
+            ],
+            ['Nombre' => 'MBSP RENTAS',
+              'RFC' => 'MRE230623IH5'
+            ],
+            ['Nombre' => 'MBSP SERVICIOS ACCESORIOS',
+              'RFC' => 'MSA230623HP8'
+            ], 
+            ['Nombre' => 'MBSP INVESTMENTS',
+              'RFC' => 'MIN230623P88'
+            ],
         ];
 
         // Insertar con validación individual

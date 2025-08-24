@@ -25,13 +25,8 @@
         <!-- Razón social -->
         <div>
             <label class="text-sm text-gray-700 font-medium">Razón social:</label>
-            <select class="w-full px-3 py-2 border rounded" name="razon_social" required>
+            <select id="razonSocialSelect" class="w-full px-3 py-2 border rounded" name="razon_social" required>
                 <option value="">Seleccione una opción</option>
-                <?php foreach ($departamentos as $depto): ?>
-                    <option value="<?= esc($depto['ID_Dpto']) ?>">
-                        <?= esc($depto['Nombre']) ?>
-                    </option>
-                <?php endforeach; ?>
             </select>
         </div>
 
