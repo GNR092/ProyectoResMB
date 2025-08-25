@@ -50,7 +50,20 @@ class Modales extends BaseController
                 return view('modales/proveedores');
 
             case 'ordenes_compra':
-                return view('modales/ordenes_compra');
+                $solicitudModel = new \App\Models\SolicitudModel();
+
+                $data['solicitudes'] = $solicitudModel
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
+                    )
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                    ->where('Solicitud.Estado', 'Aprobado')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->findAll();
+
+                return view('modales/ordenes_compra', $data);
+
 
             case 'enviar_revision':
                 $solicitudModel = new \App\Models\SolicitudModel();

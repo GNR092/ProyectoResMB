@@ -142,6 +142,8 @@ $session = session(); ?>
                     initDictamenSolicitudes();
                 } else if (opcion === 'crud_productos') {
                     initCrudProductos();
+                } else if (opcion === 'ordenes_compra') {
+                    initOrdenesCompra();
                 }
 
             })
@@ -707,7 +709,6 @@ $session = session(); ?>
             inputBusqueda.dataset.bound = '1';
         }
     }
-
     function eliminarProducto(idProducto) {
         if (!confirm("¿Estás seguro de que deseas eliminar este producto?")) return;
 
@@ -733,7 +734,6 @@ $session = session(); ?>
                 alert("Ocurrió un error al eliminar el producto.");
             });
     }
-
     function editarProducto(idProducto) {
         // Ocultar tabla y barra de búsqueda
         document.getElementById('div-tabla').classList.add('hidden');
@@ -749,13 +749,11 @@ $session = session(); ?>
             document.getElementById('editarExistencia').value = fila.children[2].textContent.trim();
         }
     }
-
     function regresarTablaProductos() {
         document.getElementById('div-tabla').classList.remove('hidden');
         document.getElementById('div-busqueda').classList.remove('hidden');
         document.getElementById('div-editar').classList.add('hidden');
     }
-
     function guardarEdicion() {
         const id = document.getElementById('editarID_Producto').value;
         const codigo = document.getElementById('editarCodigo').value;
@@ -797,6 +795,58 @@ $session = session(); ?>
             })
             .catch(err => console.error(err));
     }
+
+    //Ordenes de compra
+    function initOrdenesCompra() {
+        const tabla = document.getElementById('tablaOrdenesCompra').parentElement;
+        const filas = document.querySelectorAll('#tablaOrdenesCompra tr');
+        const paginacion = document.getElementById('paginacion-ordenes-compra');
+
+        let paginaActual = 1;
+        const filasPorPagina = 10;
+        const totalFilas = filas.length;
+        const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+
+        function mostrarPagina(pagina) {
+            paginaActual = pagina;
+            filas.forEach((fila, index) => {
+                fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina)
+                    ? ''
+                    : 'none';
+            });
+            renderPaginacion();
+        }
+
+        function renderPaginacion() {
+            paginacion.innerHTML = '';
+            for (let i = 1; i <= totalPaginas; i++) {
+                const boton = document.createElement('button');
+                boton.textContent = i;
+                boton.className =
+                    `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.addEventListener('click', () => mostrarPagina(i));
+                paginacion.appendChild(boton);
+            }
+        }
+
+        mostrarPagina(1);
+    }
+
+    function mostrarVerOrdenCompra(idOrden) {
+        document.getElementById('div-tabla-ordenes').classList.add('hidden');
+        document.getElementById('div-ver-orden').classList.remove('hidden');
+
+        console.log("VER orden de compra ID:", idOrden);
+        // Aquí se puede hacer fetch para traer los detalles de la orden
+        document.getElementById('detallesOrdenCompra').innerHTML =
+            `<p>Cargando detalles de la orden ${idOrden}...</p>`;
+    }
+
+    function regresarTablaOrdenCompra() {
+        document.getElementById('div-ver-orden').classList.add('hidden');
+        document.getElementById('div-tabla-ordenes').classList.remove('hidden');
+    }
+
 
 
 
