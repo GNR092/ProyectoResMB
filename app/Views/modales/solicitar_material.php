@@ -1,4 +1,26 @@
-<div class="p-6">
+<div id="seleccion-opcion" class="p-6">
+    <h2 class="text-lg font-semibold mb-4">Elija una opción</h2>
+    <div class="flex flex-col gap-4">
+        <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-blue-600"
+             onclick="mostrarSolicitarMaterial()">
+            Solicitar Material
+        </div>
+        <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-blue-600"
+             onclick="mostrarSolicitarServicio()">
+            Solicitar Servicio
+        </div>
+    </div>
+</div>
+
+<!-- Pantalla 2: Solicitar Material -->
+<div id="solicitar-material-content" class="hidden">
+    <div class="flex justify-between mb-4">
+        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">&larr; Regresar</button>
+        <h2 class="text-lg font-semibold">Solicitud de Material</h2>
+        <div></div>
+    </div>
+
+    <div class="p-6">
     <!-- Formulario -->
     <form id="form-upload" class="space-y-4" enctype="multipart/form-data">
         <!-- Encabezado -->
@@ -115,3 +137,24 @@
         </div>
     </form>
 </div>
+</div>
+
+    <div id="solicitar-servicio-content" class="hidden p-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Solicitud de Servicio</h2>
+
+        <!-- Contenido de la solicitud de servicio -->
+        <p>Aquí irá la interfaz para solicitar servicio (por ahora placeholder).</p>
+
+        <!-- Botón para regresar -->
+        <div class="mt-4">
+            <button
+                    onclick="regresarSeleccionOpciones()"
+                    class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-black rounded"
+            >
+                Regresar
+            </button>
+        </div>
+    </div>
+
+
+

@@ -56,7 +56,6 @@ $session = session(); ?>
             </a>
         </nav>
     </aside>
-
     <!-- Contenido principal -->
     <div class="flex-1 flex flex-col bg-gray-100">
         <header
@@ -279,8 +278,28 @@ $session = session(); ?>
         } catch (error) {
          console.log(error);
         }
-        
+
     }
+
+    function mostrarSolicitarMaterial() {
+        document.getElementById('seleccion-opcion').classList.add('hidden');
+        document.getElementById('solicitar-material-content').classList.remove('hidden');
+        initSolicitarMaterial();
+    }
+
+    function mostrarSolicitarServicio() {
+        document.getElementById('seleccion-opcion').classList.add('hidden');
+        document.getElementById('solicitar-servicio-content').classList.remove('hidden');
+    }
+
+    function regresarSeleccionOpciones() {
+        document.getElementById('solicitar-material-content').classList.add('hidden');
+        document.getElementById('solicitar-servicio-content').classList.add('hidden');
+        document.getElementById('seleccion-opcion').classList.remove('hidden');
+    }
+
+
+
 
     //PaginacionHistorial
     function initPaginacionHistorial() {
@@ -473,19 +492,16 @@ $session = session(); ?>
 
         mostrarPagina(1); // Mostrar la primera página
     }
-
     function mostrarVer(idSolicitud) {
         document.getElementById('div-tabla').classList.add('hidden');
         document.getElementById('div-ver').classList.remove('hidden');
         console.log("VER solicitud ID:", idSolicitud); // Aquí puedes cargar los detalles
     }
-
     function mostrarCotizar(idSolicitud) {
         document.getElementById('div-tabla').classList.add('hidden');
         document.getElementById('div-cotizar').classList.remove('hidden');
         console.log("COTIZAR solicitud ID:", idSolicitud); // Aquí puedes cargar el formulario
     }
-
     function regresarTabla() {
         document.getElementById('div-ver').classList.add('hidden');
         document.getElementById('div-cotizar').classList.add('hidden');
@@ -570,7 +586,6 @@ $session = session(); ?>
 
         mostrarPagina(1); // Mostrar la primera página
     }
-
     function enviarRevisionHandler(event) {
         const fila = event.target.closest('tr');
         const idSolicitud = fila.dataset.id; // asumiendo que cada fila tiene data-id
@@ -613,7 +628,6 @@ $session = session(); ?>
 
         mostrarPagina(1);
     }
-
     function mostrarVerDictamen(idSolicitud) {
         document.getElementById('div-tabla').classList.add('hidden');
         document.getElementById('div-ver-dictamen').classList.remove('hidden');
@@ -623,7 +637,6 @@ $session = session(); ?>
         document.getElementById('detallesDictamen').innerHTML =
             `<p>Cargando detalles de la solicitud ${idSolicitud}...</p>`;
     }
-
     function regresarTablaDictamen() {
         document.getElementById('div-ver-dictamen').classList.add('hidden');
         document.getElementById('div-tabla').classList.remove('hidden');
@@ -831,7 +844,6 @@ $session = session(); ?>
 
         mostrarPagina(1);
     }
-
     function mostrarVerOrdenCompra(idOrden) {
         document.getElementById('div-tabla-ordenes').classList.add('hidden');
         document.getElementById('div-ver-orden').classList.remove('hidden');
@@ -841,7 +853,6 @@ $session = session(); ?>
         document.getElementById('detallesOrdenCompra').innerHTML =
             `<p>Cargando detalles de la orden ${idOrden}...</p>`;
     }
-
     function regresarTablaOrdenCompra() {
         document.getElementById('div-ver-orden').classList.add('hidden');
         document.getElementById('div-tabla-ordenes').classList.remove('hidden');
@@ -853,6 +864,7 @@ $session = session(); ?>
 
     document.addEventListener('DOMContentLoaded', initPaginacionHistorial);
     </script>
+
     <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
     <script src="<?= base_url() ?>js/mbscript.js"></script>
 </body>
