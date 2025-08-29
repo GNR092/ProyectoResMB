@@ -29,7 +29,7 @@ class CreateSolicitudServiciosTable extends Migration
             ],
             'Fecha' => [
                 'type' => 'TIMESTAMP',
-                'default' => 'CURRENT_TIMESTAMP'
+                'null' => false,
             ],
             'Estado' => [
                 'type' => 'VARCHAR',
@@ -43,7 +43,7 @@ class CreateSolicitudServiciosTable extends Migration
             ]
         ]);
         $this->forge->addPrimaryKey('ID_SolicitudServ');
-        $this->forge->addForeignKey('ID_Usuario', 'D_Utilizarlo', 'ID_Dpto', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
         $this->forge->createTable('Solicitud_Servicios');
     }

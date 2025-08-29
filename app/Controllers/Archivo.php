@@ -64,7 +64,7 @@ class Archivo extends BaseController
             $solicitudProduct = new SolicitudProductModel();
 
             foreach ($datosProductos as $solproducto) {
-                $solproducto['ID_Solicitud'] = $solicitudId;
+                $solproducto['ID_SolicitudProd'] = $solicitudId;
                 $solicitudProduct->insert($solproducto);
             }
 

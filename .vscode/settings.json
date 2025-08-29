@@ -39,4 +39,10 @@
             "PHP0418"
         ]
     },
+    "[ssh_config]": {
+      "editor.defaultFormatter": "jamief.vscode-ssh-config-enhanced"
+    },
+    "[xml]": {
+      "editor.defaultFormatter": "redhat.vscode-xml"
+    },
 }

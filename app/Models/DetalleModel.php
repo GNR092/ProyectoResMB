@@ -12,7 +12,7 @@ class DetalleModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_Solicitud', 'Nombre_Producto', 'Cantidad', 'Costo'];
+    protected $allowedFields    = ['ID_SolicitudProd', 'Nombre_Producto', 'Cantidad', 'Costo'];
 
     // Dates
     protected $useTimestamps = false;

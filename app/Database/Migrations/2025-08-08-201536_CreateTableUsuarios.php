@@ -52,7 +52,7 @@ class CreateTableUsuarios extends Migration
 
         $this->forge->addKey('ID_Usuario', true);
         $this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('ID_RazonSocial', 'RazonSocial', 'ID_RazonSocial', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('ID_RazonSocial', 'Razon_Social', 'ID_RazonSocial', 'CASCADE', 'CASCADE');
 
         $this->forge->createTable('Usuarios');
 
@@ -67,11 +67,11 @@ class CreateTableUsuarios extends Migration
             $departamentoId = $this->db->insertID();
         }
 
-        $defaultRS = $this->db->table('RazonSocial')->where('Nombre', 'Interna')->get()->getRow();
+        $defaultRS = $this->db->table('Razon_Social')->where('Nombre', 'Interna')->get()->getRow();
         if ($defaultRS) {
             $razonSocialId = $defaultRS->ID_RazonSocial;
         } else {
-            $this->db->table('RazonSocial')->insert(['Nombre' => 'Interna', 'RFC' => 'INTERNAL123']);
+            $this->db->table('Razon_Social')->insert(['Nombre' => 'Interna', 'RFC' => 'INTERNAL123']);
             $razonSocialId = $this->db->insertID();
         }
 

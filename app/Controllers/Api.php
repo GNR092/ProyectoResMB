@@ -50,12 +50,18 @@ class Api extends ResourceController
         return $this->respond($results, HttpStatus::OK);
     }
     //endregion
-
+    // region historial
+    public function getHistorial()
+    {
+        $result = $this->api->getAllSolicitud();
+        return $this->respond($result, HttpStatus::OK);
+    }
+    //endregion
     //region proveedores
     public function getAllProviders()
     {
         $results = $this->api->getAllProveedorName();
         return $this->respond($results, HttpStatus::OK);
     }
-    //
+    //endregion
 }

@@ -15,7 +15,7 @@ class CreateSolicitudProductoTable extends Migration
                 'unsigned'       => true,  
                 'auto_increment' => true,  
             ],
-            'ID_Solicitud' => [
+            'ID_SolicitudProd' => [
                 'type'       => 'INT',
                 'constraint' => 11,
                 'unsigned'   => true,
@@ -46,7 +46,7 @@ class CreateSolicitudProductoTable extends Migration
         ]);
 
         $this->forge->addPrimaryKey('ID_SolicitudProducto');
-        $this->forge->addForeignKey('ID_Solicitud', 'Solicitud', 'ID_Solicitud', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('ID_SolicitudProd', 'Solicitud', 'ID_SolicitudProd', 'CASCADE', 'CASCADE');
         $this->forge->createTable('Solicitud_Producto');
     }
 

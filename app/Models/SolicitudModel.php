@@ -7,7 +7,7 @@ use CodeIgniter\Model;
 class SolicitudModel extends Model
 {
     protected $table = 'Solicitud';
-    protected $primaryKey = 'ID_Solicitud';
+    protected $primaryKey = 'ID_SolicitudProd';
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useSoftDeletes = false;

@@ -15,7 +15,7 @@
             <tbody>
             <?php if (!empty($solicitudes)): ?>
                 <?php foreach ($solicitudes as $s): ?>
-                    <tr class="hover:bg-gray-50" data-id="<?= $s['ID_Solicitud'] ?>">
+                    <tr class="hover:bg-gray-50" data-id="<?= $s['ID_SolicitudProd'] ?>">
                         <td class="py-3 px-6 text-left"><?= esc($s['UsuarioNombre']) ?></td>
                         <td class="py-3 px-6 text-left"><?= esc($s['DepartamentoNombre']) ?></td>
                         <td class="py-3 px-6 text-left"><?= esc($s['Fecha']) ?></td>

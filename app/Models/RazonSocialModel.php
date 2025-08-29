@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class RazonSocialModel extends Model
 {
-    protected $table            = 'RazonSocial';
+    protected $table            = 'Razon_Social';
     protected $primaryKey       = 'ID_RazonSocial';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';

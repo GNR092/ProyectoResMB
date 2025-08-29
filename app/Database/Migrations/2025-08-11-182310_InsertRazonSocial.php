@@ -9,7 +9,7 @@ class InsertRazonSocial extends Migration
     public function up()
     {
         // Verificar existencia de la tabla
-        if (!$this->db->tableExists('RazonSocial')) {
+        if (!$this->db->tableExists('Razon_Social')) {
             throw new \RuntimeException('La tabla RazonSocial no existe');
         }
 
@@ -31,12 +31,12 @@ class InsertRazonSocial extends Migration
 
         // Insertar con validación individual
         foreach ($razones as $razon) {
-            $exists = $this->db->table('RazonSocial')
+            $exists = $this->db->table('Razon_Social')
                 ->where('Nombre', $razon['Nombre'])
                 ->countAllResults();
 
             if ($exists === 0) {
-                $this->db->table('RazonSocial')->insert($razon);
+                $this->db->table('Razon_Social')->insert($razon);
                 log_message('info', '[Migración] Insertada razón social: ' . $razon['Nombre']);
             }
         }

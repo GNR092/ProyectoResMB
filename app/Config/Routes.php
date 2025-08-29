@@ -64,9 +64,9 @@ if (!file_exists($installerLockFile)) {
         //region proveedores
         $routes->get('api/providers/all', 'Api::getAllProviders');
         //endregion
+        $routes->get('api/historic', 'Api::getHistorial');
     });
 }
-
 // --- Rutas para Modo de Desarrollo ---
 // Se aplican en ambos casos (instalación o app) si el entorno es 'development'.
 if (ENVIRONMENT === 'development') {

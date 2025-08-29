@@ -1,3 +1,4 @@
+<!-- Registro de Usuario -->
 <div class="p-6 max-w-lg mx-auto bg-white rounded-xl shadow-md">
     <h2 class="text-2xl font-semibold mb-4 text-center">Registro de Usuario</h2>
 
@@ -30,9 +31,6 @@
             <label for="departamento" class="block text-sm font-medium text-gray-700">Departamento</label>
             <select id="departamento" name="departamento" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500" required>
                 <option value="">Seleccione un departamento</option>
-                <?php foreach ($departamentos as $dpto): ?>
-                    <option value="<?= esc($dpto['ID_Dpto']) ?>"><?= esc($dpto['Nombre']) ?></option>
-                <?php endforeach; ?>
             </select>
         </div>
 

@@ -10,4 +10,5 @@ public const Ordenada = 'Ordenada';
 public const Recibida = 'Recibida';
 public const Cancelada = 'Cancelada';
 public const Entregada = 'Entregada';
+public const Revision = 'Revision';
 }

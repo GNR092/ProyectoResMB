@@ -34,12 +34,8 @@ $session = session(); ?>
             <?php endif; ?>
 
             <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.573-1.066z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
+                    <use xlink:href="/icons/icons.svg#settings"></use>
                 </svg>
                 <span>Ajustes</span>
             </a>
@@ -47,10 +43,8 @@ $session = session(); ?>
             <a href="<?= base_url(
                 'auth/logout',
             ) ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m-3-3h12m0 0l-3.75-3.75M24 12l-3.75 3.75" />
+                <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
+                    <use xlink:href="/icons/icons.svg#logout"></use>
                 </svg>
                 <span>Cerrar sesión</span>
             </a>
@@ -268,7 +262,7 @@ $session = session(); ?>
             });
         }
 
-        loadRazonSocial(); //cambiar a razon social
+        loadRazonSocialProv(); //cambiar a razon social
 
         const formulario = document.getElementById('form-upload')
         if (!formulario) return
@@ -304,24 +298,93 @@ $session = session(); ?>
     //PaginacionHistorial
     function initPaginacionHistorial() {
         const tabla = document.getElementById('tabla-historial');
-        const filasOriginales = Array.from(tabla.querySelectorAll('tbody tr'));
-        const filasPorPagina = 10;
-        let paginaActual = 1;
-
+        if (!tabla) return;
+        const tbody = tabla.querySelector('tbody');
+        const paginacionContenedor = document.getElementById('paginacion-historial');
         const filtroFecha = document.getElementById('filtro-fecha');
         const filtroEstado = document.getElementById('filtro-estado');
 
+        let allData = [];
+        const filasPorPagina = 10;
+        let paginaActual = 1;
+
+        async function fetchData() {
+            try {
+                const response = await fetch(`<?= base_url('api/historic') ?>`);
+                if (!response.ok) {
+                    throw new Error('Error al cargar el historial');
+                }
+                allData = await response.json();
+                actualizarTabla();
+            } catch (error) {
+                console.error(error);
+                if (tbody) tbody.innerHTML =
+                    `<tr><td colspan="6" class="text-center text-red-500 p-4">${error.message}</td></tr>`;
+            }
+        }
+
+        function getStatusSVG(status) {
+            if (!status) return '';
+            const statusLower = status.toLowerCase();
+            let svgClass = '';
+            let iconId = '';
+
+            switch (statusLower) {
+                case 'aprobada':
+                    svgClass = 'text-green-600';
+                    iconId = 'aceptado';
+                    break;
+                case 'en espera':
+                    svgClass = 'text-yellow-500';
+                    iconId = 'en_espera';
+                    break;
+                case 'rechazada':
+                    svgClass = 'text-red-500';
+                    iconId = 'rechazado';
+                    break;
+                default:
+                    return ''; // o un ícono por defecto
+            }
+            return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#${iconId}"></use></svg>`;
+        }
+
+        function renderizarTabla(data) {
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (data.length === 0) {
+                tbody.innerHTML =
+                    '<tr><td colspan="6" class="text-center p-4 text-gray-500">No se encontraron resultados.</td></tr>';
+                return;
+            }
+
+            data.forEach(item => {
+                const svg = getStatusSVG(item.Estado);
+                const fila = `
+                <tr class="text-center">
+                    <td class="border px-4 py-2">${item.ID_Solicitud}</td>
+                    <td class="border px-4 py-2 col-fecha">${item.Fecha}</td>
+                    <td class="border px-4 py-2">${item.DepartamentoNombre || 'N/A'}</td>
+                    <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
+                    <td class="border px-4 py-2 col-estado" data-estado="${item.Estado}">
+                        ${svg}
+                        <span class="hidden">${item.Estado}</span>
+                    </td>
+                    <td class="border px-4 py-2">
+                        <a href="#" class="text-blue-600 hover:underline">ver</a>
+                    </td>
+                </tr>
+            `;
+                tbody.insertAdjacentHTML('beforeend', fila);
+            });
+        }
+
         function aplicarFiltros() {
             const fechaFiltro = filtroFecha.value;
-            const estadoFiltro = filtroEstado.value.toLowerCase();
+            const estadoFiltro = filtroEstado.value;
 
-            return filasOriginales.filter(fila => {
-                const fecha = fila.querySelector('.col-fecha')?.textContent.trim();
-                const estado = fila.querySelector('.col-estado')?.textContent.trim().toLowerCase();
-
-                const coincideFecha = !fechaFiltro || fecha === fechaFiltro;
-                const coincideEstado = !estadoFiltro || estado === estadoFiltro;
-
+            return allData.filter(item => {
+                const coincideFecha = !fechaFiltro || item.Fecha === fechaFiltro;
+                const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
                 return coincideFecha && coincideEstado;
             });
         }
@@ -331,21 +394,14 @@ $session = session(); ?>
             const inicio = (pagina - 1) * filasPorPagina;
             const fin = inicio + filasPorPagina;
 
-            filasOriginales.forEach(fila => fila.style.display = 'none');
-            filasFiltradas.slice(inicio, fin).forEach(fila => fila.style.display = '');
-
+            const datosPagina = filasFiltradas.slice(inicio, fin);
+            renderizarTabla(datosPagina);
             renderizarControlesPaginacion(filasFiltradas.length);
         }
 
         function renderizarControlesPaginacion(totalFilas) {
-            let contenedor = document.getElementById('paginacion-historial');
-            if (!contenedor) {
-                contenedor = document.createElement('div');
-                contenedor.id = 'paginacion-historial';
-                contenedor.className = 'flex justify-center mt-4 space-x-2';
-                tabla.parentElement.appendChild(contenedor);
-            }
-            contenedor.innerHTML = '';
+            if (!paginacionContenedor) return;
+            paginacionContenedor.innerHTML = '';
 
             const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
             if (totalPaginas <= 1) return;
@@ -358,7 +414,7 @@ $session = session(); ?>
                 boton.addEventListener('click', () => {
                     mostrarPagina(i, aplicarFiltros());
                 });
-                contenedor.appendChild(boton);
+                paginacionContenedor.appendChild(boton);
             }
         }
 
@@ -370,7 +426,7 @@ $session = session(); ?>
         filtroFecha?.addEventListener('input', actualizarTabla);
         filtroEstado?.addEventListener('change', actualizarTabla);
 
-        actualizarTabla();
+        fetchData();
     }
 
     //Usuarios
@@ -380,6 +436,8 @@ $session = session(); ?>
 
         const form = modalContenido.querySelector('#form-register');
         const mensajeDiv = modalContenido.querySelector('#mensaje');
+
+        loadDepartamentos();
 
         if (!form) {
             console.warn('initUsuarios: no se encontró #form-register dentro del modal');

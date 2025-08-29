@@ -5,6 +5,7 @@ namespace App\Controllers;
 use Config\MenuOptions;
 use App\Models\DepartamentosModel;
 use App\Models\UsuariosModel;
+use App\Libraries\Rest;
 
 
 class Home extends BaseController
@@ -12,6 +13,7 @@ class Home extends BaseController
     
     public function index()
     {
+        $api = new Rest();
         if(session('isLoggedIn'))
         {    
         $configMenu = new MenuOptions();

@@ -10,6 +10,7 @@ use App\Models\ProductoModel;
 use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
 use App\Models\SolicitudModel;
+use App\Models\SolicitudProductModel;
 use App\Models\TokenModel;
 use App\Models\UsuariosModel;
 use App\Libraries\HttpStatus;
@@ -63,7 +64,7 @@ class Rest
         $user = $usuariosModel->find($userid);
 
         if (!$user) {
-            return null;
+            return "";
         }
 
         $tokenmodel = new TokenModel();
@@ -140,6 +141,20 @@ class Rest
     }
     //endregion
 
+    //region solicitudes
+    public function getAllSolicitud()
+    {
+        $solicitudModel = new SolicitudModel();
+
+        $results = $solicitudModel
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->findAll();
+
+        return $results ?: [];
+    }
+    //endregion
 
     //region Usuarios
     /**

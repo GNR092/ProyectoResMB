@@ -3,17 +3,15 @@
 
 <head>
     <title>Instalación Completa</title>
-    <link rel="stylesheet" type="text/css" href="<?= base_url(); ?>css/styless.css">
+    <link rel="stylesheet" type="text/css" href="<?= base_url() ?>css/styless.css">
 </head>
 
 <body class="bg-gray-100 font-montserrat flex items-center justify-center min-h-screen">
 
     <div class="bg-white p-8 md:p-12 rounded-lg shadow-xl w-full max-w-md text-center">
         <div class="flex justify-center mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor" class="size-24 text-green-500">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            <svg class="size-24 text-green-500" fill="none" stroke-width="1.5" stroke="currentColor">
+                <use xlink:href="/icons/icons.svg#success"></use>
             </svg>
         </div>
         <h1 class="text-3xl font-bold font-doulos text-center mb-4 text-gray-800">¡Instalación Exitosa!</h1>
@@ -32,6 +30,6 @@
             a la página principal ahora</a>
     </div>
 </body>
-<script src="<?= base_url(); ?>js/alpine@3.14.8.js" defer></script>
+<script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
 
 </html>
