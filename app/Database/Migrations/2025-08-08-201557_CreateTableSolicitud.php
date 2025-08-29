@@ -4,12 +4,12 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreateTableSolicitud extends Migration
+class CreateTableSolicitudProd extends Migration
 {
     public function up()
     {
         $this->forge->addField([
-            'ID_Solicitud' => [
+            'ID_SolicitudProd' => [
                 'type' => 'INT',
                 'constraint' => 5,
                 'unsigned' => true,

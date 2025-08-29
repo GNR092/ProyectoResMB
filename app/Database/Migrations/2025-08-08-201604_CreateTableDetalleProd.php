@@ -4,18 +4,18 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreateTableDetalle extends Migration
+class CreateTableDetalle_Prodcutos extends Migration
 {
     public function up()
     {
         $this->forge->addField([
-            'ID_Detalle' => [
+            'ID_DetalleProd' => [
                 'type' => 'INT',
                 'constraint' => 5,
                 'unsigned' => true,
                 'auto_increment' => true,
             ],
-            'ID_Solicitud' => [
+            'ID_SolicitudProd' => [
                 'type' => 'INT',
                 'constraint' => 5,
                 'unsigned' => true,
@@ -38,13 +38,13 @@ class CreateTableDetalle extends Migration
             ],
         ]);
 
-        $this->forge->addKey('ID_Detalle', true);
-        $this->forge->addForeignKey('ID_Solicitud', 'Solicitud', 'ID_Solicitud', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('Detalle');
+        $this->forge->addKey('ID_DetalleProd', true);
+        $this->forge->addForeignKey('ID_SolicitudProd', 'Solicitud', 'ID_Solicitud', 'CASCADE', 'CASCADE');
+        $this->forge->createTable('DetalleProd');
     }
 
     public function down()
     {
-        $this->forge->dropTable('Detalle');
+        $this->forge->dropTable('DetalleProd');
     }
 }
