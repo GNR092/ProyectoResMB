@@ -41,7 +41,7 @@ class Modales extends BaseController
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En espera')
-                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
                     ->findAll();
 
                 return view('modales/revisar_solicitudes', $data);
@@ -59,7 +59,7 @@ class Modales extends BaseController
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'Aprobado')
-                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
                     ->findAll();
 
                 return view('modales/ordenes_compra', $data);
@@ -75,7 +75,7 @@ class Modales extends BaseController
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'Cotizado')
-                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
                     ->findAll();
 
                 return view('modales/enviar_revision', $data);
@@ -101,7 +101,7 @@ class Modales extends BaseController
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En revision')
-                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
                     ->findAll();
 
                 return view('modales/dictamen_solicitudes', $data);

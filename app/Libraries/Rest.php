@@ -149,7 +149,7 @@ class Rest
         $results = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
             ->findAll();
 
         return $results ?: [];
