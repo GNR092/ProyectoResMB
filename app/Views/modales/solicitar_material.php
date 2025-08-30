@@ -68,9 +68,8 @@
                 </tr>
                 </thead>
                 <tbody id="tabla-productos">
-                <tr>
+                <tr class="fila-producto">
                     <?= $this->include('layout/productTable') ?>
-                    <?= $this->renderSection('ProductTable') ?>
                 </tr>
                 </tbody>
             </table>
@@ -254,7 +253,3 @@
         </form>
     </div>
 </div>
-
-
-
-

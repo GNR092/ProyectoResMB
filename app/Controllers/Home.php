@@ -17,8 +17,6 @@ class Home extends BaseController
         if(session('isLoggedIn'))
         {    
         $configMenu = new MenuOptions();
-
-        // Mostrar todas las opciones disponibles del sistema
         $opcionesDisponibles = $configMenu->opciones;
 
         $departamentos = new DepartamentosModel();
@@ -26,9 +24,52 @@ class Home extends BaseController
         $usuario = $usuarios->find(session('id'));
         
         $departamento = $departamentos->find($usuario['ID_Dpto']);
+        $nombreDepartamento = $departamento['Nombre'] ?? 'default';
+
+        // Definir permisos por rol/departamento
+        $permisosPorDepto = [
+            // Rol SuperAdmin: ve todo
+            'Administración' => array_keys($opcionesDisponibles),
+            
+            // Rol Compras
+            'Compras' => [
+                'revisar_solicitudes',
+                'enviar_revision',
+                'crud_proveedores',
+                'ver_historial',
+                'usuarios',
+                'limpiar_almacenamiento' // Almacenamiento
+            ],
+
+            // Rol Dirección
+            'Direccion' => [
+                'dictamen_solicitudes',
+                'crud_proveedores',
+                'usuarios'
+            ],
+
+            // Rol Tesorería
+            'Tesoreria' => ['ordenes_compra'],
+
+            // Rol Almacén
+            'Almacen' => [
+                'registrar_productos',
+                'crud_productos', // Existencias
+                'entrega_productos'
+            ],
+
+            // Rol por defecto (Jefes de Departamento)
+            'default' => [
+                'solicitar_material',
+                'ver_historial'
+            ]
+        ];
+
+        $permisosUsuario = $permisosPorDepto[$nombreDepartamento] ?? $permisosPorDepto['default'];
+        $opcionesFiltradas = array_filter($opcionesDisponibles, fn($key) => in_array($key, $permisosUsuario), ARRAY_FILTER_USE_KEY);
 
         $data = [
-            'opcionesDinamicas' => $opcionesDisponibles,
+            'opcionesDinamicas' => $opcionesFiltradas,
             'nombre_usuario' => session('name') ?? 'Usuario',
             'departamento_usuario' => $departamento['Nombre'] ?? 'Departamento',
             'departamentos' => $departamentos->findall(),

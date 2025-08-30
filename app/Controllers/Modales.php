@@ -140,6 +140,11 @@ class Modales extends BaseController
         }
     }
 
+    public function getProductTableRow()
+    {
+        return view('layout/productTable');
+    }
+
     //Funciones para usuarios
     public function registrarUsuario()
     {

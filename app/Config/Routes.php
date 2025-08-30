@@ -51,6 +51,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('solicitudes/registrar', 'Archivo::subir');
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('auth/logout', 'Auth::logout');
+        $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');
         // API Restful
         //region productos
         $routes->get('api/product/search', 'Api::search');

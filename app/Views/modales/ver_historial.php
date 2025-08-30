@@ -29,7 +29,7 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Las filas dinámicas  -->
+                <!-- Las filas se insertarán aquí dinámicamente -->
             </tbody>
         </table>
         <!-- Paginación -->
