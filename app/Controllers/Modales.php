@@ -64,7 +64,6 @@ class Modales extends BaseController
 
                 return view('modales/ordenes_compra', $data);
 
-
             case 'enviar_revision':
                 $solicitudModel = new \App\Models\SolicitudModel();
 
@@ -107,7 +106,14 @@ class Modales extends BaseController
                 return view('modales/dictamen_solicitudes', $data);
 
             case 'crud_proveedores':
-                return view('modales/crud_proveedores');
+                $proveedorModel = new \App\Models\ProveedorModel();
+
+                // Traer todos los registros de proveedores
+                $data['proveedores'] = $proveedorModel
+                    ->orderBy('ID_Proveedor', 'ASC')
+                    ->findAll();
+
+                return view('modales/crud_proveedores', $data);
 
             case 'limpiar_almacenamiento':
                 return view('modales/limpiar_almacenamiento');

@@ -51,7 +51,10 @@ function abrirModal(opcion) {
                 initCrudProductos();
             } else if (opcion === 'ordenes_compra') {
                 initOrdenesCompra();
+            }else if (opcion === 'crud_proveedores') {
+                initCrudProveedores();
             }
+
 
         })
         .catch(error => {
@@ -805,6 +808,94 @@ function regresarTablaOrdenCompra() {
     document.getElementById('div-ver-orden').classList.add('hidden');
     document.getElementById('div-tabla-ordenes').classList.remove('hidden');
 }
+
+
+/**
+ * Lógica para el CRUD de proveedores
+ */
+function initCrudProveedores() {
+    const tabla = document.getElementById("tabla-proveedores");
+    if (!tabla) return;
+
+    const rows = Array.from(tabla.querySelectorAll("tr"));
+    const rowsPerPage = 10;
+    let currentPage = 1;
+    let filteredRows = [...rows];
+
+    const pageInfo = document.getElementById("info-proveedores");
+    const prevBtn = document.getElementById("prev-proveedores");
+    const nextBtn = document.getElementById("next-proveedores");
+
+    const inputNombre = document.getElementById("buscar-nombre");
+    const inputServicio = document.getElementById("buscar-servicio");
+
+    const btnAgregar = document.getElementById("btn-agregar-proveedor");
+
+    // Mostrar una página específica
+    function showPage(page) {
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+
+        rows.forEach(r => (r.style.display = "none"));
+        filteredRows.forEach((row, i) => {
+            row.style.display = (i >= start && i < end) ? "" : "none";
+        });
+
+        const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
+        pageInfo.textContent = `Página ${page} de ${totalPages}`;
+
+        if (prevBtn) prevBtn.disabled = page === 1;
+        if (nextBtn) nextBtn.disabled = page === totalPages;
+    }
+
+    // Aplicar filtros
+    function applyFilters() {
+        const nombreFiltro = inputNombre?.value.toLowerCase() || "";
+        const servicioFiltro = inputServicio?.value.toLowerCase() || "";
+
+        filteredRows = rows.filter(row => {
+            const nombre = row.querySelector(".nombre")?.textContent.toLowerCase() || "";
+            const servicio = row.querySelector(".servicio")?.textContent.toLowerCase() || "";
+            return nombre.includes(nombreFiltro) && servicio.includes(servicioFiltro);
+        });
+
+        currentPage = 1;
+        showPage(currentPage);
+    }
+
+    // Eventos de búsqueda
+    if (inputNombre) inputNombre.addEventListener("input", applyFilters);
+    if (inputServicio) inputServicio.addEventListener("input", applyFilters);
+
+    // Eventos de paginación
+    if (prevBtn) prevBtn.addEventListener("click", () => {
+        if (currentPage > 1) {
+            currentPage--;
+            showPage(currentPage);
+        }
+    });
+
+    if (nextBtn) nextBtn.addEventListener("click", () => {
+        const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            showPage(currentPage);
+        }
+    });
+
+    // Inicializar botón AGREGAR
+    if (btnAgregar) {
+        btnAgregar.addEventListener("click", (e) => {
+            e.preventDefault();
+            alert("Aquí se abrirá el formulario para agregar proveedor");
+        });
+    }
+
+    // Mostrar la primera página al cargar
+    applyFilters();
+}
+
+
 
 /**
  * getData: Función para obtener datos de una API RESTful
