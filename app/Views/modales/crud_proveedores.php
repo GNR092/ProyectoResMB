@@ -1,4 +1,6 @@
-<div class="p-6 bg-white rounded-xl shadow-md">
+<!-- Pantalla 1: tabla -->
+
+<div id="pantalla-lista-proveedores" class="p-6 bg-white rounded-xl shadow-md">
     <h2 class="text-2xl font-semibold mb-4 text-center">Lista de Proveedores</h2>
 
     <!-- Buscadores y botón AGREGAR -->
@@ -89,6 +91,41 @@
         <span id="info-proveedores" class="text-sm text-gray-700"></span>
         <button id="next-proveedores" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Siguiente</button>
     </div>
+</div>
+
+<!-- Pantalla 2: Agregar -->
+<div id="pantalla-agregar-proveedor" class="hidden p-6 bg-white rounded-xl shadow-md">
+    <!-- Botón regresar -->
+    <button id="btn-regresar-lista"
+            class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+        ← Regresar
+    </button>
+
+    <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Proveedor</h2>
+
+    <form id="form-agregar-proveedor" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input type="text" name="Nombre" placeholder="Nombre" required class="w-full px-3 py-2 border rounded-lg">
+            <input type="text" name="Nombre_Comercial" placeholder="Nombre Comercial" required class="w-full px-3 py-2 border rounded-lg">
+            <input type="text" name="RFC" placeholder="RFC" required class="w-full px-3 py-2 border rounded-lg">
+            <input type="text" name="Banco" placeholder="Banco" required class="w-full px-3 py-2 border rounded-lg">
+            <input type="text" name="Cuenta" placeholder="Cuenta" required class="w-full px-3 py-2 border rounded-lg">
+            <input type="text" name="Clabe" placeholder="Clabe" required class="w-full px-3 py-2 border rounded-lg">
+            <input type="text" name="Tel_Contacto" placeholder="Teléfono de contacto" required class="w-full px-3 py-2 border rounded-lg">
+            <input type="text" name="Nombre_Contacto" placeholder="Nombre del contacto" required class="w-full px-3 py-2 border rounded-lg">
+            <input type="text" name="Servicio" placeholder="Servicio" required class="w-full px-3 py-2 border rounded-lg">
+        </div>
+
+            <button type="submit"
+                    class="px-6 py-2 bg-green-600 text-black font-semibold rounded-lg shadow hover:bg-green-700 transition">
+                Guardar Proveedor
+            </button>
+
+
+    </form>
+
+    <!-- Mensaje -->
+    <div id="msg-agregar-proveedor" class="mt-4 text-center"></div>
 </div>
 
 

@@ -5,6 +5,7 @@ use App\Models\DepartamentosModel;
 use App\Models\RazonSocialModel;
 use App\Models\UsuariosModel;
 use App\Libraries\Rest;
+use App\Models\ProveedorModel;
 
 class Modales extends BaseController
 {
@@ -322,6 +323,33 @@ class Modales extends BaseController
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,
                 'message' => 'Ocurrió un error inesperado al editar el producto.',
+            ]);
+        }
+    }
+
+    //Funciones para proveedores
+    public function insertarProveedor()
+    {
+        $proveedorModel = new ProveedorModel();
+
+        $data = $this->request->getPost([
+            'Nombre',
+            'Nombre_Comercial',
+            'RFC',
+            'Banco',
+            'Cuenta',
+            'Clabe',
+            'Tel_Contacto',
+            'Nombre_Contacto',
+            'Servicio',
+        ]);
+
+        if ($proveedorModel->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo insertar el proveedor'
             ]);
         }
     }

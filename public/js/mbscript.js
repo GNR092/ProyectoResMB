@@ -817,6 +817,18 @@ function initCrudProveedores() {
     const tabla = document.getElementById("tabla-proveedores");
     if (!tabla) return;
 
+    // Detectar pantallas
+    const pantallaAgregar = document.getElementById("pantalla-agregar-proveedor");
+    const pantallaLista =
+        document.getElementById("pantalla-lista-proveedores") ||
+        tabla.closest("div.p-6.bg-white.rounded-xl.shadow-md") ||
+        tabla.closest("div");
+
+    const btnAgregar = document.getElementById("btn-agregar-proveedor");
+    const btnRegresar = document.getElementById("btn-regresar-lista");
+    const formProveedor = document.getElementById("form-agregar-proveedor");
+
+    // --- Paginación + filtros ---
     const rows = Array.from(tabla.querySelectorAll("tr"));
     const rowsPerPage = 10;
     let currentPage = 1;
@@ -829,9 +841,6 @@ function initCrudProveedores() {
     const inputNombre = document.getElementById("buscar-nombre");
     const inputServicio = document.getElementById("buscar-servicio");
 
-    const btnAgregar = document.getElementById("btn-agregar-proveedor");
-
-    // Mostrar una página específica
     function showPage(page) {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
@@ -842,16 +851,15 @@ function initCrudProveedores() {
         });
 
         const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
-        pageInfo.textContent = `Página ${page} de ${totalPages}`;
+        if (pageInfo) pageInfo.textContent = `Página ${page} de ${totalPages}`;
 
         if (prevBtn) prevBtn.disabled = page === 1;
         if (nextBtn) nextBtn.disabled = page === totalPages;
     }
 
-    // Aplicar filtros
     function applyFilters() {
-        const nombreFiltro = inputNombre?.value.toLowerCase() || "";
-        const servicioFiltro = inputServicio?.value.toLowerCase() || "";
+        const nombreFiltro = (inputNombre?.value || "").toLowerCase();
+        const servicioFiltro = (inputServicio?.value || "").toLowerCase();
 
         filteredRows = rows.filter(row => {
             const nombre = row.querySelector(".nombre")?.textContent.toLowerCase() || "";
@@ -863,36 +871,191 @@ function initCrudProveedores() {
         showPage(currentPage);
     }
 
-    // Eventos de búsqueda
-    if (inputNombre) inputNombre.addEventListener("input", applyFilters);
-    if (inputServicio) inputServicio.addEventListener("input", applyFilters);
+    // Listeners SIN duplicados
+    if (inputNombre) inputNombre.oninput = applyFilters;
+    if (inputServicio) inputServicio.oninput = applyFilters;
 
-    // Eventos de paginación
-    if (prevBtn) prevBtn.addEventListener("click", () => {
-        if (currentPage > 1) {
-            currentPage--;
-            showPage(currentPage);
-        }
-    });
-
-    if (nextBtn) nextBtn.addEventListener("click", () => {
-        const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
-        if (currentPage < totalPages) {
-            currentPage++;
-            showPage(currentPage);
-        }
-    });
-
-    // Inicializar botón AGREGAR
-    if (btnAgregar) {
-        btnAgregar.addEventListener("click", (e) => {
-            e.preventDefault();
-            alert("Aquí se abrirá el formulario para agregar proveedor");
-        });
+    if (prevBtn) {
+        prevBtn.onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                showPage(currentPage);
+            }
+        };
     }
 
-    // Mostrar la primera página al cargar
+    if (nextBtn) {
+        nextBtn.onclick = () => {
+            const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
+            if (currentPage < totalPages) {
+                currentPage++;
+                showPage(currentPage);
+            }
+        };
+    }
+
+    // --- Cambio de pantallas ---
+    if (btnAgregar) {
+        btnAgregar.onclick = (e) => {
+            e.preventDefault();
+            if (pantallaLista) pantallaLista.classList.add("hidden");
+            if (pantallaAgregar) pantallaAgregar.classList.remove("hidden");
+        };
+    }
+
+    if (btnRegresar) {
+        btnRegresar.onclick = () => {
+            if (pantallaAgregar) pantallaAgregar.classList.add("hidden");
+            if (pantallaLista) pantallaLista.classList.remove("hidden");
+        };
+    }
+
+    // --- Enviar formulario via fetch ---
+    if (formProveedor) {
+        formProveedor.onsubmit = async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(formProveedor);
+
+            try {
+                const response = await fetch("/proveedores/insertar", {
+                    method: "POST",
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    mostrarNotificacion("Proveedor agregado correctamente ✅", "success");
+
+                    // volver a la lista
+                    if (pantallaAgregar) pantallaAgregar.classList.add("hidden");
+                    if (pantallaLista) pantallaLista.classList.remove("hidden");
+
+                    // limpiar formulario
+                    formProveedor.reset();
+                } else {
+                    mostrarNotificacion(result.message || "Error al guardar el proveedor ❌", "error");
+                }
+            } catch (error) {
+                mostrarNotificacion("Error de conexión con el servidor ❌", "error");
+            }
+        };
+    }
+
+    // Inicializar vista
     applyFilters();
+}
+
+
+function mostrarNotificacion(mensaje, tipo = "success", duracion = 3000) {
+    const CT_ID = "__app_toast_container";
+    let container = document.getElementById(CT_ID);
+
+    // Crear contenedor si no existe
+    if (!container) {
+        container = document.createElement("div");
+        container.id = CT_ID;
+        Object.assign(container.style, {
+            position: "fixed",
+            top: "1rem",
+            right: "1rem",
+            zIndex: 2147483647, // muy alto
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.5rem",
+            alignItems: "flex-end",
+            pointerEvents: "none" // permite clicks pasar por debajo excepto en cada toast
+        });
+        document.body.appendChild(container);
+    }
+
+    // Crear toast
+    const toast = document.createElement("div");
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    Object.assign(toast.style, {
+        pointerEvents: "auto",         // permitir interacción con el toast
+        display: "flex",
+        alignItems: "center",
+        gap: "0.6rem",
+        minWidth: "180px",
+        maxWidth: "340px",
+        padding: "0.55rem 0.85rem",
+        borderRadius: "0.5rem",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+        color: "#fff",
+        fontSize: "0.95rem",
+        transform: "translateX(120%)",
+        opacity: "0",
+        transition: "transform 320ms cubic-bezier(.2,.8,.2,1), opacity 320ms ease"
+    });
+
+    // Color por tipo
+    if (tipo === "success") {
+        toast.style.backgroundColor = "#16a34a"; // verde
+    } else if (tipo === "error") {
+        toast.style.backgroundColor = "#dc2626"; // rojo
+    } else {
+        toast.style.backgroundColor = "#0369a1"; // azul/info
+    }
+
+    // Icono simple (puedes cambiar por SVG si prefieres)
+    const icon = document.createElement("span");
+    icon.style.fontWeight = "700";
+    icon.style.flex = "0 0 auto";
+    icon.style.lineHeight = "1";
+    icon.style.fontSize = "1.05rem";
+    icon.style.display = "inline-block";
+    icon.style.width = "1.2rem";
+    icon.style.textAlign = "center";
+    icon.style.opacity = "0.98";
+    icon.textContent = tipo === "success" ? "✓" : (tipo === "error" ? "✕" : "ℹ");
+    toast.appendChild(icon);
+
+    // Texto
+    const text = document.createElement("div");
+    text.style.whiteSpace = "nowrap";
+    text.style.overflow = "hidden";
+    text.style.textOverflow = "ellipsis";
+    text.style.flex = "1 1 auto";
+    text.textContent = mensaje;
+    toast.appendChild(text);
+
+    // Insertar en el contenedor (apilar hacia abajo)
+    container.appendChild(toast);
+
+    // Forzar frame para activar la animación de entrada
+    requestAnimationFrame(() => {
+        toast.style.transform = "translateX(0)";
+        toast.style.opacity = "1";
+    });
+
+    // Auto-cerrar con pausa en hover
+    let timeoutId = setTimeout(hide, duracion);
+
+    function hide() {
+        clearTimeout(timeoutId);
+        // animación de salida
+        toast.style.transform = "translateX(120%)";
+        toast.style.opacity = "0";
+        setTimeout(() => {
+            toast.remove();
+            // si no hay más toasts, eliminar el contenedor
+            if (container && container.childElementCount === 0) {
+                container.remove();
+            }
+        }, 360);
+    }
+
+    toast.addEventListener("click", hide);
+    toast.addEventListener("mouseenter", () => {
+        clearTimeout(timeoutId);
+    });
+    toast.addEventListener("mouseleave", () => {
+        timeoutId = setTimeout(hide, duracion);
+    });
+
+    return toast; // por si quieres manipularlo luego
 }
 
 
