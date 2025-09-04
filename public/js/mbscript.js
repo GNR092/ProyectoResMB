@@ -817,18 +817,27 @@ function initCrudProveedores() {
     const tabla = document.getElementById("tabla-proveedores");
     if (!tabla) return;
 
-    // Detectar pantallas
-    const pantallaAgregar = document.getElementById("pantalla-agregar-proveedor");
-    const pantallaLista =
-        document.getElementById("pantalla-lista-proveedores") ||
-        tabla.closest("div.p-6.bg-white.rounded-xl.shadow-md") ||
-        tabla.closest("div");
+    initProveedorTabla(tabla);      // paginación y filtros
+    initProveedorPantallas();       // cambio de pantallas
+    initProveedorForm();            // formulario agregar
+    initProveedorEditarForm();      // formulario editar
+    initProveedorActions(tabla);    // botones editar/eliminar
+}
 
-    const btnAgregar = document.getElementById("btn-agregar-proveedor");
-    const btnRegresar = document.getElementById("btn-regresar-lista");
-    const formProveedor = document.getElementById("form-agregar-proveedor");
+// --- Tabla: paginación y filtros ---
+function initCrudProveedores() {
+    const tabla = document.getElementById("tabla-proveedores");
+    if (!tabla) return;
 
-    // --- Paginación + filtros ---
+    initProveedorTabla(tabla);        // paginación y filtros
+    initProveedorPantallas();         // cambiar entre lista/agregar/editar
+    initProveedorForm();              // manejo de formulario agregar
+    initProveedorEditarForm();        // manejo de formulario editar
+    initProveedorActions(tabla);      // botones editar/eliminar
+}
+
+// --- Tabla: paginación y filtros ---
+function initProveedorTabla(tabla) {
     const rows = Array.from(tabla.querySelectorAll("tr"));
     const rowsPerPage = 10;
     let currentPage = 1;
@@ -852,7 +861,6 @@ function initCrudProveedores() {
 
         const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
         if (pageInfo) pageInfo.textContent = `Página ${page} de ${totalPages}`;
-
         if (prevBtn) prevBtn.disabled = page === 1;
         if (nextBtn) nextBtn.disabled = page === totalPages;
     }
@@ -871,80 +879,197 @@ function initCrudProveedores() {
         showPage(currentPage);
     }
 
-    // Listeners SIN duplicados
     if (inputNombre) inputNombre.oninput = applyFilters;
     if (inputServicio) inputServicio.oninput = applyFilters;
+    if (prevBtn) prevBtn.onclick = () => { if (currentPage > 1) showPage(--currentPage); };
+    if (nextBtn) nextBtn.onclick = () => {
+        const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
+        if (currentPage < totalPages) showPage(++currentPage);
+    };
 
-    if (prevBtn) {
-        prevBtn.onclick = () => {
-            if (currentPage > 1) {
-                currentPage--;
-                showPage(currentPage);
-            }
-        };
-    }
-
-    if (nextBtn) {
-        nextBtn.onclick = () => {
-            const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
-            if (currentPage < totalPages) {
-                currentPage++;
-                showPage(currentPage);
-            }
-        };
-    }
-
-    // --- Cambio de pantallas ---
-    if (btnAgregar) {
-        btnAgregar.onclick = (e) => {
-            e.preventDefault();
-            if (pantallaLista) pantallaLista.classList.add("hidden");
-            if (pantallaAgregar) pantallaAgregar.classList.remove("hidden");
-        };
-    }
-
-    if (btnRegresar) {
-        btnRegresar.onclick = () => {
-            if (pantallaAgregar) pantallaAgregar.classList.add("hidden");
-            if (pantallaLista) pantallaLista.classList.remove("hidden");
-        };
-    }
-
-    // --- Enviar formulario via fetch ---
-    if (formProveedor) {
-        formProveedor.onsubmit = async (e) => {
-            e.preventDefault();
-
-            const formData = new FormData(formProveedor);
-
-            try {
-                const response = await fetch("/proveedores/insertar", {
-                    method: "POST",
-                    body: formData
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    mostrarNotificacion("Proveedor agregado correctamente ✅", "success");
-
-                    // volver a la lista
-                    if (pantallaAgregar) pantallaAgregar.classList.add("hidden");
-                    if (pantallaLista) pantallaLista.classList.remove("hidden");
-
-                    // limpiar formulario
-                    formProveedor.reset();
-                } else {
-                    mostrarNotificacion(result.message || "Error al guardar el proveedor ❌", "error");
-                }
-            } catch (error) {
-                mostrarNotificacion("Error de conexión con el servidor ❌", "error");
-            }
-        };
-    }
-
-    // Inicializar vista
     applyFilters();
 }
+
+// --- Cambio de pantallas ---
+function initProveedorPantallas() {
+    const pantallaAgregar = document.getElementById("pantalla-agregar-proveedor");
+    const pantallaEditar = document.getElementById("pantalla-editar-proveedor");
+    const pantallaLista = document.getElementById("pantalla-lista-proveedores");
+
+    const btnAgregar = document.getElementById("btn-agregar-proveedor");
+    const btnRegresarAgregar = document.getElementById("btn-regresar-lista");
+    const btnRegresarEditar = document.getElementById("btn-regresar-lista-editar");
+
+    if (btnAgregar) btnAgregar.onclick = e => {
+        e.preventDefault();
+        pantallaLista?.classList.add("hidden");
+        pantallaAgregar?.classList.remove("hidden");
+    };
+
+    if (btnRegresarAgregar) btnRegresarAgregar.onclick = e => {
+        e.preventDefault();
+        pantallaAgregar?.classList.add("hidden");
+        pantallaLista?.classList.remove("hidden");
+    };
+
+    if (btnRegresarEditar) btnRegresarEditar.onclick = e => {
+        e.preventDefault();
+        pantallaEditar?.classList.add("hidden");
+        pantallaLista?.classList.remove("hidden");
+    };
+}
+
+// --- Formulario agregar ---
+function initProveedorForm() {
+    const formProveedor = document.getElementById("form-agregar-proveedor");
+    const pantallaAgregar = document.getElementById("pantalla-agregar-proveedor");
+    const pantallaLista = document.getElementById("pantalla-lista-proveedores");
+
+    if (!formProveedor) return;
+
+    formProveedor.onsubmit = async e => {
+        e.preventDefault();
+        const formData = new FormData(formProveedor);
+
+        try {
+            const response = await fetch("/proveedores/insertar", {
+                method: "POST",
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                mostrarNotificacion("Proveedor agregado correctamente ✅", "success");
+                pantallaAgregar?.classList.add("hidden");
+                pantallaLista?.classList.remove("hidden");
+                formProveedor.reset();
+                location.reload();
+            } else {
+                mostrarNotificacion(result.message || "Error al guardar ❌", "error");
+            }
+        } catch {
+            mostrarNotificacion("Error de conexión con el servidor ❌", "error");
+        }
+    };
+}
+
+// --- Formulario editar ---
+function initProveedorEditarForm() {
+    const formEditar = document.getElementById("form-editar-proveedor");
+    const pantallaEditar = document.getElementById("pantalla-editar-proveedor");
+    const pantallaLista = document.getElementById("pantalla-lista-proveedores");
+    const tabla = document.getElementById("tabla-proveedores");
+
+    if (!formEditar) return;
+
+    formEditar.onsubmit = async e => {
+        e.preventDefault();
+        const formData = new FormData(formEditar);
+
+        try {
+            const id = formData.get("ID_Proveedor");
+            const response = await fetch(`/proveedores/editar/${id}`, {
+                method: "POST",
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                mostrarNotificacion("Proveedor actualizado ✅", "success");
+
+                // Actualizar la fila correspondiente en la tabla
+                const fila = tabla.querySelector(`tr[data-id='${id}']`);
+                if (fila) {
+                    fila.querySelector(".nombre").textContent = formData.get("Nombre");
+                    fila.querySelector(".servicio").textContent = formData.get("Servicio");
+
+                    // actualizar los data-* de la fila
+                    fila.dataset.nombreComercial = formData.get("Nombre_Comercial");
+                    fila.dataset.rfc = formData.get("RFC");
+                    fila.dataset.banco = formData.get("Banco");
+                    fila.dataset.cuenta = formData.get("Cuenta");
+                    fila.dataset.clabe = formData.get("Clabe");
+                    fila.dataset.telContacto = formData.get("Tel_Contacto");
+                    fila.dataset.nombreContacto = formData.get("Nombre_Contacto");
+                }
+
+                // Cerrar pantalla de edición y mostrar lista
+                pantallaEditar?.classList.add("hidden");
+                pantallaLista?.classList.remove("hidden");
+            } else {
+                mostrarNotificacion(result.message || "Error al actualizar ❌", "error");
+            }
+        } catch {
+            mostrarNotificacion("Error de conexión con el servidor ❌", "error");
+        }
+    };
+}
+
+
+// --- Botones editar/eliminar ---
+function initProveedorActions(tabla) {
+    if (!tabla) return;
+
+    tabla.addEventListener("click", e => {
+        // --- ELIMINAR ---
+        const svgEliminar = e.target.closest("svg");
+        if (svgEliminar) {
+            const btnEliminar = svgEliminar.closest("[id^='btn-eliminar-proveedor-']");
+            if (btnEliminar) {
+                e.preventDefault();
+                const id = btnEliminar.dataset.id;
+                if (!confirm("¿Seguro que deseas eliminar este proveedor?")) return;
+
+                fetch(`/proveedores/eliminarProveedor/${id}`, {
+                    method: "POST",
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
+                }).then(res => res.json())
+                    .then(result => {
+                        if (result.success) {
+                            mostrarNotificacion("Proveedor eliminado ✅", "success");
+                            btnEliminar.closest("tr")?.remove();
+                        } else {
+                            mostrarNotificacion(result.message || "No se pudo eliminar ❌", "error");
+                        }
+                    }).catch(() => mostrarNotificacion("Error de conexión ❌", "error"));
+                return;
+            }
+        }
+
+        // --- EDITAR ---
+        const btnEditar = e.target.closest("[id^='btn-editar-proveedor-']");
+        if (!btnEditar) return;
+        e.preventDefault();
+
+        const fila = btnEditar.closest("tr");
+        if (!fila) return;
+
+        // Cargar datos desde data-* de la fila
+        document.getElementById("editar-ID_Proveedor").value = fila.dataset.id;
+        document.getElementById("editar-Nombre").value = fila.querySelector(".nombre").textContent;
+        document.getElementById("editar-Servicio").value = fila.querySelector(".servicio").textContent;
+        document.getElementById("editar-Nombre_Comercial").value = fila.dataset.nombreComercial;
+        document.getElementById("editar-RFC").value = fila.dataset.rfc;
+        document.getElementById("editar-Banco").value = fila.dataset.banco;
+        document.getElementById("editar-Cuenta").value = fila.dataset.cuenta;
+        document.getElementById("editar-Clabe").value = fila.dataset.clabe;
+        document.getElementById("editar-Tel_Contacto").value = fila.dataset.telContacto;
+        document.getElementById("editar-Nombre_Contacto").value = fila.dataset.nombreContacto;
+
+        document.getElementById("pantalla-lista-proveedores").classList.add("hidden");
+        document.getElementById("pantalla-editar-proveedor").classList.remove("hidden");
+    });
+}
+
+
+// Función de ejemplo para notificaciones (puedes adaptar)
+function mostrarNotificacion(msg, tipo = "success") {
+    alert(msg); // Simple alert, se puede reemplazar por un toast
+}
+
+// Inicializar
+document.addEventListener("DOMContentLoaded", initCrudProveedores);
+
 
 
 function mostrarNotificacion(mensaje, tipo = "success", duracion = 3000) {

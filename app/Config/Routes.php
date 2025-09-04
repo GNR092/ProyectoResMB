@@ -47,6 +47,11 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/editarProducto/(:num)', 'Modales::editarProducto/$1');
         //Ruta POST para insertar proveedores
         $routes->post('proveedores/insertar', 'Modales::insertarProveedor');
+        //Ruta POST para eliminar proveedores
+        $routes->post('proveedores/eliminarProveedor/(:num)', 'Modales::eliminarProveedor/$1');
+        // Ruta POST para editar proveedores
+        $routes->post('proveedores/editar/(:num)', 'Modales::editarProveedor/$1');
+
 
 
         // Otros

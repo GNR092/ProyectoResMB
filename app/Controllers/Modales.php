@@ -353,4 +353,48 @@ class Modales extends BaseController
             ]);
         }
     }
+    public function eliminarProveedor($id)
+    {
+        $proveedorModel = new \App\Models\ProveedorModel();
+
+        if ($proveedorModel->delete($id)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo eliminar el proveedor'
+            ]);
+        }
+    }
+    public function editarProveedor($id)
+    {
+        $model = new \App\Models\ProveedorModel();
+
+        // Obtener datos del formulario
+        $data = [
+            'Nombre'            => $this->request->getPost('Nombre'),
+            'Nombre_Comercial'  => $this->request->getPost('Nombre_Comercial'),
+            'RFC'               => $this->request->getPost('RFC'),
+            'Banco'             => $this->request->getPost('Banco'),
+            'Cuenta'            => $this->request->getPost('Cuenta'),
+            'Clabe'             => $this->request->getPost('Clabe'),
+            'Tel_Contacto'      => $this->request->getPost('Tel_Contacto'),
+            'Nombre_Contacto'   => $this->request->getPost('Nombre_Contacto'),
+            'Servicio'          => $this->request->getPost('Servicio'),
+        ];
+
+        try {
+            $model->update($id, $data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+
+
+
 }
