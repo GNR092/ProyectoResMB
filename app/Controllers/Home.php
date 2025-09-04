@@ -72,6 +72,7 @@ class Home extends BaseController
             'opcionesDinamicas' => $opcionesFiltradas,
             'nombre_usuario' => session('name') ?? 'Usuario',
             'departamento_usuario' => $departamento['Nombre'] ?? 'Departamento',
+            'id_departamento_usuario' => $usuario['ID_Dpto'] ?? null,
             'departamentos' => $departamentos->findall(),
         ];
         $session = session();

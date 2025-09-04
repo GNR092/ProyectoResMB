@@ -20,6 +20,8 @@ class SolicitudModel extends Model
         'Fecha',
         'Estado',
         'No_Folio',
+        'Archivo'
+
     ];
 
     // Dates

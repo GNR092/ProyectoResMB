@@ -74,6 +74,7 @@ class Archivo extends BaseController
                 $folder = WRITEPATH . 'uploads/solicitud/' . $fecha;
                 $this->api->CreateFolder($folder);
                 $adjunto->move($folder, $nuevoNombre);
+                $solicitud->update($solicitudId, ['Archivo' => $nuevoNombre]);
             }
             return $this->response
                 ->setStatusCode(HttpStatus::OK)
@@ -87,5 +88,24 @@ class Archivo extends BaseController
                 'errors' => $e->getMessage(),
             ]);
         }
+    }
+
+    public function descargar($idSolicitud)
+    {
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud || empty($solicitud['Archivo'])) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Archivo no encontrado para esta solicitud.');
+        }
+
+        $filePath = WRITEPATH . 'uploads/solicitud/' . $solicitud['Fecha'] . '/' . $solicitud['Archivo'];
+
+        if (!file_exists($filePath)) {
+             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('El archivo físico no existe en el servidor.');
+        }
+
+        // Envía el archivo al navegador para su descarga
+        return $this->response->download($filePath, null);
     }
 }

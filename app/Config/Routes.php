@@ -57,6 +57,7 @@ if (!file_exists($installerLockFile)) {
         // Otros
         $routes->get('archivo', 'Archivo::index');
         $routes->post('solicitudes/registrar', 'Archivo::subir');
+        $routes->get('solicitudes/archivo/(:num)', 'Archivo::descargar/$1');
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('auth/logout', 'Auth::logout');
         $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');
@@ -74,6 +75,9 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/providers/all', 'Api::getAllProviders');
         //endregion
         $routes->get('api/historic', 'Api::getHistorial');
+        $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
+        //region Solicitudes
+        $routes->get('api/solicitud/details/(:num)', 'Api::getSolicitudDetails/$1');
     });
 }
 // --- Rutas para Modo de Desarrollo ---

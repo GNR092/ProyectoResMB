@@ -8,6 +8,7 @@ use App\Libraries\HttpStatus;
 
 class Api extends ResourceController
 {
+    protected $format = 'json';
     protected $api;
 
     public function __construct()
@@ -50,13 +51,33 @@ class Api extends ResourceController
         return $this->respond($results, HttpStatus::OK);
     }
     //endregion
-    // region historial
+    //region historial
     public function getHistorial()
     {
         $result = $this->api->getAllSolicitud();
         return $this->respond($result, HttpStatus::OK);
     }
+    public function getHistorialByDepartment($id)
+    {
+        $results = $this->api->getSolicitudByDepartment($id);
+        return $this->respond($results, HttpStatus::OK);
+    }
+    public function getSolicitudDetails($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+        }
+
+        $details = $this->api->getSolicitudWithProducts((int)$id);
+
+        if (empty($details)) {
+            return $this->failNotFound('No se encontraron detalles para la solicitud con ID: ' . $id);
+        }
+
+        return $this->respond($details);
+    }
     //endregion
+
     //region proveedores
     public function getAllProviders()
     {

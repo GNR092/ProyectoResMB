@@ -37,7 +37,7 @@ class Auth extends BaseController
 
         if ($user && password_verify($password, $user['Contrasena'])) {
             $token = new Rest();
-            $tokenModel = new TokenModel(); // Assuming you have a TokenModel
+            $tokenModel = new TokenModel();
             $existingToken = $tokenModel->where('ID_Usuario', $user['ID_Usuario'])->first();
             if ($existingToken) {
                 $token->updateToken($user['ID_Usuario'], $token->generatetoken($user['ID_Usuario']));
@@ -48,6 +48,7 @@ class Auth extends BaseController
                 'id' => $user['ID_Usuario'],
                 'name' => $user['Nombre'],
                 'email' => $user['Correo'],
+                'dep' => $user['ID_Dpto'],
                 'isLoggedIn' => true,
             ];
             $this->session->set($ses_data);

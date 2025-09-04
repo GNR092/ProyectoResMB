@@ -154,6 +154,44 @@ class Rest
 
         return $results ?: [];
     }
+    public function getSolicitudByDepartment(int $id)
+    {
+        $solicitudModel = new SolicitudModel();
+
+        $results = $solicitudModel
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->where('Solicitud.ID_Dpto', $id)
+            ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+            ->findAll();
+
+        return $results ?: [];
+    }
+
+    public function getSolicitudWithProducts(int $id): ?array
+    {
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel
+            ->select('Solicitud.*, Usuarios.Nombre as UsuarioNombre, Departamentos.Nombre as DepartamentoNombre, Proveedor.Nombre as RazonSocialNombre')
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+            ->find($id);
+
+        if (!$solicitud) {
+            return null;
+        }
+
+        $solicitudProductModel = new SolicitudProductModel();
+        $productos = $solicitudProductModel
+            ->where('ID_SolicitudProd', $id)
+            ->findAll();
+
+        $solicitud['productos'] = $productos;
+
+        return $solicitud;
+    }
+
     //endregion
 
     //region Usuarios

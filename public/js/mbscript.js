@@ -227,7 +227,15 @@ function initPaginacionHistorial() {
 
     async function fetchData() {
         try {
-            const response = await fetch(`${BASE_URL}api/historic`);
+            const exceptions = ['Compras', 'Administración'];
+            let url = `${BASE_URL}api/historic`;
+
+            if (typeof USER_DEPT_NAME !== 'undefined' && typeof USER_DEPT_ID !== 'undefined' &&
+                USER_DEPT_ID && !exceptions.includes(USER_DEPT_NAME)) {
+                url = `${BASE_URL}api/historic/department/${USER_DEPT_ID}`;
+            }
+
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error('Error al cargar el historial');
             }
@@ -466,10 +474,93 @@ function initRevisarSolicitud() {
     if (totalFilas > 0) mostrarPagina(1);
 }
 
-function mostrarVer(idSolicitud) {
-    document.getElementById('div-tabla').classList.add('hidden');
-    document.getElementById('div-ver').classList.remove('hidden');
-    console.log("VER solicitud ID:", idSolicitud);
+async function mostrarVer(idSolicitud) {
+    const divTabla = document.getElementById('div-tabla');
+    const divVer = document.getElementById('div-ver');
+    const detallesContainer = document.getElementById('detalles-solicitud');
+
+    if (!divTabla || !divVer || !detallesContainer) {
+        console.error('Elementos del DOM no encontrados para mostrar detalles.');
+        return;
+    }
+
+    divTabla.classList.add('hidden');
+    divVer.classList.remove('hidden');
+    detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>';
+
+    try {
+        const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        let html = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+                <div><strong>Fecha:</strong> ${data.Fecha}</div>
+                <div><strong>Estado:</strong> ${data.Estado}</div>
+                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Razón Social:</strong> ${data.RazonSocialNombre || 'N/A'}</div>
+            </div>
+            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border border-gray-300">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Código</th>
+                            <th class="py-2 px-4 text-left">Producto</th>
+                            <th class="py-2 px-4 text-right">Cantidad</th>
+                            <th class="py-2 px-4 text-right">Importe</th>
+                            <th class="py-2 px-4 text-right">Costo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        let subtotal = 0;
+        data.productos.forEach(p => {
+            const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
+            subtotal += parseFloat(costoTotal);
+            html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
+                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                    <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
+                    <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        if (data.Archivo) {
+            // Usamos la nueva ruta segura que creamos para descargar el archivo
+            const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`;
+            html += `
+                <div class="mt-6">
+                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
+                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
+                </div>
+            `;
+        }
+
+        detallesContainer.innerHTML = html;
+
+    } catch (error) {
+        console.error("Error al cargar detalles de la solicitud:", error);
+        detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`;
+    }
 }
 
 function mostrarCotizar(idSolicitud) {
@@ -1210,21 +1301,6 @@ async function getData(endpoint, option = {}, api = true) {
   } catch (error) {
     console.error('Hubo un error al obtener los datos:', error)
     return []
-  }
-}
-async function loadHistoric()
-{
-  try {
-    const data = await getData('historic');
-    if(data.length > 0)
-    {
-
-    }
-    else{
-      console.error('Los datos recibidos no son un array:', data);
-    }
-  } catch (error) {
-    console.error('Hubo un error al obtener los departamentos:', error)
   }
 }
 /**
