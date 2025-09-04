@@ -34,39 +34,6 @@ class Modales extends BaseController
 
             case 'revisar_solicitudes':
                 $solicitudModel = new \App\Models\SolicitudModel();
-
-                $data['solicitudes'] = $solicitudModel
-                    ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
-                    )
-                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
-                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                    ->where('Solicitud.Estado', 'En espera')
-                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
-                    ->findAll();
-
-                return view('modales/revisar_solicitudes', $data);
-
-            case 'proveedores':
-                return view('modales/proveedores');
-
-            case 'ordenes_compra':
-                $solicitudModel = new \App\Models\SolicitudModel();
-
-                $data['solicitudes'] = $solicitudModel
-                    ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
-                    )
-                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
-                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                    ->where('Solicitud.Estado', 'Aprobado')
-                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
-                    ->findAll();
-
-                return view('modales/ordenes_compra', $data);
-
-            case 'revisar_solicitudes':
-                $solicitudModel = new \App\Models\SolicitudModel();
                 $proveedorModel = new \App\Models\ProveedorModel();
 
                 // --- Solicitudes Pendientes ---
@@ -96,6 +63,38 @@ class Modales extends BaseController
                 exit; // detener para ver resultados en el navegador
 
                 return view('modales/revisar_solicitudes', $data);
+
+            case 'proveedores':
+                return view('modales/proveedores');
+
+            case 'ordenes_compra':
+                $solicitudModel = new \App\Models\SolicitudModel();
+
+                $data['solicitudes'] = $solicitudModel
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
+                    )
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                    ->where('Solicitud.Estado', 'Aprobado')
+                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+                    ->findAll();
+
+                return view('modales/ordenes_compra', $data);
+
+            case 'enviar_revision':
+                $solicitudModel = new \App\Models\SolicitudModel();
+                $data['solicitudes'] = $solicitudModel
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                    ->where('Solicitud.Estado', 'Cotizado')
+                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+                    ->findAll();
+
+                return view('modales/enviar_revision', $data);
 
             case 'usuarios':
                 $departamentosModel = new DepartamentosModel();
