@@ -43,26 +43,18 @@ class Modales extends BaseController
                     )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                    ->where('Solicitud.Estado', 'Pendiente')
+                    ->where('Solicitud.Estado', 'En espera')
                     ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
                     ->findAll();
 
                 // --- Proveedores ---
-                // Opción 1: con select personalizado
                 $data['proveedores'] = $proveedorModel
                     ->select('ID_Proveedor, Nombre, Nombre_Comercial, Tel_Contacto, RFC, Servicio')
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
 
-                // --- Depuración ---
-                echo "<pre>";
-                echo "Solicitudes encontradas: " . count($data['solicitudes']) . PHP_EOL;
-                echo "Proveedores encontrados: " . count($data['proveedores']) . PHP_EOL;
-                print_r($data['proveedores']);
-                echo "</pre>";
-                exit; // detener para ver resultados en el navegador
-
                 return view('modales/revisar_solicitudes', $data);
+
 
             case 'proveedores':
                 return view('modales/proveedores');

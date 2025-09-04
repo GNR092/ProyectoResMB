@@ -375,11 +375,6 @@ function regresarHistorial() {
     console.log("Regresando a la tabla de historial");
 }
 
-
-
-
-
-
 /**
  * Lógica para el modal "Usuarios"
  */
