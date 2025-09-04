@@ -563,9 +563,79 @@ async function mostrarVer(idSolicitud) {
     }
 }
 
-function mostrarCotizar(idSolicitud) {
+async function mostrarCotizar(idSolicitud) {
     document.getElementById('div-tabla').classList.add('hidden');
-    document.getElementById('div-cotizar').classList.remove('hidden');
+    const divCotizar = document.getElementById('div-cotizar');
+    divCotizar.classList.remove('hidden');
+
+    const tbody = divCotizar.querySelector('tbody');
+    const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores');
+
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Cargando proveedores...</td></tr>';
+
+    try {
+        const response = await fetch(`${BASE_URL}api/providers/all`);
+        if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+
+        const proveedores = await response.json();
+
+        if (!proveedores.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>';
+            return;
+        }
+
+        // --- PAGINACIÓN ---
+        const filasPorPagina = 10;
+        let paginaActual = 1;
+        const totalPaginas = Math.ceil(proveedores.length / filasPorPagina);
+
+        function mostrarPagina(pagina) {
+            paginaActual = pagina;
+            const start = (pagina - 1) * filasPorPagina;
+            const end = start + filasPorPagina;
+
+            tbody.innerHTML = proveedores.slice(start, end).map(p => `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-t text-center">
+                        <input type="checkbox" value="${p.ID_Proveedor}">
+                    </td>
+                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    <td class="py-2 px-4 border-t">${p.Nombre_Comercial}</td>
+                    <td class="py-2 px-4 border-t">${p.Tel_Contacto}</td>
+                    <td class="py-2 px-4 border-t">${p.RFC}</td>
+                </tr>
+            `).join('');
+
+            renderPaginacion();
+        }
+
+        function renderPaginacion() {
+            if (!paginacionDiv) return;
+            paginacionDiv.innerHTML = '';
+            for (let i = 1; i <= totalPaginas; i++) {
+                const boton = document.createElement('button');
+                boton.textContent = i;
+                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+                boton.addEventListener('click', () => mostrarPagina(i));
+                paginacionDiv.appendChild(boton);
+            }
+        }
+
+        // Creamos contenedor para la paginación si no existe
+        if (!paginacionDiv) {
+            const newDiv = document.createElement('div');
+            newDiv.id = 'paginacion-proveedores';
+            newDiv.className = 'flex justify-center mt-4 space-x-2';
+            divCotizar.appendChild(newDiv);
+        }
+
+        mostrarPagina(1);
+
+    } catch (error) {
+        console.error('Error al cargar proveedores:', error);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-red-500">Error al cargar proveedores</td></tr>`;
+    }
+
     console.log("COTIZAR solicitud ID:", idSolicitud);
 }
 
@@ -1160,7 +1230,6 @@ function mostrarNotificacion(msg, tipo = "success") {
 
 // Inicializar
 document.addEventListener("DOMContentLoaded", initCrudProveedores);
-
 
 
 function mostrarNotificacion(mensaje, tipo = "success", duracion = 3000) {

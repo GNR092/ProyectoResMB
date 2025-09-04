@@ -65,20 +65,37 @@ class Modales extends BaseController
 
                 return view('modales/ordenes_compra', $data);
 
-            case 'enviar_revision':
+            case 'revisar_solicitudes':
                 $solicitudModel = new \App\Models\SolicitudModel();
+                $proveedorModel = new \App\Models\ProveedorModel();
 
+                // --- Solicitudes Pendientes ---
                 $data['solicitudes'] = $solicitudModel
                     ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
                     )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                    ->where('Solicitud.Estado', 'Cotizado')
+                    ->where('Solicitud.Estado', 'Pendiente')
                     ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
                     ->findAll();
 
-                return view('modales/enviar_revision', $data);
+                // --- Proveedores ---
+                // Opción 1: con select personalizado
+                $data['proveedores'] = $proveedorModel
+                    ->select('ID_Proveedor, Nombre, Nombre_Comercial, Tel_Contacto, RFC, Servicio')
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+
+                // --- Depuración ---
+                echo "<pre>";
+                echo "Solicitudes encontradas: " . count($data['solicitudes']) . PHP_EOL;
+                echo "Proveedores encontrados: " . count($data['proveedores']) . PHP_EOL;
+                print_r($data['proveedores']);
+                echo "</pre>";
+                exit; // detener para ver resultados en el navegador
+
+                return view('modales/revisar_solicitudes', $data);
 
             case 'usuarios':
                 $departamentosModel = new DepartamentosModel();
