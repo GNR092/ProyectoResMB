@@ -1,4 +1,5 @@
-<div class="p-4">
+<!-- Pantalla 1: historial -->
+<div id="div-historial" class="p-4">
     <h2 class="text-2xl font-semibold mb-4">Ver Historial</h2>
 
     <!-- Filtros -->
@@ -35,4 +36,13 @@
         <!-- Paginación -->
         <div id="paginacion-historial" class="flex justify-center mt-4 space-x-2"></div>
     </div>
+</div>
+
+
+<!-- Pantalla2 2: Ver Solicitud-->
+<div id="div-ver-historial" class="hidden p-4">
+    <h3 class="text-lg font-bold mb-4">Detalles de la Solicitud</h3>
+    <button class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300" onclick="regresarHistorial()">
+        Regresar
+    </button>
 </div>

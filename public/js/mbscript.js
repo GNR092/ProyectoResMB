@@ -295,7 +295,7 @@ function initPaginacionHistorial() {
                     <span class="hidden">${item.Estado}</span>
                 </td>
                 <td class="border px-4 py-2">
-                    <a href="#" class="text-blue-600 hover:underline">ver</a>
+                    <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_SolicitudProd}); return false;">ver</a>
                 </td>
             </tr>
         `;
@@ -353,6 +353,32 @@ function initPaginacionHistorial() {
 
     fetchData();
 }
+
+// Funciones para mostrar/ocultar la pantalla de ver historial
+function mostrarVerHistorial(idSolicitud) {
+    const divHistorial = document.getElementById('div-historial');
+    if (divHistorial) divHistorial.classList.add('hidden');
+
+    const divVer = document.getElementById('div-ver-historial');
+    if (divVer) divVer.classList.remove('hidden');
+
+    console.log("Mostrando pantalla de ver historial para ID:", idSolicitud);
+}
+
+function regresarHistorial() {
+    const divVer = document.getElementById('div-ver-historial');
+    if (divVer) divVer.classList.add('hidden');
+
+    const divHistorial = document.getElementById('div-historial');
+    if (divHistorial) divHistorial.classList.remove('hidden');
+
+    console.log("Regresando a la tabla de historial");
+}
+
+
+
+
+
 
 /**
  * Lógica para el modal "Usuarios"
