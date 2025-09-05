@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\CotizacionModel;
 use App\Models\SolicitudModel;
+use App\Models\SolicitudProductModel;
 use CodeIgniter\RESTful\ResourceController;
 use App\Libraries\Rest;
 use App\Libraries\HttpStatus;
@@ -19,24 +20,42 @@ class Api extends ResourceController
     }
 
     //region productos
+    /**
+     * Busca productos por consulta y tipo.
+     *
+     * @return \CodeIgniter\HTTP\Response El resultado de la búsqueda en formato JSON.
+     */
     public function search()
     {
         $query = $this->request->getVar('query'); // LA busqueda
         $type = $this->request->getVar('type'); // El tipo de busqueda, puede ser 'Código' o 'Producto'
         // Ejmplo de consulta: /api/product/search?query=123&type=Código
         if (empty($query)) {
-            return $this->fail('La consulta no puede estar vacía.', HttpStatus::BAD_REQUEST);
+            return $this->fail('La consulta no puede estar vacía.', HttpStatus::BAD_REQUEST); // Retorna un error si la consulta está vacía.
         }
-        $results = $this->api->getProductsByQuery($query, $type);
+        $results = $this->api->getProductsByQuery($query, $type); // Obtiene los productos de la API.
 
         //print_r($producto->getLastQuery());
-        return $this->respond($results, HttpStatus::OK);
+        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
     }
+
+    /**
+     * Obtiene todos los productos.
+     *
+     * @return \CodeIgniter\HTTP\Response Todos los productos en formato JSON.
+     */
     public function allProducts()
     {
-        $results = $this->api->getAllProducts();
-        return $this->respond($results, HttpStatus::OK);
+        $results = $this->api->getAllProducts(); // Obtiene todos los productos de la API.
+        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
     }
+
+    /**
+     * Obtiene un producto por su ID.
+     *
+     * @param int|null $id El ID del producto.
+     * @return \CodeIgniter\HTTP\Response El producto encontrado o un error 404 si no se encuentra.
+     */
     public function getProductById($id)
     {
         $result = $this->api->getProductById($id);
@@ -46,24 +65,50 @@ class Api extends ResourceController
         return $this->respond($result, HttpStatus::OK);
     }
     //endregion
+
     //region departamentos
+    /**
+     * Obtiene todos los departamentos.
+     *
+     * @return \CodeIgniter\HTTP\Response Todos los departamentos en formato JSON.
+     */
     public function getDepartments()
     {
-        $results = $this->api->getAllDepartments();
-        return $this->respond($results, HttpStatus::OK);
+        $results = $this->api->getAllDepartments(); // Obtiene todos los departamentos de la API.
+        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
     }
     //endregion
+
     //region historial
+    /**
+     * Obtiene todo el historial de solicitudes.
+     *
+     * @return \CodeIgniter\HTTP\Response El historial de solicitudes en formato JSON.
+     */
     public function getHistorial()
     {
-        $result = $this->api->getAllSolicitud();
-        return $this->respond($result, HttpStatus::OK);
+        $result = $this->api->getAllSolicitud(); // Obtiene todas las solicitudes de la API.
+        return $this->respond($result, HttpStatus::OK); // Responde con los resultados y un estado OK.
     }
+
+    /**
+     * Obtiene el historial de solicitudes por departamento.
+     *
+     * @param int $id El ID del departamento.
+     * @return \CodeIgniter\HTTP\Response El historial de solicitudes del departamento en formato JSON.
+     */
     public function getHistorialByDepartment($id)
     {
-        $results = $this->api->getSolicitudByDepartment($id);
-        return $this->respond($results, HttpStatus::OK);
+        $results = $this->api->getSolicitudByDepartment($id); // Obtiene las solicitudes por departamento de la API.
+        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
     }
+
+    /**
+     * Obtiene los detalles de una solicitud específica.
+     *
+     * @param int|null $id El ID de la solicitud.
+     * @return \CodeIgniter\HTTP\Response Los detalles de la solicitud o un error si no se encuentra.
+     */
     public function getSolicitudDetails($id = null)
     {
         if ($id === null || !is_numeric($id)) {
@@ -79,6 +124,33 @@ class Api extends ResourceController
         return $this->respond($details);
     }
 
+    /**
+     * Obtiene todas las solicitudes cotizadas.
+     *
+     * @return \CodeIgniter\HTTP\Response Las solicitudes cotizadas en formato JSON.
+     */
+    public function getSolicitudesCotizadas()
+    {
+        $results = $this->api->getSolicitudesCotizadas(); // Obtiene las solicitudes cotizadas de la API.
+        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
+    }
+
+    /**
+     * Obtiene todas las solicitudes en revisión.
+     *
+     * @return \CodeIgniter\HTTP\Response Las solicitudes en revisión en formato JSON.
+     */
+    public function getSolicitudesEnRevision()
+    {
+        $results = $this->api->getSolicitudesEnRevision(); // Obtiene las solicitudes en revisión de la API.
+        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
+    }
+
+    /**
+     * Crea una nueva cotización para una solicitud.
+     *
+     * @return \CodeIgniter\HTTP\Response El resultado de la operación.
+     */
     public function crearCotizacion()
     {
         $json = $this->request->getJSON();
@@ -91,7 +163,8 @@ class Api extends ResourceController
         $idProveedor = (int) $json->ID_Proveedor;
 
         $cotizacionModel = new CotizacionModel();
-        $solicitudModel = new SolicitudModel();
+        $solicitudModel = new SolicitudModel(); // Instancia del modelo de Solicitud.
+        $details = $this->api->getSolicitudWithProducts($idSolicitud); // Obtiene los detalles de la solicitud con sus productos.
 
         // Check if solicitud exists and is in correct state
         $solicitud = $solicitudModel->find($idSolicitud);
@@ -102,6 +175,16 @@ class Api extends ResourceController
             return $this->fail('La solicitud ya no está en estado "En espera".', HttpStatus::BAD_REQUEST);
         }
 
+        // Calcular total
+        $total = 0;
+        if (!empty($details['productos'])) {
+        foreach ($details['productos'] as $p) {
+            $cantidad = (float) $p['Cantidad'];
+            $importe  = (float) $p['Importe'];
+            $total   += $cantidad * $importe;
+        }
+    }
+
         $db = \Config\Database::connect();
         $db->transStart();
 
@@ -110,7 +193,7 @@ class Api extends ResourceController
             $cotizacionData = [
                 'ID_SolicitudProd' => $idSolicitud,
                 'ID_Proveedor'     => $idProveedor,
-                'Total'            => 0, // Initial total, can be updated later
+                'Total'            => $total,
             ];
             $cotizacionModel->insert($cotizacionData);
 
@@ -125,13 +208,101 @@ class Api extends ResourceController
             return $this->failServerError('Ocurrió un error inesperado al crear la cotización.');
         }
     }
-    //endregion
 
+    /**
+     * Envía una solicitud a revisión.
+     *
+     * @return \CodeIgniter\HTTP\Response El resultado de la operación.
+     */
+    public function enviarSolicitudARevision()
+    {
+        $json = $this->request->getJSON();
+
+        if (!isset($json->ID_SolicitudProd)) {
+            return $this->failValidationErrors('Se requiere ID de solicitud.');
+        }
+
+        $idSolicitud = (int) $json->ID_SolicitudProd;
+
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) {
+            return $this->failNotFound('La solicitud no existe.');
+        }
+
+        if ($solicitud['Estado'] !== 'Cotizando') {
+            return $this->fail('La solicitud no está en estado "Cotizado".', HttpStatus::BAD_REQUEST);
+        }
+
+        try {
+            $solicitudModel->update($idSolicitud, ['Estado' => 'En revision']);
+            return $this->respondUpdated(['success' => true, 'message' => 'Solicitud enviada a revisión.']);
+        } catch (\Exception $e) {
+            log_message('error', '[enviarSolicitudARevision] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado.');
+        }
+    }
+
+    /**
+     * Dictamina una solicitud (aprueba o rechaza).
+     *
+     * @return \CodeIgniter\HTTP\Response El resultado de la operación.
+     */
+    public function dictaminarSolicitud()
+    {
+        $json = $this->request->getJSON();
+
+        if (!isset($json->ID_SolicitudProd) || !isset($json->Estado)) {
+            return $this->failValidationErrors('Se requiere ID de solicitud y el nuevo estado.');
+        }
+
+        $idSolicitud = (int) $json->ID_SolicitudProd;
+        $nuevoEstado = (string) $json->Estado;
+        $comentarios = $json->Comentarios ?? null;
+
+        if (!in_array($nuevoEstado, ['Aprobada', 'Rechazada'])) {
+            return $this->fail('El estado proporcionado no es válido.', HttpStatus::BAD_REQUEST);
+        }
+
+        if ($nuevoEstado === 'Rechazada' && empty(trim((string)$comentarios))) {
+            return $this->fail('Para rechazar una solicitud, los comentarios son obligatorios.', HttpStatus::BAD_REQUEST);
+        }
+
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) {
+            return $this->failNotFound('La solicitud no existe.');
+        }
+
+        if ($solicitud['Estado'] !== 'En revision') {
+            return $this->fail('La solicitud no está en estado "En revision".', HttpStatus::BAD_REQUEST);
+        }
+
+        try {
+            $dataToUpdate = [
+                'Estado' => $nuevoEstado,
+                'Comentarios' => $comentarios
+            ];
+            $solicitudModel->update($idSolicitud, $dataToUpdate);
+            return $this->respondUpdated(['success' => true, 'message' => 'El dictamen de la solicitud se ha guardado correctamente.']);
+        } catch (\Exception $e) {
+            log_message('error', '[dictaminarSolicitud] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen.');
+        }
+    }
+    //endregion
     //region proveedores
+    /**
+     * Obtiene todos los proveedores con solo ID y Nombre.
+     *
+     * @return \CodeIgniter\HTTP\Response Los proveedores encontrados en formato JSON.
+     */
     public function getAllProviders()
     {
-        $results = $this->api->getAllProveedorName();
-        return $this->respond($results, HttpStatus::OK);
+        $results = $this->api->getAllProveedorName(); // Obtiene todos los proveedores de la API.
+        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
     }
     //endregion
 }

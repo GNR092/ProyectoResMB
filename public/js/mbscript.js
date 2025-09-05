@@ -272,6 +272,10 @@ function initPaginacionHistorial() {
                 svgClass = 'text-blue-500';
                 iconId = 'cotizacion';
                 break;
+            case 'en revision':
+                svgClass = 'text-blue-500';
+                iconId = 'revision';
+                break;
             default:
                 return '';
         }
@@ -291,13 +295,13 @@ function initPaginacionHistorial() {
             const svg = getStatusSVG(item.Estado);
             const fila = `
             <tr class="text-center">
-                <td class="border px-4 py-2">${item.ID_SolicitudProd}</td>
+                <td class="hidden border px-4 py-2">${item.ID_SolicitudProd}</td>
+                <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
                 <td class="border px-4 py-2 col-fecha">${item.Fecha}</td>
                 <td class="border px-4 py-2">${item.DepartamentoNombre || 'N/A'}</td>
-                <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
                 <td class="border px-4 py-2 col-estado" data-estado="${item.Estado}" title="${item.Estado}">
                     ${svg}
-                    <span class="hidden">${item.Estado}</span>
+                    <span >${item.Estado}</span>
                 </td>
                 <td class="border px-4 py-2">
                     <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_SolicitudProd}); return false;">ver</a>
@@ -360,14 +364,113 @@ function initPaginacionHistorial() {
 }
 
 // Funciones para mostrar/ocultar la pantalla de ver historial
-function mostrarVerHistorial(idSolicitud) {
+async function mostrarVerHistorial(idSolicitud) {
     const divHistorial = document.getElementById('div-historial');
     if (divHistorial) divHistorial.classList.add('hidden');
 
     const divVer = document.getElementById('div-ver-historial');
     if (divVer) divVer.classList.remove('hidden');
 
-    console.log("Mostrando pantalla de ver historial para ID:", idSolicitud);
+    const detallesContainer = document.getElementById('detalles-historial-solicitud');
+    if (!detallesContainer) {
+        console.error('El contenedor de detalles del historial no fue encontrado.');
+        return;
+    }
+
+    detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>';
+
+    try {
+        const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        let estadoClass = '';
+        switch (data.Estado?.toLowerCase()) {
+            case 'aprobada': estadoClass = 'text-green-600'; break;
+            case 'rechazada': estadoClass = 'text-red-600'; break;
+            case 'en revision': estadoClass = 'text-blue-600'; break;
+            case 'cotizando': estadoClass = 'text-purple-600'; break;
+            case 'en espera': estadoClass = 'text-yellow-600'; break;
+            default: estadoClass = 'text-gray-600';
+        }
+
+        let html = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+                <div><strong>Fecha:</strong> ${data.Fecha}</div>
+                <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado}</span></div>
+                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
+                ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
+            </div>
+        `;
+
+        if (data.Comentarios) {
+            html += `
+            <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
+                <p class="text-gray-800 whitespace-pre-wrap">${data.Comentarios}</p>
+            </div>`;
+        }
+
+        html += `
+            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border border-gray-300">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Código</th>
+                            <th class="py-2 px-4 text-left">Producto</th>
+                            <th class="py-2 px-4 text-right">Cantidad</th>
+                            <th class="py-2 px-4 text-right">Importe</th>
+                            <th class="py-2 px-4 text-right">Costo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        data.productos.forEach(p => {
+            const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
+            html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
+                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                    <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
+                    <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        if (data.Archivo) {
+            const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`;
+            html += `
+                <div class="mt-6">
+                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
+                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
+                </div>
+            `;
+        }
+
+        detallesContainer.innerHTML = html;
+
+    } catch (error) {
+        console.error("Error al cargar detalles del historial:", error);
+        detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`;
+    }
 }
 
 function regresarHistorial() {
@@ -781,96 +884,366 @@ function initEnviarRevision() {
     const tabla = document.getElementById('tabla-enviar');
     if (!tabla) return;
 
-    const filas = tabla.querySelectorAll('tbody tr');
+    const tbody = tabla.querySelector('tbody');
     const paginacion = document.getElementById('paginacion-enviar-revision');
-
+    let allData = [];
     let paginaActual = 1;
     const filasPorPagina = 10;
-    const totalFilas = filas.length;
-    const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+
+    async function fetchData() {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4">Cargando...</td></tr>`;
+    try {
+        const response = await fetch(`${BASE_URL}api/solicitudes/cotizadas`);
+        if (!response.ok) {
+            throw new Error('Error al cargar las solicitudes cotizadas.');
+        }
+
+        // Filtrar las que no estén en "En revision"
+        allData = (await response.json()).filter(s => s.Estado !== "En revision");
+
+        mostrarPagina(1);
+    } catch (error) {
+        console.error(error);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 p-4">${error.message}</td></tr>`;
+    }
+}
+
+    function renderizarTabla(data) {
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-gray-500">No hay solicitudes cotizadas para mostrar.</td></tr>';
+            return;
+        }
+
+        data.forEach(s => {
+            const monto = parseFloat(s.MontoTotal || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+            const fila = `
+                <tr class="hover:bg-gray-50" data-id="${s.ID_Solicitud}">
+                    <td class="py-3 px-6 text-left">${s.Folio}</td>
+                    <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
+                    <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
+                    <td class="py-3 px-6 text-left">${s.Proveedor || 'N/A'}</td>
+                    <td class="py-3 px-6 text-left">${s.Monto}</td>
+                    <td class="py-3 px-6 text-left">${s.Estado}</td>
+                    <td class="py-3 px-6 text-left">
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded btn-enviar">
+                            Enviar
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', fila);
+        });
+    }
 
     function mostrarPagina(pagina) {
         paginaActual = pagina;
-        filas.forEach((fila, index) => {
-            fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
-        });
+        const inicio = (pagina - 1) * filasPorPagina;
+        const fin = inicio + filasPorPagina;
+
+        const datosPagina = allData.slice(inicio, fin);
+        renderizarTabla(datosPagina);
         renderPaginacion();
     }
 
     function renderPaginacion() {
         if (!paginacion) return;
         paginacion.innerHTML = '';
+        const totalPaginas = Math.ceil(allData.length / filasPorPagina);
+        if (totalPaginas <= 1) return;
+
         for (let i = 1; i <= totalPaginas; i++) {
             const boton = document.createElement('button');
             boton.textContent = i;
-            boton.className =
-                `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+            boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
             boton.addEventListener('click', () => mostrarPagina(i));
             paginacion.appendChild(boton);
         }
     }
 
-    const botonesEnviar = tabla.querySelectorAll('.btn-enviar');
-    botonesEnviar.forEach(btn => {
-        btn.removeEventListener('click', enviarRevisionHandler);
-        btn.addEventListener('click', enviarRevisionHandler);
+    tbody.addEventListener('click', function(event) {
+        if (event.target.classList.contains('btn-enviar')) {
+            enviarRevisionHandler(event);
+        }
     });
 
-    if (totalFilas > 0) mostrarPagina(1);
+    fetchData();
 }
 
 function enviarRevisionHandler(event) {
     const fila = event.target.closest('tr');
     const idSolicitud = fila.dataset.id;
-    console.log('Enviando a revisión la solicitud:', idSolicitud);
+    if (!confirm(`¿Está seguro de que desea enviar la solicitud mbsp-${idSolicitud} a revisión?`)) {
+        return;
+    }
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ ID_SolicitudProd: idSolicitud })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success');
+            // Vuelve a cargar los datos para refrescar la tabla y la paginación
+            initEnviarRevision();
+        } else {
+            mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Enviar';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de red al enviar a revisión.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Enviar';
+    });
 }
 
 /**
  * Lógica para el modal "Dictamen de Solicitudes"
  */
-function initDictamenSolicitudes() {
-    const filas = document.querySelectorAll('#tablaDictamenSolicitudes tr');
-    const paginacion = document.getElementById('paginacion-dictamen');
+async function initDictamenSolicitudes() {
+    const tbody = document.getElementById('tablaDictamenSolicitudes');
+    if (!tbody) return;
 
+    const paginacion = document.getElementById('paginacion-dictamen');
+    let allData = [];
     let paginaActual = 1;
     const filasPorPagina = 10;
-    const totalFilas = filas.length;
-    const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+
+    async function fetchData() {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4">Cargando...</td></tr>`;
+        try {
+            const response = await fetch(`${BASE_URL}api/solicitudes/en-revision`);
+            if (!response.ok) {
+                throw new Error('Error al cargar las solicitudes en dictamen.');
+            }
+            allData = await response.json();
+            mostrarPagina(1);
+        } catch (error) {
+            console.error(error);
+            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">${error.message}</td></tr>`;
+        }
+    }
+
+    function renderizarTabla(data) {
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-gray-500">No hay solicitudes en dictamen para mostrar.</td></tr>';
+            return;
+        }
+
+        data.forEach(s => {
+            const fila = `
+                <tr class="hover:bg-gray-50" data-id="${s.ID}">
+                    <td class="py-3 px-6 text-left">${s.Folio || 'N/A'}</td>
+                    <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
+                    <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
+                    <td class="py-3 px-6 text-left">${s.Fecha}</td>
+                    <td class="py-3 px-6 text-left">${s.Estado}</td>
+                    <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerDictamen(${s.ID})">VER</td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', fila);
+        });
+    }
 
     function mostrarPagina(pagina) {
         paginaActual = pagina;
-        filas.forEach((fila, index) => {
-            fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
-        });
+        const inicio = (pagina - 1) * filasPorPagina;
+        const fin = inicio + filasPorPagina;
+
+        const datosPagina = allData.slice(inicio, fin);
+        renderizarTabla(datosPagina);
         renderPaginacion();
     }
 
     function renderPaginacion() {
         if (!paginacion) return;
         paginacion.innerHTML = '';
+        const totalPaginas = Math.ceil(allData.length / filasPorPagina);
+        if (totalPaginas <= 1) return;
+
         for (let i = 1; i <= totalPaginas; i++) {
             const boton = document.createElement('button');
             boton.textContent = i;
-            boton.className =
-                `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+            boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
             boton.addEventListener('click', () => mostrarPagina(i));
             paginacion.appendChild(boton);
         }
     }
 
-    if (totalFilas > 0) mostrarPagina(1);
+    fetchData();
 }
 
-function mostrarVerDictamen(idSolicitud) {
+async function mostrarVerDictamen(idSolicitud) {
     document.getElementById('div-tabla').classList.add('hidden');
-    document.getElementById('div-ver-dictamen').classList.remove('hidden');
-    console.log("VER solicitud dictamen ID:", idSolicitud);
-    document.getElementById('detallesDictamen').innerHTML = `<p>Cargando detalles de la solicitud ${idSolicitud}...</p>`;
+    const divVer = document.getElementById('div-ver-dictamen');
+    divVer.classList.remove('hidden');
+
+    const detallesContainer = document.getElementById('detallesDictamen');
+    detallesContainer.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la solicitud ${idSolicitud}...</p>`;
+
+    try {
+        const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
+        if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        let html = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+                <div><strong>Fecha:</strong> ${data.Fecha}</div>
+                <div><strong>Estado:</strong> <span class="font-semibold text-blue-600">${data.Estado}</span></div>
+                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
+                <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>
+            </div>
+        `;
+
+        // Mostrar comentarios si existen (especialmente para rechazos)
+        if (data.Comentarios) {
+            html += `
+            <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
+                <p class="text-gray-800 whitespace-pre-wrap">${data.Comentarios}</p>
+            </div>`;
+        }
+
+        html += `
+            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border border-gray-300">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Código</th>
+                            <th class="py-2 px-4 text-left">Producto</th>
+                            <th class="py-2 px-4 text-right">Cantidad</th>
+                            <th class="py-2 px-4 text-right">Importe</th>
+                            <th class="py-2 px-4 text-right">Costo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        data.productos.forEach(p => {
+            const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
+            html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
+                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                    <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
+                    <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        if (data.Archivo) {
+            const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`;
+            html += `
+                <div class="mt-6">
+                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
+                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
+                </div>
+            `;
+        }
+
+        // Solo mostrar botones de acción si la solicitud está 'En revision'
+        if (data.Estado === 'En revision') {
+            html += `
+                <div class="mt-8 flex justify-end space-x-4">
+                    <button onclick="dictaminarSolicitud(${idSolicitud}, 'Rechazada')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition">
+                        Rechazar
+                    </button>
+                    <button onclick="dictaminarSolicitud(${idSolicitud}, 'Aprobada')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+                        Aprobar
+                    </button>
+                </div>
+            `;
+        }
+
+        detallesContainer.innerHTML = html;
+
+    } catch (error) {
+        console.error("Error al cargar detalles para dictamen:", error);
+        detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`;
+    }
 }
 
 function regresarTablaDictamen() {
     document.getElementById('div-ver-dictamen').classList.add('hidden');
     document.getElementById('div-tabla').classList.remove('hidden');
+}
+
+async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
+    let comentarios = null;
+    const accion = nuevoEstado === 'Aprobada' ? 'aprobar' : 'rechazar';
+
+    if (nuevoEstado === 'Rechazada') {
+        comentarios = prompt("Por favor, ingrese el motivo del rechazo:");
+        if (comentarios === null) { // Usuario presionó 'Cancelar'
+            return;
+        }
+        if (!comentarios.trim()) {
+            mostrarNotificacion('El motivo del rechazo es obligatorio.', 'error');
+            return;
+        }
+    } else { // Para 'Aprobada'
+        if (!confirm(`¿Está seguro de que desea ${accion} esta solicitud?`)) {
+            return;
+        }
+    }
+
+    const payload = {
+        ID_SolicitudProd: idSolicitud,
+        Estado: nuevoEstado,
+        Comentarios: comentarios
+    };
+    
+    try {
+        const response = await fetch(`${BASE_URL}api/solicitud/dictaminar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            mostrarNotificacion(result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`, 'success');
+            regresarTablaDictamen();
+            initDictamenSolicitudes();
+        } else {
+            mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error');
+        }
+    } catch (error) {
+        console.error(`Error al ${accion} la solicitud:`, error);
+        mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error');
+    }
 }
 
 /**

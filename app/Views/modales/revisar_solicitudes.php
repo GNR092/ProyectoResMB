@@ -7,6 +7,7 @@
             <table class="min-w-full border border-gray-300">
                 <thead class="bg-gray-100">
                 <tr>
+                    <th class="py-3 px-6 text-left">Folio</th>
                     <th class="py-3 px-6 text-left">Usuario</th>
                     <th class="py-3 px-6 text-left">Departamento</th>
                     <th class="py-3 px-6 text-left">Fecha</th>
@@ -19,6 +20,7 @@
                 <?php if (!empty($solicitudes)): ?>
                     <?php foreach ($solicitudes as $solicitud): ?>
                         <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-6 text-left"><?= esc($solicitud['No_Folio']) ?></td>
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['UsuarioNombre']) ?></td>
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['DepartamentoNombre']) ?></td>
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['Fecha']) ?></td>
@@ -29,7 +31,7 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="6" class="text-center px-4 py-2 border">No hay solicitudes registradas.</td>
+                        <td colspan="7" class="text-center px-4 py-2 border">No hay solicitudes registradas.</td>
                     </tr>
                 <?php endif; ?>
                 </tbody>

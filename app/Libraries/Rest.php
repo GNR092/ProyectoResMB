@@ -15,16 +15,14 @@ use App\Models\TokenModel;
 use App\Models\UsuariosModel;
 use App\Libraries\HttpStatus;
 
-
 use CodeIgniter\Database\BaseBuilder;
 /**
  * Clase Rest
- * 
+ *
  * Proporciona métodos para interactuar con la base de datos y realizar operaciones relacionadas con usuarios, productos, proveedores, departamentos y otros.
  */
 class Rest
 {
-    
     protected $db;
     /**
      * Constructor de la clase Rest.
@@ -64,7 +62,7 @@ class Rest
         $user = $usuariosModel->find($userid);
 
         if (!$user) {
-            return "";
+            return '';
         }
 
         $tokenmodel = new TokenModel();
@@ -172,7 +170,9 @@ class Rest
     {
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel
-            ->select('Solicitud.*, Usuarios.Nombre as UsuarioNombre, Departamentos.Nombre as DepartamentoNombre, Proveedor.Nombre as RazonSocialNombre')
+            ->select(
+                'Solicitud.*, Usuarios.Nombre as UsuarioNombre, Departamentos.Nombre as DepartamentoNombre, Proveedor.Nombre as RazonSocialNombre',
+            )
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
@@ -183,13 +183,96 @@ class Rest
         }
 
         $solicitudProductModel = new SolicitudProductModel();
-        $productos = $solicitudProductModel
-            ->where('ID_SolicitudProd', $id)
-            ->findAll();
+        $productos = $solicitudProductModel->where('ID_SolicitudProd', $id)->findAll();
 
         $solicitud['productos'] = $productos;
 
+        // También obtiene datos de cotización si existen
+        $cotizacionModel = new CotizacionModel();
+        $cotizacion = $cotizacionModel
+            ->select('Cotizacion.*, Proveedor.Nombre as ProveedorNombre')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
+            ->where('ID_SolicitudProd', $id)
+            ->first();
+
+        if ($cotizacion) {
+            $solicitud['cotizacion'] = $cotizacion;
+        }
+
         return $solicitud;
+    }
+
+    //endregion
+
+    //region Solicitudes Cotizadas
+    public function getSolicitudesCotizadas()
+    {
+        $result = [];
+
+        $cotizacionModel = new CotizacionModel();
+        $solicitudModel = new SolicitudModel();
+        $usuarioModel = new UsuariosModel();
+        $dptoModel = new DepartamentosModel();
+        $proveedorModel = new ProveedorModel();
+
+        // Obtenemos todas las cotizaciones
+        $cotizaciones = $cotizacionModel->findAll();
+
+        foreach ($cotizaciones as $cotizacion) {
+            // Buscar solicitud ligada
+            $solicitud = $solicitudModel->find($cotizacion['ID_SolicitudProd']);
+
+            if (!$solicitud || ($solicitud['Estado'] ?? '') === 'En revision' || ($solicitud['Estado'] ?? '') === 'Aprobada' || ($solicitud['Estado'] ?? '') === 'Rechazada') {
+            continue;
+        }
+
+            // Buscar usuario y departamento ligados a la solicitud
+            $usuario = $usuarioModel->find($solicitud['ID_Usuario']);
+            $departamento = $dptoModel->find($solicitud['ID_Dpto']);
+
+            // Buscar proveedor ligado a la cotización
+            $proveedor = $proveedorModel->find($cotizacion['ID_Proveedor']);
+
+            // Armar el resultado con el mismo formato que necesitas
+            $result[] = [
+                'ID' => $cotizacion['ID_Cotizacion'],
+                'ID_Solicitud' => $solicitud['ID_SolicitudProd'],
+                'Folio' => $solicitud['No_Folio'] ?? '',
+                'Usuario' => $usuario['Nombre'] ?? '',
+                'Departamento' => $departamento['Nombre'] ?? '',
+                'Proveedor' => $proveedor['Nombre'] ?? '',
+                'Monto' => $cotizacion['Total'],
+                'Estado' => $solicitud['Estado'] ?? '',
+            ];
+        }
+
+        return $result;
+    }
+
+    public function getSolicitudesEnRevision()
+    {
+        $solicitudModel = new SolicitudModel();
+
+        $results = $solicitudModel
+            ->select([
+                'Solicitud.ID_SolicitudProd as ID',
+                'Solicitud.No_Folio as Folio',
+                'Usuarios.Nombre as Usuario',
+                'Departamentos.Nombre as Departamento',
+                'Proveedor.Nombre as Proveedor',
+                'Cotizacion.Total as Monto',
+                'Solicitud.Estado',
+                'Solicitud.Fecha',
+            ])
+            ->join('Cotizacion', 'Cotizacion.ID_SolicitudProd = Solicitud.ID_SolicitudProd')
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
+            ->where('Solicitud.Estado', 'En revision')
+            ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+            ->findAll();
+
+        return $results ?: [];
     }
 
     //endregion
@@ -219,12 +302,12 @@ class Rest
         $result = $usuariosModel->where('Nombre', $name)->first();
         return $result ?: null;
     }
-        /**
-        * Obtiene un usuario por su correo electrónico.
-        *
-        * @param string $email El correo electrónico del usuario
-        * @return array|null El usuario encontrado o null si no se encuentra
-        */
+    /**
+     * Obtiene un usuario por su correo electrónico.
+     *
+     * @param string $email El correo electrónico del usuario
+     * @return array|null El usuario encontrado o null si no se encuentra
+     */
     public function getUserByEmail(string $email): ?array
     {
         $usuariosModel = new UsuariosModel();
@@ -370,17 +453,17 @@ class Rest
      * @param int $existencia La existencia del producto
      * @return bool True si el producto se registró correctamente, false en caso contrario.
      */
-    public function registrarProducto($codigo , $nombre, $existencia): bool
+    public function registrarProducto($codigo, $nombre, $existencia): bool
     {
         $producto = new ProductoModel();
         $data = [
-            'Codigo'     => $codigo,
-            'Nombre'     => $nombre,
+            'Codigo' => $codigo,
+            'Nombre' => $nombre,
             'Existencia' => $existencia,
         ];
         return $producto->insert($data) !== false;
     }
-    
+
     /**
      *  Elimina un producto por su ID.
      * * @param int $id
@@ -403,7 +486,7 @@ class Rest
         $producto = new ProductoModel();
         return $producto->update($id, $data);
     }
-     /**
+    /**
      * Obtiene todos los productos.
      *
      * @return array Los productos encontrados

@@ -5,36 +5,17 @@
         <table id="tabla-enviar" class="min-w-full border border-gray-300">
             <thead class="bg-gray-100">
             <tr>
+                <th class="py-3 px-6 text-left">Folio</th>
                 <th class="py-3 px-6 text-left">Usuario</th>
                 <th class="py-3 px-6 text-left">Departamento</th>
-                <th class="py-3 px-6 text-left">Fecha</th>
+                <th class="py-3 px-6 text-left">Proveedor</th>
+                <th class="py-3 px-6 text-left">Monto</th>
                 <th class="py-3 px-6 text-left">Estado</th>
                 <th class="py-3 px-6 text-left">Acciones</th>
             </tr>
             </thead>
             <tbody>
-            <?php if (!empty($solicitudes)): ?>
-                <?php foreach ($solicitudes as $s): ?>
-                    <tr class="hover:bg-gray-50" data-id="<?= $s['ID_SolicitudProd'] ?>">
-                        <td class="py-3 px-6 text-left"><?= esc($s['UsuarioNombre']) ?></td>
-                        <td class="py-3 px-6 text-left"><?= esc($s['DepartamentoNombre']) ?></td>
-                        <td class="py-3 px-6 text-left"><?= esc($s['Fecha']) ?></td>
-                        <td class="py-3 px-6 text-left"><?= esc($s['Estado']) ?></td>
-                        <td class="py-3 px-6 text-left">
-                            <button
-                                    class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded btn-enviar">
-                                Enviar
-                            </button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="5" class="text-center px-4 py-2 border text-gray-500">
-                        No hay solicitudes disponibles
-                    </td>
-                </tr>
-            <?php endif; ?>
+            <!-- Las filas se insertarán aquí dinámicamente vía JS -->
             </tbody>
         </table>
     </div>

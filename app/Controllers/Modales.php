@@ -75,18 +75,7 @@ class Modales extends BaseController
                 return view('modales/ordenes_compra', $data);
 
             case 'enviar_revision':
-                $solicitudModel = new \App\Models\SolicitudModel();
-                $data['solicitudes'] = $solicitudModel
-                    ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
-                    )
-                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
-                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                    ->where('Solicitud.Estado', 'Cotizado')
-                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
-                    ->findAll();
-
-                return view('modales/enviar_revision', $data);
+                return view('modales/enviar_revision');
 
             case 'usuarios':
                 $departamentosModel = new DepartamentosModel();
