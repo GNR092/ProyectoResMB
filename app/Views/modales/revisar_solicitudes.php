@@ -75,29 +75,21 @@
                 </tr>
                 </thead>
                 <tbody>
-                <?php if (!empty($proveedores)): ?>
-                    <?php foreach ($proveedores as $p): ?>
-                        <tr class="hover:bg-gray-50">
-                            <td class="py-2 px-4 border-t text-center">
-                                <input type="checkbox" value="<?= esc($p['ID_Proveedor']) ?>">
-                            </td>
-                            <td class="py-2 px-4 border-t"><?= esc($p['Nombre']) ?></td>
-                            <td class="py-2 px-4 border-t"><?= esc($p['Nombre_Comercial']) ?></td>
-                            <td class="py-2 px-4 border-t"><?= esc($p['Tel_Contacto']) ?></td>
-                            <td class="py-2 px-4 border-t"><?= esc($p['RFC']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="5" class="text-center px-4 py-2 border">No hay proveedores registrados.</td>
-                    </tr>
-                <?php endif; ?>
+                    <!-- Las filas de proveedores se cargarán aquí dinámicamente vía JS -->
                 </tbody>
             </table>
         </div>
 
         <!-- Contenedor de paginación de proveedores -->
         <div id="paginacion-proveedores" class="flex justify-center mt-4 space-x-2"></div>
+
+        <!-- Botón para generar cotización -->
+        <div class="flex justify-end mt-4">
+            <input type="hidden" id="cotizar_id_solicitud">
+            <button id="btn-generar-cotizacion" class="bg-carbon text-white px-4 py-2 rounded hover:bg-gray-900 disabled:bg-gray-400" disabled>
+                Generar Solicitud de Cotización
+            </button>
+        </div>
     </div>
 
 </div>

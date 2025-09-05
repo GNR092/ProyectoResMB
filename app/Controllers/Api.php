@@ -2,6 +2,8 @@
 
 namespace App\Controllers;
 
+use App\Models\CotizacionModel;
+use App\Models\SolicitudModel;
 use CodeIgniter\RESTful\ResourceController;
 use App\Libraries\Rest;
 use App\Libraries\HttpStatus;
@@ -75,6 +77,53 @@ class Api extends ResourceController
         }
 
         return $this->respond($details);
+    }
+
+    public function crearCotizacion()
+    {
+        $json = $this->request->getJSON();
+
+        if (!isset($json->ID_SolicitudProd) || !isset($json->ID_Proveedor)) {
+            return $this->failValidationErrors('Se requiere ID de solicitud y de proveedor.');
+        }
+
+        $idSolicitud = (int) $json->ID_SolicitudProd;
+        $idProveedor = (int) $json->ID_Proveedor;
+
+        $cotizacionModel = new CotizacionModel();
+        $solicitudModel = new SolicitudModel();
+
+        // Check if solicitud exists and is in correct state
+        $solicitud = $solicitudModel->find($idSolicitud);
+        if (!$solicitud) {
+            return $this->failNotFound('La solicitud no existe.');
+        }
+        if ($solicitud['Estado'] !== 'En espera') {
+            return $this->fail('La solicitud ya no está en estado "En espera".', HttpStatus::BAD_REQUEST);
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            // 1. Insert into Cotizacion table
+            $cotizacionData = [
+                'ID_SolicitudProd' => $idSolicitud,
+                'ID_Proveedor'     => $idProveedor,
+                'Total'            => 0, // Initial total, can be updated later
+            ];
+            $cotizacionModel->insert($cotizacionData);
+
+            // 2. Update Solicitud status
+            $solicitudModel->update($idSolicitud, ['Estado' => 'Cotizando']);
+
+            $db->transComplete();
+
+            return $this->respondCreated(['success' => true, 'message' => 'Cotización creada y solicitud actualizada.']);
+        } catch (\Exception $e) {
+            log_message('error', '[crearCotizacion] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado al crear la cotización.');
+        }
     }
     //endregion
 

@@ -89,6 +89,11 @@ $session = session(); ?>
     const BASE_URL = "<?= base_url() ?>";
     const USER_DEPT_NAME = "<?= esc($departamento_usuario ?? '', 'js') ?>";
     const USER_DEPT_ID = "<?= esc($id_departamento_usuario ?? '', 'js') ?>";
+    <?php
+        $iconPath = FCPATH . 'icons/icons.svg';
+        $iconVersion = file_exists($iconPath) ? filemtime($iconPath) : time();
+    ?>
+    const ICON_SVG_VERSION = "<?= $iconVersion ?>";
     </script>
     <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
     <script src="<?= base_url() ?>js/mbscript.js" defer></script>

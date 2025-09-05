@@ -51,6 +51,8 @@ if (!file_exists($installerLockFile)) {
         $routes->post('proveedores/eliminarProveedor/(:num)', 'Modales::eliminarProveedor/$1');
         // Ruta POST para editar proveedores
         $routes->post('proveedores/editar/(:num)', 'Modales::editarProveedor/$1');
+        // Ruta POST para crear cotización
+        $routes->post('api/cotizacion/crear', 'Api::crearCotizacion');
 
 
 

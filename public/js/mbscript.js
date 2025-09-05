@@ -251,6 +251,7 @@ function initPaginacionHistorial() {
     function getStatusSVG(status) {
         if (!status) return '';
         const statusLower = status.toLowerCase();
+        const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`;
         let svgClass = '';
         let iconId = '';
 
@@ -267,10 +268,14 @@ function initPaginacionHistorial() {
                 svgClass = 'text-red-500';
                 iconId = 'rechazado';
                 break;
+            case 'cotizando':
+                svgClass = 'text-blue-500';
+                iconId = 'cotizacion';
+                break;
             default:
                 return '';
         }
-        return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#${iconId}"></use></svg>`;
+        return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`;
     }
 
     function renderizarTabla(data) {
@@ -290,7 +295,7 @@ function initPaginacionHistorial() {
                 <td class="border px-4 py-2 col-fecha">${item.Fecha}</td>
                 <td class="border px-4 py-2">${item.DepartamentoNombre || 'N/A'}</td>
                 <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
-                <td class="border px-4 py-2 col-estado" data-estado="${item.Estado}">
+                <td class="border px-4 py-2 col-estado" data-estado="${item.Estado}" title="${item.Estado}">
                     ${svg}
                     <span class="hidden">${item.Estado}</span>
                 </td>
@@ -589,8 +594,18 @@ async function mostrarCotizar(idSolicitud) {
     const divCotizar = document.getElementById('div-cotizar');
     divCotizar.classList.remove('hidden');
 
+    // Store the solicitud ID
+    const idSolicitudInput = document.getElementById('cotizar_id_solicitud');
+    if (idSolicitudInput) {
+        idSolicitudInput.value = idSolicitud;
+    }
+
     const tbody = divCotizar.querySelector('tbody');
     const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores');
+    const btnGenerar = document.getElementById('btn-generar-cotizacion');
+
+    // Disable button initially
+    if (btnGenerar) btnGenerar.disabled = true;
 
     tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Cargando proveedores...</td></tr>';
 
@@ -618,14 +633,21 @@ async function mostrarCotizar(idSolicitud) {
             tbody.innerHTML = proveedores.slice(start, end).map(p => `
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t text-center">
-                        <input type="checkbox" value="${p.ID_Proveedor}">
+                        <input type="radio" name="proveedor_seleccionado" value="${p.ID_Proveedor}" class="radio-proveedor accent-blue-600">
                     </td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                    <td class="py-2 px-4 border-t">${p.Nombre_Comercial}</td>
+                    <td class="py-2 px-4 border-t">${p.Nombre_Comercial || ''}</td>
                     <td class="py-2 px-4 border-t">${p.Tel_Contacto}</td>
                     <td class="py-2 px-4 border-t">${p.RFC}</td>
                 </tr>
             `).join('');
+
+            // Add event listeners to new radio buttons
+            tbody.querySelectorAll('.radio-proveedor').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (btnGenerar) btnGenerar.disabled = false;
+                });
+            });
 
             renderPaginacion();
         }
@@ -642,14 +664,6 @@ async function mostrarCotizar(idSolicitud) {
             }
         }
 
-        // Creamos contenedor para la paginación si no existe
-        if (!paginacionDiv) {
-            const newDiv = document.createElement('div');
-            newDiv.id = 'paginacion-proveedores';
-            newDiv.className = 'flex justify-center mt-4 space-x-2';
-            divCotizar.appendChild(newDiv);
-        }
-
         mostrarPagina(1);
 
     } catch (error) {
@@ -657,7 +671,65 @@ async function mostrarCotizar(idSolicitud) {
         tbody.innerHTML = `<tr><td colspan="5" class="text-center text-red-500">Error al cargar proveedores</td></tr>`;
     }
 
+    // Add event listener for the generate button, ensuring it's only attached once
+    if (btnGenerar && !btnGenerar.dataset.listenerAttached) {
+        btnGenerar.addEventListener('click', handleGenerarCotizacion);
+        btnGenerar.dataset.listenerAttached = 'true';
+    }
+
     console.log("COTIZAR solicitud ID:", idSolicitud);
+}
+
+async function handleGenerarCotizacion() {
+    const idSolicitud = document.getElementById('cotizar_id_solicitud').value;
+    const selectedProviderRadio = document.querySelector('input[name="proveedor_seleccionado"]:checked');
+
+    if (!selectedProviderRadio) {
+        alert('Por favor, seleccione un proveedor.');
+        return;
+    }
+
+    const idProveedor = selectedProviderRadio.value;
+
+    if (!confirm('¿Está seguro de que desea generar la solicitud de cotización para este proveedor?')) {
+        return;
+    }
+
+    const btn = document.getElementById('btn-generar-cotizacion');
+    btn.disabled = true;
+    btn.textContent = 'Generando...';
+
+    try {
+        const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                ID_SolicitudProd: idSolicitud,
+                ID_Proveedor: idProveedor
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('Solicitud de cotización generada y estado de la solicitud actualizado.');
+            // Refresh the modal content to see the updated list of pending requests
+            abrirModal('revisar_solicitudes');
+        } else {
+            alert('Error: ' + (result.message || 'No se pudo generar la cotización.'));
+            btn.disabled = false;
+            btn.textContent = 'Generar Solicitud de Cotización';
+        }
+
+    } catch (error) {
+        console.error('Error al generar cotización:', error);
+        alert('Ocurrió un error de red al generar la cotización.');
+        btn.disabled = false;
+        btn.textContent = 'Generar Solicitud de Cotización';
+    }
 }
 
 function regresarTabla() {

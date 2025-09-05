@@ -6,86 +6,93 @@ use CodeIgniter\Config\BaseConfig;
 
 class MenuOptions extends BaseConfig
 {
-    public array $opciones = [
-        //Flujo del programa
-        'solicitar_material' => [
-            'label' => 'Solicitar material',
-            'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#solicitar_material"></use></svg>',
-        ],
+    public array $opciones;
 
-        'revisar_solicitudes' => [
-            'label' => 'Revisar solicitudes',
-            'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#revisar_solicitudes"></use></svg>',
-        ],
+    public function __construct()
+    {
+        parent::__construct();
 
-        'enviar_revision' => [
-            'label' => 'Enviar a revisión',
-            'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#enviar_revision"></use></svg>',
-        ],
+        $iconPath = FCPATH . 'icons/icons.svg';
+        $version = file_exists($iconPath) ? filemtime($iconPath) : time();
+        $iconUrl = "/icons/icons.svg?v=$version";
 
-        'dictamen_solicitudes' => [
-            'label' => 'Dictamen de solicitudes',
-            'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#dictamen_solicitudes"></use></svg>',
-        ],
+        $this->opciones = [
+            //Flujo del programa
+            'solicitar_material' => [
+                'label' => 'Solicitar material',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#solicitar_material"></use></svg>',
+            ],
 
-        'ordenes_compra' => [
-            'label' => 'Ordenes de compra',
-            'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#ordenes_compra"></use></svg>',
-        ],
+            'revisar_solicitudes' => [
+                'label' => 'Revisar solicitudes',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#revisar_solicitudes"></use></svg>',
+            ],
 
-        'crud_proveedores' => [
-            'label' => 'Proveedores',
-            'icon' =>
-                '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#crud_proveedores"></use></svg>',
-        ],
+            'enviar_revision' => [
+                'label' => 'Enviar a revisión',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#enviar_revision"></use></svg>',
+            ],
 
-        'ver_historial' => [
-            'label' => 'Ver historial',
-            'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#ver_historial"></use></svg>
-',
-        ],
+            'dictamen_solicitudes' => [
+                'label' => 'Dictamen de solicitudes',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#dictamen_solicitudes"></use></svg>',
+            ],
 
-        'registrar_productos' => [
-            'label' => 'Registrar Productos',
-            'icon' =>
-                '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#registrar_productos"></use></svg>',
-        ],
+            'ordenes_compra' => [
+                'label' => 'Ordenes de compra',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ordenes_compra"></use></svg>',
+            ],
 
-        'crud_productos' => [
-            'label' => 'Existencias',
-            'icon' =>
-                '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#crud_productos"></use></svg>',
-        ],
+            'crud_proveedores' => [
+                'label' => 'Proveedores',
+                'icon' =>
+                    '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#crud_proveedores"></use></svg>',
+            ],
 
-        'entrega_productos' => [
-            'label' => 'Entrega de Material',
-            'icon' =>
-                '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#entrega_productos"></use></svg>',
-        ],
+            'ver_historial' => [
+                'label' => 'Ver historial',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ver_historial"></use></svg>',
+            ],
 
-        'pagos_pendientes' => [
-            'label' => 'Pagos Pendientes',
-            'icon' =>
-                '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#pagos_pendientes"></use></svg>',
-        ],
+            'registrar_productos' => [
+                'label' => 'Registrar Productos',
+                'icon' =>
+                    '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#registrar_productos"></use></svg>',
+            ],
 
-        //Otros
-        'usuarios' => [
-            'label' => 'Usuarios',
-            'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#usuarios"></use></svg>
-',
-        ],
+            'crud_productos' => [
+                'label' => 'Existencias',
+                'icon' =>
+                    '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#crud_productos"></use></svg>',
+            ],
 
-        'proveedores' => [
-            'label' => 'Proveedores',
-            'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#proveedores"></use></svg>
-',
-        ],
+            'entrega_productos' => [
+                'label' => 'Entrega de Material',
+                'icon' =>
+                    '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#entrega_productos"></use></svg>',
+            ],
 
-        'limpiar_almacenamiento' => [
-            'label' => 'Limpiar Almacenamiento',
-            'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="/icons/icons.svg#limpiar_almacenamiento"></use></svg>
-',
-        ],
-    ];
+            'pagos_pendientes' => [
+                'label' => 'Pagos Pendientes',
+                'icon' =>
+                    '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#pagos_pendientes"></use></svg>',
+            ],
+
+            //Otros
+            'usuarios' => [
+                'label' => 'Usuarios',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#usuarios"></use></svg>',
+            ],
+
+            'proveedores' => [
+                'label' => 'Proveedores',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#proveedores"></use></svg>',
+            ],
+
+            'limpiar_almacenamiento' => [
+                'label' => 'Limpiar Almacenamiento',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#limpiar_almacenamiento"></use></svg>',
+            ],
+        ];
+    }
 }

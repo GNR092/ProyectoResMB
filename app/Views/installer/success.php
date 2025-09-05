@@ -9,9 +9,14 @@
 <body class="bg-gray-100 font-montserrat flex items-center justify-center min-h-screen">
 
     <div class="bg-white p-8 md:p-12 rounded-lg shadow-xl w-full max-w-md text-center">
+        <?php
+            $iconPath = FCPATH . 'icons/icons.svg';
+            $version = file_exists($iconPath) ? filemtime($iconPath) : time();
+            $iconUrl = "/icons/icons.svg?v=$version#success";
+        ?>
         <div class="flex justify-center mb-6">
             <svg class="size-24 text-green-500" fill="none" stroke-width="1.5" stroke="currentColor">
-                <use xlink:href="/icons/icons.svg#success"></use>
+                <use xlink:href="<?= $iconUrl ?>"></use>
             </svg>
         </div>
         <h1 class="text-3xl font-bold font-doulos text-center mb-4 text-gray-800">¡Instalación Exitosa!</h1>
