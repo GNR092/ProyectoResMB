@@ -9,7 +9,7 @@ class CreateTableSolicitudProd extends Migration
     public function up()
     {
         $this->forge->addField([
-            'ID_SolicitudProd' => [
+            'ID_Solicitud' => [
                 'type' => 'INT',
                 'constraint' => 5,
                 'unsigned' => true,
@@ -52,12 +52,36 @@ class CreateTableSolicitudProd extends Migration
                 'unique' => true,
                 'null' => true,
             ],
+            'Archivo' => [
+                'type'       => 'VARCHAR',
+                'constraint' => '255',
+                'null'       => true,
+                'after'      => 'No_Folio'
+            ],
+            'ComentariosAdmin' => [
+                'type' => 'VARCHAR',
+                'constraint' => '500',
+                'null' => true,
+                'after' => 'Archivo',
+            ],
+            'ComentariosUser' => [
+                'type' => 'VARCHAR',
+                'constraint' => '500',
+                'null' => true,
+                'after' => 'ComentariosAdmin',
+            ],
+            'Tipo' => [
+                'type'    => 'BOOLEAN',
+                'null'    => false,
+                'default' => false,
+            ],
+
         ]);
 
-        $this->forge->addKey('ID_SolicitudProd', true);
+        $this->forge->addKey('ID_Solicitud', true);
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'CASCADE');
+        //$this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
+        //$this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'CASCADE');
         $this->forge->createTable('Solicitud');
     }
 

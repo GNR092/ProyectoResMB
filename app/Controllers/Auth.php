@@ -35,7 +35,7 @@ class Auth extends BaseController
         $userModel = new UsuariosModel();
         $user = $userModel->where('Correo', $email)->first();
 
-        if ($user && password_verify($password, $user['Contrasena'])) {
+        if ($user && password_verify($password, $user['ContrasenaP'])) {
             $token = new Rest();
             $tokenModel = new TokenModel();
             $existingToken = $tokenModel->where('ID_Usuario', $user['ID_Usuario'])->first();

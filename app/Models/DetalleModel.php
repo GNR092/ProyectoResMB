@@ -6,13 +6,13 @@ use CodeIgniter\Model;
 
 class DetalleModel extends Model
 {
-    protected $table            = 'Detalle';
-    protected $primaryKey       = 'ID_Detalle';
+    protected $table            = 'Detalle_Producto';
+    protected $primaryKey       = 'ID_DetalleProd';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_SolicitudProd', 'Nombre_Producto', 'Cantidad', 'Costo'];
+    protected $allowedFields    = ['ID_Solicitud', 'Nombre_Producto', 'Cantidad', 'Costo'];
 
     // Dates
     protected $useTimestamps = false;

@@ -4,15 +4,15 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class CotizacionModel extends Model
+class SolicitudServiciosModel extends Model
 {
-    protected $table            = 'Cotizacion';
-    protected $primaryKey       = 'ID_Cotizacion';
+    protected $table            = 'Solicitud_Servicio';
+    protected $primaryKey       = 'ID_SolicitudServ';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_Solicitud', 'ID_Proveedor', 'Total'];
+    protected $allowedFields    = ['ID_Solicitud', 'Fecha', 'Estado', 'Importe'];
 
     // Dates
     protected $useTimestamps = false;

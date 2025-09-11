@@ -147,7 +147,7 @@ class Rest
         $results = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
 
         return $results ?: [];
@@ -160,7 +160,7 @@ class Rest
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->where('Solicitud.ID_Dpto', $id)
-            ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
 
         return $results ?: [];
@@ -170,9 +170,9 @@ class Rest
     {
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel
-            ->select(
-                'Solicitud.*, Usuarios.Nombre as UsuarioNombre, Departamentos.Nombre as DepartamentoNombre, Proveedor.Nombre as RazonSocialNombre',
-            )
+            ->select([
+                'Solicitud.*', 'Usuarios.Nombre as UsuarioNombre', 'Departamentos.Nombre as DepartamentoNombre', 'Proveedor.RazonSocial as RazonSocialNombre'
+            ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
@@ -183,16 +183,16 @@ class Rest
         }
 
         $solicitudProductModel = new SolicitudProductModel();
-        $productos = $solicitudProductModel->where('ID_SolicitudProd', $id)->findAll();
+        $productos = $solicitudProductModel->where('ID_Solicitud', $id)->findAll();
 
         $solicitud['productos'] = $productos;
 
         // También obtiene datos de cotización si existen
         $cotizacionModel = new CotizacionModel();
         $cotizacion = $cotizacionModel
-            ->select('Cotizacion.*, Proveedor.Nombre as ProveedorNombre')
+            ->select('Cotizacion.*, Proveedor.RazonSocial as ProveedorNombre')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
-            ->where('ID_SolicitudProd', $id)
+            ->where('ID_Solicitud', $id)
             ->first();
 
         if ($cotizacion) {
@@ -220,7 +220,7 @@ class Rest
 
         foreach ($cotizaciones as $cotizacion) {
             // Buscar solicitud ligada
-            $solicitud = $solicitudModel->find($cotizacion['ID_SolicitudProd']);
+            $solicitud = $solicitudModel->find($cotizacion['ID_Solicitud']);
 
             if (!$solicitud || ($solicitud['Estado'] ?? '') === 'En revision' || ($solicitud['Estado'] ?? '') === 'Aprobada' || ($solicitud['Estado'] ?? '') === 'Rechazada') {
             continue;
@@ -236,11 +236,11 @@ class Rest
             // Armar el resultado con el mismo formato que necesitas
             $result[] = [
                 'ID' => $cotizacion['ID_Cotizacion'],
-                'ID_Solicitud' => $solicitud['ID_SolicitudProd'],
+                'ID_Solicitud' => $solicitud['ID_Solicitud'],
                 'Folio' => $solicitud['No_Folio'] ?? '',
                 'Usuario' => $usuario['Nombre'] ?? '',
                 'Departamento' => $departamento['Nombre'] ?? '',
-                'Proveedor' => $proveedor['Nombre'] ?? '',
+                'Proveedor' => $proveedor['RazonSocial'] ?? '',
                 'Monto' => $cotizacion['Total'],
                 'Estado' => $solicitud['Estado'] ?? '',
             ];
@@ -255,21 +255,21 @@ class Rest
 
         $results = $solicitudModel
             ->select([
-                'Solicitud.ID_SolicitudProd as ID',
+                'Solicitud.ID_Solicitud as ID',
                 'Solicitud.No_Folio as Folio',
                 'Usuarios.Nombre as Usuario',
                 'Departamentos.Nombre as Departamento',
-                'Proveedor.Nombre as Proveedor',
+                'Proveedor.RazonSocial as Proveedor',
                 'Cotizacion.Total as Monto',
                 'Solicitud.Estado',
                 'Solicitud.Fecha',
             ])
-            ->join('Cotizacion', 'Cotizacion.ID_SolicitudProd = Solicitud.ID_SolicitudProd')
+            ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud')
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
             ->where('Solicitud.Estado', 'En revision')
-            ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
 
         return $results ?: [];
@@ -534,7 +534,7 @@ class Rest
     public function getAllProveedorName(): array
     {
         $proveedorModel = new ProveedorModel();
-        $results = $proveedorModel->select('ID_Proveedor, Nombre')->findAll();
+        $results = $proveedorModel->select('ID_Proveedor, RazonSocial')->findAll();
         return $results;
     }
     //endregion

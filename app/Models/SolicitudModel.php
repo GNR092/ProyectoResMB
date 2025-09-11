@@ -7,7 +7,7 @@ use CodeIgniter\Model;
 class SolicitudModel extends Model
 {
     protected $table            = 'Solicitud';
-    protected $primaryKey       = 'ID_SolicitudProd';
+    protected $primaryKey       = 'ID_Solicitud';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
@@ -21,7 +21,7 @@ class SolicitudModel extends Model
         'Estado',
         'No_Folio',
         'Archivo',
-        'Comentarios',
+        'ComentariosAdmin',
     ];
 
     // Dates

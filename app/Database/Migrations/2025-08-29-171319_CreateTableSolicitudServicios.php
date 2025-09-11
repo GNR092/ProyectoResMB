@@ -15,15 +15,9 @@ class CreateSolicitudServiciosTable extends Migration
                 'unsigned' => true,
                 'auto_increment' => true
             ],
-            'ID_Usuario' => [
+            'ID_Solicitud' => [
                 'type' => 'INT',
-                'constraint' => 11,
-                'unsigned' => true,
-                'null' => false
-            ],
-            'ID_Dpto' => [
-                'type' => 'INT',
-                'constraint' => 11,
+                'constraint' => 5,
                 'unsigned' => true,
                 'null' => false
             ],
@@ -36,15 +30,17 @@ class CreateSolicitudServiciosTable extends Migration
                 'constraint' => '50',
                 'null' => true
             ],
-            'Folio' => [
-                'type' => 'VARCHAR',
-                'constraint' => '100',
-                'null' => true
-            ]
+            'Costo' => [
+                'type' => 'DECIMAL',
+                'constraint' => '10,2',
+                'null' => false,
+            ],
+            
         ]);
         $this->forge->addPrimaryKey('ID_SolicitudServ');
-        $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('ID_Solicitud', 'Solicitud', 'ID_Solicitud', 'CASCADE', 'CASCADE');
+        //$this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
+        //$this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
         $this->forge->createTable('Solicitud_Servicios');
     }
 

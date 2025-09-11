@@ -44,13 +44,13 @@ class Modales extends BaseController
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En espera')
-                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                     ->findAll();
 
                 // --- Proveedores ---
                 $data['proveedores'] = $proveedorModel
-                    ->select('ID_Proveedor, Nombre, Nombre_Comercial, Tel_Contacto, RFC, Servicio')
-                    ->orderBy('Nombre', 'ASC')
+                    ->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC, Servicio')
+                    ->orderBy('RazonSocial', 'ASC')
                     ->findAll();
 
                 return view('modales/revisar_solicitudes', $data);
@@ -69,7 +69,7 @@ class Modales extends BaseController
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'Aprobado')
-                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                     ->findAll();
 
                 return view('modales/ordenes_compra', $data);
@@ -98,7 +98,7 @@ class Modales extends BaseController
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En revision')
-                    ->orderBy('Solicitud.ID_SolicitudProd', 'DESC')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                     ->findAll();
 
                 return view('modales/dictamen_solicitudes', $data);
@@ -159,7 +159,7 @@ class Modales extends BaseController
             'ID_RazonSocial' => $this->request->getPost('razon_social'),
             'Nombre' => $this->request->getPost('nombre'),
             'Correo' => $this->request->getPost('correo'),
-            'Contrasena' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+            'ContrasenaP' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
             'Numero' => $this->request->getPost('telefono'),
         ];
 
@@ -330,8 +330,7 @@ class Modales extends BaseController
         $proveedorModel = new ProveedorModel();
 
         $data = $this->request->getPost([
-            'Nombre',
-            'Nombre_Comercial',
+            'RazonSocial',
             'RFC',
             'Banco',
             'Cuenta',
@@ -369,8 +368,7 @@ class Modales extends BaseController
 
         // Obtener datos del formulario
         $data = [
-            'Nombre'            => $this->request->getPost('Nombre'),
-            'Nombre_Comercial'  => $this->request->getPost('Nombre_Comercial'),
+            'RazonSocial'       => $this->request->getPost('RazonSocial'),
             'RFC'               => $this->request->getPost('RFC'),
             'Banco'             => $this->request->getPost('Banco'),
             'Cuenta'            => $this->request->getPost('Cuenta'),

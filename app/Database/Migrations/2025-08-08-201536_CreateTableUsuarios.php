@@ -38,10 +38,15 @@ class CreateTableUsuarios extends Migration
                 'unique' => true,
                 'null' => false,
             ],
-            'Contrasena' => [
+            'ContrasenaP' => [
                 'type' => 'VARCHAR',
                 'constraint' => '255',
                 'null' => false,
+            ],
+            'ContrasenaG' => [
+                'type' => 'VARCHAR',
+                'constraint' => '255',
+                'null' => true,
             ],
             'Numero' => [
                 'type' => 'VARCHAR',
@@ -82,7 +87,7 @@ class CreateTableUsuarios extends Migration
             'ID_RazonSocial' => $razonSocialId,
             'Nombre'         => 'Admin',
             'Correo'         => 'admin@example.com',
-            'Contrasena'     => $hashedPassword,
+            'ContrasenaP'    => $hashedPassword,
             'Numero'       => '+019999999999',
         ];
 

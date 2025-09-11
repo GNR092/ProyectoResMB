@@ -17,12 +17,12 @@
                 <tbody id="tablaOrdenesCompra">
                 <?php if (!empty($solicitudes)): ?>
                     <?php foreach ($solicitudes as $solicitud): ?>
-                        <tr class="hover:bg-gray-50" data-id="<?= $solicitud['ID_SolicitudProd'] ?>">
+                        <tr class="hover:bg-gray-50" data-id="<?= $solicitud['ID_Solicitud'] ?>">
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['UsuarioNombre']) ?></td>
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['DepartamentoNombre']) ?></td>
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['Fecha']) ?></td>
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['Estado']) ?></td>
-                            <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerOrdenCompra(<?= $solicitud['ID_SolicitudProd'] ?>)">VER</td>
+                            <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerOrdenCompra(<?= $solicitud['ID_Solicitud'] ?>)">VER</td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>

@@ -33,12 +33,13 @@
     "editor.defaultFormatter": "inferrinizzard.prettier-sql-vscode"
   },
   "php.problems.exclude": {
-        "**/*": [
-            "PHP6609",
-            "PHP0424",
-            "PHP0418"
-        ]
-    },
+    "**/*": [
+      "PHP6609",
+      "PHP0424",
+      "PHP0418",
+      "P1013"
+    ]
+  },
     "[ssh_config]": {
       "editor.defaultFormatter": "jamief.vscode-ssh-config-enhanced"
     },

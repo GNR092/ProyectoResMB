@@ -15,12 +15,23 @@ class CreateTableProveedor extends Migration
                 'unsigned' => true,
                 'auto_increment' => true,
             ],
-            'Nombre' => [
+            'RazonSocial' => [
                 'type' => 'VARCHAR',
                 'constraint' => '100',
                 'null' => false,
             ],
-            'Nombre_Comercial' => [
+            'Correo' => [
+                'type' => 'VARCHAR',
+                'constraint' => '100',
+                'unique' => true,
+                'null' => false,
+            ],
+            'Tel_Contacto' => [
+                'type' => 'VARCHAR',
+                'constraint' => '50',
+                'null' => true,
+            ],
+            'Nombre_Contacto' => [
                 'type' => 'VARCHAR',
                 'constraint' => '100',
                 'null' => true,
@@ -46,16 +57,7 @@ class CreateTableProveedor extends Migration
                 'constraint' => '18',
                 'null' => true,
             ],
-            'Tel_Contacto' => [
-                'type' => 'VARCHAR',
-                'constraint' => '50',
-                'null' => true,
-            ],
-            'Nombre_Contacto' => [
-                'type' => 'VARCHAR',
-                'constraint' => '100',
-                'null' => true,
-            ],
+            
             'Servicio' => [
                 'type' => 'VARCHAR',
                 'constraint' => '100',

@@ -21,7 +21,7 @@ class CreateTableDetalle_Prodcutos extends Migration
                 'unsigned' => true,
                 'null' => false,
             ],
-            'Nombre_Producto' => [
+            'Nombre_Prod' => [
                 'type' => 'VARCHAR',
                 'constraint' => '100',
                 'null' => false,
@@ -38,13 +38,13 @@ class CreateTableDetalle_Prodcutos extends Migration
             ],
         ]);
 
-        $this->forge->addKey('ID_DetalleProd', true);
-        $this->forge->addForeignKey('ID_SolicitudProd', 'Solicitud', 'ID_SolicitudProd', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('DetalleProd');
+        $this->forge->addKey('ID_DetalleProd', primary: true);
+        $this->forge->addForeignKey('ID_SolicitudProd', 'Solicitud_Producto', 'ID_SolicitudProd', 'CASCADE', 'CASCADE');
+        $this->forge->createTable('Detalle_Producto');
     }
 
     public function down()
     {
-        $this->forge->dropTable('DetalleProd');
+        $this->forge->dropTable('Detalle_Producto');
     }
 }

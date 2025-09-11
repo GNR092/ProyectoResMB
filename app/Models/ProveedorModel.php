@@ -13,8 +13,7 @@ class ProveedorModel extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'Nombre',
-        'Nombre_Comercial',
+        'RazonSocial',
         'RFC',
         'Banco',
         'Cuenta',

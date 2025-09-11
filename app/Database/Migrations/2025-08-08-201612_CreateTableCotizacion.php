@@ -15,7 +15,7 @@ class CreateTableCotizacion extends Migration
                 'unsigned' => true,
                 'auto_increment' => true,
             ],
-            'ID_SolicitudProd' => [
+            'ID_Solicitud' => [
                 'type' => 'INT',
                 'constraint' => 5,
                 'unsigned' => true,
@@ -35,7 +35,7 @@ class CreateTableCotizacion extends Migration
         ]);
 
         $this->forge->addKey('ID_Cotizacion', true);
-        $this->forge->addForeignKey('ID_SolicitudProd', 'Solicitud', 'ID_SolicitudProd', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('ID_Solicitud', 'Solicitud', 'ID_Solicitud', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'CASCADE');
         $this->forge->createTable('Cotizacion');
     }

@@ -7,12 +7,12 @@ use CodeIgniter\Model;
 class SolicitudProductModel extends Model
 {
     protected $table            = 'Solicitud_Producto';
-    protected $primaryKey       = 'ID_SolicitudProducto';
+    protected $primaryKey       = 'ID_SolicitudProd';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_SolicitudProd', 'Codigo', 'Nombre', 'Cantidad', 'Importe'];
+    protected $allowedFields    = ['ID_Solicitud', 'Codigo', 'Nombre', 'Cantidad', 'Importe'];
 
     // Dates
     protected $useTimestamps = false;

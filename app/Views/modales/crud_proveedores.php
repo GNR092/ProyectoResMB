@@ -9,7 +9,7 @@
             <input type="text" id="buscar-servicio" placeholder="Buscar por servicio..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
         </div>
         <div>
-            <a href="#" id="btn-agregar-proveedor" class="inline-block mt-4 px-4 py-2 bg-green text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
+            <a href="#" id="btn-agregar-proveedor" class="inline-block mt-4 px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
                 AGREGAR
             </a>
         </div>
@@ -20,7 +20,7 @@
         <table class="min-w-full border border-gray-300 rounded-lg table-fixed">
             <thead class="bg-gray-100">
             <tr>
-                <th class="w-1/6 px-3 py-2 border-b text-left">Nombre</th>
+                <th class="w-1/6 px-3 py-2 border-b text-left">Razón Social</th>
                 <th class="w-1/6 px-3 py-2 border-b text-left">RFC</th>
                 <th class="w-1/6 px-3 py-2 border-b text-left">Banco</th>
                 <th class="w-1/6 px-3 py-2 border-b text-left">Teléfono</th>
@@ -32,7 +32,6 @@
             <?php if (!empty($proveedores)): ?>
                 <?php foreach ($proveedores as $index => $prov): ?>
                     <tr data-id="<?= $prov['ID_Proveedor'] ?>"
-                        data-nombre-comercial="<?= esc($prov['Nombre_Comercial']) ?>"
                         data-rfc="<?= esc($prov['RFC']) ?>"
                         data-banco="<?= esc($prov['Banco']) ?>"
                         data-cuenta="<?= esc($prov['Cuenta']) ?>"
@@ -40,7 +39,7 @@
                         data-tel-contacto="<?= esc($prov['Tel_Contacto']) ?>"
                         data-nombre-contacto="<?= esc($prov['Nombre_Contacto']) ?>"
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
-                        <td class="px-3 py-2 border-b nombre"><?= esc($prov['Nombre']) ?></td>
+                        <td class="px-3 py-2 border-b razonsocial"><?= esc($prov['RazonSocial']) ?></td>
                         <td class="px-3 py-2 border-b"><?= esc($prov['RFC']) ?></td>
                         <td class="px-3 py-2 border-b"><?= esc($prov['Banco']) ?></td>
                         <td class="px-3 py-2 border-b"><?= esc($prov['Tel_Contacto']) ?></td>
@@ -98,12 +97,8 @@
     <form id="form-agregar-proveedor" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="flex flex-col">
-                <label for="Nombre" class="mb-1 font-medium">Nombre</label>
-                <input type="text" name="Nombre" id="Nombre" placeholder="Nombre" required class="w-full px-3 py-2 border rounded-lg">
-            </div>
-            <div class="flex flex-col">
-                <label for="Nombre_Comercial" class="mb-1 font-medium">Nombre Comercial</label>
-                <input type="text" name="Nombre_Comercial" id="Nombre_Comercial" placeholder="Nombre Comercial" required class="w-full px-3 py-2 border rounded-lg">
+                <label for="RazonSocial" class="mb-1 font-medium">Razón Social</label>
+                <input type="text" name="RazonSocial" id="RazonSocial" placeholder="Razón Social" required class="w-full px-3 py-2 border rounded-lg">
             </div>
             <div class="flex flex-col">
                 <label for="RFC" class="mb-1 font-medium">RFC</label>
@@ -135,7 +130,7 @@
             </div>
         </div>
 
-        <button type="submit" class="px-6 py-2 bg-green-600 text-black font-semibold rounded-lg shadow hover:bg-green-700 transition">Guardar Proveedor</button>
+        <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">Guardar Proveedor</button>
     </form>
 
     <div id="msg-agregar-proveedor" class="mt-4 text-center"></div>
@@ -151,12 +146,8 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="flex flex-col">
-                <label for="editar-Nombre" class="mb-1 font-medium">Nombre</label>
-                <input type="text" name="Nombre" id="editar-Nombre" required class="w-full px-3 py-2 border rounded-lg">
-            </div>
-            <div class="flex flex-col">
-                <label for="editar-Nombre_Comercial" class="mb-1 font-medium">Nombre Comercial</label>
-                <input type="text" name="Nombre_Comercial" id="editar-Nombre_Comercial" required class="w-full px-3 py-2 border rounded-lg">
+                <label for="editar-RazonSocial" class="mb-1 font-medium">Razón Social</label>
+                <input type="text" name="RazonSocial" id="editar-RazonSocial" required class="w-full px-3 py-2 border rounded-lg">
             </div>
             <div class="flex flex-col">
                 <label for="editar-RFC" class="mb-1 font-medium">RFC</label>

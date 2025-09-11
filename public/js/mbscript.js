@@ -295,7 +295,7 @@ function initPaginacionHistorial() {
             const svg = getStatusSVG(item.Estado);
             const fila = `
             <tr class="text-center">
-                <td class="hidden border px-4 py-2">${item.ID_SolicitudProd}</td>
+                <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
                 <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
                 <td class="border px-4 py-2 col-fecha">${item.Fecha}</td>
                 <td class="border px-4 py-2">${item.DepartamentoNombre || 'N/A'}</td>
@@ -304,7 +304,7 @@ function initPaginacionHistorial() {
                     <span >${item.Estado}</span>
                 </td>
                 <td class="border px-4 py-2">
-                    <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_SolicitudProd}); return false;">ver</a>
+                    <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">ver</a>
                 </td>
             </tr>
         `;
@@ -412,11 +412,11 @@ async function mostrarVerHistorial(idSolicitud) {
             </div>
         `;
 
-        if (data.Comentarios) {
+        if (data.ComentariosAdmin) {
             html += `
             <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
                 <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
-                <p class="text-gray-800 whitespace-pre-wrap">${data.Comentarios}</p>
+                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
             </div>`;
         }
 
@@ -710,7 +710,7 @@ async function mostrarCotizar(idSolicitud) {
     // Disable button initially
     if (btnGenerar) btnGenerar.disabled = true;
 
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">Cargando proveedores...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>';
 
     try {
         const response = await fetch(`${BASE_URL}api/providers/all`);
@@ -719,7 +719,7 @@ async function mostrarCotizar(idSolicitud) {
         const proveedores = await response.json();
 
         if (!proveedores.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>';
             return;
         }
 
@@ -738,8 +738,7 @@ async function mostrarCotizar(idSolicitud) {
                     <td class="py-2 px-4 border-t text-center">
                         <input type="radio" name="proveedor_seleccionado" value="${p.ID_Proveedor}" class="radio-proveedor accent-blue-600">
                     </td>
-                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                    <td class="py-2 px-4 border-t">${p.Nombre_Comercial || ''}</td>
+                    <td class="py-2 px-4 border-t">${p.RazonSocial}</td>
                     <td class="py-2 px-4 border-t">${p.Tel_Contacto}</td>
                     <td class="py-2 px-4 border-t">${p.RFC}</td>
                 </tr>
@@ -771,7 +770,7 @@ async function mostrarCotizar(idSolicitud) {
 
     } catch (error) {
         console.error('Error al cargar proveedores:', error);
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-red-500">Error al cargar proveedores</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`;
     }
 
     // Add event listener for the generate button, ensuring it's only attached once
@@ -810,7 +809,7 @@ async function handleGenerarCotizacion() {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
-                ID_SolicitudProd: idSolicitud,
+                ID_Solicitud: idSolicitud,
                 ID_Proveedor: idProveedor
             })
         });
@@ -988,7 +987,7 @@ function enviarRevisionHandler(event) {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify({ ID_SolicitudProd: idSolicitud })
+        body: JSON.stringify({ ID_Solicitud: idSolicitud })
     })
     .then(response => response.json())
     .then(result => {
@@ -1116,11 +1115,11 @@ async function mostrarVerDictamen(idSolicitud) {
         `;
 
         // Mostrar comentarios si existen (especialmente para rechazos)
-        if (data.Comentarios) {
+        if (data.ComentariosAdmin) {
             html += `
             <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
                 <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
-                <p class="text-gray-800 whitespace-pre-wrap">${data.Comentarios}</p>
+                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
             </div>`;
         }
 
@@ -1216,9 +1215,9 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
     }
 
     const payload = {
-        ID_SolicitudProd: idSolicitud,
+        ID_Solicitud: idSolicitud,
         Estado: nuevoEstado,
-        Comentarios: comentarios
+        ComentariosAdmin: comentarios
     };
     
     try {
@@ -1497,9 +1496,9 @@ function initProveedorTabla(tabla) {
         const servicioFiltro = (inputServicio?.value || "").toLowerCase();
 
         filteredRows = rows.filter(row => {
-            const nombre = row.querySelector(".nombre")?.textContent.toLowerCase() || "";
+            const razonsocial = row.querySelector(".razonsocial")?.textContent.toLowerCase() || "";
             const servicio = row.querySelector(".servicio")?.textContent.toLowerCase() || "";
-            return nombre.includes(nombreFiltro) && servicio.includes(servicioFiltro);
+            return razonsocial.includes(nombreFiltro) && servicio.includes(servicioFiltro);
         });
 
         currentPage = 1;
@@ -1607,11 +1606,10 @@ function initProveedorEditarForm() {
                 // Actualizar la fila correspondiente en la tabla
                 const fila = tabla.querySelector(`tr[data-id='${id}']`);
                 if (fila) {
-                    fila.querySelector(".nombre").textContent = formData.get("Nombre");
+                    fila.querySelector(".razonsocial").textContent = formData.get("RazonSocial");
                     fila.querySelector(".servicio").textContent = formData.get("Servicio");
 
                     // actualizar los data-* de la fila
-                    fila.dataset.nombreComercial = formData.get("Nombre_Comercial");
                     fila.dataset.rfc = formData.get("RFC");
                     fila.dataset.banco = formData.get("Banco");
                     fila.dataset.cuenta = formData.get("Cuenta");
@@ -1673,9 +1671,8 @@ function initProveedorActions(tabla) {
 
         // Cargar datos desde data-* de la fila
         document.getElementById("editar-ID_Proveedor").value = fila.dataset.id;
-        document.getElementById("editar-Nombre").value = fila.querySelector(".nombre").textContent;
+        document.getElementById("editar-RazonSocial").value = fila.querySelector(".razonsocial").textContent;
         document.getElementById("editar-Servicio").value = fila.querySelector(".servicio").textContent;
-        document.getElementById("editar-Nombre_Comercial").value = fila.dataset.nombreComercial;
         document.getElementById("editar-RFC").value = fila.dataset.rfc;
         document.getElementById("editar-Banco").value = fila.dataset.banco;
         document.getElementById("editar-Cuenta").value = fila.dataset.cuenta;
@@ -1852,7 +1849,7 @@ async function loadRazonSocialProv() {
       data.forEach((provider) => {
         let option = document.createElement('option')
         option.value = provider.ID_Proveedor
-        option.textContent = provider.Nombre
+        option.textContent = provider.RazonSocial
         razonSocialSelect.appendChild(option)
       })
     } else {

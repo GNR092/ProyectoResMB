@@ -16,8 +16,8 @@ class InsertProveedor extends Migration
         // Datos de proveedores 
         $proveedores = [
             [
-                'Nombre' => 'ABASTECEDORA MAXIO SA DE CV',
-                'Nombre_Comercial' => 'ABASTECEDORA MAXIO SA DE CV',
+                'RazonSocial' => 'ABASTECEDORA MAXIO SA DE CV',
+                'Correo' => 'contacto@maxio.com',
                 'RFC' => 'AMA0512139J5',
                 'Banco' => 'HSBC',
                 'Cuenta' => '4029778735',
@@ -27,8 +27,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'PINTURA, TABLAROCA'
             ],
             [
-                'Nombre' => 'ABELARDO SIERRA CALDERON',
-                'Nombre_Comercial' => 'ABELARDO SIERRA CALDERON',
+                'RazonSocial' => 'ABELARDO SIERRA CALDERON',
+                'Correo' => 'abelardo.sierra@example.com',
                 'RFC' => 'SICA770201LRA',
                 'Banco' => 'BANREGIO',
                 'Cuenta' => '251009920016',
@@ -38,8 +38,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA'
             ],
             [
-                'Nombre' => 'AGROCAMPO PENINSULAR SA DE CV',
-                'Nombre_Comercial' => 'AGROCAMPO PENINSULAR SA DE CV',
+                'RazonSocial' => 'AGROCAMPO PENINSULAR SA DE CV',
+                'Correo' => 'jorge.ake@agrocampo.com',
                 'RFC' => 'APE990122AGA',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0103621529',
@@ -49,8 +49,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'FERTILIZANTES, CULTIVOS, EQUIPO MECANICO'
             ],
             [
-                'Nombre' => 'ANDAMIOS Y MAQUINARIA LA PIRAMIDE SA DE CV',
-                'Nombre_Comercial' => 'ANDAMIOS Y MAQUINARIA LA PIRAMIDE SA DE CV',
+                'RazonSocial' => 'ANDAMIOS Y MAQUINARIA LA PIRAMIDE SA DE CV',
+                'Correo' => 'gregory.vazquez@piramide.com',
                 'RFC' => 'AMP920224N29',
                 'Banco' => 'HSBC',
                 'Cuenta' => '4023853849',
@@ -60,8 +60,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'RENTA ANDAMIOS'
             ],
             [
-                'Nombre' => 'ARMADORA Y ENSAMBLE DE ALUMINIOS-ANEROL´S',
-                'Nombre_Comercial' => 'ARMADORA Y ENSAMBLE DE ALUMINIOS-ANEROL´S',
+                'RazonSocial' => 'ARMADORA Y ENSAMBLE DE ALUMINIOS-ANEROL´S',
+                'Correo' => 'angel.herrera@anerols.com',
                 'RFC' => 'NOCM970323T97',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => null,
@@ -71,8 +71,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'SERVICIOS DE CANCELERIA Y ALUMINIO'
             ],
             [
-                'Nombre' => 'ARTURO HiPOLiTO MOLiNA',
-                'Nombre_Comercial' => 'ARTURO HiPOLiTO MOLiNA',
+                'RazonSocial' => 'ARTURO HiPOLiTO MOLiNA',
+                'Correo' => 'arturo.molina@example.com',
                 'RFC' => 'HIMA770824NH3',
                 'Banco' => 'BANORTE',
                 'Cuenta' => '4246540',
@@ -82,8 +82,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'COMPRA DE TORTILLA'
             ],
             [
-                'Nombre' => 'AUTOMOTRIZ MONTECRISTO SA DE CV',
-                'Nombre_Comercial' => 'AUTOMOTRIZ MONTECRISTO SA DE CV',
+                'RazonSocial' => 'AUTOMOTRIZ MONTECRISTO SA DE CV',
+                'Correo' => 'brian.herrera@montecristo.com',
                 'RFC' => 'AMO920408HA3',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0106199488',
@@ -93,8 +93,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'ASESOR DE CHEVROLET, CITAS, SERVICIOS ETC.'
             ],
             [
-                'Nombre' => 'AUTOTRANSPORTES PROGRESO',
-                'Nombre_Comercial' => 'AUTOTRANSPORTES PROGRESO',
+                'RazonSocial' => 'AUTOTRANSPORTES PROGRESO',
+                'Correo' => 'gladys@autotransportesprogreso.com',
                 'RFC' => 'APM860824IF1',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '125150975',
@@ -104,8 +104,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'RENTA CAMION'
             ],
             [
-                'Nombre' => 'AVAN TRADE FOOD SERViCE S DE RL CV',
-                'Nombre_Comercial' => 'AVAN TRADE FOOD SERViCE S DE RL CV',
+                'RazonSocial' => 'AVAN TRADE FOOD SERViCE S DE RL CV',
+                'Correo' => 'gabriela.santoyo@avantrade.com',
                 'RFC' => 'AFS120320GGA',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '65508088172',
@@ -115,8 +115,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'ABARROTES'
             ],
             [
-                'Nombre' => 'BODEGA ELECTRONICA XAZE SA DE CV',
-                'Nombre_Comercial' => 'BODEGA ELECTRONICA XAZE SA DE CV',
+                'RazonSocial' => 'BODEGA ELECTRONICA XAZE SA DE CV',
+                'Correo' => 'sergio.patron@xaze.com',
                 'RFC' => 'BEX0303015P1',
                 'Banco' => 'BANCOMER',
                 'Cuenta' => '141480111',
@@ -126,8 +126,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MUBLES, ELECTRONICA AIRES ACONDICIONADOS'
             ],
             [
-                'Nombre' => 'BOMSSA',
-                'Nombre_Comercial' => 'BOMSSA',
+                'RazonSocial' => 'BOMSSA',
+                'Correo' => 'edgar.m@bomssa.com',
                 'RFC' => 'MEP141208NF3',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '65504842212',
@@ -137,8 +137,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MUBLES, ELECTRONICA AIRES ACONDICIONADOS'
             ],
             [
-                'Nombre' => 'CAFIVER',
-                'Nombre_Comercial' => 'CAFIVER',
+                'RazonSocial' => 'CAFIVER',
+                'Correo' => 'ruben.g@cafiver.com',
                 'RFC' => 'CAF820619U79',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '65500440990',
@@ -148,8 +148,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'CAPSULAS DE CAFÉ PARA HOTEL'
             ],
             [
-                'Nombre' => 'CARLOS ANTONIO BARRERA AGUILAR CERIMAT',
-                'Nombre_Comercial' => 'CARLOS ANTONIO BARRERA AGUILAR CERIMat',
+                'RazonSocial' => 'CARLOS ANTONIO BARRERA AGUILAR CERIMAT',
+                'Correo' => 'mary@cerimat.com',
                 'RFC' => 'BAAC7611198F3',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0148501246',
@@ -159,8 +159,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'CONSTRURAMA, MATERIALES DE CONSTRUCCION'
             ],
             [
-                'Nombre' => 'CARLOS FAUSTINO FARFAN CHAN (ELECTRONICA CANEK)',
-                'Nombre_Comercial' => 'CARLOS FAUSTINO FARFAN CHAN (ELECTRONICA CANEK)',
+                'RazonSocial' => 'CARLOS FAUSTINO FARFAN CHAN (ELECTRONICA CANEK)',
+                'Correo' => 'carlos.farfan@canek.com',
                 'RFC' => 'FACC801113S46',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '4045781879',
@@ -170,8 +170,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'REPARACION TVS Y ELECTRONICA'
             ],
             [
-                'Nombre' => 'CARLOS RAFAEL CETINA',
-                'Nombre_Comercial' => 'CARLOS RAFAEL CETINA',
+                'RazonSocial' => 'CARLOS RAFAEL CETINA',
+                'Correo' => 'roberto.medina@fumiguay.com',
                 'RFC' => 'CEEC7811136C6',
                 'Banco' => 'BANCO AZTECA',
                 'Cuenta' => null,
@@ -181,8 +181,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'FUMIGACION DE PLAGAS / FUMIGUAY'
             ],
             [
-                'Nombre' => 'CASA FERNANDEZ DEL SURESTE SA DE C',
-                'Nombre_Comercial' => 'CASA FERNANDEZ DEL SURESTE SA DE C',
+                'RazonSocial' => 'CASA FERNANDEZ DEL SURESTE SA DE C',
+                'Correo' => 'catalina.pacho@casafernandez.com',
                 'RFC' => 'CFS8606014IA',
                 'Banco' => 'BANCOMER',
                 'Cuenta' => '0150930776',
@@ -192,8 +192,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'FERRETERIA'
             ],
             [
-                'Nombre' => 'CASA SANTOS LUGO SA DE CV',
-                'Nombre_Comercial' => 'CASA SANTOS LUGO SA DE CV',
+                'RazonSocial' => 'CASA SANTOS LUGO SA DE CV',
+                'Correo' => 'sahira.castro@casasantoslugo.com',
                 'RFC' => 'CSL000915HJ9',
                 'Banco' => 'BANORTE',
                 'Cuenta' => '0139238118',
@@ -203,8 +203,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'ABARROTES'
             ],
             [
-                'Nombre' => 'COMERCIALIZADORA DE CRISTALES DE ME',
-                'Nombre_Comercial' => 'COMERCIALIZADORA DE CRISTALES DE ME',
+                'RazonSocial' => 'COMERCIALIZADORA DE CRISTALES DE ME',
+                'Correo' => 'fernando.riu@cristales.com',
                 'RFC' => 'CCM130403B50',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '8095842',
@@ -214,8 +214,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'TODO EN CUANTO A CRISTALES Y VIDRIOS'
             ],
             [
-                'Nombre' => 'COMERCIALIZADORA E IMPORTADORA PALEMO',
-                'Nombre_Comercial' => 'COMERCIALIZADORA E IMPORTADORA PALEMO',
+                'RazonSocial' => 'COMERCIALIZADORA E IMPORTADORA PALEMO',
+                'Correo' => 'ricardo.valle@palemo.com',
                 'RFC' => 'CIP160205QF4',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0110826936',
@@ -225,8 +225,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA'
             ],
             [
-                'Nombre' => 'COMERCIALIZADORA SLIK',
-                'Nombre_Comercial' => 'COMERCIALIZADORA SLIK',
+                'RazonSocial' => 'COMERCIALIZADORA SLIK',
+                'Correo' => 'alfredo.chi@slik.com',
                 'RFC' => 'CAS230627JK5',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '996039592',
@@ -236,8 +236,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'LAVADO COLCHONES'
             ],
             [
-                'Nombre' => 'COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS',
-                'Nombre_Comercial' => 'COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS',
+                'RazonSocial' => 'COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS',
+                'Correo' => 'felix.romero@aaf.com',
                 'RFC' => 'AAF2306305G0',
                 'Banco' => 'BANCOMER',
                 'Cuenta' => '0121354981',
@@ -247,8 +247,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'TECNICO EN CLIMAS, INSTALACION ETC.'
             ],
             [
-                'Nombre' => 'COMPUFAX SA DE CV',
-                'Nombre_Comercial' => 'COMPUFAX SA DE CV',
+                'RazonSocial' => 'COMPUFAX SA DE CV',
+                'Correo' => 'wendi.telles@compufax.com',
                 'RFC' => 'COM910508749',
                 'Banco' => 'INBURSA',
                 'Cuenta' => '33001290016',
@@ -258,8 +258,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'ELECTRONICA'
             ],
             [
-                'Nombre' => 'CONSORCIO ZOUMA',
-                'Nombre_Comercial' => 'CONSORCIO ZOUMA',
+                'RazonSocial' => 'CONSORCIO ZOUMA',
+                'Correo' => 'eduardo.aguilar@zouma.com',
                 'RFC' => 'CZ0230216891',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '65509739877',
@@ -269,8 +269,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MANTENIMIENTO DE PISOS DE CONCRETO'
             ],
             [
-                'Nombre' => 'CONSTRUCTORES LOGAR SA DE CV',
-                'Nombre_Comercial' => 'CONSTRUCTORES LOGAR SA DE CV',
+                'RazonSocial' => 'CONSTRUCTORES LOGAR SA DE CV',
+                'Correo' => 'jahaziel.hernandez@logar.com',
                 'RFC' => 'CLO100902N59',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '7066001',
@@ -280,8 +280,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'ALUMINIERO'
             ],
             [
-                'Nombre' => 'CONTROL INTEGRAL DE COMBUSTiBLE',
-                'Nombre_Comercial' => 'CONTROL INTEGRAL DE COMBUSTiBLE',
+                'RazonSocial' => 'CONTROL INTEGRAL DE COMBUSTiBLE',
+                'Correo' => 'erica.ruiz@cic.com',
                 'RFC' => 'CIC011107RR1',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => null,
@@ -291,8 +291,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'COMBUSTIBLES'
             ],
             [
-                'Nombre' => 'COORPORATVO DE CAMONES PENiNSULA SA DE CV',
-                'Nombre_Comercial' => 'COORPORATVO DE CAMONES PENiNSULA SA DE CV',
+                'RazonSocial' => 'COORPORATVO DE CAMONES PENiNSULA SA DE CV',
+                'Correo' => 'jesus.estrella@camionespeninsula.com',
                 'RFC' => 'APM860824IF1',
                 'Banco' => 'BANCOMER',
                 'Cuenta' => '168643288',
@@ -302,8 +302,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MANTTO. CAMION HINO'
             ],
             [
-                'Nombre' => 'CORPORATIVO INTERCERAMIC',
-                'Nombre_Comercial' => 'CORPORATIVO INTERCERAMIC',
+                'RazonSocial' => 'CORPORATIVO INTERCERAMIC',
+                'Correo' => 'roberto.jasso@interceramic.com',
                 'RFC' => 'AMS860820EX9',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0131914375',
@@ -313,8 +313,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'INTERCERAMIC'
             ],
             [
-                'Nombre' => 'COSTCO DE MEXiCO SA CV',
-                'Nombre_Comercial' => 'COSTCO DE MEXiCO SA CV',
+                'RazonSocial' => 'COSTCO DE MEXiCO SA CV',
+                'Correo' => 'lenny.guzman@costco.com',
                 'RFC' => 'CME910715UB9',
                 'Banco' => 'BBVA',
                 'Cuenta' => null,
@@ -324,8 +324,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'SUPER MERCADO'
             ],
             [
-                'Nombre' => 'CREVAICA (QUIMICOS DE LIMPIEZA)',
-                'Nombre_Comercial' => 'CREVAICA (QUIMICOS DE LIMPIEZA)',
+                'RazonSocial' => 'CREVAICA (QUIMICOS DE LIMPIEZA)',
+                'Correo' => 'ricardo.baktun@crevaica.com',
                 'RFC' => 'SCR190115D99',
                 'Banco' => 'BANREGIO',
                 'Cuenta' => '250007590012',
@@ -335,8 +335,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA'
             ],
             [
-                'Nombre' => 'DANTE LUNA NORIEO',
-                'Nombre_Comercial' => 'DANTE LUNA NORIEO',
+                'RazonSocial' => 'DANTE LUNA NORIEO',
+                'Correo' => 'lorena.caamal@example.com',
                 'RFC' => 'LUND670222475',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '108500053',
@@ -346,8 +346,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'LIMPIEZA DE COLCHONES, SOFAS, SILLA ETC.'
             ],
             [
-                'Nombre' => 'DAVID ANTONIO HERRERA ESPADAS',
-                'Nombre_Comercial' => 'DAVID ANTONIO HERRERA ESPADAS',
+                'RazonSocial' => 'DAVID ANTONIO HERRERA ESPADAS',
+                'Correo' => 'david.herrera@example.com',
                 'RFC' => 'HEED920613M96',
                 'Banco' => 'HSBC',
                 'Cuenta' => '0141480111',
@@ -357,8 +357,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'SERV. LAVANDERIA'
             ],
             [
-                'Nombre' => 'DISTRIBUIDORA FERRETERA OSITO S.A DE C.V',
-                'Nombre_Comercial' => 'DISTRIBUIDORA FERRETERA OSITO S.A DE C.V',
+                'RazonSocial' => 'DISTRIBUIDORA FERRETERA OSITO S.A DE C.V',
+                'Correo' => 'maria@ferreteraosito.com',
                 'RFC' => 'DFO2103021H3',
                 'Banco' => 'BANORTE',
                 'Cuenta' => '1171113838',
@@ -368,8 +368,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'FERRETERIA, HERRAMIENTAS, REFACCIONES'
             ],
             [
-                'Nombre' => 'DISTRIBUIDORA DE ALUMINIO DEL MAYAB SA DE CV',
-                'Nombre_Comercial' => 'DISTRIBUIDORA DE ALUMINIO DEL MAYAB SA DE CV',
+                'RazonSocial' => 'DISTRIBUIDORA DE ALUMINIO DEL MAYAB SA DE CV',
+                'Correo' => 'ventas@aluminiodelmayab.com',
                 'RFC' => 'DAM970619481',
                 'Banco' => 'HSBC',
                 'Cuenta' => '4025085721',
@@ -379,8 +379,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'FERRETERIA Y HERRAJES'
             ],
             [
-                'Nombre' => 'DISTRIBUIDORA DE PRODUCTOS DE LIMPIEZA',
-                'Nombre_Comercial' => 'DISTRIBUIDORA DE PRODUCTOS DE LIMPIEZA',
+                'RazonSocial' => 'DISTRIBUIDORA DE PRODUCTOS DE LIMPIEZA',
+                'Correo' => 'karina.aguinaga@productosdelimpieza.com',
                 'RFC' => 'DDP880318J34',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0448451699',
@@ -390,8 +390,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA'
             ],
             [
-                'Nombre' => 'DiSTRiBUiDORA Gci SA CV',
-                'Nombre_Comercial' => 'DiSTRiBUiDORA Gci SA CV',
+                'RazonSocial' => 'DiSTRiBUiDORA Gci SA CV',
+                'Correo' => 'daniel.ramirez@gci.com',
                 'RFC' => 'DGC191101720',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => null,
@@ -401,8 +401,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'CARNES'
             ],
             [
-                'Nombre' => 'ECOLAB S DE RL DE CV',
-                'Nombre_Comercial' => 'ECOLAB S DE RL DE CV',
+                'RazonSocial' => 'ECOLAB S DE RL DE CV',
+                'Correo' => 'emir.sierra@ecolab.com',
                 'RFC' => 'ECO8703238B9',
                 'Banco' => 'BANK OF AMERICA MEXICO SA',
                 'Cuenta' => '14767025',
@@ -412,8 +412,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'QUIMICOS DE LIMPIEZA'
             ],
             [
-                'Nombre' => 'EL NIPLITO DEL SURESTE SA DE CV',
-                'Nombre_Comercial' => 'EL NIPLITO DEL SURESTE SA DE CV',
+                'RazonSocial' => 'EL NIPLITO DEL SURESTE SA DE CV',
+                'Correo' => 'alejandro.ucan@niplito.com',
                 'RFC' => 'EBE7711037Y5',
                 'Banco' => 'HSBC',
                 'Cuenta' => '4001318815',
@@ -423,8 +423,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MUEBLES,BAÑO, FERRETERIA ETC'
             ],
             [
-                'Nombre' => 'ELIDE ELOISA SOSA CHUIL',
-                'Nombre_Comercial' => 'ELIDE ELOISA SOSA CHUIL',
+                'RazonSocial' => 'ELIDE ELOISA SOSA CHUIL',
+                'Correo' => 'elide.sosa@example.com',
                 'RFC' => 'SOCE851117D68',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '70178412572',
@@ -434,8 +434,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'HERRERIA'
             ],
             [
-                'Nombre' => 'EMBOTELLADORA BEPENSA SA CV',
-                'Nombre_Comercial' => 'EMBOTELLADORA BEPENSA SA CV',
+                'RazonSocial' => 'EMBOTELLADORA BEPENSA SA CV',
+                'Correo' => 'supervisor@bepensa.com',
                 'RFC' => 'EBE7711037Y5',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => null,
@@ -445,8 +445,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'REFRESCOS COCA'
             ],
             [
-                'Nombre' => 'GABRIEL BARANDA CASTILLA',
-                'Nombre_Comercial' => 'GABRIEL BARANDA CASTILLA',
+                'RazonSocial' => 'GABRIEL BARANDA CASTILLA',
+                'Correo' => 'luis.martin@example.com',
                 'RFC' => 'BACG780117RU2',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '60532121329',
@@ -456,8 +456,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'SUMINISTRA Y APLICA TRATAMIENTO PARA ELIMAR LA HUMEDAD'
             ],
             [
-                'Nombre' => 'GAS Y DERiVADOS',
-                'Nombre_Comercial' => 'GAS Y DERiVADOS',
+                'RazonSocial' => 'GAS Y DERiVADOS',
+                'Correo' => 'haris.chavez@gasderivados.com',
                 'RFC' => 'NSU9102113Y9',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '65506094153',
@@ -467,8 +467,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'GAS LP'
             ],
             [
-                'Nombre' => 'GRUPO BOXITO',
-                'Nombre_Comercial' => 'GRUPO BOXITO',
+                'RazonSocial' => 'GRUPO BOXITO',
+                'Correo' => 'alvaro.gamboa@boxito.com',
                 'RFC' => 'GBO131031192',
                 'Banco' => 'HSBC',
                 'Cuenta' => '4056901200',
@@ -478,8 +478,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MUEBLES,BAÑO, FERRETERIA ETC'
             ],
             [
-                'Nombre' => 'GRUPO ROMERUC SA CV',
-                'Nombre_Comercial' => 'GRUPO ROMERUC SA CV',
+                'RazonSocial' => 'GRUPO ROMERUC SA CV',
+                'Correo' => 'jose.romero@romeruc.com',
                 'RFC' => 'GRO130321A99',
                 'Banco' => 'SCOTiABAN',
                 'Cuenta' => '5600689370',
@@ -489,8 +489,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'SUMINISTRO DE AGUA'
             ],
             [
-                'Nombre' => 'HIFI PINTURAS DEL SURESTE',
-                'Nombre_Comercial' => 'HIFI PINTURAS DEL SURESTE',
+                'RazonSocial' => 'HIFI PINTURAS DEL SURESTE',
+                'Correo' => 'adolfo.canto@hifipinturas.com',
                 'RFC' => 'HFP6109285M4',
                 'Banco' => 'BANCOMER',
                 'Cuenta' => '182476428',
@@ -500,8 +500,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'PINTURAS'
             ],
             [
-                'Nombre' => 'HORECA',
-                'Nombre_Comercial' => 'HORECA',
+                'RazonSocial' => 'HORECA',
+                'Correo' => 'melisa.may@horeca.com',
                 'RFC' => 'RFI100210H12',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '65507492436',
@@ -511,8 +511,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'ACCESORIOS PARA COCINA'
             ],
             [
-                'Nombre' => 'IMPREX',
-                'Nombre_Comercial' => 'IMPREX',
+                'RazonSocial' => 'IMPREX',
+                'Correo' => 'yenifer.moreno@imprex.com',
                 'RFC' => 'GOCA630211F66',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '00443834948',
@@ -522,8 +522,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'IMPRESION DE DOCUMENTOS'
             ],
             [
-                'Nombre' => 'JABONES Y PRODUCTOS ESPECIALIZADOS JYPESA',
-                'Nombre_Comercial' => 'JABONES Y PRODUCTOS ESPECIALIZADOS JYPESA',
+                'RazonSocial' => 'JABONES Y PRODUCTOS ESPECIALIZADOS JYPESA',
+                'Correo' => 'brenda.pizarro@jypesa.com',
                 'RFC' => 'JPE830408B35',
                 'Banco' => 'BANORTE',
                 'Cuenta' => '14752',
@@ -533,8 +533,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'JABONES, SHAMPO P/HOTEL AMENIDADES'
             ],
             [
-                'Nombre' => 'JOANA DE JESUS BENITEZ UC (HM PENINSULAR)',
-                'Nombre_Comercial' => 'JOANA DE JESUS BENITEZ UC (HM PENINSULAR)',
+                'RazonSocial' => 'JOANA DE JESUS BENITEZ UC (HM PENINSULAR)',
+                'Correo' => 'joana.benitez@hmpeninsular.com',
                 'RFC' => 'BEUJ8804306F2',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0479422935',
@@ -544,8 +544,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'PINTURA, FERRETERIA, MAT. CONSTRUCCION'
             ],
             [
-                'Nombre' => 'JORGE YSIDRO EUAN CEN (REFRIELECTRO)',
-                'Nombre_Comercial' => 'JORGE YSIDRO EUAN CEN (REFRIELECTRO)',
+                'RazonSocial' => 'JORGE YSIDRO EUAN CEN (REFRIELECTRO)',
+                'Correo' => 'luis.pech@refrielectro.com',
                 'RFC' => 'EUCJ800515GZA',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '3530540',
@@ -555,8 +555,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MATERIALES Y REFACCIONES P/AIRES ACONDICIONADOS Y REFRIGERADORES'
             ],
             [
-                'Nombre' => 'JOSE ROLANDO BEJAR HERRERA',
-                'Nombre_Comercial' => 'JOSE ROLANDO BEJAR HERRERA',
+                'RazonSocial' => 'JOSE ROLANDO BEJAR HERRERA',
+                'Correo' => 'rolando.bejar@example.com',
                 'RFC' => 'BEHR7002236I6',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '65503955782',
@@ -566,8 +566,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'RENTA EQ COPIADO Y TONER'
             ],
             [
-                'Nombre' => 'KONE MEXICO SA DE CV',
-                'Nombre_Comercial' => 'KONE MEXICO SA DE CV',
+                'RazonSocial' => 'KONE MEXICO SA DE CV',
+                'Correo' => 'celeste.cen@kone.com',
                 'RFC' => 'KME880401DZ8',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '5896865',
@@ -577,8 +577,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MANTENIMIENTO ELEVADOR'
             ],
             [
-                'Nombre' => 'LB SISTEMAS',
-                'Nombre_Comercial' => 'LB SISTEMAS',
+                'RazonSocial' => 'LB SISTEMAS',
+                'Correo' => 'jordy.jakcson@lbsistemas.com',
                 'RFC' => 'LSI090130BR5',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '8004347',
@@ -588,8 +588,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'EQUIPO DE COMPUTO'
             ],
             [
-                'Nombre' => 'MANUEL ALEXANDRO PEREZ MALERVA/ AIRETIKA',
-                'Nombre_Comercial' => 'MANUEL ALEXANDRO PEREZ MALERVA/ AIRETIKA',
+                'RazonSocial' => 'MANUEL ALEXANDRO PEREZ MALERVA/ AIRETIKA',
+                'Correo' => 'manuel.perez@airetika.com',
                 'RFC' => 'PEMM9602215E0',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '1522595419',
@@ -599,8 +599,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'INSTALACION DE CLIMAS'
             ],
             [
-                'Nombre' => 'MARTIN JOSE LOPEZ FLORES',
-                'Nombre_Comercial' => 'MARTIN JOSE LOPEZ FLORES',
+                'RazonSocial' => 'MARTIN JOSE LOPEZ FLORES',
+                'Correo' => 'yanira.jimenez@example.com',
                 'RFC' => 'LOFM890601DJ2',
                 'Banco' => 'B AZTECA',
                 'Cuenta' => '26281717',
@@ -610,8 +610,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'QUIMICOS DE LIMPIEZA'
             ],
             [
-                'Nombre' => 'NERHY GILLESII MARTINEZ CACHON',
-                'Nombre_Comercial' => 'NERHY GILLESII MARTINEZ CACHON',
+                'RazonSocial' => 'NERHY GILLESII MARTINEZ CACHON',
+                'Correo' => 'ricardo.caceres@example.com',
                 'RFC' => 'MACN841014NV1',
                 'Banco' => 'BANORTE',
                 'Cuenta' => '0851710112',
@@ -621,8 +621,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'CONTROL DE PLAGAS'
             ],
             [
-                'Nombre' => 'OFFICE DEPOT MEXICO SA DE CV',
-                'Nombre_Comercial' => 'OFFICE DEPOT MEXICO SA DE CV',
+                'RazonSocial' => 'OFFICE DEPOT MEXICO SA DE CV',
+                'Correo' => 'mario.varguez@officedepot.com.mx',
                 'RFC' => 'ODM950324V2A',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '7732356',
@@ -632,8 +632,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'PAPELERIA, EQ. COMPUTO, MUEBLES P/OFICINA'
             ],
             [
-                'Nombre' => 'OPERADORA DE TIENDAS VOLUNTARIAS SA DE CV',
-                'Nombre_Comercial' => 'OPERADORA DE TIENDAS VOLUNTARIAS SA DE CV',
+                'RazonSocial' => 'OPERADORA DE TIENDAS VOLUNTARIAS SA DE CV',
+                'Correo' => 'josefina.cervantes@tiendasvoluntarias.com',
                 'RFC' => 'OTV801119HU2',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '65502390241',
@@ -643,8 +643,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'PAPELERIA, RENTA COPIADORAS, MUEBLES P/OFICINA'
             ],
             [
-                'Nombre' => 'PARTES Y EQUIPOS DE REFRIGERACION DEL SURESTE',
-                'Nombre_Comercial' => 'PARTES Y EQUIPOS DE REFRIGERACION DEL SURESTE',
+                'RazonSocial' => 'PARTES Y EQUIPOS DE REFRIGERACION DEL SURESTE',
+                'Correo' => 'edy.cetina@refrigeraciondelsureste.com',
                 'RFC' => 'PER920317PC8',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '50000044659',
@@ -654,8 +654,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'REFACCIONES, PIEZAS, MATERIAL PARA AIRES'
             ],
             [
-                'Nombre' => 'PISCINAS MASTER POOOL',
-                'Nombre_Comercial' => 'PISCINAS MASTER POOOL',
+                'RazonSocial' => 'PISCINAS MASTER POOOL',
+                'Correo' => 'efrain.silva@masterpool.com',
                 'RFC' => 'PMP121010C15',
                 'Banco' => 'BANCOMER',
                 'Cuenta' => '0192380595',
@@ -665,8 +665,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'QUIMICOS PARA PISCINA'
             ],
             [
-                'Nombre' => 'POLIYUCAS',
-                'Nombre_Comercial' => 'POLIYUCAS',
+                'RazonSocial' => 'POLIYUCAS',
+                'Correo' => 'itzaes@poliyucas.com',
                 'RFC' => 'POL140109US6',
                 'Banco' => 'BANORTE',
                 'Cuenta' => '0237693949',
@@ -676,8 +676,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'DISTRIBUCION DE DESECHABLES,CONTENEDORES DE TODO TIPO, BOLSAS ETC.'
             ],
             [
-                'Nombre' => 'PROMESSA PRODIN',
-                'Nombre_Comercial' => 'PROMESSA PRODIN',
+                'RazonSocial' => 'PROMESSA PRODIN',
+                'Correo' => 'pablo.ramirez@promessa.com',
                 'RFC' => 'PPR070511815',
                 'Banco' => 'BANREGIO',
                 'Cuenta' => '251008220037',
@@ -687,8 +687,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'FERRETERIA, ELECTRICIDAD, PLOMERIA'
             ],
             [
-                'Nombre' => 'RECOLECCIONES INDUSTRIALES SA DE CV',
-                'Nombre_Comercial' => 'RECOLECCIONES INDUSTRIALES SA DE CV',
+                'RazonSocial' => 'RECOLECCIONES INDUSTRIALES SA DE CV',
+                'Correo' => 'maria@recoleccionesindustriales.com',
                 'RFC' => 'RIN100518KK9',
                 'Banco' => 'BANCO SANTANDER',
                 'Cuenta' => '65506166439',
@@ -698,8 +698,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'LIMPIEZA DE BIODIGESTORES, DRENAJES,FOSA..'
             ],
             [
-                'Nombre' => 'REFRIMART AGUILAR',
-                'Nombre_Comercial' => 'REFRIMART AGUILAR',
+                'RazonSocial' => 'REFRIMART AGUILAR',
+                'Correo' => 'levi.quintal@refrimartaguilar.com',
                 'RFC' => 'MRE070622J84',
                 'Banco' => 'BBVA Bancomer',
                 'Cuenta' => '169889094',
@@ -709,8 +709,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MATERIALES Y REFACCIONES P/AIRES ACONDICIONADOS Y REFRIGERADORES'
             ],
             [
-                'Nombre' => 'REMODELACION Y REPARACION ONLI MANTENIMIENTO',
-                'Nombre_Comercial' => 'REMODELACION Y REPARACION ONLI MANTENIMIENTO',
+                'RazonSocial' => 'REMODELACION Y REPARACION ONLI MANTENIMIENTO',
+                'Correo' => 'erik.sanchez@onlimantenimiento.com',
                 'RFC' => 'RRO230809MA8',
                 'Banco' => 'SCOTIABANK',
                 'Cuenta' => '25605060577',
@@ -720,8 +720,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'REPARACION, INSTALACION, Y MAS DE CLIMAS'
             ],
             [
-                'Nombre' => 'RITCO INDUSTRIAL',
-                'Nombre_Comercial' => 'RITCO INDUSTRIAL',
+                'RazonSocial' => 'RITCO INDUSTRIAL',
+                'Correo' => 'carlos.franco@ritcoindustrial.com',
                 'RFC' => 'RIN960826P22',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0149049045',
@@ -731,8 +731,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'QUIMICOS DE LIMPIEZA'
             ],
             [
-                'Nombre' => 'ROSA CANDELARIA VERA MAGAÑA',
-                'Nombre_Comercial' => 'ROSA CANDELARIA VERA MAGAÑA',
+                'RazonSocial' => 'ROSA CANDELARIA VERA MAGAÑA',
+                'Correo' => 'rosa.vera@example.com',
                 'RFC' => 'VEMR660906BY8',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '7833190',
@@ -742,8 +742,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'FRUTAS Y VERDURAS'
             ],
             [
-                'Nombre' => 'ROTULOS COMPUTARIZADOS E IMPRESOS DEL SURESTE',
-                'Nombre_Comercial' => 'ROTULOS COMPUTARIZADOS E IMPRESOS DEL SURESTE',
+                'RazonSocial' => 'ROTULOS COMPUTARIZADOS E IMPRESOS DEL SURESTE',
+                'Correo' => 'aracely@rotuloscomputarizados.com',
                 'RFC' => 'RCI120828K64',
                 'Banco' => 'SANTANDER',
                 'Cuenta' => '65503644150',
@@ -753,8 +753,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'IMPRENTA'
             ],
             [
-                'Nombre' => 'SANEAMIENTO SANA',
-                'Nombre_Comercial' => 'SANEAMIENTO SANA',
+                'RazonSocial' => 'SANEAMIENTO SANA',
+                'Correo' => 'atencionclientes@saneamientosana.com',
                 'RFC' => 'SSA030409P68',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '1726617',
@@ -764,8 +764,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'RECOLECTA DE BASUR A'
             ],
             [
-                'Nombre' => 'SERVICIOS PENINSULARES NOGAL',
-                'Nombre_Comercial' => 'SERVICIOS PENINSULARES NOGAL',
+                'RazonSocial' => 'SERVICIOS PENINSULARES NOGAL',
+                'Correo' => 'carlos@serviciosnogal.com',
                 'RFC' => 'SPN190218948',
                 'Banco' => 'BANCOMER',
                 'Cuenta' => '0112996898',
@@ -775,8 +775,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'SERVICIOS DE SEGURIDAD PRIVADA'
             ],
             [
-                'Nombre' => 'SISTEMAS EN RECUBRIMIENTOS INDUSTRIALES SA DE CV',
-                'Nombre_Comercial' => 'SISTEMAS EN RECUBRIMIENTOS INDUSTRIALES SA DE CV',
+                'RazonSocial' => 'SISTEMAS EN RECUBRIMIENTOS INDUSTRIALES SA DE CV',
+                'Correo' => 'manuel.chuc@sistemasrecubrimientos.com',
                 'RFC' => 'SRI120529RP8',
                 'Banco' => 'HSBC',
                 'Cuenta' => '4054561485',
@@ -786,8 +786,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'MATERIALES PARA TRATAMIENTOS HIDROFUGANTES'
             ],
             [
-                'Nombre' => 'THE HOME DEPOT MEXICO S DE RL DE CV',
-                'Nombre_Comercial' => 'THE HOME DEPOT MEXICO S DE RL DE CV',
+                'RazonSocial' => 'THE HOME DEPOT MEXICO S DE RL DE CV',
+                'Correo' => 'gloria.gonzalez@homedepot.com.mx',
                 'RFC' => 'HDM001017AS1',
                 'Banco' => 'BANAMEX',
                 'Cuenta' => '7730557',
@@ -797,8 +797,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'FERRETERIA, ELECTRONICA ETC'
             ],
             [
-                'Nombre' => 'ULINE SHIPPING SUPPLIES S DE RL DE CV',
-                'Nombre_Comercial' => 'ULINE SHIPPING SUPPLIES S DE RL DE CV',
+                'RazonSocial' => 'ULINE SHIPPING SUPPLIES S DE RL DE CV',
+                'Correo' => 'luis.santana@uline.com',
                 'RFC' => 'USS000718PA0',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0453178900',
@@ -808,8 +808,8 @@ class InsertProveedor extends Migration
                 'Servicio' => 'TIENDA EN LINEA'
             ],
             [
-                'Nombre' => 'UNIFORMES TAMPICO',
-                'Nombre_Comercial' => 'UNIFORMES TAMPICO',
+                'RazonSocial' => 'UNIFORMES TAMPICO',
+                'Correo' => 'lisset@uniformestampico.com',
                 'RFC' => 'UTA820628TV3',
                 'Banco' => 'BBVA BANCOMER',
                 'Cuenta' => '0117942249',
@@ -834,6 +834,9 @@ class InsertProveedor extends Migration
                 $proveedor['Tel_Contacto'] = preg_replace('/[^0-9]/', '', $proveedor['Tel_Contacto']);
             }
 
+            // Ensure 'Correo' is set, even if empty, to avoid null constraint violation
+            $proveedor['Correo'] = $proveedor['Correo'] ?? '';
+
             $exists = $this->db->table('Proveedor')
                 ->where('RFC', $proveedor['RFC'])
                 ->countAllResults();
@@ -841,7 +844,7 @@ class InsertProveedor extends Migration
             if ($exists === 0) {
                 $this->db->table('Proveedor')->insert($proveedor);
                 $insertados++;
-                log_message('info', '[Migración] Insertado proveedor: ' . $proveedor['Nombre']);
+                log_message('info', '[Migración] Insertado proveedor: ' . $proveedor['RazonSocial']);
             }
         }
 

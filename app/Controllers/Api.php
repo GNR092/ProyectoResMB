@@ -155,11 +155,11 @@ class Api extends ResourceController
     {
         $json = $this->request->getJSON();
 
-        if (!isset($json->ID_SolicitudProd) || !isset($json->ID_Proveedor)) {
+        if (!isset($json->ID_Solicitud) || !isset($json->ID_Proveedor)) {
             return $this->failValidationErrors('Se requiere ID de solicitud y de proveedor.');
         }
 
-        $idSolicitud = (int) $json->ID_SolicitudProd;
+        $idSolicitud = (int) $json->ID_Solicitud;
         $idProveedor = (int) $json->ID_Proveedor;
 
         $cotizacionModel = new CotizacionModel();
@@ -191,7 +191,7 @@ class Api extends ResourceController
         try {
             // 1. Insert into Cotizacion table
             $cotizacionData = [
-                'ID_SolicitudProd' => $idSolicitud,
+                'ID_Solicitud' => $idSolicitud,
                 'ID_Proveedor'     => $idProveedor,
                 'Total'            => $total,
             ];
@@ -218,11 +218,11 @@ class Api extends ResourceController
     {
         $json = $this->request->getJSON();
 
-        if (!isset($json->ID_SolicitudProd)) {
+        if (!isset($json->ID_Solicitud)) {
             return $this->failValidationErrors('Se requiere ID de solicitud.');
         }
 
-        $idSolicitud = (int) $json->ID_SolicitudProd;
+        $idSolicitud = (int) $json->ID_Solicitud;
 
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel->find($idSolicitud);
@@ -253,13 +253,13 @@ class Api extends ResourceController
     {
         $json = $this->request->getJSON();
 
-        if (!isset($json->ID_SolicitudProd) || !isset($json->Estado)) {
+        if (!isset($json->ID_Solicitud) || !isset($json->Estado)) {
             return $this->failValidationErrors('Se requiere ID de solicitud y el nuevo estado.');
         }
 
-        $idSolicitud = (int) $json->ID_SolicitudProd;
+        $idSolicitud = (int) $json->ID_Solicitud;
         $nuevoEstado = (string) $json->Estado;
-        $comentarios = $json->Comentarios ?? null;
+        $comentarios = $json->ComentariosAdmin ?? null;
 
         if (!in_array($nuevoEstado, ['Aprobada', 'Rechazada'])) {
             return $this->fail('El estado proporcionado no es válido.', HttpStatus::BAD_REQUEST);
@@ -283,7 +283,7 @@ class Api extends ResourceController
         try {
             $dataToUpdate = [
                 'Estado' => $nuevoEstado,
-                'Comentarios' => $comentarios
+                'ComentariosAdmin' => $comentarios
             ];
             $solicitudModel->update($idSolicitud, $dataToUpdate);
             return $this->respondUpdated(['success' => true, 'message' => 'El dictamen de la solicitud se ha guardado correctamente.']);
