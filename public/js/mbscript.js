@@ -174,7 +174,10 @@ async function initSolicitarMaterial() {
     }
 
     if (agregarBtn) {
-        agregarBtn.addEventListener('click', async () => {
+        const nuevoBtn = agregarBtn.cloneNode(true);
+        agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn);
+
+        nuevoBtn.addEventListener('click', async () => {
             const rowHtml = await getProductRowHtml();
             const nuevaFila = tabla.insertRow();
             nuevaFila.innerHTML = rowHtml;
@@ -192,23 +195,116 @@ async function initSolicitarMaterial() {
         formulario.addEventListener('submit', SendData);
     }
 }
+async function initSolicitarMaterialSinCotizar() {
+    const tabla = document.getElementById('tabla-productos-sin-cotizar');
+    const agregarBtn = document.getElementById('agregar-fila-sin-cotizar');
 
-function mostrarSolicitarMaterial() {
+    if (!tabla) return;
+
+    function actualizarNumeros() {
+        tabla.querySelectorAll('tr').forEach((fila, i) => {
+            const celdaNumero = fila.querySelector('.numero-fila');
+            if (celdaNumero) celdaNumero.textContent = i + 1;
+        });
+    }
+
+    function actualizarBotonesEliminar() {
+        const filas = tabla.querySelectorAll('tr');
+        filas.forEach(fila => {
+            const btnEliminar = fila.querySelector('.eliminar-fila');
+            if (btnEliminar) {
+                btnEliminar.style.display = (filas.length === 1) ? 'none' : 'inline-block';
+            }
+        });
+    }
+
+    function asignarEventosFila(fila) {
+        if (!fila) return;
+        const eliminarBtn = fila.querySelector('.eliminar-fila');
+        if (eliminarBtn) {
+            eliminarBtn.addEventListener('click', () => {
+                if (tabla.querySelectorAll('tr').length > 1) {
+                    fila.remove();
+                    actualizarNumeros();
+                    actualizarBotonesEliminar();
+                }
+            });
+        }
+    }
+
+    tabla.querySelectorAll('tr').forEach(fila => asignarEventosFila(fila));
+    actualizarBotonesEliminar();
+    actualizarNumeros();
+
+    if (agregarBtn) {
+        const nuevoBtn = agregarBtn.cloneNode(true);
+        agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn);
+
+        nuevoBtn.addEventListener('click', () => {
+            const nuevaFila = document.createElement('tr');
+            nuevaFila.classList.add('fila-producto');
+            nuevaFila.innerHTML = `
+                <td class="numero-fila px-3 py-2 border text-center"></td>
+                <td class="px-3 py-2 border">
+                    <input type="text" name="producto[]" class="w-full px-2 py-1 border rounded" placeholder="Nombre del producto">
+                </td>
+                <td class="px-3 py-2 border">
+                    <input type="number" name="cantidad[]" class="w-full px-2 py-1 border rounded cantidad" min="1" value="1">
+                </td>
+                <td class="px-3 py-2 border text-center">
+                    <button type="button" class="eliminar-fila text-red-600 hover:text-red-800" title="Eliminar fila">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </button>
+                </td>
+            `;
+            tabla.appendChild(nuevaFila);
+            asignarEventosFila(nuevaFila);
+            actualizarNumeros();
+            actualizarBotonesEliminar();
+        });
+    }
+
+    loadRazonSocialProv("razonSocialSelectSinCotizar");
+
+    const formulario = document.getElementById('form-upload-sin-cotizar');
+    if (formulario) {
+        formulario.addEventListener('submit', SendData);
+    }
+
+}
+function mostrarSubmenuMaterial() {
     document.getElementById('seleccion-opcion').classList.add('hidden');
+    document.getElementById('submenu-material').classList.remove('hidden');
+}
+function mostrarSolicitarMaterialCotizado() {
+    document.getElementById('submenu-material').classList.add('hidden');
     document.getElementById('solicitar-material-content').classList.remove('hidden');
     initSolicitarMaterial();
 }
-
+function mostrarSolicitarMaterialSinCotizar() {
+    document.getElementById('submenu-material').classList.add('hidden');
+    document.getElementById('solicitar-material-sin-cotizar').classList.remove('hidden');
+    initSolicitarMaterialSinCotizar();
+}
 function mostrarSolicitarServicio() {
     document.getElementById('seleccion-opcion').classList.add('hidden');
     document.getElementById('solicitar-servicio-content').classList.remove('hidden');
 }
-
 function regresarSeleccionOpciones() {
+    document.getElementById('submenu-material').classList.add('hidden');
     document.getElementById('solicitar-material-content').classList.add('hidden');
+    document.getElementById('solicitar-material-sin-cotizar').classList.add('hidden');
     document.getElementById('solicitar-servicio-content').classList.add('hidden');
     document.getElementById('seleccion-opcion').classList.remove('hidden');
 }
+function regresarSubmenuMaterial() {
+    document.getElementById('solicitar-material-content').classList.add('hidden');
+    document.getElementById('solicitar-material-sin-cotizar').classList.add('hidden');
+    document.getElementById('submenu-material').classList.remove('hidden');
+}
+
 
 /**
  * Lógica para el modal "Ver Historial"
@@ -363,6 +459,7 @@ function initPaginacionHistorial() {
     fetchData();
 }
 
+
 // Funciones para mostrar/ocultar la pantalla de ver historial
 async function mostrarVerHistorial(idSolicitud) {
     const divHistorial = document.getElementById('div-historial');
@@ -472,7 +569,6 @@ async function mostrarVerHistorial(idSolicitud) {
         detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`;
     }
 }
-
 function regresarHistorial() {
     const divVer = document.getElementById('div-ver-historial');
     if (divVer) divVer.classList.add('hidden');
@@ -482,7 +578,6 @@ function regresarHistorial() {
 
     console.log("Regresando a la tabla de historial");
 }
-
 /**
  * Lógica para el modal "Usuarios"
  */
@@ -1839,26 +1934,29 @@ async function getData(endpoint, option = {}, api = true) {
  * loadRazonSocialProv: Función para cargar las opciones de razón social desde la API
  * y agregarlas a un elemento <select> en el DOM.
  */
-async function loadRazonSocialProv() {
-  const razonSocialSelect = document.getElementById('razonSocialSelect')
-  try {
-    const data = await getData('providers/all')
-    console.log('Datos recibidos:', data)
-    if (data.length > 0) {
-      razonSocialSelect.innerHTML = '<option value="">Seleccione una opción</option>'
-      data.forEach((provider) => {
-        let option = document.createElement('option')
-        option.value = provider.ID_Proveedor
-        option.textContent = provider.RazonSocial
-        razonSocialSelect.appendChild(option)
-      })
-    } else {
-      console.error('Los datos recibidos no son un array:', data)
+async function loadRazonSocialProv(selectId = 'razonSocialSelect') {
+    const razonSocialSelect = document.getElementById(selectId);
+    if (!razonSocialSelect) return;
+
+    try {
+        const data = await getData('providers/all');
+        console.log('Datos recibidos:', data);
+        if (Array.isArray(data) && data.length > 0) {
+            razonSocialSelect.innerHTML = '<option value="">Seleccione una opción</option>';
+            data.forEach((provider) => {
+                let option = document.createElement('option');
+                option.value = provider.ID_Proveedor;
+                option.textContent = provider.RazonSocial;
+                razonSocialSelect.appendChild(option);
+            });
+        } else {
+            console.error('Los datos recibidos no son un array válido:', data);
+        }
+    } catch (error) {
+        console.error('Hubo un error al obtener los proveedores:', error);
     }
-  } catch (error) {
-    console.error('Hubo un error al obtener los departamentos:', error)
-  }
 }
+
 
 async function loadDepartamentos() {
   const departamentosSelect = document.getElementById('departamento')

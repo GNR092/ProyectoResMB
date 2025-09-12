@@ -1,9 +1,9 @@
-<!-- Pantalla 1: Seleccción -->
+<!-- Pantalla 1: Selección -->
 <div id="seleccion-opcion" class="p-6">
     <h2 class="text-lg font-semibold mb-4">Elija una opción</h2>
     <div class="flex flex-col gap-4">
         <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-blue-600"
-             onclick="mostrarSolicitarMaterial()">
+             onclick="mostrarSubmenuMaterial()">
             Solicitar Material
         </div>
         <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-blue-600"
@@ -13,10 +13,32 @@
     </div>
 </div>
 
+<!-- Pantalla 1.5: Submenú de Material -->
+<div id="submenu-material" class="hidden p-6">
+    <div class="flex justify-between mb-4">
+        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">
+            &larr; Regresar
+        </button>
+        <h2 class="text-lg font-semibold">Seleccione tipo de material</h2>
+        <div></div>
+    </div>
+
+    <div class="flex flex-col gap-4">
+        <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-green-600"
+             onclick="mostrarSolicitarMaterialCotizado()">
+            Material Cotizado
+        </div>
+        <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-green-600"
+             onclick="mostrarSolicitarMaterialSinCotizar()">
+            Material sin Cotizar
+        </div>
+    </div>
+</div>
+
 <!-- Pantalla 2: Solicitar Material -->
 <div id="solicitar-material-content" class="hidden">
     <div class="flex justify-between mb-4">
-        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">&larr; Regresar</button>
+        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSubmenuMaterial()">&larr; Regresar</button>
         <h2 class="text-lg font-semibold">Solicitud de Material</h2>
         <div></div>
     </div>
@@ -138,6 +160,108 @@
         </form>
     </div>
 </div>
+
+<!-- Pantalla 4: Material sin Cotizar -->
+<div id="solicitar-material-sin-cotizar" class="hidden p-6">
+    <div class="flex justify-between mb-4">
+        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSubmenuMaterial()">
+            &larr; Regresar
+        </button>
+        <h2 class="text-lg font-semibold">Solicitud de Material (sin cotizar)</h2>
+        <div></div>
+    </div>
+
+    <div class="p-6">
+        <!-- Formulario -->
+        <form id="form-upload-sin-cotizar" class="space-y-4" enctype="multipart/form-data">
+            <!-- Encabezado -->
+            <div class="flex justify-between gap-4">
+                <div class="w-1/3">
+                    <label class="text-sm text-gray-700 font-medium">Fecha:</label>
+                    <input type="date" class="w-full px-3 py-2 border rounded" name="fecha" value="<?= date('Y-m-d') ?>" readonly>
+                </div>
+                <div class="w-1/3">
+                    <label class="text-sm text-gray-700 font-medium">Usuario:</label>
+                    <input type="text" class="w-full px-3 py-2 border rounded" name="usuario" value="<?= esc($nombre_usuario) ?>" readonly>
+                </div>
+                <div class="w-1/3">
+                    <label class="text-sm text-gray-700 font-medium">Departamento:</label>
+                    <input type="text" class="w-full px-3 py-2 border rounded" name="departamento" value="<?= esc($departamento_usuario) ?>" readonly>
+                </div>
+            </div>
+            <!-- Razón social -->
+            <div>
+                <label class="text-sm text-gray-700 font-medium">Razón social:</label>
+                <select id="razonSocialSelectSinCotizar" class="w-full px-3 py-2 border rounded" name="razon_social" required>
+                    <option value="">Seleccione una opción</option>
+                </select>
+            </div>
+
+            <!-- Tabla de productos -->
+            <div class="overflow-auto">
+                <table class="w-full text-sm text-left border border-gray-300">
+                    <thead class="bg-gray-200 text-gray-700">
+                    <tr>
+                        <th class="px-3 py-2 border w-12">No.</th>
+                        <th class="px-3 py-2 border w-3/4">Producto</th>
+                        <th class="px-3 py-2 border w-32">Cantidad</th>
+                        <th class="px-3 py-2 border text-center w-24">Acción</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tabla-productos-sin-cotizar">
+                    <tr class="fila-producto">
+                        <td class="numero-fila px-3 py-2 border text-center">1</td>
+                        <td class="px-3 py-2 border">
+                            <input type="text" name="producto[]" class="w-full px-2 py-1 border rounded" placeholder="Nombre del producto">
+                        </td>
+                        <td class="px-3 py-2 border">
+                            <input type="number" name="cantidad[]" class="w-full px-2 py-1 border rounded cantidad" min="1" value="1">
+                        </td>
+                        <td class="px-3 py-2 border text-center">
+                            <!-- botón eliminar con el SVG correcto -->
+                            <button type="button" class="eliminar-fila text-red-600 hover:text-red-800" title="Eliminar fila">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <!-- Botón para agregar fila -->
+                <div class="flex justify-end mt-2">
+                    <button id="agregar-fila-sin-cotizar" type="button" class="flex items-center gap-2 px-3 py-2 text-green-600 rounded" title="Agregar fila">
+                        <!-- SVG + -->
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Referencia o cotización (opcional) -->
+            <div class="mt-6">
+                <h2 class="text-lg font-semibold text-gray-800 mb-2">Referencia o cotización</h2>
+                <input type="file" name="archivo" class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2" accept="image/jpg,image/jpeg,image/png,application/pdf">
+            </div>
+
+            <!-- Mensajes -->
+            <div id="mensajes-form-sin-cotizar" class="my-2"></div>
+
+            <!-- Botón enviar -->
+            <div class="flex justify-end">
+                <button id="btn-enviar-sin-cotizar" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                    </svg>
+                    <span>Enviar</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
 
 <!-- Pantalla 3: Solicitud de servicios -->
 <div id="solicitar-servicio-content" class="hidden">
