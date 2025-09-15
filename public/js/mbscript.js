@@ -63,7 +63,6 @@ function abrirModal(opcion) {
             modal.classList.remove('hidden');
         });
 }
-
 function cerrarModal() {
     document.getElementById('modal-general').classList.add('hidden');
 }
@@ -1407,20 +1406,19 @@ function eliminarProducto(idProducto) {
     if (!confirm("¿Estás seguro de que deseas eliminar este producto?")) return;
 
     fetch(`${BASE_URL}modales/eliminarProducto/${idProducto}`, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Content-Type': 'application/json'
-            }
-        })
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+        }
+    })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`);
                 if (fila) fila.remove();
                 alert(data.message);
-                // Opcional: Re-inicializar paginación/filtros si es necesario
-                initCrudProductos();
+                initCrudProductos(); // reiniciar filtros/paginación
             } else {
                 alert(data.message);
             }
@@ -1438,10 +1436,22 @@ function editarProducto(idProducto) {
 
     const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`);
     if (fila) {
+        const codigo = fila.children[0].textContent.trim();
+        const nombre = fila.children[1].textContent.trim();
+        const existencia = fila.children[2].textContent.trim();
+
+        // oculto (ID)
         document.getElementById('editarID_Producto').value = idProducto;
-        document.getElementById('editarCodigo').value = fila.children[0].textContent.trim();
-        document.getElementById('editarNombre').value = fila.children[1].textContent.trim();
-        document.getElementById('editarExistencia').value = fila.children[2].textContent.trim();
+
+        // llenar campos NO editables
+        document.getElementById('mostrarCodigo').value = codigo;
+        document.getElementById('mostrarNombre').value = nombre;
+        document.getElementById('mostrarExistencia').value = existencia;
+
+        // llenar campos editables
+        document.getElementById('editarCodigo').value = codigo;
+        document.getElementById('editarNombre').value = nombre;
+        document.getElementById('editarExistencia').value = existencia;
     }
 }
 
@@ -1452,37 +1462,9 @@ function regresarTablaProductos() {
 }
 
 function guardarEdicion() {
-    const id = document.getElementById('editarID_Producto').value;
-    const nombre = document.getElementById('editarNombre').value;
-    const existenciaNueva = parseInt(document.getElementById('editarExistencia').value);
-
-    const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${id}']`);
-    const existenciaActual = parseInt(fila.children[2].textContent.trim());
-
-    if (existenciaNueva < existenciaActual) {
-        alert("No se puede reducir la existencia. Solo se puede aumentar.");
-        return;
-    }
-
-    fetch(`${BASE_URL}modales/editarProducto/${id}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
-            body: JSON.stringify({ Nombre: nombre, Existencia: existenciaNueva })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                alert("Producto actualizado correctamente");
-                fila.children[1].textContent = nombre;
-                fila.children[2].textContent = existenciaNueva;
-                regresarTablaProductos();
-            } else {
-                const errorMsg = data.errors ? Object.values(data.errors).join('\n') : (data.message || 'Error desconocido');
-                alert("Error al actualizar:\n" + errorMsg);
-            }
-        })
-        .catch(err => console.error(err));
+    alert("Función de guardar cambios pendiente de implementar.");
 }
+
 
 /**
  * Lógica para el modal "Órdenes de Compra"

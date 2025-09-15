@@ -64,19 +64,42 @@
         <form id="form-editar-producto" class="space-y-4">
             <input type="hidden" id="editarID_Producto">
 
+            <!-- Campos solo lectura -->
             <div>
-                <label class="block mb-1 font-medium" for="editarCodigo">Código</label>
+                <label class="block mb-1 font-medium">Código (actual)</label>
+                <input type="text" id="mostrarCodigo" class="w-full px-4 py-2 border rounded-md bg-gray-100" readonly>
+            </div>
+
+            <div>
+                <label class="block mb-1 font-medium">Nombre (actual)</label>
+                <input type="text" id="mostrarNombre" class="w-full px-4 py-2 border rounded-md bg-gray-100" readonly>
+            </div>
+
+            <div>
+                <label class="block mb-1 font-medium">Existencia (actual)</label>
+                <input type="number" id="mostrarExistencia" class="w-full px-4 py-2 border rounded-md bg-gray-100" readonly>
+            </div>
+
+            <!-- Campos editables -->
+            <div>
+                <label class="block mb-1 font-medium" for="editarCodigo">Código (nuevo)</label>
                 <input type="text" id="editarCodigo" class="w-full px-4 py-2 border rounded-md" readonly>
             </div>
 
             <div>
-                <label class="block mb-1 font-medium" for="editarNombre">Nombre</label>
+                <label class="block mb-1 font-medium" for="editarNombre">Nombre (nuevo)</label>
                 <input type="text" id="editarNombre" class="w-full px-4 py-2 border rounded-md">
             </div>
 
             <div>
-                <label class="block mb-1 font-medium" for="editarExistencia">Existencia</label>
+                <label class="block mb-1 font-medium" for="editarExistencia">Existencia (nueva)</label>
                 <input type="number" id="editarExistencia" class="w-full px-4 py-2 border rounded-md" min="0">
+            </div>
+
+            <!-- Comentarios / Razones -->
+            <div>
+                <label class="block mb-1 font-medium" for="editarComentarios">Comentarios / Razones</label>
+                <textarea id="editarComentarios" class="w-full px-4 py-2 border rounded-md" rows="3"></textarea>
             </div>
 
             <div class="flex justify-end">
@@ -84,6 +107,7 @@
             </div>
         </form>
     </div>
+
 
 </div>
 
