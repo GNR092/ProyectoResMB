@@ -6,19 +6,25 @@
         <!-- Correo -->
         <div>
             <label for="correo" class="block text-sm font-medium text-gray-700">Correo</label>
-            <input type="email" id="correo" name="correo" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500" required>
+            <input type="email" id="correo" name="correo"
+                   class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500"
+                   required>
         </div>
 
         <!-- Nombre -->
         <div>
             <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
-            <input type="text" id="nombre" name="nombre" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500" required>
+            <input type="text" id="nombre" name="nombre"
+                   class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500"
+                   required>
         </div>
 
         <!-- Razón Social -->
         <div>
             <label for="razon_social" class="block text-sm font-medium text-gray-700">Razón Social</label>
-            <select id="razon_social" name="razon_social" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500" required>
+            <select id="razon_social" name="ID_RazonSocial"
+                    class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500"
+                    required>
                 <option value="">Seleccione una razón social</option>
                 <?php foreach ($razones_sociales as $razon): ?>
                     <option value="<?= esc($razon['ID_RazonSocial']) ?>"><?= esc($razon['Nombre']) ?></option>
@@ -29,32 +35,43 @@
         <!-- Departamento -->
         <div>
             <label for="departamento" class="block text-sm font-medium text-gray-700">Departamento</label>
-            <select id="departamento" name="departamento" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500" required>
+            <select id="departamento" name="ID_Dpto"
+                    class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500"
+                    required>
                 <option value="">Seleccione un departamento</option>
             </select>
         </div>
 
-        <!-- Contraseña -->
+        <!-- Contraseña Personal -->
         <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-            <input type="password" id="password" name="password" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500" required>
+            <label for="contrasenaP" class="block text-sm font-medium text-gray-700">Contraseña Personal</label>
+            <input type="password" id="contrasenaP" name="ContrasenaP"
+                   class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500"
+                   required>
         </div>
 
-        <!-- Confirmar Contraseña -->
+        <!-- Contraseña General -->
         <div>
-            <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirmar Contraseña</label>
-            <input type="password" id="confirm_password" name="confirm_password" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500" required>
+            <label for="contrasenaG" class="block text-sm font-medium text-gray-700">Contraseña General</label>
+            <input type="password" id="contrasenaG" name="ContrasenaG"
+                   class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500"
+                   required>
         </div>
 
         <!-- Teléfono -->
         <div>
             <label for="telefono" class="block text-sm font-medium text-gray-700">Número de Teléfono</label>
-            <input type="tel" id="telefono" name="telefono" pattern="[0-9]{10}" placeholder="10 dígitos" class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500" required>
+            <input type="tel" id="telefono" name="Numero" pattern="[0-9]{10}" placeholder="10 dígitos"
+                   class="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500"
+                   required>
         </div>
 
         <!-- Botón -->
         <div class="text-center">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md">Registrar</button>
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md">
+                Registrar
+            </button>
         </div>
     </form>
 
