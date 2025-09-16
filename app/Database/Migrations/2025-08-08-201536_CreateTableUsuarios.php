@@ -17,13 +17,13 @@ class CreateTableUsuarios extends Migration
             ],
             'ID_Dpto' => [
                 'type' => 'INT',
-                'constraint' => 5,
+                'constraint' => 11,
                 'unsigned' => true,
                 'null' => false,
             ],
             'ID_RazonSocial' => [
                 'type' => 'INT',
-                'constraint' => 5,
+                'constraint' => 11,
                 'unsigned' => true,
                 'null' => false,
             ],

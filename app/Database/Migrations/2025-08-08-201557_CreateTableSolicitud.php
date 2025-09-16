@@ -23,12 +23,12 @@ class CreateTableSolicitudProd extends Migration
             ],
             'ID_Dpto' => [
                 'type' => 'INT',
-                'constraint' => 5,
+                'constraint' => 11,
                 'unsigned' => true,
                 'null' => false,
             ],'ID_Proveedor' => [
-                'type' => 'INT',
-                'constraint' => 5,
+                'type' => 'BIGINT',
+                'constraint' => 20,
                 'unsigned' => true,
                 'null' => false,
             ],

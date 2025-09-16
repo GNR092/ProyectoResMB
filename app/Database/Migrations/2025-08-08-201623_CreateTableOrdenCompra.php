@@ -22,8 +22,8 @@ class CreateTableOrdenCompra extends Migration
                 'null' => false,
             ],
             'ID_Proveedor' => [
-                'type' => 'INT',
-                'constraint' => 5,
+                'type' => 'BIGINT',
+                'constraint' => 20,
                 'unsigned' => true,
                 'null' => false,
             ],

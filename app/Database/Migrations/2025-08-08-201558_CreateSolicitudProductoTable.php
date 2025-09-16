@@ -17,7 +17,7 @@ class CreateSolicitudProductoTable extends Migration
             ],
             'ID_Solicitud' => [
                 'type'       => 'INT',
-                'constraint' => 11,
+                'constraint' => 5,
                 'unsigned'   => true,
                 'null'       => false,
             ],

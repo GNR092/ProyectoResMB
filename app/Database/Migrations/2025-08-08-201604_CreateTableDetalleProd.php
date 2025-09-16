@@ -17,7 +17,7 @@ class CreateTableDetalle_Prodcutos extends Migration
             ],
             'ID_SolicitudProd' => [
                 'type' => 'INT',
-                'constraint' => 5,
+                'constraint' => 11,
                 'unsigned' => true,
                 'null' => false,
             ],

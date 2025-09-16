@@ -4,17 +4,14 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreateTableApiToken extends Migration
+class CreateEntregasTable extends Migration
 {
-    /**
-     * @inheritDoc
-     */
     public function up()
     {
         $this->forge->addField([
-            'ID_Token' => [
+            'ID_Entrega' => [
                 'type'           => 'INT',
-                'constraint'     => 11,
+                'constraint'     => 5,
                 'unsigned'       => true,
                 'auto_increment' => true,
             ],
@@ -24,14 +21,19 @@ class CreateTableApiToken extends Migration
                 'unsigned'   => true,
                 'null'       => false,
             ],
-            'token' => [
-                'type'       => 'VARCHAR',
+            'Departamento' => [
+                'type' => 'VARCHAR',
                 'constraint' => '255',
-                'null'       => true,
+                'null' => false
             ],
-            'expires_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
+            'Receptor' => [
+                'type'       => 'VARCHAR',
+                'constraint' => '100',
+                'null'       => false,
+            ],
+            'Fecha' => [
+                'type' => 'DATETIME',
+                'null' => false,
             ],
             'created_at' => [
                 'type' => 'TIMESTAMP',
@@ -41,22 +43,15 @@ class CreateTableApiToken extends Migration
                 'type' => 'TIMESTAMP',
                 'null' => false,
             ],
-            'deleted_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => true,
-            ],
         ]);
 
-        $this->forge->addPrimaryKey('ID_Token');
+        $this->forge->addPrimaryKey('ID_Entrega');
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('User_Tokens');
+        $this->forge->createTable('Entregas');
     }
 
-    /**
-     * @inheritDoc
-     */
     public function down()
     {
-        $this->forge->dropTable('User_Tokens');
+        $this->forge->dropTable('Entregas');
     }
 }
