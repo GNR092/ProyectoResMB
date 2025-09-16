@@ -22,6 +22,8 @@ class SolicitudModel extends Model
         'No_Folio',
         'Archivo',
         'ComentariosAdmin',
+        'ComentariosUser',
+        'Tipo',
     ];
 
     // Dates

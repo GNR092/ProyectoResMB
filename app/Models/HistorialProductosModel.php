@@ -4,30 +4,31 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class ProveedorModel extends Model
+class HistorialProductosModel extends Model
 {
-    protected $table            = 'Proveedor';
-    protected $primaryKey       = 'ID_Proveedor';
+    protected $table            = 'HistorialProductos';
+    protected $primaryKey       = 'ID_HistorialP';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'RazonSocial',
-        'Correo',
-        'RFC',
-        'Banco',
-        'Cuenta',
-        'Clabe',
-        'Tel_Contacto',
-        'Nombre_Contacto',
-        'Servicio',
+        'ID_Usuario',
+        'ID_Producto',
+        'CodigoAnt',
+        'NombreAnt',
+        'ExistenciaAnt',
+        'CodigoNew',
+        'NombreNew',
+        'ExistenciaNew',
+        'Razon',
     ];
 
     // Dates
-    protected $useTimestamps = false;
+    protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
 }
+
