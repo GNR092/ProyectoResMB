@@ -241,7 +241,7 @@ class Rest
                 'Usuario' => $usuario['Nombre'] ?? '',
                 'Departamento' => $departamento['Nombre'] ?? '',
                 'Proveedor' => $proveedor['RazonSocial'] ?? '',
-                'Monto' => $cotizacion['Total'],
+                'Monto' => $solicitud['IVA'] ? ($cotizacion['Total'] * 1.16) : $cotizacion['Total'],
                 'Estado' => $solicitud['Estado'] ?? '',
             ];
         }
@@ -534,7 +534,7 @@ class Rest
     public function getAllProveedorName(): array
     {
         $proveedorModel = new ProveedorModel();
-        $results = $proveedorModel->select('ID_Proveedor, RazonSocial')->findAll();
+        $results = $proveedorModel->findAll();
         return $results;
     }
     //endregion

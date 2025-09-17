@@ -40,6 +40,38 @@ class InsertRazonSocial extends Migration
                 log_message('info', '[Migración] Insertada razón social: ' . $razon['Nombre']);
             }
         }
+
+        $departamentoId = null;
+        $razonSocialId = null;
+
+        $defaultDpto = $this->db->table('Departamentos')->where('Nombre', 'Administración')->get()->getRow();
+        if ($defaultDpto) {
+            $departamentoId = $defaultDpto->ID_Dpto;
+        } else {
+            $this->db->table('Departamentos')->insert(['Nombre' => 'Administración']);
+            $departamentoId = $this->db->insertID();
+        }
+
+        $defaultRS = $this->db->table('Razon_Social')->where('Nombre', 'MB SIGNATURE PROPERTIES')->get()->getRow();
+        if ($defaultRS) {
+            $razonSocialId = $defaultRS->ID_RazonSocial;
+        } else {
+            $this->db->table('Razon_Social')->insert(['Nombre' => 'MB SIGNATURE PROPERTIES', 'RFC' => 'MSP220504I99']);
+            $razonSocialId = $this->db->insertID();
+        }
+
+        $hashedPassword = password_hash('admin', PASSWORD_DEFAULT);
+
+        $data = [
+            'ID_Dpto'        => $departamentoId,
+            'ID_RazonSocial' => $razonSocialId,
+            'Nombre'         => 'Admin',
+            'Correo'         => 'admin@example.com',
+            'ContrasenaP'    => $hashedPassword,
+            'Numero'       => '+019999999999',
+        ];
+
+        $this->db->table('Usuarios')->insert($data);
     }
 
     public function down()

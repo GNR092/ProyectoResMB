@@ -71,7 +71,6 @@
                 <tr>
                     <th class="py-2 px-4 text-center">Seleccionar</th>
                     <th class="py-2 px-4 text-left">Nombre</th>
-                    <th class="py-2 px-4 text-left">Nombre Comercial</th>
                     <th class="py-2 px-4 text-left">Teléfono</th>
                     <th class="py-2 px-4 text-left">RFC</th>
                 </tr>

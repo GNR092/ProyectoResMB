@@ -23,9 +23,9 @@ class InsertDepartamento extends Migration
             'Direccion',
             'Marketing',
             'Juridico',
-            'Operacion orlando',
+            'Operacion',
             'Proyectos', 
-            'Recepcion city',
+            'Recepcion',
             'Recursos humanos',
             'Sistemas',
             'Tesoreria',
@@ -36,11 +36,12 @@ class InsertDepartamento extends Migration
             // Verificación con escape de caracteres
             $exists = $this->db->table('Departamentos')
                 ->where('Nombre', $depto)
+                ->where('ID_Place', 1)
                 ->countAllResults();
 
             if (!$exists) {
-                $this->db->table('Departamentos')->insert(['Nombre' => $depto]);
-                log_message('info', "Insertado departamentos: {$depto}");
+                $this->db->table('Departamentos')->insert(['Nombre' => $depto, 'ID_Place' => 1]);
+                log_message('info', "Insertado departamento: {$depto} para ID_Place 1");
             }
         }
     }
