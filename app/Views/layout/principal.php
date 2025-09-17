@@ -1,5 +1,6 @@
 <?php
-$session = session(); ?>
+$session = session(); 
+?>
 
 <!DOCTYPE html>
 <html lang="es">
@@ -11,7 +12,6 @@ $session = session(); ?>
 </head>
 
 <body class="h-screen flex">
-
     <!-- Barra lateral -->
     <aside class="font-montserrat w-64 bg-carbon text-white flex flex-col overflow-auto">
         <div class="p-4 border-b border-gray-600">
@@ -24,7 +24,7 @@ $session = session(); ?>
             <?php if (!empty($opcionesDinamicas)): ?>
             <?php foreach ($opcionesDinamicas as $key => $opcion): ?>
             <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
-                onclick="abrirModal('<?= $key ?>')">
+                onclick="abrirModal('<?= $key ?>', '<?= esc($opcion['label'], 'js') ?>')">
                 <?= $opcion['icon'] ?>
                 <span><?= esc($opcion['label']) ?></span>
             </a>
@@ -90,8 +90,8 @@ $session = session(); ?>
     const USER_DEPT_NAME = "<?= esc($departamento_usuario ?? '', 'js') ?>";
     const USER_DEPT_ID = "<?= esc($id_departamento_usuario ?? '', 'js') ?>";
     <?php
-        $iconPath = FCPATH . 'icons/icons.svg';
-        $iconVersion = file_exists($iconPath) ? filemtime($iconPath) : time();
+    $iconPath = FCPATH . 'icons/icons.svg';
+    $iconVersion = file_exists($iconPath) ? filemtime($iconPath) : time();
     ?>
     const ICON_SVG_VERSION = "<?= $iconVersion ?>";
     </script>

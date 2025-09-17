@@ -30,7 +30,7 @@ class CreateTableSolicitudProd extends Migration
                 'type' => 'BIGINT',
                 'constraint' => 20,
                 'unsigned' => true,
-                'null' => false,
+                'null' => true,
             ],
             'IVA' => [
                 'type'    => 'BOOLEAN',
@@ -71,9 +71,10 @@ class CreateTableSolicitudProd extends Migration
                 'after' => 'ComentariosAdmin',
             ],
             'Tipo' => [
-                'type'    => 'BOOLEAN',
-                'null'    => false,
-                'default' => false,
+                'type'    => 'INT',
+                'constraint' => 1,
+                'unsigned' => true,
+                'null' => false,
             ],
 
         ]);

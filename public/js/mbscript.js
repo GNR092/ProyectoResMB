@@ -189,7 +189,7 @@ async function initSolicitarMaterial() {
         });
     }
 
-    loadRazonSocialProv();
+    loadRazonSocialProv("ProvSelect");
 
     const formulario = document.getElementById('form-upload');
     if (formulario) {
@@ -267,7 +267,7 @@ async function initSolicitarMaterialSinCotizar() {
         });
     }
 
-    loadRazonSocialProv("razonSocialSelectSinCotizar");
+    loadRazonSocialProv("ProvSelectSinCotizar");
 
     const formulario = document.getElementById('form-upload-sin-cotizar');
     if (formulario) {
@@ -292,6 +292,13 @@ function mostrarSolicitarMaterialSinCotizar() {
 function mostrarSolicitarServicio() {
     document.getElementById('seleccion-opcion').classList.add('hidden');
     document.getElementById('solicitar-servicio-content').classList.remove('hidden');
+    initSolicitarServicio();
+}
+function initSolicitarServicio() {
+    // Carga los proveedores para el select de servicios
+    loadRazonSocialProv("razonSocialServicioSelect");
+    const formulario = document.getElementById('form-servicio-upload');
+    if (formulario) { formulario.addEventListener('submit', SendData); }
 }
 function regresarSeleccionOpciones() {
     document.getElementById('submenu-material').classList.add('hidden');
@@ -732,7 +739,7 @@ async function mostrarVer(idSolicitud) {
                 <div><strong>Estado:</strong> ${data.Estado}</div>
                 <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
-                <div><strong>Razón Social:</strong> ${data.RazonSocialNombre || 'N/A'}</div>
+                <div><strong>Proveedor:</strong> ${data.RazonSocialNombre || 'N/A'}</div>
             </div>
             <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
             <div class="overflow-x-auto">
@@ -755,7 +762,7 @@ async function mostrarVer(idSolicitud) {
             subtotal += parseFloat(costoTotal);
             html += `
                 <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
+                    <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'} </td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
                     <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
                     <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
@@ -1015,14 +1022,14 @@ function initEnviarRevision() {
         }
 
         data.forEach(s => {
-            const monto = parseFloat(s.MontoTotal || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+            const monto = parseFloat(s.Monto || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
             const fila = `
                 <tr class="hover:bg-gray-50" data-id="${s.ID_Solicitud}">
                     <td class="py-3 px-6 text-left">${s.Folio}</td>
                     <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
                     <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
                     <td class="py-3 px-6 text-left">${s.Proveedor || 'N/A'}</td>
-                    <td class="py-3 px-6 text-left">${s.Monto}</td>
+                    <td class="py-3 px-6 text-left">${monto}</td>
                     <td class="py-3 px-6 text-left">${s.Estado}</td>
                     <td class="py-3 px-6 text-left">
                         <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded btn-enviar">
@@ -1967,20 +1974,20 @@ async function getData(endpoint, option = {}, api = true) {
  * loadRazonSocialProv: Función para cargar las opciones de razón social desde la API
  * y agregarlas a un elemento <select> en el DOM.
  */
-async function loadRazonSocialProv(selectId = 'razonSocialSelect') {
-    const razonSocialSelect = document.getElementById(selectId);
-    if (!razonSocialSelect) return;
+async function loadRazonSocialProv(selectId) {
+    const ProvSelect = document.getElementById(selectId);
+    if (!ProvSelect) return;
 
     try {
         const data = await getData('providers/all');
         console.log('Datos recibidos:', data);
         if (Array.isArray(data) && data.length > 0) {
-            razonSocialSelect.innerHTML = '<option value="">Seleccione una opción</option>';
+            ProvSelect.innerHTML = '<option value="">Seleccione una opción</option>';
             data.forEach((provider) => {
                 let option = document.createElement('option');
                 option.value = provider.ID_Proveedor;
                 option.textContent = provider.RazonSocial;
-                razonSocialSelect.appendChild(option);
+                ProvSelect.appendChild(option);
             });
         } else {
             console.error('Los datos recibidos no son un array válido:', data);
@@ -2022,8 +2029,8 @@ async function SendData(event) {
   const formulario = event.target
   const formData = new FormData(formulario)
 
-  const messageContainer = document.getElementById('mensajes-form')
-  const submitButton = document.getElementById('btn-enviar')
+  const messageContainer = formulario.querySelector('.form-message-container');
+  const submitButton = formulario.querySelector('button[type="submit"]');
 
   if (submitButton) {
     submitButton.disabled = true

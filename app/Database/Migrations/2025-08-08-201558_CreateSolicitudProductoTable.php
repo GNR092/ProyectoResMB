@@ -24,7 +24,7 @@ class CreateSolicitudProductoTable extends Migration
             'Codigo' => [
                 'type'       => 'VARCHAR',
                 'constraint' => '50', 
-                'null'       => false,
+                'null'       => true,
             ],
             'Nombre' => [
                 'type'       => 'VARCHAR',
