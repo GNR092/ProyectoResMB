@@ -53,6 +53,8 @@ function abrirModal(opcion) {
                 initOrdenesCompra();
             }else if (opcion === 'crud_proveedores') {
                 initCrudProveedores();
+            }else if (opcion === 'entrega_productos') {
+                initEntregaMaterial();
             }
 
 
@@ -458,7 +460,6 @@ function initPaginacionHistorial() {
     fetchData();
 }
 
-
 // Funciones para mostrar/ocultar la pantalla de ver historial
 async function mostrarVerHistorial(idSolicitud) {
     const divHistorial = document.getElementById('div-historial');
@@ -577,6 +578,8 @@ function regresarHistorial() {
 
     console.log("Regresando a la tabla de historial");
 }
+
+
 /**
  * Lógica para el modal "Usuarios"
  */
@@ -934,6 +937,7 @@ function regresarTabla() {
     document.getElementById('div-tabla').classList.remove('hidden');
 }
 
+
 /**
  * Lógica para el modal "Registrar Material" (Almacén)
  */
@@ -969,6 +973,7 @@ function initRegistrarMaterial() {
             });
     });
 }
+
 
 /**
  * Lógica para el modal "Enviar a Revisión"
@@ -1102,6 +1107,7 @@ function enviarRevisionHandler(event) {
         btn.textContent = 'Enviar';
     });
 }
+
 
 /**
  * Lógica para el modal "Dictamen de Solicitudes"
@@ -1338,6 +1344,7 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
         mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error');
     }
 }
+
 
 /**
  * Lógica para el modal "CRUD Productos" (Existencias)
@@ -1707,7 +1714,6 @@ function initProveedorEditarForm() {
     };
 }
 
-
 // --- Botones editar/eliminar ---
 function initProveedorActions(tabla) {
     if (!tabla) return;
@@ -1761,6 +1767,51 @@ function initProveedorActions(tabla) {
         document.getElementById("pantalla-editar-proveedor").classList.remove("hidden");
     });
 }
+
+/**
+ * Lógica para Entrega de Material
+ */
+
+function initEntregaMaterial() {
+    // Por ahora vacío — lo llamarás desde abrirModal cuando lo necesites
+}
+
+// Muestra la pantalla de búsqueda y oculta la pantalla principal de entrega
+function mostrarBuscarMateriales() {
+    const entrega = document.getElementById('entrega-material-content');
+    const buscar = document.getElementById('buscar-materiales-content');
+
+    if (!entrega || !buscar) {
+        console.warn('mostrarBuscarMateriales: elementos no encontrados (entrega-material-content / buscar-materiales-content)');
+        return;
+    }
+
+    entrega.classList.add('hidden');
+    buscar.classList.remove('hidden');
+}
+
+// Vuelve de la pantalla de búsqueda a la pantalla principal de entrega
+function regresarBuscarMateriales() {
+    const entrega = document.getElementById('entrega-material-content');
+    const buscar = document.getElementById('buscar-materiales-content');
+
+    if (!entrega || !buscar) {
+        console.warn('regresarBuscarMateriales: elementos no encontrados (entrega-material-content / buscar-materiales-content)');
+        return;
+    }
+
+    buscar.classList.add('hidden');
+    entrega.classList.remove('hidden');
+}
+
+// Placeholder vacío para futuras inicializaciones específicas de entrega
+
+
+
+
+
+
+
 
 
 // Función de ejemplo para notificaciones (puedes adaptar)

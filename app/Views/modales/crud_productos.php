@@ -50,7 +50,6 @@
     </div>
 
     <!-- Div EDITAR -->
-    <!-- Div EDITAR -->
     <div id="div-editar" class="hidden p-4">
         <div class="flex items-center mb-4 cursor-pointer text-gray-600" onclick="regresarTablaProductos()">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
