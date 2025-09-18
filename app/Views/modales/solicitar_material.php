@@ -324,41 +324,40 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <div>
                 <label class="text-sm text-gray-700 font-medium">Razón social:</label>
                 <select id="razonSocialServicioSelect" class="w-full px-3 py-2 border rounded" name="razon_social"
-                    required>
+                        required>
                     <option value="">Seleccione una opción</option>
                 </select>
             </div>
-
 
             <div class="overflow-auto">
                 <!-- Tabla de servicios -->
                 <table class="w-full text-sm text-left border border-gray-300">
                     <thead class="bg-gray-200 text-gray-700">
-                        <tr>
-                            <th class="px-3 py-2 border">No.</th>
-                            <th class="px-3 py-2 border">Nombre</th>
-                            <th class="px-3 py-2 border">Costo</th>
-                            <th class="px-3 py-2 border text-center">Acción</th>
-                        </tr>
+                    <tr>
+                        <th class="px-3 py-2 border">No.</th>
+                        <th class="px-3 py-2 border">Nombre</th>
+                        <th class="px-3 py-2 border">Costo</th>
+                        <th class="px-3 py-2 border text-center">Acción</th>
+                    </tr>
                     </thead>
                     <tbody id="tabla-servicios">
-                        <tr class="fila-producto">
-                            <td class="numero-fila px-3 py-2 border text-center">1</td>
-                            <td class="px-3 py-2 border">
-                                <input type="text" name="servicio[]" class="w-full px-2 py-1 border rounded" placeholder="Descripción del servicio">
-                            </td>
-                            <td class="px-3 py-2 border">
-                                <input type="number" name="importe[]" class="w-full px-2 py-1 border rounded importe" min="0" step="0.01" placeholder="0.00">
-                            </td>
-                            <td class="px-3 py-2 border text-center">
-                                <button type="button" class="eliminar-fila text-red-600 hover:text-red-800"
+                    <tr class="fila-servicio">
+                        <td class="numero-fila-servicio px-3 py-2 border text-center">1</td>
+                        <td class="px-3 py-2 border">
+                            <input type="text" name="servicio[]" class="w-full px-2 py-1 border rounded" placeholder="Descripción del servicio">
+                        </td>
+                        <td class="px-3 py-2 border">
+                            <input type="number" name="costo[]" class="costo-servicio w-full px-2 py-1 border rounded" min="0" step="0.01" placeholder="0.00">
+                        </td>
+                        <td class="px-3 py-2 border text-center">
+                            <button type="button" class="eliminar-fila-servicio text-red-600 hover:text-red-800"
                                     title="Eliminar fila">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                    </svg>
-                                </button>
-                            </td>
-                        </tr>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
                     </tbody>
                 </table>
 
@@ -366,29 +365,29 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 <div class="w-full overflow-auto mt-3">
                     <table class="w-full text-sm border border-gray-300">
                         <tbody>
-                            <tr class="bg-gray-200 text-gray-700 font-semibold">
-                                <td class="px-3 py-2 border text-left" style="width: 70%;">
-                                    Subtotal:
-                                </td>
-                                <td id="subtotal-servicio" class="px-3 py-2 border text-right" style="width: 30%;">
-                                    $0.00
-                                </td>
-                            </tr>
-                            <tr class="bg-gray-100 text-gray-700 font-semibold">
-                                <td class="px-3 py-2 border text-left">
-                                    <div class="flex items-center gap-2">
-                                        Total:
-                                        <label class="flex items-center gap-1 text-sm font-normal">
-                                            <input type="checkbox" id="agregar-iva-servicio" class="accent-blue-600"
-                                                name="iva">
-                                            Agregar IVA
-                                        </label>
-                                    </div>
-                                </td>
-                                <td id="total-servicio" class="px-3 py-2 border text-right">
-                                    $0.00
-                                </td>
-                            </tr>
+                        <tr class="bg-gray-200 text-gray-700 font-semibold">
+                            <td class="px-3 py-2 border text-left" style="width: 70%;">
+                                Subtotal:
+                            </td>
+                            <td id="subtotal-servicio" class="px-3 py-2 border text-right" style="width: 30%;">
+                                $0.00
+                            </td>
+                        </tr>
+                        <tr class="bg-gray-100 text-gray-700 font-semibold">
+                            <td class="px-3 py-2 border text-left">
+                                <div class="flex items-center gap-2">
+                                    Total:
+                                    <label class="flex items-center gap-1 text-sm font-normal">
+                                        <input type="checkbox" id="agregar-iva-servicio" class="accent-blue-600"
+                                               name="iva">
+                                        Agregar IVA
+                                    </label>
+                                </div>
+                            </td>
+                            <td id="total-servicio" class="px-3 py-2 border text-right">
+                                $0.00
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
@@ -396,7 +395,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 <!-- Botón para agregar fila -->
                 <div class="flex justify-end mt-2">
                     <button id="agregar-fila-servicio" type="button"
-                        class="flex items-center gap-2 px-3 py-2 text-green-600 rounded" title="Agregar fila">
+                            class="flex items-center gap-2 px-3 py-2 text-green-600 rounded" title="Agregar fila">
                         <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
                             <use xlink:href="<?= $iconUrl ?>#agregar-fila"></use>
                         </svg>
@@ -408,8 +407,8 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <div class="mt-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-2">Referencia o cotización</h2>
                 <input type="file" name="archivo"
-                    class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
-                    accept="image/jpg,image/jpeg,image/png,application/pdf">
+                       class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
+                       accept="image/jpg,image/jpeg,image/png,application/pdf">
             </div>
 
             <!-- Contenedor para mensajes -->
@@ -418,7 +417,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Botón para enviar -->
             <div class="flex justify-end">
                 <button type="submit" id="btn-enviar-servicio"
-                    class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
+                        class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
                     <!-- SVG enviar -->
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                         <use xlink:href="<?= $iconUrl ?>#btn-enviar"></use>

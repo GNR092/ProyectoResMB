@@ -56,6 +56,7 @@ if (!file_exists($installerLockFile)) {
         // Modales
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');
+        $routes->get('modales/vistas/service_row', 'Modales::getServiceTableRow');
         // API Restful - Productos
         $routes->get('api/product/search', 'Api::search');
         $routes->get('api/product/all', 'Api::allProducts');

@@ -275,6 +275,113 @@ async function initSolicitarMaterialSinCotizar() {
     }
 
 }
+async function initSolicitarServicio() {
+    const tabla = document.getElementById('tabla-servicios');
+    const agregarBtn = document.getElementById('agregar-fila-servicio');
+    const subtotalTd = document.getElementById('subtotal-servicio');
+    const totalTd = document.getElementById('total-servicio');
+    const chkIVA = document.getElementById('agregar-iva-servicio');
+
+    if (!tabla) return;
+
+    let serviceRowHtml = null;
+    async function getServiceRowHtml() {
+        if (serviceRowHtml === null) {
+            try {
+                const response = await fetch(`${BASE_URL}modales/vistas/service_row`);
+                if (!response.ok) throw new Error('Falló la carga de la fila de servicio');
+                serviceRowHtml = await response.text();
+            } catch (error) {
+                console.error(error);
+                serviceRowHtml = '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>';
+            }
+        }
+        return serviceRowHtml;
+    }
+
+    function actualizarNumeros() {
+        tabla.querySelectorAll('tr').forEach((fila, i) => {
+            const celdaNumero = fila.querySelector('.numero-fila-servicio');
+            if (celdaNumero) celdaNumero.textContent = i + 1;
+        });
+    }
+
+    function actualizarBotonesEliminar() {
+        const filas = tabla.querySelectorAll('tr');
+        filas.forEach(fila => {
+            const btnEliminar = fila.querySelector('.eliminar-fila-servicio');
+            if (btnEliminar) {
+                btnEliminar.style.display = (filas.length === 1) ? 'none' : 'inline-block';
+            }
+        });
+    }
+
+    function actualizarTotal() {
+        let suma = 0;
+        tabla.querySelectorAll('tr').forEach(fila => {
+            const costoInput = fila.querySelector('.costo-servicio');
+            if (costoInput) {
+                const valor = parseFloat(costoInput.value) || 0;
+                suma += valor;
+            }
+        });
+
+        if (subtotalTd) subtotalTd.textContent = '$' + suma.toFixed(2);
+
+        let total = suma;
+        if (chkIVA && chkIVA.checked) total = suma * 1.16;
+        if (totalTd) totalTd.textContent = '$' + total.toFixed(2);
+    }
+
+    function asignarEventosFila(fila) {
+        if (!fila) return;
+
+        const costoInput = fila.querySelector('.costo-servicio');
+        const eliminarBtn = fila.querySelector('.eliminar-fila-servicio');
+
+        if (costoInput) costoInput.addEventListener('input', actualizarTotal);
+
+        if (eliminarBtn) {
+            eliminarBtn.addEventListener('click', () => {
+                if (tabla.querySelectorAll('tr').length > 1) {
+                    fila.remove();
+                    actualizarNumeros();
+                    actualizarBotonesEliminar();
+                    actualizarTotal();
+                }
+            });
+        }
+
+        actualizarTotal();
+    }
+
+    tabla.querySelectorAll('tr').forEach(fila => asignarEventosFila(fila));
+    actualizarBotonesEliminar();
+    actualizarNumeros();
+    actualizarTotal();
+
+    if (chkIVA) chkIVA.addEventListener('change', actualizarTotal);
+
+    if (agregarBtn) {
+        const nuevoBtn = agregarBtn.cloneNode(true);
+        agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn);
+
+        nuevoBtn.addEventListener('click', async () => {
+            const rowHtml = await getServiceRowHtml();
+            const nuevaFila = tabla.insertRow();
+            nuevaFila.innerHTML = rowHtml;
+            asignarEventosFila(nuevaFila);
+            actualizarNumeros();
+            actualizarBotonesEliminar();
+            actualizarTotal();
+        });
+    }
+
+    loadRazonSocialProv("razonSocialServicioSelect");
+
+    const formulario = document.getElementById('form-servicio-upload');
+    if (formulario) formulario.addEventListener('submit', SendData);
+}
 function mostrarSubmenuMaterial() {
     document.getElementById('seleccion-opcion').classList.add('hidden');
     document.getElementById('submenu-material').classList.remove('hidden');
@@ -293,12 +400,6 @@ function mostrarSolicitarServicio() {
     document.getElementById('seleccion-opcion').classList.add('hidden');
     document.getElementById('solicitar-servicio-content').classList.remove('hidden');
     initSolicitarServicio();
-}
-function initSolicitarServicio() {
-    // Carga los proveedores para el select de servicios
-    loadRazonSocialProv("razonSocialServicioSelect");
-    const formulario = document.getElementById('form-servicio-upload');
-    if (formulario) { formulario.addEventListener('submit', SendData); }
 }
 function regresarSeleccionOpciones() {
     document.getElementById('submenu-material').classList.add('hidden');

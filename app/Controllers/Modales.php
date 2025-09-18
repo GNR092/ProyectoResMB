@@ -148,6 +148,11 @@ class Modales extends BaseController
     {
         return view('layout/productTable');
     }
+    public function getServiceTableRow()
+    {
+        return view('layout/serviceTable');
+    }
+
 
     //Funciones para usuarios
     public function registrarUsuario()
