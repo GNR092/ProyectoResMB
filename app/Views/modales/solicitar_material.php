@@ -9,11 +9,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
     <div class="flex flex-col gap-4">
         <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-blue-600"
             onclick="mostrarSubmenuMaterial()">
-            Solicitar Material
+            Requisicion de Material
         </div>
         <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-blue-600"
             onclick="mostrarSolicitarServicio()">
-            Solicitar Servicio
+            Requisicion de Servicio
         </div>
     </div>
 </div>
@@ -24,18 +24,18 @@ $iconUrl = "/icons/icons.svg?v=$version";
         <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">
             &larr; Regresar
         </button>
-        <h2 class="text-lg font-semibold">Seleccione tipo de material</h2>
+        <h2 class="text-lg font-semibold">Seleccione tipo de requisicion</h2>
         <div></div>
     </div>
 
     <div class="flex flex-col gap-4">
         <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-green-600"
             onclick="mostrarSolicitarMaterialCotizado()">
-            Material Cotizado
+            Requisicion con cotizacion
         </div>
         <div class="cursor-pointer p-4 border rounded hover:bg-gray-100 text-green-600"
             onclick="mostrarSolicitarMaterialSinCotizar()">
-            Material sin Cotizar
+            Requisicion sin cotizacion
         </div>
     </div>
 </div>
@@ -45,7 +45,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
     <div class="flex justify-between mb-4">
         <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSubmenuMaterial()">&larr;
             Regresar</button>
-        <h2 class="text-lg font-semibold">Solicitud de Material</h2>
+        <h2 class="text-lg font-semibold">Requisicion de Material</h2>
         <div></div>
     </div>
 
@@ -177,7 +177,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
         <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSubmenuMaterial()">
             &larr; Regresar
         </button>
-        <h2 class="text-lg font-semibold">Solicitud de Material (sin cotizar)</h2>
+        <h2 class="text-lg font-semibold">Requisicion de Material (sin cotizar)</h2>
         <div></div>
     </div>
 
@@ -290,7 +290,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
     <div class="flex justify-between mb-4">
         <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">&larr;
             Regresar</button>
-        <h2 class="text-lg font-semibold">Solicitud de Servicio</h2>
+        <h2 class="text-lg font-semibold">Requisicion de Servicio</h2>
         <div></div>
     </div>
 

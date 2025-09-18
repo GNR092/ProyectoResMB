@@ -19,12 +19,12 @@ class MenuOptions extends BaseConfig
         $this->opciones = [
             //Flujo del programa
             'solicitar_material' => [
-                'label' => 'Solicitar material',
+                'label' => 'Requisiciones',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#solicitar_material"></use></svg>',
             ],
 
             'revisar_solicitudes' => [
-                'label' => 'Revisar solicitudes',
+                'label' => 'Revisar requisiciones',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#revisar_solicitudes"></use></svg>',
             ],
 
@@ -34,7 +34,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'dictamen_solicitudes' => [
-                'label' => 'Dictamen de solicitudes',
+                'label' => 'Dictamen de requisiciones',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#dictamen_solicitudes"></use></svg>',
             ],
 

@@ -8,20 +8,20 @@ function abrirModal(opcion) {
     const contenido = document.getElementById('modal-contenido');
 
     let titulos = {
-        'solicitar_material': 'Solicitar Material',
+        'solicitar_material': 'Requisiciones',
         'ver_historial': 'Historial',
-        'revisar_solicitudes': 'Revisar Solicitudes',
+        'revisar_solicitudes': 'Revisar requisiciones',
         'proveedores': 'Proveedores',
         'ordenes_compra': 'Órdenes de Compra',
         'enviar_revision': 'Enviar a Revisión',
         'usuarios': 'Usuarios',
-        'dictamen_solicitudes': 'Dictamen de Solicitudes',
+        'dictamen_solicitudes': 'Dictamen de requisiciones',
         'crud_proveedores': 'CRUD Proveedores',
         'limpiar_almacenamiento': 'Limpiar Almacenamiento',
         'pagos_pendientes': 'Pagos Pendientes',
         'registrar_productos': 'Registrar Productos',
         'crud_productos': 'Existencias',
-        'entrega_productos': 'Entrega de Productos'
+        'entrega_productos': 'Entrega de Material'
     };
 
     titulo.innerText = titulos[opcion] ?? 'Opción';

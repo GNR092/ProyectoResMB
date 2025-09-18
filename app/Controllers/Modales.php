@@ -55,7 +55,6 @@ class Modales extends BaseController
 
                 return view('modales/revisar_solicitudes', $data);
 
-
             case 'proveedores':
                 return view('modales/proveedores');
 
