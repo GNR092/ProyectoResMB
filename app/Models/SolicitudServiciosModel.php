@@ -12,7 +12,7 @@ class SolicitudServiciosModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_Solicitud', 'Fecha', 'Estado', 'Costo'];
+    protected $allowedFields    = ['ID_Solicitud', 'Nombre', 'Importe'];
 
     // Dates
     protected $useTimestamps = false;

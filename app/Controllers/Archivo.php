@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\SolicitudProductModel;
+use App\Models\SolicitudServiciosModel;
 use App\Models\SolicitudModel;
 use App\Libraries\Status;
 use App\Libraries\HttpStatus;
@@ -80,15 +81,6 @@ class Archivo extends BaseController
 
         $datosProductos = [];
 
-        for ($i = 0; $i < count($productos); $i++) {
-            $datosProductos[] = [
-                'Codigo' => $codigos[$i] ?? null,
-                'Nombre' => $productos[$i],
-                'Cantidad' => $cantidades[$i],
-                'Importe' => $importes[$i],
-            ];
-        }
-
         try {
             $solicitud = new SolicitudModel();
             $solicitud->insert($datosSolicitud);
@@ -96,12 +88,34 @@ class Archivo extends BaseController
             $solicitud->update($solicitudId, [
                 'No_Folio' => 'mbsp-' . $solicitudId,
             ]);
+            if ($tipo == SolicitudTipo::Cotizacion || $tipo == SolicitudTipo::NoCotizacion) {
+                $solicitudProduct = new SolicitudProductModel();
 
-            $solicitudProduct = new SolicitudProductModel();
+                for ($i = 0; $i < count($productos); $i++) {
+                    $datosProductos[] = [
+                        'Codigo' => $codigos[$i] ?? null,
+                        'Nombre' => $productos[$i],
+                        'Cantidad' => $cantidades[$i],
+                        'Importe' => $importes[$i],
+                    ];
+                }
 
-            foreach ($datosProductos as $solproducto) {
-                $solproducto['ID_Solicitud'] = $solicitudId;
-                $solicitudProduct->insert($solproducto);
+                foreach ($datosProductos as $solproducto) {
+                    $solproducto['ID_Solicitud'] = $solicitudId;
+                    $solicitudProduct->insert($solproducto);
+                }
+            } else {
+                $solicitudServicio = new SolicitudServiciosModel();
+                for ($i = 0; $i < count($productos); $i++) {
+                    $datosProductos[] = [
+                        'Nombre' => $productos[$i],
+                        'Importe' => $importes[$i],
+                    ];
+                }
+                foreach ($datosProductos as $solproducto) {
+                    $solproducto['ID_Solicitud'] = $solicitudId;
+                    $solicitudServicio->insert($solproducto);
+                }
             }
 
             $adjunto = $this->request->getFile('archivo');

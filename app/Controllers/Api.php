@@ -8,6 +8,7 @@ use App\Models\SolicitudProductModel;
 use CodeIgniter\RESTful\ResourceController;
 use App\Libraries\Rest;
 use App\Libraries\HttpStatus;
+use App\Libraries\SolicitudTipo;
 
 class Api extends ResourceController
 {
@@ -115,10 +116,12 @@ class Api extends ResourceController
             return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
         }
 
-        $details = $this->api->getSolicitudWithProducts((int)$id);
+        $details = $this->api->getSolicitudWithProducts((int) $id);
 
         if (empty($details)) {
-            return $this->failNotFound('No se encontraron detalles para la solicitud con ID: ' . $id);
+            return $this->failNotFound(
+                'No se encontraron detalles para la solicitud con ID: ' . $id,
+            );
         }
 
         return $this->respond($details);
@@ -172,18 +175,31 @@ class Api extends ResourceController
             return $this->failNotFound('La solicitud no existe.');
         }
         if ($solicitud['Estado'] !== 'En espera') {
-            return $this->fail('La solicitud ya no está en estado "En espera".', HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'La solicitud ya no está en estado "En espera".',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         // Calcular total
         $total = 0;
-        if (!empty($details['productos'])) {
-        foreach ($details['productos'] as $p) {
-            $cantidad = (float) $p['Cantidad'];
-            $importe  = (float) $p['Importe'];
-            $total   += $cantidad * $importe;
+        if ($solicitud['Tipo'] != SolicitudTipo::Servicios) {
+            if (!empty($details['productos'])) {
+                foreach ($details['productos'] as $p) {
+                    $cantidad = (float) $p['Cantidad'];
+                    $importe = (float) $p['Importe'];
+                    $total += $cantidad * $importe;
+                }
+            }
         }
-    }
+        else{
+            if (!empty($details['productos'])) {
+                foreach ($details['productos'] as $p) {
+                    $importe = (float) $p['Importe'];
+                    $total += $importe;
+                }
+            }
+        }
 
         $db = \Config\Database::connect();
         $db->transStart();
@@ -192,8 +208,8 @@ class Api extends ResourceController
             // 1. Insert into Cotizacion table
             $cotizacionData = [
                 'ID_Solicitud' => $idSolicitud,
-                'ID_Proveedor'     => $idProveedor,
-                'Total'            => $total,
+                'ID_Proveedor' => $idProveedor,
+                'Total' => $total,
             ];
             $cotizacionModel->insert($cotizacionData);
 
@@ -202,7 +218,10 @@ class Api extends ResourceController
 
             $db->transComplete();
 
-            return $this->respondCreated(['success' => true, 'message' => 'Cotización creada y solicitud actualizada.']);
+            return $this->respondCreated([
+                'success' => true,
+                'message' => 'Cotización creada y solicitud actualizada.',
+            ]);
         } catch (\Exception $e) {
             log_message('error', '[crearCotizacion] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado al crear la cotización.');
@@ -232,12 +251,18 @@ class Api extends ResourceController
         }
 
         if ($solicitud['Estado'] !== 'Cotizando') {
-            return $this->fail('La solicitud no está en estado "Cotizado".', HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'La solicitud no está en estado "Cotizado".',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         try {
             $solicitudModel->update($idSolicitud, ['Estado' => 'En revision']);
-            return $this->respondUpdated(['success' => true, 'message' => 'Solicitud enviada a revisión.']);
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'Solicitud enviada a revisión.',
+            ]);
         } catch (\Exception $e) {
             log_message('error', '[enviarSolicitudARevision] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado.');
@@ -265,8 +290,11 @@ class Api extends ResourceController
             return $this->fail('El estado proporcionado no es válido.', HttpStatus::BAD_REQUEST);
         }
 
-        if ($nuevoEstado === 'Rechazada' && empty(trim((string)$comentarios))) {
-            return $this->fail('Para rechazar una solicitud, los comentarios son obligatorios.', HttpStatus::BAD_REQUEST);
+        if ($nuevoEstado === 'Rechazada' && empty(trim((string) $comentarios))) {
+            return $this->fail(
+                'Para rechazar una solicitud, los comentarios son obligatorios.',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         $solicitudModel = new SolicitudModel();
@@ -277,16 +305,22 @@ class Api extends ResourceController
         }
 
         if ($solicitud['Estado'] !== 'En revision') {
-            return $this->fail('La solicitud no está en estado "En revision".', HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'La solicitud no está en estado "En revision".',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         try {
             $dataToUpdate = [
                 'Estado' => $nuevoEstado,
-                'ComentariosAdmin' => $comentarios
+                'ComentariosAdmin' => $comentarios,
             ];
             $solicitudModel->update($idSolicitud, $dataToUpdate);
-            return $this->respondUpdated(['success' => true, 'message' => 'El dictamen de la solicitud se ha guardado correctamente.']);
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'El dictamen de la solicitud se ha guardado correctamente.',
+            ]);
         } catch (\Exception $e) {
             log_message('error', '[dictaminarSolicitud] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen.');

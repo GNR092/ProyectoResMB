@@ -11,9 +11,11 @@ use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
 use App\Models\SolicitudModel;
 use App\Models\SolicitudProductModel;
+use App\Models\SolicitudServiciosModel;
 use App\Models\TokenModel;
 use App\Models\UsuariosModel;
 use App\Libraries\HttpStatus;
+use App\Libraries\SolicitudTipo;
 
 use CodeIgniter\Database\BaseBuilder;
 /**
@@ -171,7 +173,10 @@ class Rest
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel
             ->select([
-                'Solicitud.*', 'Usuarios.Nombre as UsuarioNombre', 'Departamentos.Nombre as DepartamentoNombre', 'Proveedor.RazonSocial as RazonSocialNombre'
+                'Solicitud.*',
+                'Usuarios.Nombre as UsuarioNombre',
+                'Departamentos.Nombre as DepartamentoNombre',
+                'Proveedor.RazonSocial as RazonSocialNombre',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -181,9 +186,18 @@ class Rest
         if (!$solicitud) {
             return null;
         }
+        $productos = [];
 
-        $solicitudProductModel = new SolicitudProductModel();
-        $productos = $solicitudProductModel->where('ID_Solicitud', $id)->findAll();
+        if (
+            $solicitud['Tipo'] == SolicitudTipo::Cotizacion ||
+            $solicitud['Tipo'] == SolicitudTipo::NoCotizacion
+        ) {
+            $solicitudProductModel = new SolicitudProductModel();
+            $productos = $solicitudProductModel->where('ID_Solicitud', $id)->findAll();
+        } else {
+            $solicitudServicioModel = new SolicitudServiciosModel();
+            $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
+        }
 
         $solicitud['productos'] = $productos;
 
@@ -222,9 +236,14 @@ class Rest
             // Buscar solicitud ligada
             $solicitud = $solicitudModel->find($cotizacion['ID_Solicitud']);
 
-            if (!$solicitud || ($solicitud['Estado'] ?? '') === 'En revision' || ($solicitud['Estado'] ?? '') === 'Aprobada' || ($solicitud['Estado'] ?? '') === 'Rechazada') {
-            continue;
-        }
+            if (
+                !$solicitud ||
+                ($solicitud['Estado'] ?? '') === 'En revision' ||
+                ($solicitud['Estado'] ?? '') === 'Aprobada' ||
+                ($solicitud['Estado'] ?? '') === 'Rechazada'
+            ) {
+                continue;
+            }
 
             // Buscar usuario y departamento ligados a la solicitud
             $usuario = $usuarioModel->find($solicitud['ID_Usuario']);
@@ -241,7 +260,7 @@ class Rest
                 'Usuario' => $usuario['Nombre'] ?? '',
                 'Departamento' => $departamento['Nombre'] ?? '',
                 'Proveedor' => $proveedor['RazonSocial'] ?? '',
-                'Monto' => $solicitud['IVA'] ? ($cotizacion['Total'] * 1.16) : $cotizacion['Total'],
+                'Monto' => $solicitud['IVA'] === true ? $cotizacion['Total'] * 1.16 : $cotizacion['Total'],
                 'Estado' => $solicitud['Estado'] ?? '',
             ];
         }

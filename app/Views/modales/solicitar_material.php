@@ -320,11 +320,10 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </div>
             </div>
 
-            <!-- Razón social -->
+            <!-- Proveedor Servicio -->
             <div>
                 <label class="text-sm text-gray-700 font-medium">Razón social:</label>
-                <select id="razonSocialServicioSelect" class="w-full px-3 py-2 border rounded" name="razon_social"
-                        required>
+                <select id="razonSocialServicioSelect" class="w-full px-3 py-2 border rounded" name="razon_social">
                     <option value="">Seleccione una opción</option>
                 </select>
             </div>
@@ -336,7 +335,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <tr>
                         <th class="px-3 py-2 border">No.</th>
                         <th class="px-3 py-2 border">Nombre</th>
-                        <th class="px-3 py-2 border">Costo</th>
+                        <th class="px-3 py-2 border">Importe</th>
                         <th class="px-3 py-2 border text-center">Acción</th>
                     </tr>
                     </thead>
@@ -347,7 +346,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                             <input type="text" name="servicio[]" class="w-full px-2 py-1 border rounded" placeholder="Descripción del servicio">
                         </td>
                         <td class="px-3 py-2 border">
-                            <input type="number" name="costo[]" class="costo-servicio w-full px-2 py-1 border rounded" min="0" step="0.01" placeholder="0.00">
+                            <input type="number" name="importe[]" class="costo-servicio w-full px-2 py-1 border rounded" min="0" step="0.01" placeholder="0.00">
                         </td>
                         <td class="px-3 py-2 border text-center">
                             <button type="button" class="eliminar-fila-servicio text-red-600 hover:text-red-800"

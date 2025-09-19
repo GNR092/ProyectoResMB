@@ -159,12 +159,13 @@ class Modales extends BaseController
         $usuarioModel = new UsuariosModel();
 
         $datos = [
-            'ID_Dpto' => $this->request->getPost('departamento'),
-            'ID_RazonSocial' => $this->request->getPost('razon_social'),
+            'ID_Dpto' => $this->request->getPost('ID_Dpto'),
+            'ID_RazonSocial' => $this->request->getPost('ID_RazonSocial'),
             'Nombre' => $this->request->getPost('nombre'),
             'Correo' => $this->request->getPost('correo'),
-            'ContrasenaP' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
-            'Numero' => $this->request->getPost('telefono'),
+            'ContrasenaP' => password_hash($this->request->getPost('ContrasenaP'), PASSWORD_DEFAULT),
+            'ContrasenaG' => password_hash($this->request->getPost('ContrasenaG'), PASSWORD_DEFAULT),
+            'Numero' => $this->request->getPost('Numero'),
         ];
 
         if ($this->api->addUser($datos)) {

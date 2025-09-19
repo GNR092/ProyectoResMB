@@ -21,16 +21,12 @@ class CreateSolicitudServiciosTable extends Migration
                 'unsigned' => true,
                 'null' => false
             ],
-            'Fecha' => [
-                'type' => 'TIMESTAMP',
-                'null' => false,
-            ],
-            'Estado' => [
+            'Nombre' => [
                 'type' => 'VARCHAR',
-                'constraint' => '50',
+                'constraint' => '255',
                 'null' => true
             ],
-            'Costo' => [
+            'Importe' => [
                 'type' => 'DECIMAL',
                 'constraint' => '10,2',
                 'null' => false,

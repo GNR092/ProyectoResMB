@@ -3,248 +3,246 @@
  * y la inicialización de su contenido dinámico.
  */
 function abrirModal(opcion) {
-    const modal = document.getElementById('modal-general');
-    const titulo = document.getElementById('modal-title');
-    const contenido = document.getElementById('modal-contenido');
+  const modal = document.getElementById('modal-general')
+  const titulo = document.getElementById('modal-title')
+  const contenido = document.getElementById('modal-contenido')
 
-    let titulos = {
-        'solicitar_material': 'Requisiciones',
-        'ver_historial': 'Historial',
-        'revisar_solicitudes': 'Revisar requisiciones',
-        'proveedores': 'Proveedores',
-        'ordenes_compra': 'Órdenes de Compra',
-        'enviar_revision': 'Enviar a Revisión',
-        'usuarios': 'Usuarios',
-        'dictamen_solicitudes': 'Dictamen de requisiciones',
-        'crud_proveedores': 'CRUD Proveedores',
-        'limpiar_almacenamiento': 'Limpiar Almacenamiento',
-        'pagos_pendientes': 'Pagos Pendientes',
-        'registrar_productos': 'Registrar Productos',
-        'crud_productos': 'Existencias',
-        'entrega_productos': 'Entrega de Material'
-    };
+  let titulos = {
+    solicitar_material: 'Requisiciones',
+    ver_historial: 'Historial',
+    revisar_solicitudes: 'Revisar requisiciones',
+    proveedores: 'Proveedores',
+    ordenes_compra: 'Órdenes de Compra',
+    enviar_revision: 'Enviar a Revisión',
+    usuarios: 'Usuarios',
+    dictamen_solicitudes: 'Dictamen de requisiciones',
+    crud_proveedores: 'CRUD Proveedores',
+    limpiar_almacenamiento: 'Limpiar Almacenamiento',
+    pagos_pendientes: 'Pagos Pendientes',
+    registrar_productos: 'Registrar Productos',
+    crud_productos: 'Existencias',
+    entrega_productos: 'Entrega de Material',
+  }
 
-    titulo.innerText = titulos[opcion] ?? 'Opción';
+  titulo.innerText = titulos[opcion] ?? 'Opción'
 
-    fetch(`${BASE_URL}modales/${opcion}`)
-        .then(response => response.text())
-        .then(html => {
-            contenido.innerHTML = html;
-            modal.classList.remove('hidden');
+  fetch(`${BASE_URL}modales/${opcion}`)
+    .then((response) => response.text())
+    .then((html) => {
+      contenido.innerHTML = html
+      modal.classList.remove('hidden')
 
-            // Llama a la función de inicialización correspondiente
-            if (opcion === 'solicitar_material') {
-                initSolicitarMaterial();
-            } else if (opcion === 'ver_historial') {
-                initPaginacionHistorial();
-            } else if (opcion === 'usuarios') {
-                initUsuarios();
-            } else if (opcion === 'revisar_solicitudes') {
-                initRevisarSolicitud();
-            } else if (opcion === 'registrar_productos') {
-                initRegistrarMaterial();
-            } else if (opcion === 'enviar_revision') {
-                initEnviarRevision();
-            } else if (opcion === 'dictamen_solicitudes') {
-                initDictamenSolicitudes();
-            } else if (opcion === 'crud_productos') {
-                initCrudProductos();
-            } else if (opcion === 'ordenes_compra') {
-                initOrdenesCompra();
-            }else if (opcion === 'crud_proveedores') {
-                initCrudProveedores();
-            }else if (opcion === 'entrega_productos') {
-                initEntregaMaterial();
-            }
-
-
-        })
-        .catch(error => {
-            console.error("Error al cargar modal:", error);
-            contenido.innerHTML = '<p class="text-red-500">Error al cargar el contenido del modal.</p>';
-            modal.classList.remove('hidden');
-        });
+      // Llama a la función de inicialización correspondiente
+      if (opcion === 'solicitar_material') {
+        initSolicitarMaterial()
+      } else if (opcion === 'ver_historial') {
+        initPaginacionHistorial()
+      } else if (opcion === 'usuarios') {
+        initUsuarios()
+      } else if (opcion === 'revisar_solicitudes') {
+        initRevisarSolicitud()
+      } else if (opcion === 'registrar_productos') {
+        initRegistrarMaterial()
+      } else if (opcion === 'enviar_revision') {
+        initEnviarRevision()
+      } else if (opcion === 'dictamen_solicitudes') {
+        initDictamenSolicitudes()
+      } else if (opcion === 'crud_productos') {
+        initCrudProductos()
+      } else if (opcion === 'ordenes_compra') {
+        initOrdenesCompra()
+      } else if (opcion === 'crud_proveedores') {
+        initCrudProveedores()
+      } else if (opcion === 'entrega_productos') {
+        initEntregaMaterial()
+      }
+    })
+    .catch((error) => {
+      console.error('Error al cargar modal:', error)
+      contenido.innerHTML = '<p class="text-red-500">Error al cargar el contenido del modal.</p>'
+      modal.classList.remove('hidden')
+    })
 }
 function cerrarModal() {
-    document.getElementById('modal-general').classList.add('hidden');
+  document.getElementById('modal-general').classList.add('hidden')
 }
-
 
 /**
  * Lógica para el modal "Solicitar Material"
  */
 async function initSolicitarMaterial() {
-    const tabla = document.getElementById('tabla-productos');
-    const agregarBtn = document.getElementById('agregar-fila');
-    const subtotalTd = document.getElementById('subtotal-costo');
-    const totalTd = document.getElementById('total-costo');
-    const chkIVA = document.getElementById('agregar-iva');
+  const tabla = document.getElementById('tabla-productos')
+  const agregarBtn = document.getElementById('agregar-fila')
+  const subtotalTd = document.getElementById('subtotal-costo')
+  const totalTd = document.getElementById('total-costo')
+  const chkIVA = document.getElementById('agregar-iva')
 
-    if (!tabla) return;
+  if (!tabla) return
 
-    let productRowHtml = null;
-    async function getProductRowHtml() {
-        if (productRowHtml === null) {
-            try {
-                const response = await fetch(`${BASE_URL}modales/vistas/product_row`);
-                if (!response.ok) throw new Error('Falló la carga de la fila de producto');
-                productRowHtml = await response.text();
-            } catch (error) {
-                console.error(error);
-                productRowHtml = '<tr><td colspan="7" class="text-red-500 p-2">Error al cargar fila.</td></tr>';
-            }
+  let productRowHtml = null
+  async function getProductRowHtml() {
+    if (productRowHtml === null) {
+      try {
+        const response = await fetch(`${BASE_URL}modales/vistas/product_row`)
+        if (!response.ok) throw new Error('Falló la carga de la fila de producto')
+        productRowHtml = await response.text()
+      } catch (error) {
+        console.error(error)
+        productRowHtml =
+          '<tr><td colspan="7" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
+      }
+    }
+    return productRowHtml
+  }
+
+  function actualizarNumeros() {
+    tabla.querySelectorAll('tr').forEach((fila, i) => {
+      const celdaNumero = fila.querySelector('.numero-fila')
+      if (celdaNumero) celdaNumero.textContent = i + 1
+    })
+  }
+
+  function actualizarBotonesEliminar() {
+    const filas = tabla.querySelectorAll('tr')
+    filas.forEach((fila) => {
+      const btnEliminar = fila.querySelector('.eliminar-fila')
+      if (btnEliminar) {
+        btnEliminar.style.display = filas.length === 1 ? 'none' : 'inline-block'
+      }
+    })
+  }
+
+  function actualizarTotal() {
+    let suma = 0
+    tabla.querySelectorAll('tr').forEach((fila) => {
+      const costoTd = fila.querySelector('.costo')
+      if (costoTd) {
+        const valor = parseFloat(costoTd.textContent.replace(/[$,]/g, '')) || 0
+        suma += valor
+      }
+    })
+
+    if (subtotalTd) subtotalTd.textContent = '$' + suma.toFixed(2)
+
+    let total = suma
+    if (chkIVA && chkIVA.checked) {
+      total = suma * 1.16
+    }
+    if (totalTd) totalTd.textContent = '$' + total.toFixed(2)
+  }
+
+  function asignarEventosFila(fila) {
+    if (!fila) return
+
+    const cantidadInput = fila.querySelector('.cantidad')
+    const importeInput = fila.querySelector('.importe')
+    const costoTd = fila.querySelector('.costo')
+    const eliminarBtn = fila.querySelector('.eliminar-fila')
+
+    function actualizarCosto() {
+      const cantidad = parseFloat(cantidadInput?.value) || 0
+      const importe = parseFloat(importeInput?.value) || 0
+      const costo = cantidad * importe
+      if (costoTd) costoTd.textContent = '$' + costo.toFixed(2)
+      actualizarTotal()
+    }
+
+    if (cantidadInput) cantidadInput.addEventListener('input', actualizarCosto)
+    if (importeInput) importeInput.addEventListener('input', actualizarCosto)
+
+    if (eliminarBtn) {
+      eliminarBtn.addEventListener('click', () => {
+        if (tabla.querySelectorAll('tr').length > 1) {
+          fila.remove()
+          actualizarNumeros()
+          actualizarBotonesEliminar()
+          actualizarTotal()
         }
-        return productRowHtml;
+      })
     }
+    actualizarCosto()
+  }
 
-    function actualizarNumeros() {
-        tabla.querySelectorAll('tr').forEach((fila, i) => {
-            const celdaNumero = fila.querySelector('.numero-fila');
-            if (celdaNumero) celdaNumero.textContent = i + 1;
-        });
-    }
+  tabla.querySelectorAll('tr').forEach((fila) => asignarEventosFila(fila))
+  actualizarBotonesEliminar()
+  actualizarNumeros()
+  actualizarTotal()
 
-    function actualizarBotonesEliminar() {
-        const filas = tabla.querySelectorAll('tr');
-        filas.forEach(fila => {
-            const btnEliminar = fila.querySelector('.eliminar-fila');
-            if (btnEliminar) {
-                btnEliminar.style.display = (filas.length === 1) ? 'none' : 'inline-block';
-            }
-        });
-    }
+  if (chkIVA) {
+    chkIVA.addEventListener('change', actualizarTotal)
+  }
 
-    function actualizarTotal() {
-        let suma = 0;
-        tabla.querySelectorAll('tr').forEach(fila => {
-            const costoTd = fila.querySelector('.costo');
-            if (costoTd) {
-                const valor = parseFloat(costoTd.textContent.replace(/[$,]/g, '')) || 0;
-                suma += valor;
-            }
-        });
+  if (agregarBtn) {
+    const nuevoBtn = agregarBtn.cloneNode(true)
+    agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn)
 
-        if (subtotalTd) subtotalTd.textContent = '$' + suma.toFixed(2);
+    nuevoBtn.addEventListener('click', async () => {
+      const rowHtml = await getProductRowHtml()
+      const nuevaFila = tabla.insertRow()
+      nuevaFila.innerHTML = rowHtml
+      asignarEventosFila(nuevaFila)
+      actualizarNumeros()
+      actualizarBotonesEliminar()
+      actualizarTotal()
+    })
+  }
 
-        let total = suma;
-        if (chkIVA && chkIVA.checked) {
-            total = suma * 1.16;
-        }
-        if (totalTd) totalTd.textContent = '$' + total.toFixed(2);
-    }
+  loadRazonSocialProv('ProvSelect')
 
-    function asignarEventosFila(fila) {
-        if (!fila) return;
-
-        const cantidadInput = fila.querySelector('.cantidad');
-        const importeInput = fila.querySelector('.importe');
-        const costoTd = fila.querySelector('.costo');
-        const eliminarBtn = fila.querySelector('.eliminar-fila');
-
-        function actualizarCosto() {
-            const cantidad = parseFloat(cantidadInput?.value) || 0;
-            const importe = parseFloat(importeInput?.value) || 0;
-            const costo = cantidad * importe;
-            if (costoTd) costoTd.textContent = '$' + costo.toFixed(2);
-            actualizarTotal();
-        }
-
-        if (cantidadInput) cantidadInput.addEventListener('input', actualizarCosto);
-        if (importeInput) importeInput.addEventListener('input', actualizarCosto);
-
-        if (eliminarBtn) {
-            eliminarBtn.addEventListener('click', () => {
-                if (tabla.querySelectorAll('tr').length > 1) {
-                    fila.remove();
-                    actualizarNumeros();
-                    actualizarBotonesEliminar();
-                    actualizarTotal();
-                }
-            });
-        }
-        actualizarCosto();
-    }
-
-    tabla.querySelectorAll('tr').forEach(fila => asignarEventosFila(fila));
-    actualizarBotonesEliminar();
-    actualizarNumeros();
-    actualizarTotal();
-
-    if (chkIVA) {
-        chkIVA.addEventListener('change', actualizarTotal);
-    }
-
-    if (agregarBtn) {
-        const nuevoBtn = agregarBtn.cloneNode(true);
-        agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn);
-
-        nuevoBtn.addEventListener('click', async () => {
-            const rowHtml = await getProductRowHtml();
-            const nuevaFila = tabla.insertRow();
-            nuevaFila.innerHTML = rowHtml;
-            asignarEventosFila(nuevaFila);
-            actualizarNumeros();
-            actualizarBotonesEliminar();
-            actualizarTotal();
-        });
-    }
-
-    loadRazonSocialProv("ProvSelect");
-
-    const formulario = document.getElementById('form-upload');
-    if (formulario) {
-        formulario.addEventListener('submit', SendData);
-    }
+  const formulario = document.getElementById('form-upload')
+  if (formulario) {
+    formulario.addEventListener('submit', SendData)
+  }
 }
 async function initSolicitarMaterialSinCotizar() {
-    const tabla = document.getElementById('tabla-productos-sin-cotizar');
-    const agregarBtn = document.getElementById('agregar-fila-sin-cotizar');
+  const tabla = document.getElementById('tabla-productos-sin-cotizar')
+  const agregarBtn = document.getElementById('agregar-fila-sin-cotizar')
 
-    if (!tabla) return;
+  if (!tabla) return
 
-    function actualizarNumeros() {
-        tabla.querySelectorAll('tr').forEach((fila, i) => {
-            const celdaNumero = fila.querySelector('.numero-fila');
-            if (celdaNumero) celdaNumero.textContent = i + 1;
-        });
-    }
+  function actualizarNumeros() {
+    tabla.querySelectorAll('tr').forEach((fila, i) => {
+      const celdaNumero = fila.querySelector('.numero-fila')
+      if (celdaNumero) celdaNumero.textContent = i + 1
+    })
+  }
 
-    function actualizarBotonesEliminar() {
-        const filas = tabla.querySelectorAll('tr');
-        filas.forEach(fila => {
-            const btnEliminar = fila.querySelector('.eliminar-fila');
-            if (btnEliminar) {
-                btnEliminar.style.display = (filas.length === 1) ? 'none' : 'inline-block';
-            }
-        });
-    }
+  function actualizarBotonesEliminar() {
+    const filas = tabla.querySelectorAll('tr')
+    filas.forEach((fila) => {
+      const btnEliminar = fila.querySelector('.eliminar-fila')
+      if (btnEliminar) {
+        btnEliminar.style.display = filas.length === 1 ? 'none' : 'inline-block'
+      }
+    })
+  }
 
-    function asignarEventosFila(fila) {
-        if (!fila) return;
-        const eliminarBtn = fila.querySelector('.eliminar-fila');
-        if (eliminarBtn) {
-            eliminarBtn.addEventListener('click', () => {
-                if (tabla.querySelectorAll('tr').length > 1) {
-                    fila.remove();
-                    actualizarNumeros();
-                    actualizarBotonesEliminar();
-                }
-            });
+  function asignarEventosFila(fila) {
+    if (!fila) return
+    const eliminarBtn = fila.querySelector('.eliminar-fila')
+    if (eliminarBtn) {
+      eliminarBtn.addEventListener('click', () => {
+        if (tabla.querySelectorAll('tr').length > 1) {
+          fila.remove()
+          actualizarNumeros()
+          actualizarBotonesEliminar()
         }
+      })
     }
+  }
 
-    tabla.querySelectorAll('tr').forEach(fila => asignarEventosFila(fila));
-    actualizarBotonesEliminar();
-    actualizarNumeros();
+  tabla.querySelectorAll('tr').forEach((fila) => asignarEventosFila(fila))
+  actualizarBotonesEliminar()
+  actualizarNumeros()
 
-    if (agregarBtn) {
-        const nuevoBtn = agregarBtn.cloneNode(true);
-        agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn);
+  if (agregarBtn) {
+    const nuevoBtn = agregarBtn.cloneNode(true)
+    agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn)
 
-        nuevoBtn.addEventListener('click', () => {
-            const nuevaFila = document.createElement('tr');
-            nuevaFila.classList.add('fila-producto');
-            nuevaFila.innerHTML = `
+    nuevoBtn.addEventListener('click', () => {
+      const nuevaFila = document.createElement('tr')
+      nuevaFila.classList.add('fila-producto')
+      nuevaFila.innerHTML = `
                 <td class="numero-fila px-3 py-2 border text-center"></td>
                 <td class="px-3 py-2 border">
                     <input type="text" name="producto[]" class="w-full px-2 py-1 border rounded" placeholder="Nombre del producto">
@@ -259,246 +257,249 @@ async function initSolicitarMaterialSinCotizar() {
                         </svg>
                     </button>
                 </td>
-            `;
-            tabla.appendChild(nuevaFila);
-            asignarEventosFila(nuevaFila);
-            actualizarNumeros();
-            actualizarBotonesEliminar();
-        });
-    }
+            `
+      tabla.appendChild(nuevaFila)
+      asignarEventosFila(nuevaFila)
+      actualizarNumeros()
+      actualizarBotonesEliminar()
+    })
+  }
 
-    loadRazonSocialProv("ProvSelectSinCotizar");
+  loadRazonSocialProv('ProvSelectSinCotizar')
 
-    const formulario = document.getElementById('form-upload-sin-cotizar');
-    if (formulario) {
-        formulario.addEventListener('submit', SendData);
-    }
-
+  const formulario = document.getElementById('form-upload-sin-cotizar')
+  if (formulario) {
+    formulario.addEventListener('submit', SendData)
+  }
 }
 async function initSolicitarServicio() {
-    const tabla = document.getElementById('tabla-servicios');
-    const agregarBtn = document.getElementById('agregar-fila-servicio');
-    const subtotalTd = document.getElementById('subtotal-servicio');
-    const totalTd = document.getElementById('total-servicio');
-    const chkIVA = document.getElementById('agregar-iva-servicio');
+  const tabla = document.getElementById('tabla-servicios')
+  const agregarBtn = document.getElementById('agregar-fila-servicio')
+  const subtotalTd = document.getElementById('subtotal-servicio')
+  const totalTd = document.getElementById('total-servicio')
+  const chkIVA = document.getElementById('agregar-iva-servicio')
 
-    if (!tabla) return;
+  if (!tabla) return
 
-    let serviceRowHtml = null;
-    async function getServiceRowHtml() {
-        if (serviceRowHtml === null) {
-            try {
-                const response = await fetch(`${BASE_URL}modales/vistas/service_row`);
-                if (!response.ok) throw new Error('Falló la carga de la fila de servicio');
-                serviceRowHtml = await response.text();
-            } catch (error) {
-                console.error(error);
-                serviceRowHtml = '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>';
-            }
+  let serviceRowHtml = null
+  async function getServiceRowHtml() {
+    if (serviceRowHtml === null) {
+      try {
+        const response = await fetch(`${BASE_URL}modales/vistas/service_row`)
+        if (!response.ok) throw new Error('Falló la carga de la fila de servicio')
+        serviceRowHtml = await response.text()
+      } catch (error) {
+        console.error(error)
+        serviceRowHtml =
+          '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
+      }
+    }
+    return serviceRowHtml
+  }
+
+  function actualizarNumeros() {
+    tabla.querySelectorAll('tr').forEach((fila, i) => {
+      const celdaNumero = fila.querySelector('.numero-fila-servicio')
+      if (celdaNumero) celdaNumero.textContent = i + 1
+    })
+  }
+
+  function actualizarBotonesEliminar() {
+    const filas = tabla.querySelectorAll('tr')
+    filas.forEach((fila) => {
+      const btnEliminar = fila.querySelector('.eliminar-fila-servicio')
+      if (btnEliminar) {
+        btnEliminar.style.display = filas.length === 1 ? 'none' : 'inline-block'
+      }
+    })
+  }
+
+  function actualizarTotal() {
+    let suma = 0
+    tabla.querySelectorAll('tr').forEach((fila) => {
+      const costoInput = fila.querySelector('.costo-servicio')
+      if (costoInput) {
+        const valor = parseFloat(costoInput.value) || 0
+        suma += valor
+      }
+    })
+
+    if (subtotalTd) subtotalTd.textContent = '$' + suma.toFixed(2)
+
+    let total = suma
+    if (chkIVA && chkIVA.checked) total = suma * 1.16
+    if (totalTd) totalTd.textContent = '$' + total.toFixed(2)
+  }
+
+  function asignarEventosFila(fila) {
+    if (!fila) return
+
+    const costoInput = fila.querySelector('.costo-servicio')
+    const eliminarBtn = fila.querySelector('.eliminar-fila-servicio')
+
+    if (costoInput) costoInput.addEventListener('input', actualizarTotal)
+
+    if (eliminarBtn) {
+      eliminarBtn.addEventListener('click', () => {
+        if (tabla.querySelectorAll('tr').length > 1) {
+          fila.remove()
+          actualizarNumeros()
+          actualizarBotonesEliminar()
+          actualizarTotal()
         }
-        return serviceRowHtml;
+      })
     }
 
-    function actualizarNumeros() {
-        tabla.querySelectorAll('tr').forEach((fila, i) => {
-            const celdaNumero = fila.querySelector('.numero-fila-servicio');
-            if (celdaNumero) celdaNumero.textContent = i + 1;
-        });
-    }
+    actualizarTotal()
+  }
 
-    function actualizarBotonesEliminar() {
-        const filas = tabla.querySelectorAll('tr');
-        filas.forEach(fila => {
-            const btnEliminar = fila.querySelector('.eliminar-fila-servicio');
-            if (btnEliminar) {
-                btnEliminar.style.display = (filas.length === 1) ? 'none' : 'inline-block';
-            }
-        });
-    }
+  tabla.querySelectorAll('tr').forEach((fila) => asignarEventosFila(fila))
+  actualizarBotonesEliminar()
+  actualizarNumeros()
+  actualizarTotal()
 
-    function actualizarTotal() {
-        let suma = 0;
-        tabla.querySelectorAll('tr').forEach(fila => {
-            const costoInput = fila.querySelector('.costo-servicio');
-            if (costoInput) {
-                const valor = parseFloat(costoInput.value) || 0;
-                suma += valor;
-            }
-        });
+  if (chkIVA) chkIVA.addEventListener('change', actualizarTotal)
 
-        if (subtotalTd) subtotalTd.textContent = '$' + suma.toFixed(2);
+  if (agregarBtn) {
+    const nuevoBtn = agregarBtn.cloneNode(true)
+    agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn)
 
-        let total = suma;
-        if (chkIVA && chkIVA.checked) total = suma * 1.16;
-        if (totalTd) totalTd.textContent = '$' + total.toFixed(2);
-    }
+    nuevoBtn.addEventListener('click', async () => {
+      const rowHtml = await getServiceRowHtml()
+      const nuevaFila = tabla.insertRow()
+      nuevaFila.innerHTML = rowHtml
+      asignarEventosFila(nuevaFila)
+      actualizarNumeros()
+      actualizarBotonesEliminar()
+      actualizarTotal()
+    })
+  }
 
-    function asignarEventosFila(fila) {
-        if (!fila) return;
+  loadRazonSocialProv('razonSocialServicioSelect')
 
-        const costoInput = fila.querySelector('.costo-servicio');
-        const eliminarBtn = fila.querySelector('.eliminar-fila-servicio');
-
-        if (costoInput) costoInput.addEventListener('input', actualizarTotal);
-
-        if (eliminarBtn) {
-            eliminarBtn.addEventListener('click', () => {
-                if (tabla.querySelectorAll('tr').length > 1) {
-                    fila.remove();
-                    actualizarNumeros();
-                    actualizarBotonesEliminar();
-                    actualizarTotal();
-                }
-            });
-        }
-
-        actualizarTotal();
-    }
-
-    tabla.querySelectorAll('tr').forEach(fila => asignarEventosFila(fila));
-    actualizarBotonesEliminar();
-    actualizarNumeros();
-    actualizarTotal();
-
-    if (chkIVA) chkIVA.addEventListener('change', actualizarTotal);
-
-    if (agregarBtn) {
-        const nuevoBtn = agregarBtn.cloneNode(true);
-        agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn);
-
-        nuevoBtn.addEventListener('click', async () => {
-            const rowHtml = await getServiceRowHtml();
-            const nuevaFila = tabla.insertRow();
-            nuevaFila.innerHTML = rowHtml;
-            asignarEventosFila(nuevaFila);
-            actualizarNumeros();
-            actualizarBotonesEliminar();
-            actualizarTotal();
-        });
-    }
-
-    loadRazonSocialProv("razonSocialServicioSelect");
-
-    const formulario = document.getElementById('form-servicio-upload');
-    if (formulario) formulario.addEventListener('submit', SendData);
+  const formulario = document.getElementById('form-servicio-upload')
+  if (formulario) formulario.addEventListener('submit', SendData)
 }
 function mostrarSubmenuMaterial() {
-    document.getElementById('seleccion-opcion').classList.add('hidden');
-    document.getElementById('submenu-material').classList.remove('hidden');
+  document.getElementById('seleccion-opcion').classList.add('hidden')
+  document.getElementById('submenu-material').classList.remove('hidden')
 }
 function mostrarSolicitarMaterialCotizado() {
-    document.getElementById('submenu-material').classList.add('hidden');
-    document.getElementById('solicitar-material-content').classList.remove('hidden');
-    initSolicitarMaterial();
+  document.getElementById('submenu-material').classList.add('hidden')
+  document.getElementById('solicitar-material-content').classList.remove('hidden')
+  initSolicitarMaterial()
 }
 function mostrarSolicitarMaterialSinCotizar() {
-    document.getElementById('submenu-material').classList.add('hidden');
-    document.getElementById('solicitar-material-sin-cotizar').classList.remove('hidden');
-    initSolicitarMaterialSinCotizar();
+  document.getElementById('submenu-material').classList.add('hidden')
+  document.getElementById('solicitar-material-sin-cotizar').classList.remove('hidden')
+  initSolicitarMaterialSinCotizar()
 }
 function mostrarSolicitarServicio() {
-    document.getElementById('seleccion-opcion').classList.add('hidden');
-    document.getElementById('solicitar-servicio-content').classList.remove('hidden');
-    initSolicitarServicio();
+  document.getElementById('seleccion-opcion').classList.add('hidden')
+  document.getElementById('solicitar-servicio-content').classList.remove('hidden')
+  initSolicitarServicio()
 }
 function regresarSeleccionOpciones() {
-    document.getElementById('submenu-material').classList.add('hidden');
-    document.getElementById('solicitar-material-content').classList.add('hidden');
-    document.getElementById('solicitar-material-sin-cotizar').classList.add('hidden');
-    document.getElementById('solicitar-servicio-content').classList.add('hidden');
-    document.getElementById('seleccion-opcion').classList.remove('hidden');
+  document.getElementById('submenu-material').classList.add('hidden')
+  document.getElementById('solicitar-material-content').classList.add('hidden')
+  document.getElementById('solicitar-material-sin-cotizar').classList.add('hidden')
+  document.getElementById('solicitar-servicio-content').classList.add('hidden')
+  document.getElementById('seleccion-opcion').classList.remove('hidden')
 }
 function regresarSubmenuMaterial() {
-    document.getElementById('solicitar-material-content').classList.add('hidden');
-    document.getElementById('solicitar-material-sin-cotizar').classList.add('hidden');
-    document.getElementById('submenu-material').classList.remove('hidden');
+  document.getElementById('solicitar-material-content').classList.add('hidden')
+  document.getElementById('solicitar-material-sin-cotizar').classList.add('hidden')
+  document.getElementById('submenu-material').classList.remove('hidden')
 }
-
 
 /**
  * Lógica para el modal "Ver Historial"
  */
 function initPaginacionHistorial() {
-    const tabla = document.getElementById('tabla-historial');
-    if (!tabla) return;
-    const tbody = tabla.querySelector('tbody');
-    const paginacionContenedor = document.getElementById('paginacion-historial');
-    const filtroFecha = document.getElementById('filtro-fecha');
-    const filtroEstado = document.getElementById('filtro-estado');
+  const tabla = document.getElementById('tabla-historial')
+  if (!tabla) return
+  const tbody = tabla.querySelector('tbody')
+  const paginacionContenedor = document.getElementById('paginacion-historial')
+  const filtroFecha = document.getElementById('filtro-fecha')
+  const filtroEstado = document.getElementById('filtro-estado')
 
-    let allData = [];
-    const filasPorPagina = 10;
-    let paginaActual = 1;
+  let allData = []
+  const filasPorPagina = 10
+  let paginaActual = 1
 
-    async function fetchData() {
-        try {
-            const exceptions = ['Compras', 'Administración'];
-            let url = `${BASE_URL}api/historic`;
+  async function fetchData() {
+    try {
+      const exceptions = ['Compras', 'Administración']
+      let url = `${BASE_URL}api/historic`
 
-            if (typeof USER_DEPT_NAME !== 'undefined' && typeof USER_DEPT_ID !== 'undefined' &&
-                USER_DEPT_ID && !exceptions.includes(USER_DEPT_NAME)) {
-                url = `${BASE_URL}api/historic/department/${USER_DEPT_ID}`;
-            }
+      if (
+        typeof USER_DEPT_NAME !== 'undefined' &&
+        typeof USER_DEPT_ID !== 'undefined' &&
+        USER_DEPT_ID &&
+        !exceptions.includes(USER_DEPT_NAME)
+      ) {
+        url = `${BASE_URL}api/historic/department/${USER_DEPT_ID}`
+      }
 
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Error al cargar el historial');
-            }
-            allData = await response.json();
-            actualizarTabla();
-        } catch (error) {
-            console.error(error);
-            if (tbody) tbody.innerHTML =
-                `<tr><td colspan="6" class="text-center text-red-500 p-4">${error.message}</td></tr>`;
-        }
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error('Error al cargar el historial')
+      }
+      allData = await response.json()
+      actualizarTabla()
+    } catch (error) {
+      console.error(error)
+      if (tbody)
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">${error.message}</td></tr>`
+    }
+  }
+
+  function getStatusSVG(status) {
+    if (!status) return ''
+    const statusLower = status.toLowerCase()
+    const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`
+    let svgClass = ''
+    let iconId = ''
+
+    switch (statusLower) {
+      case 'aprobada':
+        svgClass = 'text-green-600'
+        iconId = 'aceptado'
+        break
+      case 'en espera':
+        svgClass = 'text-yellow-500'
+        iconId = 'en_espera'
+        break
+      case 'rechazada':
+        svgClass = 'text-red-500'
+        iconId = 'rechazado'
+        break
+      case 'cotizando':
+        svgClass = 'text-blue-500'
+        iconId = 'cotizacion'
+        break
+      case 'en revision':
+        svgClass = 'text-blue-500'
+        iconId = 'revision'
+        break
+      default:
+        return ''
+    }
+    return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
+  }
+
+  function renderizarTabla(data) {
+    if (!tbody) return
+    tbody.innerHTML = ''
+    if (data.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="6" class="text-center p-4 text-gray-500">No se encontraron resultados.</td></tr>'
+      return
     }
 
-    function getStatusSVG(status) {
-        if (!status) return '';
-        const statusLower = status.toLowerCase();
-        const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`;
-        let svgClass = '';
-        let iconId = '';
-
-        switch (statusLower) {
-            case 'aprobada':
-                svgClass = 'text-green-600';
-                iconId = 'aceptado';
-                break;
-            case 'en espera':
-                svgClass = 'text-yellow-500';
-                iconId = 'en_espera';
-                break;
-            case 'rechazada':
-                svgClass = 'text-red-500';
-                iconId = 'rechazado';
-                break;
-            case 'cotizando':
-                svgClass = 'text-blue-500';
-                iconId = 'cotizacion';
-                break;
-            case 'en revision':
-                svgClass = 'text-blue-500';
-                iconId = 'revision';
-                break;
-            default:
-                return '';
-        }
-        return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`;
-    }
-
-    function renderizarTabla(data) {
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        if (data.length === 0) {
-            tbody.innerHTML =
-                '<tr><td colspan="6" class="text-center p-4 text-gray-500">No se encontraron resultados.</td></tr>';
-            return;
-        }
-
-        data.forEach(item => {
-            const svg = getStatusSVG(item.Estado);
-            const fila = `
+    data.forEach((item) => {
+      const svg = getStatusSVG(item.Estado)
+      const fila = `
             <tr class="text-center">
                 <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
                 <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
@@ -512,100 +513,110 @@ function initPaginacionHistorial() {
                     <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">ver</a>
                 </td>
             </tr>
-        `;
-            tbody.insertAdjacentHTML('beforeend', fila);
-        });
+        `
+      tbody.insertAdjacentHTML('beforeend', fila)
+    })
+  }
+
+  function aplicarFiltros() {
+    const fechaFiltro = filtroFecha.value
+    const estadoFiltro = filtroEstado.value
+
+    return allData.filter((item) => {
+      const coincideFecha = !fechaFiltro || item.Fecha === fechaFiltro
+      const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
+      return coincideFecha && coincideEstado
+    })
+  }
+
+  function mostrarPagina(pagina, filasFiltradas) {
+    paginaActual = pagina
+    const inicio = (pagina - 1) * filasPorPagina
+    const fin = inicio + filasPorPagina
+
+    const datosPagina = filasFiltradas.slice(inicio, fin)
+    renderizarTabla(datosPagina)
+    renderizarControlesPaginacion(filasFiltradas.length)
+  }
+
+  function renderizarControlesPaginacion(totalFilas) {
+    if (!paginacionContenedor) return
+    paginacionContenedor.innerHTML = ''
+
+    const totalPaginas = Math.ceil(totalFilas / filasPorPagina)
+    if (totalPaginas <= 1) return
+
+    for (let i = 1; i <= totalPaginas; i++) {
+      const boton = document.createElement('button')
+      boton.textContent = i
+      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+      boton.addEventListener('click', () => {
+        mostrarPagina(i, aplicarFiltros())
+      })
+      paginacionContenedor.appendChild(boton)
     }
+  }
 
-    function aplicarFiltros() {
-        const fechaFiltro = filtroFecha.value;
-        const estadoFiltro = filtroEstado.value;
+  function actualizarTabla() {
+    const filtradas = aplicarFiltros()
+    mostrarPagina(1, filtradas)
+  }
 
-        return allData.filter(item => {
-            const coincideFecha = !fechaFiltro || item.Fecha === fechaFiltro;
-            const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
-            return coincideFecha && coincideEstado;
-        });
-    }
+  filtroFecha?.addEventListener('input', actualizarTabla)
+  filtroEstado?.addEventListener('change', actualizarTabla)
 
-    function mostrarPagina(pagina, filasFiltradas) {
-        paginaActual = pagina;
-        const inicio = (pagina - 1) * filasPorPagina;
-        const fin = inicio + filasPorPagina;
-
-        const datosPagina = filasFiltradas.slice(inicio, fin);
-        renderizarTabla(datosPagina);
-        renderizarControlesPaginacion(filasFiltradas.length);
-    }
-
-    function renderizarControlesPaginacion(totalFilas) {
-        if (!paginacionContenedor) return;
-        paginacionContenedor.innerHTML = '';
-
-        const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
-        if (totalPaginas <= 1) return;
-
-        for (let i = 1; i <= totalPaginas; i++) {
-            const boton = document.createElement('button');
-            boton.textContent = i;
-            boton.className =
-                `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
-            boton.addEventListener('click', () => {
-                mostrarPagina(i, aplicarFiltros());
-            });
-            paginacionContenedor.appendChild(boton);
-        }
-    }
-
-    function actualizarTabla() {
-        const filtradas = aplicarFiltros();
-        mostrarPagina(1, filtradas);
-    }
-
-    filtroFecha?.addEventListener('input', actualizarTabla);
-    filtroEstado?.addEventListener('change', actualizarTabla);
-
-    fetchData();
+  fetchData()
 }
 
 // Funciones para mostrar/ocultar la pantalla de ver historial
 async function mostrarVerHistorial(idSolicitud) {
-    const divHistorial = document.getElementById('div-historial');
-    if (divHistorial) divHistorial.classList.add('hidden');
+  const divHistorial = document.getElementById('div-historial')
+  if (divHistorial) divHistorial.classList.add('hidden')
 
-    const divVer = document.getElementById('div-ver-historial');
-    if (divVer) divVer.classList.remove('hidden');
+  const divVer = document.getElementById('div-ver-historial')
+  if (divVer) divVer.classList.remove('hidden')
 
-    const detallesContainer = document.getElementById('detalles-historial-solicitud');
-    if (!detallesContainer) {
-        console.error('El contenedor de detalles del historial no fue encontrado.');
-        return;
+  const detallesContainer = document.getElementById('detalles-historial-solicitud')
+  if (!detallesContainer) {
+    console.error('El contenedor de detalles del historial no fue encontrado.')
+    return
+  }
+
+  detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>'
+
+  try {
+    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`)
+    }
+    const data = await response.json()
+
+    if (data.error) {
+      throw new Error(data.error)
     }
 
-    detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>';
+    let estadoClass = ''
+    switch (data.Estado?.toLowerCase()) {
+      case 'aprobada':
+        estadoClass = 'text-green-600'
+        break
+      case 'rechazada':
+        estadoClass = 'text-red-600'
+        break
+      case 'en revision':
+        estadoClass = 'text-blue-600'
+        break
+      case 'cotizando':
+        estadoClass = 'text-purple-600'
+        break
+      case 'en espera':
+        estadoClass = 'text-yellow-600'
+        break
+      default:
+        estadoClass = 'text-gray-600'
+    }
 
-    try {
-        const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-
-        if (data.error) {
-            throw new Error(data.error);
-        }
-
-        let estadoClass = '';
-        switch (data.Estado?.toLowerCase()) {
-            case 'aprobada': estadoClass = 'text-green-600'; break;
-            case 'rechazada': estadoClass = 'text-red-600'; break;
-            case 'en revision': estadoClass = 'text-blue-600'; break;
-            case 'cotizando': estadoClass = 'text-purple-600'; break;
-            case 'en espera': estadoClass = 'text-yellow-600'; break;
-            default: estadoClass = 'text-gray-600';
-        }
-
-        let html = `
+    let html = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
@@ -615,17 +626,17 @@ async function mostrarVerHistorial(idSolicitud) {
                 <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
                 ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
             </div>
-        `;
+        `
 
-        if (data.ComentariosAdmin) {
-            html += `
+    if (data.ComentariosAdmin) {
+      html += `
             <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
                 <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
                 <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-            </div>`;
-        }
+            </div>`
+    }
 
-        html += `
+    html += `
             <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-300">
@@ -639,11 +650,11 @@ async function mostrarVerHistorial(idSolicitud) {
                         </tr>
                     </thead>
                     <tbody>
-        `;
+        `
 
-        data.productos.forEach(p => {
-            const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
-            html += `
+    data.productos.forEach((p) => {
+      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+      html += `
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t">${p.Codigo}</td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
@@ -651,189 +662,185 @@ async function mostrarVerHistorial(idSolicitud) {
                     <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
                     <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
                 </tr>
-            `;
-        });
+            `
+    })
 
-        html += `
+    html += `
                     </tbody>
                 </table>
             </div>
-        `;
+        `
 
-        if (data.Archivo) {
-            const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`;
-            html += `
+    if (data.Archivo) {
+      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
+      html += `
                 <div class="mt-6">
                     <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
                     <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
                 </div>
-            `;
-        }
-
-        detallesContainer.innerHTML = html;
-
-    } catch (error) {
-        console.error("Error al cargar detalles del historial:", error);
-        detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`;
+            `
     }
+
+    detallesContainer.innerHTML = html
+  } catch (error) {
+    console.error('Error al cargar detalles del historial:', error)
+    detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
+  }
 }
 function regresarHistorial() {
-    const divVer = document.getElementById('div-ver-historial');
-    if (divVer) divVer.classList.add('hidden');
+  const divVer = document.getElementById('div-ver-historial')
+  if (divVer) divVer.classList.add('hidden')
 
-    const divHistorial = document.getElementById('div-historial');
-    if (divHistorial) divHistorial.classList.remove('hidden');
+  const divHistorial = document.getElementById('div-historial')
+  if (divHistorial) divHistorial.classList.remove('hidden')
 
-    console.log("Regresando a la tabla de historial");
+  console.log('Regresando a la tabla de historial')
 }
-
 
 /**
  * Lógica para el modal "Usuarios"
  */
 function initUsuarios() {
-    const modalContenido = document.getElementById('modal-contenido');
-    if (!modalContenido) return;
+  const modalContenido = document.getElementById('modal-contenido')
+  if (!modalContenido) return
 
-    const form = modalContenido.querySelector('#form-register');
-    const mensajeDiv = modalContenido.querySelector('#mensaje');
+  const form = modalContenido.querySelector('#form-register')
+  const mensajeDiv = modalContenido.querySelector('#mensaje')
 
-    loadDepartamentos();
+  loadDepartamentos()
 
-    if (!form) {
-        console.warn('initUsuarios: no se encontró #form-register dentro del modal');
-        return;
+  if (!form) {
+    console.warn('initUsuarios: no se encontró #form-register dentro del modal')
+    return
+  }
+
+  if (form.dataset.init === '1') return
+  form.dataset.init = '1'
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault()
+
+    if (mensajeDiv) {
+      mensajeDiv.textContent = ''
+      mensajeDiv.classList.remove('text-green-600', 'text-red-600')
     }
 
-    if (form.dataset.init === '1') return;
-    form.dataset.init = '1';
+    const submitBtn = form.querySelector('button[type="submit"]')
+    const prevBtnHtml = submitBtn ? submitBtn.innerHTML : null
+    if (submitBtn) {
+      submitBtn.disabled = true
+      submitBtn.innerHTML = 'Guardando...'
+    }
 
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
+    try {
+      const formData = new FormData(form)
+      const resp = await fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+        },
+      })
 
+      const text = await resp.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (err) {
+        console.error('Respuesta no JSON recibida al registrar usuario:', text)
+        if (mensajeDiv)
+          mensajeDiv.innerHTML =
+            '<span class="text-red-600">Error: respuesta inesperada del servidor.</span>'
+        return
+      }
+
+      if (data.success) {
         if (mensajeDiv) {
-            mensajeDiv.textContent = '';
-            mensajeDiv.classList.remove('text-green-600', 'text-red-600');
+          mensajeDiv.innerHTML = `<span class="text-green-600">${data.message || 'Registro correcto.'}</span>`
         }
-
-        const submitBtn = form.querySelector('button[type="submit"]');
-        const prevBtnHtml = submitBtn ? submitBtn.innerHTML : null;
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = 'Guardando...';
+        form.reset()
+        form.querySelector('input, select, textarea')?.focus()
+      } else {
+        if (mensajeDiv) {
+          mensajeDiv.innerHTML = `<span class="text-red-600">${data.message || 'Error al registrar usuario.'}</span>`
         }
-
-        try {
-            const formData = new FormData(form);
-            const resp = await fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            });
-
-            const text = await resp.text();
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (err) {
-                console.error('Respuesta no JSON recibida al registrar usuario:', text);
-                if (mensajeDiv) mensajeDiv.innerHTML =
-                    '<span class="text-red-600">Error: respuesta inesperada del servidor.</span>';
-                return;
-            }
-
-            if (data.success) {
-                if (mensajeDiv) {
-                    mensajeDiv.innerHTML =
-                        `<span class="text-green-600">${data.message || 'Registro correcto.'}</span>`;
-                }
-                form.reset();
-                form.querySelector('input, select, textarea')?.focus();
-            } else {
-                if (mensajeDiv) {
-                    mensajeDiv.innerHTML =
-                        `<span class="text-red-600">${data.message || 'Error al registrar usuario.'}</span>`;
-                }
-            }
-
-        } catch (err) {
-            console.error('Error en la solicitud:', err);
-            if (mensajeDiv) mensajeDiv.innerHTML =
-                `<span class="text-red-600">Error en la solicitud: ${err.message}</span>`;
-        } finally {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = prevBtnHtml;
-            }
-        }
-    });
+      }
+    } catch (err) {
+      console.error('Error en la solicitud:', err)
+      if (mensajeDiv)
+        mensajeDiv.innerHTML = `<span class="text-red-600">Error en la solicitud: ${err.message}</span>`
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false
+        submitBtn.innerHTML = prevBtnHtml
+      }
+    }
+  })
 }
 
 /**
  * Lógica para el modal "Revisar Solicitudes"
  */
 function initRevisarSolicitud() {
-    const filas = document.querySelectorAll('#tablaRevisarSolicitud tr');
-    const paginacion = document.getElementById('paginacion-enviar-revision');
+  const filas = document.querySelectorAll('#tablaRevisarSolicitud tr')
+  const paginacion = document.getElementById('paginacion-enviar-revision')
 
-    let paginaActual = 1;
-    const filasPorPagina = 10;
-    const totalFilas = filas.length;
-    const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+  let paginaActual = 1
+  const filasPorPagina = 10
+  const totalFilas = filas.length
+  const totalPaginas = Math.ceil(totalFilas / filasPorPagina)
 
-    function mostrarPagina(pagina) {
-        paginaActual = pagina;
-        filas.forEach((fila, index) => {
-            fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
-        });
-        renderPaginacion();
+  function mostrarPagina(pagina) {
+    paginaActual = pagina
+    filas.forEach((fila, index) => {
+      fila.style.display =
+        index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina ? '' : 'none'
+    })
+    renderPaginacion()
+  }
+
+  function renderPaginacion() {
+    if (!paginacion) return
+    paginacion.innerHTML = ''
+    for (let i = 1; i <= totalPaginas; i++) {
+      const boton = document.createElement('button')
+      boton.textContent = i
+      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+      boton.addEventListener('click', () => mostrarPagina(i))
+      paginacion.appendChild(boton)
     }
+  }
 
-    function renderPaginacion() {
-        if (!paginacion) return;
-        paginacion.innerHTML = '';
-        for (let i = 1; i <= totalPaginas; i++) {
-            const boton = document.createElement('button');
-            boton.textContent = i;
-            boton.className =
-                `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
-            boton.addEventListener('click', () => mostrarPagina(i));
-            paginacion.appendChild(boton);
-        }
-    }
-
-    if (totalFilas > 0) mostrarPagina(1);
+  if (totalFilas > 0) mostrarPagina(1)
 }
 
 async function mostrarVer(idSolicitud) {
-    const divTabla = document.getElementById('div-tabla');
-    const divVer = document.getElementById('div-ver');
-    const detallesContainer = document.getElementById('detalles-solicitud');
+  const divTabla = document.getElementById('div-tabla')
+  const divVer = document.getElementById('div-ver')
+  const detallesContainer = document.getElementById('detalles-solicitud')
 
-    if (!divTabla || !divVer || !detallesContainer) {
-        console.error('Elementos del DOM no encontrados para mostrar detalles.');
-        return;
+  if (!divTabla || !divVer || !detallesContainer) {
+    console.error('Elementos del DOM no encontrados para mostrar detalles.')
+    return
+  }
+
+  divTabla.classList.add('hidden')
+  divVer.classList.remove('hidden')
+  detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>'
+
+  try {
+    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`)
+    }
+    const data = await response.json()
+
+    if (data.error) {
+      throw new Error(data.error)
     }
 
-    divTabla.classList.add('hidden');
-    divVer.classList.remove('hidden');
-    detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>';
-
-    try {
-        const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-
-        if (data.error) {
-            throw new Error(data.error);
-        }
-
-        let html = `
+    let html = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
@@ -842,103 +849,107 @@ async function mostrarVer(idSolicitud) {
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
                 <div><strong>Proveedor:</strong> ${data.RazonSocialNombre || 'N/A'}</div>
             </div>
-            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
+            ${data.Tipo == 2 ? '<h4 class="text-md font-bold mb-2">Servicios Solicitados</h4>' : '<h4 class="text-md font-bold mb-2">Productos Solicitados</h4>'}
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-300">
                     <thead class="bg-gray-100">
                         <tr>
                             <th class="py-2 px-4 text-left">Código</th>
-                            <th class="py-2 px-4 text-left">Producto</th>
-                            <th class="py-2 px-4 text-right">Cantidad</th>
+                             ${data.Tipo == 2 ? '<th class="py-2 px-4 text-left">Servicio</th>' : '<th class="py-2 px-4 text-left">Producto</th>'}
+                            ${data.Tipo == 2 ? '' : '<th class="py-2 px-4 text-right">Cantidad</th>'}
                             <th class="py-2 px-4 text-right">Importe</th>
-                            <th class="py-2 px-4 text-right">Costo Total</th>
+                            ${data.Tipo == 2 ? '' : '<th class="py-2 px-4 text-right">Costo Total</th>'}
                         </tr>
                     </thead>
                     <tbody>
-        `;
+        `
 
-        let subtotal = 0;
-        data.productos.forEach(p => {
-            const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
-            subtotal += parseFloat(costoTotal);
-            html += `
+    let subtotal = 0
+    data.productos.forEach((p) => {
+      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+      subtotal += parseFloat(costoTotal)
+      html += `
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'} </td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                    ${data.Tipo == 2 ? '' : '<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>'}
                     <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                    <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
+                    ${data.Tipo == 2 ? '' : '<td class="py-2 px-4 border-t text-right">$${costoTotal}</td>'}
                 </tr>
-            `;
-        });
+            `
+    })
 
-        html += `
+    html += `
                     </tbody>
                 </table>
             </div>
-        `;
+        `
 
-        if (data.Archivo) {
-            // Usamos la nueva ruta segura que creamos para descargar el archivo
-            const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`;
-            html += `
+    if (data.Archivo) {
+      // Usamos la nueva ruta segura que creamos para descargar el archivo
+      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
+      html += `
                 <div class="mt-6">
                     <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
                     <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
                 </div>
-            `;
-        }
-
-        detallesContainer.innerHTML = html;
-
-    } catch (error) {
-        console.error("Error al cargar detalles de la solicitud:", error);
-        detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`;
+            `
     }
+
+    detallesContainer.innerHTML = html
+  } catch (error) {
+    console.error('Error al cargar detalles de la solicitud:', error)
+    detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
+  }
 }
 
 async function mostrarCotizar(idSolicitud) {
-    document.getElementById('div-tabla').classList.add('hidden');
-    const divCotizar = document.getElementById('div-cotizar');
-    divCotizar.classList.remove('hidden');
+  document.getElementById('div-tabla').classList.add('hidden')
+  const divCotizar = document.getElementById('div-cotizar')
+  divCotizar.classList.remove('hidden')
 
-    // Store the solicitud ID
-    const idSolicitudInput = document.getElementById('cotizar_id_solicitud');
-    if (idSolicitudInput) {
-        idSolicitudInput.value = idSolicitud;
+  // Store the solicitud ID
+  const idSolicitudInput = document.getElementById('cotizar_id_solicitud')
+  if (idSolicitudInput) {
+    idSolicitudInput.value = idSolicitud
+  }
+
+  const tbody = divCotizar.querySelector('tbody')
+  const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores')
+  const btnGenerar = document.getElementById('btn-generar-cotizacion')
+
+  // Disable button initially
+  if (btnGenerar) btnGenerar.disabled = true
+
+  tbody.innerHTML =
+    '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>'
+
+  try {
+    const response = await fetch(`${BASE_URL}api/providers/all`)
+    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`)
+
+    const proveedores = await response.json()
+
+    if (!proveedores.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="4" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>'
+      return
     }
 
-    const tbody = divCotizar.querySelector('tbody');
-    const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores');
-    const btnGenerar = document.getElementById('btn-generar-cotizacion');
+    // --- PAGINACIÓN ---
+    const filasPorPagina = 10
+    let paginaActual = 1
+    const totalPaginas = Math.ceil(proveedores.length / filasPorPagina)
 
-    // Disable button initially
-    if (btnGenerar) btnGenerar.disabled = true;
+    function mostrarPagina(pagina) {
+      paginaActual = pagina
+      const start = (pagina - 1) * filasPorPagina
+      const end = start + filasPorPagina
 
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>';
-
-    try {
-        const response = await fetch(`${BASE_URL}api/providers/all`);
-        if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-
-        const proveedores = await response.json();
-
-        if (!proveedores.length) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>';
-            return;
-        }
-
-        // --- PAGINACIÓN ---
-        const filasPorPagina = 10;
-        let paginaActual = 1;
-        const totalPaginas = Math.ceil(proveedores.length / filasPorPagina);
-
-        function mostrarPagina(pagina) {
-            paginaActual = pagina;
-            const start = (pagina - 1) * filasPorPagina;
-            const end = start + filasPorPagina;
-
-            tbody.innerHTML = proveedores.slice(start, end).map(p => `
+      tbody.innerHTML = proveedores
+        .slice(start, end)
+        .map(
+          (p) => `
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t text-center">
                         <input type="radio" name="proveedor_seleccionado" value="${p.ID_Proveedor}" class="radio-proveedor accent-blue-600">
@@ -947,184 +958,193 @@ async function mostrarCotizar(idSolicitud) {
                     <td class="py-2 px-4 border-t">${p.Tel_Contacto}</td>
                     <td class="py-2 px-4 border-t">${p.RFC}</td>
                 </tr>
-            `).join('');
+            `,
+        )
+        .join('')
 
-            // Add event listeners to new radio buttons
-            tbody.querySelectorAll('.radio-proveedor').forEach(radio => {
-                radio.addEventListener('change', () => {
-                    if (btnGenerar) btnGenerar.disabled = false;
-                });
-            });
+      // Add event listeners to new radio buttons
+      tbody.querySelectorAll('.radio-proveedor').forEach((radio) => {
+        radio.addEventListener('change', () => {
+          if (btnGenerar) btnGenerar.disabled = false
+        })
+      })
 
-            renderPaginacion();
-        }
-
-        function renderPaginacion() {
-            if (!paginacionDiv) return;
-            paginacionDiv.innerHTML = '';
-            for (let i = 1; i <= totalPaginas; i++) {
-                const boton = document.createElement('button');
-                boton.textContent = i;
-                boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
-                boton.addEventListener('click', () => mostrarPagina(i));
-                paginacionDiv.appendChild(boton);
-            }
-        }
-
-        mostrarPagina(1);
-
-    } catch (error) {
-        console.error('Error al cargar proveedores:', error);
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`;
+      renderPaginacion()
     }
 
-    // Add event listener for the generate button, ensuring it's only attached once
-    if (btnGenerar && !btnGenerar.dataset.listenerAttached) {
-        btnGenerar.addEventListener('click', handleGenerarCotizacion);
-        btnGenerar.dataset.listenerAttached = 'true';
+    function renderPaginacion() {
+      if (!paginacionDiv) return
+      paginacionDiv.innerHTML = ''
+      for (let i = 1; i <= totalPaginas; i++) {
+        const boton = document.createElement('button')
+        boton.textContent = i
+        boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+        boton.addEventListener('click', () => mostrarPagina(i))
+        paginacionDiv.appendChild(boton)
+      }
     }
 
-    console.log("COTIZAR solicitud ID:", idSolicitud);
+    mostrarPagina(1)
+  } catch (error) {
+    console.error('Error al cargar proveedores:', error)
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`
+  }
+
+  // Add event listener for the generate button, ensuring it's only attached once
+  if (btnGenerar && !btnGenerar.dataset.listenerAttached) {
+    btnGenerar.addEventListener('click', handleGenerarCotizacion)
+    btnGenerar.dataset.listenerAttached = 'true'
+  }
+
+  console.log('COTIZAR solicitud ID:', idSolicitud)
 }
 
 async function handleGenerarCotizacion() {
-    const idSolicitud = document.getElementById('cotizar_id_solicitud').value;
-    const selectedProviderRadio = document.querySelector('input[name="proveedor_seleccionado"]:checked');
+  const idSolicitud = document.getElementById('cotizar_id_solicitud').value
+  const selectedProviderRadio = document.querySelector(
+    'input[name="proveedor_seleccionado"]:checked',
+  )
 
-    if (!selectedProviderRadio) {
-        alert('Por favor, seleccione un proveedor.');
-        return;
+  if (!selectedProviderRadio) {
+    alert('Por favor, seleccione un proveedor.')
+    return
+  }
+
+  const idProveedor = selectedProviderRadio.value
+
+  if (
+    !confirm('¿Está seguro de que desea generar la solicitud de cotización para este proveedor?')
+  ) {
+    return
+  }
+
+  const btn = document.getElementById('btn-generar-cotizacion')
+  btn.disabled = true
+  btn.textContent = 'Generando...'
+
+  try {
+    const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({
+        ID_Solicitud: idSolicitud,
+        ID_Proveedor: idProveedor,
+      }),
+    })
+
+    const result = await response.json()
+
+    if (result.success) {
+      alert('Solicitud de cotización generada y estado de la solicitud actualizado.')
+      // Refresh the modal content to see the updated list of pending requests
+      abrirModal('revisar_solicitudes')
+    } else {
+      alert('Error: ' + (result.message || 'No se pudo generar la cotización.'))
+      btn.disabled = false
+      btn.textContent = 'Generar Solicitud de Cotización'
     }
-
-    const idProveedor = selectedProviderRadio.value;
-
-    if (!confirm('¿Está seguro de que desea generar la solicitud de cotización para este proveedor?')) {
-        return;
-    }
-
-    const btn = document.getElementById('btn-generar-cotizacion');
-    btn.disabled = true;
-    btn.textContent = 'Generando...';
-
-    try {
-        const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                ID_Solicitud: idSolicitud,
-                ID_Proveedor: idProveedor
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            alert('Solicitud de cotización generada y estado de la solicitud actualizado.');
-            // Refresh the modal content to see the updated list of pending requests
-            abrirModal('revisar_solicitudes');
-        } else {
-            alert('Error: ' + (result.message || 'No se pudo generar la cotización.'));
-            btn.disabled = false;
-            btn.textContent = 'Generar Solicitud de Cotización';
-        }
-
-    } catch (error) {
-        console.error('Error al generar cotización:', error);
-        alert('Ocurrió un error de red al generar la cotización.');
-        btn.disabled = false;
-        btn.textContent = 'Generar Solicitud de Cotización';
-    }
+  } catch (error) {
+    console.error('Error al generar cotización:', error)
+    alert('Ocurrió un error de red al generar la cotización.')
+    btn.disabled = false
+    btn.textContent = 'Generar Solicitud de Cotización'
+  }
 }
 
 function regresarTabla() {
-    document.getElementById('div-ver').classList.add('hidden');
-    document.getElementById('div-cotizar').classList.add('hidden');
-    document.getElementById('div-tabla').classList.remove('hidden');
+  document.getElementById('div-ver').classList.add('hidden')
+  document.getElementById('div-cotizar').classList.add('hidden')
+  document.getElementById('div-tabla').classList.remove('hidden')
 }
-
 
 /**
  * Lógica para el modal "Registrar Material" (Almacén)
  */
 function initRegistrarMaterial() {
-    const form = document.getElementById('formRegistrarProducto');
-    if (!form) {
-        console.warn("No se encontró el formulario de registrar material");
-        return;
-    }
+  const form = document.getElementById('formRegistrarProducto')
+  if (!form) {
+    console.warn('No se encontró el formulario de registrar material')
+    return
+  }
 
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(form);
+  form.addEventListener('submit', function (e) {
+    e.preventDefault()
+    const formData = new FormData(form)
 
-        fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                headers: { 'Accept': 'application/json' }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert("Producto registrado correctamente");
-                    form.reset();
-                } else {
-                    const errorMsg = data.errors ? Object.values(data.errors).join('\n') : (data.message || 'Error desconocido');
-                    alert("Error al registrar producto:\n" + errorMsg);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("Error al procesar la solicitud");
-            });
-    });
+    fetch(form.action, {
+      method: 'POST',
+      body: formData,
+      headers: { Accept: 'application/json' },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          alert('Producto registrado correctamente')
+          form.reset()
+        } else {
+          const errorMsg = data.errors
+            ? Object.values(data.errors).join('\n')
+            : data.message || 'Error desconocido'
+          alert('Error al registrar producto:\n' + errorMsg)
+        }
+      })
+      .catch((err) => {
+        console.error(err)
+        alert('Error al procesar la solicitud')
+      })
+  })
 }
-
 
 /**
  * Lógica para el modal "Enviar a Revisión"
  */
 function initEnviarRevision() {
-    const tabla = document.getElementById('tabla-enviar');
-    if (!tabla) return;
+  const tabla = document.getElementById('tabla-enviar')
+  if (!tabla) return
 
-    const tbody = tabla.querySelector('tbody');
-    const paginacion = document.getElementById('paginacion-enviar-revision');
-    let allData = [];
-    let paginaActual = 1;
-    const filasPorPagina = 10;
+  const tbody = tabla.querySelector('tbody')
+  const paginacion = document.getElementById('paginacion-enviar-revision')
+  let allData = []
+  let paginaActual = 1
+  const filasPorPagina = 10
 
-    async function fetchData() {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4">Cargando...</td></tr>`;
+  async function fetchData() {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4">Cargando...</td></tr>`
     try {
-        const response = await fetch(`${BASE_URL}api/solicitudes/cotizadas`);
-        if (!response.ok) {
-            throw new Error('Error al cargar las solicitudes cotizadas.');
-        }
+      const response = await fetch(`${BASE_URL}api/solicitudes/cotizadas`)
+      if (!response.ok) {
+        throw new Error('Error al cargar las solicitudes cotizadas.')
+      }
 
-        // Filtrar las que no estén en "En revision"
-        allData = (await response.json()).filter(s => s.Estado !== "En revision");
+      // Filtrar las que no estén en "En revision"
+      allData = (await response.json()).filter((s) => s.Estado !== 'En revision')
 
-        mostrarPagina(1);
+      mostrarPagina(1)
     } catch (error) {
-        console.error(error);
-        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 p-4">${error.message}</td></tr>`;
+      console.error(error)
+      if (tbody)
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 p-4">${error.message}</td></tr>`
     }
-}
+  }
 
-    function renderizarTabla(data) {
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center p-4 text-gray-500">No hay solicitudes cotizadas para mostrar.</td></tr>';
-            return;
-        }
+  function renderizarTabla(data) {
+    if (!tbody) return
+    tbody.innerHTML = ''
+    if (data.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="7" class="text-center p-4 text-gray-500">No hay solicitudes cotizadas para mostrar.</td></tr>'
+      return
+    }
 
-        data.forEach(s => {
-            const monto = parseFloat(s.Monto || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-            const fila = `
+    data.forEach((s) => {
+      const monto = parseFloat(s.Monto || 0).toLocaleString('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+      })
+      const fila = `
                 <tr class="hover:bg-gray-50" data-id="${s.ID_Solicitud}">
                     <td class="py-3 px-6 text-left">${s.Folio}</td>
                     <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
@@ -1138,122 +1158,123 @@ function initEnviarRevision() {
                         </button>
                     </td>
                 </tr>
-            `;
-            tbody.insertAdjacentHTML('beforeend', fila);
-        });
+            `
+      tbody.insertAdjacentHTML('beforeend', fila)
+    })
+  }
+
+  function mostrarPagina(pagina) {
+    paginaActual = pagina
+    const inicio = (pagina - 1) * filasPorPagina
+    const fin = inicio + filasPorPagina
+
+    const datosPagina = allData.slice(inicio, fin)
+    renderizarTabla(datosPagina)
+    renderPaginacion()
+  }
+
+  function renderPaginacion() {
+    if (!paginacion) return
+    paginacion.innerHTML = ''
+    const totalPaginas = Math.ceil(allData.length / filasPorPagina)
+    if (totalPaginas <= 1) return
+
+    for (let i = 1; i <= totalPaginas; i++) {
+      const boton = document.createElement('button')
+      boton.textContent = i
+      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+      boton.addEventListener('click', () => mostrarPagina(i))
+      paginacion.appendChild(boton)
     }
+  }
 
-    function mostrarPagina(pagina) {
-        paginaActual = pagina;
-        const inicio = (pagina - 1) * filasPorPagina;
-        const fin = inicio + filasPorPagina;
-
-        const datosPagina = allData.slice(inicio, fin);
-        renderizarTabla(datosPagina);
-        renderPaginacion();
+  tbody.addEventListener('click', function (event) {
+    if (event.target.classList.contains('btn-enviar')) {
+      enviarRevisionHandler(event)
     }
+  })
 
-    function renderPaginacion() {
-        if (!paginacion) return;
-        paginacion.innerHTML = '';
-        const totalPaginas = Math.ceil(allData.length / filasPorPagina);
-        if (totalPaginas <= 1) return;
-
-        for (let i = 1; i <= totalPaginas; i++) {
-            const boton = document.createElement('button');
-            boton.textContent = i;
-            boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
-            boton.addEventListener('click', () => mostrarPagina(i));
-            paginacion.appendChild(boton);
-        }
-    }
-
-    tbody.addEventListener('click', function(event) {
-        if (event.target.classList.contains('btn-enviar')) {
-            enviarRevisionHandler(event);
-        }
-    });
-
-    fetchData();
+  fetchData()
 }
 
 function enviarRevisionHandler(event) {
-    const fila = event.target.closest('tr');
-    const idSolicitud = fila.dataset.id;
-    if (!confirm(`¿Está seguro de que desea enviar la solicitud mbsp-${idSolicitud} a revisión?`)) {
-        return;
-    }
+  const fila = event.target.closest('tr')
+  const idSolicitud = fila.dataset.id
+  if (!confirm(`¿Está seguro de que desea enviar la solicitud mbsp-${idSolicitud} a revisión?`)) {
+    return
+  }
 
-    const btn = event.target;
-    btn.disabled = true;
-    btn.textContent = 'Enviando...';
+  const btn = event.target
+  btn.disabled = true
+  btn.textContent = 'Enviando...'
 
-    fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ ID_Solicitud: idSolicitud })
+  fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify({ ID_Solicitud: idSolicitud }),
+  })
+    .then((response) => response.json())
+    .then((result) => {
+      if (result.success) {
+        mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success')
+        // Vuelve a cargar los datos para refrescar la tabla y la paginación
+        initEnviarRevision()
+      } else {
+        mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error')
+        btn.disabled = false
+        btn.textContent = 'Enviar'
+      }
     })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success');
-            // Vuelve a cargar los datos para refrescar la tabla y la paginación
-            initEnviarRevision();
-        } else {
-            mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error');
-            btn.disabled = false;
-            btn.textContent = 'Enviar';
-        }
+    .catch((error) => {
+      console.error('Error:', error)
+      mostrarNotificacion('Error de red al enviar a revisión.', 'error')
+      btn.disabled = false
+      btn.textContent = 'Enviar'
     })
-    .catch(error => {
-        console.error('Error:', error);
-        mostrarNotificacion('Error de red al enviar a revisión.', 'error');
-        btn.disabled = false;
-        btn.textContent = 'Enviar';
-    });
 }
-
 
 /**
  * Lógica para el modal "Dictamen de Solicitudes"
  */
 async function initDictamenSolicitudes() {
-    const tbody = document.getElementById('tablaDictamenSolicitudes');
-    if (!tbody) return;
+  const tbody = document.getElementById('tablaDictamenSolicitudes')
+  if (!tbody) return
 
-    const paginacion = document.getElementById('paginacion-dictamen');
-    let allData = [];
-    let paginaActual = 1;
-    const filasPorPagina = 10;
+  const paginacion = document.getElementById('paginacion-dictamen')
+  let allData = []
+  let paginaActual = 1
+  const filasPorPagina = 10
 
-    async function fetchData() {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4">Cargando...</td></tr>`;
-        try {
-            const response = await fetch(`${BASE_URL}api/solicitudes/en-revision`);
-            if (!response.ok) {
-                throw new Error('Error al cargar las solicitudes en dictamen.');
-            }
-            allData = await response.json();
-            mostrarPagina(1);
-        } catch (error) {
-            console.error(error);
-            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">${error.message}</td></tr>`;
-        }
+  async function fetchData() {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4">Cargando...</td></tr>`
+    try {
+      const response = await fetch(`${BASE_URL}api/solicitudes/en-revision`)
+      if (!response.ok) {
+        throw new Error('Error al cargar las solicitudes en dictamen.')
+      }
+      allData = await response.json()
+      mostrarPagina(1)
+    } catch (error) {
+      console.error(error)
+      if (tbody)
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">${error.message}</td></tr>`
+    }
+  }
+
+  function renderizarTabla(data) {
+    if (!tbody) return
+    tbody.innerHTML = ''
+    if (data.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="6" class="text-center p-4 text-gray-500">No hay solicitudes en dictamen para mostrar.</td></tr>'
+      return
     }
 
-    function renderizarTabla(data) {
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4 text-gray-500">No hay solicitudes en dictamen para mostrar.</td></tr>';
-            return;
-        }
-
-        data.forEach(s => {
-            const fila = `
+    data.forEach((s) => {
+      const fila = `
                 <tr class="hover:bg-gray-50" data-id="${s.ID}">
                     <td class="py-3 px-6 text-left">${s.Folio || 'N/A'}</td>
                     <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
@@ -1262,55 +1283,55 @@ async function initDictamenSolicitudes() {
                     <td class="py-3 px-6 text-left">${s.Estado}</td>
                     <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerDictamen(${s.ID})">VER</td>
                 </tr>
-            `;
-            tbody.insertAdjacentHTML('beforeend', fila);
-        });
+            `
+      tbody.insertAdjacentHTML('beforeend', fila)
+    })
+  }
+
+  function mostrarPagina(pagina) {
+    paginaActual = pagina
+    const inicio = (pagina - 1) * filasPorPagina
+    const fin = inicio + filasPorPagina
+
+    const datosPagina = allData.slice(inicio, fin)
+    renderizarTabla(datosPagina)
+    renderPaginacion()
+  }
+
+  function renderPaginacion() {
+    if (!paginacion) return
+    paginacion.innerHTML = ''
+    const totalPaginas = Math.ceil(allData.length / filasPorPagina)
+    if (totalPaginas <= 1) return
+
+    for (let i = 1; i <= totalPaginas; i++) {
+      const boton = document.createElement('button')
+      boton.textContent = i
+      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+      boton.addEventListener('click', () => mostrarPagina(i))
+      paginacion.appendChild(boton)
     }
+  }
 
-    function mostrarPagina(pagina) {
-        paginaActual = pagina;
-        const inicio = (pagina - 1) * filasPorPagina;
-        const fin = inicio + filasPorPagina;
-
-        const datosPagina = allData.slice(inicio, fin);
-        renderizarTabla(datosPagina);
-        renderPaginacion();
-    }
-
-    function renderPaginacion() {
-        if (!paginacion) return;
-        paginacion.innerHTML = '';
-        const totalPaginas = Math.ceil(allData.length / filasPorPagina);
-        if (totalPaginas <= 1) return;
-
-        for (let i = 1; i <= totalPaginas; i++) {
-            const boton = document.createElement('button');
-            boton.textContent = i;
-            boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
-            boton.addEventListener('click', () => mostrarPagina(i));
-            paginacion.appendChild(boton);
-        }
-    }
-
-    fetchData();
+  fetchData()
 }
 
 async function mostrarVerDictamen(idSolicitud) {
-    document.getElementById('div-tabla').classList.add('hidden');
-    const divVer = document.getElementById('div-ver-dictamen');
-    divVer.classList.remove('hidden');
+  document.getElementById('div-tabla').classList.add('hidden')
+  const divVer = document.getElementById('div-ver-dictamen')
+  divVer.classList.remove('hidden')
 
-    const detallesContainer = document.getElementById('detallesDictamen');
-    detallesContainer.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la solicitud ${idSolicitud}...</p>`;
+  const detallesContainer = document.getElementById('detallesDictamen')
+  detallesContainer.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la solicitud ${idSolicitud}...</p>`
 
-    try {
-        const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
-        if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+  try {
+    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
+    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`)
 
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
+    const data = await response.json()
+    if (data.error) throw new Error(data.error)
 
-        let html = `
+    let html = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
@@ -1320,18 +1341,18 @@ async function mostrarVerDictamen(idSolicitud) {
                 <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
                 <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>
             </div>
-        `;
+        `
 
-        // Mostrar comentarios si existen (especialmente para rechazos)
-        if (data.ComentariosAdmin) {
-            html += `
+    // Mostrar comentarios si existen (especialmente para rechazos)
+    if (data.ComentariosAdmin) {
+      html += `
             <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
                 <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
                 <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-            </div>`;
-        }
+            </div>`
+    }
 
-        html += `
+    html += `
             <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
             <div class="overflow-x-auto">
                 <table class="min-w-full border border-gray-300">
@@ -1345,11 +1366,11 @@ async function mostrarVerDictamen(idSolicitud) {
                         </tr>
                     </thead>
                     <tbody>
-        `;
+        `
 
-        data.productos.forEach(p => {
-            const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
-            html += `
+    data.productos.forEach((p) => {
+      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+      html += `
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t">${p.Codigo}</td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
@@ -1357,28 +1378,28 @@ async function mostrarVerDictamen(idSolicitud) {
                     <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
                     <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
                 </tr>
-            `;
-        });
+            `
+    })
 
-        html += `
+    html += `
                     </tbody>
                 </table>
             </div>
-        `;
+        `
 
-        if (data.Archivo) {
-            const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`;
-            html += `
+    if (data.Archivo) {
+      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
+      html += `
                 <div class="mt-6">
                     <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
                     <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
                 </div>
-            `;
-        }
+            `
+    }
 
-        // Solo mostrar botones de acción si la solicitud está 'En revision'
-        if (data.Estado === 'En revision') {
-            html += `
+    // Solo mostrar botones de acción si la solicitud está 'En revision'
+    if (data.Estado === 'En revision') {
+      html += `
                 <div class="mt-8 flex justify-end space-x-4">
                     <button onclick="dictaminarSolicitud(${idSolicitud}, 'Rechazada')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition">
                         Rechazar
@@ -1387,493 +1408,506 @@ async function mostrarVerDictamen(idSolicitud) {
                         Aprobar
                     </button>
                 </div>
-            `;
-        }
-
-        detallesContainer.innerHTML = html;
-
-    } catch (error) {
-        console.error("Error al cargar detalles para dictamen:", error);
-        detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`;
+            `
     }
+
+    detallesContainer.innerHTML = html
+  } catch (error) {
+    console.error('Error al cargar detalles para dictamen:', error)
+    detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
+  }
 }
 
 function regresarTablaDictamen() {
-    document.getElementById('div-ver-dictamen').classList.add('hidden');
-    document.getElementById('div-tabla').classList.remove('hidden');
+  document.getElementById('div-ver-dictamen').classList.add('hidden')
+  document.getElementById('div-tabla').classList.remove('hidden')
 }
 
 async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
-    let comentarios = null;
-    const accion = nuevoEstado === 'Aprobada' ? 'aprobar' : 'rechazar';
+  let comentarios = null
+  const accion = nuevoEstado === 'Aprobada' ? 'aprobar' : 'rechazar'
 
-    if (nuevoEstado === 'Rechazada') {
-        comentarios = prompt("Por favor, ingrese el motivo del rechazo:");
-        if (comentarios === null) { // Usuario presionó 'Cancelar'
-            return;
-        }
-        if (!comentarios.trim()) {
-            mostrarNotificacion('El motivo del rechazo es obligatorio.', 'error');
-            return;
-        }
-    } else { // Para 'Aprobada'
-        if (!confirm(`¿Está seguro de que desea ${accion} esta solicitud?`)) {
-            return;
-        }
+  if (nuevoEstado === 'Rechazada') {
+    comentarios = prompt('Por favor, ingrese el motivo del rechazo:')
+    if (comentarios === null) {
+      // Usuario presionó 'Cancelar'
+      return
     }
-
-    const payload = {
-        ID_Solicitud: idSolicitud,
-        Estado: nuevoEstado,
-        ComentariosAdmin: comentarios
-    };
-    
-    try {
-        const response = await fetch(`${BASE_URL}api/solicitud/dictaminar`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-            mostrarNotificacion(result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`, 'success');
-            regresarTablaDictamen();
-            initDictamenSolicitudes();
-        } else {
-            mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error');
-        }
-    } catch (error) {
-        console.error(`Error al ${accion} la solicitud:`, error);
-        mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error');
+    if (!comentarios.trim()) {
+      mostrarNotificacion('El motivo del rechazo es obligatorio.', 'error')
+      return
     }
+  } else {
+    // Para 'Aprobada'
+    if (!confirm(`¿Está seguro de que desea ${accion} esta solicitud?`)) {
+      return
+    }
+  }
+
+  const payload = {
+    ID_Solicitud: idSolicitud,
+    Estado: nuevoEstado,
+    ComentariosAdmin: comentarios,
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}api/solicitud/dictaminar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    const result = await response.json()
+
+    if (response.ok && result.success) {
+      mostrarNotificacion(
+        result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`,
+        'success',
+      )
+      regresarTablaDictamen()
+      initDictamenSolicitudes()
+    } else {
+      mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error')
+    }
+  } catch (error) {
+    console.error(`Error al ${accion} la solicitud:`, error)
+    mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error')
+  }
 }
-
 
 /**
  * Lógica para el modal "CRUD Productos" (Existencias)
  */
 function initCrudProductos() {
-    const tbody = document.getElementById('tablaCrudProductos');
-    if (!tbody) return;
+  const tbody = document.getElementById('tablaCrudProductos')
+  if (!tbody) return
 
-    const paginacion = document.getElementById('paginacion-crud-productos');
-    const inputBusqueda = document.getElementById('buscarProducto');
-    const filasOriginales = Array.from(tbody.querySelectorAll('tr'));
-    let paginaActual = 1;
-    const filasPorPagina = 10;
+  const paginacion = document.getElementById('paginacion-crud-productos')
+  const inputBusqueda = document.getElementById('buscarProducto')
+  const filasOriginales = Array.from(tbody.querySelectorAll('tr'))
+  let paginaActual = 1
+  const filasPorPagina = 10
 
-    function aplicarFiltro() {
-        const termino = (inputBusqueda?.value || '').trim().toLowerCase();
-        if (!termino) return filasOriginales;
-        return filasOriginales.filter(fila => {
-            const codigo = (fila.cells[0]?.textContent || '').toLowerCase();
-            const nombre = (fila.cells[1]?.textContent || '').toLowerCase();
-            return codigo.includes(termino) || nombre.includes(termino);
-        });
+  function aplicarFiltro() {
+    const termino = (inputBusqueda?.value || '').trim().toLowerCase()
+    if (!termino) return filasOriginales
+    return filasOriginales.filter((fila) => {
+      const codigo = (fila.cells[0]?.textContent || '').toLowerCase()
+      const nombre = (fila.cells[1]?.textContent || '').toLowerCase()
+      return codigo.includes(termino) || nombre.includes(termino)
+    })
+  }
+
+  function mostrarPagina(pagina, filasFiltradas) {
+    paginaActual = pagina
+    filasOriginales.forEach((f) => (f.style.display = 'none'))
+    const inicio = (pagina - 1) * filasPorPagina
+    const fin = inicio + filasPorPagina
+    filasFiltradas.slice(inicio, fin).forEach((f) => (f.style.display = ''))
+    renderPaginacion(filasFiltradas.length)
+  }
+
+  function renderPaginacion(totalFiltradas) {
+    if (!paginacion) return
+    paginacion.innerHTML = ''
+    const totalPaginas = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina))
+    if (totalPaginas <= 1) {
+      paginacion.style.display = 'none'
+      return
     }
-
-    function mostrarPagina(pagina, filasFiltradas) {
-        paginaActual = pagina;
-        filasOriginales.forEach(f => (f.style.display = 'none'));
-        const inicio = (pagina - 1) * filasPorPagina;
-        const fin = inicio + filasPorPagina;
-        filasFiltradas.slice(inicio, fin).forEach(f => (f.style.display = ''));
-        renderPaginacion(filasFiltradas.length);
+    paginacion.style.display = 'flex'
+    for (let i = 1; i <= totalPaginas; i++) {
+      const boton = document.createElement('button')
+      boton.textContent = i
+      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+      boton.addEventListener('click', () => mostrarPagina(i, aplicarFiltro()))
+      paginacion.appendChild(boton)
     }
+  }
 
-    function renderPaginacion(totalFiltradas) {
-        if (!paginacion) return;
-        paginacion.innerHTML = '';
-        const totalPaginas = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina));
-        if (totalPaginas <= 1) {
-            paginacion.style.display = 'none';
-            return;
-        }
-        paginacion.style.display = 'flex';
-        for (let i = 1; i <= totalPaginas; i++) {
-            const boton = document.createElement('button');
-            boton.textContent = i;
-            boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
-            boton.addEventListener('click', () => mostrarPagina(i, aplicarFiltro()));
-            paginacion.appendChild(boton);
-        }
-    }
+  function actualizar() {
+    const filtradas = aplicarFiltro()
+    mostrarPagina(1, filtradas)
+  }
 
-    function actualizar() {
-        const filtradas = aplicarFiltro();
-        mostrarPagina(1, filtradas);
-    }
+  actualizar()
 
-    actualizar();
-
-    if (inputBusqueda && !inputBusqueda.dataset.bound) {
-        inputBusqueda.addEventListener('input', actualizar);
-        inputBusqueda.dataset.bound = '1';
-    }
+  if (inputBusqueda && !inputBusqueda.dataset.bound) {
+    inputBusqueda.addEventListener('input', actualizar)
+    inputBusqueda.dataset.bound = '1'
+  }
 }
 
 function eliminarProducto(idProducto) {
-    if (!confirm("¿Estás seguro de que deseas eliminar este producto?")) return;
+  if (!confirm('¿Estás seguro de que deseas eliminar este producto?')) return
 
-    fetch(`${BASE_URL}modales/eliminarProducto/${idProducto}`, {
-        method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/json'
-        }
+  fetch(`${BASE_URL}modales/eliminarProducto/${idProducto}`, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Content-Type': 'application/json',
+    },
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.success) {
+        const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`)
+        if (fila) fila.remove()
+        alert(data.message)
+        initCrudProductos() // reiniciar filtros/paginación
+      } else {
+        alert(data.message)
+      }
     })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`);
-                if (fila) fila.remove();
-                alert(data.message);
-                initCrudProductos(); // reiniciar filtros/paginación
-            } else {
-                alert(data.message);
-            }
-        })
-        .catch(error => {
-            console.error("Error al eliminar el producto:", error);
-            alert("Ocurrió un error al eliminar el producto.");
-        });
+    .catch((error) => {
+      console.error('Error al eliminar el producto:', error)
+      alert('Ocurrió un error al eliminar el producto.')
+    })
 }
 
 function editarProducto(idProducto) {
-    document.getElementById('div-tabla').classList.add('hidden');
-    document.getElementById('div-busqueda').classList.add('hidden');
-    document.getElementById('div-editar').classList.remove('hidden');
+  document.getElementById('div-tabla').classList.add('hidden')
+  document.getElementById('div-busqueda').classList.add('hidden')
+  document.getElementById('div-editar').classList.remove('hidden')
 
-    const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`);
-    if (fila) {
-        const codigo = fila.children[0].textContent.trim();
-        const nombre = fila.children[1].textContent.trim();
-        const existencia = fila.children[2].textContent.trim();
+  const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`)
+  if (fila) {
+    const codigo = fila.children[0].textContent.trim()
+    const nombre = fila.children[1].textContent.trim()
+    const existencia = fila.children[2].textContent.trim()
 
-        // oculto (ID)
-        document.getElementById('editarID_Producto').value = idProducto;
+    // oculto (ID)
+    document.getElementById('editarID_Producto').value = idProducto
 
-        // llenar campos NO editables
-        document.getElementById('mostrarCodigo').value = codigo;
-        document.getElementById('mostrarNombre').value = nombre;
-        document.getElementById('mostrarExistencia').value = existencia;
+    // llenar campos NO editables
+    document.getElementById('mostrarCodigo').value = codigo
+    document.getElementById('mostrarNombre').value = nombre
+    document.getElementById('mostrarExistencia').value = existencia
 
-        // llenar campos editables
-        document.getElementById('editarCodigo').value = codigo;
-        document.getElementById('editarNombre').value = nombre;
-        document.getElementById('editarExistencia').value = existencia;
-    }
+    // llenar campos editables
+    document.getElementById('editarCodigo').value = codigo
+    document.getElementById('editarNombre').value = nombre
+    document.getElementById('editarExistencia').value = existencia
+  }
 }
 
 function regresarTablaProductos() {
-    document.getElementById('div-tabla').classList.remove('hidden');
-    document.getElementById('div-busqueda').classList.remove('hidden');
-    document.getElementById('div-editar').classList.add('hidden');
+  document.getElementById('div-tabla').classList.remove('hidden')
+  document.getElementById('div-busqueda').classList.remove('hidden')
+  document.getElementById('div-editar').classList.add('hidden')
 }
 
 function guardarEdicion() {
-    alert("Función de guardar cambios pendiente de implementar.");
+  alert('Función de guardar cambios pendiente de implementar.')
 }
-
 
 /**
  * Lógica para el modal "Órdenes de Compra"
  */
 function initOrdenesCompra() {
-    const filas = document.querySelectorAll('#tablaOrdenesCompra tr');
-    const paginacion = document.getElementById('paginacion-ordenes-compra');
-    let paginaActual = 1;
-    const filasPorPagina = 10;
-    const totalFilas = filas.length;
-    const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+  const filas = document.querySelectorAll('#tablaOrdenesCompra tr')
+  const paginacion = document.getElementById('paginacion-ordenes-compra')
+  let paginaActual = 1
+  const filasPorPagina = 10
+  const totalFilas = filas.length
+  const totalPaginas = Math.ceil(totalFilas / filasPorPagina)
 
-    function mostrarPagina(pagina) {
-        paginaActual = pagina;
-        filas.forEach((fila, index) => {
-            fila.style.display = (index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina) ? '' : 'none';
-        });
-        renderPaginacion();
+  function mostrarPagina(pagina) {
+    paginaActual = pagina
+    filas.forEach((fila, index) => {
+      fila.style.display =
+        index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina ? '' : 'none'
+    })
+    renderPaginacion()
+  }
+
+  function renderPaginacion() {
+    if (!paginacion) return
+    paginacion.innerHTML = ''
+    for (let i = 1; i <= totalPaginas; i++) {
+      const boton = document.createElement('button')
+      boton.textContent = i
+      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+      boton.addEventListener('click', () => mostrarPagina(i))
+      paginacion.appendChild(boton)
     }
+  }
 
-    function renderPaginacion() {
-        if (!paginacion) return;
-        paginacion.innerHTML = '';
-        for (let i = 1; i <= totalPaginas; i++) {
-            const boton = document.createElement('button');
-            boton.textContent = i;
-            boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
-            boton.addEventListener('click', () => mostrarPagina(i));
-            paginacion.appendChild(boton);
-        }
-    }
-
-    if (totalFilas > 0) mostrarPagina(1);
+  if (totalFilas > 0) mostrarPagina(1)
 }
 
 function mostrarVerOrdenCompra(idOrden) {
-    document.getElementById('div-tabla-ordenes').classList.add('hidden');
-    document.getElementById('div-ver-orden').classList.remove('hidden');
-    console.log("VER orden de compra ID:", idOrden);
-    document.getElementById('detallesOrdenCompra').innerHTML = `<p>Cargando detalles de la orden ${idOrden}...</p>`;
+  document.getElementById('div-tabla-ordenes').classList.add('hidden')
+  document.getElementById('div-ver-orden').classList.remove('hidden')
+  console.log('VER orden de compra ID:', idOrden)
+  document.getElementById('detallesOrdenCompra').innerHTML =
+    `<p>Cargando detalles de la orden ${idOrden}...</p>`
 }
 
 function regresarTablaOrdenCompra() {
-    document.getElementById('div-ver-orden').classList.add('hidden');
-    document.getElementById('div-tabla-ordenes').classList.remove('hidden');
+  document.getElementById('div-ver-orden').classList.add('hidden')
+  document.getElementById('div-tabla-ordenes').classList.remove('hidden')
 }
-
 
 /**
  * Lógica para el CRUD de proveedores
  */
 function initCrudProveedores() {
-    const tabla = document.getElementById("tabla-proveedores");
-    if (!tabla) return;
+  const tabla = document.getElementById('tabla-proveedores')
+  if (!tabla) return
 
-    initProveedorTabla(tabla);      // paginación y filtros
-    initProveedorPantallas();       // cambio de pantallas
-    initProveedorForm();            // formulario agregar
-    initProveedorEditarForm();      // formulario editar
-    initProveedorActions(tabla);    // botones editar/eliminar
+  initProveedorTabla(tabla) // paginación y filtros
+  initProveedorPantallas() // cambio de pantallas
+  initProveedorForm() // formulario agregar
+  initProveedorEditarForm() // formulario editar
+  initProveedorActions(tabla) // botones editar/eliminar
 }
 
 // --- Tabla: paginación y filtros ---
 function initCrudProveedores() {
-    const tabla = document.getElementById("tabla-proveedores");
-    if (!tabla) return;
+  const tabla = document.getElementById('tabla-proveedores')
+  if (!tabla) return
 
-    initProveedorTabla(tabla);        // paginación y filtros
-    initProveedorPantallas();         // cambiar entre lista/agregar/editar
-    initProveedorForm();              // manejo de formulario agregar
-    initProveedorEditarForm();        // manejo de formulario editar
-    initProveedorActions(tabla);      // botones editar/eliminar
+  initProveedorTabla(tabla) // paginación y filtros
+  initProveedorPantallas() // cambiar entre lista/agregar/editar
+  initProveedorForm() // manejo de formulario agregar
+  initProveedorEditarForm() // manejo de formulario editar
+  initProveedorActions(tabla) // botones editar/eliminar
 }
 
 // --- Tabla: paginación y filtros ---
 function initProveedorTabla(tabla) {
-    const rows = Array.from(tabla.querySelectorAll("tr"));
-    const rowsPerPage = 10;
-    let currentPage = 1;
-    let filteredRows = [...rows];
+  const rows = Array.from(tabla.querySelectorAll('tr'))
+  const rowsPerPage = 10
+  let currentPage = 1
+  let filteredRows = [...rows]
 
-    const pageInfo = document.getElementById("info-proveedores");
-    const prevBtn = document.getElementById("prev-proveedores");
-    const nextBtn = document.getElementById("next-proveedores");
+  const pageInfo = document.getElementById('info-proveedores')
+  const prevBtn = document.getElementById('prev-proveedores')
+  const nextBtn = document.getElementById('next-proveedores')
 
-    const inputNombre = document.getElementById("buscar-nombre");
-    const inputServicio = document.getElementById("buscar-servicio");
+  const inputNombre = document.getElementById('buscar-nombre')
+  const inputServicio = document.getElementById('buscar-servicio')
 
-    function showPage(page) {
-        const start = (page - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
+  function showPage(page) {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
 
-        rows.forEach(r => (r.style.display = "none"));
-        filteredRows.forEach((row, i) => {
-            row.style.display = (i >= start && i < end) ? "" : "none";
-        });
+    rows.forEach((r) => (r.style.display = 'none'))
+    filteredRows.forEach((row, i) => {
+      row.style.display = i >= start && i < end ? '' : 'none'
+    })
 
-        const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
-        if (pageInfo) pageInfo.textContent = `Página ${page} de ${totalPages}`;
-        if (prevBtn) prevBtn.disabled = page === 1;
-        if (nextBtn) nextBtn.disabled = page === totalPages;
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1
+    if (pageInfo) pageInfo.textContent = `Página ${page} de ${totalPages}`
+    if (prevBtn) prevBtn.disabled = page === 1
+    if (nextBtn) nextBtn.disabled = page === totalPages
+  }
+
+  function applyFilters() {
+    const nombreFiltro = (inputNombre?.value || '').toLowerCase()
+    const servicioFiltro = (inputServicio?.value || '').toLowerCase()
+
+    filteredRows = rows.filter((row) => {
+      const razonsocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || ''
+      const servicio = row.querySelector('.servicio')?.textContent.toLowerCase() || ''
+      return razonsocial.includes(nombreFiltro) && servicio.includes(servicioFiltro)
+    })
+
+    currentPage = 1
+    showPage(currentPage)
+  }
+
+  if (inputNombre) inputNombre.oninput = applyFilters
+  if (inputServicio) inputServicio.oninput = applyFilters
+  if (prevBtn)
+    prevBtn.onclick = () => {
+      if (currentPage > 1) showPage(--currentPage)
+    }
+  if (nextBtn)
+    nextBtn.onclick = () => {
+      const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1
+      if (currentPage < totalPages) showPage(++currentPage)
     }
 
-    function applyFilters() {
-        const nombreFiltro = (inputNombre?.value || "").toLowerCase();
-        const servicioFiltro = (inputServicio?.value || "").toLowerCase();
-
-        filteredRows = rows.filter(row => {
-            const razonsocial = row.querySelector(".razonsocial")?.textContent.toLowerCase() || "";
-            const servicio = row.querySelector(".servicio")?.textContent.toLowerCase() || "";
-            return razonsocial.includes(nombreFiltro) && servicio.includes(servicioFiltro);
-        });
-
-        currentPage = 1;
-        showPage(currentPage);
-    }
-
-    if (inputNombre) inputNombre.oninput = applyFilters;
-    if (inputServicio) inputServicio.oninput = applyFilters;
-    if (prevBtn) prevBtn.onclick = () => { if (currentPage > 1) showPage(--currentPage); };
-    if (nextBtn) nextBtn.onclick = () => {
-        const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
-        if (currentPage < totalPages) showPage(++currentPage);
-    };
-
-    applyFilters();
+  applyFilters()
 }
 
 // --- Cambio de pantallas ---
 function initProveedorPantallas() {
-    const pantallaAgregar = document.getElementById("pantalla-agregar-proveedor");
-    const pantallaEditar = document.getElementById("pantalla-editar-proveedor");
-    const pantallaLista = document.getElementById("pantalla-lista-proveedores");
+  const pantallaAgregar = document.getElementById('pantalla-agregar-proveedor')
+  const pantallaEditar = document.getElementById('pantalla-editar-proveedor')
+  const pantallaLista = document.getElementById('pantalla-lista-proveedores')
 
-    const btnAgregar = document.getElementById("btn-agregar-proveedor");
-    const btnRegresarAgregar = document.getElementById("btn-regresar-lista");
-    const btnRegresarEditar = document.getElementById("btn-regresar-lista-editar");
+  const btnAgregar = document.getElementById('btn-agregar-proveedor')
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar')
 
-    if (btnAgregar) btnAgregar.onclick = e => {
-        e.preventDefault();
-        pantallaLista?.classList.add("hidden");
-        pantallaAgregar?.classList.remove("hidden");
-    };
+  if (btnAgregar)
+    btnAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaLista?.classList.add('hidden')
+      pantallaAgregar?.classList.remove('hidden')
+    }
 
-    if (btnRegresarAgregar) btnRegresarAgregar.onclick = e => {
-        e.preventDefault();
-        pantallaAgregar?.classList.add("hidden");
-        pantallaLista?.classList.remove("hidden");
-    };
+  if (btnRegresarAgregar)
+    btnRegresarAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaAgregar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
 
-    if (btnRegresarEditar) btnRegresarEditar.onclick = e => {
-        e.preventDefault();
-        pantallaEditar?.classList.add("hidden");
-        pantallaLista?.classList.remove("hidden");
-    };
+  if (btnRegresarEditar)
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
 }
 
 // --- Formulario agregar ---
 function initProveedorForm() {
-    const formProveedor = document.getElementById("form-agregar-proveedor");
-    const pantallaAgregar = document.getElementById("pantalla-agregar-proveedor");
-    const pantallaLista = document.getElementById("pantalla-lista-proveedores");
+  const formProveedor = document.getElementById('form-agregar-proveedor')
+  const pantallaAgregar = document.getElementById('pantalla-agregar-proveedor')
+  const pantallaLista = document.getElementById('pantalla-lista-proveedores')
 
-    if (!formProveedor) return;
+  if (!formProveedor) return
 
-    formProveedor.onsubmit = async e => {
-        e.preventDefault();
-        const formData = new FormData(formProveedor);
+  formProveedor.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formProveedor)
 
-        try {
-            const response = await fetch("/proveedores/insertar", {
-                method: "POST",
-                body: formData
-            });
-            const result = await response.json();
+    try {
+      const response = await fetch('/proveedores/insertar', {
+        method: 'POST',
+        body: formData,
+      })
+      const result = await response.json()
 
-            if (result.success) {
-                mostrarNotificacion("Proveedor agregado correctamente ✅", "success");
-                pantallaAgregar?.classList.add("hidden");
-                pantallaLista?.classList.remove("hidden");
-                formProveedor.reset();
-                location.reload();
-            } else {
-                mostrarNotificacion(result.message || "Error al guardar ❌", "error");
-            }
-        } catch {
-            mostrarNotificacion("Error de conexión con el servidor ❌", "error");
-        }
-    };
+      if (result.success) {
+        mostrarNotificacion('Proveedor agregado correctamente ✅', 'success')
+        pantallaAgregar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+        formProveedor.reset()
+        location.reload()
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
 }
 
 // --- Formulario editar ---
 function initProveedorEditarForm() {
-    const formEditar = document.getElementById("form-editar-proveedor");
-    const pantallaEditar = document.getElementById("pantalla-editar-proveedor");
-    const pantallaLista = document.getElementById("pantalla-lista-proveedores");
-    const tabla = document.getElementById("tabla-proveedores");
+  const formEditar = document.getElementById('form-editar-proveedor')
+  const pantallaEditar = document.getElementById('pantalla-editar-proveedor')
+  const pantallaLista = document.getElementById('pantalla-lista-proveedores')
+  const tabla = document.getElementById('tabla-proveedores')
 
-    if (!formEditar) return;
+  if (!formEditar) return
 
-    formEditar.onsubmit = async e => {
-        e.preventDefault();
-        const formData = new FormData(formEditar);
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
 
-        try {
-            const id = formData.get("ID_Proveedor");
-            const response = await fetch(`/proveedores/editar/${id}`, {
-                method: "POST",
-                body: formData
-            });
-            const result = await response.json();
+    try {
+      const id = formData.get('ID_Proveedor')
+      const response = await fetch(`/proveedores/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
+      const result = await response.json()
 
-            if (result.success) {
-                mostrarNotificacion("Proveedor actualizado ✅", "success");
+      if (result.success) {
+        mostrarNotificacion('Proveedor actualizado ✅', 'success')
 
-                // Actualizar la fila correspondiente en la tabla
-                const fila = tabla.querySelector(`tr[data-id='${id}']`);
-                if (fila) {
-                    fila.querySelector(".razonsocial").textContent = formData.get("RazonSocial");
-                    fila.querySelector(".servicio").textContent = formData.get("Servicio");
+        // Actualizar la fila correspondiente en la tabla
+        const fila = tabla.querySelector(`tr[data-id='${id}']`)
+        if (fila) {
+          fila.querySelector('.razonsocial').textContent = formData.get('RazonSocial')
+          fila.querySelector('.servicio').textContent = formData.get('Servicio')
 
-                    // actualizar los data-* de la fila
-                    fila.dataset.rfc = formData.get("RFC");
-                    fila.dataset.banco = formData.get("Banco");
-                    fila.dataset.cuenta = formData.get("Cuenta");
-                    fila.dataset.clabe = formData.get("Clabe");
-                    fila.dataset.telContacto = formData.get("Tel_Contacto");
-                    fila.dataset.nombreContacto = formData.get("Nombre_Contacto");
-                }
-
-                // Cerrar pantalla de edición y mostrar lista
-                pantallaEditar?.classList.add("hidden");
-                pantallaLista?.classList.remove("hidden");
-            } else {
-                mostrarNotificacion(result.message || "Error al actualizar ❌", "error");
-            }
-        } catch {
-            mostrarNotificacion("Error de conexión con el servidor ❌", "error");
+          // actualizar los data-* de la fila
+          fila.dataset.rfc = formData.get('RFC')
+          fila.dataset.banco = formData.get('Banco')
+          fila.dataset.cuenta = formData.get('Cuenta')
+          fila.dataset.clabe = formData.get('Clabe')
+          fila.dataset.telContacto = formData.get('Tel_Contacto')
+          fila.dataset.nombreContacto = formData.get('Nombre_Contacto')
         }
-    };
+
+        // Cerrar pantalla de edición y mostrar lista
+        pantallaEditar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
 }
 
 // --- Botones editar/eliminar ---
 function initProveedorActions(tabla) {
-    if (!tabla) return;
+  if (!tabla) return
 
-    tabla.addEventListener("click", e => {
-        // --- ELIMINAR ---
-        const svgEliminar = e.target.closest("svg");
-        if (svgEliminar) {
-            const btnEliminar = svgEliminar.closest("[id^='btn-eliminar-proveedor-']");
-            if (btnEliminar) {
-                e.preventDefault();
-                const id = btnEliminar.dataset.id;
-                if (!confirm("¿Seguro que deseas eliminar este proveedor?")) return;
+  tabla.addEventListener('click', (e) => {
+    // --- ELIMINAR ---
+    const svgEliminar = e.target.closest('svg')
+    if (svgEliminar) {
+      const btnEliminar = svgEliminar.closest("[id^='btn-eliminar-proveedor-']")
+      if (btnEliminar) {
+        e.preventDefault()
+        const id = btnEliminar.dataset.id
+        if (!confirm('¿Seguro que deseas eliminar este proveedor?')) return
 
-                fetch(`/proveedores/eliminarProveedor/${id}`, {
-                    method: "POST",
-                    headers: { "X-Requested-With": "XMLHttpRequest" }
-                }).then(res => res.json())
-                    .then(result => {
-                        if (result.success) {
-                            mostrarNotificacion("Proveedor eliminado ✅", "success");
-                            btnEliminar.closest("tr")?.remove();
-                        } else {
-                            mostrarNotificacion(result.message || "No se pudo eliminar ❌", "error");
-                        }
-                    }).catch(() => mostrarNotificacion("Error de conexión ❌", "error"));
-                return;
+        fetch(`/proveedores/eliminarProveedor/${id}`, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+          .then((res) => res.json())
+          .then((result) => {
+            if (result.success) {
+              mostrarNotificacion('Proveedor eliminado ✅', 'success')
+              btnEliminar.closest('tr')?.remove()
+            } else {
+              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
             }
-        }
+          })
+          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+        return
+      }
+    }
 
-        // --- EDITAR ---
-        const btnEditar = e.target.closest("[id^='btn-editar-proveedor-']");
-        if (!btnEditar) return;
-        e.preventDefault();
+    // --- EDITAR ---
+    const btnEditar = e.target.closest("[id^='btn-editar-proveedor-']")
+    if (!btnEditar) return
+    e.preventDefault()
 
-        const fila = btnEditar.closest("tr");
-        if (!fila) return;
+    const fila = btnEditar.closest('tr')
+    if (!fila) return
 
-        // Cargar datos desde data-* de la fila
-        document.getElementById("editar-ID_Proveedor").value = fila.dataset.id;
-        document.getElementById("editar-RazonSocial").value = fila.querySelector(".razonsocial").textContent;
-        document.getElementById("editar-Servicio").value = fila.querySelector(".servicio").textContent;
-        document.getElementById("editar-RFC").value = fila.dataset.rfc;
-        document.getElementById("editar-Banco").value = fila.dataset.banco;
-        document.getElementById("editar-Cuenta").value = fila.dataset.cuenta;
-        document.getElementById("editar-Clabe").value = fila.dataset.clabe;
-        document.getElementById("editar-Tel_Contacto").value = fila.dataset.telContacto;
-        document.getElementById("editar-Nombre_Contacto").value = fila.dataset.nombreContacto;
+    // Cargar datos desde data-* de la fila
+    document.getElementById('editar-ID_Proveedor').value = fila.dataset.id
+    document.getElementById('editar-RazonSocial').value =
+      fila.querySelector('.razonsocial').textContent
+    document.getElementById('editar-Servicio').value = fila.querySelector('.servicio').textContent
+    document.getElementById('editar-RFC').value = fila.dataset.rfc
+    document.getElementById('editar-Banco').value = fila.dataset.banco
+    document.getElementById('editar-Cuenta').value = fila.dataset.cuenta
+    document.getElementById('editar-Clabe').value = fila.dataset.clabe
+    document.getElementById('editar-Tel_Contacto').value = fila.dataset.telContacto
+    document.getElementById('editar-Nombre_Contacto').value = fila.dataset.nombreContacto
 
-        document.getElementById("pantalla-lista-proveedores").classList.add("hidden");
-        document.getElementById("pantalla-editar-proveedor").classList.remove("hidden");
-    });
+    document.getElementById('pantalla-lista-proveedores').classList.add('hidden')
+    document.getElementById('pantalla-editar-proveedor').classList.remove('hidden')
+  })
 }
 
 /**
@@ -1881,168 +1915,161 @@ function initProveedorActions(tabla) {
  */
 
 function initEntregaMaterial() {
-    // Por ahora vacío — lo llamarás desde abrirModal cuando lo necesites
+  // Por ahora vacío — lo llamarás desde abrirModal cuando lo necesites
 }
 
 // Muestra la pantalla de búsqueda y oculta la pantalla principal de entrega
 function mostrarBuscarMateriales() {
-    const entrega = document.getElementById('entrega-material-content');
-    const buscar = document.getElementById('buscar-materiales-content');
+  const entrega = document.getElementById('entrega-material-content')
+  const buscar = document.getElementById('buscar-materiales-content')
 
-    if (!entrega || !buscar) {
-        console.warn('mostrarBuscarMateriales: elementos no encontrados (entrega-material-content / buscar-materiales-content)');
-        return;
-    }
+  if (!entrega || !buscar) {
+    console.warn(
+      'mostrarBuscarMateriales: elementos no encontrados (entrega-material-content / buscar-materiales-content)',
+    )
+    return
+  }
 
-    entrega.classList.add('hidden');
-    buscar.classList.remove('hidden');
+  entrega.classList.add('hidden')
+  buscar.classList.remove('hidden')
 }
 
 // Vuelve de la pantalla de búsqueda a la pantalla principal de entrega
 function regresarBuscarMateriales() {
-    const entrega = document.getElementById('entrega-material-content');
-    const buscar = document.getElementById('buscar-materiales-content');
+  const entrega = document.getElementById('entrega-material-content')
+  const buscar = document.getElementById('buscar-materiales-content')
 
-    if (!entrega || !buscar) {
-        console.warn('regresarBuscarMateriales: elementos no encontrados (entrega-material-content / buscar-materiales-content)');
-        return;
-    }
+  if (!entrega || !buscar) {
+    console.warn(
+      'regresarBuscarMateriales: elementos no encontrados (entrega-material-content / buscar-materiales-content)',
+    )
+    return
+  }
 
-    buscar.classList.add('hidden');
-    entrega.classList.remove('hidden');
+  buscar.classList.add('hidden')
+  entrega.classList.remove('hidden')
 }
 
 // Placeholder vacío para futuras inicializaciones específicas de entrega
 
-
-
-
-
-
-
-
-
 // Función de ejemplo para notificaciones (puedes adaptar)
-function mostrarNotificacion(msg, tipo = "success") {
-    alert(msg); // Simple alert, se puede reemplazar por un toast
+function mostrarNotificacion(msg, tipo = 'success') {
+  alert(msg) // Simple alert, se puede reemplazar por un toast
 }
 
 // Inicializar
-document.addEventListener("DOMContentLoaded", initCrudProveedores);
+document.addEventListener('DOMContentLoaded', initCrudProveedores)
 
+function mostrarNotificacion(mensaje, tipo = 'success', duracion = 3000) {
+  const CT_ID = '__app_toast_container'
+  let container = document.getElementById(CT_ID)
 
-function mostrarNotificacion(mensaje, tipo = "success", duracion = 3000) {
-    const CT_ID = "__app_toast_container";
-    let container = document.getElementById(CT_ID);
+  // Crear contenedor si no existe
+  if (!container) {
+    container = document.createElement('div')
+    container.id = CT_ID
+    Object.assign(container.style, {
+      position: 'fixed',
+      top: '1rem',
+      right: '1rem',
+      zIndex: 2147483647, // muy alto
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.5rem',
+      alignItems: 'flex-end',
+      pointerEvents: 'none', // permite clicks pasar por debajo excepto en cada toast
+    })
+    document.body.appendChild(container)
+  }
 
-    // Crear contenedor si no existe
-    if (!container) {
-        container = document.createElement("div");
-        container.id = CT_ID;
-        Object.assign(container.style, {
-            position: "fixed",
-            top: "1rem",
-            right: "1rem",
-            zIndex: 2147483647, // muy alto
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5rem",
-            alignItems: "flex-end",
-            pointerEvents: "none" // permite clicks pasar por debajo excepto en cada toast
-        });
-        document.body.appendChild(container);
-    }
+  // Crear toast
+  const toast = document.createElement('div')
+  toast.setAttribute('role', 'status')
+  toast.setAttribute('aria-live', 'polite')
+  Object.assign(toast.style, {
+    pointerEvents: 'auto', // permitir interacción con el toast
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    minWidth: '180px',
+    maxWidth: '340px',
+    padding: '0.55rem 0.85rem',
+    borderRadius: '0.5rem',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+    color: '#fff',
+    fontSize: '0.95rem',
+    transform: 'translateX(120%)',
+    opacity: '0',
+    transition: 'transform 320ms cubic-bezier(.2,.8,.2,1), opacity 320ms ease',
+  })
 
-    // Crear toast
-    const toast = document.createElement("div");
-    toast.setAttribute("role", "status");
-    toast.setAttribute("aria-live", "polite");
-    Object.assign(toast.style, {
-        pointerEvents: "auto",         // permitir interacción con el toast
-        display: "flex",
-        alignItems: "center",
-        gap: "0.6rem",
-        minWidth: "180px",
-        maxWidth: "340px",
-        padding: "0.55rem 0.85rem",
-        borderRadius: "0.5rem",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        color: "#fff",
-        fontSize: "0.95rem",
-        transform: "translateX(120%)",
-        opacity: "0",
-        transition: "transform 320ms cubic-bezier(.2,.8,.2,1), opacity 320ms ease"
-    });
+  // Color por tipo
+  if (tipo === 'success') {
+    toast.style.backgroundColor = '#16a34a' // verde
+  } else if (tipo === 'error') {
+    toast.style.backgroundColor = '#dc2626' // rojo
+  } else {
+    toast.style.backgroundColor = '#0369a1' // azul/info
+  }
 
-    // Color por tipo
-    if (tipo === "success") {
-        toast.style.backgroundColor = "#16a34a"; // verde
-    } else if (tipo === "error") {
-        toast.style.backgroundColor = "#dc2626"; // rojo
-    } else {
-        toast.style.backgroundColor = "#0369a1"; // azul/info
-    }
+  // Icono simple (puedes cambiar por SVG si prefieres)
+  const icon = document.createElement('span')
+  icon.style.fontWeight = '700'
+  icon.style.flex = '0 0 auto'
+  icon.style.lineHeight = '1'
+  icon.style.fontSize = '1.05rem'
+  icon.style.display = 'inline-block'
+  icon.style.width = '1.2rem'
+  icon.style.textAlign = 'center'
+  icon.style.opacity = '0.98'
+  icon.textContent = tipo === 'success' ? '✓' : tipo === 'error' ? '✕' : 'ℹ'
+  toast.appendChild(icon)
 
-    // Icono simple (puedes cambiar por SVG si prefieres)
-    const icon = document.createElement("span");
-    icon.style.fontWeight = "700";
-    icon.style.flex = "0 0 auto";
-    icon.style.lineHeight = "1";
-    icon.style.fontSize = "1.05rem";
-    icon.style.display = "inline-block";
-    icon.style.width = "1.2rem";
-    icon.style.textAlign = "center";
-    icon.style.opacity = "0.98";
-    icon.textContent = tipo === "success" ? "✓" : (tipo === "error" ? "✕" : "ℹ");
-    toast.appendChild(icon);
+  // Texto
+  const text = document.createElement('div')
+  text.style.whiteSpace = 'nowrap'
+  text.style.overflow = 'hidden'
+  text.style.textOverflow = 'ellipsis'
+  text.style.flex = '1 1 auto'
+  text.textContent = mensaje
+  toast.appendChild(text)
 
-    // Texto
-    const text = document.createElement("div");
-    text.style.whiteSpace = "nowrap";
-    text.style.overflow = "hidden";
-    text.style.textOverflow = "ellipsis";
-    text.style.flex = "1 1 auto";
-    text.textContent = mensaje;
-    toast.appendChild(text);
+  // Insertar en el contenedor (apilar hacia abajo)
+  container.appendChild(toast)
 
-    // Insertar en el contenedor (apilar hacia abajo)
-    container.appendChild(toast);
+  // Forzar frame para activar la animación de entrada
+  requestAnimationFrame(() => {
+    toast.style.transform = 'translateX(0)'
+    toast.style.opacity = '1'
+  })
 
-    // Forzar frame para activar la animación de entrada
-    requestAnimationFrame(() => {
-        toast.style.transform = "translateX(0)";
-        toast.style.opacity = "1";
-    });
+  // Auto-cerrar con pausa en hover
+  let timeoutId = setTimeout(hide, duracion)
 
-    // Auto-cerrar con pausa en hover
-    let timeoutId = setTimeout(hide, duracion);
+  function hide() {
+    clearTimeout(timeoutId)
+    // animación de salida
+    toast.style.transform = 'translateX(120%)'
+    toast.style.opacity = '0'
+    setTimeout(() => {
+      toast.remove()
+      // si no hay más toasts, eliminar el contenedor
+      if (container && container.childElementCount === 0) {
+        container.remove()
+      }
+    }, 360)
+  }
 
-    function hide() {
-        clearTimeout(timeoutId);
-        // animación de salida
-        toast.style.transform = "translateX(120%)";
-        toast.style.opacity = "0";
-        setTimeout(() => {
-            toast.remove();
-            // si no hay más toasts, eliminar el contenedor
-            if (container && container.childElementCount === 0) {
-                container.remove();
-            }
-        }, 360);
-    }
+  toast.addEventListener('click', hide)
+  toast.addEventListener('mouseenter', () => {
+    clearTimeout(timeoutId)
+  })
+  toast.addEventListener('mouseleave', () => {
+    timeoutId = setTimeout(hide, duracion)
+  })
 
-    toast.addEventListener("click", hide);
-    toast.addEventListener("mouseenter", () => {
-        clearTimeout(timeoutId);
-    });
-    toast.addEventListener("mouseleave", () => {
-        timeoutId = setTimeout(hide, duracion);
-    });
-
-    return toast; // por si quieres manipularlo luego
+  return toast // por si quieres manipularlo luego
 }
-
-
 
 /**
  * getData: Función para obtener datos de una API RESTful
@@ -2076,28 +2103,27 @@ async function getData(endpoint, option = {}, api = true) {
  * y agregarlas a un elemento <select> en el DOM.
  */
 async function loadRazonSocialProv(selectId) {
-    const ProvSelect = document.getElementById(selectId);
-    if (!ProvSelect) return;
+  const ProvSelect = document.getElementById(selectId)
+  if (!ProvSelect) return
 
-    try {
-        const data = await getData('providers/all');
-        console.log('Datos recibidos:', data);
-        if (Array.isArray(data) && data.length > 0) {
-            ProvSelect.innerHTML = '<option value="">Seleccione una opción</option>';
-            data.forEach((provider) => {
-                let option = document.createElement('option');
-                option.value = provider.ID_Proveedor;
-                option.textContent = provider.RazonSocial;
-                ProvSelect.appendChild(option);
-            });
-        } else {
-            console.error('Los datos recibidos no son un array válido:', data);
-        }
-    } catch (error) {
-        console.error('Hubo un error al obtener los proveedores:', error);
+  try {
+    const data = await getData('providers/all')
+    console.log('Datos recibidos:', data)
+    if (Array.isArray(data) && data.length > 0) {
+      ProvSelect.innerHTML = '<option value="">Seleccione una opción</option>'
+      data.forEach((provider) => {
+        let option = document.createElement('option')
+        option.value = provider.ID_Proveedor
+        option.textContent = provider.RazonSocial
+        ProvSelect.appendChild(option)
+      })
+    } else {
+      console.error('Los datos recibidos no son un array válido:', data)
     }
+  } catch (error) {
+    console.error('Hubo un error al obtener los proveedores:', error)
+  }
 }
-
 
 async function loadDepartamentos() {
   const departamentosSelect = document.getElementById('departamento')
@@ -2130,8 +2156,8 @@ async function SendData(event) {
   const formulario = event.target
   const formData = new FormData(formulario)
 
-  const messageContainer = formulario.querySelector('.form-message-container');
-  const submitButton = formulario.querySelector('button[type="submit"]');
+  const messageContainer = formulario.querySelector('.form-message-container')
+  const submitButton = formulario.querySelector('button[type="submit"]')
 
   if (submitButton) {
     submitButton.disabled = true
