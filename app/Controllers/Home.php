@@ -38,7 +38,8 @@ class Home extends BaseController
                 'crud_proveedores',
                 'ver_historial',
                 'usuarios',
-                'limpiar_almacenamiento' // Almacenamiento
+                'limpiar_almacenamiento', // Almacenamiento
+                'ficha_pago'
             ],
 
             // Rol Dirección

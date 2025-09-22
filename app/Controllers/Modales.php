@@ -138,6 +138,9 @@ class Modales extends BaseController
             case 'entrega_productos':
                 return view('modales/entrega_productos');
 
+            case 'ficha_pago':
+                return view('modales/ficha_pago');
+
             default:
                 return 'Opción no válida';
         }

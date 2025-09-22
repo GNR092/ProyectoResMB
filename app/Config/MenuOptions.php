@@ -93,6 +93,11 @@ class MenuOptions extends BaseConfig
                 'label' => 'Limpiar Almacenamiento',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#limpiar_almacenamiento"></use></svg>',
             ],
+
+            'ficha_pago' => [
+                'label' => 'Fichas de pago',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ficha_pago"></use></svg>',
+            ],
         ];
     }
 }
