@@ -87,7 +87,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <thead class="bg-gray-200 text-gray-700">
                         <tr>
                             <th class="px-3 py-2 border">No.</th>
-                            <th class="px-3 py-2 border">Código</th>
+                            <th class="px-3 py-2 border">Código o SKU</th>
                             <th class="px-3 py-2 border">Producto</th>
                             <th class="px-3 py-2 border">Cantidad</th>
                             <th class="px-3 py-2 border">Importe</th>
@@ -290,7 +290,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
     <div class="flex justify-between mb-4">
         <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">&larr;
             Regresar</button>
-        <h2 class="text-lg font-semibold">Requisicion de Servicio</h2>
+        <h2 class="text-lg font-semibold">Requisicion de pago o servicio</h2>
         <div></div>
     </div>
 
@@ -322,7 +322,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
             <!-- Proveedor Servicio -->
             <div>
-                <label class="text-sm text-gray-700 font-medium">Razón social:</label>
+                <label class="text-sm text-gray-700 font-medium">Proveedor</label>
                 <select id="razonSocialServicioSelect" class="w-full px-3 py-2 border rounded" name="razon_social">
                     <option value="">Seleccione una opción</option>
                 </select>
@@ -404,7 +404,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
             <!-- Referencia o cotización -->
             <div class="mt-6">
-                <h2 class="text-lg font-semibold text-gray-800 mb-2">Referencia o cotización</h2>
+                <h2 class="text-lg font-semibold text-gray-800 mb-2">Factura</h2>
                 <input type="file" name="archivo"
                        class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
                        accept="image/jpg,image/jpeg,image/png,application/pdf">
