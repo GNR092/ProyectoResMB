@@ -136,7 +136,15 @@ class Modales extends BaseController
                 return view('modales/crud_productos', $data);
 
             case 'entrega_productos':
-                return view('modales/entrega_productos');
+                $productoModel = new \App\Models\ProductoModel();
+
+                // Orden numérico ascendente por el campo texto "Codigo"
+                $data['productos'] = $productoModel
+                    ->select('Producto.*')
+                    ->orderBy('CAST("Producto"."Codigo" AS INTEGER)', 'ASC', false)
+                    ->findAll();
+
+                return view('modales/entrega_productos', $data);
 
             case 'ficha_pago':
                 return view('modales/ficha_pago');

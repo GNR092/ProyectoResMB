@@ -1,3 +1,9 @@
+<?php
+$iconPath = FCPATH . 'icons/icons.svg';
+$version = file_exists($iconPath) ? filemtime($iconPath) : time();
+$iconUrl = "/icons/icons.svg?v=$version";
+?>
+
 <!-- Pantalla: Entrega de Material -->
 <div id="entrega-material-content" class="p-6">
     <div class="flex justify-between mb-4">
@@ -30,7 +36,7 @@
             <label for="entrega-departamento-receptor" class="text-sm text-gray-700 font-medium">Departamento</label>
             <select id="entrega-departamento-receptor" class="w-full px-3 py-2 border rounded">
                 <option value="">Seleccione un departamento</option>
-                <!-- Opciones se cargarán desde backend o JS más adelante -->
+                <!-- Opciones cargadas desde backend -->
             </select>
         </div>
 
@@ -39,7 +45,7 @@
             <input id="entrega-nombre-receptor" type="text" class="w-full px-3 py-2 border rounded" placeholder="Nombre completo">
         </div>
 
-        <!-- Tabla de materiales -->
+        <!-- Tabla de materiales seleccionados -->
         <div class="overflow-x-auto mb-6">
             <table class="min-w-full border border-gray-300">
                 <thead>
@@ -51,7 +57,7 @@
                     <th class="py-2 px-4"></th>
                 </tr>
                 </thead>
-                <tbody id="tabla-materiales">
+                <tbody id="tablaEntregaMateriales">
                 <tr>
                     <td colspan="5" class="py-2 px-4 text-center text-gray-500">
                         No hay materiales seleccionados.
@@ -61,7 +67,7 @@
             </table>
         </div>
 
-        <!-- Botón Buscar materiales y Entregar materiales -->
+        <!-- Botones inferiores -->
         <div class="flex justify-between">
             <!-- Izquierda -->
             <button id="btn-buscar-materiales"
@@ -79,7 +85,7 @@
     </div>
 </div>
 
-<!-- Pantalla Buscar Materiales (oculta por defecto) -->
+<!-- Pantalla: Buscar Materiales -->
 <div id="buscar-materiales-content" class="hidden p-6">
     <div class="flex items-center mb-4">
         <button id="btn-regresar-buscar"
@@ -91,6 +97,64 @@
 
     <h3 class="text-lg font-bold mb-4">Buscar materiales</h3>
 
-    <!-- Contenido temporal: por ahora solo botón regresar y texto -->
-    <p class="text-gray-600">Pantalla de búsqueda (vacía por ahora).</p>
+    <!-- Barra de búsqueda -->
+    <div id="div-busqueda" class="mb-4">
+        <input
+                type="text"
+                id="buscarMaterial"
+                placeholder="Buscar por código o nombre..."
+                class="w-full px-4 py-2 border rounded-md"
+        >
+    </div>
+
+    <!-- Tabla de productos -->
+    <div id="div-tabla" class="overflow-x-auto">
+        <table class="min-w-full border border-gray-300">
+            <thead>
+            <tr class="bg-gray-100">
+                <th class="py-2 px-4 text-left">Código</th>
+                <th class="py-2 px-4 text-left">Nombre</th>
+                <th class="py-2 px-4 text-left">Existencia</th>
+                <th class="py-2 px-4 text-center">Seleccionar</th>
+            </tr>
+            </thead>
+            <tbody id="tablaBuscarMateriales">
+            <?php if (!empty($productos)): ?>
+                <?php foreach ($productos as $p): ?>
+                    <tr id="fila-producto-<?= $p['ID_Producto'] ?>">
+                        <td class="py-2 px-4"><?= esc($p['Codigo']) ?></td>
+                        <td class="py-2 px-4"><?= esc($p['Nombre']) ?></td>
+                        <td class="py-2 px-4"><?= esc($p['Existencia']) ?></td>
+                        <td class="py-2 px-4 text-center">
+                            <button type="button" onclick="toggleSeleccionProducto(<?= $p['ID_Producto'] ?>)">
+                                <svg class="size-6" fill="none" stroke-width="1.5" stroke="green">
+                                    <use xlink:href="<?= $iconUrl ?>#agregar-fila"></use>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <tr>
+                    <td colspan="4" class="py-2 px-4 text-center text-gray-500">
+                        No hay productos registrados.
+                    </td>
+                </tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
+
+        <!-- Paginación -->
+        <div id="paginacion-buscar-materiales" class="flex justify-center mt-4 space-x-2"></div>
+    </div>
+
+    <!-- Botón agregar productos -->
+    <div class="mt-4 text-right">
+        <button id="btn-agregar-seleccionados"
+                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                onclick="agregarProductosSeleccionados()"
+                disabled>
+            Agregar 0 productos
+        </button>
+    </div>
 </div>

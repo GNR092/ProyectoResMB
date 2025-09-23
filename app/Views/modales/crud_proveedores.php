@@ -9,7 +9,7 @@
             <input type="text" id="buscar-servicio" placeholder="Buscar por servicio..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
         </div>
         <div>
-            <a href="#" id="btn-agregar-proveedor" class="inline-block mt-4 px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
+            <a href="#" id="btn-agregar-proveedor" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
                 AGREGAR
             </a>
         </div>

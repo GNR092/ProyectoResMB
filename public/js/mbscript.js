@@ -1655,17 +1655,6 @@ function regresarTablaOrdenCompra() {
 /**
  * Lógica para el CRUD de proveedores
  */
-function initCrudProveedores() {
-  const tabla = document.getElementById('tabla-proveedores')
-  if (!tabla) return
-
-  initProveedorTabla(tabla) // paginación y filtros
-  initProveedorPantallas() // cambio de pantallas
-  initProveedorForm() // formulario agregar
-  initProveedorEditarForm() // formulario editar
-  initProveedorActions(tabla) // botones editar/eliminar
-}
-
 // --- Tabla: paginación y filtros ---
 function initCrudProveedores() {
   const tabla = document.getElementById('tabla-proveedores')
@@ -1915,10 +1904,195 @@ function initProveedorActions(tabla) {
  */
 
 function initEntregaMaterial() {
-  // Por ahora vacío — lo llamarás desde abrirModal cuando lo necesites
+  // ---------- VARIABLES ----------
+  const tbodyBuscar = document.getElementById('tablaBuscarMateriales');
+  const paginacionBuscar = document.getElementById('paginacion-buscar-materiales');
+  const inputBuscar = document.getElementById('buscarMaterial');
+  const tbodyEntrega = document.getElementById('tablaEntregaMateriales');
+  const btnAgregarSeleccionados = document.getElementById('btn-agregar-seleccionados');
+  if (!tbodyBuscar || !tbodyEntrega) return;
+
+  const filasOriginales = Array.from(tbodyBuscar.querySelectorAll('tr'));
+  let paginaActual = 1;
+  const filasPorPagina = 10;
+  const seleccionados = new Set(); // IDs de productos seleccionados
+
+  // ---------- FILTRO Y PAGINACIÓN ----------
+  function aplicarFiltro() {
+    const termino = (inputBuscar?.value || '').trim().toLowerCase();
+    if (!termino) return filasOriginales;
+    return filasOriginales.filter(fila => {
+      const codigo = (fila.cells[0]?.textContent || '').toLowerCase();
+      const nombre = (fila.cells[1]?.textContent || '').toLowerCase();
+      return codigo.includes(termino) || nombre.includes(termino);
+    });
+  }
+
+  function mostrarPagina(pagina, filasFiltradas) {
+    paginaActual = pagina;
+    filasOriginales.forEach(f => f.style.display = 'none');
+    const inicio = (pagina - 1) * filasPorPagina;
+    const fin = inicio + filasPorPagina;
+    filasFiltradas.slice(inicio, fin).forEach(f => f.style.display = '');
+    renderPaginacion(filasFiltradas.length);
+  }
+
+  function renderPaginacion(totalFiltradas) {
+    if (!paginacionBuscar) return;
+    paginacionBuscar.innerHTML = '';
+    const totalPaginas = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina));
+    if (totalPaginas <= 1) {
+      paginacionBuscar.style.display = 'none';
+      return;
+    }
+    paginacionBuscar.style.display = 'flex';
+    for (let i = 1; i <= totalPaginas; i++) {
+      const boton = document.createElement('button');
+      boton.textContent = i;
+      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+      boton.addEventListener('click', () => mostrarPagina(i, aplicarFiltro()));
+      paginacionBuscar.appendChild(boton);
+    }
+  }
+
+  function actualizarTablaBuscar() {
+    const filtradas = aplicarFiltro();
+    mostrarPagina(1, filtradas);
+  }
+
+  if (inputBuscar && !inputBuscar.dataset.bound) {
+    inputBuscar.addEventListener('input', actualizarTablaBuscar);
+    inputBuscar.dataset.bound = '1';
+  }
+
+  actualizarTablaBuscar();
+
+  // ---------- SELECCIÓN DE PRODUCTOS ----------
+  window.toggleSeleccionProducto = function(id) {
+    if (seleccionados.has(id)) {
+      seleccionados.delete(id);
+      document.getElementById('fila-producto-' + id).classList.remove('bg-green-100');
+    } else {
+      seleccionados.add(id);
+      document.getElementById('fila-producto-' + id).classList.add('bg-green-100');
+    }
+    btnAgregarSeleccionados.textContent = `Agregar ${seleccionados.size} productos`;
+    btnAgregarSeleccionados.disabled = seleccionados.size === 0;
+  }
+
+  // ---------- AGREGAR A TABLA PRINCIPAL ----------
+  window.agregarProductosSeleccionados = function() {
+    if (seleccionados.size === 0) return;
+
+    // Eliminar fila "No hay materiales seleccionados" si existe
+    const filaVacia = tbodyEntrega.querySelector('tr td[colspan="5"]');
+    if (filaVacia) filaVacia.parentElement.remove();
+
+    seleccionados.forEach(id => {
+      const filaBuscar = document.getElementById('fila-producto-' + id);
+      if (!filaBuscar) return;
+
+      const codigo = filaBuscar.cells[0]?.textContent || '';
+      const nombre = filaBuscar.cells[1]?.textContent || '';
+      const existencia = filaBuscar.cells[2]?.textContent || '0';
+
+      const nuevaFila = document.createElement('tr');
+      nuevaFila.innerHTML = `
+        <td class="py-2 px-4">${codigo}</td>
+        <td class="py-2 px-4">${nombre}</td>
+        <td class="py-2 px-4">
+          <input type="number" class="w-full px-2 py-1 border rounded" min="1" max="${existencia}" value="1">
+        </td>
+        <td class="py-2 px-4">${existencia}</td>
+        <td class="py-2 px-4 text-center">
+          <button type="button" class="text-red-600 hover:text-red-800" onclick="this.closest('tr').remove()">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+            </svg>
+          </button>
+        </td>
+      `;
+      tbodyEntrega.appendChild(nuevaFila);
+    });
+
+    // Limpiar selección
+    seleccionados.clear();
+    btnAgregarSeleccionados.textContent = 'Agregar 0 productos';
+    btnAgregarSeleccionados.disabled = true;
+
+    // Volver a la pantalla principal
+    regresarBuscarMateriales();
+  }
+
+  // ---------- MOSTRAR / OCULTAR PANTALLAS ----------
+  window.mostrarBuscarMateriales = function() {
+    document.getElementById('entrega-material-content').classList.add('hidden');
+    document.getElementById('buscar-materiales-content').classList.remove('hidden');
+  }
+
+  window.regresarBuscarMateriales = function() {
+    document.getElementById('buscar-materiales-content').classList.add('hidden');
+    document.getElementById('entrega-material-content').classList.remove('hidden');
+  }
 }
 
-// Muestra la pantalla de búsqueda y oculta la pantalla principal de entrega
+let productosSeleccionados = []
+// Marcar / desmarcar productos seleccionados
+function toggleSeleccionProducto(idProducto) {
+  const index = productosSeleccionados.indexOf(idProducto)
+  if (index === -1) {
+    productosSeleccionados.push(idProducto)
+  } else {
+    productosSeleccionados.splice(index, 1)
+  }
+  actualizarBotonAgregar()
+}
+// Actualiza el botón "Agregar X productos"
+function actualizarBotonAgregar() {
+  const btn = document.getElementById('btn-agregar-seleccionados')
+  if (!btn) return
+  const total = productosSeleccionados.length
+  btn.textContent = total > 0 ? `Agregar ${total} productos` : 'Agregar productos'
+  btn.disabled = total === 0
+}
+
+// Pasa los productos seleccionados a la tabla de entrega
+function agregarProductosSeleccionados() {
+  if (productosSeleccionados.length === 0) return
+
+  const tbodyEntrega = document.getElementById('tablaEntregaMateriales')
+  if (!tbodyEntrega) {
+    console.warn('No se encontró tbodyEntregaMateriales')
+    return
+  }
+
+  productosSeleccionados.forEach((id) => {
+    const filaOriginal = document.getElementById(`fila-producto-${id}`)
+    if (!filaOriginal) return
+
+    // Evitar duplicados
+    if (tbodyEntrega.querySelector(`#entrega-${id}`)) return
+
+    const nuevaFila = document.createElement('tr')
+    nuevaFila.id = `entrega-${id}`
+    nuevaFila.innerHTML = `
+      <td class="border px-2 py-1">${filaOriginal.cells[0].textContent}</td>
+      <td class="border px-2 py-1">${filaOriginal.cells[1].textContent}</td>
+      <td class="border px-2 py-1">${filaOriginal.cells[2].textContent}</td>
+      <td class="border px-2 py-1">
+        <input type="number" min="1" value="1" class="w-16 border rounded px-1 py-0.5" />
+      </td>
+    `
+    tbodyEntrega.appendChild(nuevaFila)
+  })
+
+  // Limpiar selección y regresar pantalla
+  productosSeleccionados = []
+  actualizarBotonAgregar()
+  regresarBuscarMateriales()
+}
+
+// Muestra la pantalla de búsqueda
 function mostrarBuscarMateriales() {
   const entrega = document.getElementById('entrega-material-content')
   const buscar = document.getElementById('buscar-materiales-content')
@@ -1934,7 +2108,7 @@ function mostrarBuscarMateriales() {
   buscar.classList.remove('hidden')
 }
 
-// Vuelve de la pantalla de búsqueda a la pantalla principal de entrega
+// Vuelve a la pantalla principal de entrega
 function regresarBuscarMateriales() {
   const entrega = document.getElementById('entrega-material-content')
   const buscar = document.getElementById('buscar-materiales-content')
@@ -1950,8 +2124,11 @@ function regresarBuscarMateriales() {
   entrega.classList.remove('hidden')
 }
 
-// Placeholder vacío para futuras inicializaciones específicas de entrega
 
+
+/**
+ * Varios
+ */
 // Función de ejemplo para notificaciones (puedes adaptar)
 function mostrarNotificacion(msg, tipo = 'success') {
   alert(msg) // Simple alert, se puede reemplazar por un toast
