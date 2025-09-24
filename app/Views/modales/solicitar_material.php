@@ -346,7 +346,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                             <input type="text" name="servicio[]" class="w-full px-2 py-1 border rounded" placeholder="Descripción del servicio">
                         </td>
                         <td class="px-3 py-2 border">
-                            <input type="number" name="importe[]" class="costo-servicio w-full px-2 py-1 border rounded" min="0" step="0.01" placeholder="0.00">
+                            <input type="number" name="importe[]" class="costo-servicio w-full px-2 py-1 border rounded" min="0" step="1.00" placeholder="0.00">
                         </td>
                         <td class="px-3 py-2 border text-center">
                             <button type="button" class="eliminar-fila-servicio text-red-600 hover:text-red-800"

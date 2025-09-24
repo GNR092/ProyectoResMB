@@ -67,7 +67,7 @@ class Modales extends BaseController
                     )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                    ->where('Solicitud.Estado', 'Aprobado')
+                    ->where('Solicitud.Estado', 'Aprobada')
                     ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                     ->findAll();
 
