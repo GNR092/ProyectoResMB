@@ -20,6 +20,7 @@ class Auth extends BaseController
 
         $email = $post['email'];
         $password = $post['password'];
+        $loginAsEmployee = isset($post['login_as_employee']) && $post['login_as_employee'] == '1';
 
         $rules = [
             'email' => 'required|valid_email',
@@ -35,7 +36,15 @@ class Auth extends BaseController
         $userModel = new UsuariosModel();
         $user = $userModel->where('Correo', $email)->first();
 
-        if ($user && password_verify($password, $user['ContrasenaP'])) {
+        if (!$user) {
+            return view('auth/login', ['error' => 'Correo electrónico o contraseña no válidos.']);
+        }
+
+        // Determinar qué contraseña verificar
+        $passwordToVerify = $loginAsEmployee ? $user['ContrasenaG'] : $user['ContrasenaP'];
+        $isPasswordCorrect = password_verify($password, $passwordToVerify);
+
+        if ($isPasswordCorrect) {
             $token = new Rest();
             $tokenModel = new TokenModel();
             $existingToken = $tokenModel->where('ID_Usuario', $user['ID_Usuario'])->first();
@@ -44,12 +53,27 @@ class Auth extends BaseController
             } else {
                 $token->generateUserToken($user['ID_Usuario']);
             }
+
+            // Obtener datos completos para la sesión
+            $api = new Rest();
+            $userData = $api->getUserById($user['ID_Usuario']);
+            $departmentData = $api->getAllDepartments();
+            $userDepartment = null;
+            foreach ($departmentData as $dept) {
+                if ($dept['ID_Dpto'] == $userData['ID_Dpto']) {
+                    $userDepartment = $dept;
+                    break;
+                }
+            }
+
             $ses_data = [
-                'id' => $user['ID_Usuario'],
-                'name' => $user['Nombre'],
-                'email' => $user['Correo'],
-                'dep' => $user['ID_Dpto'],
+                'id' => $userData['ID_Usuario'],
+                'nombre_usuario' => $userData['Nombre'],
+                'email' => $userData['Correo'],
+                'id_departamento_usuario' => $userData['ID_Dpto'],
+                'departamento_usuario' => $userDepartment ? ($userDepartment['Nombre'] . ' (' . $userDepartment['Place'] . ')') : 'N/A',
                 'isLoggedIn' => true,
+                'login_type' => $loginAsEmployee ? 'employee' : 'boss', // Guardamos el tipo de login
             ];
             $this->session->set($ses_data);
 

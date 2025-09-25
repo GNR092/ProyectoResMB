@@ -68,12 +68,22 @@ class Home extends BaseController
         $permisosUsuario = $permisosPorDepto[$nombreDepartamento] ?? $permisosPorDepto['default'];
         $opcionesFiltradas = array_filter($opcionesDisponibles, fn($key) => in_array($key, $permisosUsuario), ARRAY_FILTER_USE_KEY);
 
+        // Determinar el texto del modo de inicio de sesión
+        $loginType = session('login_type');
+        $loginModeText = '';
+        if ($loginType === 'employee') {
+            $loginModeText = 'Empleado';
+        } elseif ($loginType === 'boss') {
+            $loginModeText = 'Jefe';
+        }
+
         $data = [
             'opcionesDinamicas' => $opcionesFiltradas,
-            'nombre_usuario' => session('name') ?? 'Usuario',
+            'nombre_usuario' => session('nombre_usuario') ?? 'Usuario',
             'departamento_usuario' => $departamento['Nombre'] ?? 'Departamento',
             'id_departamento_usuario' => $usuario['ID_Dpto'] ?? null,
             'departamentos' => $departamentos->findall(),
+            'modo_login' => $loginModeText,
         ];
         $session = session();
         $session->set($data);

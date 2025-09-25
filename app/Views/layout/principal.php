@@ -55,7 +55,7 @@ $session = session();
         <header
             class="h-12 bg-white border-b border-gray-300 flex items-center justify-end px-6 text-sm text-gray-600 shadow-sm">
             <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc(
-     $departamento_usuario ?? 'Departamento',
+     $modo_login." " . $departamento_usuario ?? 'Departamento',
  ) ?>
         </header>
 

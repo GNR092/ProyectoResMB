@@ -46,6 +46,14 @@
             <?php endif; ?>
         </div>
 
+        <div class="flex items-center">
+            <input id="login_as_employee" name="login_as_employee" type="checkbox" value="1" <?= set_checkbox('login_as_employee', '1') ?> 
+                class="h-4 w-4 text-gray-800 focus:ring-gray-900 border-gray-300 rounded">
+            <label for="login_as_employee" class="ml-2 block text-sm text-gray-900">
+                Iniciar sesión como empleado
+            </label>
+        </div>
+
         <button type="submit"
             class="w-full bg-gray-800 text-white py-3 px-4 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 transition duration-200">
             Iniciar sesión
