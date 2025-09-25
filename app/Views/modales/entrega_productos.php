@@ -54,7 +54,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <th class="py-2 px-4 text-left">Nombre</th>
                     <th class="py-2 px-4 text-left">Cantidad a entregar</th>
                     <th class="py-2 px-4 text-left">Existencia actual</th>
-                    <th class="py-2 px-4"></th>
+                    <th class="py-2 px-4 text-center">Acciones</th>
                 </tr>
                 </thead>
                 <tbody id="tablaEntregaMateriales">

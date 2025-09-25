@@ -1904,7 +1904,6 @@ function initProveedorActions(tabla) {
  */
 
 function initEntregaMaterial() {
-  // ---------- VARIABLES ----------
   const tbodyBuscar = document.getElementById('tablaBuscarMateriales');
   const paginacionBuscar = document.getElementById('paginacion-buscar-materiales');
   const inputBuscar = document.getElementById('buscarMaterial');
@@ -1915,7 +1914,7 @@ function initEntregaMaterial() {
   const filasOriginales = Array.from(tbodyBuscar.querySelectorAll('tr'));
   let paginaActual = 1;
   const filasPorPagina = 10;
-  const seleccionados = new Set(); // IDs de productos seleccionados
+  let productosSeleccionados = [];
 
   // ---------- FILTRO Y PAGINACIÓN ----------
   function aplicarFiltro() {
@@ -1968,35 +1967,45 @@ function initEntregaMaterial() {
   actualizarTablaBuscar();
 
   // ---------- SELECCIÓN DE PRODUCTOS ----------
-  window.toggleSeleccionProducto = function(id) {
-    if (seleccionados.has(id)) {
-      seleccionados.delete(id);
-      document.getElementById('fila-producto-' + id).classList.remove('bg-green-100');
-    } else {
-      seleccionados.add(id);
+  window.toggleSeleccionProducto = function (id) {
+    const index = productosSeleccionados.indexOf(id);
+    if (index === -1) {
+      productosSeleccionados.push(id);
       document.getElementById('fila-producto-' + id).classList.add('bg-green-100');
+    } else {
+      productosSeleccionados.splice(index, 1);
+      document.getElementById('fila-producto-' + id).classList.remove('bg-green-100');
     }
-    btnAgregarSeleccionados.textContent = `Agregar ${seleccionados.size} productos`;
-    btnAgregarSeleccionados.disabled = seleccionados.size === 0;
+    actualizarBotonAgregar();
   }
 
-  // ---------- AGREGAR A TABLA PRINCIPAL ----------
-  window.agregarProductosSeleccionados = function() {
-    if (seleccionados.size === 0) return;
+  function actualizarBotonAgregar() {
+    const total = productosSeleccionados.length;
+    btnAgregarSeleccionados.textContent = total > 0 ? `Agregar ${total} productos` : 'Agregar 0 productos';
+    btnAgregarSeleccionados.disabled = total === 0;
+  }
 
-    // Eliminar fila "No hay materiales seleccionados" si existe
+  // ---------- AGREGAR PRODUCTOS A TABLA ENTREGA ----------
+  window.agregarProductosSeleccionados = function () {
+    if (productosSeleccionados.length === 0) return;
+
+    // Quitar mensaje vacío si existe
     const filaVacia = tbodyEntrega.querySelector('tr td[colspan="5"]');
     if (filaVacia) filaVacia.parentElement.remove();
 
-    seleccionados.forEach(id => {
+    productosSeleccionados.forEach(id => {
       const filaBuscar = document.getElementById('fila-producto-' + id);
       if (!filaBuscar) return;
+
+      // Evitar duplicados
+      if (tbodyEntrega.querySelector(`#entrega-${id}`)) return;
 
       const codigo = filaBuscar.cells[0]?.textContent || '';
       const nombre = filaBuscar.cells[1]?.textContent || '';
       const existencia = filaBuscar.cells[2]?.textContent || '0';
 
       const nuevaFila = document.createElement('tr');
+      nuevaFila.id = `entrega-${id}`;
       nuevaFila.innerHTML = `
         <td class="py-2 px-4">${codigo}</td>
         <td class="py-2 px-4">${nombre}</td>
@@ -2005,9 +2014,9 @@ function initEntregaMaterial() {
         </td>
         <td class="py-2 px-4">${existencia}</td>
         <td class="py-2 px-4 text-center">
-          <button type="button" class="text-red-600 hover:text-red-800" onclick="this.closest('tr').remove()">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+          <button type="button" onclick="eliminarFilaEntrega('${id}')" class="text-red-600 hover:text-red-800">
+            <svg fill="none" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
+              <use xlink:href="/icons/icons.svg#eliminar-fila"></use>
             </svg>
           </button>
         </td>
@@ -2015,28 +2024,53 @@ function initEntregaMaterial() {
       tbodyEntrega.appendChild(nuevaFila);
     });
 
-    // Limpiar selección
-    seleccionados.clear();
-    btnAgregarSeleccionados.textContent = 'Agregar 0 productos';
-    btnAgregarSeleccionados.disabled = true;
-
-    // Volver a la pantalla principal
+    productosSeleccionados = [];
+    actualizarBotonAgregar();
     regresarBuscarMateriales();
   }
 
+  // ---------- ELIMINAR FILA ----------
+  window.eliminarFilaEntrega = function (id) {
+    const fila = document.getElementById(`entrega-${id}`);
+    if (fila) fila.remove();
+
+    // Si la tabla queda vacía, mostrar mensaje
+    if (tbodyEntrega.querySelectorAll('tr').length === 0) {
+      const filaVacia = document.createElement('tr');
+      filaVacia.innerHTML = `
+        <td colspan="5" class="py-2 px-4 text-center text-gray-500">
+          No hay materiales seleccionados.
+        </td>
+      `;
+      tbodyEntrega.appendChild(filaVacia);
+    }
+  }
+
   // ---------- MOSTRAR / OCULTAR PANTALLAS ----------
-  window.mostrarBuscarMateriales = function() {
+  window.mostrarBuscarMateriales = function () {
+    // Limpiar selección anterior
+    productosSeleccionados = [];
+    const filas = document.querySelectorAll('#tablaBuscarMateriales tr');
+    filas.forEach(fila => fila.classList.remove('bg-green-100'));
+
+    // Reiniciar botón
+    btnAgregarSeleccionados.textContent = 'Agregar 0 productos';
+    btnAgregarSeleccionados.disabled = true;
+
+    // Mostrar pantalla buscar y ocultar entrega
     document.getElementById('entrega-material-content').classList.add('hidden');
     document.getElementById('buscar-materiales-content').classList.remove('hidden');
   }
 
-  window.regresarBuscarMateriales = function() {
+
+  window.regresarBuscarMateriales = function () {
     document.getElementById('buscar-materiales-content').classList.add('hidden');
     document.getElementById('entrega-material-content').classList.remove('hidden');
   }
 }
 
 let productosSeleccionados = []
+
 // Marcar / desmarcar productos seleccionados
 function toggleSeleccionProducto(idProducto) {
   const index = productosSeleccionados.indexOf(idProducto)
@@ -2047,6 +2081,7 @@ function toggleSeleccionProducto(idProducto) {
   }
   actualizarBotonAgregar()
 }
+
 // Actualiza el botón "Agregar X productos"
 function actualizarBotonAgregar() {
   const btn = document.getElementById('btn-agregar-seleccionados')
@@ -2066,6 +2101,10 @@ function agregarProductosSeleccionados() {
     return
   }
 
+  // Quitar mensaje vacío si existe
+  const filaVacia = tbodyEntrega.querySelector('tr td[colspan="5"]')
+  if (filaVacia) filaVacia.parentElement.remove()
+
   productosSeleccionados.forEach((id) => {
     const filaOriginal = document.getElementById(`fila-producto-${id}`)
     if (!filaOriginal) return
@@ -2073,14 +2112,27 @@ function agregarProductosSeleccionados() {
     // Evitar duplicados
     if (tbodyEntrega.querySelector(`#entrega-${id}`)) return
 
+    const codigo = filaOriginal.cells[0].textContent
+    const nombre = filaOriginal.cells[1].textContent
+    const existencia = filaOriginal.cells[2].textContent
+
     const nuevaFila = document.createElement('tr')
     nuevaFila.id = `entrega-${id}`
     nuevaFila.innerHTML = `
-      <td class="border px-2 py-1">${filaOriginal.cells[0].textContent}</td>
-      <td class="border px-2 py-1">${filaOriginal.cells[1].textContent}</td>
-      <td class="border px-2 py-1">${filaOriginal.cells[2].textContent}</td>
-      <td class="border px-2 py-1">
-        <input type="number" min="1" value="1" class="w-16 border rounded px-1 py-0.5" />
+      <td class="py-2 px-4">${codigo}</td>
+      <td class="py-2 px-4">${nombre}</td>
+      <td class="py-2 px-4">
+        <input type="number" min="1" max="${existencia}" value="1"
+          class="w-20 border rounded px-2 py-1 text-center" />
+      </td>
+      <td class="py-2 px-4">${existencia}</td>
+      <td class="py-2 px-4 text-center">
+        <button type="button" class="text-red-600 hover:text-red-800"
+          onclick="document.getElementById('entrega-${id}').remove()">
+          <svg fill="none" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
+            <use xlink:href="${iconUrl}#eliminar-fila"></use>
+          </svg>
+        </button>
       </td>
     `
     tbodyEntrega.appendChild(nuevaFila)
@@ -2092,37 +2144,17 @@ function agregarProductosSeleccionados() {
   regresarBuscarMateriales()
 }
 
-// Muestra la pantalla de búsqueda
+// Mostrar y regresar pantallas
 function mostrarBuscarMateriales() {
-  const entrega = document.getElementById('entrega-material-content')
-  const buscar = document.getElementById('buscar-materiales-content')
-
-  if (!entrega || !buscar) {
-    console.warn(
-      'mostrarBuscarMateriales: elementos no encontrados (entrega-material-content / buscar-materiales-content)',
-    )
-    return
-  }
-
-  entrega.classList.add('hidden')
-  buscar.classList.remove('hidden')
+  document.getElementById('entrega-material-content').classList.add('hidden')
+  document.getElementById('buscar-materiales-content').classList.remove('hidden')
 }
 
-// Vuelve a la pantalla principal de entrega
 function regresarBuscarMateriales() {
-  const entrega = document.getElementById('entrega-material-content')
-  const buscar = document.getElementById('buscar-materiales-content')
-
-  if (!entrega || !buscar) {
-    console.warn(
-      'regresarBuscarMateriales: elementos no encontrados (entrega-material-content / buscar-materiales-content)',
-    )
-    return
-  }
-
-  buscar.classList.add('hidden')
-  entrega.classList.remove('hidden')
+  document.getElementById('buscar-materiales-content').classList.add('hidden')
+  document.getElementById('entrega-material-content').classList.remove('hidden')
 }
+
 
 
 
