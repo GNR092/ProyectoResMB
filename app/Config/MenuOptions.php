@@ -79,10 +79,14 @@ class MenuOptions extends BaseConfig
             ],
 
             //Otros
-            'usuarios' => [
+            // 'usuarios' => [
+            //     'label' => 'Usuarios',
+            //     'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#usuarios"></use></svg>',
+            // ],
+            'crud_usuarios' => [
                 'label' => 'Usuarios',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#usuarios"></use></svg>',
-            ],
+            ],            
 
             'proveedores' => [
                 'label' => 'Proveedores',

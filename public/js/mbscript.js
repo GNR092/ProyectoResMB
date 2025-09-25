@@ -18,6 +18,7 @@ function abrirModal(opcion) {
     dictamen_solicitudes: 'Dictamen de requisiciones',
     crud_proveedores: 'CRUD Proveedores',
     limpiar_almacenamiento: 'Limpiar Almacenamiento',
+    crud_usuarios: 'Administrar Usuarios',
     pagos_pendientes: 'Pagos Pendientes',
     registrar_productos: 'Registrar Productos',
     crud_productos: 'Existencias',
@@ -53,6 +54,8 @@ function abrirModal(opcion) {
         initOrdenesCompra()
       } else if (opcion === 'crud_proveedores') {
         initCrudProveedores()
+      } else if (opcion === 'crud_usuarios') {
+        // La inicialización se hace con AlpineJS en la propia vista
       } else if (opcion === 'entrega_productos') {
         initEntregaMaterial()
       }
@@ -2148,6 +2151,248 @@ function agregarProductosSeleccionados() {
 function mostrarBuscarMateriales() {
   document.getElementById('entrega-material-content').classList.add('hidden')
   document.getElementById('buscar-materiales-content').classList.remove('hidden')
+}
+/**
+ * Lógica para el modal "CRUD Usuarios" con Alpine.js
+ */
+function crudUsuarios() {
+  return {
+    // Función para filtrar usuarios en la tabla
+    filtrarUsuarios() {
+      const termino = document.getElementById('buscarUsuario').value.toLowerCase();
+      const filas = document.querySelectorAll('#tablaCrudUsuarios .usuario-row');
+
+      filas.forEach(fila => {
+        const nombre = fila.querySelector('.nombre').textContent.toLowerCase();
+        const correo = fila.querySelector('.correo').textContent.toLowerCase();
+        const visible = nombre.includes(termino) || correo.includes(termino);
+        fila.style.display = visible ? '' : 'none';
+      });
+    },
+
+    // Muestra el formulario de edición con los datos del usuario
+    editarUsuario(id) {
+      const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`);
+      if (!fila) return;
+
+      document.getElementById('editar-ID_Usuario').value = id;
+      document.getElementById('editar-Nombre').value = fila.querySelector('.nombre').textContent;
+      document.getElementById('editar-Correo').value = fila.querySelector('.correo').textContent;
+      document.getElementById('editar-ID_Dpto').value = fila.querySelector('.departamento').dataset.idDpto;
+      document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonsocial;
+      document.getElementById('editar-Numero').value = fila.dataset.numero || '';
+      document.getElementById('editar-ContrasenaP').value = ''; // Limpiar campo de contraseña
+      document.getElementById('editar-ContrasenaG').value = ''; // Limpiar campo de contraseña
+      document.getElementById('editar-ContrasenaP_confirm').value = '';
+      document.getElementById('editar-ContrasenaG_confirm').value = '';
+
+      document.getElementById('div-lista-usuarios').classList.add('hidden');
+      document.getElementById('div-editar-usuario').classList.remove('hidden');
+    },
+
+    // Muestra el formulario de creación de usuario
+    mostrarFormularioCrear() {
+      document.getElementById('form-crear-usuario').reset();
+      document.getElementById('div-lista-usuarios').classList.add('hidden');
+      document.getElementById('div-crear-usuario').classList.remove('hidden');
+    },
+
+    // Regresa a la vista de la lista de usuarios
+    regresarALista() {
+      document.getElementById('div-editar-usuario').classList.add('hidden');
+      document.getElementById('div-crear-usuario').classList.add('hidden');
+      document.getElementById('div-lista-usuarios').classList.remove('hidden');
+    },
+
+    // Guarda los cambios del formulario de edición
+    async guardarCambiosUsuario() {
+      const id = document.getElementById('editar-ID_Usuario').value;
+      const nombre = document.getElementById('editar-Nombre').value;
+      const correo = document.getElementById('editar-Correo').value;
+      const idDpto = document.getElementById('editar-ID_Dpto').value;
+      const idRazonSocial = document.getElementById('editar-ID_RazonSocial').value;
+      const numero = document.getElementById('editar-Numero').value;
+      const contrasena = document.getElementById('editar-ContrasenaP').value;
+      const contrasenaG = document.getElementById('editar-ContrasenaG').value;
+      const contrasenaConfirm = document.getElementById('editar-ContrasenaP_confirm').value;
+      const contrasenaGConfirm = document.getElementById('editar-ContrasenaG_confirm').value;
+
+      const data = {
+        Nombre: nombre,
+        Correo: correo,
+        ID_Dpto: idDpto,
+        Numero: numero,
+        ID_RazonSocial: idRazonSocial,
+      };
+
+      if (contrasena) {
+        if (contrasena !== contrasenaConfirm) {
+          mostrarNotificacion('Las contraseñas de Jefe no coinciden.', 'error');
+          return;
+        }
+        data.ContrasenaP = contrasena;
+      }
+
+      if (contrasenaG) {
+        if (contrasenaG !== contrasenaGConfirm) {
+          mostrarNotificacion('Las contraseñas de Empleado no coinciden.', 'error');
+          return;
+        }
+        data.ContrasenaG = contrasenaG;
+      }
+
+      try {
+        const response = await fetch(`${BASE_URL}modales/actualizarUsuario/${id}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          mostrarNotificacion(result.message, 'success');
+          // Actualizar la fila en la tabla
+          const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`);
+          if (fila) {
+            fila.querySelector('.nombre').textContent = nombre;
+            fila.querySelector('.correo').textContent = correo;
+            const select = document.getElementById('editar-ID_Dpto'); // Aquí se obtiene el texto completo (Depto + Lugar)
+            const deptoText = select.options[select.selectedIndex].text;
+            fila.querySelector('.departamento').textContent = deptoText;
+            fila.dataset.numero = numero;
+            fila.querySelector('.departamento').dataset.idDpto = idDpto;
+          }
+          this.regresarALista();
+        } else {
+          const errorMsg = result.errors ? Object.values(result.errors).join('\n') : result.message;
+          mostrarNotificacion(errorMsg, 'error');
+        }
+      } catch (error) {
+        console.error('Error al actualizar usuario:', error);
+        mostrarNotificacion('Error de conexión al actualizar.', 'error');
+      }
+    },
+
+    // Guarda un nuevo usuario
+    async guardarNuevoUsuario() {
+      const nombre = document.getElementById('crear-Nombre').value;
+      const correo = document.getElementById('crear-Correo').value;
+      const idDpto = document.getElementById('crear-ID_Dpto').value;
+      const idRazonSocial = document.getElementById('crear-ID_RazonSocial').value;
+      const numero = document.getElementById('crear-Numero').value;
+      const contrasena = document.getElementById('crear-ContrasenaP').value;
+      const contrasenaG = document.getElementById('crear-ContrasenaG').value;
+      const contrasenaConfirm = document.getElementById('crear-ContrasenaP_confirm').value;
+      const contrasenaGConfirm = document.getElementById('crear-ContrasenaG_confirm').value;
+
+      if (contrasena.length < 8) {
+        mostrarNotificacion('La contraseña de Jefe debe tener al menos 8 caracteres.', 'error');
+        return;
+      }
+
+      if (contrasena !== contrasenaConfirm) {
+        mostrarNotificacion('Las contraseñas de Jefe no coinciden.', 'error');
+        return;
+      }
+
+      // Validar ContraseñaG solo si se ha introducido
+      if (contrasenaG) {
+        if (contrasenaG.length < 8) {
+          mostrarNotificacion('La contraseña de Empleado debe tener al menos 8 caracteres.', 'error');
+          return;
+        }
+        if (contrasenaG !== contrasenaGConfirm) {
+          mostrarNotificacion('Las contraseñas de Empleado no coinciden.', 'error');
+          return;
+        }
+      }
+
+      const data = {
+        Nombre: nombre,
+        Correo: correo,
+        ID_Dpto: idDpto,
+        Numero: numero,
+        ID_RazonSocial: idRazonSocial,
+        ContrasenaP: contrasena,
+        ContrasenaG: contrasenaG,
+      };
+
+      try {
+        const response = await fetch(`${BASE_URL}modales/registrarUsuario`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          mostrarNotificacion(result.message, 'success');
+          
+          // Añadir dinámicamente la nueva fila a la tabla
+          const tablaBody = document.getElementById('tablaCrudUsuarios');
+          const selectDepto = document.getElementById('crear-ID_Dpto'); // Aquí se obtiene el texto completo (Depto + Lugar)
+          const deptoText = selectDepto.options[selectDepto.selectedIndex].text;
+          const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`;
+
+          const nuevaFila = `
+            <tr data-id="${result.user.ID_Usuario}" class="usuario-row" data-numero="${numero}" data-id-razonsocial="${idRazonSocial}">
+              <td class="py-2 px-4 border-b nombre">${result.user.Nombre}</td>
+              <td class="py-2 px-4 border-b correo">${result.user.Correo}</td>
+              <td class="py-2 px-4 border-b departamento" data-id-dpto="${result.user.ID_Dpto}">${deptoText}</td>
+              <td class="py-2 px-4 border-b text-center">
+                <button @click="editarUsuario(${result.user.ID_Usuario})" class="text-blue-600 hover:text-blue-800" title="Editar">
+                  <svg class="h-5 w-5 inline" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#editar"></use></svg>
+                </button>
+                <button @click="eliminarUsuario(${result.user.ID_Usuario})" class="text-red-600 hover:text-red-800 ml-2" title="Eliminar">
+                  <svg class="h-5 w-5 inline" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#eliminar-fila"></use></svg>
+                </button>
+              </td>
+            </tr>`;
+          
+          tablaBody.insertAdjacentHTML('beforeend', nuevaFila);
+          this.regresarALista();
+        } else {
+          const errorMsg = result.errors ? Object.values(result.errors).join('\n') : result.message;
+          mostrarNotificacion(errorMsg, 'error');
+        }
+      } catch (error) {
+        console.error('Error al registrar usuario:', error);
+        mostrarNotificacion('Error de conexión al registrar.', 'error');
+      }
+    },
+
+    // Elimina un usuario
+    async eliminarUsuario(id) {
+      if (!confirm('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${BASE_URL}modales/eliminarUsuario/${id}`, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const result = await response.json();
+        if (result.success) {
+          mostrarNotificacion(result.message, 'success');
+          document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)?.remove();
+        } else {
+          mostrarNotificacion(result.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error al eliminar usuario:', error);
+        mostrarNotificacion('Error de conexión al eliminar.', 'error');
+      }
+    }
+  };
 }
 
 function regresarBuscarMateriales() {
