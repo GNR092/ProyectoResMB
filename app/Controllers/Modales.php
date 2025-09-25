@@ -6,6 +6,8 @@ use App\Models\RazonSocialModel;
 use App\Models\UsuariosModel;
 use App\Libraries\Rest;
 use App\Models\ProveedorModel;
+use App\Models\ProductoModel;
+use App\Models\SolicitudModel;
 
 class Modales extends BaseController
 {
@@ -33,8 +35,8 @@ class Modales extends BaseController
                 return view('modales/solicitar_material', $data);
 
             case 'revisar_solicitudes':
-                $solicitudModel = new \App\Models\SolicitudModel();
-                $proveedorModel = new \App\Models\ProveedorModel();
+                $solicitudModel = new SolicitudModel();
+                $proveedorModel = new ProveedorModel();
 
                 // --- Solicitudes Pendientes ---
                 $data['solicitudes'] = $solicitudModel
@@ -59,7 +61,7 @@ class Modales extends BaseController
                 return view('modales/proveedores');
 
             case 'ordenes_compra':
-                $solicitudModel = new \App\Models\SolicitudModel();
+                $solicitudModel = new SolicitudModel();
 
                 $data['solicitudes'] = $solicitudModel
                     ->select(
@@ -75,7 +77,7 @@ class Modales extends BaseController
 
             case 'enviar_revision':
                 return view('modales/enviar_revision');
-
+            
             case 'usuarios':
                 $departamentosModel = new DepartamentosModel();
                 $razonSocialModel = new RazonSocialModel();
@@ -87,8 +89,15 @@ class Modales extends BaseController
 
                 return view('modales/usuarios', $data);
 
+            case 'crud_usuarios':
+                $usuariosModel = new UsuariosModel();
+                $data['usuarios'] = $this->api->getAllUsers();
+                $data['razones_sociales'] = (new RazonSocialModel())->findAll();
+                $data['departamentos'] = $this->api->getAllDepartments();
+                return view('modales/crud_usuarios', $data);
+
             case 'dictamen_solicitudes':
-                $solicitudModel = new \App\Models\SolicitudModel();
+                $solicitudModel = new SolicitudModel();
 
                 $data['solicitudes'] = $solicitudModel
                     ->select(
@@ -103,7 +112,7 @@ class Modales extends BaseController
                 return view('modales/dictamen_solicitudes', $data);
 
             case 'crud_proveedores':
-                $proveedorModel = new \App\Models\ProveedorModel();
+                $proveedorModel = new ProveedorModel();
 
                 // Traer todos los registros de proveedores
                 $data['proveedores'] = $proveedorModel
@@ -119,13 +128,13 @@ class Modales extends BaseController
                 return view('modales/pagos_pendientes');
 
             case 'registrar_productos':
-                $productoModel = new \App\Models\ProductoModel();
+                $productoModel = new ProductoModel();
                 $data['productos'] = $productoModel->findAll();
 
                 return view('modales/registrar_productos', $data);
 
             case 'crud_productos':
-                $productoModel = new \App\Models\ProductoModel();
+                $productoModel = new ProductoModel();
 
                 // Orden numérico ascendente por el campo texto "Codigo"
                 $data['productos'] = $productoModel
@@ -136,7 +145,7 @@ class Modales extends BaseController
                 return view('modales/crud_productos', $data);
 
             case 'entrega_productos':
-                $productoModel = new \App\Models\ProductoModel();
+                $productoModel = new ProductoModel();
 
                 // Orden numérico ascendente por el campo texto "Codigo"
                 $data['productos'] = $productoModel
@@ -167,38 +176,122 @@ class Modales extends BaseController
     //Funciones para usuarios
     public function registrarUsuario()
     {
-        $usuarioModel = new UsuariosModel();
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(405); // Method Not Allowed
+        }
 
-        $datos = [
-            'ID_Dpto' => $this->request->getPost('ID_Dpto'),
-            'ID_RazonSocial' => $this->request->getPost('ID_RazonSocial'),
-            'Nombre' => $this->request->getPost('nombre'),
-            'Correo' => $this->request->getPost('correo'),
-            'ContrasenaP' => password_hash($this->request->getPost('ContrasenaP'), PASSWORD_DEFAULT),
-            'ContrasenaG' => password_hash($this->request->getPost('ContrasenaG'), PASSWORD_DEFAULT),
-            'Numero' => $this->request->getPost('Numero'),
+        $data = $this->request->getJSON(true);
+
+        // Validación de los datos
+        $rules = [
+            'Nombre' => 'required|string|max_length[255]',
+            'Correo' => 'required|valid_email|is_unique[Usuarios.Correo]',
+            'ID_Dpto' => 'required|is_natural_no_zero',
+            'ID_RazonSocial' => 'required|is_natural_no_zero',
+            'ContrasenaP' => 'required|min_length[8]',
+            'Numero' => 'permit_empty|string|max_length[20]',
+            'ContrasenaG' => 'permit_empty|min_length[8]',
         ];
 
-        if ($this->api->addUser($datos)) {
-            // Si es una solicitud AJAX, respondemos con JSON
-            if ($this->request->isAJAX()) {
-                return $this->response->setJSON([
-                    'success' => true,
-                    'message' => 'Usuario registrado correctamente.',
-                ]);
-            }
-            return redirect()
-                ->to(site_url('modales/usuarios'))
-                ->with('success', 'Usuario registrado correctamente.');
-        } else {
-            if ($this->request->isAJAX()) {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'Error al registrar usuario.',
-                ]);
-            }
-            return redirect()->back()->withInput()->with('error', 'Error al registrar usuario.');
+        if (!$this->validateData($data, $rules)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Datos de entrada inválidos.',
+                'errors' => $this->validator->getErrors(),
+            ]);
         }
+
+        // Hashear la contraseña
+        $data['ContrasenaP'] = password_hash($data['ContrasenaP'], PASSWORD_DEFAULT);
+        if (!empty($data['ContrasenaG'])) {
+            $data['ContrasenaG'] = password_hash($data['ContrasenaG'], PASSWORD_DEFAULT);
+        } else {
+            $data['ContrasenaG'] = null; // Opcional: asegúrate de que se guarde como nulo si está vacío
+        }
+
+        $newUserId = (new UsuariosModel())->insert($data, true);
+
+        if ($newUserId) {
+            $newUser = $this->api->getUserById($newUserId);
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Usuario registrado correctamente.',
+                'user' => $newUser,
+            ]);
+        }
+
+        return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'No se pudo registrar el usuario.']);
+    }
+
+    public function actualizarUsuario($id)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(405); // Method Not Allowed
+        }
+
+        $data = $this->request->getJSON(true);
+
+        // Validación básica
+        $rules = [
+            'Nombre' => 'required|string|max_length[255]',
+            'Correo' => 'required|valid_email',
+            'ID_Dpto' => 'required|is_natural_no_zero',
+            'ID_RazonSocial' => 'required|is_natural_no_zero',
+            'Numero' => 'permit_empty|string|max_length[20]',
+        ];
+
+        if (!$this->validateData($data, $rules)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Datos de entrada inválidos.',
+                'errors' => $this->validator->getErrors(),
+            ]);
+        }
+
+        // Si se proporciona una nueva contraseña, la hasheamos.
+        if (!empty($data['ContrasenaP'])) {
+            $data['ContrasenaP'] = password_hash($data['ContrasenaP'], PASSWORD_DEFAULT);
+        } else {
+            // Si no se envía, la eliminamos para no sobreescribir la existente con un valor vacío.
+            unset($data['ContrasenaP']);
+        }
+        if (!empty($data['ContrasenaG'])) {
+            $data['ContrasenaG'] = password_hash($data['ContrasenaG'], PASSWORD_DEFAULT);
+        } else {
+            // Si no se envía, la eliminamos para no sobreescribir la existente con un valor vacío.
+            unset($data['ContrasenaG']);
+        }
+
+        if ($this->api->updateUser((int)$id, $data)) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Usuario actualizado correctamente.']);
+        }
+
+        return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'No se pudo actualizar el usuario.']);
+    }
+
+    public function eliminarUsuario($id)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(405);
+        }
+
+        // --- Medida de seguridad: Evitar eliminar administradores ---
+        $userModel = new UsuariosModel();
+        $userToDelete = $userModel
+            ->select('Departamentos.Nombre')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Usuarios.ID_Dpto', 'left')
+            ->where('Usuarios.ID_Usuario', $id)
+            ->first();
+
+        if ($userToDelete && $userToDelete['Nombre'] === 'Administración') {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'No se puede eliminar a un usuario administrador.']);
+        }
+
+        if ($this->api->deleteUser((int)$id)) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Usuario eliminado correctamente.']);
+        }
+
+        return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'No se pudo eliminar el usuario.']);
     }
 
     //Funciones para materiales
@@ -253,7 +346,7 @@ class Modales extends BaseController
     public function eliminarProducto($id = null)
     {
         try {
-            $productoModel = new \App\Models\ProductoModel();
+            $productoModel = new ProductoModel();
 
             if (!$id || !$this->api->getProductById($id)) {
                 return $this->response->setStatusCode(404)->setJSON([
@@ -367,7 +460,7 @@ class Modales extends BaseController
     }
     public function eliminarProveedor($id)
     {
-        $proveedorModel = new \App\Models\ProveedorModel();
+        $proveedorModel = new ProveedorModel();
 
         if ($proveedorModel->delete($id)) {
             return $this->response->setJSON(['success' => true]);
@@ -380,7 +473,7 @@ class Modales extends BaseController
     }
     public function editarProveedor($id)
     {
-        $model = new \App\Models\ProveedorModel();
+        $model = new ProveedorModel();
 
         // Obtener datos del formulario
         $data = [

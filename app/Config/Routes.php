@@ -38,6 +38,8 @@ if (!file_exists($installerLockFile)) {
      */
     $routes->group('/', ['filter' => 'auth'], function ($routes) {
         //Registrar usuarios
+        $routes->post('modales/actualizarUsuario/(:num)', 'Modales::actualizarUsuario/$1');
+        $routes->post('modales/eliminarUsuario/(:num)', 'Modales::eliminarUsuario/$1');
         $routes->post('modales/registrarUsuario', 'Modales::registrarUsuario');
         // Productos
         $routes->post('modales/registrarMaterial', 'Modales::registrarMaterial');

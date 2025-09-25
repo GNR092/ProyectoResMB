@@ -353,7 +353,12 @@ class Rest
     public function getAllUsers(): array
     {
         $usuariosModel = new UsuariosModel();
-        $results = $usuariosModel->findAll();
+        $results = $usuariosModel
+            ->select('Usuarios.*, Departamentos.Nombre as departamento_nombre, Places.Nombre_Corto as place_nombre')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Usuarios.ID_Dpto', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+            ->orderBy('Usuarios.Nombre', 'ASC')
+            ->findAll();
         return $results ?: [];
     }
     /**

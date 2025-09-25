@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - MLB Signature Properties</title>
+    <title>Iniciar Sesión - MB Signature Properties</title>
     <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>">
     <link rel="shortcut icon" type="image/png" href="/favicon.ico">
 
@@ -17,7 +17,7 @@
         <div class="text-center mb-8">
             <img src="<?= base_url(
                 'images/logo.svg',
-            ) ?>" alt="MLB Signature Properties" class="mx-auto h-20 w-auto">
+            ) ?>" alt="MB Signature Properties" class="mx-auto h-20 w-auto">
         </div>
         <?php if (!function_exists('form_open')) {
             helper('form');

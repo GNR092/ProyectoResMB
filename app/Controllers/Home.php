@@ -13,7 +13,6 @@ class Home extends BaseController
     
     public function index()
     {
-        $api = new Rest();
         if(session('isLoggedIn'))
         {    
         $configMenu = new MenuOptions();
@@ -37,7 +36,7 @@ class Home extends BaseController
                 'enviar_revision',
                 'crud_proveedores',
                 'ver_historial',
-                'usuarios',
+                'crud_usuarios',
                 'limpiar_almacenamiento', // Almacenamiento
                 'ficha_pago'
             ],

@@ -109,10 +109,10 @@ class ContentSecurityPolicy extends BaseConfig
     public $formAction = 'self';
 
     /**
-     * Specifies the sources that can embed the current page.
-     * This directive applies to `<frame>`, `<iframe>`, `<embed>`,
-     * and `<applet>` tags. This directive can't be used in
-     * `<meta>` tags and applies only to non-HTML resources.
+     * Especifica las fuentes que pueden incrustar la página actual.
+     * Esta directiva se aplica a `<Frame>`, `<iframe>`, `<griT>`,
+     * y `<Applet>` etiquetas.Esta directiva no se puede usar en
+     * `<META>` Etiquetas y se aplica solo a los recursos no HTML.
      *
      * @var list<string>|string|null
      */
@@ -173,4 +173,14 @@ class ContentSecurityPolicy extends BaseConfig
      * Replace nonce tag automatically
      */
     public bool $autoNonce = true;
+
+    /**
+     * -------------------------------------------------------------------------
+     * Add X-Frame-Options header
+     * -------------------------------------------------------------------------
+     *
+     * This setting will add the X-Frame-Options header to the response.
+     *  Options: DENY, SAMEORIGIN, ALLOW-FROM uri
+     */
+    public ?string $xFrameOptions = 'DENY';
 }
