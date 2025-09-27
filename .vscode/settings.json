@@ -10,6 +10,7 @@
     "*.css": "tailwindcss"
   },
   "php.executablePath": "D:/MBProject/php/php.exe",
+  "composer.executablePath": "D:/MBProject/composer/composer",
   "php.validate.executablePath": "D:/MBProject/php/php.exe",
   "terminal.integrated.defaultProfile.windows": "Command Prompt",
   "terminal.integrated.env.windows": {

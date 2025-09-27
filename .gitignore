@@ -154,3 +154,4 @@ coverage/
 *.tsbuildinfo
 Tasks.md
 [tT]est.php
+composer.lock
