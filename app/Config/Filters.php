@@ -13,6 +13,7 @@ use CodeIgniter\Filters\PageCache;
 use CodeIgniter\Filters\PerformanceMetrics;
 use CodeIgniter\Filters\SecureHeaders;
 use App\Filters\AuthFilter;
+use App\Filters\HSTS;
 
 
 class Filters extends BaseFilters
@@ -31,6 +32,7 @@ class Filters extends BaseFilters
         'toolbar'       => DebugToolbar::class,
         'honeypot'      => Honeypot::class,
         'auth'          => AuthFilter::class,
+        'hsts'          => HSTS::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
         'cors'          => Cors::class,
@@ -77,6 +79,7 @@ class Filters extends BaseFilters
             // 'invalidchars',
         ],
         'after' => [
+             'hsts',
             // 'honeypot',
             // 'secureheaders',
         ],

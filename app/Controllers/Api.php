@@ -9,6 +9,7 @@ use CodeIgniter\RESTful\ResourceController;
 use App\Libraries\Rest;
 use App\Libraries\HttpStatus;
 use App\Libraries\SolicitudTipo;
+use App\Libraries\Status;
 
 class Api extends ResourceController
 {
@@ -326,6 +327,68 @@ class Api extends ResourceController
             return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen.');
         }
     }
+
+    /**
+     * Obtiene las solicitudes pendientes de aprobación para el departamento del jefe actual.
+     */
+    public function getPendientesAprobacionJefe()
+    {
+        if (session('login_type') !== 'boss') {
+            return $this->failForbidden('Acceso denegado. Solo para jefes de departamento.');
+        }
+
+        $idDepartamento = session('id_departamento_usuario');
+        $idJefe = session('id');
+
+        $results = $this->api->getSolicitudesByStatusAndDept(Status::Aprobacion_pendiente, $idDepartamento, $idJefe);
+        return $this->respond($results, HttpStatus::OK);
+    }
+
+    /**
+     * Permite a un jefe de departamento aprobar o rechazar una solicitud de un empleado.
+     */
+    public function dictaminarSolicitudJefe()
+    {
+        if (session('login_type') !== 'boss') {
+            return $this->failForbidden('Acceso denegado. Solo para jefes de departamento.');
+        }
+
+        $json = $this->request->getJSON();
+        if (!isset($json->ID_Solicitud) || !isset($json->accion)) {
+            return $this->failValidationErrors('Se requiere ID de solicitud y una acción (aprobar/rechazar).');
+        }
+
+        $idSolicitud = (int) $json->ID_Solicitud;
+        $accion = $json->accion; // 'aprobar' o 'rechazar'
+        $comentarios = $json->comentarios ?? null;
+
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        // Verificaciones de seguridad
+        if (!$solicitud) {
+            return $this->failNotFound('La solicitud no existe.');
+        }
+        if ($solicitud['ID_Dpto'] != session('id_departamento_usuario')) {
+            return $this->failForbidden('Esta solicitud no pertenece a su departamento.');
+        }
+        if ($solicitud['Estado'] !== Status::Aprobacion_pendiente) {
+            return $this->fail('La solicitud ya ha sido procesada.', HttpStatus::BAD_REQUEST);
+        }
+
+        try {
+            $nuevoEstado = ($accion === Status::Aprobar) ? Status::En_espera : Status::Dept_Rechazada; //Cambiar rechazada para solo verlo en el historial del departamento
+            $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado, 'ComentariosAdmin'=> $comentarios]);
+
+            return $this->respondUpdated([
+                'success' => $accion === Status::Aprobar ? true : false,
+                'message' => 'La solicitud ha sido ' . ($accion === Status::Aprobar ? 'aprobada y enviada a Compras.' : Status::Rechazada . '.'),
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', '[dictaminarSolicitudJefe] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado.');
+        }
+    }
     //endregion
     //region proveedores
     /**
@@ -337,6 +400,18 @@ class Api extends ResourceController
     {
         $results = $this->api->getAllProveedorName(); // Obtiene todos los proveedores de la API.
         return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
+    }
+    //endregion
+
+    //region Solicitudes
+    public function getSolicitudesUsers($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de usuario numérico.');
+        }
+
+        return  $this->respond($this->api->getSolicitudesUsersByDepartment((int) $id), HttpStatus::OK);
+
     }
     //endregion
 }

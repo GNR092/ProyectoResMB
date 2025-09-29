@@ -75,7 +75,7 @@ $session = session();
                 class="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 hidden items-start justify-center pt-10 overflow-auto">
                 <div class="bg-white bg-opacity-95 rounded-lg shadow-2xl max-w-4xl w-full mx-4 sm:mx-auto p-6 relative">
                     <button onclick="cerrarModal()"
-                        class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
+                        class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-3xl font-bold">&times;</button>
                     <h2 id="modal-title" class="text-xl font-semibold mb-4 text-gray-800"></h2>
                     <div id="modal-contenido" class="text-gray-700 space-y-2">
                         <!-- Contenido cargado por AJAX -->

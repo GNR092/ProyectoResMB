@@ -146,6 +146,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </div>
             </div>
 
+            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
+                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                <textarea name="comentariosuser" rows="3" class="w-full border-gray-300 border-2 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+            </div>
+
 
             <!-- Referencia o cotización -->
             <div class="mt-6">
@@ -258,6 +263,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         </svg>
                     </button>
                 </div>
+            </div>
+
+            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
+                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                <textarea name="comentariosuser" rows="3" class="w-full border-gray-300 border-2 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
             </div>
 
             <!-- Referencia o cotización (opcional) -->
@@ -400,6 +410,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         </svg>
                     </button>
                 </div>
+            </div>
+
+            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
+                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                <textarea name="comentariosuser" rows="3" class="w-full border-gray-300 border-2 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
             </div>
 
             <!-- Referencia o cotización -->

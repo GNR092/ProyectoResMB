@@ -18,13 +18,6 @@ class Home extends BaseController
         $configMenu = new MenuOptions();
         $opcionesDisponibles = $configMenu->opciones;
 
-        $departamentos = new DepartamentosModel();
-        $usuarios = new UsuariosModel();
-        $usuario = $usuarios->find(session('id'));
-        
-        $departamento = $departamentos->find($usuario['ID_Dpto']);
-        $nombreDepartamento = $departamento['Nombre'] ?? 'default';
-
         // Definir permisos por rol/departamento
         $permisosPorDepto = [
             // Rol SuperAdmin: ve todo
@@ -65,7 +58,22 @@ class Home extends BaseController
             ]
         ];
 
+        $departamentos = new DepartamentosModel();
+        $usuarios = new UsuariosModel();
+        $usuario = $usuarios->find(session('id'));
+        $departamento = $departamentos->find($usuario['ID_Dpto']);
+        $nombreDepartamento = $departamento['Nombre'] ?? 'default';
+
+        $loginType = session('login_type');
         $permisosUsuario = $permisosPorDepto[$nombreDepartamento] ?? $permisosPorDepto['default'];
+
+        // --- Lógica de permisos por tipo de login (Jefe vs Empleado) ---
+        if ($loginType === 'boss' && $nombreDepartamento !== 'Administración' && $nombreDepartamento !== 'Compras') {
+            // Si es Jefe, añadimos el permiso para aprobar solicitudes.
+            $permisosUsuario[] = 'aprobar_solicitudes';
+        }
+        // Los empleados ('employee') se quedan con los permisos por defecto de su depto.
+
         $opcionesFiltradas = array_filter($opcionesDisponibles, fn($key) => in_array($key, $permisosUsuario), ARRAY_FILTER_USE_KEY);
 
         // Determinar el texto del modo de inicio de sesión
@@ -74,7 +82,7 @@ class Home extends BaseController
         if ($loginType === 'employee') {
             $loginModeText = 'Empleado';
         } elseif ($loginType === 'boss') {
-            $loginModeText = 'Jefe';
+            $loginModeText = 'Jefe de Depto.';
         }
 
         $data = [
@@ -84,6 +92,7 @@ class Home extends BaseController
             'id_departamento_usuario' => $usuario['ID_Dpto'] ?? null,
             'departamentos' => $departamentos->findall(),
             'modo_login' => $loginModeText,
+            'login_type' => $loginType, // Pasamos el tipo de login a la vista
         ];
         $session = session();
         $session->set($data);

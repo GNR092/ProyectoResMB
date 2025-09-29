@@ -158,6 +158,12 @@ class Modales extends BaseController
             case 'ficha_pago':
                 return view('modales/ficha_pago');
 
+            case 'aprobar_solicitudes':
+                $idDepartamentoJefe = $this->api->getUserById(session('id'))['ID_Dpto'];
+                $data['solicitudes_pendientes'] = $this->api->getSolicitudesUsersByDepartment($idDepartamentoJefe);
+
+                return view('modales/aprobar_solicitudes', $data);
+
             default:
                 return 'Opción no válida';
         }

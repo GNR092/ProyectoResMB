@@ -11,6 +11,7 @@
             <option value="Aprobada">🟢 Aprobada</option>
             <option value="Rechazada">🔴 Rechazado</option>
             <option value="Cotizando">🔵 Cotizando</option>
+            <option value="Aprobacion pendiente" id="filtro-pendiente-aprobacion" class="hidden">🟠 Aprobación Pendiente</option>
             <option value="Cotizada">🟣 Cotizada</option>
         </select>
 

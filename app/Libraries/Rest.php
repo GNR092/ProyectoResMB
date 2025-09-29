@@ -144,10 +144,12 @@ class Rest
     //region solicitudes
     public function getAllSolicitud()
     {
+        $excluded_statuses = [Status::Dept_Rechazada, Status::Aprobacion_pendiente];
         $solicitudModel = new SolicitudModel();
 
         $results = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
+            ->whereNotIn('Solicitud.Estado', $excluded_statuses)
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
@@ -216,6 +218,30 @@ class Rest
         return $solicitud;
     }
 
+    /**
+     * Obtiene solicitudes filtrando por estado y departamento, opcionalmente excluyendo a un usuario.
+     *
+     * @param string $status El estado de la solicitud a buscar.
+     * @param int $departmentId El ID del departamento.
+     * @param int|null $excludeUserId El ID del usuario a excluir de los resultados (ej. el jefe).
+     * @return array
+     */
+    public function getSolicitudesByStatusAndDept(string $status, int $departmentId, ?int $excludeUserId = null): array
+    {
+        $solicitudModel = new SolicitudModel();
+        $builder = $solicitudModel
+            ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre')
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario')
+            ->where('Solicitud.Estado', $status)
+            ->where('Solicitud.ID_Dpto', $departmentId);
+
+        if ($excludeUserId !== null) {
+            $builder->where('Solicitud.ID_Usuario !=', $excludeUserId);
+        }
+
+        return $builder->orderBy('Solicitud.Fecha', 'DESC')->findAll();
+    }
+
     //endregion
 
     //region Solicitudes Cotizadas
@@ -266,6 +292,21 @@ class Rest
         }
 
         return $result;
+    }
+
+    public function getSolicitudesUsersByDepartment(int $departmentId)
+    {
+        $solicitudModel = new SolicitudModel();
+        $results = $solicitudModel
+                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre')
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario')
+                    ->where('Solicitud.ID_Dpto', $departmentId)
+                    ->where('Solicitud.Estado', Status::Aprobacion_pendiente)
+                    // esto nos asegura de no mostrar las solicitudes del propio jefe
+                    //->where('Solicitud.ID_Usuario !=', session('id'))
+                    ->orderBy('Solicitud.Fecha', 'DESC')
+                    ->findAll();
+        return $results ?: [];
     }
 
     public function getSolicitudesEnRevision()

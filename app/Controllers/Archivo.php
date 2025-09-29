@@ -31,6 +31,7 @@ class Archivo extends BaseController
         $cantidades = [];
         $importes = [];
         $tipo = null;
+        $comentariosuser = null;
 
         // Determina el tipo de solicitud y prepara los arrays de datos
         if (isset($post['servicio'])) {
@@ -67,6 +68,11 @@ class Archivo extends BaseController
         }
 
         $fecha = $post['fecha'];
+        $comentariosuser = isset($post['comentariosuser']) ? $post['comentariosuser'] : null;
+
+
+        // Determinar el estado inicial basado en el tipo de login
+        $estadoInicial = (session('login_type') === 'boss') ? Status::En_espera : Status::Aprobacion_pendiente;
 
         $datosSolicitud = [
             'ID_Usuario' => $user['ID_Usuario'],
@@ -74,9 +80,10 @@ class Archivo extends BaseController
             'ID_Proveedor' => $razon['ID_Proveedor'] ?? null,
             'IVA' => isset($post['iva']) ? true : false,
             'Fecha' => $fecha,
-            'Estado' => Status::En_espera,
+            'Estado' => $estadoInicial,
             'No_Folio' => null,
             'Tipo' => $tipo,
+            'ComentariosUser' => $comentariosuser
         ];
 
         $datosProductos = [];

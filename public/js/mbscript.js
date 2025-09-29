@@ -24,6 +24,8 @@ function abrirModal(opcion) {
     crud_productos: 'Existencias',
     entrega_productos: 'Entrega de Material',
   }
+  // Título para la nueva opción
+  titulos['aprobar_solicitudes'] = 'Aprobar Solicitudes de Empleados'
 
   titulo.innerText = titulos[opcion] ?? 'Opción'
 
@@ -58,6 +60,9 @@ function abrirModal(opcion) {
         // La inicialización se hace con AlpineJS en la propia vista
       } else if (opcion === 'entrega_productos') {
         initEntregaMaterial()
+      } else if (opcion === 'aprobar_solicitudes') {
+        // La inicialización se hace con AlpineJS en la propia vista
+        // Ver la función aprobarSolicitudes() más abajo
       }
     })
     .catch((error) => {
@@ -426,6 +431,12 @@ function initPaginacionHistorial() {
   const filtroFecha = document.getElementById('filtro-fecha')
   const filtroEstado = document.getElementById('filtro-estado')
 
+  // Mostrar la opción de filtro "Aprobacion Pendiente" solo si es un jefe
+  const opcionPendiente = document.getElementById('filtro-pendiente-aprobacion')
+  if (opcionPendiente && typeof USER_LOGIN_TYPE !== 'undefined' && USER_LOGIN_TYPE === 'boss') {
+    opcionPendiente.classList.remove('hidden')
+  }
+
   let allData = []
   const filasPorPagina = 10
   let paginaActual = 1
@@ -457,14 +468,14 @@ function initPaginacionHistorial() {
     }
   }
 
-  function getStatusSVG(status) {
-    if (!status) return ''
-    const statusLower = status.toLowerCase()
+  function getStatususSVG(statusus) {
+    if (!statusus) return ''
+    const statususLower = statusus.toLowerCase()
     const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`
     let svgClass = ''
     let iconId = ''
 
-    switch (statusLower) {
+    switch (statususLower) {
       case 'aprobada':
         svgClass = 'text-green-600'
         iconId = 'aceptado'
@@ -485,6 +496,10 @@ function initPaginacionHistorial() {
         svgClass = 'text-blue-500'
         iconId = 'revision'
         break
+      case 'aprobacion pendiente':
+        svgClass = 'text-orange-500'
+        iconId = 'pendiente'
+        break
       default:
         return ''
     }
@@ -501,16 +516,17 @@ function initPaginacionHistorial() {
     }
 
     data.forEach((item) => {
-      const svg = getStatusSVG(item.Estado)
+      const status = item.Estado == 'Dept_Rechazada' ? 'Rechazada' : item.Estado
+      const svg = getStatususSVG(status) // Mostrar "Rechazada" en el historial del departamento
       const fila = `
             <tr class="text-center">
                 <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
                 <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
                 <td class="border px-4 py-2 col-fecha">${item.Fecha}</td>
                 <td class="border px-4 py-2">${item.DepartamentoNombre || 'N/A'}</td>
-                <td class="border px-4 py-2 col-estado" data-estado="${item.Estado}" title="${item.Estado}">
+                <td class="border px-4 py-2 col-estado" data-estado="${status}" title="${status}">
                     ${svg}
-                    <span >${item.Estado}</span>
+                    <span >${status}</span>
                 </td>
                 <td class="border px-4 py-2">
                     <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">ver</a>
@@ -590,7 +606,7 @@ async function mostrarVerHistorial(idSolicitud) {
   try {
     const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
     if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
+      throw new Error(`Error ${response.statusus}: ${response.statususText}`)
     }
     const data = await response.json()
 
@@ -603,6 +619,7 @@ async function mostrarVerHistorial(idSolicitud) {
       case 'aprobada':
         estadoClass = 'text-green-600'
         break
+      case 'dept_rechazada':
       case 'rechazada':
         estadoClass = 'text-red-600'
         break
@@ -612,6 +629,7 @@ async function mostrarVerHistorial(idSolicitud) {
       case 'cotizando':
         estadoClass = 'text-purple-600'
         break
+      case 'aprobacion pendiente':
       case 'en espera':
         estadoClass = 'text-yellow-600'
         break
@@ -623,7 +641,7 @@ async function mostrarVerHistorial(idSolicitud) {
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
-                <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado}</span></div>
+                <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
                 <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
                 <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
@@ -638,7 +656,6 @@ async function mostrarVerHistorial(idSolicitud) {
                 <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
             </div>`
     }
-
     html += `
             <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
             <div class="overflow-x-auto">
@@ -654,7 +671,6 @@ async function mostrarVerHistorial(idSolicitud) {
                     </thead>
                     <tbody>
         `
-
     data.productos.forEach((p) => {
       const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
       html += `
@@ -662,18 +678,24 @@ async function mostrarVerHistorial(idSolicitud) {
                     <td class="py-2 px-4 border-t">${p.Codigo}</td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
                     <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
-                    <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                    <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
+                    <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(2)}</td>
+                    <td class="py-2 px-4 border-t text-right">${costoTotal}</td>
                 </tr>
             `
     })
 
     html += `
                     </tbody>
-                </table>
+                </table>   
             </div>
         `
-
+    if (data.ComentariosUser) {
+      html += `
+            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
+                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
+            </div>`
+    }
     if (data.Archivo) {
       const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
       html += `
@@ -835,7 +857,7 @@ async function mostrarVer(idSolicitud) {
   try {
     const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
     if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
+      throw new Error(`Error ${response.statusus}: ${response.statususText}`)
     }
     const data = await response.json()
 
@@ -875,9 +897,9 @@ async function mostrarVer(idSolicitud) {
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'} </td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                    ${data.Tipo == 2 ? '' : '<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>'}
+                    ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>`}
                     <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                    ${data.Tipo == 2 ? '' : '<td class="py-2 px-4 border-t text-right">$${costoTotal}</td>'}
+                    ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">$${costoTotal}</td>`}
                 </tr>
             `
     })
@@ -887,6 +909,14 @@ async function mostrarVer(idSolicitud) {
                 </table>
             </div>
         `
+    // poner comentario aqui
+    if (data.ComentariosUser) {
+      html += `
+            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
+                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
+            </div>`
+    }
 
     if (data.Archivo) {
       // Usamos la nueva ruta segura que creamos para descargar el archivo
@@ -929,7 +959,7 @@ async function mostrarCotizar(idSolicitud) {
 
   try {
     const response = await fetch(`${BASE_URL}api/providers/all`)
-    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`)
+    if (!response.ok) throw new Error(`Error ${response.statusus}: ${response.statususText}`)
 
     const proveedores = await response.json()
 
@@ -1329,7 +1359,7 @@ async function mostrarVerDictamen(idSolicitud) {
 
   try {
     const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
-    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`)
+    if (!response.ok) throw new Error(`Error ${response.statusus}: ${response.statususText}`)
 
     const data = await response.json()
     if (data.error) throw new Error(data.error)
@@ -1907,108 +1937,109 @@ function initProveedorActions(tabla) {
  */
 
 function initEntregaMaterial() {
-  const tbodyBuscar = document.getElementById('tablaBuscarMateriales');
-  const paginacionBuscar = document.getElementById('paginacion-buscar-materiales');
-  const inputBuscar = document.getElementById('buscarMaterial');
-  const tbodyEntrega = document.getElementById('tablaEntregaMateriales');
-  const btnAgregarSeleccionados = document.getElementById('btn-agregar-seleccionados');
-  if (!tbodyBuscar || !tbodyEntrega) return;
+  const tbodyBuscar = document.getElementById('tablaBuscarMateriales')
+  const paginacionBuscar = document.getElementById('paginacion-buscar-materiales')
+  const inputBuscar = document.getElementById('buscarMaterial')
+  const tbodyEntrega = document.getElementById('tablaEntregaMateriales')
+  const btnAgregarSeleccionados = document.getElementById('btn-agregar-seleccionados')
+  if (!tbodyBuscar || !tbodyEntrega) return
 
-  const filasOriginales = Array.from(tbodyBuscar.querySelectorAll('tr'));
-  let paginaActual = 1;
-  const filasPorPagina = 10;
-  let productosSeleccionados = [];
+  const filasOriginales = Array.from(tbodyBuscar.querySelectorAll('tr'))
+  let paginaActual = 1
+  const filasPorPagina = 10
+  let productosSeleccionados = []
 
   // ---------- FILTRO Y PAGINACIÓN ----------
   function aplicarFiltro() {
-    const termino = (inputBuscar?.value || '').trim().toLowerCase();
-    if (!termino) return filasOriginales;
-    return filasOriginales.filter(fila => {
-      const codigo = (fila.cells[0]?.textContent || '').toLowerCase();
-      const nombre = (fila.cells[1]?.textContent || '').toLowerCase();
-      return codigo.includes(termino) || nombre.includes(termino);
-    });
+    const termino = (inputBuscar?.value || '').trim().toLowerCase()
+    if (!termino) return filasOriginales
+    return filasOriginales.filter((fila) => {
+      const codigo = (fila.cells[0]?.textContent || '').toLowerCase()
+      const nombre = (fila.cells[1]?.textContent || '').toLowerCase()
+      return codigo.includes(termino) || nombre.includes(termino)
+    })
   }
 
   function mostrarPagina(pagina, filasFiltradas) {
-    paginaActual = pagina;
-    filasOriginales.forEach(f => f.style.display = 'none');
-    const inicio = (pagina - 1) * filasPorPagina;
-    const fin = inicio + filasPorPagina;
-    filasFiltradas.slice(inicio, fin).forEach(f => f.style.display = '');
-    renderPaginacion(filasFiltradas.length);
+    paginaActual = pagina
+    filasOriginales.forEach((f) => (f.style.display = 'none'))
+    const inicio = (pagina - 1) * filasPorPagina
+    const fin = inicio + filasPorPagina
+    filasFiltradas.slice(inicio, fin).forEach((f) => (f.style.display = ''))
+    renderPaginacion(filasFiltradas.length)
   }
 
   function renderPaginacion(totalFiltradas) {
-    if (!paginacionBuscar) return;
-    paginacionBuscar.innerHTML = '';
-    const totalPaginas = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina));
+    if (!paginacionBuscar) return
+    paginacionBuscar.innerHTML = ''
+    const totalPaginas = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina))
     if (totalPaginas <= 1) {
-      paginacionBuscar.style.display = 'none';
-      return;
+      paginacionBuscar.style.display = 'none'
+      return
     }
-    paginacionBuscar.style.display = 'flex';
+    paginacionBuscar.style.display = 'flex'
     for (let i = 1; i <= totalPaginas; i++) {
-      const boton = document.createElement('button');
-      boton.textContent = i;
-      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
-      boton.addEventListener('click', () => mostrarPagina(i, aplicarFiltro()));
-      paginacionBuscar.appendChild(boton);
+      const boton = document.createElement('button')
+      boton.textContent = i
+      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+      boton.addEventListener('click', () => mostrarPagina(i, aplicarFiltro()))
+      paginacionBuscar.appendChild(boton)
     }
   }
 
   function actualizarTablaBuscar() {
-    const filtradas = aplicarFiltro();
-    mostrarPagina(1, filtradas);
+    const filtradas = aplicarFiltro()
+    mostrarPagina(1, filtradas)
   }
 
   if (inputBuscar && !inputBuscar.dataset.bound) {
-    inputBuscar.addEventListener('input', actualizarTablaBuscar);
-    inputBuscar.dataset.bound = '1';
+    inputBuscar.addEventListener('input', actualizarTablaBuscar)
+    inputBuscar.dataset.bound = '1'
   }
 
-  actualizarTablaBuscar();
+  actualizarTablaBuscar()
 
   // ---------- SELECCIÓN DE PRODUCTOS ----------
   window.toggleSeleccionProducto = function (id) {
-    const index = productosSeleccionados.indexOf(id);
+    const index = productosSeleccionados.indexOf(id)
     if (index === -1) {
-      productosSeleccionados.push(id);
-      document.getElementById('fila-producto-' + id).classList.add('bg-green-100');
+      productosSeleccionados.push(id)
+      document.getElementById('fila-producto-' + id).classList.add('bg-green-100')
     } else {
-      productosSeleccionados.splice(index, 1);
-      document.getElementById('fila-producto-' + id).classList.remove('bg-green-100');
+      productosSeleccionados.splice(index, 1)
+      document.getElementById('fila-producto-' + id).classList.remove('bg-green-100')
     }
-    actualizarBotonAgregar();
+    actualizarBotonAgregar()
   }
 
   function actualizarBotonAgregar() {
-    const total = productosSeleccionados.length;
-    btnAgregarSeleccionados.textContent = total > 0 ? `Agregar ${total} productos` : 'Agregar 0 productos';
-    btnAgregarSeleccionados.disabled = total === 0;
+    const total = productosSeleccionados.length
+    btnAgregarSeleccionados.textContent =
+      total > 0 ? `Agregar ${total} productos` : 'Agregar 0 productos'
+    btnAgregarSeleccionados.disabled = total === 0
   }
 
   // ---------- AGREGAR PRODUCTOS A TABLA ENTREGA ----------
   window.agregarProductosSeleccionados = function () {
-    if (productosSeleccionados.length === 0) return;
+    if (productosSeleccionados.length === 0) return
 
     // Quitar mensaje vacío si existe
-    const filaVacia = tbodyEntrega.querySelector('tr td[colspan="5"]');
-    if (filaVacia) filaVacia.parentElement.remove();
+    const filaVacia = tbodyEntrega.querySelector('tr td[colspan="5"]')
+    if (filaVacia) filaVacia.parentElement.remove()
 
-    productosSeleccionados.forEach(id => {
-      const filaBuscar = document.getElementById('fila-producto-' + id);
-      if (!filaBuscar) return;
+    productosSeleccionados.forEach((id) => {
+      const filaBuscar = document.getElementById('fila-producto-' + id)
+      if (!filaBuscar) return
 
       // Evitar duplicados
-      if (tbodyEntrega.querySelector(`#entrega-${id}`)) return;
+      if (tbodyEntrega.querySelector(`#entrega-${id}`)) return
 
-      const codigo = filaBuscar.cells[0]?.textContent || '';
-      const nombre = filaBuscar.cells[1]?.textContent || '';
-      const existencia = filaBuscar.cells[2]?.textContent || '0';
+      const codigo = filaBuscar.cells[0]?.textContent || ''
+      const nombre = filaBuscar.cells[1]?.textContent || ''
+      const existencia = filaBuscar.cells[2]?.textContent || '0'
 
-      const nuevaFila = document.createElement('tr');
-      nuevaFila.id = `entrega-${id}`;
+      const nuevaFila = document.createElement('tr')
+      nuevaFila.id = `entrega-${id}`
       nuevaFila.innerHTML = `
         <td class="py-2 px-4">${codigo}</td>
         <td class="py-2 px-4">${nombre}</td>
@@ -2023,52 +2054,51 @@ function initEntregaMaterial() {
             </svg>
           </button>
         </td>
-      `;
-      tbodyEntrega.appendChild(nuevaFila);
-    });
+      `
+      tbodyEntrega.appendChild(nuevaFila)
+    })
 
-    productosSeleccionados = [];
-    actualizarBotonAgregar();
-    regresarBuscarMateriales();
+    productosSeleccionados = []
+    actualizarBotonAgregar()
+    regresarBuscarMateriales()
   }
 
   // ---------- ELIMINAR FILA ----------
   window.eliminarFilaEntrega = function (id) {
-    const fila = document.getElementById(`entrega-${id}`);
-    if (fila) fila.remove();
+    const fila = document.getElementById(`entrega-${id}`)
+    if (fila) fila.remove()
 
     // Si la tabla queda vacía, mostrar mensaje
     if (tbodyEntrega.querySelectorAll('tr').length === 0) {
-      const filaVacia = document.createElement('tr');
+      const filaVacia = document.createElement('tr')
       filaVacia.innerHTML = `
         <td colspan="5" class="py-2 px-4 text-center text-gray-500">
           No hay materiales seleccionados.
         </td>
-      `;
-      tbodyEntrega.appendChild(filaVacia);
+      `
+      tbodyEntrega.appendChild(filaVacia)
     }
   }
 
   // ---------- MOSTRAR / OCULTAR PANTALLAS ----------
   window.mostrarBuscarMateriales = function () {
     // Limpiar selección anterior
-    productosSeleccionados = [];
-    const filas = document.querySelectorAll('#tablaBuscarMateriales tr');
-    filas.forEach(fila => fila.classList.remove('bg-green-100'));
+    productosSeleccionados = []
+    const filas = document.querySelectorAll('#tablaBuscarMateriales tr')
+    filas.forEach((fila) => fila.classList.remove('bg-green-100'))
 
     // Reiniciar botón
-    btnAgregarSeleccionados.textContent = 'Agregar 0 productos';
-    btnAgregarSeleccionados.disabled = true;
+    btnAgregarSeleccionados.textContent = 'Agregar 0 productos'
+    btnAgregarSeleccionados.disabled = true
 
     // Mostrar pantalla buscar y ocultar entrega
-    document.getElementById('entrega-material-content').classList.add('hidden');
-    document.getElementById('buscar-materiales-content').classList.remove('hidden');
+    document.getElementById('entrega-material-content').classList.add('hidden')
+    document.getElementById('buscar-materiales-content').classList.remove('hidden')
   }
 
-
   window.regresarBuscarMateriales = function () {
-    document.getElementById('buscar-materiales-content').classList.add('hidden');
-    document.getElementById('entrega-material-content').classList.remove('hidden');
+    document.getElementById('buscar-materiales-content').classList.add('hidden')
+    document.getElementById('entrega-material-content').classList.remove('hidden')
   }
 }
 
@@ -2159,63 +2189,64 @@ function crudUsuarios() {
   return {
     // Función para filtrar usuarios en la tabla
     filtrarUsuarios() {
-      const termino = document.getElementById('buscarUsuario').value.toLowerCase();
-      const filas = document.querySelectorAll('#tablaCrudUsuarios .usuario-row');
+      const termino = document.getElementById('buscarUsuario').value.toLowerCase()
+      const filas = document.querySelectorAll('#tablaCrudUsuarios .usuario-row')
 
-      filas.forEach(fila => {
-        const nombre = fila.querySelector('.nombre').textContent.toLowerCase();
-        const correo = fila.querySelector('.correo').textContent.toLowerCase();
-        const visible = nombre.includes(termino) || correo.includes(termino);
-        fila.style.display = visible ? '' : 'none';
-      });
+      filas.forEach((fila) => {
+        const nombre = fila.querySelector('.nombre').textContent.toLowerCase()
+        const correo = fila.querySelector('.correo').textContent.toLowerCase()
+        const visible = nombre.includes(termino) || correo.includes(termino)
+        fila.style.display = visible ? '' : 'none'
+      })
     },
 
     // Muestra el formulario de edición con los datos del usuario
     editarUsuario(id) {
-      const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`);
-      if (!fila) return;
+      const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)
+      if (!fila) return
 
-      document.getElementById('editar-ID_Usuario').value = id;
-      document.getElementById('editar-Nombre').value = fila.querySelector('.nombre').textContent;
-      document.getElementById('editar-Correo').value = fila.querySelector('.correo').textContent;
-      document.getElementById('editar-ID_Dpto').value = fila.querySelector('.departamento').dataset.idDpto;
-      document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonsocial;
-      document.getElementById('editar-Numero').value = fila.dataset.numero || '';
-      document.getElementById('editar-ContrasenaP').value = ''; // Limpiar campo de contraseña
-      document.getElementById('editar-ContrasenaG').value = ''; // Limpiar campo de contraseña
-      document.getElementById('editar-ContrasenaP_confirm').value = '';
-      document.getElementById('editar-ContrasenaG_confirm').value = '';
+      document.getElementById('editar-ID_Usuario').value = id
+      document.getElementById('editar-Nombre').value = fila.querySelector('.nombre').textContent
+      document.getElementById('editar-Correo').value = fila.querySelector('.correo').textContent
+      document.getElementById('editar-ID_Dpto').value =
+        fila.querySelector('.departamento').dataset.idDpto
+      document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonsocial
+      document.getElementById('editar-Numero').value = fila.dataset.numero || ''
+      document.getElementById('editar-ContrasenaP').value = '' // Limpiar campo de contraseña
+      document.getElementById('editar-ContrasenaG').value = '' // Limpiar campo de contraseña
+      document.getElementById('editar-ContrasenaP_confirm').value = ''
+      document.getElementById('editar-ContrasenaG_confirm').value = ''
 
-      document.getElementById('div-lista-usuarios').classList.add('hidden');
-      document.getElementById('div-editar-usuario').classList.remove('hidden');
+      document.getElementById('div-lista-usuarios').classList.add('hidden')
+      document.getElementById('div-editar-usuario').classList.remove('hidden')
     },
 
     // Muestra el formulario de creación de usuario
     mostrarFormularioCrear() {
-      document.getElementById('form-crear-usuario').reset();
-      document.getElementById('div-lista-usuarios').classList.add('hidden');
-      document.getElementById('div-crear-usuario').classList.remove('hidden');
+      document.getElementById('form-crear-usuario').reset()
+      document.getElementById('div-lista-usuarios').classList.add('hidden')
+      document.getElementById('div-crear-usuario').classList.remove('hidden')
     },
 
     // Regresa a la vista de la lista de usuarios
     regresarALista() {
-      document.getElementById('div-editar-usuario').classList.add('hidden');
-      document.getElementById('div-crear-usuario').classList.add('hidden');
-      document.getElementById('div-lista-usuarios').classList.remove('hidden');
+      document.getElementById('div-editar-usuario').classList.add('hidden')
+      document.getElementById('div-crear-usuario').classList.add('hidden')
+      document.getElementById('div-lista-usuarios').classList.remove('hidden')
     },
 
     // Guarda los cambios del formulario de edición
     async guardarCambiosUsuario() {
-      const id = document.getElementById('editar-ID_Usuario').value;
-      const nombre = document.getElementById('editar-Nombre').value;
-      const correo = document.getElementById('editar-Correo').value;
-      const idDpto = document.getElementById('editar-ID_Dpto').value;
-      const idRazonSocial = document.getElementById('editar-ID_RazonSocial').value;
-      const numero = document.getElementById('editar-Numero').value;
-      const contrasena = document.getElementById('editar-ContrasenaP').value;
-      const contrasenaG = document.getElementById('editar-ContrasenaG').value;
-      const contrasenaConfirm = document.getElementById('editar-ContrasenaP_confirm').value;
-      const contrasenaGConfirm = document.getElementById('editar-ContrasenaG_confirm').value;
+      const id = document.getElementById('editar-ID_Usuario').value
+      const nombre = document.getElementById('editar-Nombre').value
+      const correo = document.getElementById('editar-Correo').value
+      const idDpto = document.getElementById('editar-ID_Dpto').value
+      const idRazonSocial = document.getElementById('editar-ID_RazonSocial').value
+      const numero = document.getElementById('editar-Numero').value
+      const contrasena = document.getElementById('editar-ContrasenaP').value
+      const contrasenaG = document.getElementById('editar-ContrasenaG').value
+      const contrasenaConfirm = document.getElementById('editar-ContrasenaP_confirm').value
+      const contrasenaGConfirm = document.getElementById('editar-ContrasenaG_confirm').value
 
       const data = {
         Nombre: nombre,
@@ -2223,22 +2254,22 @@ function crudUsuarios() {
         ID_Dpto: idDpto,
         Numero: numero,
         ID_RazonSocial: idRazonSocial,
-      };
+      }
 
       if (contrasena) {
         if (contrasena !== contrasenaConfirm) {
-          mostrarNotificacion('Las contraseñas de Jefe no coinciden.', 'error');
-          return;
+          mostrarNotificacion('Las contraseñas de Jefe no coinciden.', 'error')
+          return
         }
-        data.ContrasenaP = contrasena;
+        data.ContrasenaP = contrasena
       }
 
       if (contrasenaG) {
         if (contrasenaG !== contrasenaGConfirm) {
-          mostrarNotificacion('Las contraseñas de Empleado no coinciden.', 'error');
-          return;
+          mostrarNotificacion('Las contraseñas de Empleado no coinciden.', 'error')
+          return
         }
-        data.ContrasenaG = contrasenaG;
+        data.ContrasenaG = contrasenaG
       }
 
       try {
@@ -2246,68 +2277,71 @@ function crudUsuarios() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
           },
-          body: JSON.stringify(data)
-        });
+          body: JSON.stringify(data),
+        })
 
-        const result = await response.json();
+        const result = await response.json()
 
         if (result.success) {
-          mostrarNotificacion(result.message, 'success');
+          mostrarNotificacion(result.message, 'success')
           // Actualizar la fila en la tabla
-          const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`);
+          const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)
           if (fila) {
-            fila.querySelector('.nombre').textContent = nombre;
-            fila.querySelector('.correo').textContent = correo;
-            const select = document.getElementById('editar-ID_Dpto'); // Aquí se obtiene el texto completo (Depto + Lugar)
-            const deptoText = select.options[select.selectedIndex].text;
-            fila.querySelector('.departamento').textContent = deptoText;
-            fila.dataset.numero = numero;
-            fila.querySelector('.departamento').dataset.idDpto = idDpto;
+            fila.querySelector('.nombre').textContent = nombre
+            fila.querySelector('.correo').textContent = correo
+            const select = document.getElementById('editar-ID_Dpto') // Aquí se obtiene el texto completo (Depto + Lugar)
+            const deptoText = select.options[select.selectedIndex].text
+            fila.querySelector('.departamento').textContent = deptoText
+            fila.dataset.numero = numero
+            fila.querySelector('.departamento').dataset.idDpto = idDpto
           }
-          this.regresarALista();
+          this.regresarALista()
         } else {
-          const errorMsg = result.errors ? Object.values(result.errors).join('\n') : result.message;
-          mostrarNotificacion(errorMsg, 'error');
+          const errorMsg = result.errors ? Object.values(result.errors).join('\n') : result.message
+          mostrarNotificacion(errorMsg, 'error')
         }
       } catch (error) {
-        console.error('Error al actualizar usuario:', error);
-        mostrarNotificacion('Error de conexión al actualizar.', 'error');
+        console.error('Error al actualizar usuario:', error)
+        mostrarNotificacion('Error de conexión al actualizar.', 'error')
       }
     },
 
     // Guarda un nuevo usuario
     async guardarNuevoUsuario() {
-      const nombre = document.getElementById('crear-Nombre').value;
-      const correo = document.getElementById('crear-Correo').value;
-      const idDpto = document.getElementById('crear-ID_Dpto').value;
-      const idRazonSocial = document.getElementById('crear-ID_RazonSocial').value;
-      const numero = document.getElementById('crear-Numero').value;
-      const contrasena = document.getElementById('crear-ContrasenaP').value;
-      const contrasenaG = document.getElementById('crear-ContrasenaG').value;
-      const contrasenaConfirm = document.getElementById('crear-ContrasenaP_confirm').value;
-      const contrasenaGConfirm = document.getElementById('crear-ContrasenaG_confirm').value;
+      const nombre = document.getElementById('crear-Nombre').value
+      const correo = document.getElementById('crear-Correo').value
+      const idDpto = document.getElementById('crear-ID_Dpto').value
+      const idRazonSocial = document.getElementById('crear-ID_RazonSocial').value
+      const numero = document.getElementById('crear-Numero').value
+      const contrasena = document.getElementById('crear-ContrasenaP').value
+      const contrasenaG = document.getElementById('crear-ContrasenaG').value
+      const contrasenaConfirm = document.getElementById('crear-ContrasenaP_confirm').value
+      const contrasenaGConfirm = document.getElementById('crear-ContrasenaG_confirm').value
 
       if (contrasena.length < 8) {
-        mostrarNotificacion('La contraseña de Jefe debe tener al menos 8 caracteres.', 'error');
-        return;
+        mostrarNotificacion('La contraseña de Jefe debe tener al menos 8 caracteres.', 'error')
+        return
       }
 
       if (contrasena !== contrasenaConfirm) {
-        mostrarNotificacion('Las contraseñas de Jefe no coinciden.', 'error');
-        return;
+        mostrarNotificacion('Las contraseñas de Jefe no coinciden.', 'error')
+        return
       }
 
       // Validar ContraseñaG solo si se ha introducido
       if (contrasenaG) {
         if (contrasenaG.length < 8) {
-          mostrarNotificacion('La contraseña de Empleado debe tener al menos 8 caracteres.', 'error');
-          return;
+          mostrarNotificacion(
+            'La contraseña de Empleado debe tener al menos 8 caracteres.',
+            'error',
+          )
+          return
         }
         if (contrasenaG !== contrasenaGConfirm) {
-          mostrarNotificacion('Las contraseñas de Empleado no coinciden.', 'error');
-          return;
+          mostrarNotificacion('Las contraseñas de Empleado no coinciden.', 'error')
+          return
         }
       }
 
@@ -2319,28 +2353,28 @@ function crudUsuarios() {
         ID_RazonSocial: idRazonSocial,
         ContrasenaP: contrasena,
         ContrasenaG: contrasenaG,
-      };
+      }
 
       try {
         const response = await fetch(`${BASE_URL}modales/registrarUsuario`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
           },
-          body: JSON.stringify(data)
-        });
+          body: JSON.stringify(data),
+        })
 
-        const result = await response.json();
+        const result = await response.json()
 
         if (result.success) {
-          mostrarNotificacion(result.message, 'success');
-          
+          mostrarNotificacion(result.message, 'success')
+
           // Añadir dinámicamente la nueva fila a la tabla
-          const tablaBody = document.getElementById('tablaCrudUsuarios');
-          const selectDepto = document.getElementById('crear-ID_Dpto'); // Aquí se obtiene el texto completo (Depto + Lugar)
-          const deptoText = selectDepto.options[selectDepto.selectedIndex].text;
-          const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`;
+          const tablaBody = document.getElementById('tablaCrudUsuarios')
+          const selectDepto = document.getElementById('crear-ID_Dpto') // Aquí se obtiene el texto completo (Depto + Lugar)
+          const deptoText = selectDepto.options[selectDepto.selectedIndex].text
+          const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`
 
           const nuevaFila = `
             <tr data-id="${result.user.ID_Usuario}" class="usuario-row" data-numero="${numero}" data-id-razonsocial="${idRazonSocial}">
@@ -2355,44 +2389,229 @@ function crudUsuarios() {
                   <svg class="h-5 w-5 inline" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#eliminar-fila"></use></svg>
                 </button>
               </td>
-            </tr>`;
-          
-          tablaBody.insertAdjacentHTML('beforeend', nuevaFila);
-          this.regresarALista();
+            </tr>`
+
+          tablaBody.insertAdjacentHTML('beforeend', nuevaFila)
+          this.regresarALista()
         } else {
-          const errorMsg = result.errors ? Object.values(result.errors).join('\n') : result.message;
-          mostrarNotificacion(errorMsg, 'error');
+          const errorMsg = result.errors ? Object.values(result.errors).join('\n') : result.message
+          mostrarNotificacion(errorMsg, 'error')
         }
       } catch (error) {
-        console.error('Error al registrar usuario:', error);
-        mostrarNotificacion('Error de conexión al registrar.', 'error');
+        console.error('Error al registrar usuario:', error)
+        mostrarNotificacion('Error de conexión al registrar.', 'error')
       }
     },
 
     // Elimina un usuario
     async eliminarUsuario(id) {
-      if (!confirm('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.')) {
-        return;
+      if (
+        !confirm(
+          '¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.',
+        )
+      ) {
+        return
       }
 
       try {
         const response = await fetch(`${BASE_URL}modales/eliminarUsuario/${id}`, {
           method: 'POST',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        const result = await response.json();
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+        const result = await response.json()
         if (result.success) {
-          mostrarNotificacion(result.message, 'success');
-          document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)?.remove();
+          mostrarNotificacion(result.message, 'success')
+          document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)?.remove()
         } else {
-          mostrarNotificacion(result.message, 'error');
+          mostrarNotificacion(result.message, 'error')
         }
       } catch (error) {
-        console.error('Error al eliminar usuario:', error);
-        mostrarNotificacion('Error de conexión al eliminar.', 'error');
+        console.error('Error al eliminar usuario:', error)
+        mostrarNotificacion('Error de conexión al eliminar.', 'error')
       }
-    }
-  };
+    },
+  }
+}
+
+/**
+ * Lógica para el modal "Aprobar Solicitudes" (Jefes de Depto) con Alpine.js
+ */
+function aprobarSolicitudes() {
+  return {
+    verDetalle: async function (idSolicitud) {
+      document.getElementById('div-tabla-aprobacion').classList.add('hidden')
+      const divVer = document.getElementById('div-ver-aprobacion')
+      divVer.classList.remove('hidden')
+
+      const detallesContainer = document.getElementById('detalles-aprobacion-solicitud')
+      detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>'
+
+      try {
+        const data = await getData(`solicitud/details/${idSolicitud}`, {}, true)
+        if (data.error) throw new Error(data.error)
+
+        let html = `
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+              <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+              <div><strong>Fecha:</strong> ${data.Fecha}</div>
+              <div><strong>Estado:</strong> <span class="font-semibold text-yellow-600">${data.Estado}</span></div>
+              <div><strong>Solicitante:</strong> ${data.UsuarioNombre}</div>
+              <div class="md:col-span-2"><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+          </div>
+          <h4 class="text-md font-bold mb-2">Productos/Servicios Solicitados</h4>
+          <div class="overflow-x-auto">
+              <table class="min-w-full border border-gray-300">
+                  <thead class="bg-gray-100">
+                      <tr>
+                          ${data.Tipo != 2 ? '<th class="py-2 px-4 text-left">Código</th>' : ''}
+                          <th class="py-2 px-4 text-left">Descripción</th>
+                          ${data.Tipo != 2 ? '<th class="py-2 px-4 text-right">Cantidad</th>' : ''}
+                          ${data.Tipo != 1 ? '<th class="py-2 px-4 text-right">Importe</th>' : ''}
+                          ${data.Tipo == 1 ? '<th class="py-2 px-4 text-right">Costo Total</th>' : ''}
+                      </tr>
+                  </thead>
+                  <tbody>
+      `
+        data.productos.forEach((p) => {
+          const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+          html += `
+              <tr class="hover:bg-gray-50">
+                  ${data.Tipo != 2 ? `<td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>` : ''}
+                  <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                  ${data.Tipo != 2 ? `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>` : ''}
+                  ${data.Tipo != 1 ? `<td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>` : ''}
+                  ${data.Tipo == 1 ? `<td class="py-2 px-4 border-t text-right">$${costoTotal}</td>` : ''}
+              </tr>
+          `
+        })
+        html += `</tbody></table></div>`
+
+        if (data.Archivo) {
+          html += `<div class="mt-6"><h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
+                     <a href="${BASE_URL}solicitudes/archivo/${idSolicitud}" target="_blank" class="text-blue-600 hover:underline">${data.Archivo}</a></div>`
+        }
+
+        // Botones de acción
+        html += `
+          <div class="mt-8 flex justify-end space-x-4">
+              <button @click="dictaminar(${idSolicitud}, 'rechazar')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Rechazar</button>
+              <button @click="dictaminar(${idSolicitud}, 'aprobar')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">Aprobar y Enviar a Compras</button>
+          </div>`
+
+        detallesContainer.innerHTML = html
+      } catch (error) {
+        detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
+      }
+    },
+
+    regresarATabla: function () {
+      document.getElementById('div-ver-aprobacion').classList.add('hidden')
+      document.getElementById('div-tabla-aprobacion').classList.remove('hidden')
+    },
+
+    dictaminar: async function (idSolicitud, accion) {
+      const esRechazo = accion === 'rechazar'
+      const titulo = esRechazo ? 'Rechazar Solicitud' : 'Aprobar Solicitud'
+      const mensaje = `¿Está seguro de que desea ${accion} esta solicitud?`
+      const botonTexto = esRechazo ? 'Sí, Rechazar' : 'Sí, Aprobar'
+      const botonClase = esRechazo
+        ? 'bg-red-600 hover:bg-red-700'
+        : 'bg-green-600 hover:bg-green-700'
+
+      // Crear el modal de confirmación
+      const modalOverlay = document.createElement('div')
+      modalOverlay.className = 'fixed inset-0 flex items-center justify-center z-50'
+      modalOverlay.style.zIndex = '2147483647'
+
+      let modalHtml = `
+        <div class="bg-gray-300 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+          <h3 class="text-lg font-bold mb-4">${titulo}</h3>
+          <p class="mb-4">${mensaje}</p>
+      `
+
+      if (esRechazo) {
+        modalHtml += `
+          <label for="motivoRechazo" class="block text-sm font-medium text-gray-700 mb-1">Motivo del rechazo (obligatorio):</label>
+          <textarea id="motivoRechazo" rows="3" class="w-full border-gray-300 border-2 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+        `
+      }
+
+      modalHtml += `
+          <div class="mt-6 flex justify-end space-x-4">
+            <button id="cancelarBtn" class="px-4 py-2 bg-gray-200 border-2 border-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancelar</button>
+            <button id="confirmarBtn" class="px-4 py-2 text-white rounded-md ${botonClase}">${botonTexto}</button>
+          </div>
+        </div>
+      `
+
+      modalOverlay.innerHTML = modalHtml
+      document.body.appendChild(modalOverlay)
+
+      const cerrarModal = () => modalOverlay.remove()
+
+      document.getElementById('cancelarBtn').addEventListener('click', cerrarModal)
+
+      document.getElementById('confirmarBtn').addEventListener('click', async () => {
+        let comentarios = null
+        if (esRechazo) {
+          const motivoInput = document.getElementById('motivoRechazo')
+          comentarios = motivoInput.value.trim()
+          if (!comentarios) {
+            mostrarNotificacion('El motivo del rechazo es obligatorio.', 'error')
+            motivoInput.focus()
+            motivoInput.classList.add('border-red-500')
+            return
+          }
+        }
+
+        const payload = {
+          ID_Solicitud: idSolicitud,
+          accion: accion,
+        }
+
+        if (comentarios) {
+          payload.comentarios = comentarios
+        }
+
+        const btnConfirmar = document.getElementById('confirmarBtn')
+        btnConfirmar.disabled = true
+        btnConfirmar.textContent = 'Procesando...'
+
+        try {
+          const response = await fetch(`${BASE_URL}api/solicitud/dictaminar-jefe`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+          })
+
+          const result = await response.json()
+
+          if (response.ok && result.success) {
+            mostrarNotificacion(result.message, 'success')
+            cerrarModal()
+            abrirModal('aprobar_solicitudes')
+          } else {
+            cerrarModal()
+            abrirModal('aprobar_solicitudes')
+            mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error')
+            btnConfirmar.disabled = false
+            btnConfirmar.textContent = botonTexto
+          }
+        } catch (error) {
+          mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error')
+          btnConfirmar.disabled = false
+          btnConfirmar.textContent = botonTexto
+        }
+      })
+
+      if (esRechazo) {
+        document.getElementById('motivoRechazo').focus()
+      }
+    },
+  }
 }
 
 function regresarBuscarMateriales() {
@@ -2400,16 +2619,13 @@ function regresarBuscarMateriales() {
   document.getElementById('entrega-material-content').classList.remove('hidden')
 }
 
-
-
-
 /**
  * Varios
  */
 // Función de ejemplo para notificaciones (puedes adaptar)
-function mostrarNotificacion(msg, tipo = 'success') {
-  alert(msg) // Simple alert, se puede reemplazar por un toast
-}
+// function mostrarNotificacion(msg, tipo = 'success') {
+//   alert(msg) // Simple alert, se puede reemplazar por un toast
+// }
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', initCrudProveedores)
@@ -2438,7 +2654,7 @@ function mostrarNotificacion(mensaje, tipo = 'success', duracion = 3000) {
 
   // Crear toast
   const toast = document.createElement('div')
-  toast.setAttribute('role', 'status')
+  toast.setAttribute('role', 'statusus')
   toast.setAttribute('aria-live', 'polite')
   Object.assign(toast.style, {
     pointerEvents: 'auto', // permitir interacción con el toast
@@ -2541,7 +2757,7 @@ async function getData(endpoint, option = {}, api = true) {
     response = option ? await fetch(apiUrl, option) : await fetch(apiUrl)
 
     if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`)
+      throw new Error(`Error HTTP: ${response.statusus} - ${response.statususText}`)
     }
 
     const data = await response.json()

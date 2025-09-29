@@ -53,6 +53,8 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/cotizacion/crear', 'Api::crearCotizacion');
         $routes->post('api/solicitud/enviar-revision', 'Api::enviarSolicitudARevision');
         $routes->post('api/solicitud/dictaminar', 'Api::dictaminarSolicitud');
+        $routes->get('api/solicitudes/pendientes-jefe', 'Api::getPendientesAprobacionJefe');
+        $routes->post('api/solicitud/dictaminar-jefe', 'Api::dictaminarSolicitudJefe');
         $routes->post('solicitudes/registrar', 'Archivo::subir');
         $routes->get('solicitudes/archivo/(:num)', 'Archivo::descargar/$1');
         // Modales
@@ -75,6 +77,7 @@ if (!file_exists($installerLockFile)) {
         // Solicitudes
         $routes->get('api/solicitud/details/(:num)', 'Api::getSolicitudDetails/$1');
         $routes->get('api/solicitudes/cotizadas', 'Api::getSolicitudesCotizadas');
+        $routes->get('api/solicitudes/getsoluser/(:num)', 'Api::getSolicitudesUsers/$1');
         $routes->get('api/solicitudes/en-revision', 'Api::getSolicitudesEnRevision');
         // Auth
         $routes->get('auth/logout', 'Auth::logout');
