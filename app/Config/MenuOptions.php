@@ -24,7 +24,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'aprobar_solicitudes' => [
-                'label' => 'Aprobar Solicitudes',
+                'label' => 'Aprobar Requisiciones',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar"></use></svg>',
             ],
 

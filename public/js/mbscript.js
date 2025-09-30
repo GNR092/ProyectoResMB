@@ -26,7 +26,7 @@ function abrirModal(opcion) {
     ficha_pago: 'Fichas de pago',
   }
   // Título para la nueva opción
-  titulos['aprobar_solicitudes'] = 'Aprobar Solicitudes de Empleados'
+  titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
   titulo.innerText = titulos[opcion] ?? 'Opción'
 

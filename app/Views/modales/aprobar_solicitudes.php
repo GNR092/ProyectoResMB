@@ -2,7 +2,7 @@
 
     <!-- Vista de Tabla -->
     <div id="div-tabla-aprobacion">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Solicitudes Pendientes de Aprobación</h3>
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Requisiciones Pendientes de Aprobación</h3>
         <div class="overflow-x-auto bg-white rounded-lg shadow">
             <table class="min-w-full">
                 <thead class="bg-gray-200">
