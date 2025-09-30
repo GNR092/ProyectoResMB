@@ -93,7 +93,7 @@ class Archivo extends BaseController
             $solicitud->insert($datosSolicitud);
             $solicitudId = $solicitud->insertID();
             $solicitud->update($solicitudId, [
-                'No_Folio' => 'mbsp-' . $solicitudId,
+                'No_Folio' => 'MBSP-' . $solicitudId,
             ]);
             if ($tipo == SolicitudTipo::Cotizacion || $tipo == SolicitudTipo::NoCotizacion) {
                 $solicitudProduct = new SolicitudProductModel();

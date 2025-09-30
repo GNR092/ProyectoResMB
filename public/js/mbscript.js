@@ -930,6 +930,14 @@ async function mostrarVer(idSolicitud) {
             `
     }
 
+     html += `
+              <div class="mt-6">
+                <h4 class="text-md font-bold mb-2">Acciones</h4>
+                <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
+            </div>
+            `
+
+
     detallesContainer.innerHTML = html
   } catch (error) {
     console.error('Error al cargar detalles de la solicitud:', error)
@@ -1234,7 +1242,7 @@ function initEnviarRevision() {
 function enviarRevisionHandler(event) {
   const fila = event.target.closest('tr')
   const idSolicitud = fila.dataset.id
-  if (!confirm(`¿Está seguro de que desea enviar la solicitud mbsp-${idSolicitud} a revisión?`)) {
+  if (!confirm(`¿Está seguro de que desea enviar la solicitud MBSP-${idSolicitud} a revisión?`)) {
     return
   }
 
@@ -1498,8 +1506,7 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
 
     if (response.ok && result.success) {
       mostrarNotificacion(
-        result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`,
-        'success',
+        result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`, 'success',
       )
       regresarTablaDictamen()
       initDictamenSolicitudes()
@@ -2910,4 +2917,9 @@ async function SendData(event) {
       }
     }
   }
+}
+
+function mostrarVerPdf(idSolicitud) {
+    const url = `${BASE_URL}api/solicitud/pdf/${idSolicitud}`;
+    window.open(url, '_blank');
 }
