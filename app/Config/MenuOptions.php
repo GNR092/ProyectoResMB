@@ -91,11 +91,6 @@ class MenuOptions extends BaseConfig
             'crud_usuarios' => [
                 'label' => 'Usuarios',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#usuarios"></use></svg>',
-            ],            
-
-            'proveedores' => [
-                'label' => 'Proveedores',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#proveedores"></use></svg>',
             ],
 
             'limpiar_almacenamiento' => [

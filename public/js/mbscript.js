@@ -11,7 +11,6 @@ function abrirModal(opcion) {
     solicitar_material: 'Requisiciones',
     ver_historial: 'Historial',
     revisar_solicitudes: 'Revisar requisiciones',
-    proveedores: 'Proveedores',
     ordenes_compra: 'Órdenes de Compra',
     enviar_revision: 'Enviar a Revisión',
     usuarios: 'Usuarios',
