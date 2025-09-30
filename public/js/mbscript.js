@@ -23,6 +23,7 @@ function abrirModal(opcion) {
     registrar_productos: 'Registrar Productos',
     crud_productos: 'Existencias',
     entrega_productos: 'Entrega de Material',
+    ficha_pago: 'Fichas de pago',
   }
   // Título para la nueva opción
   titulos['aprobar_solicitudes'] = 'Aprobar Solicitudes de Empleados'
@@ -2618,6 +2619,27 @@ function regresarBuscarMateriales() {
   document.getElementById('buscar-materiales-content').classList.add('hidden')
   document.getElementById('entrega-material-content').classList.remove('hidden')
 }
+
+
+/**
+ * Lógica para pagos pendientes
+ */
+function mostrarPagoContado() {
+  document.getElementById('pagos-menu').classList.add('hidden')
+  document.getElementById('pago-contado').classList.remove('hidden')
+}
+
+function mostrarPagoCredito() {
+  document.getElementById('pagos-menu').classList.add('hidden')
+  document.getElementById('pago-credito').classList.remove('hidden')
+}
+
+function regresarPagosMenu() {
+  document.getElementById('pago-contado').classList.add('hidden')
+  document.getElementById('pago-credito').classList.add('hidden')
+  document.getElementById('pagos-menu').classList.remove('hidden')
+}
+
 
 /**
  * Varios
