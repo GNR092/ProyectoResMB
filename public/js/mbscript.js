@@ -945,49 +945,48 @@ async function mostrarVer(idSolicitud) {
 }
 
 async function mostrarCotizar(idSolicitud) {
-  document.getElementById('div-tabla').classList.add('hidden')
-  const divCotizar = document.getElementById('div-cotizar')
-  divCotizar.classList.remove('hidden')
+  document.getElementById('div-tabla').classList.add('hidden');
+  const divCotizar = document.getElementById('div-cotizar');
+  divCotizar.classList.remove('hidden');
 
-  // Store the solicitud ID
-  const idSolicitudInput = document.getElementById('cotizar_id_solicitud')
+  const idSolicitudInput = document.getElementById('cotizar_id_solicitud');
   if (idSolicitudInput) {
-    idSolicitudInput.value = idSolicitud
+    idSolicitudInput.value = idSolicitud;
   }
 
-  const tbody = divCotizar.querySelector('tbody')
-  const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores')
-  const btnGenerar = document.getElementById('btn-generar-cotizacion')
+  const tbody = divCotizar.querySelector('tbody');
+  const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores');
+  const btnGenerar = document.getElementById('btn-generar-cotizacion');
+  const inputBusqueda = document.getElementById('buscar-proveedor');
 
-  // Disable button initially
-  if (btnGenerar) btnGenerar.disabled = true
+  if (btnGenerar) btnGenerar.disabled = true;
 
-  tbody.innerHTML =
-    '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>'
+  tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>';
 
   try {
-    const response = await fetch(`${BASE_URL}api/providers/all`)
-    if (!response.ok) throw new Error(`Error ${response.statusus}: ${response.statususText}`)
+    const response = await fetch(`${BASE_URL}api/providers/all`);
+    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
 
-    const proveedores = await response.json()
+    let todosLosProveedores = await response.json();
 
-    if (!proveedores.length) {
-      tbody.innerHTML =
-        '<tr><td colspan="4" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>'
-      return
+    if (!todosLosProveedores.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>';
+      return;
     }
 
-    // --- PAGINACIÓN ---
-    const filasPorPagina = 10
-    let paginaActual = 1
-    const totalPaginas = Math.ceil(proveedores.length / filasPorPagina)
+    let proveedoresFiltrados = [...todosLosProveedores];
 
-    function mostrarPagina(pagina) {
-      paginaActual = pagina
-      const start = (pagina - 1) * filasPorPagina
-      const end = start + filasPorPagina
+    const filasPorPagina = 10;
+    let paginaActual = 1;
 
-      tbody.innerHTML = proveedores
+    function renderizarTabla() {
+      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina) || 1;
+      paginaActual = Math.min(paginaActual, totalPaginas);
+
+      const start = (paginaActual - 1) * filasPorPagina;
+      const end = start + filasPorPagina;
+
+      tbody.innerHTML = proveedoresFiltrados
         .slice(start, end)
         .map(
           (p) => `
@@ -1001,43 +1000,59 @@ async function mostrarCotizar(idSolicitud) {
                 </tr>
             `,
         )
-        .join('')
+        .join('');
 
-      // Add event listeners to new radio buttons
       tbody.querySelectorAll('.radio-proveedor').forEach((radio) => {
         radio.addEventListener('change', () => {
-          if (btnGenerar) btnGenerar.disabled = false
-        })
-      })
+          if (btnGenerar) btnGenerar.disabled = false;
+        });
+      });
 
-      renderPaginacion()
+      renderizarPaginacion();
     }
 
-    function renderPaginacion() {
-      if (!paginacionDiv) return
-      paginacionDiv.innerHTML = ''
+    function renderizarPaginacion() {
+      if (!paginacionDiv) return;
+      paginacionDiv.innerHTML = '';
+      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina);
+      if (totalPaginas <= 1) return;
+
       for (let i = 1; i <= totalPaginas; i++) {
-        const boton = document.createElement('button')
-        boton.textContent = i
-        boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-        boton.addEventListener('click', () => mostrarPagina(i))
-        paginacionDiv.appendChild(boton)
+        const boton = document.createElement('button');
+        boton.textContent = i;
+        boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+        boton.addEventListener('click', () => {
+          paginaActual = i;
+          renderizarTabla();
+        });
+        paginacionDiv.appendChild(boton);
       }
     }
 
-    mostrarPagina(1)
+    function filtrarProveedores() {
+        const termino = inputBusqueda.value.toLowerCase();
+        proveedoresFiltrados = todosLosProveedores.filter(p => 
+            p.RazonSocial.toLowerCase().includes(termino)
+        );
+        paginaActual = 1;
+        renderizarTabla();
+    }
+
+    inputBusqueda.addEventListener('input', filtrarProveedores);
+
+    renderizarTabla();
+
   } catch (error) {
-    console.error('Error al cargar proveedores:', error)
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`
+    console.error('Error al cargar proveedores:', error);
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`;
   }
 
-  // Add event listener for the generate button, ensuring it's only attached once
   if (btnGenerar && !btnGenerar.dataset.listenerAttached) {
-    btnGenerar.addEventListener('click', handleGenerarCotizacion)
-    btnGenerar.dataset.listenerAttached = 'true'
+    btnGenerar.addEventListener('click', handleGenerarCotizacion);
+    btnGenerar.dataset.listenerAttached = 'true';
   }
 
-  console.log('COTIZAR solicitud ID:', idSolicitud)
+  console.log('COTIZAR solicitud ID:', idSolicitud);
 }
 
 async function handleGenerarCotizacion() {
@@ -1195,7 +1210,7 @@ function initEnviarRevision() {
                     <td class="py-3 px-6 text-left">${s.Estado}</td>
                     <td class="py-3 px-6 text-left">
                         <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded btn-enviar">
-                            Enviar
+                            Ver
                         </button>
                     </td>
                 </tr>
@@ -1238,43 +1253,120 @@ function initEnviarRevision() {
   fetchData()
 }
 
-function enviarRevisionHandler(event) {
-  const fila = event.target.closest('tr')
-  const idSolicitud = fila.dataset.id
-  if (!confirm(`¿Está seguro de que desea enviar la solicitud MBSP-${idSolicitud} a revisión?`)) {
-    return
+async function enviarRevisionHandler(event) {
+  const fila = event.target.closest('tr');
+  const idSolicitud = fila.dataset.id;
+
+  // 1. Create and inject modal HTML if it doesn't exist
+  if (!document.getElementById('enviar-revision-modal')) {
+    const modalHtml = `
+      <div id="enviar-revision-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+          <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="text-xl font-bold">Enviar a Revisión</h3>
+            <button id="btn-close-revision-modal" class="text-gray-500 hover:text-gray-800">&times;</button>
+          </div>
+          <div id="detalles-para-revision" class="mt-4">
+            <!-- Details will be loaded here -->
+          </div>
+          <form id="form-enviar-revision" class="mt-4">
+            <div>
+              <label for="archivos-revision" class="block text-sm font-medium text-gray-700">Adjuntar Archivos (Imágenes o PDF)</label>
+              <input type="file" id="archivos-revision" name="archivos[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+              <p class="mt-1 text-sm text-gray-500">Puede seleccionar múltiples archivos.</p>
+            </div>
+            <div class="mt-6 flex justify-end space-x-4 border-t pt-4">
+              <button type="button" id="btn-cancelar-revision" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+              <button type="submit" id="btn-confirmar-revision" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Confirmar y Enviar</button>
+            </div>
+          </form>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
   }
 
-  const btn = event.target
-  btn.disabled = true
-  btn.textContent = 'Enviando...'
+  const modal = document.getElementById('enviar-revision-modal');
+  const detallesContainer = document.getElementById('detalles-para-revision');
+  const form = document.getElementById('form-enviar-revision');
+  const btnConfirmar = document.getElementById('btn-confirmar-revision');
+  const btnCancelar = document.getElementById('btn-cancelar-revision');
+  const btnClose = document.getElementById('btn-close-revision-modal');
 
-  fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-    body: JSON.stringify({ ID_Solicitud: idSolicitud }),
-  })
-    .then((response) => response.json())
-    .then((result) => {
+  const closeModal = () => modal.classList.add('hidden');
+
+  // 2. Show modal and load details
+  modal.classList.remove('hidden');
+  detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>';
+
+  try {
+    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
+    if (!response.ok) throw new Error('No se pudieron cargar los detalles.');
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    // Display details (simplified version from mostrarVer)
+    const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+    detallesContainer.innerHTML = `
+      <div class="grid grid-cols-2 gap-4">
+        <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+        <div><strong>Fecha:</strong> ${data.Fecha}</div>
+        <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+        <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+        <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
+        <div><strong>Monto:</strong> <span class="font-bold">${monto}</span></div>
+      </div>
+    `;
+  } catch (error) {
+    detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
+  }
+
+  // 3. Handle form submission
+  const submitHandler = async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('ID_Solicitud', idSolicitud);
+
+    const archivos = document.getElementById('archivos-revision').files;
+    for (let i = 0; i < archivos.length; i++) {
+      formData.append('archivos[]', archivos[i]);
+    }
+
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = 'Enviando...';
+
+    try {
+      const response = await fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+
+      const result = await response.json();
+
       if (result.success) {
-        mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success')
-        // Vuelve a cargar los datos para refrescar la tabla y la paginación
-        initEnviarRevision()
+        mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success');
+        closeModal();
+        initEnviarRevision(); // Refresh original table
       } else {
-        mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error')
-        btn.disabled = false
-        btn.textContent = 'Enviar'
+        mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error');
       }
-    })
-    .catch((error) => {
-      console.error('Error:', error)
-      mostrarNotificacion('Error de red al enviar a revisión.', 'error')
-      btn.disabled = false
-      btn.textContent = 'Enviar'
-    })
+    } catch (error) {
+      console.error('Error:', error);
+      mostrarNotificacion('Error de red al enviar a revisión.', 'error');
+    } finally {
+      btnConfirmar.disabled = false;
+      btnConfirmar.textContent = 'Confirmar y Enviar';
+    }
+  };
+
+  // Remove old listeners and add new ones
+  form.removeEventListener('submit', submitHandler); // Prevent multiple bindings
+  form.addEventListener('submit', submitHandler);
+
+  btnCancelar.onclick = closeModal;
+  btnClose.onclick = closeModal;
 }
 
 /**

@@ -86,6 +86,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('auth/logout', 'Auth::logout');
         //PDF
         $routes->get('api/solicitud/pdf/(:num)', 'GenerarPDF::GenerarRequisicion/$1');
+        $routes->get('api/pago/pdf/(:num)', 'GenerarPDF::GenerarOrdenPago/$1');
 
     });
 }

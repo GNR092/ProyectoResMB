@@ -1,5 +1,5 @@
 <div class="p-4">
-    <h2 class="text-xl font-bold mb-4">Enviar a Revisión</h2>
+    <h2 class="text-xl font-bold mb-4">Adjuntar/Confirmar Cotización</h2>
 
     <div class="overflow-x-auto">
         <table id="tabla-enviar" class="min-w-full border border-gray-300">

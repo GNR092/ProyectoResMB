@@ -36,10 +36,10 @@ class Rest
     }
     //region Tokens
     /**
-     * Genera un nuevo token API.
+     * Genera un nuevo token API para un usuario.
      *
-     * @return bool True si el token se generó correctamente, false en caso contrario.
-     * @param int $userid El ID del usuario para el cual se generará el token
+     * @param int $userid El ID del usuario para el cual se generará el token.
+     * @return bool True si el token se generó y guardó correctamente, false en caso contrario.
      */
     public function generateUserToken(int $userid): bool
     {
@@ -58,6 +58,14 @@ class Rest
         return $tokenmodel->insert($usertoken) !== false;
     }
 
+    /**
+     * Crea un hash de token único para un usuario.
+     *
+     * Elimina cualquier token existente del usuario antes de crear uno nuevo.
+     *
+     * @param int $userid El ID del usuario.
+     * @return string El hash del token generado, o una cadena vacía si el usuario no existe.
+     */
     public function generatetoken(int $userid): string
     {
         $usuariosModel = new UsuariosModel();
@@ -78,6 +86,13 @@ class Rest
         return $tokenhash;
     }
 
+    /**
+     * Actualiza el token de un usuario.
+     *
+     * @param int $userid El ID del usuario.
+     * @param string|null $token El nuevo token a guardar.
+     * @return bool True si la actualización fue exitosa, false en caso contrario.
+     */
     public function updateToken(int $userid, ?string $token): bool
     {
         $tokenModel = new TokenModel();
@@ -94,10 +109,10 @@ class Rest
         return $tokenModel->update($tokenData['ID_Token'], $dataToUpdate);
     }
     /**
-     * Borra un token API.
+     * Borra un token API de un usuario.
      *
-     * @return bool true su el token se eliminó correctamente, false en caso contrario.
-     * @param int $userId El ID del usuario cuyo token se eliminará
+     * @param int $userId El ID del usuario cuyo token se eliminará.
+     * @return bool True si el token se eliminó correctamente, false en caso contrario.
      */
     public function deleteToken(int $userId): bool
     {
@@ -116,7 +131,7 @@ class Rest
     }
     /**
      * Obtiene todos los tokens de la base de datos.
-     * @return array Los tokens encontrados
+     * @return array Un array con todos los tokens.
      */
     private function getTokens(): array
     {
@@ -127,12 +142,23 @@ class Rest
     //endregion
 
     //region cotizacione
+    /**
+     * Obtiene una cotización por su ID.
+     *
+     * @param int $id El ID de la cotización.
+     * @return array|null Los datos de la cotización o null si no se encuentra.
+     */
     public function getCotizacionById(int $id): ?array
     {
         $cotizacionModel = new CotizacionModel();
         $result = $cotizacionModel->find($id);
         return $result ?: null;
     }
+    /**
+     * Obtiene todas las cotizaciones.
+     *
+     * @return array Un array con todas las cotizaciones.
+     */
     public function getCotizaciones(): array
     {
         $cotizacionModel = new CotizacionModel();
@@ -142,6 +168,11 @@ class Rest
     //endregion
 
     //region solicitudes
+    /**
+     * Obtiene todas las solicitudes, excluyendo ciertos estados.
+     *
+     * @return array Un array de solicitudes con el nombre del departamento.
+     */
     public function getAllSolicitud()
     {
         $excluded_statuses = [Status::Dept_Rechazada, Status::Aprobacion_pendiente];
@@ -156,6 +187,12 @@ class Rest
 
         return $results ?: [];
     }
+    /**
+     * Obtiene todas las solicitudes de un departamento específico.
+     *
+     * @param int $id El ID del departamento.
+     * @return array Un array de solicitudes para el departamento dado.
+     */
     public function getSolicitudByDepartment(int $id)
     {
         $solicitudModel = new SolicitudModel();
@@ -170,6 +207,16 @@ class Rest
         return $results ?: [];
     }
 
+    /**
+     * Obtiene una solicitud específica con todos sus productos y detalles asociados.
+     *
+     * Realiza un control de acceso opcional para restringir los resultados a un usuario
+     * o departamento específico.
+     *
+     * @param int      $id         El ID de la solicitud a obtener.
+     * @return array|null Un array con los datos de la solicitud y sus productos,
+     *                    o null si la solicitud no se encuentra o el acceso es denegado.
+     */
     public function getSolicitudWithProducts(int $id): ?array
     {
         $solicitudModel = new SolicitudModel();
@@ -215,7 +262,7 @@ class Rest
             $solicitud['cotizacion'] = $cotizacion;
         }
 
-        return $solicitud;
+        return $solicitud ? $solicitud : [];
     }
 
     /**
@@ -224,10 +271,13 @@ class Rest
      * @param string $status El estado de la solicitud a buscar.
      * @param int $departmentId El ID del departamento.
      * @param int|null $excludeUserId El ID del usuario a excluir de los resultados (ej. el jefe).
-     * @return array
+     * @return array Un array con las solicitudes encontradas.
      */
-    public function getSolicitudesByStatusAndDept(string $status, int $departmentId, ?int $excludeUserId = null): array
-    {
+    public function getSolicitudesByStatusAndDept(
+        string $status,
+        int $departmentId,
+        ?int $excludeUserId = null,
+    ): array {
         $solicitudModel = new SolicitudModel();
         $builder = $solicitudModel
             ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre')
@@ -245,6 +295,11 @@ class Rest
     //endregion
 
     //region Solicitudes Cotizadas
+    /**
+     * Obtiene un resumen de las solicitudes que ya han sido cotizadas.
+     *
+     * @return array Un array con los datos formateados de las solicitudes cotizadas.
+     */
     public function getSolicitudesCotizadas()
     {
         $result = [];
@@ -286,7 +341,8 @@ class Rest
                 'Usuario' => $usuario['Nombre'] ?? '',
                 'Departamento' => $departamento['Nombre'] ?? '',
                 'Proveedor' => $proveedor['RazonSocial'] ?? '',
-                'Monto' => $solicitud['IVA'] === true ? $cotizacion['Total'] * 1.16 : $cotizacion['Total'],
+                'Monto' =>
+                    $solicitud['IVA'] === true ? $cotizacion['Total'] * 1.16 : $cotizacion['Total'],
                 'Estado' => $solicitud['Estado'] ?? '',
             ];
         }
@@ -294,21 +350,32 @@ class Rest
         return $result;
     }
 
+    /**
+     * Obtiene las solicitudes de un departamento que están pendientes de aprobación.
+     *
+     * @param int $departmentId El ID del departamento.
+     * @return array Un array de solicitudes pendientes.
+     */
     public function getSolicitudesUsersByDepartment(int $departmentId)
     {
         $solicitudModel = new SolicitudModel();
         $results = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre')
-                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario')
-                    ->where('Solicitud.ID_Dpto', $departmentId)
-                    ->where('Solicitud.Estado', Status::Aprobacion_pendiente)
-                    // esto nos asegura de no mostrar las solicitudes del propio jefe
-                    //->where('Solicitud.ID_Usuario !=', session('id'))
-                    ->orderBy('Solicitud.Fecha', 'DESC')
-                    ->findAll();
+            ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre')
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario')
+            ->where('Solicitud.ID_Dpto', $departmentId)
+            ->where('Solicitud.Estado', Status::Aprobacion_pendiente)
+            // esto nos asegura de no mostrar las solicitudes del propio jefe
+            //->where('Solicitud.ID_Usuario !=', session('id'))
+            ->orderBy('Solicitud.Fecha', 'DESC')
+            ->findAll();
         return $results ?: [];
     }
 
+    /**
+     * Obtiene un resumen de las solicitudes que se encuentran "En revisión".
+     *
+     * @return array Un array con los datos formateados de las solicitudes en revisión.
+     */
     public function getSolicitudesEnRevision()
     {
         $solicitudModel = new SolicitudModel();
@@ -339,22 +406,35 @@ class Rest
 
     //region Usuarios
     /**
-     * Obtiene un usuario por su ID.
+     * Obtiene un usuario por su ID, opcionalmente con detalles de departamento y ubicación.
      *
-     * @param int $id El ID del usuario
-     * @return array|null El usuario encontrado o null si no se encuentra
+     * @param int $id El ID del usuario.
+     * @param bool $withDetails Si es true, incluye el nombre del departamento y de la ubicación.
+     * @return array|null El usuario encontrado o null si no se encuentra.
      */
-    public function getUserById(int $id): ?array
+    public function getUserById(int $id, bool $withDetails = false): ?array
     {
         $usuariosModel = new UsuariosModel();
-        $result = $usuariosModel->find($id);
-        return $result ?: null;
+        $usuarios = [];
+
+        if ($withDetails) {
+            $usuarios = $usuariosModel
+                ->select(
+                    'Usuarios.*, Departamentos.Nombre as departamento_nombre, Places.Nombre_Corto as place_nombre',
+                )
+                ->join('Departamentos', 'Departamentos.ID_Dpto = Usuarios.ID_Dpto', 'left')
+                ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                ->find($id);
+            return $usuarios ? $usuarios : [];
+        } else {
+            return $usuariosModel->find($id) ?: [];
+        }
     }
     /**
      * Obtiene un usuario por su nombre.
      *
-     * @param string $name El nombre del usuario
-     * @return array|null El usuario encontrado o null si no se encuentra
+     * @param string $name El nombre del usuario.
+     * @return array|null El usuario encontrado o null si no se encuentra.
      */
     public function getUserByName(string $name): ?array
     {
@@ -365,8 +445,8 @@ class Rest
     /**
      * Obtiene un usuario por su correo electrónico.
      *
-     * @param string $email El correo electrónico del usuario
-     * @return array|null El usuario encontrado o null si no se encuentra
+     * @param string $email El correo electrónico del usuario.
+     * @return array|null El usuario encontrado o null si no se encuentra.
      */
     public function getUserByEmail(string $email): ?array
     {
@@ -375,10 +455,10 @@ class Rest
         return $result ?: null;
     }
     /**
-     * Obtiene usuarios por departamento.
+     * Obtiene todos los usuarios de un departamento específico.
      *
-     * @param int $departmentId El ID del departamento
-     * @return array Los usuarios encontrados
+     * @param int $departmentId El ID del departamento.
+     * @return array Los usuarios encontrados.
      */
     public function getUsersByDepartament(int $departmentId): array
     {
@@ -387,15 +467,17 @@ class Rest
         return $results ?: [];
     }
     /**
-     * Obtiene todos los usuarios.
+     * Obtiene todos los usuarios con detalles de su departamento y ubicación.
      *
-     * @return array Los usuarios encontrados
+     * @return array Los usuarios encontrados.
      */
     public function getAllUsers(): array
     {
         $usuariosModel = new UsuariosModel();
         $results = $usuariosModel
-            ->select('Usuarios.*, Departamentos.Nombre as departamento_nombre, Places.Nombre_Corto as place_nombre')
+            ->select(
+                'Usuarios.*, Departamentos.Nombre as departamento_nombre, Places.Nombre_Corto as place_nombre',
+            )
             ->join('Departamentos', 'Departamentos.ID_Dpto = Usuarios.ID_Dpto', 'left')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->orderBy('Usuarios.Nombre', 'ASC')
@@ -403,9 +485,9 @@ class Rest
         return $results ?: [];
     }
     /**
-     * Agrega un nuevo usuario.
+     * Agrega un nuevo usuario a la base de datos.
      *
-     * @param array $data Los datos del usuario a agregar
+     * @param array $data Los datos del usuario a agregar.
      * @return bool True si el usuario se agregó correctamente, false en caso contrario.
      */
     public function addUser(array $data): bool
@@ -414,10 +496,10 @@ class Rest
         return $usuariosModel->insert($data) !== false;
     }
     /**
-     * Actualiza un usuario por su ID.
+     * Actualiza un usuario existente por su ID.
      *
-     * @param int $id El ID del usuario a actualizar
-     * @param array $data Los datos a actualizar
+     * @param int $id El ID del usuario a actualizar.
+     * @param array $data Los nuevos datos para el usuario.
      * @return bool True si el usuario se actualizó correctamente, false en caso contrario.
      */
     public function updateUser(int $id, array $data): bool
@@ -428,7 +510,7 @@ class Rest
     /**
      * Elimina un usuario por su ID.
      *
-     * @param int $id El ID del usuario a eliminar
+     * @param int $id El ID del usuario a eliminar.
      * @return bool True si el usuario se eliminó correctamente, false en caso contrario.
      */
     public function deleteUser(int $id): bool
@@ -440,11 +522,11 @@ class Rest
 
     //region productos
     /**
-     * Obtiene productos por consulta y tipo.
+     * Obtiene productos buscando por código o por nombre.
      *
-     * @param string $query La consulta de búsqueda
-     * @param string $type El tipo de búsqueda ('Código' o 'Producto')
-     * @return array Los productos encontrados
+     * @param string $query La cadena de búsqueda.
+     * @param string $type El tipo de búsqueda ('Código' o 'Producto').
+     * @return array Los productos encontrados.
      */
     public function getProductsByQuery(string $query, string $type): array
     {
@@ -459,8 +541,8 @@ class Rest
     /**
      * Obtiene un producto por su ID.
      *
-     * @param int $id El ID del producto
-     * @return array|null El producto encontrado o null si no se encuentra
+     * @param int $id El ID del producto.
+     * @return array|null El producto encontrado o null si no se encuentra.
      */
     public function getProductById(int $id): ?array
     {
@@ -469,11 +551,11 @@ class Rest
         return $result ?: null;
     }
     /**
-     * Obtiene productos por código.
+     * Obtiene productos que coinciden con un código.
      *
-     * @param string $code El código del producto
-     * @param int $limit El número máximo de resultados a devolver
-     * @return array Los productos encontrados
+     * @param string $code El código a buscar.
+     * @param int $limit El número máximo de resultados a devolver.
+     * @return array Los productos encontrados.
      */
     public function getProductsByCode(string $code, int $limit = 0): array
     {
@@ -482,11 +564,11 @@ class Rest
         return $results;
     }
     /**
-     * Obtiene productos por nombre.
+     * Obtiene productos por nombre (búsqueda insensible a mayúsculas/minúsculas).
      *
-     * @param string $name El nombre del producto
-     * @param int $limit El número máximo de resultados a devolver
-     * @return array Los productos encontrados
+     * @param string $name El nombre del producto a buscar.
+     * @param int $limit El número máximo de resultados a devolver.
+     * @return array Los productos encontrados.
      */
     public function getProductsByName(string $name, int $limit = 0): array
     {
@@ -500,9 +582,9 @@ class Rest
         return [];
     }
     /**
-     * Registra un nuevo producto.
+     * Registra un nuevo producto a partir de un array de datos.
      *
-     * @param array $data Los datos del producto a registrar
+     * @param array $data Los datos del producto a registrar.
      * @return bool True si el producto se registró correctamente, false en caso contrario.
      */
     public function registrarProductoArray(array $data): bool
@@ -511,11 +593,11 @@ class Rest
         return $producto->insert($data) !== false;
     }
     /**
-     * Registra un nuevo producto.
+     * Registra un nuevo producto con sus propiedades individuales.
      *
-     * @param string $codigo El código del producto
-     * @param string $nombre El nombre del producto
-     * @param int $existencia La existencia del producto
+     * @param string $codigo El código del producto.
+     * @param string $nombre El nombre del producto.
+     * @param int $existencia La cantidad de existencia inicial.
      * @return bool True si el producto se registró correctamente, false en caso contrario.
      */
     public function registrarProducto($codigo, $nombre, $existencia): bool
@@ -531,8 +613,8 @@ class Rest
 
     /**
      *  Elimina un producto por su ID.
-     * * @param int $id
-     * @return bool|\CodeIgniter\Database\BaseResult true si el producto se eliminó correctamente, false en caso contrario.
+     * @param int $id El ID del producto a eliminar.
+     * @return bool True si el producto se eliminó correctamente, false en caso contrario.
      */
     public function eliminarProductoById(int $id): bool
     {
@@ -540,10 +622,10 @@ class Rest
         return $producto->delete($id);
     }
     /**
-     * Actualiza un producto por su ID.
+     * Actualiza un producto existente por su ID.
      *
-     * @param int $id El ID del producto a actualizar
-     * @param array $data Los datos a actualizar
+     * @param int $id El ID del producto a actualizar.
+     * @param array $data Los nuevos datos para el producto.
      * @return bool True si el producto se actualizó correctamente, false en caso contrario.
      */
     public function actualizarProducto(int $id, array $data): bool
@@ -552,9 +634,9 @@ class Rest
         return $producto->update($id, $data);
     }
     /**
-     * Obtiene todos los productos.
+     * Obtiene todos los productos de la base de datos.
      *
-     * @return array Los productos encontrados
+     * @return array Los productos encontrados.
      */
     public function getAllProducts(): array
     {
@@ -571,8 +653,8 @@ class Rest
     /**
      * Obtiene un proveedor por su ID.
      *
-     * @param int $id El ID del proveedor
-     * @return array|null El proveedor encontrado o null si no se encuentra
+     * @param int $id El ID del proveedor.
+     * @return array|null El proveedor encontrado o null si no se encuentra.
      */
     public function getProveedorById(int $id): ?array
     {
@@ -583,7 +665,7 @@ class Rest
     /**
      * Obtiene todos los proveedores.
      *
-     * @return array Los proveedores encontrados
+     * @return array Los proveedores encontrados.
      */
     public function getAllProveedores(): array
     {
@@ -592,9 +674,9 @@ class Rest
         return $results ?: [];
     }
     /**
-     * Obtiene todos los proveedores con solo ID y Nombre.
+     * Obtiene el ID y Nombre de todos los proveedores.
      *
-     * @return array Los proveedores encontrados
+     * @return array Un array de proveedores con solo su ID y Razón Social.
      */
     public function getAllProveedorName(): array
     {
@@ -606,9 +688,9 @@ class Rest
 
     //region departamentos
     /**
-     * Obtiene todos los departamentos.
+     * Obtiene todos los departamentos con el nombre corto de su ubicación.
      *
-     * @return array Los departamentos encontrados
+     * @return array Los departamentos encontrados.
      */
     public function getAllDepartments(): array
     {
@@ -627,12 +709,11 @@ class Rest
         return $results;
     }
     /**
-     * Obtiene un departamento por su ID.
+     * Obtiene el nombre de una ubicación (Place) por su ID.
      *
-     * @param int $id El ID del departamento
-     * @param bool $long Si se debe devolver el nombre completo o solo el nombre corto
-     * @return string|null El departamento encontrado o null si no se encuentra
-     *
+     * @param int $id El ID de la ubicación.
+     * @param bool $long Si es true, devuelve el nombre completo; de lo contrario, el nombre corto.
+     * @return string|null El nombre de la ubicación o null si no se encuentra.
      */
     public function getPlaceById(int $id, bool $long = false): ?string
     {
@@ -647,6 +728,12 @@ class Rest
     //endregion
 
     //region misceláneos
+    /**
+     * Crea una carpeta en la ruta especificada si no existe.
+     *
+     * @param string $path La ruta completa de la carpeta a crear.
+     * @return bool True si la carpeta ya existe o fue creada exitosamente, false si hubo un error.
+     */
     public function CreateFolder(string $path): bool
     {
         if (!is_dir($path)) {
@@ -657,6 +744,51 @@ class Rest
             }
         }
         return true;
+    }
+
+    /**
+     * Obtiene los datos de una solicitud de pago para generar un PDF.
+     *
+     * @param int $id El ID de la solicitud.
+     * @return array|null Un array con los datos de la solicitud de pago o null si no se encuentra.
+     */
+    public function getSolicitudPago(int $id): ?array
+    {
+         /*
+            -------------Datos------------- 
+            Razón Social 
+            Titulo:Requisición de pago 
+            Metodo:Transferencia,Cheque,Efectivo 
+            Fecha de solicitud 
+            Departamento 
+            Proyecto 
+            Prooveedor 
+            Fecha de pago 
+            Importe Total 
+            --------------Datos Tabla--------- 
+            |No.|No. Factura|Importe|Descripcion de pago| 
+            ----------------------------------
+        */
+        $usuarioModel = new UsuariosModel();
+        $razonSocialModel = new RazonSocialModel();
+        $solicitudModel = new SolicitudModel();
+
+        $solicitud = $solicitudModel->find($id);
+        $usuario = $usuarioModel->find($solicitud['ID_Usuario']);
+        $razonSocial = $razonSocialModel->find($usuario['ID_RazonSocial']);
+
+
+        $solicitud['UsuarioNombre'] = $usuario['Nombre'];
+        $solicitud['RazonSocialNombre'] = $razonSocial['Nombre'];
+
+    
+
+        if (!$solicitud) {
+            return null;
+        }
+
+        return $solicitud ?: [];
+
     }
     //endregion
 }
