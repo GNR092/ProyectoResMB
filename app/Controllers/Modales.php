@@ -8,6 +8,7 @@ use App\Libraries\Rest;
 use App\Models\ProveedorModel;
 use App\Models\ProductoModel;
 use App\Models\SolicitudModel;
+use App\Models\HistorialProductosModel;
 
 class Modales extends BaseController
 {
@@ -132,12 +133,17 @@ class Modales extends BaseController
 
             case 'crud_productos':
                 $productoModel = new ProductoModel();
+                $session = session(); // <-- inicializamos sesión
 
-                // Orden numérico ascendente por el campo texto "Codigo"
+                // Obtener todos los productos ordenados
                 $data['productos'] = $productoModel
                     ->select('Producto.*')
                     ->orderBy('CAST("Producto"."Codigo" AS INTEGER)', 'ASC', false)
                     ->findAll();
+
+                // Agregar datos de sesión
+                $data['nombre_usuario'] = $session->get('nombre_usuario');
+                $data['departamento_usuario'] = $session->get('departamento_usuario');
 
                 return view('modales/crud_productos', $data);
 
@@ -441,6 +447,51 @@ class Modales extends BaseController
             ]);
         }
     }
+
+    public function insertarHistorialProducto()
+    {
+        $historialModel = new HistorialProductosModel();
+        $session = session();
+
+        $data = $this->request->getJSON(true);
+
+        // Agregar ID_Usuario desde la sesión
+        $data['ID_Usuario'] = $session->get('id'); // id del usuario logeado
+
+        try {
+            $historialModel->insert($data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+    public function actualizarProducto($id)
+    {
+        $productoModel = new ProductoModel();
+
+        $data = $this->request->getJSON(true);
+
+        $rules = [
+            'Nombre' => 'required|string|max_length[255]',
+            'Existencia' => 'required|numeric|greater_than_equal_to[0]',
+        ];
+
+        if (!$this->validateData($data, $rules)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'Datos inválidos',
+                'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        try {
+            $productoModel->update($id, $data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
 
     //Funciones para proveedores
     public function insertarProveedor()

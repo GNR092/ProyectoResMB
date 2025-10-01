@@ -1609,29 +1609,31 @@ function eliminarProducto(idProducto) {
 }
 
 function editarProducto(idProducto) {
+  // Ocultar tabla y búsqueda
   document.getElementById('div-tabla').classList.add('hidden')
   document.getElementById('div-busqueda').classList.add('hidden')
   document.getElementById('div-editar').classList.remove('hidden')
 
+  // Obtener fila seleccionada
   const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`)
-  if (fila) {
-    const codigo = fila.children[0].textContent.trim()
-    const nombre = fila.children[1].textContent.trim()
-    const existencia = fila.children[2].textContent.trim()
+  if (!fila) return
 
-    // oculto (ID)
-    document.getElementById('editarID_Producto').value = idProducto
+  const codigo = fila.children[0].textContent.trim()
+  const nombre = fila.children[1].textContent.trim()
+  const existencia = fila.children[2].textContent.trim()
 
-    // llenar campos NO editables
-    document.getElementById('mostrarCodigo').value = codigo
-    document.getElementById('mostrarNombre').value = nombre
-    document.getElementById('mostrarExistencia').value = existencia
+  // ID oculto
+  document.getElementById('editarID_Producto').value = idProducto
 
-    // llenar campos editables
-    document.getElementById('editarCodigo').value = codigo
-    document.getElementById('editarNombre').value = nombre
-    document.getElementById('editarExistencia').value = existencia
-  }
+  // Campos NO editables
+  document.getElementById('mostrarCodigo').value = codigo
+  document.getElementById('mostrarNombre').value = nombre
+  document.getElementById('mostrarExistencia').value = existencia
+
+  // Campos editables
+  document.getElementById('editarCodigo').value = codigo // si no se puede cambiar
+  document.getElementById('editarNombre').value = nombre
+  document.getElementById('editarExistencia').value = existencia
 }
 
 function regresarTablaProductos() {
@@ -1641,8 +1643,73 @@ function regresarTablaProductos() {
 }
 
 function guardarEdicion() {
-  alert('Función de guardar cambios pendiente de implementar.')
+  const idProducto = document.getElementById('editarID_Producto').value
+  const codigoAnt = document.getElementById('mostrarCodigo').value
+  const nombreAnt = document.getElementById('mostrarNombre').value
+  const existenciaAnt = document.getElementById('mostrarExistencia').value
+
+  const codigoNew = document.getElementById('editarCodigo').value
+  const nombreNew = document.getElementById('editarNombre').value
+  const existenciaNew = document.getElementById('editarExistencia').value
+  const razon = document.getElementById('editarComentarios').value
+
+  if (!nombreNew || !existenciaNew) {
+    alert('Completa los campos requeridos')
+    return
+  }
+
+  // 1️⃣ Actualizar Producto
+  fetch(`${BASE_URL}modales/actualizarProducto/${idProducto}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: JSON.stringify({
+      Nombre: nombreNew,
+      Existencia: existenciaNew
+    })
+  })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // 2️⃣ Insertar en HistorialProductos
+          fetch(`${BASE_URL}modales/insertarHistorialProducto`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+              ID_Producto: idProducto,
+              CodigoAnt: codigoAnt,
+              NombreAnt: nombreAnt,
+              ExistenciaAnt: existenciaAnt,
+              CodigoNew: codigoNew,
+              NombreNew: nombreNew,
+              ExistenciaNew: existenciaNew,
+              Razon: razon
+            })
+          })
+              .then(res => res.json())
+              .then(histData => {
+                if (histData.success) {
+                  alert('Producto actualizado y registrado en historial correctamente.')
+                  location.reload() // o refrescar tabla dinámicamente
+                } else {
+                  alert('Producto actualizado, pero no se pudo registrar en historial.')
+                }
+              })
+        } else {
+          alert('No se pudo actualizar el producto: ' + data.message)
+        }
+      })
+      .catch(err => {
+        console.error(err)
+        alert('Ocurrió un error al guardar los cambios.')
+      })
 }
+
 
 /**
  * Lógica para el modal "Órdenes de Compra"

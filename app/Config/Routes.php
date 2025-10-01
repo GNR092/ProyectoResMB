@@ -45,6 +45,9 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/registrarMaterial', 'Modales::registrarMaterial');
         $routes->post('modales/eliminarProducto/(:num)', 'Modales::eliminarProducto/$1');
         $routes->post('modales/editarProducto/(:num)', 'Modales::editarProducto/$1');
+        $routes->post('modales/actualizarProducto/(:num)', 'Modales::actualizarProducto/$1');
+        $routes->post('modales/insertarHistorialProducto', 'Modales::insertarHistorialProducto');
+
         // Proveedores
         $routes->post('proveedores/insertar', 'Modales::insertarProveedor');
         $routes->post('proveedores/eliminarProveedor/(:num)', 'Modales::eliminarProveedor/$1');
