@@ -143,12 +143,18 @@ class Modales extends BaseController
 
             case 'entrega_productos':
                 $productoModel = new ProductoModel();
+                $departamentosModel = new DepartamentosModel(); // <- para cargar los departamentos
+                $session = session();
 
-                // Orden numérico ascendente por el campo texto "Codigo"
-                $data['productos'] = $productoModel
-                    ->select('Producto.*')
-                    ->orderBy('CAST("Producto"."Codigo" AS INTEGER)', 'ASC', false)
-                    ->findAll();
+                $data = [
+                    'productos' => $productoModel
+                        ->select('Producto.*')
+                        ->orderBy('CAST("Producto"."Codigo" AS INTEGER)', 'ASC', false)
+                        ->findAll(),
+                    'nombre_usuario' => $session->get('nombre_usuario'),
+                    'departamento_usuario' => $session->get('departamento_usuario'),
+                    'departamentos' => $departamentosModel->findAll(), // <- se agregan
+                ];
 
                 return view('modales/entrega_productos', $data);
 

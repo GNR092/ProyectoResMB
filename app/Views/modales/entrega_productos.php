@@ -14,29 +14,46 @@ $iconUrl = "/icons/icons.svg?v=$version";
     <div class="p-6">
         <!-- Persona que entrega -->
         <h3 class="text-md font-medium mb-2">Persona que entrega</h3>
-        <div class="flex justify-between gap-4 mb-6">
+        <div class="flex justify-between gap-4 mb-4">
             <div class="w-1/3">
                 <label class="text-sm text-gray-700 font-medium">Fecha:</label>
-                <input id="entrega-fecha" type="date" class="w-full px-3 py-2 border rounded" name="fecha" readonly>
+                <input type="date" class="w-full px-3 py-2 border rounded"
+                       name="fecha"
+                       value="<?= date('Y-m-d') ?>"
+                       readonly>
             </div>
             <div class="w-1/3">
                 <label class="text-sm text-gray-700 font-medium">Usuario:</label>
-                <input id="entrega-usuario" type="text" class="w-full px-3 py-2 border rounded" name="usuario" readonly>
+                <input type="text" class="w-full px-3 py-2 border rounded"
+                       name="usuario"
+                       value="<?= esc($nombre_usuario) ?>"
+                       readonly>
             </div>
             <div class="w-1/3">
                 <label class="text-sm text-gray-700 font-medium">Departamento:</label>
-                <input id="entrega-departamento" type="text" class="w-full px-3 py-2 border rounded" name="departamento" readonly>
+                <input type="text" class="w-full px-3 py-2 border rounded"
+                       name="departamento"
+                       value="<?= esc($departamento_usuario) ?>"
+                       readonly>
             </div>
         </div>
+
 
         <!-- Persona que recibe -->
         <h3 class="text-md font-medium mb-2">Persona que recibe</h3>
 
         <div class="mb-4">
-            <label for="entrega-departamento-receptor" class="text-sm text-gray-700 font-medium">Departamento</label>
-            <select id="entrega-departamento-receptor" class="w-full px-3 py-2 border rounded">
+            <label class="text-sm text-gray-700 font-medium">Departamento Receptor:</label>
+            <select id="entrega-departamento-receptor" name="departamento_receptor"
+                    class="w-full px-3 py-2 border rounded bg-white">
                 <option value="">Seleccione un departamento</option>
-                <!-- Opciones cargadas desde backend -->
+                <?php if (!empty($departamentos)) : ?>
+                    <?php foreach ($departamentos as $depto) : ?>
+                        <option value="<?= $depto['ID_Dpto'] ?>">
+                            <?= esc($depto['Nombre']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </select>
         </div>
 

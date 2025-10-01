@@ -1942,7 +1942,6 @@ function initProveedorActions(tabla) {
 /**
  * Lógica para Entrega de Material
  */
-
 function initEntregaMaterial() {
   const tbodyBuscar = document.getElementById('tablaBuscarMateriales')
   const paginacionBuscar = document.getElementById('paginacion-buscar-materiales')
@@ -2110,7 +2109,6 @@ function initEntregaMaterial() {
 }
 
 let productosSeleccionados = []
-
 // Marcar / desmarcar productos seleccionados
 function toggleSeleccionProducto(idProducto) {
   const index = productosSeleccionados.indexOf(idProducto)
@@ -2184,7 +2182,6 @@ function agregarProductosSeleccionados() {
   regresarBuscarMateriales()
 }
 
-// Mostrar y regresar pantallas
 function mostrarBuscarMateriales() {
   document.getElementById('entrega-material-content').classList.add('hidden')
   document.getElementById('buscar-materiales-content').classList.remove('hidden')
