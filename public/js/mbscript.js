@@ -1257,54 +1257,22 @@ async function enviarRevisionHandler(event) {
   const fila = event.target.closest('tr');
   const idSolicitud = fila.dataset.id;
 
-  // 1. Create and inject modal HTML if it doesn't exist
-  if (!document.getElementById('enviar-revision-modal')) {
-    const modalHtml = `
-      <div id="enviar-revision-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden z-50">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-          <div class="flex justify-between items-center border-b pb-3">
-            <h3 class="text-xl font-bold">Enviar a Revisión</h3>
-            <button id="btn-close-revision-modal" class="text-gray-500 hover:text-gray-800">&times;</button>
-          </div>
-          <div id="detalles-para-revision" class="mt-4">
-            <!-- Details will be loaded here -->
-          </div>
-          <form id="form-enviar-revision" class="mt-4">
-            <div>
-              <label for="archivos-revision" class="block text-sm font-medium text-gray-700">Adjuntar Archivos (Imágenes o PDF)</label>
-              <input type="file" id="archivos-revision" name="archivos[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
-              <p class="mt-1 text-sm text-gray-500">Puede seleccionar múltiples archivos.</p>
-            </div>
-            <div class="mt-6 flex justify-end space-x-4 border-t pt-4">
-              <button type="button" id="btn-cancelar-revision" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
-              <button type="submit" id="btn-confirmar-revision" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Confirmar y Enviar</button>
-            </div>
-          </form>
-        </div>
-      </div>`;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-  }
-
-  const modal = document.getElementById('enviar-revision-modal');
+  const divTabla = document.getElementById('div-tabla-enviar');
+  const divRevision = document.getElementById('div-enviar-revision');
   const detallesContainer = document.getElementById('detalles-para-revision');
   const form = document.getElementById('form-enviar-revision');
   const btnConfirmar = document.getElementById('btn-confirmar-revision');
-  const btnCancelar = document.getElementById('btn-cancelar-revision');
-  const btnClose = document.getElementById('btn-close-revision-modal');
 
-  const closeModal = () => modal.classList.add('hidden');
-
-  // 2. Show modal and load details
-  modal.classList.remove('hidden');
+  // Mostrar div revision
+  divTabla.classList.add('hidden');
+  divRevision.classList.remove('hidden');
   detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>';
 
   try {
     const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
     if (!response.ok) throw new Error('No se pudieron cargar los detalles.');
     const data = await response.json();
-    if (data.error) throw new Error(data.error);
 
-    // Display details (simplified version from mostrarVer)
     const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
     detallesContainer.innerHTML = `
       <div class="grid grid-cols-2 gap-4">
@@ -1320,8 +1288,7 @@ async function enviarRevisionHandler(event) {
     detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
   }
 
-  // 3. Handle form submission
-  const submitHandler = async (e) => {
+  form.onsubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
     formData.append('ID_Solicitud', idSolicitud);
@@ -1338,17 +1305,15 @@ async function enviarRevisionHandler(event) {
       const response = await fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
         method: 'POST',
         body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-        },
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
       });
 
       const result = await response.json();
 
       if (result.success) {
         mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success');
-        closeModal();
-        initEnviarRevision(); // Refresh original table
+        regresarEnviarRevision();
+        initEnviarRevision(); // refrescar tabla
       } else {
         mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error');
       }
@@ -1360,13 +1325,11 @@ async function enviarRevisionHandler(event) {
       btnConfirmar.textContent = 'Confirmar y Enviar';
     }
   };
+}
 
-  // Remove old listeners and add new ones
-  form.removeEventListener('submit', submitHandler); // Prevent multiple bindings
-  form.addEventListener('submit', submitHandler);
-
-  btnCancelar.onclick = closeModal;
-  btnClose.onclick = closeModal;
+function regresarEnviarRevision() {
+  document.getElementById('div-tabla-enviar').classList.remove('hidden');
+  document.getElementById('div-enviar-revision').classList.add('hidden');
 }
 
 /**
