@@ -2825,6 +2825,29 @@ function regresarPagosMenu() {
   document.getElementById('pagos-menu').classList.remove('hidden')
 }
 
+function verDetalleContado(id) {
+  document.getElementById('tabla-contado').classList.add('hidden');
+  document.getElementById('detalle-contado').classList.remove('hidden');
+  document.getElementById('detalle-contado').innerHTML = `<p>Detalle de la solicitud ${id}</p>`;
+}
+
+function regresarTablaContado() {
+  document.getElementById('detalle-contado').classList.add('hidden');
+  document.getElementById('tabla-contado').classList.remove('hidden');
+}
+
+function verDetalleCredito(id) {
+  document.getElementById('tabla-credito').classList.add('hidden');
+  document.getElementById('detalle-credito').classList.remove('hidden');
+  document.getElementById('detalle-credito').innerHTML = `<p>Detalle de la solicitud ${id}</p>`;
+}
+
+function regresarTablaCredito() {
+  document.getElementById('detalle-credito').classList.add('hidden');
+  document.getElementById('tabla-credito').classList.remove('hidden');
+}
+
+
 
 /**
  * Varios

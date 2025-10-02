@@ -15,24 +15,98 @@
     </div>
 </div>
 
-<!-- Pantalla Pago de contado -->
+<!-- ================== Pago de contado ================== -->
 <div id="pago-contado" class="hidden p-6">
     <div class="flex justify-between items-center mb-4">
-        <button onclick="regresarPagosMenu()"
-                class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+        <button onclick="regresarPagosMenu()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
         <h2 class="text-lg font-semibold">Pago de contado</h2>
         <div></div>
     </div>
-    <p class="text-gray-700">Aquí irá el contenido para pagos de contado.</p>
+
+    <!-- Tabla de solicitudes de contado -->
+    <div id="tabla-contado">
+        <table class="min-w-full border border-gray-300">
+            <thead class="bg-gray-100">
+            <tr>
+                <th class="py-2 px-4 text-left">Folio</th>
+                <th class="py-2 px-4 text-left">Usuario</th>
+                <th class="py-2 px-4 text-left">Departamento</th>
+                <th class="py-2 px-4 text-left">Fecha</th>
+                <th class="py-2 px-4 text-left">Estado</th>
+                <th class="py-2 px-4 text-left">Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php if (!empty($solicitudes_contado)): ?>
+                <?php foreach ($solicitudes_contado as $sol): ?>
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-2 px-4"><?= esc($sol['No_Folio']) ?></td>
+                        <td class="py-2 px-4"><?= esc($sol['UsuarioNombre']) ?></td>
+                        <td class="py-2 px-4"><?= esc($sol['DepartamentoNombre']) ?></td>
+                        <td class="py-2 px-4"><?= esc($sol['Fecha']) ?></td>
+                        <td class="py-2 px-4"><?= esc($sol['Estado']) ?></td>
+                        <td class="py-2 px-4">
+                            <button class="text-blue-600 hover:underline" onclick="verDetalleContado(<?= $sol['ID_Solicitud'] ?>)">Ver</button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <tr>
+                    <td colspan="6" class="py-4 text-center text-gray-500">No hay solicitudes de contado pendientes por pagar.</td>
+                </tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Detalle de solicitud contado -->
+    <div id="detalle-contado" class="hidden"></div>
 </div>
 
-<!-- Pantalla Pago a crédito -->
+<!-- ================== Pago a crédito ================== -->
 <div id="pago-credito" class="hidden p-6">
     <div class="flex justify-between items-center mb-4">
-        <button onclick="regresarPagosMenu()"
-                class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+        <button onclick="regresarPagosMenu()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
         <h2 class="text-lg font-semibold">Pago a crédito</h2>
         <div></div>
     </div>
-    <p class="text-gray-700">Aquí irá el contenido para pagos a crédito.</p>
+
+    <!-- Tabla de solicitudes a crédito -->
+    <div id="tabla-credito">
+        <table class="min-w-full border border-gray-300">
+            <thead class="bg-gray-100">
+            <tr>
+                <th class="py-2 px-4 text-left">Folio</th>
+                <th class="py-2 px-4 text-left">Usuario</th>
+                <th class="py-2 px-4 text-left">Departamento</th>
+                <th class="py-2 px-4 text-left">Fecha</th>
+                <th class="py-2 px-4 text-left">Estado</th>
+                <th class="py-2 px-4 text-left">Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php if (!empty($solicitudes_credito)): ?>
+                <?php foreach ($solicitudes_credito as $sol): ?>
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-2 px-4"><?= esc($sol['No_Folio']) ?></td>
+                        <td class="py-2 px-4"><?= esc($sol['UsuarioNombre']) ?></td>
+                        <td class="py-2 px-4"><?= esc($sol['DepartamentoNombre']) ?></td>
+                        <td class="py-2 px-4"><?= esc($sol['Fecha']) ?></td>
+                        <td class="py-2 px-4"><?= esc($sol['Estado']) ?></td>
+                        <td class="py-2 px-4">
+                            <button class="text-green-600 hover:underline" onclick="verDetalleCredito(<?= $sol['ID_Solicitud'] ?>)">Ver</button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <tr>
+                    <td colspan="6" class="py-4 text-center text-gray-500">No hay solicitudes a crédito pendientes por pagar.</td>
+                </tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Detalle de solicitud crédito -->
+    <div id="detalle-credito" class="hidden"></div>
 </div>
