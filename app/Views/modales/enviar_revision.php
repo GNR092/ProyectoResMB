@@ -44,7 +44,7 @@
         <!-- Formulario -->
         <form id="form-enviar-revision" class="mt-4">
             <div>
-                <label for="archivos-revision" class="block text-sm font-medium text-gray-700">Adjuntar Archivos (Imágenes o PDF)</label>
+                <label for="archivos-revision" class="block text-sm font-medium text-gray-700">Adjuntar Cotización (Imágenes o PDF)</label>
                 <input type="file" id="archivos-revision" name="archivos[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
                 <p class="mt-1 text-sm text-gray-500">Puede seleccionar múltiples archivos.</p>
             </div>

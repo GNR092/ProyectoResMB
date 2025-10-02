@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\FPath;
 use App\Models\CotizacionModel;
 use App\Models\SolicitudModel;
 use App\Models\SolicitudProductModel;
@@ -192,8 +193,7 @@ class Api extends ResourceController
                     $total += $cantidad * $importe;
                 }
             }
-        }
-        else{
+        } else {
             if (!empty($details['productos'])) {
                 foreach ($details['productos'] as $p) {
                     $importe = (float) $p['Importe'];
@@ -236,16 +236,17 @@ class Api extends ResourceController
      */
     public function enviarSolicitudARevision()
     {
-        $json = $this->request->getJSON();
+        $request = $this->request->getPost();
 
-        if (!isset($json->ID_Solicitud)) {
+        if (!isset($request['ID_Solicitud'])) {
             return $this->failValidationErrors('Se requiere ID de solicitud.');
         }
 
-        $idSolicitud = (int) $json->ID_Solicitud;
+        $idSolicitud = (int) $request['ID_Solicitud'];
 
-        $solicitudModel = new SolicitudModel();
-        $solicitud = $solicitudModel->find($idSolicitud);
+        $solicitud = $this->api->getSolicitudById($idSolicitud);
+        $cotizacion = $this->api->getCotizacionBySolicitudID($idSolicitud);
+        $idCotizacion = $cotizacion['ID_Cotizacion'];
 
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
@@ -259,7 +260,29 @@ class Api extends ResourceController
         }
 
         try {
-            $solicitudModel->update($idSolicitud, ['Estado' => 'En revision']);
+            $this->api->updateSolicitudById($idSolicitud, ['Estado' => 'En revision']);
+            $files = $this->request->getFiles();
+            $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
+            $this->api->CreateFolder($folder);
+            $tmp = [];
+            $count = 0;
+            if ($files) {
+                foreach ($files as $fileGroup) {
+                    foreach ($fileGroup as $file) {
+                        if ($file->isValid() && !$file->hasMoved()) {
+                            $timestamp = date('Y-m-d_H-i-s');
+                            $extension = $file->getExtension();
+                            $nuevoNombre = 'cotizacion_' . $idCotizacion . '_' . $timestamp . '_' . $count++ . '.' . $extension;
+                            $tmp[] = $nuevoNombre;
+                            $file->move($folder, $nuevoNombre);
+                        }
+                    }
+                }
+               $cfls['Cotizacion_Files'] = implode(',', $tmp);
+               $this->api->updateCotizacionById($idCotizacion,$cfls);
+               //return Rest::ShowDebug($cfls);
+            }
+
             return $this->respondUpdated([
                 'success' => true,
                 'message' => 'Solicitud enviada a revisión.',
@@ -340,7 +363,11 @@ class Api extends ResourceController
         $idDepartamento = session('id_departamento_usuario');
         $idJefe = session('id');
 
-        $results = $this->api->getSolicitudesByStatusAndDept(Status::Aprobacion_pendiente, $idDepartamento, $idJefe);
+        $results = $this->api->getSolicitudesByStatusAndDept(
+            Status::Aprobacion_pendiente,
+            $idDepartamento,
+            $idJefe,
+        );
         return $this->respond($results, HttpStatus::OK);
     }
 
@@ -355,7 +382,9 @@ class Api extends ResourceController
 
         $json = $this->request->getJSON();
         if (!isset($json->ID_Solicitud) || !isset($json->accion)) {
-            return $this->failValidationErrors('Se requiere ID de solicitud y una acción (aprobar/rechazar).');
+            return $this->failValidationErrors(
+                'Se requiere ID de solicitud y una acción (aprobar/rechazar).',
+            );
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
@@ -377,12 +406,19 @@ class Api extends ResourceController
         }
 
         try {
-            $nuevoEstado = ($accion === Status::Aprobar) ? Status::En_espera : Status::Dept_Rechazada; //Cambiar rechazada para solo verlo en el historial del departamento
-            $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado, 'ComentariosAdmin'=> $comentarios]);
+            $nuevoEstado = $accion === Status::Aprobar ? Status::En_espera : Status::Dept_Rechazada; //Cambiar rechazada para solo verlo en el historial del departamento
+            $solicitudModel->update($idSolicitud, [
+                'Estado' => $nuevoEstado,
+                'ComentariosAdmin' => $comentarios,
+            ]);
 
             return $this->respondUpdated([
                 'success' => $accion === Status::Aprobar ? true : false,
-                'message' => 'La solicitud ha sido ' . ($accion === Status::Aprobar ? 'aprobada y enviada a Compras.' : Status::Rechazada . '.'),
+                'message' =>
+                    'La solicitud ha sido ' .
+                    ($accion === Status::Aprobar
+                        ? 'aprobada y enviada a Compras.'
+                        : Status::Rechazada . '.'),
             ]);
         } catch (\Exception $e) {
             log_message('error', '[dictaminarSolicitudJefe] ' . $e->getMessage());
@@ -410,8 +446,10 @@ class Api extends ResourceController
             return $this->failValidationErrors('Se requiere un ID de usuario numérico.');
         }
 
-        return  $this->respond($this->api->getSolicitudesUsersByDepartment((int) $id), HttpStatus::OK);
-
+        return $this->respond(
+            $this->api->getSolicitudesUsersByDepartment((int) $id),
+            HttpStatus::OK,
+        );
     }
     //endregion
 }

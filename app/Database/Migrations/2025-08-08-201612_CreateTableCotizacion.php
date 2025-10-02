@@ -21,6 +21,10 @@ class CreateTableCotizacion extends Migration
                 'unsigned' => true,
                 'null' => false,
             ],
+            'Cotizacion_Files' => [
+                'type' => 'TEXT',
+                'null' => true,
+            ],
             'ID_Proveedor' => [
                 'type' => 'BIGINT',
                 'constraint' => 20,

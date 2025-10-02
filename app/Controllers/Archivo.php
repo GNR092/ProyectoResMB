@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\FPath;
 use App\Models\SolicitudProductModel;
 use App\Models\SolicitudServiciosModel;
 use App\Models\SolicitudModel;
@@ -128,7 +129,7 @@ class Archivo extends BaseController
             $adjunto = $this->request->getFile('archivo');
             if ($adjunto && $adjunto->isValid()) {
                 $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
-                $folder = WRITEPATH . 'uploads/solicitud/' . $fecha;
+                $folder = FPath::FSOLICITUD . $fecha;
                 $this->api->CreateFolder($folder);
                 $adjunto->move($folder, $nuevoNombre);
                 $solicitud->update($solicitudId, ['Archivo' => $nuevoNombre]);

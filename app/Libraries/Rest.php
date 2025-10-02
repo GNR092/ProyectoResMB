@@ -154,6 +154,18 @@ class Rest
         $result = $cotizacionModel->find($id);
         return $result ?: null;
     }
+
+    /**
+     * Obtiene una cotización por el ID de la solicitud.
+     *
+     * @param int $solicitudId El ID de la solicitud.
+     * @return array|null La cotización encontrada o null si no se encuentra.
+     */
+    public function getCotizacionBySolicitudID(int $solicitudId): ?array
+    {
+        $cotizacionModel = new CotizacionModel();
+        return $cotizacionModel->where('ID_Solicitud', $solicitudId)->first();
+    }
     /**
      * Obtiene todas las cotizaciones.
      *
@@ -164,6 +176,22 @@ class Rest
         $cotizacionModel = new CotizacionModel();
         $results = $cotizacionModel->findAll();
         return $results ?: [];
+    }
+
+    /**
+     * Actualiza una cotización por su ID.
+     *
+     * @param int|null $id El ID de la cotización a actualizar.
+     * @param array|null $row Los datos a actualizar.
+     * @return bool True si la actualización fue exitosa, false en caso contrario.
+     */
+    public function updateCotizacionById(?int $id, ?array $row): bool
+    {
+        if ($id === null || $row === null) {
+            return false;
+        }
+        $cotizacionModel = new CotizacionModel();
+        return $cotizacionModel->update($id, $row);
     }
     //endregion
 
@@ -205,6 +233,34 @@ class Rest
             ->findAll();
 
         return $results ?: [];
+    }
+
+    /**
+     * Obtiene una solicitud por su ID.
+     *
+     * @param int $id El ID de la solicitud.
+     * @return array|null La solicitud encontrada o null si no se encuentra.
+     */
+    public function getSolicitudById(int $id): ?array
+    {
+        $solicitudModel = new SolicitudModel();
+        return $solicitudModel->find($id) ?: null;
+    }
+
+    /**
+     * Actualiza una solicitud por su ID.
+     *
+     * @param int|null $id El ID de la solicitud a actualizar.
+     * @param array|null $row Los datos a actualizar.
+     * @return bool True si la actualización fue exitosa, false en caso contrario.
+     */
+    public function updateSolicitudById(?int $id, ?array $row): bool
+    {
+        if ($id === null || $row === null) {
+            return false;
+        }
+        $solicitudModel = new SolicitudModel();
+        return $solicitudModel->update($id, $row);
     }
 
     /**
@@ -728,6 +784,10 @@ class Rest
     //endregion
 
     //region misceláneos
+    public static function ShowDebug($data)
+    {
+        return "<pre>Debug Info:\n" . print_r($data, true) . '</pre>';
+    }
     /**
      * Crea una carpeta en la ruta especificada si no existe.
      *

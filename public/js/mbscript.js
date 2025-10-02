@@ -614,28 +614,7 @@ async function mostrarVerHistorial(idSolicitud) {
       throw new Error(data.error)
     }
 
-    let estadoClass = ''
-    switch (data.Estado?.toLowerCase()) {
-      case 'aprobada':
-        estadoClass = 'text-green-600'
-        break
-      case 'dept_rechazada':
-      case 'rechazada':
-        estadoClass = 'text-red-600'
-        break
-      case 'en revision':
-        estadoClass = 'text-blue-600'
-        break
-      case 'cotizando':
-        estadoClass = 'text-purple-600'
-        break
-      case 'aprobacion pendiente':
-      case 'en espera':
-        estadoClass = 'text-yellow-600'
-        break
-      default:
-        estadoClass = 'text-gray-600'
-    }
+    let estadoClass = getStatus(data.Estado)
 
     let html = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
@@ -712,6 +691,28 @@ async function mostrarVerHistorial(idSolicitud) {
     detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
   }
 }
+
+function getStatus(status)
+{
+  switch (status?.toLowerCase()) {
+      case 'aprobada':
+        return 'text-green-600'
+      case 'dept_rechazada':
+      case 'rechazada':
+        return 'text-red-600'
+      case 'en revision':
+        return 'text-blue-600'
+        break
+      case 'cotizando':
+        return 'text-purple-600'
+      case 'aprobacion pendiente':
+      case 'en espera':
+        return 'text-yellow-600'
+      default:
+        return 'text-gray-600'
+    }
+}
+
 function regresarHistorial() {
   const divVer = document.getElementById('div-ver-historial')
   if (divVer) divVer.classList.add('hidden')
@@ -1272,18 +1273,77 @@ async function enviarRevisionHandler(event) {
     const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
     if (!response.ok) throw new Error('No se pudieron cargar los detalles.');
     const data = await response.json();
-
+    let estadoClass = getStatus(data.Estado)
     const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-    detallesContainer.innerHTML = `
-      <div class="grid grid-cols-2 gap-4">
-        <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
-        <div><strong>Fecha:</strong> ${data.Fecha}</div>
-        <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
-        <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
-        <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
-        <div><strong>Monto:</strong> <span class="font-bold">${monto}</span></div>
-      </div>
-    `;
+    let html = `
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+                <div><strong>Fecha:</strong> ${data.Fecha}</div>
+                <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
+                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
+                ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
+            </div>
+    `
+    if (data.ComentariosAdmin) {
+      html += `
+            <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
+                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+            </div>`
+    }
+    html += `
+            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border border-gray-300">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Código</th>
+                            <th class="py-2 px-4 text-left">Producto</th>
+                            <th class="py-2 px-4 text-right">Cantidad</th>
+                            <th class="py-2 px-4 text-right">Importe</th>
+                            <th class="py-2 px-4 text-right">Costo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `
+    data.productos.forEach((p) => {
+      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+      html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
+                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                    <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(2)}</td>
+                    <td class="py-2 px-4 border-t text-right">${costoTotal}</td>
+                </tr>
+            `
+    })
+
+    html += `
+                    </tbody>
+                </table>   
+            </div>
+        `
+    if (data.ComentariosUser) {
+      html += `
+            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
+                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
+            </div>`
+    }
+    if (data.Archivo) {
+      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
+      html += `
+                <div class="mt-6">
+                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
+                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
+                </div>
+            `
+    }
+
+  detallesContainer.innerHTML= html
   } catch (error) {
     detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
   }

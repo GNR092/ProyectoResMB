@@ -11,7 +11,7 @@ class PDF extends \FPDF
 
     public function setHeaderTitle(string $title)
     {
-        $this->headerTitle = $title;
+        $this->headerTitle = mb_convert_encoding($title ?? '', 'ISO-8859-1', 'UTF-8');
     }
 
     // Page header

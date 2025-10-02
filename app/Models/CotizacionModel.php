@@ -12,7 +12,7 @@ class CotizacionModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_Solicitud', 'ID_Proveedor', 'Total'];
+    protected $allowedFields    = ['ID_Solicitud', 'ID_Proveedor', 'Cotizacion_Files', 'Total'];
 
     // Dates
     protected $useTimestamps = false;
