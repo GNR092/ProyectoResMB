@@ -692,25 +692,24 @@ async function mostrarVerHistorial(idSolicitud) {
   }
 }
 
-function getStatus(status)
-{
+function getStatus(status) {
   switch (status?.toLowerCase()) {
-      case 'aprobada':
-        return 'text-green-600'
-      case 'dept_rechazada':
-      case 'rechazada':
-        return 'text-red-600'
-      case 'en revision':
-        return 'text-blue-600'
-        break
-      case 'cotizando':
-        return 'text-purple-600'
-      case 'aprobacion pendiente':
-      case 'en espera':
-        return 'text-yellow-600'
-      default:
-        return 'text-gray-600'
-    }
+    case 'aprobada':
+      return 'text-green-600'
+    case 'dept_rechazada':
+    case 'rechazada':
+      return 'text-red-600'
+    case 'en revision':
+      return 'text-blue-600'
+      break
+    case 'cotizando':
+      return 'text-purple-600'
+    case 'aprobacion pendiente':
+    case 'en espera':
+      return 'text-yellow-600'
+    default:
+      return 'text-gray-600'
+  }
 }
 
 function regresarHistorial() {
@@ -930,13 +929,12 @@ async function mostrarVer(idSolicitud) {
             `
     }
 
-     html += `
+    html += `
               <div class="mt-6">
                 <h4 class="text-md font-bold mb-2">Acciones</h4>
                 <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
             </div>
             `
-
 
     detallesContainer.innerHTML = html
   } catch (error) {
@@ -946,46 +944,48 @@ async function mostrarVer(idSolicitud) {
 }
 
 async function mostrarCotizar(idSolicitud) {
-  document.getElementById('div-tabla').classList.add('hidden');
-  const divCotizar = document.getElementById('div-cotizar');
-  divCotizar.classList.remove('hidden');
+  document.getElementById('div-tabla').classList.add('hidden')
+  const divCotizar = document.getElementById('div-cotizar')
+  divCotizar.classList.remove('hidden')
 
-  const idSolicitudInput = document.getElementById('cotizar_id_solicitud');
+  const idSolicitudInput = document.getElementById('cotizar_id_solicitud')
   if (idSolicitudInput) {
-    idSolicitudInput.value = idSolicitud;
+    idSolicitudInput.value = idSolicitud
   }
 
-  const tbody = divCotizar.querySelector('tbody');
-  const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores');
-  const btnGenerar = document.getElementById('btn-generar-cotizacion');
-  const inputBusqueda = document.getElementById('buscar-proveedor');
+  const tbody = divCotizar.querySelector('tbody')
+  const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores')
+  const btnGenerar = document.getElementById('btn-generar-cotizacion')
+  const inputBusqueda = document.getElementById('buscar-proveedor')
 
-  if (btnGenerar) btnGenerar.disabled = true;
+  if (btnGenerar) btnGenerar.disabled = true
 
-  tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>';
+  tbody.innerHTML =
+    '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>'
 
   try {
-    const response = await fetch(`${BASE_URL}api/providers/all`);
-    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+    const response = await fetch(`${BASE_URL}api/providers/all`)
+    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`)
 
-    let todosLosProveedores = await response.json();
+    let todosLosProveedores = await response.json()
 
     if (!todosLosProveedores.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>';
-      return;
+      tbody.innerHTML =
+        '<tr><td colspan="4" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>'
+      return
     }
 
-    let proveedoresFiltrados = [...todosLosProveedores];
+    let proveedoresFiltrados = [...todosLosProveedores]
 
-    const filasPorPagina = 10;
-    let paginaActual = 1;
+    const filasPorPagina = 10
+    let paginaActual = 1
 
     function renderizarTabla() {
-      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina) || 1;
-      paginaActual = Math.min(paginaActual, totalPaginas);
+      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina) || 1
+      paginaActual = Math.min(paginaActual, totalPaginas)
 
-      const start = (paginaActual - 1) * filasPorPagina;
-      const end = start + filasPorPagina;
+      const start = (paginaActual - 1) * filasPorPagina
+      const end = start + filasPorPagina
 
       tbody.innerHTML = proveedoresFiltrados
         .slice(start, end)
@@ -1001,59 +1001,58 @@ async function mostrarCotizar(idSolicitud) {
                 </tr>
             `,
         )
-        .join('');
+        .join('')
 
       tbody.querySelectorAll('.radio-proveedor').forEach((radio) => {
         radio.addEventListener('change', () => {
-          if (btnGenerar) btnGenerar.disabled = false;
-        });
-      });
+          if (btnGenerar) btnGenerar.disabled = false
+        })
+      })
 
-      renderizarPaginacion();
+      renderizarPaginacion()
     }
 
     function renderizarPaginacion() {
-      if (!paginacionDiv) return;
-      paginacionDiv.innerHTML = '';
-      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina);
-      if (totalPaginas <= 1) return;
+      if (!paginacionDiv) return
+      paginacionDiv.innerHTML = ''
+      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina)
+      if (totalPaginas <= 1) return
 
       for (let i = 1; i <= totalPaginas; i++) {
-        const boton = document.createElement('button');
-        boton.textContent = i;
-        boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+        const boton = document.createElement('button')
+        boton.textContent = i
+        boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
         boton.addEventListener('click', () => {
-          paginaActual = i;
-          renderizarTabla();
-        });
-        paginacionDiv.appendChild(boton);
+          paginaActual = i
+          renderizarTabla()
+        })
+        paginacionDiv.appendChild(boton)
       }
     }
 
     function filtrarProveedores() {
-        const termino = inputBusqueda.value.toLowerCase();
-        proveedoresFiltrados = todosLosProveedores.filter(p => 
-            p.RazonSocial.toLowerCase().includes(termino)
-        );
-        paginaActual = 1;
-        renderizarTabla();
+      const termino = inputBusqueda.value.toLowerCase()
+      proveedoresFiltrados = todosLosProveedores.filter((p) =>
+        p.RazonSocial.toLowerCase().includes(termino),
+      )
+      paginaActual = 1
+      renderizarTabla()
     }
 
-    inputBusqueda.addEventListener('input', filtrarProveedores);
+    inputBusqueda.addEventListener('input', filtrarProveedores)
 
-    renderizarTabla();
-
+    renderizarTabla()
   } catch (error) {
-    console.error('Error al cargar proveedores:', error);
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`;
+    console.error('Error al cargar proveedores:', error)
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`
   }
 
   if (btnGenerar && !btnGenerar.dataset.listenerAttached) {
-    btnGenerar.addEventListener('click', handleGenerarCotizacion);
-    btnGenerar.dataset.listenerAttached = 'true';
+    btnGenerar.addEventListener('click', handleGenerarCotizacion)
+    btnGenerar.dataset.listenerAttached = 'true'
   }
 
-  console.log('COTIZAR solicitud ID:', idSolicitud);
+  console.log('COTIZAR solicitud ID:', idSolicitud)
 }
 
 async function handleGenerarCotizacion() {
@@ -1255,26 +1254,29 @@ function initEnviarRevision() {
 }
 
 async function enviarRevisionHandler(event) {
-  const fila = event.target.closest('tr');
-  const idSolicitud = fila.dataset.id;
+  const fila = event.target.closest('tr')
+  const idSolicitud = fila.dataset.id
 
-  const divTabla = document.getElementById('div-tabla-enviar');
-  const divRevision = document.getElementById('div-enviar-revision');
-  const detallesContainer = document.getElementById('detalles-para-revision');
-  const form = document.getElementById('form-enviar-revision');
-  const btnConfirmar = document.getElementById('btn-confirmar-revision');
+  const divTabla = document.getElementById('div-tabla-enviar')
+  const divRevision = document.getElementById('div-enviar-revision')
+  const detallesContainer = document.getElementById('detalles-para-revision')
+  const form = document.getElementById('form-enviar-revision')
+  const btnConfirmar = document.getElementById('btn-confirmar-revision')
 
   // Mostrar div revision
-  divTabla.classList.add('hidden');
-  divRevision.classList.remove('hidden');
-  detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>';
+  divTabla.classList.add('hidden')
+  divRevision.classList.remove('hidden')
+  detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>'
 
   try {
-    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
-    if (!response.ok) throw new Error('No se pudieron cargar los detalles.');
-    const data = await response.json();
+    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
+    if (!response.ok) throw new Error('No se pudieron cargar los detalles.')
+    const data = await response.json()
     let estadoClass = getStatus(data.Estado)
-    const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+    const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+    })
     let html = `
        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
@@ -1343,53 +1345,53 @@ async function enviarRevisionHandler(event) {
             `
     }
 
-  detallesContainer.innerHTML= html
+    detallesContainer.innerHTML = html
   } catch (error) {
-    detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
+    detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`
   }
 
   form.onsubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append('ID_Solicitud', idSolicitud);
+    e.preventDefault()
+    const formData = new FormData()
+    formData.append('ID_Solicitud', idSolicitud)
 
-    const archivos = document.getElementById('archivos-revision').files;
+    const archivos = document.getElementById('archivos-revision').files
     for (let i = 0; i < archivos.length; i++) {
-      formData.append('archivos[]', archivos[i]);
+      formData.append('archivos[]', archivos[i])
     }
 
-    btnConfirmar.disabled = true;
-    btnConfirmar.textContent = 'Enviando...';
+    btnConfirmar.disabled = true
+    btnConfirmar.textContent = 'Enviando...'
 
     try {
       const response = await fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
         method: 'POST',
         body: formData,
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      });
+      })
 
-      const result = await response.json();
+      const result = await response.json()
 
       if (result.success) {
-        mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success');
-        regresarEnviarRevision();
-        initEnviarRevision(); // refrescar tabla
+        mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success')
+        regresarEnviarRevision()
+        initEnviarRevision() // refrescar tabla
       } else {
-        mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error');
+        mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error')
       }
     } catch (error) {
-      console.error('Error:', error);
-      mostrarNotificacion('Error de red al enviar a revisión.', 'error');
+      console.error('Error:', error)
+      mostrarNotificacion('Error de red al enviar a revisión.', 'error')
     } finally {
-      btnConfirmar.disabled = false;
-      btnConfirmar.textContent = 'Confirmar y Enviar';
+      btnConfirmar.disabled = false
+      btnConfirmar.textContent = 'Confirmar y Enviar'
     }
-  };
+  }
 }
 
 function regresarEnviarRevision() {
-  document.getElementById('div-tabla-enviar').classList.remove('hidden');
-  document.getElementById('div-enviar-revision').classList.add('hidden');
+  document.getElementById('div-tabla-enviar').classList.remove('hidden')
+  document.getElementById('div-enviar-revision').classList.add('hidden')
 }
 
 /**
@@ -1481,7 +1483,7 @@ async function mostrarVerDictamen(idSolicitud) {
   detallesContainer.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la solicitud ${idSolicitud}...</p>`
 
   try {
-    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
+    const response = await fetch(`${BASE_URL}api/cotizacion/details/${idSolicitud}`)
     if (!response.ok) throw new Error(`Error ${response.statusus}: ${response.statususText}`)
 
     const data = await response.json()
@@ -1553,10 +1555,34 @@ async function mostrarVerDictamen(idSolicitud) {
             `
     }
 
+    if (data.cotizacion && data.cotizacion.Cotizacion_Files) {
+      const listaDeArchivos = data.cotizacion.Cotizacion_Files.split(',')
+      html += `
+        <div class="mt-6">
+            <h4 class="text-md font-bold mb-2">Cotizaciones adjuntas</h4>
+    `
+      listaDeArchivos.forEach((nombreDeArchivo) => {
+        const filec = nombreDeArchivo.trim()
+
+        if (filec) {
+          const archivoUrl = `${BASE_URL}cotizaciones/archivo/${idSolicitud}/${filec}`
+          html += `
+                <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline block mb-1">${filec}</a>
+            `
+        }
+      })
+      html += `
+        </div>
+    `
+    }
+
     // Solo mostrar botones de acción si la solicitud está 'En revision'
     if (data.Estado === 'En revision') {
       html += `
                 <div class="mt-8 flex justify-end space-x-4">
+                    <button onclick="mostrarVerPdf(${idSolicitud}, 1)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    Ver PDF
+                    </button>
                     <button onclick="dictaminarSolicitud(${idSolicitud}, 'Rechazada')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition">
                         Rechazar
                     </button>
@@ -1620,7 +1646,8 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
 
     if (response.ok && result.success) {
       mostrarNotificacion(
-        result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`, 'success',
+        result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`,
+        'success',
       )
       regresarTablaDictamen()
       initDictamenSolicitudes()
@@ -1778,53 +1805,52 @@ function guardarEdicion() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Requested-With': 'XMLHttpRequest'
+      'X-Requested-With': 'XMLHttpRequest',
     },
     body: JSON.stringify({
       Nombre: nombreNew,
-      Existencia: existenciaNew
-    })
+      Existencia: existenciaNew,
+    }),
   })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // 2️⃣ Insertar en HistorialProductos
-          fetch(`${BASE_URL}modales/insertarHistorialProducto`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-              ID_Producto: idProducto,
-              CodigoAnt: codigoAnt,
-              NombreAnt: nombreAnt,
-              ExistenciaAnt: existenciaAnt,
-              CodigoNew: codigoNew,
-              NombreNew: nombreNew,
-              ExistenciaNew: existenciaNew,
-              Razon: razon
-            })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        // 2️⃣ Insertar en HistorialProductos
+        fetch(`${BASE_URL}modales/insertarHistorialProducto`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify({
+            ID_Producto: idProducto,
+            CodigoAnt: codigoAnt,
+            NombreAnt: nombreAnt,
+            ExistenciaAnt: existenciaAnt,
+            CodigoNew: codigoNew,
+            NombreNew: nombreNew,
+            ExistenciaNew: existenciaNew,
+            Razon: razon,
+          }),
+        })
+          .then((res) => res.json())
+          .then((histData) => {
+            if (histData.success) {
+              alert('Producto actualizado y registrado en historial correctamente.')
+              location.reload() // o refrescar tabla dinámicamente
+            } else {
+              alert('Producto actualizado, pero no se pudo registrar en historial.')
+            }
           })
-              .then(res => res.json())
-              .then(histData => {
-                if (histData.success) {
-                  alert('Producto actualizado y registrado en historial correctamente.')
-                  location.reload() // o refrescar tabla dinámicamente
-                } else {
-                  alert('Producto actualizado, pero no se pudo registrar en historial.')
-                }
-              })
-        } else {
-          alert('No se pudo actualizar el producto: ' + data.message)
-        }
-      })
-      .catch(err => {
-        console.error(err)
-        alert('Ocurrió un error al guardar los cambios.')
-      })
+      } else {
+        alert('No se pudo actualizar el producto: ' + data.message)
+      }
+    })
+    .catch((err) => {
+      console.error(err)
+      alert('Ocurrió un error al guardar los cambios.')
+    })
 }
-
 
 /**
  * Lógica para el modal "Órdenes de Compra"
@@ -2805,7 +2831,6 @@ function regresarBuscarMateriales() {
   document.getElementById('entrega-material-content').classList.remove('hidden')
 }
 
-
 /**
  * Lógica para pagos pendientes
  */
@@ -2824,7 +2849,6 @@ function regresarPagosMenu() {
   document.getElementById('pago-credito').classList.add('hidden')
   document.getElementById('pagos-menu').classList.remove('hidden')
 }
-
 
 /**
  * Varios
@@ -3097,7 +3121,10 @@ async function SendData(event) {
   }
 }
 
-function mostrarVerPdf(idSolicitud) {
-    const url = `${BASE_URL}api/solicitud/pdf/${idSolicitud}`;
-    window.open(url, '_blank');
+function mostrarVerPdf(idSolicitud, tipo = 0) {
+  const url =
+    tipo === 1
+      ? `${BASE_URL}api/solicitud/pdf/${idSolicitud}/${tipo}`
+      : `${BASE_URL}api/solicitud/pdf/${idSolicitud}`
+  window.open(url, '_blank')
 }
