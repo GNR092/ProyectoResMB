@@ -84,6 +84,7 @@ if (!file_exists($installerLockFile)) {
         // Solicitudes
         $routes->get('api/solicitud/details/(:num)', 'Api::getSolicitudDetails/$1');
         $routes->get('api/cotizacion/details/(:num)', 'Api::getCotizacionDetails/$1');
+        $routes->get('api/orden-compra/details/(:num)', 'Api::getOrdenCompra/$1');
         $routes->get('api/solicitudes/cotizadas', 'Api::getSolicitudesCotizadas');
         $routes->get('api/solicitudes/getsoluser/(:num)', 'Api::getSolicitudesUsers/$1');
         $routes->get('api/solicitudes/en-revision', 'Api::getSolicitudesEnRevision');
@@ -93,5 +94,6 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/solicitud/pdf/(:num)', 'GenerarPDF::GenerarRequisicion/$1');
         $routes->get('api/solicitud/pdf/(:num)/(:num)', 'GenerarPDF::GenerarRequisicion/$1/$2');
         $routes->get('api/pago/pdf/(:num)', 'GenerarPDF::GenerarOrdenPago/$1');
+        $routes->get('api/orden/pdf/(:num)', 'GenerarPDF::GenerarOrden/$1');
     });
 }

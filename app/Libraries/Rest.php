@@ -378,6 +378,72 @@ class Rest
     }
 
     /**
+     * Obtiene una orden de compra específica con todos sus detalles asociados.
+     *
+     * @param int $id El ID de la solicitud para la que se genera la orden de compra.
+     * @return array|null Un array con los datos de la orden de compra,
+     *                    o null si la solicitud no se encuentra.
+     */
+    public function getOrdenCompra(int $id): ?array
+    {
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel
+            ->select([
+                'Solicitud.*',
+                'Usuarios.Nombre as UsuarioNombre',
+                'Departamentos.Nombre as DepartamentoNombre',
+            ])
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->find($id);
+
+        if (!$solicitud) {
+            return null;
+        }
+
+        // Obtener todos los datos del proveedor
+        if (!empty($solicitud['ID_Proveedor'])) {
+            $proveedorModel = new ProveedorModel();
+            $proveedor = $proveedorModel->find($solicitud['ID_Proveedor']);
+
+            // Eliminar datos sensibles
+            if ($proveedor) {
+                unset($proveedor['Correo']);
+                unset($proveedor['Tel_Contacto']);
+            }
+
+            $solicitud['proveedor'] = $proveedor;
+        }
+
+        $productos = [];
+        if (
+            $solicitud['Tipo'] == SolicitudTipo::Cotizacion ||
+            $solicitud['Tipo'] == SolicitudTipo::NoCotizacion
+        ) {
+            $solicitudProductModel = new SolicitudProductModel();
+            $productos = $solicitudProductModel->where('ID_Solicitud', $id)->findAll();
+        } else {
+            $solicitudServicioModel = new SolicitudServiciosModel();
+            $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
+        }
+        $solicitud['productos'] = $productos;
+
+        // También obtiene datos de cotización si existen
+        $cotizacionModel = new CotizacionModel();
+        $cotizacion = $cotizacionModel
+            ->select('Cotizacion.*, Proveedor.RazonSocial as ProveedorNombre')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
+            ->where('ID_Solicitud', $id)
+            ->first();
+
+        if ($cotizacion) {
+            $solicitud['cotizacion'] = $cotizacion;
+        }
+
+        return $solicitud ? $solicitud : [];
+    }
+
+    /**
      * Obtiene solicitudes filtrando por estado y departamento, opcionalmente excluyendo a un usuario.
      *
      * @param string $status El estado de la solicitud a buscar.

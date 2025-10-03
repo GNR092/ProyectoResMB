@@ -153,6 +153,29 @@ class Api extends ResourceController
     }
 
     /**
+     * Obtiene los detalles de una orden de compra específica.
+     *
+     * @param int|null $id El ID de la solicitud para la orden de compra.
+     * @return \CodeIgniter\HTTP\Response Los detalles de la orden de compra o un error si no se encuentra.
+     */
+    public function getOrdenCompra($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+        }
+
+        $details = $this->api->getOrdenCompra((int) $id);
+
+        if (empty($details)) {
+            return $this->failNotFound(
+                'No se encontraron detalles para la orden de compra con ID de solicitud: ' . $id,
+            );
+        }
+
+        return $this->respond($details);
+    }
+
+    /**
      * Obtiene todas las solicitudes cotizadas.
      *
      * @return \CodeIgniter\HTTP\Response Las solicitudes cotizadas en formato JSON.

@@ -1887,12 +1887,125 @@ function initOrdenesCompra() {
   if (totalFilas > 0) mostrarPagina(1)
 }
 
-function mostrarVerOrdenCompra(idOrden) {
+async function mostrarVerOrdenCompra(idOrden) {
   document.getElementById('div-tabla-ordenes').classList.add('hidden')
   document.getElementById('div-ver-orden').classList.remove('hidden')
-  console.log('VER orden de compra ID:', idOrden)
-  document.getElementById('detallesOrdenCompra').innerHTML =
-    `<p>Cargando detalles de la orden ${idOrden}...</p>`
+  const detallesContainer = document.getElementById('detallesOrdenCompra')
+  detallesContainer.innerHTML = `<p>Cargando detalles de la orden ${idOrden}...</p>`
+  try {
+    const response = await fetch(`${BASE_URL}api/cotizacion/details/${idOrden}`)
+    if (!response.ok) throw new Error(`Error ${response.statusus}: ${response.statususText}`)
+
+    const data = await response.json()
+    if (data.error) throw new Error(data.error)
+
+    let html = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+                <div><strong>Fecha:</strong> ${data.Fecha}</div>
+                <div><strong>Estado:</strong> <span class="font-semibold text-blue-600">${data.Estado}</span></div>
+                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
+                <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>
+            </div>
+        `
+
+    // Mostrar comentarios si existen (especialmente para rechazos)
+    if (data.ComentariosAdmin) {
+      html += `
+            <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
+                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+            </div>`
+    }
+
+    html += `
+            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border border-gray-300">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Código</th>
+                            <th class="py-2 px-4 text-left">Producto</th>
+                            <th class="py-2 px-4 text-right">Cantidad</th>
+                            <th class="py-2 px-4 text-right">Importe</th>
+                            <th class="py-2 px-4 text-right">Costo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `
+
+    data.productos.forEach((p) => {
+      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+      html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
+                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                    <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
+                    <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
+                </tr>
+            `
+    })
+
+    html += `
+                    </tbody>
+                </table>
+            </div>
+        `
+
+    if (data.Archivo) {
+      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idOrden}`
+      html += `
+                <div class="mt-6">
+                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
+                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
+                </div>
+            `
+    }
+
+    if (data.cotizacion && data.cotizacion.Cotizacion_Files) {
+      const listaDeArchivos = data.cotizacion.Cotizacion_Files.split(',')
+      html += `
+        <div class="mt-6">
+            <h4 class="text-md font-bold mb-2">Cotizaciones adjuntas</h4>
+    `
+      listaDeArchivos.forEach((nombreDeArchivo) => {
+        const filec = nombreDeArchivo.trim()
+
+        if (filec) {
+          const archivoUrl = `${BASE_URL}cotizaciones/archivo/${idOrden}/${filec}`
+          html += `
+                <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline block mb-1">${filec}</a>
+            `
+        }
+      })
+      html += `
+        </div>
+    `
+    }
+
+    // Solo mostrar botones de acción si la solicitud está 'En revision'
+    if (data.Estado === 'Aprobada') {
+      html += `
+                <div class="mt-8 flex justify-end space-x-4">
+                    <button onclick="mostrarOrdenPdf(${idOrden}, 1)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    Ver Orden
+                    </button>
+                    <button onclick="#" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition">
+                        Test2
+                    </button>
+                    <button onclick="#" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+                        Test1
+                    </button>
+                </div>
+            `
+    }
+    detallesContainer.innerHTML = html
+  } catch (error) {
+    detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
+  }
 }
 
 function regresarTablaOrdenCompra() {
@@ -2851,27 +2964,26 @@ function regresarPagosMenu() {
 }
 
 function verDetalleContado(id) {
-  document.getElementById('tabla-contado').classList.add('hidden');
-  document.getElementById('detalle-contado').classList.remove('hidden');
-  document.getElementById('detalle-contado').innerHTML = `<p>Detalle de la solicitud ${id}</p>`;
+  document.getElementById('tabla-contado').classList.add('hidden')
+  document.getElementById('detalle-contado').classList.remove('hidden')
+  document.getElementById('detalle-contado').innerHTML = `<p>Detalle de la solicitud ${id}</p>`
 }
 
 function regresarTablaContado() {
-  document.getElementById('detalle-contado').classList.add('hidden');
-  document.getElementById('tabla-contado').classList.remove('hidden');
+  document.getElementById('detalle-contado').classList.add('hidden')
+  document.getElementById('tabla-contado').classList.remove('hidden')
 }
 
 function verDetalleCredito(id) {
-  document.getElementById('tabla-credito').classList.add('hidden');
-  document.getElementById('detalle-credito').classList.remove('hidden');
-  document.getElementById('detalle-credito').innerHTML = `<p>Detalle de la solicitud ${id}</p>`;
+  document.getElementById('tabla-credito').classList.add('hidden')
+  document.getElementById('detalle-credito').classList.remove('hidden')
+  document.getElementById('detalle-credito').innerHTML = `<p>Detalle de la solicitud ${id}</p>`
 }
 
 function regresarTablaCredito() {
-  document.getElementById('detalle-credito').classList.add('hidden');
-  document.getElementById('tabla-credito').classList.remove('hidden');
+  document.getElementById('detalle-credito').classList.add('hidden')
+  document.getElementById('tabla-credito').classList.remove('hidden')
 }
-
 
 /**
  * Varios
@@ -3149,5 +3261,10 @@ function mostrarVerPdf(idSolicitud, tipo = 0) {
     tipo === 1
       ? `${BASE_URL}api/solicitud/pdf/${idSolicitud}/${tipo}`
       : `${BASE_URL}api/solicitud/pdf/${idSolicitud}`
+  window.open(url, '_blank')
+}
+
+function mostrarOrdenPdf(id) {
+  const url = `${BASE_URL}api/orden/pdf/${id}`
   window.open(url, '_blank')
 }
