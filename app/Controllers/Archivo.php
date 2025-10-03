@@ -71,9 +71,9 @@ class Archivo extends BaseController
         $fecha = $post['fecha'];
         $comentariosuser = isset($post['comentariosuser']) ? $post['comentariosuser'] : null;
 
-
         // Determinar el estado inicial basado en el tipo de login
-        $estadoInicial = (session('login_type') === 'boss') ? Status::En_espera : Status::Aprobacion_pendiente;
+        $estadoInicial =
+            session('login_type') === 'boss' ? Status::En_espera : Status::Aprobacion_pendiente;
 
         $datosSolicitud = [
             'ID_Usuario' => $user['ID_Usuario'],
@@ -84,7 +84,7 @@ class Archivo extends BaseController
             'Estado' => $estadoInicial,
             'No_Folio' => null,
             'Tipo' => $tipo,
-            'ComentariosUser' => $comentariosuser
+            'ComentariosUser' => $comentariosuser,
         ];
 
         $datosProductos = [];
@@ -159,6 +159,27 @@ class Archivo extends BaseController
 
         $filePath =
             WRITEPATH . 'uploads/solicitud/' . $solicitud['Fecha'] . '/' . $solicitud['Archivo'];
+
+        if (!file_exists($filePath)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(
+                'El archivo físico no existe en el servidor.',
+            );
+        }
+
+        // Envía el archivo al navegador para su descarga
+        return $this->response->download($filePath, null);
+    }
+    public function descargarCotizacion($idSolicitud, $file)
+    {
+        $solicitud = $this->api->getSolicitudWithCotizacion($idSolicitud);
+
+        if (!$solicitud || empty($solicitud['cotizacion'])) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(
+                'Archivo no encontrado para esta solicitud.',
+            );
+        }
+
+        $filePath = FPath::FCOTIZACION . $solicitud['Fecha'] . '/' . $file;
 
         if (!file_exists($filePath)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(

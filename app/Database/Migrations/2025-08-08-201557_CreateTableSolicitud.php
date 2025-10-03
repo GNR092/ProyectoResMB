@@ -26,15 +26,16 @@ class CreateTableSolicitudProd extends Migration
                 'constraint' => 11,
                 'unsigned' => true,
                 'null' => false,
-            ],'ID_Proveedor' => [
+            ],
+            'ID_Proveedor' => [
                 'type' => 'BIGINT',
                 'constraint' => 20,
                 'unsigned' => true,
                 'null' => true,
             ],
             'IVA' => [
-                'type'    => 'BOOLEAN',
-                'null'    => false,
+                'type' => 'BOOLEAN',
+                'null' => false,
                 'default' => false,
             ],
             'Fecha' => [
@@ -53,30 +54,27 @@ class CreateTableSolicitudProd extends Migration
                 'null' => true,
             ],
             'Archivo' => [
-                'type'       => 'VARCHAR',
+                'type' => 'VARCHAR',
                 'constraint' => '255',
-                'null'       => true,
-                'after'      => 'No_Folio'
+                'null' => true,
+                'after' => 'No_Folio',
             ],
             'ComentariosAdmin' => [
-                'type' => 'VARCHAR',
-                'constraint' => '500',
+                'type' => 'TEXT',
                 'null' => true,
                 'after' => 'Archivo',
             ],
             'ComentariosUser' => [
-                'type' => 'VARCHAR',
-                'constraint' => '500',
+                'type' => 'TEXT',
                 'null' => true,
                 'after' => 'ComentariosAdmin',
             ],
             'Tipo' => [
-                'type'    => 'INT',
+                'type' => 'INT',
                 'constraint' => 1,
                 'unsigned' => true,
                 'null' => false,
             ],
-
         ]);
 
         $this->forge->addKey('ID_Solicitud', true);

@@ -130,6 +130,29 @@ class Api extends ResourceController
     }
 
     /**
+     * Obtiene los detalles de una cotizacion específica.
+     *
+     * @param int|null $id El ID de la cotizacion.
+     * @return \CodeIgniter\HTTP\Response Los detalles de la cotizacion o un error si no se encuentra.
+     */
+    public function getCotizacionDetails($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de cotizacion numérico.');
+        }
+
+        $details = $this->api->getSolicitudWithCotizacion((int) $id);
+
+        if (empty($details)) {
+            return $this->failNotFound(
+                'No se encontraron detalles para la cotizacion con ID: ' . $id,
+            );
+        }
+
+        return $this->respond($details);
+    }
+
+    /**
      * Obtiene todas las solicitudes cotizadas.
      *
      * @return \CodeIgniter\HTTP\Response Las solicitudes cotizadas en formato JSON.
@@ -272,15 +295,23 @@ class Api extends ResourceController
                         if ($file->isValid() && !$file->hasMoved()) {
                             $timestamp = date('Y-m-d_H-i-s');
                             $extension = $file->getExtension();
-                            $nuevoNombre = 'cotizacion_' . $idCotizacion . '_' . $timestamp . '_' . $count++ . '.' . $extension;
+                            $nuevoNombre =
+                                'cotizacion_' .
+                                $idCotizacion .
+                                '_' .
+                                $timestamp .
+                                '_' .
+                                $count++ .
+                                '.' .
+                                $extension;
                             $tmp[] = $nuevoNombre;
                             $file->move($folder, $nuevoNombre);
                         }
                     }
                 }
-               $cfls['Cotizacion_Files'] = implode(',', $tmp);
-               $this->api->updateCotizacionById($idCotizacion,$cfls);
-               //return Rest::ShowDebug($cfls);
+                $cfls['Cotizacion_Files'] = implode(',', $tmp);
+                $this->api->updateCotizacionById($idCotizacion, $cfls);
+                //return Rest::ShowDebug($cfls);
             }
 
             return $this->respondUpdated([

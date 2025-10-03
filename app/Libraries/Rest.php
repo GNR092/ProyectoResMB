@@ -320,6 +320,62 @@ class Rest
 
         return $solicitud ? $solicitud : [];
     }
+    /**
+     * Obtiene una solicitud específica con su cotización y detalles asociados.
+     *
+     * @param int $id El ID de la solicitud a obtener.
+     * @return array|null Un array con los datos de la solicitud, sus productos y su cotización,
+     *                    o null si la solicitud no se encuentra.
+     */
+    public function getSolicitudWithCotizacion(int $id): ?array
+    {
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel
+            ->select([
+                'Solicitud.*',
+                'Usuarios.Nombre as UsuarioNombre',
+                'Departamentos.Nombre as DepartamentoNombre',
+                'Proveedor.RazonSocial as RazonSocialNombre',
+            ])
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+            ->find($id);
+
+        if (!$solicitud) {
+            return null;
+        }
+        $productos = [];
+
+        if (
+            $solicitud['Tipo'] == SolicitudTipo::Cotizacion ||
+            $solicitud['Tipo'] == SolicitudTipo::NoCotizacion
+        ) {
+            $solicitudProductModel = new SolicitudProductModel();
+            $productos = $solicitudProductModel->where('ID_Solicitud', $id)->findAll();
+        } else {
+            $solicitudServicioModel = new SolicitudServiciosModel();
+            $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
+        }
+
+        $solicitud['productos'] = $productos;
+
+        // También obtiene datos de cotización si existen
+        $cotizacionModel = new CotizacionModel();
+        $cotizacion = $cotizacionModel
+            ->select(
+                'Cotizacion.*, Cotizacion.Cotizacion_Files, Proveedor.RazonSocial as ProveedorNombre',
+            )
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
+            ->where('ID_Solicitud', $id)
+            ->first();
+
+        if ($cotizacion) {
+            $solicitud['cotizacion'] = $cotizacion;
+        }
+
+        return $solicitud ? $solicitud : [];
+    }
 
     /**
      * Obtiene solicitudes filtrando por estado y departamento, opcionalmente excluyendo a un usuario.
@@ -814,7 +870,7 @@ class Rest
      */
     public function getSolicitudPago(int $id): ?array
     {
-         /*
+        /*
             -------------Datos------------- 
             Razón Social 
             Titulo:Requisición de pago 
@@ -837,18 +893,14 @@ class Rest
         $usuario = $usuarioModel->find($solicitud['ID_Usuario']);
         $razonSocial = $razonSocialModel->find($usuario['ID_RazonSocial']);
 
-
         $solicitud['UsuarioNombre'] = $usuario['Nombre'];
         $solicitud['RazonSocialNombre'] = $razonSocial['Nombre'];
-
-    
 
         if (!$solicitud) {
             return null;
         }
 
         return $solicitud ?: [];
-
     }
     //endregion
 }

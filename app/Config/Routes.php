@@ -60,6 +60,10 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/solicitud/dictaminar-jefe', 'Api::dictaminarSolicitudJefe');
         $routes->post('solicitudes/registrar', 'Archivo::subir');
         $routes->get('solicitudes/archivo/(:num)', 'Archivo::descargar/$1');
+        $routes->get(
+            'cotizaciones/archivo/(:num)/(:segment)',
+            'Archivo::descargarCotizacion/$1/$2',
+        );
         // Modales
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');
@@ -79,6 +83,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
         // Solicitudes
         $routes->get('api/solicitud/details/(:num)', 'Api::getSolicitudDetails/$1');
+        $routes->get('api/cotizacion/details/(:num)', 'Api::getCotizacionDetails/$1');
         $routes->get('api/solicitudes/cotizadas', 'Api::getSolicitudesCotizadas');
         $routes->get('api/solicitudes/getsoluser/(:num)', 'Api::getSolicitudesUsers/$1');
         $routes->get('api/solicitudes/en-revision', 'Api::getSolicitudesEnRevision');
@@ -86,7 +91,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('auth/logout', 'Auth::logout');
         //PDF
         $routes->get('api/solicitud/pdf/(:num)', 'GenerarPDF::GenerarRequisicion/$1');
+        $routes->get('api/solicitud/pdf/(:num)/(:num)', 'GenerarPDF::GenerarRequisicion/$1/$2');
         $routes->get('api/pago/pdf/(:num)', 'GenerarPDF::GenerarOrdenPago/$1');
-
     });
 }
