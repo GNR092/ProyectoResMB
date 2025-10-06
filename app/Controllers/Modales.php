@@ -33,7 +33,24 @@ class Modales extends BaseController
                 return view('modales/ver_historial');
 
             case 'solicitar_material':
+                $proveedorModel = new ProveedorModel();
+                $razonSocialModel = new RazonSocialModel();
+
+                // Obtener proveedores
+                $data['proveedores'] = $proveedorModel
+                    ->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC, Servicio')
+                    ->orderBy('RazonSocial', 'ASC')
+                    ->findAll();
+
+                // Obtener razones sociales
+                $data['razones_sociales'] = $razonSocialModel
+                    ->select('ID_RazonSocial, Nombre')
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+
+                // Cargar la vista única que contiene las tres pantallas
                 return view('modales/solicitar_material', $data);
+
 
             case 'revisar_solicitudes':
                 $solicitudModel = new SolicitudModel();
@@ -197,6 +214,8 @@ class Modales extends BaseController
         }
     }
 
+
+    //Funciones para tablas
     public function getProductTableRow()
     {
         return view('layout/productTable');
@@ -328,7 +347,7 @@ class Modales extends BaseController
         return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'No se pudo eliminar el usuario.']);
     }
 
-    //Funciones para materiales
+    //Funciones para almacen
     public function registrarMaterial()
     {
         // 1. Usar la validación de CodeIgniter
@@ -375,8 +394,6 @@ class Modales extends BaseController
             ]);
         }
     }
-
-    //Funciones para almacen
     public function eliminarProducto($id = null)
     {
         try {

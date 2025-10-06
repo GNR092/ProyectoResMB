@@ -97,7 +97,7 @@ async function initSolicitarMaterial() {
       } catch (error) {
         console.error(error)
         productRowHtml =
-          '<tr><td colspan="7" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
+            '<tr><td colspan="7" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
       }
     }
     return productRowHtml
@@ -199,7 +199,37 @@ async function initSolicitarMaterial() {
 
   const formulario = document.getElementById('form-upload')
   if (formulario) {
-    formulario.addEventListener('submit', SendData)
+    formulario.addEventListener('submit', function (e) {
+      const importes = tabla.querySelectorAll('.importe')
+      let valido = true
+
+      importes.forEach((input) => {
+        const valor = parseFloat(input.value)
+
+        // Crear o reutilizar mensaje de error
+        let errorMsg = input.parentNode.querySelector('.error-msg')
+        if (!errorMsg) {
+          errorMsg = document.createElement('p')
+          errorMsg.classList.add('error-msg', 'text-red-500', 'text-sm', 'mt-1')
+          input.parentNode.appendChild(errorMsg)
+        }
+
+        if (isNaN(valor) || valor <= 0) {
+          valido = false
+          input.classList.add('border-red-500')
+          errorMsg.textContent = 'El importe debe ser mayor a 0'
+        } else {
+          input.classList.remove('border-red-500')
+          errorMsg.textContent = ''
+        }
+      })
+
+      if (!valido) {
+        e.preventDefault()
+      } else {
+        SendData(e)
+      }
+    })
   }
 }
 async function initSolicitarMaterialSinCotizar() {
@@ -299,7 +329,7 @@ async function initSolicitarServicio() {
       } catch (error) {
         console.error(error)
         serviceRowHtml =
-          '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
+            '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
       }
     }
     return serviceRowHtml
@@ -386,7 +416,40 @@ async function initSolicitarServicio() {
   loadRazonSocialProv('razonSocialServicioSelect')
 
   const formulario = document.getElementById('form-servicio-upload')
-  if (formulario) formulario.addEventListener('submit', SendData)
+  if (formulario) {
+    formulario.addEventListener('submit', function (e) {
+      const costos = tabla.querySelectorAll('.costo-servicio')
+      let valido = true
+
+      costos.forEach((input) => {
+        const valor = parseFloat(input.value)
+
+        // Buscar si ya existe un mensaje de error debajo
+        let errorMsg = input.parentNode.querySelector('.error-msg')
+        if (!errorMsg) {
+          errorMsg = document.createElement('p')
+          errorMsg.classList.add('error-msg', 'text-red-500', 'text-sm', 'mt-1')
+          input.parentNode.appendChild(errorMsg)
+        }
+
+        if (isNaN(valor) || valor <= 0) {
+          valido = false
+          input.classList.add('border-red-500')
+          errorMsg.textContent = 'El costo debe ser mayor a 0'
+        } else {
+          input.classList.remove('border-red-500')
+          errorMsg.textContent = ''
+        }
+      })
+
+      if (!valido) {
+        e.preventDefault()
+        // No usamos alert(), el mensaje se muestra debajo de los inputs
+      } else {
+        SendData(e)
+      }
+    })
+  }
 }
 function mostrarSubmenuMaterial() {
   document.getElementById('seleccion-opcion').classList.add('hidden')
@@ -3211,20 +3274,49 @@ async function SendData(event) {
 
   try {
     const data = await getData(
-      'solicitudes/registrar',
-      {
-        method: 'POST',
-        body: formData,
-        headers: { Accept: 'application/json' },
-      },
-      false,
+        'solicitudes/registrar',
+        {
+          method: 'POST',
+          body: formData,
+          headers: { Accept: 'application/json' },
+        },
+        false,
     )
 
     if (data.success) {
       if (messageContainer) {
         messageContainer.innerHTML = `<p class="text-green-600">${data.message}</p>`
       }
+
+      // Reiniciar subtotal y total
+      const subtotalTd = formulario.querySelector('#subtotal-costo, #subtotal-servicio')
+      const totalTd = formulario.querySelector('#total-costo, #total-servicio')
+      if (subtotalTd) subtotalTd.textContent = '$0.00'
+      if (totalTd) totalTd.textContent = '$0.00'
+
+      // Resetear formulario
       formulario.reset()
+
+      // Reiniciar filas de la tabla dejando la primera fila limpia
+      const tabla = formulario.querySelector('tbody')
+      if (tabla) {
+        const filas = Array.from(tabla.querySelectorAll('tr'))
+        filas.forEach((fila, i) => {
+          if (i > 0) {
+            fila.remove()
+          } else {
+            // Limpiar valores de la primera fila
+            const cantidad = fila.querySelector('.cantidad')
+            const importe = fila.querySelector('.importe')
+            const costo = fila.querySelector('.costo')
+            const costoServicio = fila.querySelector('.costo-servicio')
+            if (cantidad) cantidad.value = 1
+            if (importe) importe.value = ''
+            if (costo) costo.textContent = '$0.00'
+            if (costoServicio) costoServicio.value = ''
+          }
+        })
+      }
     } else {
       let erroresHtml = ''
       if (data.errors) {
@@ -3255,6 +3347,7 @@ async function SendData(event) {
     }
   }
 }
+
 
 function mostrarVerPdf(idSolicitud, tipo = 0) {
   const url =

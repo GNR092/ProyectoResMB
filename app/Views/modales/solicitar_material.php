@@ -73,6 +73,25 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     ) ?>" readonly>
                 </div>
             </div>
+
+            <!-- Razon social -->
+            <div class="mb-4">
+                <label for="razonSocialMaterial" class="block text-sm font-medium text-gray-700">
+                    Razón Social
+                </label>
+                <select name="razon_social" id="razonSocialMaterial"
+                        class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required>
+                    <option value="">Seleccione una razón social</option>
+                    <?php foreach ($razones_sociales as $razon): ?>
+                        <option value="<?= esc($razon['ID_RazonSocial']) ?>">
+                            <?= esc($razon['Nombre']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+
             <!-- Proveedores -->
             <div>
                 <label class="text-sm text-gray-700 font-medium">Proveedor:</label>
@@ -211,6 +230,24 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     ) ?>" readonly>
                 </div>
             </div>
+
+            <!-- Razon social -->
+            <div class="mb-4">
+                <label for="razonSocialSinCotizar" class="block text-sm font-medium text-gray-700">
+                    Razón Social
+                </label>
+                <select name="razon_social" id="razonSocialSinCotizar"
+                        class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required>
+                    <option value="">Seleccione una razón social</option>
+                    <?php foreach ($razones_sociales as $razon): ?>
+                        <option value="<?= esc($razon['ID_RazonSocial']) ?>">
+                            <?= esc($razon['Nombre']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
             <!-- Proveedores -->
             <div>
                 <label class="text-sm text-gray-700 font-medium">Proveedor:</label>
@@ -330,11 +367,37 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </div>
             </div>
 
+            <!-- Razon social -->
+            <div class="mb-4">
+                <label for="razonSocialServicio" class="block text-sm font-medium text-gray-700">
+                    Razón Social
+                </label>
+                <select name="razon_social" id="razonSocialServicio"
+                        class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required>
+                    <option value="">Seleccione una razón social</option>
+                    <?php foreach ($razones_sociales as $razon): ?>
+                        <option value="<?= esc($razon['ID_RazonSocial']) ?>">
+                            <?= esc($razon['Nombre']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
             <!-- Proveedor Servicio -->
             <div>
                 <label class="text-sm text-gray-700 font-medium">Proveedor</label>
-                <select id="razonSocialServicioSelect" class="w-full px-3 py-2 border rounded" name="razon_social">
+                <select id="razonSocialServicioSelect" class="w-full px-3 py-2 border rounded" name="razon_social" required>
                     <option value="">Seleccione una opción</option>
+                </select>
+            </div>
+
+            <!-- Cuenta del Proveedor -->
+            <div class="mt-4">
+                <label class="text-sm text-gray-700 font-medium">Elegir Cuenta del proveedor</label>
+                <select id="cuentaProveedorSelect" class="w-full px-3 py-2 border rounded" name="cuenta_proveedor">
+                    <option value="">Seleccione una cuenta</option>
+                    <!-- Opciones se llenarán dinámicamente más adelante -->
                 </select>
             </div>
 
@@ -353,10 +416,10 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <tr class="fila-servicio">
                         <td class="numero-fila-servicio px-3 py-2 border text-center">1</td>
                         <td class="px-3 py-2 border">
-                            <input type="text" name="servicio[]" class="w-full px-2 py-1 border rounded" placeholder="Descripción del servicio">
+                            <input type="text" name="servicio[]" class="w-full px-2 py-1 border rounded" placeholder="Descripción del servicio" required>
                         </td>
                         <td class="px-3 py-2 border">
-                            <input type="number" name="importe[]" class="costo-servicio w-full px-2 py-1 border rounded" min="0" step="1.00" placeholder="0.00">
+                            <input type="number" name="importe[]" class="costo-servicio w-full px-2 py-1 border rounded" min="1" step="1.00" placeholder="0.00" required>
                         </td>
                         <td class="px-3 py-2 border text-center">
                             <button type="button" class="eliminar-fila-servicio text-red-600 hover:text-red-800"
