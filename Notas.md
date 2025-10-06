@@ -79,3 +79,18 @@
 - Tesoreria paga.
 - en ordenes de compras, por pagar y pagadas.
 - Estatus ordenes de compra en direccion con sus filtros.
+
+## 03/10/25
+
+- Agregar para agregar la razon social.
+- Desde enviar a revicion agregar lo de credito y efectivo.
+- |filtros|
+  - |fecha, nombre, proveedor, razon social|
+- Cambiar inicio de session a Invitado
+- mover a ajustes-> usuarios y limpiar almacenamiento.
+- para los servicios
+  - razon social
+  - proveedor y selecionar la cuenta interbancaria
+- agregar altas de departamentos, razon social y places(complejos)
+- mostrar complejo del departamento (place)
+- reportes de gasto mensual por razon social -> departamentos
