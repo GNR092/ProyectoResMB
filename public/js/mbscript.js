@@ -493,6 +493,7 @@ function initPaginacionHistorial() {
   const paginacionContenedor = document.getElementById('paginacion-historial')
   const filtroFecha = document.getElementById('filtro-fecha')
   const filtroEstado = document.getElementById('filtro-estado')
+  const filtroDepartamento = document.getElementById('filtroDepartamento')
 
   // Mostrar la opción de filtro "Aprobacion Pendiente" solo si es un jefe
   const opcionPendiente = document.getElementById('filtro-pendiente-aprobacion')
@@ -602,14 +603,34 @@ function initPaginacionHistorial() {
 
   function aplicarFiltros() {
     const fechaFiltro = filtroFecha.value
+    const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
     const estadoFiltro = filtroEstado.value
+    const departamentoFiltro = document.getElementById('filtroDepartamento')?.value || ''
 
     return allData.filter((item) => {
-      const coincideFecha = !fechaFiltro || item.Fecha === fechaFiltro
       const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
-      return coincideFecha && coincideEstado
+      const coincideDepartamento = !departamentoFiltro || item.DepartamentoNombre === departamentoFiltro
+
+      if (!fechaFiltro) {
+        // Si no hay filtro de fecha, aplicar solo estado y departamento
+        return coincideEstado && coincideDepartamento
+      }
+
+      const fechaItem = item.Fecha // formato esperado: "2025-10-08"
+
+      if (filtrarPorMes) {
+        // comparar solo año y mes (ej. "2025-10")
+        const mesFiltro = fechaFiltro.slice(0, 7)
+        const mesItem = fechaItem.slice(0, 7)
+        return mesItem === mesFiltro && coincideEstado && coincideDepartamento
+      } else {
+        // comparar fecha exacta
+        return fechaItem === fechaFiltro && coincideEstado && coincideDepartamento
+      }
     })
   }
+
+
 
   function mostrarPagina(pagina, filasFiltradas) {
     paginaActual = pagina
@@ -646,7 +667,7 @@ function initPaginacionHistorial() {
 
   filtroFecha?.addEventListener('input', actualizarTabla)
   filtroEstado?.addEventListener('change', actualizarTabla)
-
+  filtroDepartamento?.addEventListener('change', actualizarTabla)
   fetchData()
 }
 

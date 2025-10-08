@@ -30,7 +30,12 @@ class Modales extends BaseController
 
         switch ($opcion) {
             case 'ver_historial':
-                return view('modales/ver_historial');
+                // Cargar el modelo de Departamentos
+                $departamentoModel = new \App\Models\DepartamentosModel();
+                $data['departamentos'] = $departamentoModel
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+                return view('modales/ver_historial', $data);
 
             case 'solicitar_material':
                 $proveedorModel = new ProveedorModel();
@@ -50,7 +55,6 @@ class Modales extends BaseController
 
                 // Cargar la vista única que contiene las tres pantallas
                 return view('modales/solicitar_material', $data);
-
 
             case 'revisar_solicitudes':
                 $solicitudModel = new SolicitudModel();

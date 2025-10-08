@@ -4,18 +4,42 @@
 
     <!-- Filtros -->
     <div class="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-        <input type="date" id="filtro-fecha" class="border p-2 rounded w-full md:w-auto" placeholder="Fecha">
+
+        <!-- Filtro por Fecha -->
+        <div class="flex items-center gap-2">
+            <input type="date" id="filtro-fecha" class="border p-2 rounded w-full md:w-auto">
+            <label class="flex items-center gap-1 text-sm text-gray-700">
+                <input type="checkbox" id="filtrar-por-mes" class="accent-blue-600">
+                Filtrar por mes
+            </label>
+        </div>
+
+        <!-- Filtro por Estado -->
         <select id="filtro-estado" class="border p-2 rounded w-full md:w-auto">
             <option value="">Todos los estados</option>
             <option value="En espera">🟡 En espera</option>
             <option value="Aprobada">🟢 Aprobada</option>
-            <option value="Rechazada">🔴 Rechazado</option>
+            <option value="Rechazada">🔴 Rechazada</option>
             <option value="Cotizando">🔵 Cotizando</option>
             <option value="Aprobacion pendiente" id="filtro-pendiente-aprobacion" class="hidden">🟠 Aprobación Pendiente</option>
             <option value="Cotizada">🟣 Cotizada</option>
         </select>
 
+        <!-- Filtro por Departamento -->
+        <select id="filtroDepartamento" class="border p-2 rounded w-full md:w-auto">
+            <option value="">Todos los departamentos</option>
+            <?php if (isset($departamentos) && !empty($departamentos)): ?>
+                <?php foreach ($departamentos as $dpto): ?>
+                    <option value="<?= esc($dpto['Nombre']) ?>">
+                        <?= esc($dpto['Nombre']) ?>
+                    </option>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </select>
+
     </div>
+
+
 
     <!-- Tabla -->
     <div class="overflow-x-auto">
