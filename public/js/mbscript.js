@@ -2056,11 +2056,10 @@ async function mostrarVerOrdenCompra(idOrden) {
                     <button onclick="mostrarOrdenPdf(${idOrden}, 1)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                     Ver Orden
                     </button>
-                    <button onclick="#" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition">
-                        Test2
-                    </button>
+                    
+                    <!-- Aqui se necesitaria que el boton envie la orden por pdf al proveedor y que cambie de estado a "Por Pagar" -->
                     <button onclick="#" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
-                        Test1
+                        Enviar orden de compra
                     </button>
                 </div>
             `
@@ -3347,7 +3346,6 @@ async function SendData(event) {
     }
   }
 }
-
 
 function mostrarVerPdf(idSolicitud, tipo = 0) {
   const url =

@@ -78,7 +78,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'pagos_pendientes' => [
-                'label' => 'Pagos Pendientes',
+                'label' => 'Facturas Pendientes',
                 'icon' =>
                     '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#pagos_pendientes"></use></svg>',
             ],
