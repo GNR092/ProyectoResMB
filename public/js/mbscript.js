@@ -18,7 +18,7 @@ function abrirModal(opcion) {
     crud_proveedores: 'CRUD Proveedores',
     limpiar_almacenamiento: 'Limpiar Almacenamiento',
     crud_usuarios: 'Administrar Usuarios',
-    pagos_pendientes: 'Pagos Pendientes',
+    pagos_pendientes: 'Facturas Pendientes',
     registrar_productos: 'Registrar Productos',
     crud_productos: 'Existencias',
     entrega_productos: 'Entrega de Material',
@@ -3046,26 +3046,94 @@ function regresarPagosMenu() {
   document.getElementById('pagos-menu').classList.remove('hidden')
 }
 
+// ================== PAGO CONTADO ==================
 function verDetalleContado(id) {
-  document.getElementById('tabla-contado').classList.add('hidden')
-  document.getElementById('detalle-contado').classList.remove('hidden')
-  document.getElementById('detalle-contado').innerHTML = `<p>Detalle de la solicitud ${id}</p>`
+  const detalle = document.getElementById('detalle-contado')
+  const tabla = document.getElementById('tabla-contado')
+  const botonRegresarPrincipal = document.querySelector('#pago-contado .flex.justify-between button')
+
+  tabla.classList.add('hidden')
+  if (botonRegresarPrincipal) botonRegresarPrincipal.classList.add('hidden')
+  detalle.classList.remove('hidden')
+
+  detalle.innerHTML = `
+
+        <h1>Nota</h1>
+        <h2>En este apartado se debe cargar la solicitud, haber el espacio para cargar archivos por si se necesita y debe cargar tambien todos los datos del proveedor que esta seleccionado en la orden para enviarlo a tesoreria el cual posteriormente devolvera esta requisición a compras para poder adjuntar la factura</h2>
+    
+    <div class="flex justify-between items-center mb-4">
+      <button onclick="regresarTablaContado()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+      
+      <h2 class="text-lg font-semibold">Detalle de la solicitud ${id}</h2>
+      <div></div>
+    </div>
+
+    <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
+      <p class="text-gray-700 mb-4">Información detallada de la solicitud <strong>${id}</strong> (contenido dinámico aquí).</p>
+
+      <!-- Botón de acción -->
+      <div class="flex justify-end mt-4">
+        <button
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+          Enviar a tesorería para pago
+        </button>
+      </div>
+    </div>
+  `
 }
 
 function regresarTablaContado() {
-  document.getElementById('detalle-contado').classList.add('hidden')
-  document.getElementById('tabla-contado').classList.remove('hidden')
+  const detalle = document.getElementById('detalle-contado')
+  const tabla = document.getElementById('tabla-contado')
+  const botonRegresarPrincipal = document.querySelector('#pago-contado .flex.justify-between button')
+
+  detalle.classList.add('hidden')
+  tabla.classList.remove('hidden')
+  if (botonRegresarPrincipal) botonRegresarPrincipal.classList.remove('hidden')
 }
 
+// ================== PAGO CRÉDITO ==================
 function verDetalleCredito(id) {
-  document.getElementById('tabla-credito').classList.add('hidden')
-  document.getElementById('detalle-credito').classList.remove('hidden')
-  document.getElementById('detalle-credito').innerHTML = `<p>Detalle de la solicitud ${id}</p>`
+  const detalle = document.getElementById('detalle-credito')
+  const tabla = document.getElementById('tabla-credito')
+  const botonRegresarPrincipal = document.querySelector('#pago-credito .flex.justify-between button')
+
+  tabla.classList.add('hidden')
+  if (botonRegresarPrincipal) botonRegresarPrincipal.classList.add('hidden')
+  detalle.classList.remove('hidden')
+
+  detalle.innerHTML = `
+    <h1>Nota</h1>
+        <h2>En este apartado se debe cargar la solicitud, haber el espacio para cargar archivos de la factura y debe cargar tambien todos los datos del proveedor que esta seleccionado en la orden para enviarlo a tesoreria</h2>
+   
+    <div class="flex justify-between items-center mb-4">
+      <button onclick="regresarTablaCredito()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+      <h2 class="text-lg font-semibold">Detalle de la solicitud ${id}</h2>
+      <div></div>
+    </div>
+
+    <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
+      <p class="text-gray-700 mb-4">Información detallada de la solicitud <strong>${id}</strong> (contenido dinámico aquí).</p>
+
+      <!-- Botón de acción -->
+      <div class="flex justify-end mt-4">
+        <button
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+          Enviar a tesorería
+        </button>
+      </div>
+    </div>
+  `
 }
 
 function regresarTablaCredito() {
-  document.getElementById('detalle-credito').classList.add('hidden')
-  document.getElementById('tabla-credito').classList.remove('hidden')
+  const detalle = document.getElementById('detalle-credito')
+  const tabla = document.getElementById('tabla-credito')
+  const botonRegresarPrincipal = document.querySelector('#pago-credito .flex.justify-between button')
+
+  detalle.classList.add('hidden')
+  tabla.classList.remove('hidden')
+  if (botonRegresarPrincipal) botonRegresarPrincipal.classList.remove('hidden')
 }
 
 /**

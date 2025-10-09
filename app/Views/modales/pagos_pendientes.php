@@ -1,6 +1,6 @@
 <!-- Pantalla principal -->
 <div id="pagos-menu" class="p-6">
-    <h2 class="text-lg font-semibold mb-4">Pagos Pendientes</h2>
+    <h2 class="text-lg font-semibold mb-4">Facturas Pendientes</h2>
 
     <div class="grid gap-4">
         <button onclick="mostrarPagoContado()"
