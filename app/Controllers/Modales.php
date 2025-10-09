@@ -205,7 +205,27 @@ class Modales extends BaseController
                 return view('modales/entrega_productos', $data);
 
             case 'ficha_pago':
-                return view('modales/ficha_pago');
+                $solicitudModel = new SolicitudModel();
+
+                // Solicitudes con estado "En Proceso de Pago"
+                $data['solicitudes_contado'] = $solicitudModel
+                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                    ->where('Solicitud.Estado', 'En Proceso de Pago')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->findAll();
+
+                $data['solicitudes_credito'] = $solicitudModel
+                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                    ->where('Solicitud.Estado', 'En Proceso de Pago')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->findAll();
+
+                return view('modales/ficha_pago', $data);
+
 
             case 'aprobar_solicitudes':
                 $idDepartamentoJefe = $this->api->getUserById(session('id'))['ID_Dpto'];

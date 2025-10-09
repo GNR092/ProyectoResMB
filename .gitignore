@@ -156,3 +156,5 @@ Tasks.md
 [tT]est.php
 composer.lock
 GEMINI.md
+app/Commands/SendTestEmail.php
+/app/Commands

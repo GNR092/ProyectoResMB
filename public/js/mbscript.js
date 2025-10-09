@@ -3136,6 +3136,105 @@ function regresarTablaCredito() {
   if (botonRegresarPrincipal) botonRegresarPrincipal.classList.remove('hidden')
 }
 
+
+/**
+ * Lógica para fichas de pago
+ */
+function mostrarFichaContado() {
+  document.getElementById('ficha-menu').classList.add('hidden')
+  document.getElementById('ficha-contado').classList.remove('hidden')
+}
+
+function mostrarFichaCredito() {
+  document.getElementById('ficha-menu').classList.add('hidden')
+  document.getElementById('ficha-credito').classList.remove('hidden')
+}
+
+function regresarFichaMenu() {
+  document.getElementById('ficha-contado').classList.add('hidden')
+  document.getElementById('ficha-credito').classList.add('hidden')
+  document.getElementById('ficha-menu').classList.remove('hidden')
+}
+
+// ================== FICHA CONTADO ==================
+function verFichaContado(id) {
+  const detalle = document.getElementById('detalle-contado')
+  const tabla = document.getElementById('tabla-contado')
+  const botonRegresar = document.querySelector('#ficha-contado .flex.justify-between button')
+
+  tabla.classList.add('hidden')
+  if (botonRegresar) botonRegresar.classList.add('hidden')
+  detalle.classList.remove('hidden')
+
+  detalle.innerHTML = `
+    <div class="flex justify-between items-center mb-4">
+      <button onclick="regresarFichaContado()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+      <h2 class="text-lg font-semibold">Detalle de la ficha ${id}</h2>
+      <div></div>
+    </div>
+
+    <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
+      <p class="text-gray-700 mb-4">Detalle de la ficha de pago <strong>${id}</strong> (contenido dinámico aquí).</p>
+
+      <div class="flex justify-end mt-4">
+        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+          Confirmar envío a tesorería
+        </button>
+      </div>
+    </div>
+  `
+}
+
+function regresarFichaContado() {
+  const detalle = document.getElementById('detalle-contado')
+  const tabla = document.getElementById('tabla-contado')
+  const botonRegresar = document.querySelector('#ficha-contado .flex.justify-between button')
+
+  detalle.classList.add('hidden')
+  tabla.classList.remove('hidden')
+  if (botonRegresar) botonRegresar.classList.remove('hidden')
+}
+
+// ================== FICHA CRÉDITO ==================
+function verFichaCredito(id) {
+  const detalle = document.getElementById('detalle-credito')
+  const tabla = document.getElementById('tabla-credito')
+  const botonRegresar = document.querySelector('#ficha-credito .flex.justify-between button')
+
+  tabla.classList.add('hidden')
+  if (botonRegresar) botonRegresar.classList.add('hidden')
+  detalle.classList.remove('hidden')
+
+  detalle.innerHTML = `
+    <div class="flex justify-between items-center mb-4">
+      <button onclick="regresarFichaCredito()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+      <h2 class="text-lg font-semibold">Detalle de la ficha ${id}</h2>
+      <div></div>
+    </div>
+
+    <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
+      <p class="text-gray-700 mb-4">Detalle de la ficha de pago <strong>${id}</strong> (contenido dinámico aquí).</p>
+
+      <div class="flex justify-end mt-4">
+        <button class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+          Confirmar recepción en tesorería
+        </button>
+      </div>
+    </div>
+  `
+}
+
+function regresarFichaCredito() {
+  const detalle = document.getElementById('detalle-credito')
+  const tabla = document.getElementById('tabla-credito')
+  const botonRegresar = document.querySelector('#ficha-credito .flex.justify-between button')
+
+  detalle.classList.add('hidden')
+  tabla.classList.remove('hidden')
+  if (botonRegresar) botonRegresar.classList.remove('hidden')
+}
+
+
 /**
  * Varios
  */
