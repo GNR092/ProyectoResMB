@@ -11,7 +11,7 @@ class CreateTableSolicitudProd extends Migration
         $this->forge->addField([
             'ID_Solicitud' => [
                 'type' => 'INT',
-                'constraint' => 5,
+                'constraint' => 10,
                 'unsigned' => true,
                 'auto_increment' => true,
             ],
@@ -32,6 +32,12 @@ class CreateTableSolicitudProd extends Migration
                 'constraint' => 20,
                 'unsigned' => true,
                 'null' => true,
+            ],
+            'ID_RazonSocial' => [
+                'type' => 'INT',
+                'constraint' => 5,
+                'unsigned' => true,
+                'null' => false,
             ],
             'IVA' => [
                 'type' => 'BOOLEAN',
@@ -75,10 +81,17 @@ class CreateTableSolicitudProd extends Migration
                 'unsigned' => true,
                 'null' => false,
             ],
+            'MetodoPago' => [
+                'type' => 'INT',
+                'constraint' => 1,
+                'unsigned' => true,
+                'null' => false,
+            ],
         ]);
 
         $this->forge->addKey('ID_Solicitud', true);
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('ID_RazonSocial', 'Razon_Social', 'ID_RazonSocial', 'CASCADE', 'SET NULL');
         //$this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
         //$this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'CASCADE');
         $this->forge->createTable('Solicitud');

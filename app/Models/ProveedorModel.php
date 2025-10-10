@@ -22,6 +22,8 @@ class ProveedorModel extends Model
         'Tel_Contacto',
         'Nombre_Contacto',
         'Servicio',
+        'Dias_Credito',
+        'Monto_Credito',
     ];
 
     // Dates

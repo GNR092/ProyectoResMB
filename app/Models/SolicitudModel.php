@@ -16,6 +16,7 @@ class SolicitudModel extends Model
         'ID_Usuario',
         'ID_Dpto',
         'ID_Proveedor',
+        'ID_RazonSocial',
         'IVA',
         'Fecha',
         'Estado',
@@ -24,6 +25,7 @@ class SolicitudModel extends Model
         'ComentariosAdmin',
         'ComentariosUser',
         'Tipo',
+        'MetodoPago',
     ];
 
     // Dates

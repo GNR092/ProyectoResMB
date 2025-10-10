@@ -16,7 +16,7 @@ class InsertProveedor extends Migration
         // Datos de proveedores 
         $proveedores = [
             [
-                'RazonSocial' => 'ABASTECEDORA MAXIO SA DE CV',
+                'RazonSocial' => 'ABASTECEDORA MAXIMO SA DE CV',
                 'Correo' => 'contacto@maxio.com',
                 'RFC' => 'AMA0512139J5',
                 'Banco' => 'HSBC',

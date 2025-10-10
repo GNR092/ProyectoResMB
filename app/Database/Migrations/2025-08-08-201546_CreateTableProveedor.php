@@ -24,7 +24,7 @@ class CreateTableProveedor extends Migration
                 'type' => 'VARCHAR',
                 'constraint' => '100',
                 'unique' => true,
-                'null' => false,
+                'null' => true,
             ],
             'Tel_Contacto' => [
                 'type' => 'VARCHAR',
@@ -57,7 +57,17 @@ class CreateTableProveedor extends Migration
                 'constraint' => '18',
                 'null' => true,
             ],
-            
+            'Dias_Credito' => [
+                'type' => 'INT',
+                'constraint' => '3',
+                'null' => true,
+            ],
+            'Monto_Credito' =>
+            [
+                'type' => 'DECIMAL',
+                'constraint' => '10,2',
+                'null' => true,
+            ],            
             'Servicio' => [
                 'type' => 'VARCHAR',
                 'constraint' => '100',
