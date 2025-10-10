@@ -10,6 +10,7 @@ use App\Libraries\Status;
 use App\Libraries\HttpStatus;
 use App\Libraries\Rest;
 use App\Libraries\SolicitudTipo;
+use App\Libraries\MetodoPago;
 
 class Archivo extends BaseController
 {
@@ -63,9 +64,14 @@ class Archivo extends BaseController
         $user = $this->api->getUserById(session('id'));
 
         $razon_social_id = isset($post['razon_social']) ? $post['razon_social'] : null;
+        $proveedor_id = isset($post['ID_Proveedor']) ? $post['ID_Proveedor'] : null;
         $razon = null;
+        $proveedor = null;
         if (!empty($razon_social_id)) {
-            $razon = $this->api->getProveedorById((int) $razon_social_id);
+            $razon = $this->api->getRazonSocialByID((int) $razon_social_id);
+        }
+        if (!empty($proveedor_id)) {
+            $proveedor = $this->api->getProveedorById((int) $proveedor_id);
         }
 
         $fecha = $post['fecha'];
@@ -78,13 +84,15 @@ class Archivo extends BaseController
         $datosSolicitud = [
             'ID_Usuario' => $user['ID_Usuario'],
             'ID_Dpto' => $user['ID_Dpto'],
-            'ID_Proveedor' => $razon['ID_Proveedor'] ?? null,
+            'ID_Proveedor' => $proveedor['ID_Proveedor'] ?? null,
+            'ID_RazonSocial' => $razon['ID_RazonSocial'] ?? null,
             'IVA' => isset($post['iva']) ? true : false,
             'Fecha' => $fecha,
             'Estado' => $estadoInicial,
             'No_Folio' => null,
             'Tipo' => $tipo,
             'ComentariosUser' => $comentariosuser,
+            'MetodoPago' => MetodoPago::EnEspera,
         ];
 
         $datosProductos = [];

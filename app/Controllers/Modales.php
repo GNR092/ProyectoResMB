@@ -32,9 +32,7 @@ class Modales extends BaseController
             case 'ver_historial':
                 // Cargar el modelo de Departamentos
                 $departamentoModel = new \App\Models\DepartamentosModel();
-                $data['departamentos'] = $departamentoModel
-                    ->orderBy('Nombre', 'ASC')
-                    ->findAll();
+                $data['departamentos'] = $departamentoModel->orderBy('Nombre', 'ASC')->findAll();
                 return view('modales/ver_historial', $data);
 
             case 'solicitar_material':
@@ -63,7 +61,7 @@ class Modales extends BaseController
                 // --- Solicitudes Pendientes ---
                 $data['solicitudes'] = $solicitudModel
                     ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
                     )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -84,7 +82,7 @@ class Modales extends BaseController
 
                 $data['solicitudes'] = $solicitudModel
                     ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
                     )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -96,7 +94,7 @@ class Modales extends BaseController
 
             case 'enviar_revision':
                 return view('modales/enviar_revision');
-            
+
             case 'usuarios':
                 $departamentosModel = new DepartamentosModel();
                 $razonSocialModel = new RazonSocialModel();
@@ -111,7 +109,7 @@ class Modales extends BaseController
             case 'crud_usuarios':
                 $usuariosModel = new UsuariosModel();
                 $data['usuarios'] = $this->api->getAllUsers();
-                $data['razones_sociales'] = (new RazonSocialModel())->findAll();
+                $data['razones_sociales'] = new RazonSocialModel()->findAll();
                 $data['departamentos'] = $this->api->getAllDepartments();
                 return view('modales/crud_usuarios', $data);
 
@@ -134,9 +132,7 @@ class Modales extends BaseController
                 $proveedorModel = new ProveedorModel();
 
                 // Traer todos los registros de proveedores
-                $data['proveedores'] = $proveedorModel
-                    ->orderBy('ID_Proveedor', 'ASC')
-                    ->findAll();
+                $data['proveedores'] = $proveedorModel->orderBy('ID_Proveedor', 'ASC')->findAll();
 
                 return view('modales/crud_proveedores', $data);
 
@@ -148,7 +144,9 @@ class Modales extends BaseController
 
                 // Solicitudes con estado "Por Pagar"
                 $data['solicitudes_contado'] = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'Por Pagar')
@@ -156,7 +154,9 @@ class Modales extends BaseController
                     ->findAll();
 
                 $data['solicitudes_credito'] = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'Por Pagar')
@@ -164,7 +164,7 @@ class Modales extends BaseController
                     ->findAll();
 
                 return view('modales/pagos_pendientes', $data);
-                
+
             case 'registrar_productos':
                 $productoModel = new ProductoModel();
                 $data['productos'] = $productoModel->findAll();
@@ -209,7 +209,9 @@ class Modales extends BaseController
 
                 // Solicitudes con estado "En Proceso de Pago"
                 $data['solicitudes_contado'] = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En Proceso de Pago')
@@ -217,7 +219,9 @@ class Modales extends BaseController
                     ->findAll();
 
                 $data['solicitudes_credito'] = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En Proceso de Pago')
@@ -226,10 +230,11 @@ class Modales extends BaseController
 
                 return view('modales/ficha_pago', $data);
 
-
             case 'aprobar_solicitudes':
                 $idDepartamentoJefe = $this->api->getUserById(session('id'))['ID_Dpto'];
-                $data['solicitudes_pendientes'] = $this->api->getSolicitudesUsersByDepartment($idDepartamentoJefe);
+                $data['solicitudes_pendientes'] = $this->api->getSolicitudesUsersByDepartment(
+                    $idDepartamentoJefe,
+                );
 
                 return view('modales/aprobar_solicitudes', $data);
 
@@ -237,7 +242,6 @@ class Modales extends BaseController
                 return 'Opción no válida';
         }
     }
-
 
     //Funciones para tablas
     public function getProductTableRow()
@@ -248,7 +252,6 @@ class Modales extends BaseController
     {
         return view('layout/serviceTable');
     }
-
 
     //Funciones para usuarios
     public function registrarUsuario()
@@ -286,7 +289,7 @@ class Modales extends BaseController
             $data['ContrasenaG'] = null; // Opcional: asegúrate de que se guarde como nulo si está vacío
         }
 
-        $newUserId = (new UsuariosModel())->insert($data, true);
+        $newUserId = new UsuariosModel()->insert($data, true);
 
         if ($newUserId) {
             $newUser = $this->api->getUserById($newUserId);
@@ -297,7 +300,9 @@ class Modales extends BaseController
             ]);
         }
 
-        return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'No se pudo registrar el usuario.']);
+        return $this->response
+            ->setStatusCode(500)
+            ->setJSON(['success' => false, 'message' => 'No se pudo registrar el usuario.']);
     }
 
     public function actualizarUsuario($id)
@@ -339,11 +344,16 @@ class Modales extends BaseController
             unset($data['ContrasenaG']);
         }
 
-        if ($this->api->updateUser((int)$id, $data)) {
-            return $this->response->setJSON(['success' => true, 'message' => 'Usuario actualizado correctamente.']);
+        if ($this->api->updateUser((int) $id, $data)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Usuario actualizado correctamente.',
+            ]);
         }
 
-        return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'No se pudo actualizar el usuario.']);
+        return $this->response
+            ->setStatusCode(500)
+            ->setJSON(['success' => false, 'message' => 'No se pudo actualizar el usuario.']);
     }
 
     public function eliminarUsuario($id)
@@ -361,14 +371,24 @@ class Modales extends BaseController
             ->first();
 
         if ($userToDelete && $userToDelete['Nombre'] === 'Administración') {
-            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'No se puede eliminar a un usuario administrador.']);
+            return $this->response
+                ->setStatusCode(403)
+                ->setJSON([
+                    'success' => false,
+                    'message' => 'No se puede eliminar a un usuario administrador.',
+                ]);
         }
 
-        if ($this->api->deleteUser((int)$id)) {
-            return $this->response->setJSON(['success' => true, 'message' => 'Usuario eliminado correctamente.']);
+        if ($this->api->deleteUser((int) $id)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Usuario eliminado correctamente.',
+            ]);
         }
 
-        return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'No se pudo eliminar el usuario.']);
+        return $this->response
+            ->setStatusCode(500)
+            ->setJSON(['success' => false, 'message' => 'No se pudo eliminar el usuario.']);
     }
 
     //Funciones para almacen
@@ -540,7 +560,7 @@ class Modales extends BaseController
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
                 'message' => 'Datos inválidos',
-                'errors' => $this->validator->getErrors()
+                'errors' => $this->validator->getErrors(),
             ]);
         }
 
@@ -551,7 +571,6 @@ class Modales extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
-
 
     //Funciones para proveedores
     public function insertarProveedor()
@@ -574,7 +593,7 @@ class Modales extends BaseController
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo insertar el proveedor'
+                'message' => 'No se pudo insertar el proveedor',
             ]);
         }
     }
@@ -587,38 +606,45 @@ class Modales extends BaseController
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo eliminar el proveedor'
+                'message' => 'No se pudo eliminar el proveedor',
             ]);
         }
     }
     public function editarProveedor($id)
     {
         $model = new ProveedorModel();
+        $request = $this->request;
 
         // Obtener datos del formulario
         $data = [
-            'RazonSocial'       => $this->request->getPost('RazonSocial'),
-            'RFC'               => $this->request->getPost('RFC'),
-            'Banco'             => $this->request->getPost('Banco'),
-            'Cuenta'            => $this->request->getPost('Cuenta'),
-            'Clabe'             => $this->request->getPost('Clabe'),
-            'Tel_Contacto'      => $this->request->getPost('Tel_Contacto'),
-            'Nombre_Contacto'   => $this->request->getPost('Nombre_Contacto'),
-            'Servicio'          => $this->request->getPost('Servicio'),
+            'RazonSocial' => $request->getPost('RazonSocial'),
+            'RFC' => $request->getPost('RFC'),
+            'Correo' => $request->getPost('correo'),
+            'Banco' => $request->getPost('Banco'),
+            'Cuenta' => $request->getPost('Cuenta'),
+            'Clabe' => $request->getPost('Clabe'),
+            'Tel_Contacto' => $request->getPost('Tel_Contacto'),
+            'Nombre_Contacto' => $request->getPost('Nombre_Contacto'),
+            'Servicio' => $request->getPost('Servicio'),
         ];
+        $tiene_credito = $request->getPost('tiene_credito');
 
+        if (isset($tiene_credito)) {
+            $data['Dias_Credito'] = $request->getPost('dias_credito');
+            $data['Monto_Credito'] = $request->getPost('monto_credito');
+        } else {
+            $data['Dias_Credito'] = null;
+            $data['Monto_Credito'] = null;
+        }
+        //return Rest::ShowDebug($data);
         try {
             $model->update($id, $data);
             return $this->response->setJSON(['success' => true]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ]);
         }
     }
-
-
-
-
 }

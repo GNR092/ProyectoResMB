@@ -95,7 +95,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Proveedores -->
             <div>
                 <label class="text-sm text-gray-700 font-medium">Proveedor:</label>
-                <select id="ProvSelect" class="w-full px-3 py-2 border rounded" name="razon_social" required>
+                <select id="ProvSelect" class="w-full px-3 py-2 border rounded" name="ID_Proveedor" required>
                     <option value="">Seleccione una opción</option>
                 </select>
             </div>
@@ -251,7 +251,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Proveedores -->
             <div>
                 <label class="text-sm text-gray-700 font-medium">Proveedor:</label>
-                <select id="ProvSelectSinCotizar" class="w-full px-3 py-2 border rounded" name="razon_social">
+                <select id="ProvSelectSinCotizar" class="w-full px-3 py-2 border rounded" name="ID_Proveedor">
                     <option value="">Seleccione una opción</option>
                 </select>
             </div>
@@ -387,7 +387,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Proveedor Servicio -->
             <div>
                 <label class="text-sm text-gray-700 font-medium">Proveedor</label>
-                <select id="razonSocialServicioSelect" class="w-full px-3 py-2 border rounded" name="razon_social" required>
+                <select id="razonSocialServicioSelect" class="w-full px-3 py-2 border rounded" name="ID_Proveedor" required>
                     <option value="">Seleccione una opción</option>
                 </select>
             </div>

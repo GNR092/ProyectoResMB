@@ -38,6 +38,11 @@
                         data-clabe="<?= esc($prov['Clabe']) ?>"
                         data-tel-contacto="<?= esc($prov['Tel_Contacto']) ?>"
                         data-nombre-contacto="<?= esc($prov['Nombre_Contacto']) ?>"
+                        data-tiene-credito="<?= esc($prov['Dias_Credito'] > 0 ? true : false ) ?>"
+                        data-dias-credito="<?= esc($prov['Dias_Credito'] ?? 0) ?>"
+                        data-monto-credito="<?= esc($prov['Monto_Credito'] ?? 0.00) ?>"
+                        data-correo="<?= esc($prov['Correo'] ?? '') ?>"
+                        
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
                         <td class="px-3 py-2 border-b razonsocial"><?= esc($prov['RazonSocial']) ?></td>
                         <td class="px-3 py-2 border-b"><?= esc($prov['RFC']) ?></td>
@@ -101,6 +106,10 @@
                 <input type="text" name="RazonSocial" id="RazonSocial" placeholder="Razón Social" required class="w-full px-3 py-2 border rounded-lg">
             </div>
             <div class="flex flex-col">
+                <label for="correo" class="mb-1 font-medium">correo</label>
+                <input type="text" name="correo" id="correo" placeholder="example@example.com" class="w-full px-3 py-2 border rounded-lg">
+            </div>
+            <div class="flex flex-col">
                 <label for="RFC" class="mb-1 font-medium">RFC</label>
                 <input type="text" name="RFC" id="RFC" placeholder="RFC" required class="w-full px-3 py-2 border rounded-lg">
             </div>
@@ -130,6 +139,24 @@
             </div>
         </div>
 
+        <div x-data="{ tiene_credito: false }" class="space-y-4 border-t pt-4">
+            <div class="flex items-center">
+                <input type="checkbox" name="tiene_credito" id="tiene_credito" x-model="tiene_credito" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label for="tiene_credito" class="ml-2 block text-sm text-gray-900">¿Tiene crédito?</label>
+            </div>
+
+            <div x-show="tiene_credito" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col">
+                    <label for="dias_credito" class="mb-1 font-medium">Días de crédito</label>
+                    <input type="number" name="dias_credito" id="dias_credito" placeholder="0" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div class="flex flex-col">
+                    <label for="monto_credito" class="mb-1 font-medium">Monto de crédito</label>
+                    <input type="number" step="0.01" name="monto_credito" id="monto_credito" placeholder="0.00" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+            </div>
+        </div>
+
         <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">Guardar Proveedor</button>
     </form>
 
@@ -148,6 +175,10 @@
             <div class="flex flex-col">
                 <label for="editar-RazonSocial" class="mb-1 font-medium">Razón Social</label>
                 <input type="text" name="RazonSocial" id="editar-RazonSocial" required class="w-full px-3 py-2 border rounded-lg">
+            </div>
+            <div class="flex flex-col">
+                <label for="editar-correo" class="mb-1 font-medium">Correo</label>
+                <input type="email" name="correo" id="editar-correo" placeholder="example@example.com" class="w-full px-3 py-2 border rounded-lg">
             </div>
             <div class="flex flex-col">
                 <label for="editar-RFC" class="mb-1 font-medium">RFC</label>
@@ -176,6 +207,24 @@
             <div class="flex flex-col">
                 <label for="editar-Servicio" class="mb-1 font-medium">Servicio</label>
                 <input type="text" name="Servicio" id="editar-Servicio" required class="w-full px-3 py-2 border rounded-lg">
+            </div>
+        </div>
+
+        <div id="editar-credito-section" class="space-y-4 border-t pt-4">
+            <div class="flex items-center">
+                <input type="checkbox" name="tiene_credito" id="editar-tiene_credito" x-model="tiene_credito" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label for="editar-tiene_credito" class="ml-2 block text-sm text-gray-900">¿Tiene crédito?</label>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="flex flex-col">
+                    <label for="editar-dias_credito" class="mb-1 font-medium">Días de crédito</label>
+                    <input type="number" name="dias_credito" id="editar-dias_credito" placeholder="0" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div class="flex flex-col">
+                    <label for="editar-monto_credito" class="mb-1 font-medium">Monto de crédito</label>
+                    <input type="number" step="0.01" name="monto_credito" id="editar-monto_credito" placeholder="0.00" class="w-full px-3 py-2 border rounded-lg">
+                </div>
             </div>
         </div>
 

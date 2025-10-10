@@ -36,9 +36,7 @@ function abrirModal(opcion) {
       modal.classList.remove('hidden')
 
       // Llama a la función de inicialización correspondiente
-      if (opcion === 'solicitar_material') {
-        initSolicitarMaterial()
-      } else if (opcion === 'ver_historial') {
+      if (opcion === 'ver_historial') {
         initPaginacionHistorial()
       } else if (opcion === 'usuarios') {
         initUsuarios()
@@ -97,7 +95,7 @@ async function initSolicitarMaterial() {
       } catch (error) {
         console.error(error)
         productRowHtml =
-            '<tr><td colspan="7" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
+          '<tr><td colspan="7" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
       }
     }
     return productRowHtml
@@ -329,7 +327,7 @@ async function initSolicitarServicio() {
       } catch (error) {
         console.error(error)
         serviceRowHtml =
-            '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
+          '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
       }
     }
     return serviceRowHtml
@@ -609,7 +607,8 @@ function initPaginacionHistorial() {
 
     return allData.filter((item) => {
       const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
-      const coincideDepartamento = !departamentoFiltro || item.DepartamentoNombre === departamentoFiltro
+      const coincideDepartamento =
+        !departamentoFiltro || item.DepartamentoNombre === departamentoFiltro
 
       if (!fechaFiltro) {
         // Si no hay filtro de fecha, aplicar solo estado y departamento
@@ -629,8 +628,6 @@ function initPaginacionHistorial() {
       }
     })
   }
-
-
 
   function mostrarPagina(pagina, filasFiltradas) {
     paginaActual = pagina
@@ -706,7 +703,8 @@ async function mostrarVerHistorial(idSolicitud) {
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
                 <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
                 <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
-                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre + ' ' + data.ID_Place}</div>
+                <div><strong>Complejo:</strong> ${data.Complejo}</div>
                 <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
                 ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
             </div>
@@ -949,13 +947,16 @@ async function mostrarVer(idSolicitud) {
       throw new Error(data.error)
     }
 
+    const iva = data.IVA === 't'
+
     let html = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
-                <div><strong>Estado:</strong> ${data.Estado}</div>
-                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+                <div><strong>Estado:</strong> <span class="font-semibold ${getStatus(data.Estado)}">${data.Estado || 'N/A'}</span></div>
+                <div><strong>Solicitante:</strong> ${data.UsuarioNombre}</div>
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Complejo:</strong> ${data.Complejo}</div>
                 <div><strong>Proveedor:</strong> ${data.RazonSocialNombre || 'N/A'}</div>
             </div>
             ${data.Tipo == 2 ? '<h4 class="text-md font-bold mb-2">Servicios Solicitados</h4>' : '<h4 class="text-md font-bold mb-2">Productos Solicitados</h4>'}
@@ -963,27 +964,27 @@ async function mostrarVer(idSolicitud) {
                 <table class="min-w-full border border-gray-300">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="py-2 px-4 text-left">Código</th>
+                            <th class="py-2 px-4 text-left">Código/SKU</th>
                              ${data.Tipo == 2 ? '<th class="py-2 px-4 text-left">Servicio</th>' : '<th class="py-2 px-4 text-left">Producto</th>'}
                             ${data.Tipo == 2 ? '' : '<th class="py-2 px-4 text-right">Cantidad</th>'}
                             <th class="py-2 px-4 text-right">Importe</th>
+                            ${iva ? '<th class="py-2 px-4 text-right">IVA</th>' : ''}
                             ${data.Tipo == 2 ? '' : '<th class="py-2 px-4 text-right">Costo Total</th>'}
                         </tr>
                     </thead>
                     <tbody>
         `
 
-    let subtotal = 0
     data.productos.forEach((p) => {
-      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
-      subtotal += parseFloat(costoTotal)
+      const costoTotal = iva ? 1.16 * (p.Cantidad * p.Importe) : p.Cantidad * p.Importe
       html += `
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'} </td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
                     ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>`}
                     <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                    ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">$${costoTotal}</td>`}
+                    ${iva ? `<td class="py-2 px-4 border-t text-right">$${parseFloat(0.16 * p.Importe).toFixed(2)}</td>` : ''}
+                    ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">$${parseFloat(costoTotal).toFixed(2)}</td>`}
                 </tr>
             `
     })
@@ -1048,10 +1049,10 @@ async function mostrarCotizar(idSolicitud) {
     '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>'
 
   try {
-    const response = await fetch(`${BASE_URL}api/providers/all`)
-    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`)
+    const response = await getData('providers/all')
+    const response2 = await getData(`solicitud/details/${idSolicitud}`)
 
-    let todosLosProveedores = await response.json()
+    let todosLosProveedores = response
 
     if (!todosLosProveedores.length) {
       tbody.innerHTML =
@@ -1124,6 +1125,10 @@ async function mostrarCotizar(idSolicitud) {
     }
 
     inputBusqueda.addEventListener('input', filtrarProveedores)
+    if (response2.RazonSocialNombre) {
+      inputBusqueda.value = response2.RazonSocialNombre
+      filtrarProveedores()
+    }
 
     renderizarTabla()
   } catch (error) {
@@ -1368,6 +1373,7 @@ async function enviarRevisionHandler(event) {
                 <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
                 <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Complejo:</strong> ${data.Complejo}</div>
                 <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
                 ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
             </div>
@@ -1419,6 +1425,7 @@ async function enviarRevisionHandler(event) {
                 <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
             </div>`
     }
+    console.log(data.Archivo)
     if (data.Archivo) {
       const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
       html += `
@@ -1428,6 +1435,11 @@ async function enviarRevisionHandler(event) {
                 </div>
             `
     }
+    html += `
+              <div class="mt-6">
+                <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
+            </div>
+            `
 
     detallesContainer.innerHTML = html
   } catch (error) {
@@ -1443,6 +1455,13 @@ async function enviarRevisionHandler(event) {
     for (let i = 0; i < archivos.length; i++) {
       formData.append('archivos[]', archivos[i])
     }
+
+    const tipoPago = document.querySelector('input[name="tipo_pago"]:checked');
+    if (!tipoPago) {
+      mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error');
+      return;
+    }
+    formData.append('tipo_pago', tipoPago.value);
 
     btnConfirmar.disabled = true
     btnConfirmar.textContent = 'Enviando...'
@@ -1579,9 +1598,11 @@ async function mostrarVerDictamen(idSolicitud) {
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
                 <div><strong>Estado:</strong> <span class="font-semibold text-blue-600">${data.Estado}</span></div>
                 <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
-                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre + '-' + data.ID_Place }</div>
+                <div><strong>Complejo:</strong> ${data.Complejo}</div>
                 <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
                 <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>
+                <div><strong>Metodo de Pago:</strong> ${data.MetodoPago ==  0 ? 'Efectivo' : 'Credito'}</div>
             </div>
         `
 
@@ -1989,7 +2010,8 @@ async function mostrarVerOrdenCompra(idOrden) {
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
                 <div><strong>Estado:</strong> <span class="font-semibold text-blue-600">${data.Estado}</span></div>
                 <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
-                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre + ' - ' + data.ID_Place}</div>
+                <div><strong>Complejo:</strong> ${data.Complejo}</div>
                 <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
                 <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>
             </div>
@@ -2272,6 +2294,7 @@ function initProveedorEditarForm() {
           fila.dataset.clabe = formData.get('Clabe')
           fila.dataset.telContacto = formData.get('Tel_Contacto')
           fila.dataset.nombreContacto = formData.get('Nombre_Contacto')
+          fila.dataset.correo = formData.get('correo')
         }
 
         // Cerrar pantalla de edición y mostrar lista
@@ -2325,19 +2348,26 @@ function initProveedorActions(tabla) {
 
     const fila = btnEditar.closest('tr')
     if (!fila) return
+    const credito = fila.dataset.diasCredito > 0 
 
     // Cargar datos desde data-* de la fila
     document.getElementById('editar-ID_Proveedor').value = fila.dataset.id
     document.getElementById('editar-RazonSocial').value =
       fila.querySelector('.razonsocial').textContent
-    document.getElementById('editar-Servicio').value = fila.querySelector('.servicio').textContent
+    document.getElementById('editar-correo').value = fila.dataset.correo
     document.getElementById('editar-RFC').value = fila.dataset.rfc
     document.getElementById('editar-Banco').value = fila.dataset.banco
     document.getElementById('editar-Cuenta').value = fila.dataset.cuenta
     document.getElementById('editar-Clabe').value = fila.dataset.clabe
     document.getElementById('editar-Tel_Contacto').value = fila.dataset.telContacto
     document.getElementById('editar-Nombre_Contacto').value = fila.dataset.nombreContacto
-
+    document.getElementById('editar-Servicio').value = fila.querySelector('.servicio').textContent
+    document.getElementById('editar-tiene_credito').checked = credito
+    const dias_credito = document.getElementById('editar-dias_credito')
+    const monto_credito = document.getElementById('editar-monto_credito')
+    dias_credito.value = credito ? fila.dataset.diasCredito : 0
+    monto_credito.value = credito ? fila.dataset.montoCredito : 0
+    
     document.getElementById('pantalla-lista-proveedores').classList.add('hidden')
     document.getElementById('pantalla-editar-proveedor').classList.remove('hidden')
   })
@@ -3461,13 +3491,13 @@ async function SendData(event) {
 
   try {
     const data = await getData(
-        'solicitudes/registrar',
-        {
-          method: 'POST',
-          body: formData,
-          headers: { Accept: 'application/json' },
-        },
-        false,
+      'solicitudes/registrar',
+      {
+        method: 'POST',
+        body: formData,
+        headers: { Accept: 'application/json' },
+      },
+      false,
     )
 
     if (data.success) {

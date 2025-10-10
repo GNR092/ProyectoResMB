@@ -11,6 +11,8 @@ use App\Libraries\Rest;
 use App\Libraries\HttpStatus;
 use App\Libraries\SolicitudTipo;
 use App\Libraries\Status;
+use App\Libraries\MBSMail;
+use App\Libraries\MetodoPago;
 
 class Api extends ResourceController
 {
@@ -205,6 +207,19 @@ class Api extends ResourceController
     public function crearCotizacion()
     {
         $json = $this->request->getJSON();
+        $mail = new MBSMail();
+        $to = getenv('EMAIL_TO_TEST'); //Cambiar en producción para enviar al proveedor
+        $subject = 'Cotización de requisición de compra';
+        $message = '
+                    <p>Estimado proveedor,</p>
+                    <p>Le contactamos de parte de MBSP RENTAS S.A. DE C.V.</p>
+                    <p>Adjunto a este correo encontrará la requisición de compra para su cotización.</p>
+                    <p>Quedamos a la espera de su pronta respuesta.</p>
+                    <br>
+                    <p>Saludos cordiales,</p>
+                    <p><strong>Departamento de Compras</strong></p>
+                    <p>MBSP RENTAS S.A. DE C.V.</p>
+        ';
 
         if (!isset($json->ID_Solicitud) || !isset($json->ID_Proveedor)) {
             return $this->failValidationErrors('Se requiere ID de solicitud y de proveedor.');
@@ -258,10 +273,22 @@ class Api extends ResourceController
                 'ID_Proveedor' => $idProveedor,
                 'Total' => $total,
             ];
+            $pdf = new GenerarPDF();
+            $pdf->generarYGuardarRequisicion($idSolicitud);
+            $option = [
+                'attachments' => [FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf'],
+                'fromName' => 'MBSP RENTAS S.A. DE C.V.',
+            ];
+
             $cotizacionModel->insert($cotizacionData);
 
             // 2. Update Solicitud status
-            $solicitudModel->update($idSolicitud, ['Estado' => 'Cotizando']);
+            $solicitudModel->update($idSolicitud, [
+                'Estado' => 'Cotizando',
+                'ID_Proveedor' => $idProveedor,
+            ]);
+            // Enviar correo
+            $mail->send_email($to, $subject, $message, $option);
 
             $db->transComplete();
 
@@ -293,6 +320,7 @@ class Api extends ResourceController
         $solicitud = $this->api->getSolicitudById($idSolicitud);
         $cotizacion = $this->api->getCotizacionBySolicitudID($idSolicitud);
         $idCotizacion = $cotizacion['ID_Cotizacion'];
+        $tipoPago = MetodoPago::EnEspera;
 
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
@@ -304,9 +332,16 @@ class Api extends ResourceController
                 HttpStatus::BAD_REQUEST,
             );
         }
-
+        switch ($request['tipo_pago']) {
+            case 'efectivo':
+                $tipoPago = MetodoPago::Efectivo;
+                break;
+            case 'credito':
+                $tipoPago = MetodoPago::Credito;
+                break;
+        }
         try {
-            $this->api->updateSolicitudById($idSolicitud, ['Estado' => 'En revision']);
+            $this->api->updateSolicitudById($idSolicitud, ['Estado' => 'En revision', 'MetodoPago' => $tipoPago]);
             $files = $this->request->getFiles();
             $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
             $this->api->CreateFolder($folder);
@@ -488,7 +523,7 @@ class Api extends ResourceController
      */
     public function getAllProviders()
     {
-        $results = $this->api->getAllProveedorName(); // Obtiene todos los proveedores de la API.
+        $results = $this->api->getProveedorIdAndRazonSocial(); // Obtiene todos los proveedores de la API.
         return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
     }
     //endregion

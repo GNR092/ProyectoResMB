@@ -43,9 +43,9 @@ class PDF extends Fpdi
      * @param int $ln Dónde ir después de la celda.
      * @param string $aling Alineación del texto.
      */
-    function Title($txt, $w, $h, $border, $ln, $aling)
+    function Title($txt, $w, $h, $border, $ln, $aling,$style='B',$size=15)
     {
-        $this->SetFont('Arial', 'B', 15);
+        $this->SetFont('Arial', $style, $size);
         $this->Cell($w, $h, mb_convert_encoding($txt, 'ISO-8859-1', 'UTF-8'), $border, $ln, $aling);
     }
 

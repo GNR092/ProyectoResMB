@@ -276,21 +276,27 @@ class Rest
     public function getSolicitudWithProducts(int $id): ?array
     {
         $solicitudModel = new SolicitudModel();
+        $placesModel = new PlacesModel();
+        $razonSocialModel = new RazonSocialModel();
         $solicitud = $solicitudModel
             ->select([
                 'Solicitud.*',
                 'Usuarios.Nombre as UsuarioNombre',
                 'Departamentos.Nombre as DepartamentoNombre',
                 'Proveedor.RazonSocial as RazonSocialNombre',
+                'Razon_Social.Nombre as Complejo',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+            ->join('Razon_Social','Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
 
         if (!$solicitud) {
             return null;
         }
+        $solicitud['ID_Place'] = $placesModel->find($solicitud['ID_Dpto'])['Nombre_Corto'];
+        $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
 
         if (
@@ -330,21 +336,27 @@ class Rest
     public function getSolicitudWithCotizacion(int $id): ?array
     {
         $solicitudModel = new SolicitudModel();
+        $placesModel = new PlacesModel();
+        $razonSocialModel = new RazonSocialModel();
         $solicitud = $solicitudModel
             ->select([
                 'Solicitud.*',
                 'Usuarios.Nombre as UsuarioNombre',
                 'Departamentos.Nombre as DepartamentoNombre',
                 'Proveedor.RazonSocial as RazonSocialNombre',
+                'Razon_Social.Nombre as Complejo',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+            ->join('Razon_Social','Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
 
         if (!$solicitud) {
             return null;
         }
+        $solicitud['ID_Place'] = $placesModel->find($solicitud['ID_Dpto'])['Nombre_Corto'];
+        $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
 
         if (
@@ -387,14 +399,18 @@ class Rest
     public function getOrdenCompra(int $id): ?array
     {
         $solicitudModel = new SolicitudModel();
+        $placesModel = new PlacesModel();
+        $razonSocialModel = new RazonSocialModel();
         $solicitud = $solicitudModel
             ->select([
                 'Solicitud.*',
                 'Usuarios.Nombre as UsuarioNombre',
                 'Departamentos.Nombre as DepartamentoNombre',
+                'Razon_Social.Nombre as Complejo',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Razon_Social','Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
 
         if (!$solicitud) {
@@ -414,7 +430,8 @@ class Rest
 
             $solicitud['proveedor'] = $proveedor;
         }
-
+        $solicitud['ID_Place'] = $placesModel->find($solicitud['ID_Dpto'])['Nombre_Corto'];
+        $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
         if (
             $solicitud['Tipo'] == SolicitudTipo::Cotizacion ||
@@ -862,6 +879,18 @@ class Rest
         $results = $proveedorModel->findAll();
         return $results;
     }
+
+    /**
+     * Obtiene el ID y Razón Social de todos los proveedores.
+     *
+     * @return array Un array de proveedores con solo su ID y Razón Social.
+     */
+    public function getProveedorIdAndRazonSocial(): array
+    {
+        $proveedorModel = new ProveedorModel();
+        $results = $proveedorModel->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC')->findAll();
+        return $results;
+    }
     //endregion
 
     //region departamentos
@@ -902,6 +931,15 @@ class Rest
         } else {
             return null;
         }
+    }
+    //endregion
+
+    //region Razón social
+    public function getRazonSocialByID(int $id): ?array
+    {
+        $razonSocialModel = new RazonSocialModel();
+        return $razonSocialModel->find($id) ?: null;
+
     }
     //endregion
 

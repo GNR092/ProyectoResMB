@@ -64,14 +64,87 @@ class GenerarPDF extends BaseController
         $pdf->Output('I', 'Requisicion-' . $solicitud['No_Folio'] . '.pdf');
     }
 
+    /**
+     * Genera un PDF de requisición y lo guarda en el servidor.
+     *
+     * @param int $id El ID de la solicitud.
+     * @param int $modo Modo de generación (0 = productos, 1 = cotización).
+     * @return string|null La ruta del archivo PDF generado o null si hubo un error.
+     */
+    public function generarYGuardarRequisicion(int $id, int $modo = 0): ?string
+    {
+        $dictamen = $modo == 1;
+
+        try {
+            $response = $dictamen
+                ? $this->api->getSolicitudWithCotizacion($id)
+                : $this->api->getSolicitudWithProducts($id);
+        } catch (\Exception $e) {
+            log_message('error', 'Error al conectar con el API: ' . $e->getMessage());
+            return null;
+        }
+
+        if (empty($response) || !isset($response['Tipo'])) {
+            log_message('error', 'Respuesta de API inválida o vacía para la solicitud ID: ' . $id);
+            return null;
+        }
+
+        $solicitud = $response;
+
+        $pdf = new PDF('P', 'mm', 'Letter');
+        $pdf->AliasNbPages();
+
+        $this->_generarCabecera($pdf, $solicitud);
+        $total = $this->_generarTablaProductos($pdf, $solicitud);
+        $this->_generarTotales($pdf, $solicitud, $total);
+        $this->_mostrarComentarios($pdf, $solicitud);
+        $this->_adjuntarArchivo(
+            $pdf,
+            FPath::FSOLICITUD . $solicitud['Fecha'] . '/',
+            $solicitud['Archivo'],
+            'Referencia',
+        );
+
+        if ($dictamen && !empty($solicitud['cotizacion']['Cotizacion_Files'])) {
+            $cfiles = explode(',', $solicitud['cotizacion']['Cotizacion_Files']);
+            foreach ($cfiles as $file) {
+                $this->_adjuntarArchivo(
+                    $pdf,
+                    FPath::FCOTIZACION . $solicitud['Fecha'] . '/',
+                    $file,
+                    'Cotizacion adjunta',
+                );
+            }
+        }
+
+        // Define la ruta para guardar el PDF
+        $folderPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_solicitudes';
+        if (!is_dir($folderPath)) {
+            if (!mkdir($folderPath, 0777, true)) {
+                log_message('error', 'No se pudo crear el directorio para los PDFs de solicitud.');
+                return null;
+            }
+        }
+
+        $fileName = 'Requisicion-' . $solicitud['No_Folio'] . '.pdf';
+        $filePath = $folderPath . DIRECTORY_SEPARATOR . $fileName;
+
+        // Guarda el PDF en el servidor
+        $pdf->Output('F', $filePath);
+
+        return $filePath;
+    }
+
     private function _generarCabecera(PDF $pdf, array $solicitud)
     {
         $titulo = in_array($solicitud['Tipo'], [0, 1])
             ? 'REQUISICIÓN DE COMPRA'
             : 'SOLICITUD DE SERVICIOS Y SUMINISTROS DE INSUMOS';
-
+        
         $pdf->AddPage();
-        $pdf->Title($titulo, 0, 0, 0, 0, 'C');
+        $pdf->Title($solicitud['Complejo'], 0, 0, 0, 0, 'C');
+        $pdf->Ln(6);
+        $pdf->Title($titulo, 0, 0, 0, 0, 'C','B',13);
         $pdf->Ln(2);
         $pdf->SetFont('Arial', 'B', 12);
         $pdf->Cell(0, 10, 'Folio: ' . $solicitud['No_Folio'], 0, 1, 'C');
@@ -87,7 +160,7 @@ class GenerarPDF extends BaseController
             98,
             10,
             'Departamento: ' .
-                mb_convert_encoding($solicitud['DepartamentoNombre'] ?? '', 'ISO-8859-1', 'UTF-8'),
+                mb_convert_encoding(($solicitud['DepartamentoNombre'] ?? '') . ' ' . $solicitud['ID_Place'] ?? '', 'ISO-8859-1', 'UTF-8'),
             0,
             1,
             'R',
@@ -208,10 +281,6 @@ class GenerarPDF extends BaseController
             $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
             $imageExtensions = ['jpg', 'jpeg', 'png', 'gif'];
 
-            $pdf->AddPage();
-            $pdf->Title($title, 0, 0, 0, 0, 'C');
-            $pdf->Ln(2);
-
             if (in_array($fileExtension, $imageExtensions)) {
                 [$width, $height] = getimagesize($filePath);
                 $aspectRatio = $width / $height;
@@ -225,6 +294,9 @@ class GenerarPDF extends BaseController
                     $newHeight = $maxHeight;
                     $newWidth = $maxHeight * $aspectRatio;
                 }
+                $pdf->AddPage();
+                $pdf->Title($title, 0, 0, 0, 0, 'C');
+                $pdf->Ln(2);
                 $pdf->Image($filePath, 10, 35, $newWidth, $newHeight);
             } elseif ($fileExtension === 'pdf') {
                 $pageCount = $pdf->setSourceFile($filePath);
@@ -234,6 +306,7 @@ class GenerarPDF extends BaseController
                     $pdf->AddPage($size['width'] > $size['height'] ? 'L' : 'P', $size);
                     $pdf->useTemplate($templateId);
                 }
+                $pdf->Title($title, 0, -35, 0, 0, 'C');
             } else {
                 $pdf->SetFont('Arial', 'B', 12);
                 $pdf->Cell(0, 10, 'Archivo adjunto no compatible para visualizacion:', 0, 1);
@@ -243,6 +316,8 @@ class GenerarPDF extends BaseController
         }
     }
 
+    //region Orden de Compra
+    
     public function GenerarOrden(int $id)
     {
         try {
@@ -280,8 +355,9 @@ class GenerarPDF extends BaseController
     private function _generarCabeceraOrden(PDF $pdf, array $orden)
     {
         // This is based on the image, might need adjustments
+        //$pdf->Title()
         $pdf->SetFont('Arial', 'B', 16);
-        $pdf->Cell(0, 10, 'MBSP RENTAS SA DE CV', 0, 1, 'C');
+        $pdf->Cell(0, 10, $orden['Complejo'], 0, 1, 'C');
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell(
             0,
@@ -323,7 +399,8 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(30, 5, 'CONDICIONES:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(70, 5, '30 DIAS DE CREDITO', 1, 0, 'L'); // Hardcoded from image
+        // Establecer obtener el credito
+        $pdf->Cell(70, 5, $orden['MetodoPago'] == 0 ? 'EFECTIVO' : 'CREDITO', 1, 0, 'L'); // Hardcoded from image
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(35, 5, 'NO. COTIZACION:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
@@ -332,11 +409,11 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(30, 5, 'NOMBRE ALMACEN:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(70, 5, $orden['Lugar_Entrega'] ?? 'MANTENIMIENTO CAMPUS', 1, 0, 'L');
+        $pdf->Cell(70, 5, '---------', 1, 0, 'L');
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(35, 5, 'NO. ALMACEN:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(60, 5, '', 1, 1, 'L'); // No. Almacen is empty in the image
+        $pdf->Cell(60, 5, '---------', 1, 1, 'L'); // No. Almacen is empty in the image
         $pdf->Ln(5);
     }
 
@@ -350,7 +427,7 @@ class GenerarPDF extends BaseController
         $pdf->Cell(40, 5, 'FACTURAR A NOMBRE DE:', 0, 0, 'L');
         $pdf->Ln(5);
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(0, 5, 'MBSP RENTAS SA DE CV', 0, 1, 'L'); // Hardcoded from image
+        $pdf->Cell(0, 5, $orden['Complejo'], 0, 1, 'L'); // Hardcoded from image
         $pdf->Ln(1);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->MultiCell(
@@ -366,7 +443,7 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(15, 5, 'RFC:', 0, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(0, 5, 'MRE23066231H5', 0, 1, 'L'); // Hardcoded from image
+        $pdf->Cell(0, 5, $orden['ComplejoRFC'], 0, 1, 'L'); // Hardcoded from image
 
         $pdf->SetY($current_y + 5);
 
@@ -534,4 +611,5 @@ class GenerarPDF extends BaseController
         $pdf->Ln(5);
         $pdf->Cell(100, 5, $orden['UsuarioNombre'] ?? '', 0, 0, 'C');
     }
+    //endregion
 }
