@@ -355,7 +355,7 @@ class Rest
         if (!$solicitud) {
             return null;
         }
-        $solicitud['ID_Place'] = $placesModel->find($solicitud['ID_Dpto'])['Nombre_Corto'];
+        $solicitud['ID_Place'] = $placesModel->find($this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'])['Nombre_Corto'];
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
 
@@ -430,7 +430,7 @@ class Rest
 
             $solicitud['proveedor'] = $proveedor;
         }
-        $solicitud['ID_Place'] = $placesModel->find($solicitud['ID_Dpto'])['Nombre_Corto'];
+        $solicitud['ID_Place'] = $placesModel->find($this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'])['Nombre_Corto'];
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
         if (

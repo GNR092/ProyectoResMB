@@ -36,31 +36,23 @@ function abrirModal(opcion) {
       modal.classList.remove('hidden')
 
       // Llama a la función de inicialización correspondiente
-      if (opcion === 'ver_historial') {
-        initPaginacionHistorial()
-      } else if (opcion === 'usuarios') {
-        initUsuarios()
-      } else if (opcion === 'revisar_solicitudes') {
-        initRevisarSolicitud()
-      } else if (opcion === 'registrar_productos') {
-        initRegistrarMaterial()
-      } else if (opcion === 'enviar_revision') {
-        initEnviarRevision()
-      } else if (opcion === 'dictamen_solicitudes') {
-        initDictamenSolicitudes()
-      } else if (opcion === 'crud_productos') {
-        initCrudProductos()
-      } else if (opcion === 'ordenes_compra') {
-        initOrdenesCompra()
-      } else if (opcion === 'crud_proveedores') {
-        initCrudProveedores()
-      } else if (opcion === 'crud_usuarios') {
-        // La inicialización se hace con AlpineJS en la propia vista
-      } else if (opcion === 'entrega_productos') {
-        initEntregaMaterial()
-      } else if (opcion === 'aprobar_solicitudes') {
-        // La inicialización se hace con AlpineJS en la propia vista
-        // Ver la función aprobarSolicitudes() más abajo
+      const inicializadores = {
+        ver_historial: initPaginacionHistorial,
+        usuarios: initUsuarios,
+        revisar_solicitudes: initRevisarSolicitud,
+        registrar_productos: initRegistrarMaterial,
+        enviar_revision: initEnviarRevision,
+        dictamen_solicitudes: initDictamenSolicitudes,
+        crud_productos: initCrudProductos,
+        ordenes_compra: initOrdenesCompra,
+        crud_proveedores: initCrudProveedores,
+        entrega_productos: initEntregaMaterial,
+        // Opciones con inicialización especial o sin ella se omiten
+      };
+
+      const inicializador = inicializadores[opcion];
+      if (inicializador) {
+        inicializador();
       }
     })
     .catch((error) => {
@@ -72,6 +64,209 @@ function abrirModal(opcion) {
 function cerrarModal() {
   document.getElementById('modal-general').classList.add('hidden')
 }
+
+/**
+ * Crea una tabla paginada y con filtros a partir de datos de una API.
+ * @param {object} config
+ * @param {string} config.tableSelector - Selector del tbody de la tabla.
+ * @param {string} config.paginationSelector - Selector del contenedor de la paginación.
+ * @param {string} config.endpoint - URL de la API para obtener los datos.
+ * @param {function} config.renderRow - Función que recibe un item y devuelve el HTML de la fila (tr).
+ * @param {number} [config.rowsPerPage=10] - Filas por página.
+ * @param {string} [config.filterFormSelector] - Selector del formulario de filtros.
+ * @param {function} [config.filterFunction] - Función que recibe (datos, formulario) y devuelve los datos filtrados.
+ * @param {string} [config.loadingMessage='Cargando...'] - Mensaje de carga.
+ * @param {string} [config.noResultsMessage='No se encontraron resultados.'] - Mensaje sin resultados.
+ * @param {function} [config.onDataLoaded] - Callback que se ejecuta después de cargar y renderizar los datos.
+ * @param {function} [config.processData] - Función para procesar los datos crudos de la API antes de usarlos.
+ */
+async function createPaginatedTable(config) {
+  const {
+    tableSelector,
+    paginationSelector,
+    endpoint,
+    renderRow,
+    rowsPerPage = 10,
+    filterFormSelector,
+    filterFunction,
+    loadingMessage = 'Cargando...',
+    noResultsMessage = 'No se encontraron resultados.',
+    onDataLoaded,
+    processData = (data) => data,
+  } = config;
+
+  const tbody = document.querySelector(tableSelector);
+  const paginacion = document.getElementById(paginationSelector);
+  const filterForm = filterFormSelector ? document.querySelector(filterFormSelector) : null;
+
+  if (!tbody) {
+    console.error(`Elemento no encontrado: ${tableSelector}`);
+    return;
+  }
+
+  let allData = [];
+  let currentPage = 1;
+
+  async function fetchData() {
+    tbody.innerHTML = `<tr><td colspan="100%" class="text-center p-4">${loadingMessage}</td></tr>`;
+    try {
+      const rawData = await getData(endpoint, {}, false); // getData handles base URL
+      allData = processData(rawData);
+      updateTable();
+      if (onDataLoaded) {
+        onDataLoaded(allData);
+      }
+    } catch (error) {
+      console.error(error);
+      tbody.innerHTML = `<tr><td colspan="100%" class="text-center text-red-500 p-4">${error.message}</td></tr>`;
+    }
+  }
+
+  function renderTable(data) {
+    tbody.innerHTML = '';
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="100%" class="text-center p-4 text-gray-500">${noResultsMessage}</td></tr>`;
+      return;
+    }
+    data.forEach(item => {
+      tbody.insertAdjacentHTML('beforeend', renderRow(item));
+    });
+  }
+
+  function renderPagination(totalRows) {
+    if (!paginacion) return;
+    paginacion.innerHTML = '';
+    const totalPages = Math.ceil(totalRows / rowsPerPage);
+    if (totalPages <= 1) return;
+
+    for (let i = 1; i <= totalPages; i++) {
+      const button = document.createElement('button');
+      button.textContent = i;
+      button.className = `px-3 py-1 border rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+      button.addEventListener('click', () => {
+        showPage(i, getFilteredData());
+      });
+      paginacion.appendChild(button);
+    }
+  }
+
+  function showPage(page, filteredData) {
+    currentPage = page;
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const pageData = filteredData.slice(start, end);
+    renderTable(pageData);
+    renderPagination(filteredData.length);
+  }
+  
+  function getFilteredData() {
+      if (filterFunction && filterForm) {
+          return filterFunction(allData, filterForm);
+      }
+      return allData;
+  }
+
+  function updateTable() {
+    const filteredData = getFilteredData();
+    showPage(1, filteredData);
+  }
+
+  if (filterForm) {
+    filterForm.addEventListener('input', updateTable);
+    filterForm.addEventListener('change', updateTable);
+  }
+
+  await fetchData();
+}
+
+/**
+ * Configura paginación y filtros del lado del cliente para una tabla HTML estática.
+ * @param {object} config
+ * @param {string} config.rowsSelector - Selector para las filas a paginar/filtrar (ej. '#miTabla tbody tr').
+ * @param {string} config.paginationSelector - Selector del contenedor para los botones de paginación.
+ * @param {string} [config.filterFormSelector] - Selector del formulario o contenedor de los inputs de filtro.
+ * @param {function} config.filterFunction - (row, form) => boolean. Devuelve true si la fila debe mostrarse.
+ * @param {number} [config.rowsPerPage=10] - Filas por página.
+ */
+function setupClientSideTable(config) {
+  const {
+    rowsSelector,
+    paginationSelector,
+    filterFormSelector,
+    filterFunction,
+    rowsPerPage = 10,
+  } = config;
+
+  const allRows = Array.from(document.querySelectorAll(rowsSelector));
+  const pagination = document.getElementById(paginationSelector);
+  const filterForm = filterFormSelector ? document.querySelector(filterFormSelector) : null;
+
+  if (!allRows.length) {
+    if (pagination) pagination.innerHTML = '';
+    return;
+  }
+
+  let currentPage = 1;
+  let filteredRows = [...allRows];
+
+  function applyFilters() {
+    if (filterFunction && filterForm) {
+      filteredRows = allRows.filter(row => filterFunction(row, filterForm));
+    } else {
+      filteredRows = [...allRows];
+    }
+    showPage(1);
+  }
+
+  function showPage(page) {
+    currentPage = page;
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    allRows.forEach(row => row.style.display = 'none');
+    filteredRows.slice(start, end).forEach(row => {
+        row.style.display = ''; 
+    });
+    
+    renderPagination();
+  }
+
+  function renderPagination() {
+    if (!pagination) return;
+    pagination.innerHTML = '';
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+    if (totalPages <= 1) {
+        pagination.style.display = 'none';
+        return;
+    }
+    
+    pagination.style.display = 'flex';
+
+    for (let i = 1; i <= totalPages; i++) {
+      const button = document.createElement('button');
+      button.textContent = i;
+      button.className = `px-3 py-1 border rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
+      button.addEventListener('click', (e) => {
+          e.preventDefault();
+          showPage(i)
+      });
+      pagination.appendChild(button);
+    }
+  }
+
+  if (filterForm) {
+    filterForm.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+        }
+    });
+    filterForm.addEventListener('input', applyFilters);
+    filterForm.addEventListener('change', applyFilters);
+  }
+
+  applyFilters();
+}
+
 
 /**
  * Lógica para el modal "Solicitar Material"
@@ -485,188 +680,115 @@ function regresarSubmenuMaterial() {
  * Lógica para el modal "Ver Historial"
  */
 function initPaginacionHistorial() {
-  const tabla = document.getElementById('tabla-historial')
-  if (!tabla) return
-  const tbody = tabla.querySelector('tbody')
-  const paginacionContenedor = document.getElementById('paginacion-historial')
-  const filtroFecha = document.getElementById('filtro-fecha')
-  const filtroEstado = document.getElementById('filtro-estado')
-  const filtroDepartamento = document.getElementById('filtroDepartamento')
+  const tabla = document.getElementById('tabla-historial');
+  if (!tabla) return;
 
   // Mostrar la opción de filtro "Aprobacion Pendiente" solo si es un jefe
-  const opcionPendiente = document.getElementById('filtro-pendiente-aprobacion')
+  const opcionPendiente = document.getElementById('filtro-pendiente-aprobacion');
   if (opcionPendiente && typeof USER_LOGIN_TYPE !== 'undefined' && USER_LOGIN_TYPE === 'boss') {
-    opcionPendiente.classList.remove('hidden')
-  }
-
-  let allData = []
-  const filasPorPagina = 10
-  let paginaActual = 1
-
-  async function fetchData() {
-    try {
-      const exceptions = ['Compras', 'Administración']
-      let url = `${BASE_URL}api/historic`
-
-      if (
-        typeof USER_DEPT_NAME !== 'undefined' &&
-        typeof USER_DEPT_ID !== 'undefined' &&
-        USER_DEPT_ID &&
-        !exceptions.includes(USER_DEPT_NAME)
-      ) {
-        url = `${BASE_URL}api/historic/department/${USER_DEPT_ID}`
-      }
-
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error('Error al cargar el historial')
-      }
-      allData = await response.json()
-      actualizarTabla()
-    } catch (error) {
-      console.error(error)
-      if (tbody)
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">${error.message}</td></tr>`
-    }
+    opcionPendiente.classList.remove('hidden');
   }
 
   function getStatususSVG(statusus) {
-    if (!statusus) return ''
-    const statususLower = statusus.toLowerCase()
-    const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`
-    let svgClass = ''
-    let iconId = ''
+    if (!statusus) return '';
+    const statususLower = statusus.toLowerCase();
+    const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`;
+    let svgClass = '';
+    let iconId = '';
 
     switch (statususLower) {
       case 'aprobada':
-        svgClass = 'text-green-600'
-        iconId = 'aceptado'
-        break
+        svgClass = 'text-green-600';
+        iconId = 'aceptado';
+        break;
       case 'en espera':
-        svgClass = 'text-yellow-500'
-        iconId = 'en_espera'
-        break
+        svgClass = 'text-yellow-500';
+        iconId = 'en_espera';
+        break;
       case 'rechazada':
-        svgClass = 'text-red-500'
-        iconId = 'rechazado'
-        break
+        svgClass = 'text-red-500';
+        iconId = 'rechazado';
+        break;
       case 'cotizando':
-        svgClass = 'text-blue-500'
-        iconId = 'cotizacion'
-        break
+        svgClass = 'text-blue-500';
+        iconId = 'cotizacion';
+        break;
       case 'en revision':
-        svgClass = 'text-blue-500'
-        iconId = 'revision'
-        break
+        svgClass = 'text-blue-500';
+        iconId = 'revision';
+        break;
       case 'aprobacion pendiente':
-        svgClass = 'text-orange-500'
-        iconId = 'pendiente'
-        break
+        svgClass = 'text-orange-500';
+        iconId = 'pendiente';
+        break;
       default:
-        return ''
+        return '';
     }
-    return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
+    return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`;
   }
 
-  function renderizarTabla(data) {
-    if (!tbody) return
-    tbody.innerHTML = ''
-    if (data.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="6" class="text-center p-4 text-gray-500">No se encontraron resultados.</td></tr>'
-      return
+  const exceptions = ['Compras', 'Administración'];
+  let url = 'api/historic';
+  if (
+    typeof USER_DEPT_NAME !== 'undefined' &&
+    typeof USER_DEPT_ID !== 'undefined' &&
+    USER_DEPT_ID &&
+    !exceptions.includes(USER_DEPT_NAME)
+  ) {
+    url = `api/historic/department/${USER_DEPT_ID}`;
+  }
+
+  createPaginatedTable({
+    tableSelector: '#tabla-historial tbody',
+    paginationSelector: 'paginacion-historial',
+    endpoint: `${BASE_URL}${url}`,
+    filterFormSelector: '#modal-contenido', // Container for filters
+    renderRow: (item) => {
+      const status = item.Estado == 'Dept_Rechazada' ? 'Rechazada' : item.Estado;
+      const svg = getStatususSVG(status);
+      return `
+        <tr class="text-center">
+            <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
+            <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
+            <td class="border px-4 py-2 col-fecha">${item.Fecha}</td>
+            <td class="border px-4 py-2">${item.DepartamentoNombre || 'N/A'}</td>
+            <td class="border px-4 py-2 col-estado" data-estado="${status}" title="${status}">
+                ${svg}
+                <span >${status}</span>
+            </td>
+            <td class="border px-4 py-2">
+                <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">ver</a>
+            </td>
+        </tr>
+      `;
+    },
+    filterFunction: (allData, form) => {
+      const fechaFiltro = form.querySelector('#filtro-fecha').value;
+      const filtrarPorMes = form.querySelector('#filtrar-por-mes').checked;
+      const estadoFiltro = form.querySelector('#filtro-estado').value;
+      const departamentoFiltro = form.querySelector('#filtroDepartamento')?.value || '';
+
+      return allData.filter((item) => {
+        const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
+        const coincideDepartamento = !departamentoFiltro || item.DepartamentoNombre === departamentoFiltro;
+
+        if (!fechaFiltro) {
+          return coincideEstado && coincideDepartamento;
+        }
+
+        const fechaItem = item.Fecha; // formato esperado: "2025-10-08"
+        if (filtrarPorMes) {
+          const mesFiltro = fechaFiltro.slice(0, 7);
+          const mesItem = fechaItem.slice(0, 7);
+          return mesItem === mesFiltro && coincideEstado && coincideDepartamento;
+        } else {
+          return fechaItem === fechaFiltro && coincideEstado && coincideDepartamento;
+        }
+      });
     }
-
-    data.forEach((item) => {
-      const status = item.Estado == 'Dept_Rechazada' ? 'Rechazada' : item.Estado
-      const svg = getStatususSVG(status) // Mostrar "Rechazada" en el historial del departamento
-      const fila = `
-            <tr class="text-center">
-                <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
-                <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
-                <td class="border px-4 py-2 col-fecha">${item.Fecha}</td>
-                <td class="border px-4 py-2">${item.DepartamentoNombre || 'N/A'}</td>
-                <td class="border px-4 py-2 col-estado" data-estado="${status}" title="${status}">
-                    ${svg}
-                    <span >${status}</span>
-                </td>
-                <td class="border px-4 py-2">
-                    <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">ver</a>
-                </td>
-            </tr>
-        `
-      tbody.insertAdjacentHTML('beforeend', fila)
-    })
-  }
-
-  function aplicarFiltros() {
-    const fechaFiltro = filtroFecha.value
-    const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
-    const estadoFiltro = filtroEstado.value
-    const departamentoFiltro = document.getElementById('filtroDepartamento')?.value || ''
-
-    return allData.filter((item) => {
-      const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
-      const coincideDepartamento =
-        !departamentoFiltro || item.DepartamentoNombre === departamentoFiltro
-
-      if (!fechaFiltro) {
-        // Si no hay filtro de fecha, aplicar solo estado y departamento
-        return coincideEstado && coincideDepartamento
-      }
-
-      const fechaItem = item.Fecha // formato esperado: "2025-10-08"
-
-      if (filtrarPorMes) {
-        // comparar solo año y mes (ej. "2025-10")
-        const mesFiltro = fechaFiltro.slice(0, 7)
-        const mesItem = fechaItem.slice(0, 7)
-        return mesItem === mesFiltro && coincideEstado && coincideDepartamento
-      } else {
-        // comparar fecha exacta
-        return fechaItem === fechaFiltro && coincideEstado && coincideDepartamento
-      }
-    })
-  }
-
-  function mostrarPagina(pagina, filasFiltradas) {
-    paginaActual = pagina
-    const inicio = (pagina - 1) * filasPorPagina
-    const fin = inicio + filasPorPagina
-
-    const datosPagina = filasFiltradas.slice(inicio, fin)
-    renderizarTabla(datosPagina)
-    renderizarControlesPaginacion(filasFiltradas.length)
-  }
-
-  function renderizarControlesPaginacion(totalFilas) {
-    if (!paginacionContenedor) return
-    paginacionContenedor.innerHTML = ''
-
-    const totalPaginas = Math.ceil(totalFilas / filasPorPagina)
-    if (totalPaginas <= 1) return
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      const boton = document.createElement('button')
-      boton.textContent = i
-      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      boton.addEventListener('click', () => {
-        mostrarPagina(i, aplicarFiltros())
-      })
-      paginacionContenedor.appendChild(boton)
-    }
-  }
-
-  function actualizarTabla() {
-    const filtradas = aplicarFiltros()
-    mostrarPagina(1, filtradas)
-  }
-
-  filtroFecha?.addEventListener('input', actualizarTabla)
-  filtroEstado?.addEventListener('change', actualizarTabla)
-  filtroDepartamento?.addEventListener('change', actualizarTabla)
-  fetchData()
+  });
 }
+
 
 // Funciones para mostrar/ocultar la pantalla de ver historial
 async function mostrarVerHistorial(idSolicitud) {
@@ -890,36 +1012,11 @@ function initUsuarios() {
  * Lógica para el modal "Revisar Solicitudes"
  */
 function initRevisarSolicitud() {
-  const filas = document.querySelectorAll('#tablaRevisarSolicitud tr')
-  const paginacion = document.getElementById('paginacion-enviar-revision')
-
-  let paginaActual = 1
-  const filasPorPagina = 10
-  const totalFilas = filas.length
-  const totalPaginas = Math.ceil(totalFilas / filasPorPagina)
-
-  function mostrarPagina(pagina) {
-    paginaActual = pagina
-    filas.forEach((fila, index) => {
-      fila.style.display =
-        index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina ? '' : 'none'
-    })
-    renderPaginacion()
-  }
-
-  function renderPaginacion() {
-    if (!paginacion) return
-    paginacion.innerHTML = ''
-    for (let i = 1; i <= totalPaginas; i++) {
-      const boton = document.createElement('button')
-      boton.textContent = i
-      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      boton.addEventListener('click', () => mostrarPagina(i))
-      paginacion.appendChild(boton)
-    }
-  }
-
-  if (totalFilas > 0) mostrarPagina(1)
+  setupClientSideTable({
+    rowsSelector: '#tablaRevisarSolicitud tbody tr',
+    paginationSelector: 'paginacion-enviar-revision',
+    rowsPerPage: 10
+  });
 }
 
 async function mostrarVer(idSolicitud) {
@@ -1247,100 +1344,38 @@ function initRegistrarMaterial() {
  * Lógica para el modal "Enviar a Revisión"
  */
 function initEnviarRevision() {
-  const tabla = document.getElementById('tabla-enviar')
-  if (!tabla) return
+  if (!document.getElementById('tabla-enviar')) return;
 
-  const tbody = tabla.querySelector('tbody')
-  const paginacion = document.getElementById('paginacion-enviar-revision')
-  let allData = []
-  let paginaActual = 1
-  const filasPorPagina = 10
-
-  async function fetchData() {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4">Cargando...</td></tr>`
-    try {
-      const response = await fetch(`${BASE_URL}api/solicitudes/cotizadas`)
-      if (!response.ok) {
-        throw new Error('Error al cargar las solicitudes cotizadas.')
-      }
-
-      // Filtrar las que no estén en "En revision"
-      allData = (await response.json()).filter((s) => s.Estado !== 'En revision')
-
-      mostrarPagina(1)
-    } catch (error) {
-      console.error(error)
-      if (tbody)
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 p-4">${error.message}</td></tr>`
-    }
-  }
-
-  function renderizarTabla(data) {
-    if (!tbody) return
-    tbody.innerHTML = ''
-    if (data.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="7" class="text-center p-4 text-gray-500">No hay solicitudes cotizadas para mostrar.</td></tr>'
-      return
-    }
-
-    data.forEach((s) => {
+  createPaginatedTable({
+    tableSelector: '#tabla-enviar tbody',
+    paginationSelector: 'paginacion-enviar-revision',
+    endpoint: `${BASE_URL}api/solicitudes/cotizadas`,
+    processData: (data) => data.filter((s) => s.Estado !== 'En revision'),
+    noResultsMessage: 'No hay solicitudes cotizadas para mostrar.',
+    renderRow: (s) => {
       const monto = parseFloat(s.Monto || 0).toLocaleString('es-MX', {
         style: 'currency',
         currency: 'MXN',
-      })
-      const fila = `
-                <tr class="hover:bg-gray-50" data-id="${s.ID_Solicitud}">
-                    <td class="py-3 px-6 text-left">${s.Folio}</td>
-                    <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
-                    <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
-                    <td class="py-3 px-6 text-left">${s.Proveedor || 'N/A'}</td>
-                    <td class="py-3 px-6 text-left">${monto}</td>
-                    <td class="py-3 px-6 text-left">${s.Estado}</td>
-                    <td class="py-3 px-6 text-left">
-                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded btn-enviar">
-                            Ver
-                        </button>
-                    </td>
-                </tr>
-            `
-      tbody.insertAdjacentHTML('beforeend', fila)
-    })
-  }
-
-  function mostrarPagina(pagina) {
-    paginaActual = pagina
-    const inicio = (pagina - 1) * filasPorPagina
-    const fin = inicio + filasPorPagina
-
-    const datosPagina = allData.slice(inicio, fin)
-    renderizarTabla(datosPagina)
-    renderPaginacion()
-  }
-
-  function renderPaginacion() {
-    if (!paginacion) return
-    paginacion.innerHTML = ''
-    const totalPaginas = Math.ceil(allData.length / filasPorPagina)
-    if (totalPaginas <= 1) return
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      const boton = document.createElement('button')
-      boton.textContent = i
-      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      boton.addEventListener('click', () => mostrarPagina(i))
-      paginacion.appendChild(boton)
+      });
+      return `
+        <tr class="hover:bg-gray-50" data-id="${s.ID_Solicitud}">
+            <td class="py-3 px-6 text-left">${s.Folio}</td>
+            <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
+            <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
+            <td class="py-3 px-6 text-left">${s.Proveedor || 'N/A'}</td>
+            <td class="py-3 px-6 text-left">${monto}</td>
+            <td class="py-3 px-6 text-left">${s.Estado}</td>
+            <td class="py-3 px-6 text-left">
+                <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded btn-enviar" onclick="enviarRevisionHandler(event)">
+                    Ver
+                </button>
+            </td>
+        </tr>
+      `;
     }
-  }
-
-  tbody.addEventListener('click', function (event) {
-    if (event.target.classList.contains('btn-enviar')) {
-      enviarRevisionHandler(event)
-    }
-  })
-
-  fetchData()
+  });
 }
+
 
 async function enviarRevisionHandler(event) {
   const fila = event.target.closest('tr')
@@ -1501,80 +1536,52 @@ function regresarEnviarRevision() {
  * Lógica para el modal "Dictamen de Solicitudes"
  */
 async function initDictamenSolicitudes() {
-  const tbody = document.getElementById('tablaDictamenSolicitudes')
-  if (!tbody) return
+  if (!document.getElementById('tablaDictamenSolicitudes')) return;
 
-  const paginacion = document.getElementById('paginacion-dictamen')
-  let allData = []
-  let paginaActual = 1
-  const filasPorPagina = 10
+  createPaginatedTable({
+    tableSelector: '#tablaDictamenSolicitudes',
+    paginationSelector: 'paginacion-dictamen',
+    endpoint: `${BASE_URL}api/solicitudes/en-revision`,
+    noResultsMessage: 'No hay solicitudes en dictamen para mostrar.',
+    renderRow: (s) => `
+      <tr class="hover:bg-gray-50" data-id="${s.ID}">
+          <td class="py-3 px-6 text-left">${s.Folio || 'N/A'}</td>
+          <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
+          <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
+          <td class="py-3 px-6 text-left">${s.Fecha}</td>
+          <td class="py-3 px-6 text-left">${s.Estado}</td>
+          <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerDictamen(${s.ID})">VER</td>
+      </tr>
+    `
+  });
+}
 
-  async function fetchData() {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4">Cargando...</td></tr>`
-    try {
-      const response = await fetch(`${BASE_URL}api/solicitudes/en-revision`)
-      if (!response.ok) {
-        throw new Error('Error al cargar las solicitudes en dictamen.')
-      }
-      allData = await response.json()
-      mostrarPagina(1)
-    } catch (error) {
-      console.error(error)
-      if (tbody)
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">${error.message}</td></tr>`
-    }
-  }
 
-  function renderizarTabla(data) {
-    if (!tbody) return
-    tbody.innerHTML = ''
-    if (data.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="6" class="text-center p-4 text-gray-500">No hay solicitudes en dictamen para mostrar.</td></tr>'
-      return
-    }
+/**
+ * Genera el HTML para mostrar los detalles de una solicitud.
+ * @param {object} data - Objeto con los datos de la solicitud.
+ * @returns {string} - Cadena de texto con el HTML.
+ */
+function generarDetallesSolicitudHTML(data) {
+  const montoFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+  })
+  const metodoPago = data.MetodoPago == 0 ? 'Efectivo' : 'Crédito'
 
-    data.forEach((s) => {
-      const fila = `
-                <tr class="hover:bg-gray-50" data-id="${s.ID}">
-                    <td class="py-3 px-6 text-left">${s.Folio || 'N/A'}</td>
-                    <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
-                    <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
-                    <td class="py-3 px-6 text-left">${s.Fecha}</td>
-                    <td class="py-3 px-6 text-left">${s.Estado}</td>
-                    <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerDictamen(${s.ID})">VER</td>
-                </tr>
-            `
-      tbody.insertAdjacentHTML('beforeend', fila)
-    })
-  }
-
-  function mostrarPagina(pagina) {
-    paginaActual = pagina
-    const inicio = (pagina - 1) * filasPorPagina
-    const fin = inicio + filasPorPagina
-
-    const datosPagina = allData.slice(inicio, fin)
-    renderizarTabla(datosPagina)
-    renderPaginacion()
-  }
-
-  function renderPaginacion() {
-    if (!paginacion) return
-    paginacion.innerHTML = ''
-    const totalPaginas = Math.ceil(allData.length / filasPorPagina)
-    if (totalPaginas <= 1) return
-
-    for (let i = 1; i <= totalPaginas; i++) {
-      const boton = document.createElement('button')
-      boton.textContent = i
-      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      boton.addEventListener('click', () => mostrarPagina(i))
-      paginacion.appendChild(boton)
-    }
-  }
-
-  fetchData()
+  return `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+            <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+            <div><strong>Fecha:</strong> ${data.Fecha}</div>
+            <div><strong>Estado:</strong> <span class="font-semibold text-blue-600">${data.Estado}</span></div>
+            <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+            <div><strong>Departamento:</strong> ${data.DepartamentoNombre + ' - ' + data.ID_Place}</div>
+            <div><strong>Complejo:</strong> ${data.Complejo}</div>
+            <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
+            <div><strong>Metodo de Pago:</strong> ${metodoPago}</div>
+            <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${montoFormateado}</span></div>
+        </div>
+    `
 }
 
 async function mostrarVerDictamen(idSolicitud) {
@@ -1592,19 +1599,7 @@ async function mostrarVerDictamen(idSolicitud) {
     const data = await response.json()
     if (data.error) throw new Error(data.error)
 
-    let html = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
-                <div><strong>Fecha:</strong> ${data.Fecha}</div>
-                <div><strong>Estado:</strong> <span class="font-semibold text-blue-600">${data.Estado}</span></div>
-                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
-                <div><strong>Departamento:</strong> ${data.DepartamentoNombre + '-' + data.ID_Place }</div>
-                <div><strong>Complejo:</strong> ${data.Complejo}</div>
-                <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
-                <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>
-                <div><strong>Metodo de Pago:</strong> ${data.MetodoPago ==  0 ? 'Efectivo' : 'Credito'}</div>
-            </div>
-        `
+    let html = generarDetallesSolicitudHTML(data)
 
     // Mostrar comentarios si existen (especialmente para rechazos)
     if (data.ComentariosAdmin) {
@@ -1751,8 +1746,7 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
 
     if (response.ok && result.success) {
       mostrarNotificacion(
-        result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`,
-        'success',
+        result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`, 'success',
       )
       regresarTablaDictamen()
       initDictamenSolicitudes()
@@ -1769,64 +1763,25 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
  * Lógica para el modal "CRUD Productos" (Existencias)
  */
 function initCrudProductos() {
-  const tbody = document.getElementById('tablaCrudProductos')
-  if (!tbody) return
+  if (!document.getElementById('tablaCrudProductos')) return;
 
-  const paginacion = document.getElementById('paginacion-crud-productos')
-  const inputBusqueda = document.getElementById('buscarProducto')
-  const filasOriginales = Array.from(tbody.querySelectorAll('tr'))
-  let paginaActual = 1
-  const filasPorPagina = 10
-
-  function aplicarFiltro() {
-    const termino = (inputBusqueda?.value || '').trim().toLowerCase()
-    if (!termino) return filasOriginales
-    return filasOriginales.filter((fila) => {
-      const codigo = (fila.cells[0]?.textContent || '').toLowerCase()
-      const nombre = (fila.cells[1]?.textContent || '').toLowerCase()
-      return codigo.includes(termino) || nombre.includes(termino)
-    })
-  }
-
-  function mostrarPagina(pagina, filasFiltradas) {
-    paginaActual = pagina
-    filasOriginales.forEach((f) => (f.style.display = 'none'))
-    const inicio = (pagina - 1) * filasPorPagina
-    const fin = inicio + filasPorPagina
-    filasFiltradas.slice(inicio, fin).forEach((f) => (f.style.display = ''))
-    renderPaginacion(filasFiltradas.length)
-  }
-
-  function renderPaginacion(totalFiltradas) {
-    if (!paginacion) return
-    paginacion.innerHTML = ''
-    const totalPaginas = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina))
-    if (totalPaginas <= 1) {
-      paginacion.style.display = 'none'
-      return
-    }
-    paginacion.style.display = 'flex'
-    for (let i = 1; i <= totalPaginas; i++) {
-      const boton = document.createElement('button')
-      boton.textContent = i
-      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      boton.addEventListener('click', () => mostrarPagina(i, aplicarFiltro()))
-      paginacion.appendChild(boton)
-    }
-  }
-
-  function actualizar() {
-    const filtradas = aplicarFiltro()
-    mostrarPagina(1, filtradas)
-  }
-
-  actualizar()
-
-  if (inputBusqueda && !inputBusqueda.dataset.bound) {
-    inputBusqueda.addEventListener('input', actualizar)
-    inputBusqueda.dataset.bound = '1'
-  }
+  setupClientSideTable({
+    rowsSelector: '#tablaCrudProductos tr[data-id]',
+    paginationSelector: 'paginacion-crud-productos',
+    filterFormSelector: '#div-busqueda',
+    filterFunction: (row, form) => {
+      const inputBusqueda = form.querySelector('#buscarProducto');
+      const termino = (inputBusqueda?.value || '').trim().toLowerCase();
+      if (!termino) return true;
+      
+      const codigo = (row.cells[0]?.textContent || '').toLowerCase();
+      const nombre = (row.cells[1]?.textContent || '').toLowerCase();
+      return codigo.includes(termino) || nombre.includes(termino);
+    },
+    rowsPerPage: 10
+  });
 }
+
 
 function eliminarProducto(idProducto) {
   if (!confirm('¿Estás seguro de que deseas eliminar este producto?')) return
@@ -1961,35 +1916,11 @@ function guardarEdicion() {
  * Lógica para el modal "Órdenes de Compra"
  */
 function initOrdenesCompra() {
-  const filas = document.querySelectorAll('#tablaOrdenesCompra tr')
-  const paginacion = document.getElementById('paginacion-ordenes-compra')
-  let paginaActual = 1
-  const filasPorPagina = 10
-  const totalFilas = filas.length
-  const totalPaginas = Math.ceil(totalFilas / filasPorPagina)
-
-  function mostrarPagina(pagina) {
-    paginaActual = pagina
-    filas.forEach((fila, index) => {
-      fila.style.display =
-        index >= (pagina - 1) * filasPorPagina && index < pagina * filasPorPagina ? '' : 'none'
-    })
-    renderPaginacion()
-  }
-
-  function renderPaginacion() {
-    if (!paginacion) return
-    paginacion.innerHTML = ''
-    for (let i = 1; i <= totalPaginas; i++) {
-      const boton = document.createElement('button')
-      boton.textContent = i
-      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      boton.addEventListener('click', () => mostrarPagina(i))
-      paginacion.appendChild(boton)
-    }
-  }
-
-  if (totalFilas > 0) mostrarPagina(1)
+  setupClientSideTable({
+    rowsSelector: '#tablaOrdenesCompra tbody tr',
+    paginationSelector: 'paginacion-ordenes-compra',
+    rowsPerPage: 10
+  });
 }
 
 async function mostrarVerOrdenCompra(idOrden) {
@@ -2004,18 +1935,7 @@ async function mostrarVerOrdenCompra(idOrden) {
     const data = await response.json()
     if (data.error) throw new Error(data.error)
 
-    let html = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
-                <div><strong>Fecha:</strong> ${data.Fecha}</div>
-                <div><strong>Estado:</strong> <span class="font-semibold text-blue-600">${data.Estado}</span></div>
-                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
-                <div><strong>Departamento:</strong> ${data.DepartamentoNombre + ' - ' + data.ID_Place}</div>
-                <div><strong>Complejo:</strong> ${data.Complejo}</div>
-                <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
-                <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>
-            </div>
-        `
+    let html = generarDetallesSolicitudHTML(data)
 
     // Mostrar comentarios si existen (especialmente para rechazos)
     if (data.ComentariosAdmin) {
@@ -2121,75 +2041,35 @@ function regresarTablaOrdenCompra() {
 /**
  * Lógica para el CRUD de proveedores
  */
-// --- Tabla: paginación y filtros ---
 function initCrudProveedores() {
-  const tabla = document.getElementById('tabla-proveedores')
-  if (!tabla) return
+  const tabla = document.getElementById('tabla-proveedores');
+  if (!tabla) return;
 
-  initProveedorTabla(tabla) // paginación y filtros
-  initProveedorPantallas() // cambiar entre lista/agregar/editar
-  initProveedorForm() // manejo de formulario agregar
-  initProveedorEditarForm() // manejo de formulario editar
-  initProveedorActions(tabla) // botones editar/eliminar
+  initProveedorTabla();
+  initProveedorPantallas();
+  initProveedorForm();
+  initProveedorEditarForm();
+  initProveedorActions(tabla);
 }
 
-// --- Tabla: paginación y filtros ---
-function initProveedorTabla(tabla) {
-  const rows = Array.from(tabla.querySelectorAll('tr'))
-  const rowsPerPage = 10
-  let currentPage = 1
-  let filteredRows = [...rows]
-
-  const pageInfo = document.getElementById('info-proveedores')
-  const prevBtn = document.getElementById('prev-proveedores')
-  const nextBtn = document.getElementById('next-proveedores')
-
-  const inputNombre = document.getElementById('buscar-nombre')
-  const inputServicio = document.getElementById('buscar-servicio')
-
-  function showPage(page) {
-    const start = (page - 1) * rowsPerPage
-    const end = start + rowsPerPage
-
-    rows.forEach((r) => (r.style.display = 'none'))
-    filteredRows.forEach((row, i) => {
-      row.style.display = i >= start && i < end ? '' : 'none'
-    })
-
-    const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1
-    if (pageInfo) pageInfo.textContent = `Página ${page} de ${totalPages}`
-    if (prevBtn) prevBtn.disabled = page === 1
-    if (nextBtn) nextBtn.disabled = page === totalPages
-  }
-
-  function applyFilters() {
-    const nombreFiltro = (inputNombre?.value || '').toLowerCase()
-    const servicioFiltro = (inputServicio?.value || '').toLowerCase()
-
-    filteredRows = rows.filter((row) => {
-      const razonsocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || ''
-      const servicio = row.querySelector('.servicio')?.textContent.toLowerCase() || ''
-      return razonsocial.includes(nombreFiltro) && servicio.includes(servicioFiltro)
-    })
-
-    currentPage = 1
-    showPage(currentPage)
-  }
-
-  if (inputNombre) inputNombre.oninput = applyFilters
-  if (inputServicio) inputServicio.oninput = applyFilters
-  if (prevBtn)
-    prevBtn.onclick = () => {
-      if (currentPage > 1) showPage(--currentPage)
-    }
-  if (nextBtn)
-    nextBtn.onclick = () => {
-      const totalPages = Math.ceil(filteredRows.length / rowsPerPage) || 1
-      if (currentPage < totalPages) showPage(++currentPage)
-    }
-
-  applyFilters()
+function initProveedorTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-proveedores tr[data-id]',
+    paginationSelector: 'paginacion-proveedores', // Assuming a new ID for pagination container
+    filterFormSelector: '#form-filtros-proveedores', // Assuming a form for filters
+    filterFunction: (row, form) => {
+      const nombreFiltro = (form.querySelector('#buscar-nombre')?.value || '').toLowerCase();
+      const servicioFiltro = (form.querySelector('#buscar-servicio')?.value || '').toLowerCase();
+      
+      const razonsocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || '';
+      const servicio = row.querySelector('.servicio')?.textContent.toLowerCase() || '';
+      
+      return razonsocial.includes(nombreFiltro) && servicio.includes(servicioFiltro);
+    },
+    rowsPerPage: 10
+  });
 }
+
 
 // --- Cambio de pantallas ---
 function initProveedorPantallas() {
@@ -2201,7 +2081,7 @@ function initProveedorPantallas() {
   const btnRegresarAgregar = document.getElementById('btn-regresar-lista')
   const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar')
 
-  if (btnAgregar)
+  if (btnAgregar) 
     btnAgregar.onclick = (e) => {
       e.preventDefault()
       pantallaLista?.classList.add('hidden')
@@ -2377,109 +2257,66 @@ function initProveedorActions(tabla) {
  * Lógica para Entrega de Material
  */
 function initEntregaMaterial() {
-  const tbodyBuscar = document.getElementById('tablaBuscarMateriales')
-  const paginacionBuscar = document.getElementById('paginacion-buscar-materiales')
-  const inputBuscar = document.getElementById('buscarMaterial')
-  const tbodyEntrega = document.getElementById('tablaEntregaMateriales')
-  const btnAgregarSeleccionados = document.getElementById('btn-agregar-seleccionados')
-  if (!tbodyBuscar || !tbodyEntrega) return
+  const tbodyBuscar = document.getElementById('tablaBuscarMateriales');
+  const tbodyEntrega = document.getElementById('tablaEntregaMateriales');
+  const btnAgregarSeleccionados = document.getElementById('btn-agregar-seleccionados');
+  if (!tbodyBuscar || !tbodyEntrega) return;
 
-  const filasOriginales = Array.from(tbodyBuscar.querySelectorAll('tr'))
-  let paginaActual = 1
-  const filasPorPagina = 10
-  let productosSeleccionados = []
+  let productosSeleccionados = [];
 
-  // ---------- FILTRO Y PAGINACIÓN ----------
-  function aplicarFiltro() {
-    const termino = (inputBuscar?.value || '').trim().toLowerCase()
-    if (!termino) return filasOriginales
-    return filasOriginales.filter((fila) => {
-      const codigo = (fila.cells[0]?.textContent || '').toLowerCase()
-      const nombre = (fila.cells[1]?.textContent || '').toLowerCase()
-      return codigo.includes(termino) || nombre.includes(termino)
-    })
-  }
-
-  function mostrarPagina(pagina, filasFiltradas) {
-    paginaActual = pagina
-    filasOriginales.forEach((f) => (f.style.display = 'none'))
-    const inicio = (pagina - 1) * filasPorPagina
-    const fin = inicio + filasPorPagina
-    filasFiltradas.slice(inicio, fin).forEach((f) => (f.style.display = ''))
-    renderPaginacion(filasFiltradas.length)
-  }
-
-  function renderPaginacion(totalFiltradas) {
-    if (!paginacionBuscar) return
-    paginacionBuscar.innerHTML = ''
-    const totalPaginas = Math.max(1, Math.ceil(totalFiltradas / filasPorPagina))
-    if (totalPaginas <= 1) {
-      paginacionBuscar.style.display = 'none'
-      return
-    }
-    paginacionBuscar.style.display = 'flex'
-    for (let i = 1; i <= totalPaginas; i++) {
-      const boton = document.createElement('button')
-      boton.textContent = i
-      boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      boton.addEventListener('click', () => mostrarPagina(i, aplicarFiltro()))
-      paginacionBuscar.appendChild(boton)
-    }
-  }
-
-  function actualizarTablaBuscar() {
-    const filtradas = aplicarFiltro()
-    mostrarPagina(1, filtradas)
-  }
-
-  if (inputBuscar && !inputBuscar.dataset.bound) {
-    inputBuscar.addEventListener('input', actualizarTablaBuscar)
-    inputBuscar.dataset.bound = '1'
-  }
-
-  actualizarTablaBuscar()
+  setupClientSideTable({
+    rowsSelector: '#tablaBuscarMateriales tr[data-id]',
+    paginationSelector: 'paginacion-buscar-materiales',
+    filterFormSelector: '#buscar-materiales-content',
+    filterFunction: (row, form) => {
+      const inputBuscar = form.querySelector('#buscarMaterial');
+      const termino = (inputBuscar?.value || '').trim().toLowerCase();
+      if (!termino) return true;
+      const codigo = (row.cells[0]?.textContent || '').toLowerCase();
+      const nombre = (row.cells[1]?.textContent || '').toLowerCase();
+      return codigo.includes(termino) || nombre.includes(termino);
+    },
+    rowsPerPage: 10
+  });
 
   // ---------- SELECCIÓN DE PRODUCTOS ----------
   window.toggleSeleccionProducto = function (id) {
-    const index = productosSeleccionados.indexOf(id)
+    const index = productosSeleccionados.indexOf(id);
+    const fila = document.getElementById('fila-producto-' + id);
     if (index === -1) {
-      productosSeleccionados.push(id)
-      document.getElementById('fila-producto-' + id).classList.add('bg-green-100')
+      productosSeleccionados.push(id);
+      if(fila) fila.classList.add('bg-green-100');
     } else {
-      productosSeleccionados.splice(index, 1)
-      document.getElementById('fila-producto-' + id).classList.remove('bg-green-100')
+      productosSeleccionados.splice(index, 1);
+      if(fila) fila.classList.remove('bg-green-100');
     }
-    actualizarBotonAgregar()
+    actualizarBotonAgregar();
   }
 
   function actualizarBotonAgregar() {
-    const total = productosSeleccionados.length
+    const total = productosSeleccionados.length;
     btnAgregarSeleccionados.textContent =
-      total > 0 ? `Agregar ${total} productos` : 'Agregar 0 productos'
-    btnAgregarSeleccionados.disabled = total === 0
+      total > 0 ? `Agregar ${total} productos` : 'Agregar 0 productos';
+    btnAgregarSeleccionados.disabled = total === 0;
   }
 
   // ---------- AGREGAR PRODUCTOS A TABLA ENTREGA ----------
   window.agregarProductosSeleccionados = function () {
-    if (productosSeleccionados.length === 0) return
+    if (productosSeleccionados.length === 0) return;
 
-    // Quitar mensaje vacío si existe
-    const filaVacia = tbodyEntrega.querySelector('tr td[colspan="5"]')
-    if (filaVacia) filaVacia.parentElement.remove()
+    const filaVacia = tbodyEntrega.querySelector('tr td[colspan="5"]');
+    if (filaVacia) filaVacia.parentElement.remove();
 
     productosSeleccionados.forEach((id) => {
-      const filaBuscar = document.getElementById('fila-producto-' + id)
-      if (!filaBuscar) return
+      const filaBuscar = document.getElementById('fila-producto-' + id);
+      if (!filaBuscar || tbodyEntrega.querySelector(`#entrega-${id}`)) return;
 
-      // Evitar duplicados
-      if (tbodyEntrega.querySelector(`#entrega-${id}`)) return
+      const codigo = filaBuscar.cells[0]?.textContent || '';
+      const nombre = filaBuscar.cells[1]?.textContent || '';
+      const existencia = filaBuscar.cells[2]?.textContent || '0';
 
-      const codigo = filaBuscar.cells[0]?.textContent || ''
-      const nombre = filaBuscar.cells[1]?.textContent || ''
-      const existencia = filaBuscar.cells[2]?.textContent || '0'
-
-      const nuevaFila = document.createElement('tr')
-      nuevaFila.id = `entrega-${id}`
+      const nuevaFila = document.createElement('tr');
+      nuevaFila.id = `entrega-${id}`;
       nuevaFila.innerHTML = `
         <td class="py-2 px-4">${codigo}</td>
         <td class="py-2 px-4">${nombre}</td>
@@ -2494,132 +2331,42 @@ function initEntregaMaterial() {
             </svg>
           </button>
         </td>
-      `
-      tbodyEntrega.appendChild(nuevaFila)
-    })
+      `;
+      tbodyEntrega.appendChild(nuevaFila);
+    });
 
-    productosSeleccionados = []
-    actualizarBotonAgregar()
-    regresarBuscarMateriales()
+    productosSeleccionados = [];
+    actualizarBotonAgregar();
+    regresarBuscarMateriales();
   }
 
   // ---------- ELIMINAR FILA ----------
   window.eliminarFilaEntrega = function (id) {
-    const fila = document.getElementById(`entrega-${id}`)
-    if (fila) fila.remove()
+    const fila = document.getElementById(`entrega-${id}`);
+    if (fila) fila.remove();
 
-    // Si la tabla queda vacía, mostrar mensaje
     if (tbodyEntrega.querySelectorAll('tr').length === 0) {
-      const filaVacia = document.createElement('tr')
-      filaVacia.innerHTML = `
-        <td colspan="5" class="py-2 px-4 text-center text-gray-500">
-          No hay materiales seleccionados.
-        </td>
-      `
-      tbodyEntrega.appendChild(filaVacia)
+      const filaVacia = document.createElement('tr');
+      filaVacia.innerHTML = `<td colspan="5" class="py-2 px-4 text-center text-gray-500">No hay materiales seleccionados.</td>`;
+      tbodyEntrega.appendChild(filaVacia);
     }
   }
 
   // ---------- MOSTRAR / OCULTAR PANTALLAS ----------
   window.mostrarBuscarMateriales = function () {
-    // Limpiar selección anterior
-    productosSeleccionados = []
-    const filas = document.querySelectorAll('#tablaBuscarMateriales tr')
-    filas.forEach((fila) => fila.classList.remove('bg-green-100'))
-
-    // Reiniciar botón
-    btnAgregarSeleccionados.textContent = 'Agregar 0 productos'
-    btnAgregarSeleccionados.disabled = true
-
-    // Mostrar pantalla buscar y ocultar entrega
-    document.getElementById('entrega-material-content').classList.add('hidden')
-    document.getElementById('buscar-materiales-content').classList.remove('hidden')
+    productosSeleccionados = [];
+    document.querySelectorAll('#tablaBuscarMateriales tr').forEach((fila) => fila.classList.remove('bg-green-100'));
+    actualizarBotonAgregar();
+    document.getElementById('entrega-material-content').classList.add('hidden');
+    document.getElementById('buscar-materiales-content').classList.remove('hidden');
   }
 
   window.regresarBuscarMateriales = function () {
-    document.getElementById('buscar-materiales-content').classList.add('hidden')
-    document.getElementById('entrega-material-content').classList.remove('hidden')
+    document.getElementById('buscar-materiales-content').classList.add('hidden');
+    document.getElementById('entrega-material-content').classList.remove('hidden');
   }
 }
 
-let productosSeleccionados = []
-// Marcar / desmarcar productos seleccionados
-function toggleSeleccionProducto(idProducto) {
-  const index = productosSeleccionados.indexOf(idProducto)
-  if (index === -1) {
-    productosSeleccionados.push(idProducto)
-  } else {
-    productosSeleccionados.splice(index, 1)
-  }
-  actualizarBotonAgregar()
-}
-
-// Actualiza el botón "Agregar X productos"
-function actualizarBotonAgregar() {
-  const btn = document.getElementById('btn-agregar-seleccionados')
-  if (!btn) return
-  const total = productosSeleccionados.length
-  btn.textContent = total > 0 ? `Agregar ${total} productos` : 'Agregar productos'
-  btn.disabled = total === 0
-}
-
-// Pasa los productos seleccionados a la tabla de entrega
-function agregarProductosSeleccionados() {
-  if (productosSeleccionados.length === 0) return
-
-  const tbodyEntrega = document.getElementById('tablaEntregaMateriales')
-  if (!tbodyEntrega) {
-    console.warn('No se encontró tbodyEntregaMateriales')
-    return
-  }
-
-  // Quitar mensaje vacío si existe
-  const filaVacia = tbodyEntrega.querySelector('tr td[colspan="5"]')
-  if (filaVacia) filaVacia.parentElement.remove()
-
-  productosSeleccionados.forEach((id) => {
-    const filaOriginal = document.getElementById(`fila-producto-${id}`)
-    if (!filaOriginal) return
-
-    // Evitar duplicados
-    if (tbodyEntrega.querySelector(`#entrega-${id}`)) return
-
-    const codigo = filaOriginal.cells[0].textContent
-    const nombre = filaOriginal.cells[1].textContent
-    const existencia = filaOriginal.cells[2].textContent
-
-    const nuevaFila = document.createElement('tr')
-    nuevaFila.id = `entrega-${id}`
-    nuevaFila.innerHTML = `
-      <td class="py-2 px-4">${codigo}</td>
-      <td class="py-2 px-4">${nombre}</td>
-      <td class="py-2 px-4">
-        <input type="number" min="1" max="${existencia}" value="1"
-          class="w-20 border rounded px-2 py-1 text-center" />
-      </td>
-      <td class="py-2 px-4">${existencia}</td>
-      <td class="py-2 px-4 text-center">
-        <button type="button" class="text-red-600 hover:text-red-800"
-          onclick="document.getElementById('entrega-${id}').remove()">
-          <svg fill="none" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
-            <use xlink:href="${iconUrl}#eliminar-fila"></use>
-          </svg>
-        </button>
-      </td>
-    `
-    tbodyEntrega.appendChild(nuevaFila)
-  })
-
-  // Limpiar selección y regresar pantalla
-  productosSeleccionados = []
-  actualizarBotonAgregar()
-  regresarBuscarMateriales()
-}
-
-function mostrarBuscarMateriales() {
-  document.getElementById('entrega-material-content').classList.add('hidden')
-  document.getElementById('buscar-materiales-content').classList.remove('hidden')
-}
 /**
  * Lógica para el modal "CRUD Usuarios" con Alpine.js
  */
@@ -3268,11 +3015,6 @@ function regresarFichaCredito() {
 /**
  * Varios
  */
-// Función de ejemplo para notificaciones (puedes adaptar)
-// function mostrarNotificacion(msg, tipo = 'success') {
-//   alert(msg) // Simple alert, se puede reemplazar por un toast
-// }
-
 // Inicializar
 document.addEventListener('DOMContentLoaded', initCrudProveedores)
 
