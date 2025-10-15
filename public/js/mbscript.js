@@ -791,7 +791,6 @@ function initPaginacionHistorial() {
   });
 }
 
-
 // Funciones para mostrar/ocultar la pantalla de ver historial
 async function mostrarVerHistorial(idSolicitud) {
   const divHistorial = document.getElementById('div-historial')
@@ -1323,24 +1322,25 @@ function initRegistrarMaterial() {
       body: formData,
       headers: { Accept: 'application/json' },
     })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          alert('Producto registrado correctamente')
-          form.reset()
-        } else {
-          const errorMsg = data.errors
-            ? Object.values(data.errors).join('\n')
-            : data.message || 'Error desconocido'
-          alert('Error al registrar producto:\n' + errorMsg)
-        }
-      })
-      .catch((err) => {
-        console.error(err)
-        alert('Error al procesar la solicitud')
-      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            alert('Producto registrado correctamente')
+            form.reset()
+          } else {
+            const errorMsg = data.errors
+                ? Object.values(data.errors).join('\n')
+                : data.message || 'Error desconocido'
+            alert('Error al registrar producto:\n' + errorMsg)
+          }
+        })
+        .catch((err) => {
+          console.error(err)
+          alert('Error al procesar la solicitud')
+        })
   })
 }
+
 
 /**
  * Lógica para el modal "Enviar a Revisión"
@@ -1784,7 +1784,6 @@ function initCrudProductos() {
   });
 }
 
-
 function eliminarProducto(idProducto) {
   if (!confirm('¿Estás seguro de que deseas eliminar este producto?')) return
 
@@ -1913,6 +1912,12 @@ function guardarEdicion() {
       alert('Ocurrió un error al guardar los cambios.')
     })
 }
+
+// Regresar a la vista principal de Almacén
+function regresarAlmacen() {
+  abrirModal('almacen');
+}
+
 
 /**
  * Lógica para el modal "Órdenes de Compra"
@@ -2369,7 +2374,7 @@ function initEntregaMaterial() {
   }
 }
 
-/**
+|/**
  * Lógica para el modal "CRUD Usuarios" con Alpine.js
  */
 function crudUsuarios() {

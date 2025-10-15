@@ -1,6 +1,16 @@
 <div class="p-4">
     <h2 class="text-2xl font-bold mb-4">CRUD Productos</h2>
 
+    <!-- Encabezado con botón de regresar -->
+    <div class="flex justify-between items-center mb-4">
+        <button onclick="abrirModal('almacen')"
+                class="text-sm text-gray-600 hover:text-gray-900 transition">
+            &larr; Regresar
+        </button>
+        <h2 class="text-2xl font-bold">CRUD Productos</h2>
+        <div></div>
+    </div>
+
     <!-- Barra de búsqueda -->
     <div id="div-busqueda" class="mb-4">
         <input

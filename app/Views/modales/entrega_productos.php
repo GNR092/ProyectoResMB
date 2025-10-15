@@ -6,6 +6,16 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
 <!-- Pantalla: Entrega de Material -->
 <div id="entrega-material-content" class="p-6">
+
+    <div class="flex justify-between items-center mb-4">
+        <button onclick="abrirModal('almacen')"
+                class="text-sm text-gray-600 hover:text-gray-900 transition">
+            &larr; Regresar
+        </button>
+        <h2 class="text-2xl font-bold">Entrega de productos/materiales</h2>
+        <div></div>
+    </div>
+
     <div class="flex justify-between mb-4">
         <h2 class="text-lg font-semibold">Entrega de Material</h2>
         <div></div>
@@ -101,6 +111,8 @@ $iconUrl = "/icons/icons.svg?v=$version";
         </div>
     </div>
 </div>
+
+
 
 <!-- Pantalla: Buscar Materiales -->
 <div id="buscar-materiales-content" class="hidden p-6">
