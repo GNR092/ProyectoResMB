@@ -238,6 +238,12 @@ class Modales extends BaseController
 
                 return view('modales/aprobar_solicitudes', $data);
 
+            case 'ajustes':
+                return view('modales/ajustes');
+
+            case 'almacen':
+                return view('modales/almacen');
+
             default:
                 return 'Opción no válida';
         }

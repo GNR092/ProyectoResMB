@@ -23,6 +23,8 @@ function abrirModal(opcion) {
     crud_productos: 'Existencias',
     entrega_productos: 'Entrega de Material',
     ficha_pago: 'Fichas de pago',
+    ajustes: 'Ajustes',
+    almacen: 'Almacén'
   }
   // Título para la nueva opción
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'

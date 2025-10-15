@@ -33,12 +33,14 @@ $session = session();
             <p class="text-gray-400 text-sm">Sin opciones disponibles</p>
             <?php endif; ?>
 
-            <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2">
+            <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
+               onclick="abrirModal('ajustes')">
                 <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
                     <use xlink:href="/icons/icons.svg#settings"></use>
                 </svg>
                 <span>Ajustes</span>
             </a>
+
 
             <a href="<?= base_url(
                 'auth/logout',
