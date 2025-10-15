@@ -1,4 +1,6 @@
-# Sistema de Compras
+# Sistema de Compras ![Static Badge](https://img.shields.io/badge/ProyectoResMB-f3b93c?style=plastic)
+
+[![Pregúntale a DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/GNR092/ProyectoResMB) ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/GNR092/ProyectoResMB?style=plastic&label=Main%20commit) ![GitHub commit activity](https://img.shields.io/github/commit-activity/t/GNR092/ProyectoResMB%2Ftest?style=plastic&label=test%20commit)
 
 Una de las características clave es su **asistente de instalación web**, que simplifica enormemente la configuración inicial de la base de datos y el entorno, haciendo que el despliegue sea rápido y sin complicaciones.
 
