@@ -1,6 +1,15 @@
 <!-- Pantalla 1: lista de proveedores -->
 <div id="pantalla-lista-proveedores" class="p-6 bg-white rounded-xl shadow-md">
+
+    <div class="flex items-center mb-4">
+        <button onclick="abrirModal('ajustes')"
+                class="text-sm text-gray-600 hover:text-gray-900 transition">
+            &larr; Regresar
+        </button>
+    </div>
+
     <h2 class="text-2xl font-semibold mb-4 text-center">Lista de Proveedores</h2>
+
 
     <!-- Buscadores y botón AGREGAR -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">

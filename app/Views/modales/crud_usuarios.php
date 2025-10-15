@@ -8,6 +8,14 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
     <!-- Pantalla de Lista -->
     <div id="div-lista-usuarios">
+
+        <div class="flex items-center mb-4">
+            <button onclick="abrirModal('ajustes')"
+                    class="text-sm text-gray-600 hover:text-gray-900 transition">
+                &larr; Regresar
+            </button>
+        </div>
+
         <div class="flex justify-between items-center mb-4">
             <button @click="mostrarFormularioCrear" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
                 Crear Nuevo Usuario
