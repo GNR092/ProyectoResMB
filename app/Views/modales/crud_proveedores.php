@@ -5,8 +5,10 @@
     <!-- Buscadores y botón AGREGAR -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
         <div class="flex flex-1 gap-4">
-            <input type="text" id="buscar-nombre" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
-            <input type="text" id="buscar-servicio" placeholder="Buscar por servicio..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+            <label for="buscar-nombre" class="sr-only">Buscar por nombre</label>
+            <input type="text" id="buscar-nombre" name="buscar_nombre" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+            <label for="buscar-servicio" class="sr-only">Buscar por servicio</label>
+            <input type="text" id="buscar-servicio" name="buscar_servicio" placeholder="Buscar por servicio..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-ring-blue-300">
         </div>
         <div>
             <a href="#" id="btn-agregar-proveedor" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">

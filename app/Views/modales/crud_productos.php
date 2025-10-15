@@ -13,9 +13,11 @@
 
     <!-- Barra de búsqueda -->
     <div id="div-busqueda" class="mb-4">
+        <label for="buscarProducto" class="sr-only">Buscar producto por código o nombre</label>
         <input
                 type="text"
                 id="buscarProducto"
+                name="buscar_producto"
                 placeholder="Buscar por código o nombre..."
                 class="w-full px-4 py-2 border rounded-md"
         >

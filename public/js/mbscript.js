@@ -743,8 +743,8 @@ function initPaginacionHistorial() {
   createPaginatedTable({
     tableSelector: '#tabla-historial tbody',
     paginationSelector: 'paginacion-historial',
-    endpoint: `${BASE_URL}${url}`,
-    filterFormSelector: '#modal-contenido', // Container for filters
+    endpoint: url,
+    filterFormSelector: '#modal-contenido', // Container for filters, used to attach events
     renderRow: (item) => {
       const status = item.Estado == 'Dept_Rechazada' ? 'Rechazada' : item.Estado;
       const svg = getStatususSVG(status);
@@ -765,10 +765,10 @@ function initPaginacionHistorial() {
       `;
     },
     filterFunction: (allData, form) => {
-      const fechaFiltro = form.querySelector('#filtro-fecha').value;
-      const filtrarPorMes = form.querySelector('#filtrar-por-mes').checked;
-      const estadoFiltro = form.querySelector('#filtro-estado').value;
-      const departamentoFiltro = form.querySelector('#filtroDepartamento')?.value || '';
+      const fechaFiltro = document.getElementById('filtro-fecha').value;
+      const filtrarPorMes = document.getElementById('filtrar-por-mes').checked;
+      const estadoFiltro = document.getElementById('filtro-estado').value;
+      const departamentoFiltro = document.getElementById('filtroDepartamento')?.value || '';
 
       return allData.filter((item) => {
         const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
@@ -1351,7 +1351,7 @@ function initEnviarRevision() {
   createPaginatedTable({
     tableSelector: '#tabla-enviar tbody',
     paginationSelector: 'paginacion-enviar-revision',
-    endpoint: `${BASE_URL}api/solicitudes/cotizadas`,
+    endpoint: 'api/solicitudes/cotizadas',
     processData: (data) => data.filter((s) => s.Estado !== 'En revision'),
     noResultsMessage: 'No hay solicitudes cotizadas para mostrar.',
     renderRow: (s) => {
@@ -1488,7 +1488,11 @@ async function enviarRevisionHandler(event) {
     const formData = new FormData()
     formData.append('ID_Solicitud', idSolicitud)
 
-    const archivos = document.getElementById('archivos-revision').files
+    const archivos = document.getElementById('archivos-revision').files;
+    if (archivos.length === 0) {
+      mostrarNotificacion('Debe adjuntar al menos un archivo.', 'error');
+      return;
+    }
     for (let i = 0; i < archivos.length; i++) {
       formData.append('archivos[]', archivos[i])
     }
@@ -1543,7 +1547,7 @@ async function initDictamenSolicitudes() {
   createPaginatedTable({
     tableSelector: '#tablaDictamenSolicitudes',
     paginationSelector: 'paginacion-dictamen',
-    endpoint: `${BASE_URL}api/solicitudes/en-revision`,
+    endpoint: 'api/solicitudes/en-revision',
     noResultsMessage: 'No hay solicitudes en dictamen para mostrar.',
     renderRow: (s) => `
       <tr class="hover:bg-gray-50" data-id="${s.ID}">
@@ -2374,7 +2378,7 @@ function initEntregaMaterial() {
   }
 }
 
-|/**
+/**
  * Lógica para el modal "CRUD Usuarios" con Alpine.js
  */
 function crudUsuarios() {

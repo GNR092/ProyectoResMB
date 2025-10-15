@@ -15,7 +15,8 @@ $iconUrl = "/icons/icons.svg?v=$version";
         </div>
         <!-- Barra de búsqueda -->
         <div class="mb-4">
-            <input type="text" id="buscarUsuario" @input="filtrarUsuarios" placeholder="Buscar por nombre o correo..." class="w-full px-4 py-2 border rounded-md">
+            <label for="buscarUsuario" class="sr-only">Buscar usuario por nombre o correo</label>
+            <input type="text" id="buscarUsuario" name="buscar_usuario" @input="filtrarUsuarios" placeholder="Buscar por nombre o correo..." class="w-full px-4 py-2 border rounded-md">
         </div>
 
         <!-- Tabla de usuarios -->
@@ -83,17 +84,17 @@ $iconUrl = "/icons/icons.svg?v=$version";
         <form id="form-crear-usuario" @submit.prevent="guardarNuevoUsuario" class="space-y-4">
             <div>
                 <label for="crear-Nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
-                <input type="text" id="crear-Nombre" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="text" id="crear-Nombre" name="Nombre" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
             </div>
 
             <div>
                 <label for="crear-Correo" class="block text-sm font-medium text-gray-700">Correo</label>
-                <input type="email" id="crear-Correo" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="email" id="crear-Correo" name="Correo" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
             </div>
 
             <div>
                 <label for="crear-ID_Dpto" class="block text-sm font-medium text-gray-700">Departamento</label>
-                <select id="crear-ID_Dpto" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <select id="crear-ID_Dpto" name="ID_Dpto" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="">Seleccione un departamento</option>
                     <?php if (!empty($departamentos)) : ?>
                         <?php foreach ($departamentos as $depto) : ?>
@@ -104,15 +105,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             </div>
 
             <div>
-                <label for="crear-ID_RazonSocial" class="block text-sm font-medium text-gray-700">Razón Social</label>
-                <select id="crear-ID_RazonSocial" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">Seleccione una razón social</option>
-                    <?php if (!empty($razones_sociales)) : ?>
-                        <?php foreach ($razones_sociales as $rs) : ?>
-                            <option value="<?= $rs['ID_RazonSocial'] ?>"><?= esc($rs['Nombre']) ?></option>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </select>
+                <input type="text" id="crear-ID_RazonSocial" name="ID_RazonSocial" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
             </div>
 
             <div>
