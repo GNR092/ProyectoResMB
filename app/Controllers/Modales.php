@@ -207,28 +207,32 @@ class Modales extends BaseController
             case 'ficha_pago':
                 $solicitudModel = new SolicitudModel();
 
-                // Solicitudes con estado "En Proceso de Pago"
+                // Solicitudes de contado (MetodoPago = 0)
                 $data['solicitudes_contado'] = $solicitudModel
                     ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
                     )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En Proceso de Pago')
+                    ->where('Solicitud.MetodoPago', 0)
                     ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                     ->findAll();
 
+                // Solicitudes a crédito (MetodoPago = 1)
                 $data['solicitudes_credito'] = $solicitudModel
                     ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
                     )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'En Proceso de Pago')
+                    ->where('Solicitud.MetodoPago', 1)
                     ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                     ->findAll();
 
                 return view('modales/ficha_pago', $data);
+
 
             case 'aprobar_solicitudes':
                 $idDepartamentoJefe = $this->api->getUserById(session('id'))['ID_Dpto'];
