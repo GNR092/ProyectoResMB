@@ -24,7 +24,8 @@ function abrirModal(opcion) {
     entrega_productos: 'Entrega de Material',
     ficha_pago: 'Fichas de pago',
     ajustes: 'Ajustes',
-    almacen: 'Almacén'
+    almacen: 'Almacén',
+    reportes: 'Reportes/Auditoria',
   }
   // Título para la nueva opción
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'

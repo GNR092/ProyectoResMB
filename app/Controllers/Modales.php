@@ -238,6 +238,9 @@ class Modales extends BaseController
             case 'almacen':
                 return view('modales/almacen');
 
+            case 'reportes':
+                return view('modales/reportes');
+
             default:
                 return 'Opción no válida';
         }

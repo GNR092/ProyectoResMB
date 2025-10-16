@@ -1,4 +1,5 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
     <!-- CRUD Usuarios -->
     <button onclick="abrirModal('crud_usuarios')"
             class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
@@ -25,4 +26,14 @@
         </svg>
         <span>Proveedores</span>
     </button>
+
+    <!-- Reportes/Auditorias -->
+    <button onclick="abrirModal('reportes')"
+            class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
+        <svg class="size-6" fill="none" stroke-width="2" >
+            <use xlink:href="/icons/icons.svg#reportes"></use>
+        </svg>
+        <span>Reportes/Auditorias</span>
+    </button>
+
 </div>

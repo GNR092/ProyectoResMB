@@ -108,6 +108,11 @@ class MenuOptions extends BaseConfig
                 'label' => 'Almacén',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#almacen"></use></svg>',
             ],
+
+            'reportes' => [
+                'label' => 'Reportes/Auditoria',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#reportes"></use></svg>',
+            ],
         ];
     }
 }
