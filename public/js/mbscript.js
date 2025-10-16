@@ -1378,7 +1378,6 @@ function initEnviarRevision() {
   });
 }
 
-
 async function enviarRevisionHandler(event) {
   const fila = event.target.closest('tr')
   const idSolicitud = fila.dataset.id
@@ -2951,6 +2950,7 @@ function regresarTablaCredito() {
   if (botonRegresarPrincipal) botonRegresarPrincipal.classList.remove('hidden')
 }
 
+// ================== FUNCION PARA ENVIAR A TESORERIA ==================
 async function enviarTesoreria(idSolicitud) {
   try {
     const response = await fetch(`${BASE_URL}api/solicitud/enviarATesoreria`, {
@@ -2963,7 +2963,8 @@ async function enviarTesoreria(idSolicitud) {
 
     if (result.success) {
       mostrarNotificacion(result.message || "Solicitud enviada a Tesorería con éxito.", "success");
-      regresarTablaCredito();
+      cerrarModal()
+      abrirModal('pagos_pendientes')
     } else {
       mostrarNotificacion(result.message || "Error al enviar a Tesorería.", "error");
     }
@@ -3012,9 +3013,16 @@ function verFichaContado(id) {
     <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
       <p class="text-gray-700 mb-4">Detalle de la ficha de pago <strong>${id}</strong> (contenido dinámico aquí).</p>
 
-      <div class="flex justify-end mt-4">
-        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
-          Confirmar envío a tesorería
+      <div class="flex justify-between mt-4">
+        <!-- Botón izquierdo: Cerrar solicitud -->
+        <button class="px-4 py-2 bg-red-600 text-white rounded-lg transition">
+                Cerrar requisición
+        </button>
+
+        <!-- Botón derecho: Regresar a Facturas -->
+        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                onclick="regresarAFacturas(${id})">
+          Regresar a Facturas
         </button>
       </div>
     </div>
@@ -3029,6 +3037,37 @@ function regresarFichaContado() {
   detalle.classList.add('hidden')
   tabla.classList.remove('hidden')
   if (botonRegresar) botonRegresar.classList.remove('hidden')
+}
+
+// ================== Función para regresar a facturas con cambio de estado ==================
+async function regresarAFacturas(idSolicitud) {
+  if (!confirm('¿Deseas regresar esta solicitud a facturas pendientes?')) return;
+
+  try {
+    const response = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nuevoEstado: 'Por Pagar' })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert(`⚠️ No se pudo actualizar el estado: ${data.message || 'Error desconocido.'}`);
+      return;
+    }
+
+    // ✅ Mostrar confirmación
+    alert('✅ La solicitud ha sido regresada a facturas pendientes.');
+
+    // ✅ Regresar a la tabla de fichas de contado
+    cerrarModal();
+    abrirModal('ficha_pago');
+
+  } catch (error) {
+    console.error('Error al actualizar el estado:', error);
+    alert('❌ Ocurrió un error al intentar regresar la solicitud.');
+  }
 }
 
 // ================== FICHA CRÉDITO ==================

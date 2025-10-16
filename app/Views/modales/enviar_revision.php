@@ -54,7 +54,7 @@
                 <div class="flex items-center space-x-4 mt-1">
                     <label class="flex items-center">
                         <input type="radio" name="tipo_pago" value="efectivo" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
-                        <span class="ml-2 text-sm text-gray-700">Efectivo</span>
+                        <span class="ml-2 text-sm text-gray-700">Contado</span>
                     </label>
                     <label class="flex items-center">
                         <input type="radio" name="tipo_pago" value="credito" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
