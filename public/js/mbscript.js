@@ -2032,9 +2032,11 @@ async function mostrarVerOrdenCompra(idOrden) {
                     </button>
                     
                     <!-- Aqui se necesitaria que el boton envie la orden por pdf al proveedor y que cambie de estado a "Por Pagar" -->
-                    <button onclick="#" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
-                        Enviar orden de compra
+                    <button onclick="enviarOrdenCompra(${idOrden})" 
+                         class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+                         Enviar orden de compra
                     </button>
+
                 </div>
             `
     }
@@ -2048,6 +2050,42 @@ function regresarTablaOrdenCompra() {
   document.getElementById('div-ver-orden').classList.add('hidden')
   document.getElementById('div-tabla-ordenes').classList.remove('hidden')
 }
+
+// ================== CAMBIAR ESTADO A "EN PROCESO DE PAGO" (RECARGA SOLO EL MODAL) ==================
+async function enviarOrdenCompra(idSolicitud) {
+  if (!confirm('¿Deseas enviar esta orden de compra a Tesorería?')) return;
+
+  try {
+    const response = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nuevoEstado: 'Por Pagar' })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert(`⚠️ No se pudo actualizar el estado: ${data.message || 'Error desconocido.'}`);
+      return;
+    }
+
+    // ✅ Mostrar confirmación
+    alert('✅ La orden fue enviada correctamente y está en proceso de pago.');
+
+    // ✅ Reabrir el modal actualizado (recargar vista interna)
+    if (typeof abrirModal === 'function') {
+      abrirModal('ordenes_compra', idSolicitud);
+    } else {
+      console.warn('⚠️ No se encontró la función abrirModal(). Verifica su nombre o ubicación.');
+    }
+
+  } catch (error) {
+    console.error('Error al actualizar el estado:', error);
+    alert('❌ Ocurrió un error al intentar enviar la orden.');
+  }
+}
+
+
 
 /**
  * Lógica para el CRUD de proveedores

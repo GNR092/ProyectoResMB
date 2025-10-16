@@ -142,29 +142,28 @@ class Modales extends BaseController
             case 'pagos_pendientes':
                 $solicitudModel = new SolicitudModel();
 
-                // Solicitudes con estado "Por Pagar"
+                // ================== Solicitudes de contado (MetodoPago = 0) ==================
                 $data['solicitudes_contado'] = $solicitudModel
-                    ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
-                    )
+                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'Por Pagar')
+                    ->where('Solicitud.MetodoPago', 0)
                     ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                     ->findAll();
 
+                // ================== Solicitudes a crédito (MetodoPago = 1) ==================
                 $data['solicitudes_credito'] = $solicitudModel
-                    ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
-                    )
+                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                     ->where('Solicitud.Estado', 'Por Pagar')
+                    ->where('Solicitud.MetodoPago', 1)
                     ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                     ->findAll();
 
                 return view('modales/pagos_pendientes', $data);
-
+                
             case 'registrar_productos':
                 $productoModel = new ProductoModel();
                 $data['productos'] = $productoModel->findAll();
@@ -232,7 +231,6 @@ class Modales extends BaseController
                     ->findAll();
 
                 return view('modales/ficha_pago', $data);
-
 
             case 'aprobar_solicitudes':
                 $idDepartamentoJefe = $this->api->getUserById(session('id'))['ID_Dpto'];
@@ -657,4 +655,32 @@ class Modales extends BaseController
             ]);
         }
     }
+
+    public function cambiarEstado($idSolicitud)
+    {
+        $solicitudModel = new \App\Models\SolicitudModel();
+
+        $json = $this->request->getJSON(true);
+        $nuevoEstado = $json['nuevoEstado'] ?? null;
+
+        if (!$nuevoEstado) {
+            return $this->response->setJSON(['message' => 'No se especificó el nuevo estado.'])->setStatusCode(400);
+        }
+
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) {
+            return $this->response->setJSON(['message' => 'Solicitud no encontrada.'])->setStatusCode(404);
+        }
+
+        // Actualizar estado
+        $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Estado actualizado correctamente.',
+            'nuevoEstado' => $nuevoEstado,
+        ]);
+    }
+
 }
