@@ -520,6 +520,43 @@ class Api extends ResourceController
         }
     }
 
+    /**
+     * Obtiene los datos de una orden de compra, incluyendo información de la cotización y la solicitud asociada.
+     *
+     * @param int|null $id El ID de la Orden de Compra.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getOrdenCompraData($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de orden de compra numérico.');
+        }
+
+        $data = $this->api->getOrdenCompraData((int) $id);
+
+        if (empty($data)) {
+            return $this->failNotFound('No se encontraron datos para la orden de compra con ID: ' . $id);
+        }
+
+        return $this->respond($data);
+    }
+
+    /**
+     * Obtiene todas las órdenes de compra con su información asociada.
+     *
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getAllOrdenCompraData()
+    {
+        $data = $this->api->getAllOrdenCompraData();
+
+        if (empty($data)) {
+            return $this->failNotFound('No se encontraron órdenes de compra.');
+        }
+
+        return $this->respond($data);
+    }
+
     public function cambiarEstadoOrden($idSolicitud)
     {
         $solicitudModel = new \App\Models\SolicitudModel();
