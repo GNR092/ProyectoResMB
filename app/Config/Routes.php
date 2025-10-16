@@ -88,7 +88,8 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/solicitudes/cotizadas', 'Api::getSolicitudesCotizadas');
         $routes->get('api/solicitudes/getsoluser/(:num)', 'Api::getSolicitudesUsers/$1');
         $routes->get('api/solicitudes/en-revision', 'Api::getSolicitudesEnRevision');
-        $routes->post('api/solicitudes/cambiarEstado/(:num)', 'Modales::cambiarEstado/$1');
+        $routes->post('api/solicitudes/cambiarEstado/(:num)', 'Api::cambiarEstadoOrden/$1');
+        $routes->post('api/solicitud/enviarATesoreria', 'Api::enviarATesoreria');
 
         // Auth
         $routes->get('auth/logout', 'Auth::logout');

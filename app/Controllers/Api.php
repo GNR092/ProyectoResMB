@@ -514,7 +514,70 @@ class Api extends ResourceController
             return $this->failServerError('Ocurrió un error inesperado.');
         }
     }
+
+    public function cambiarEstadoOrden($idSolicitud)
+    {
+        $solicitudModel = new \App\Models\SolicitudModel();
+
+        $json = $this->request->getJSON(true);
+        $nuevoEstado = $json['nuevoEstado'] ?? null;
+
+        if (!$nuevoEstado) {
+            return $this->failValidationErrors('No se especificó el nuevo estado.');
+        }
+
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) {
+            return $this->failNotFound('Solicitud no encontrada.');
+        }
+
+        // Actualizar estado
+        $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
+
+        return $this->respondUpdated([
+            'success' => true,
+            'message' => 'Estado actualizado correctamente.',
+            'nuevoEstado' => $nuevoEstado,
+        ]);
+    }
+
+    public function enviarATesoreria()
+    {
+        $this->response->setHeader('Content-Type', 'application/json');
+        $data = $this->request->getJSON(true);
+
+        if (empty($data['ID_Solicitud'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se proporcionó el ID de la solicitud.'
+            ]);
+        }
+
+        $solicitudModel = new \App\Models\SolicitudModel();
+        $id = $data['ID_Solicitud'];
+
+        $solicitud = $solicitudModel->find($id);
+
+        if (!$solicitud) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Solicitud no encontrada.'
+            ]);
+        }
+
+        // Actualiza el estado
+        $solicitudModel->update($id, ['Estado' => 'En Proceso de Pago']);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Solicitud enviada a Tesorería con éxito.'
+        ]);
+    }
+
+
     //endregion
+
     //region proveedores
     /**
      * Obtiene todos los proveedores con solo ID y Nombre.

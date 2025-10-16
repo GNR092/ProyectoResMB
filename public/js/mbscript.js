@@ -1917,7 +1917,6 @@ function guardarEdicion() {
     })
 }
 
-// Regresar a la vista principal de Almacén
 function regresarAlmacen() {
   abrirModal('almacen');
 }
@@ -2051,7 +2050,7 @@ function regresarTablaOrdenCompra() {
   document.getElementById('div-tabla-ordenes').classList.remove('hidden')
 }
 
-// ================== CAMBIAR ESTADO A "EN PROCESO DE PAGO" (RECARGA SOLO EL MODAL) ==================
+// ================== Enviar a facturas ==================
 async function enviarOrdenCompra(idSolicitud) {
   if (!confirm('¿Deseas enviar esta orden de compra a Tesorería?')) return;
 
@@ -2065,23 +2064,19 @@ async function enviarOrdenCompra(idSolicitud) {
     const data = await response.json();
 
     if (!response.ok || !data.success) {
-      alert(`⚠️ No se pudo actualizar el estado: ${data.message || 'Error desconocido.'}`);
+      mostrarNotificacion(data.message || 'Error desconocido al actualizar el estado.', 'error');
       return;
     }
 
-    // ✅ Mostrar confirmación
-    alert('✅ La orden fue enviada correctamente y está en proceso de pago.');
+    // Confirmación
+    mostrarNotificacion('✅ La orden fue enviada correctamente y está en proceso de pago.', 'success');
 
-    // ✅ Reabrir el modal actualizado (recargar vista interna)
-    if (typeof abrirModal === 'function') {
-      abrirModal('ordenes_compra', idSolicitud);
-    } else {
-      console.warn('⚠️ No se encontró la función abrirModal(). Verifica su nombre o ubicación.');
-    }
+    // Volver a la tabla principal de órdenes
+    regresarTablaOrdenCompra();
 
   } catch (error) {
     console.error('Error al actualizar el estado:', error);
-    alert('❌ Ocurrió un error al intentar enviar la orden.');
+    mostrarNotificacion('❌ Ocurrió un error al intentar enviar la orden.', 'error');
   }
 }
 
@@ -2890,12 +2885,15 @@ function verDetalleContado(id) {
     <div class="flex justify-between items-center mb-4">
       <button onclick="regresarTablaContado()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
       <h2 class="text-lg font-semibold">Detalle de la solicitud ${id}</h2>
-      <div></div>
+      <button class="px-4 py-2 bg-gray-400 hover:bg-gray-500 text-white rounded-lg transition">
+        Cerrar solicitud
+      </button>
     </div>
     <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
       <p class="text-gray-700 mb-4">Información detallada de la solicitud <strong>${id}</strong>.</p>
       <div class="flex justify-end mt-4">
-        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+        <button class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
+                onclick="enviarTesoreria(${id})">
           Enviar a tesorería para pago
         </button>
       </div>
@@ -2912,6 +2910,7 @@ function regresarTablaContado() {
   tabla.classList.remove('hidden')
   if (botonRegresarPrincipal) botonRegresarPrincipal.classList.remove('hidden')
 }
+
 
 // ================== PAGO CRÉDITO ==================
 function verDetalleCredito(id) {
@@ -2932,9 +2931,11 @@ function verDetalleCredito(id) {
     <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
       <p class="text-gray-700 mb-4">Información detallada de la solicitud <strong>${id}</strong>.</p>
       <div class="flex justify-end mt-4">
-        <button class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
-          Enviar a tesorería
+        <button class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
+             onclick="enviarTesoreria(${id})">
+             Enviar a tesorería
         </button>
+
       </div>
     </div>
   `
@@ -2950,7 +2951,27 @@ function regresarTablaCredito() {
   if (botonRegresarPrincipal) botonRegresarPrincipal.classList.remove('hidden')
 }
 
+async function enviarTesoreria(idSolicitud) {
+  try {
+    const response = await fetch(`${BASE_URL}api/solicitud/enviarATesoreria`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ID_Solicitud: idSolicitud })
+    });
 
+    const result = await response.json();
+
+    if (result.success) {
+      mostrarNotificacion(result.message || "Solicitud enviada a Tesorería con éxito.", "success");
+      regresarTablaCredito();
+    } else {
+      mostrarNotificacion(result.message || "Error al enviar a Tesorería.", "error");
+    }
+  } catch (error) {
+    console.error("Error al enviar a Tesorería:", error);
+    mostrarNotificacion("Error de red al intentar enviar a Tesorería.", "error");
+  }
+}
 
 /**
  * Lógica para fichas de pago
