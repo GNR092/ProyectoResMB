@@ -1440,7 +1440,7 @@ async function enviarRevisionHandler(event) {
       const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
       html += `
                 <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
+                    <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
                     <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
                     <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(2)}</td>
@@ -1461,7 +1461,6 @@ async function enviarRevisionHandler(event) {
                 <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
             </div>`
     }
-    console.log(data.Archivo)
     if (data.Archivo) {
       const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
       html += `
@@ -1493,7 +1492,7 @@ async function enviarRevisionHandler(event) {
       return;
     }
     for (let i = 0; i < archivos.length; i++) {
-      formData.append('archivos[]', archivos[i])
+      formData.append('cotizacion_files[]', archivos[i])
     }
 
     const tipoPago = document.querySelector('input[name="tipo_pago"]:checked');
@@ -1520,7 +1519,7 @@ async function enviarRevisionHandler(event) {
         regresarEnviarRevision()
         initEnviarRevision() // refrescar tabla
       } else {
-        mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error')
+        mostrarNotificacion(result.messages || 'Error al enviar a revisión.', 'error')
       }
     } catch (error) {
       console.error('Error:', error)
@@ -1635,7 +1634,7 @@ async function mostrarVerDictamen(idSolicitud) {
       const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
       html += `
                 <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
+                    <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
                     <td class="py-2 px-4 border-t">${p.Nombre}</td>
                     <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
                     <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
@@ -2030,9 +2029,8 @@ async function mostrarVerOrdenCompra(idOrden) {
                     </button>
                     
                     <!-- Aqui se necesitaria que el boton envie la orden por pdf al proveedor y que cambie de estado a "Por Pagar" -->
-                    <button onclick="enviarOrdenCompra(${idOrden})" 
-                         class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
-                         Enviar orden de compra
+                    <button onclick="GenerarOrden(${idOrden}, this)" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+                        Enviar orden de compra
                     </button>
 
                 </div>
@@ -3343,6 +3341,7 @@ async function SendData(event) {
     if (data.success) {
       if (messageContainer) {
         messageContainer.innerHTML = `<p class="text-green-600">${data.message}</p>`
+        mostrarNotificacion(data.message, 'success')
       }
 
       // Reiniciar subtotal y total
@@ -3416,4 +3415,52 @@ function mostrarVerPdf(idSolicitud, tipo = 0) {
 function mostrarOrdenPdf(id) {
   const url = `${BASE_URL}api/orden/pdf/${id}`
   window.open(url, '_blank')
+}
+
+async function GenerarOrden(id, button) {
+  if (!confirm('¿Está seguro de que desea generar y enviar la orden de compra al proveedor?')) {
+    return;
+  }
+
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Enviando...';
+
+  try {
+    // Usamos 'POST' porque es una acción que modifica el estado en el servidor
+    const result = await getData(`orden/generar/${id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+
+    if (result.success) {
+      mostrarNotificacion(
+        result.message || 'Orden de compra enviada con éxito.',
+        'success',
+      );
+      button.textContent = 'Enviado';
+      // El botón permanece deshabilitado para evitar re-envíos.
+      
+      // Opcional: refrescar la vista para ver el cambio de estado
+      // abrirModal('ordenes_compra'); 
+    } else {
+      mostrarNotificacion(
+        result.message || 'Error al enviar la orden de compra.',
+        'error',
+      );
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  } catch (error) {
+    console.error('Error en GenerarOrden:', error);
+    mostrarNotificacion(
+      'Ocurrió un error de red. Por favor, intente de nuevo.',
+      'error',
+    );
+    button.disabled = false;
+    button.textContent = originalText;
+  }
 }

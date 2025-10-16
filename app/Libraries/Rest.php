@@ -16,8 +16,10 @@ use App\Models\TokenModel;
 use App\Models\UsuariosModel;
 use App\Libraries\HttpStatus;
 use App\Libraries\SolicitudTipo;
-
+use ResourceController;
 use CodeIgniter\Database\BaseBuilder;
+use CodeIgniter\RESTful\ResourceController as RESTfulResourceController;
+
 /**
  * Clase Rest
  *
@@ -289,13 +291,15 @@ class Rest
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
-            ->join('Razon_Social','Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
 
         if (!$solicitud) {
             return null;
         }
-        $solicitud['ID_Place'] = $placesModel->find($this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'])['Nombre_Corto'];
+        $solicitud['ID_Place'] = $placesModel->find(
+            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
+        )['Nombre_Corto'];
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
 
@@ -349,13 +353,15 @@ class Rest
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
-            ->join('Razon_Social','Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
 
         if (!$solicitud) {
             return null;
         }
-        $solicitud['ID_Place'] = $placesModel->find($this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'])['Nombre_Corto'];
+        $solicitud['ID_Place'] = $placesModel->find(
+            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
+        )['Nombre_Corto'];
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
 
@@ -410,7 +416,7 @@ class Rest
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('Razon_Social','Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
 
         if (!$solicitud) {
@@ -430,7 +436,9 @@ class Rest
 
             $solicitud['proveedor'] = $proveedor;
         }
-        $solicitud['ID_Place'] = $placesModel->find($this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'])['Nombre_Corto'];
+        $solicitud['ID_Place'] = $placesModel->find(
+            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
+        )['Nombre_Corto'];
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
         if (
@@ -543,6 +551,24 @@ class Rest
         }
 
         return $result;
+    }
+
+    public function getSolicitudesSinOrdenPago(){
+         $solicitudModel = new SolicitudModel();
+
+                $data = $solicitudModel
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                    ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
+                    ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
+                    ->where('Solicitud.Estado', 'Aprobada')
+                    ->where('OrdenCompra.ID_Cotizacion IS NULL')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->findAll();
+        return $data;
     }
 
     /**
@@ -888,7 +914,9 @@ class Rest
     public function getProveedorIdAndRazonSocial(): array
     {
         $proveedorModel = new ProveedorModel();
-        $results = $proveedorModel->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC')->findAll();
+        $results = $proveedorModel
+            ->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC')
+            ->findAll();
         return $results;
     }
     //endregion
@@ -945,19 +973,28 @@ class Rest
     {
         $razonSocialModel = new RazonSocialModel();
         return $razonSocialModel->find($id) ?: null;
-
     }
     //endregion
 
     //region misceláneos
-    public static function ShowDebug($data)
+    public static function ShowDebug($data, $print = true)
     {
-        return "<pre>Debug Info:\n" . print_r($data, true) . '</pre>';
+        if ($print) {
+            return '<pre>Debug Info:\n' . print_r($data, true) . '</pre>';
+        } else {
+            $response = service('response');
+            $response->setStatusCode(HttpStatus::OK);
+            $response->setJSON([
+                'success' => true,
+                'Debug Info:' => $data,
+            ]);
+            return $response;
+        }
     }
     /**
      * Crea una carpeta en la ruta especificada si no existe.
      *
-     * @param string $path La ruta completa de la carpeta a crear.
+     * @param string $path La rut RESTfulResourceController completa de la carpeta a crear.
      * @return bool True si la carpeta ya existe o fue creada exitosamente, false si hubo un error.
      */
     public function CreateFolder(string $path): bool

@@ -6,6 +6,7 @@ use App\Libraries\FPath;
 use App\Models\CotizacionModel;
 use App\Models\SolicitudModel;
 use App\Models\SolicitudProductModel;
+use App\Models\OrdenCompraModel;
 use CodeIgniter\RESTful\ResourceController;
 use App\Libraries\Rest;
 use App\Libraries\HttpStatus;
@@ -24,42 +25,38 @@ class Api extends ResourceController
         $this->api = new Rest();
     }
 
-    //region productos
+    //region Productos
+    // =================================================================================================================
     /**
      * Busca productos por consulta y tipo.
-     *
-     * @return \CodeIgniter\HTTP\Response El resultado de la búsqueda en formato JSON.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function search()
     {
         $query = $this->request->getVar('query'); // LA busqueda
         $type = $this->request->getVar('type'); // El tipo de busqueda, puede ser 'Código' o 'Producto'
-        // Ejmplo de consulta: /api/product/search?query=123&type=Código
-        if (empty($query)) {
-            return $this->fail('La consulta no puede estar vacía.', HttpStatus::BAD_REQUEST); // Retorna un error si la consulta está vacía.
-        }
-        $results = $this->api->getProductsByQuery($query, $type); // Obtiene los productos de la API.
 
-        //print_r($producto->getLastQuery());
-        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
+        if (empty($query)) {
+            return $this->fail('La consulta no puede estar vacía.', HttpStatus::BAD_REQUEST);
+        }
+        $results = $this->api->getProductsByQuery($query, $type);
+        return $this->respond($results, HttpStatus::OK);
     }
 
     /**
      * Obtiene todos los productos.
-     *
-     * @return \CodeIgniter\HTTP\Response Todos los productos en formato JSON.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function allProducts()
     {
-        $results = $this->api->getAllProducts(); // Obtiene todos los productos de la API.
-        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
+        $results = $this->api->getAllProducts();
+        return $this->respond($results, HttpStatus::OK);
     }
 
     /**
      * Obtiene un producto por su ID.
-     *
      * @param int|null $id El ID del producto.
-     * @return \CodeIgniter\HTTP\Response El producto encontrado o un error 404 si no se encuentra.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function getProductById($id)
     {
@@ -71,48 +68,59 @@ class Api extends ResourceController
     }
     //endregion
 
-    //region departamentos
+    //region Proveedores
+    // =================================================================================================================
     /**
-     * Obtiene todos los departamentos.
-     *
-     * @return \CodeIgniter\HTTP\Response Todos los departamentos en formato JSON.
+     * Obtiene todos los proveedores con solo ID y Nombre.
+     * @return \CodeIgniter\HTTP\Response
      */
-    public function getDepartments()
+    public function getAllProviders()
     {
-        $results = $this->api->getAllDepartments(); // Obtiene todos los departamentos de la API.
-        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
+        $results = $this->api->getProveedorIdAndRazonSocial();
+        return $this->respond($results, HttpStatus::OK);
     }
     //endregion
 
-    //region historial
+    //region Departamentos
+    // =================================================================================================================
+    /**
+     * Obtiene todos los departamentos.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getDepartments()
+    {
+        $results = $this->api->getAllDepartments();
+        return $this->respond($results, HttpStatus::OK);
+    }
+    //endregion
+
+    //region Solicitudes (Consultas)
+    // =================================================================================================================
     /**
      * Obtiene todo el historial de solicitudes.
-     *
-     * @return \CodeIgniter\HTTP\Response El historial de solicitudes en formato JSON.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function getHistorial()
     {
-        $result = $this->api->getAllSolicitud(); // Obtiene todas las solicitudes de la API.
-        return $this->respond($result, HttpStatus::OK); // Responde con los resultados y un estado OK.
+        $result = $this->api->getAllSolicitud();
+        return $this->respond($result, HttpStatus::OK);
     }
 
     /**
      * Obtiene el historial de solicitudes por departamento.
-     *
      * @param int $id El ID del departamento.
-     * @return \CodeIgniter\HTTP\Response El historial de solicitudes del departamento en formato JSON.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function getHistorialByDepartment($id)
     {
-        $results = $this->api->getSolicitudByDepartment($id); // Obtiene las solicitudes por departamento de la API.
-        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
+        $results = $this->api->getSolicitudByDepartment($id);
+        return $this->respond($results, HttpStatus::OK);
     }
 
     /**
      * Obtiene los detalles de una solicitud específica.
-     *
      * @param int|null $id El ID de la solicitud.
-     * @return \CodeIgniter\HTTP\Response Los detalles de la solicitud o un error si no se encuentra.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function getSolicitudDetails($id = null)
     {
@@ -123,55 +131,7 @@ class Api extends ResourceController
         $details = $this->api->getSolicitudWithProducts((int) $id);
 
         if (empty($details)) {
-            return $this->failNotFound(
-                'No se encontraron detalles para la solicitud con ID: ' . $id,
-            );
-        }
-
-        return $this->respond($details);
-    }
-
-    /**
-     * Obtiene los detalles de una cotizacion específica.
-     *
-     * @param int|null $id El ID de la cotizacion.
-     * @return \CodeIgniter\HTTP\Response Los detalles de la cotizacion o un error si no se encuentra.
-     */
-    public function getCotizacionDetails($id = null)
-    {
-        if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de cotizacion numérico.');
-        }
-
-        $details = $this->api->getSolicitudWithCotizacion((int) $id);
-
-        if (empty($details)) {
-            return $this->failNotFound(
-                'No se encontraron detalles para la cotizacion con ID: ' . $id,
-            );
-        }
-
-        return $this->respond($details);
-    }
-
-    /**
-     * Obtiene los detalles de una orden de compra específica.
-     *
-     * @param int|null $id El ID de la solicitud para la orden de compra.
-     * @return \CodeIgniter\HTTP\Response Los detalles de la orden de compra o un error si no se encuentra.
-     */
-    public function getOrdenCompra($id = null)
-    {
-        if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
-        }
-
-        $details = $this->api->getOrdenCompra((int) $id);
-
-        if (empty($details)) {
-            return $this->failNotFound(
-                'No se encontraron detalles para la orden de compra con ID de solicitud: ' . $id,
-            );
+            return $this->failNotFound('No se encontraron detalles para la solicitud con ID: ' . $id);
         }
 
         return $this->respond($details);
@@ -179,30 +139,107 @@ class Api extends ResourceController
 
     /**
      * Obtiene todas las solicitudes cotizadas.
-     *
-     * @return \CodeIgniter\HTTP\Response Las solicitudes cotizadas en formato JSON.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function getSolicitudesCotizadas()
     {
-        $results = $this->api->getSolicitudesCotizadas(); // Obtiene las solicitudes cotizadas de la API.
-        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
+        $results = $this->api->getSolicitudesCotizadas();
+        return $this->respond($results, HttpStatus::OK);
     }
 
     /**
      * Obtiene todas las solicitudes en revisión.
-     *
-     * @return \CodeIgniter\HTTP\Response Las solicitudes en revisión en formato JSON.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function getSolicitudesEnRevision()
     {
-        $results = $this->api->getSolicitudesEnRevision(); // Obtiene las solicitudes en revisión de la API.
-        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
+        $results = $this->api->getSolicitudesEnRevision();
+        return $this->respond($results, HttpStatus::OK);
+    }
+
+    /**
+     * Obtiene las solicitudes pendientes de aprobación para el departamento del jefe actual.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getPendientesAprobacionJefe()
+    {
+        if (session('login_type') !== 'boss') {
+            return $this->failForbidden('Acceso denegado. Solo para jefes de departamento.');
+        }
+
+        $idDepartamento = session('id_departamento_usuario');
+        $idJefe = session('id');
+
+        $results = $this->api->getSolicitudesByStatusAndDept(Status::Aprobacion_pendiente, $idDepartamento, $idJefe);
+        return $this->respond($results, HttpStatus::OK);
+    }
+
+    /**
+     * Obtiene las solicitudes de un usuario por su ID.
+     * @param int|null $id
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getSolicitudesUsers($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de usuario numérico.');
+        }
+
+        return $this->respond($this->api->getSolicitudesUsersByDepartment((int) $id), HttpStatus::OK);
+    }
+    //endregion
+
+    //region Solicitudes (Acciones)
+    // =================================================================================================================
+    /**
+     * Permite a un jefe de departamento aprobar o rechazar una solicitud de un empleado.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function dictaminarSolicitudJefe()
+    {
+        if (session('login_type') !== 'boss') {
+            return $this->failForbidden('Acceso denegado. Solo para jefes de departamento.');
+        }
+
+        $json = $this->request->getJSON();
+        if (!isset($json->ID_Solicitud) || !isset($json->accion)) {
+            return $this->failValidationErrors('Se requiere ID de solicitud y una acción (aprobar/rechazar).');
+        }
+
+        $idSolicitud = (int) $json->ID_Solicitud;
+        $accion = $json->accion; // 'aprobar' o 'rechazar'
+        $comentarios = $json->comentarios ?? null;
+
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) {
+            return $this->failNotFound('La solicitud no existe.');
+        }
+        if ($solicitud['ID_Dpto'] != session('id_departamento_usuario')) {
+            return $this->failForbidden('Esta solicitud no pertenece a su departamento.');
+        }
+        if ($solicitud['Estado'] !== Status::Aprobacion_pendiente) {
+            return $this->fail('La solicitud ya ha sido procesada.', HttpStatus::BAD_REQUEST);
+        }
+
+        try {
+            $nuevoEstado = $accion === Status::Aprobar ? Status::En_espera : Status::Dept_Rechazada;
+            $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado, 'ComentariosAdmin' => $comentarios]);
+
+            return $this->respondUpdated([
+                'success' => $accion === Status::Aprobar,
+                'message' => 'La solicitud ha sido ' . ($accion === Status::Aprobar ? 'aprobada y enviada a Compras.' : Status::Rechazada . '.'),
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', '[dictaminarSolicitudJefe] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado.');
+        }
     }
 
     /**
      * Crea una nueva cotización para una solicitud.
-     *
-     * @return \CodeIgniter\HTTP\Response El resultado de la operación.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function crearCotizacion()
     {
@@ -229,36 +266,28 @@ class Api extends ResourceController
         $idProveedor = (int) $json->ID_Proveedor;
 
         $cotizacionModel = new CotizacionModel();
-        $solicitudModel = new SolicitudModel(); // Instancia del modelo de Solicitud.
-        $details = $this->api->getSolicitudWithProducts($idSolicitud); // Obtiene los detalles de la solicitud con sus productos.
+        $solicitudModel = new SolicitudModel();
+        $details = $this->api->getSolicitudWithProducts($idSolicitud);
 
-        // Check if solicitud exists and is in correct state
         $solicitud = $solicitudModel->find($idSolicitud);
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
         if ($solicitud['Estado'] !== 'En espera') {
-            return $this->fail(
-                'La solicitud ya no está en estado "En espera".',
-                HttpStatus::BAD_REQUEST,
-            );
+            return $this->fail('La solicitud ya no está en estado "En espera".', HttpStatus::BAD_REQUEST);
         }
 
-        // Calcular total
         $total = 0;
         if ($solicitud['Tipo'] != SolicitudTipo::Servicios) {
             if (!empty($details['productos'])) {
                 foreach ($details['productos'] as $p) {
-                    $cantidad = (float) $p['Cantidad'];
-                    $importe = (float) $p['Importe'];
-                    $total += $cantidad * $importe;
+                    $total += (float) $p['Cantidad'] * (float) $p['Importe'];
                 }
             }
         } else {
             if (!empty($details['productos'])) {
                 foreach ($details['productos'] as $p) {
-                    $importe = (float) $p['Importe'];
-                    $total += $importe;
+                    $total += (float) $p['Importe'];
                 }
             }
         }
@@ -267,35 +296,18 @@ class Api extends ResourceController
         $db->transStart();
 
         try {
-            // 1. Insert into Cotizacion table
-            $cotizacionData = [
-                'ID_Solicitud' => $idSolicitud,
-                'ID_Proveedor' => $idProveedor,
-                'Total' => $total,
-            ];
+            $cotizacionData = ['ID_Solicitud' => $idSolicitud, 'ID_Proveedor' => $idProveedor, 'Total' => $total];
             $pdf = new GenerarPDF();
             $pdf->generarYGuardarRequisicion($idSolicitud);
-            $option = [
-                'attachments' => [FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf'],
-                'fromName' => 'MBSP RENTAS S.A. DE C.V.',
-            ];
+            $option = ['attachments' => [FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf'], 'fromName' => 'MBSP RENTAS S.A. DE C.V.'];
 
             $cotizacionModel->insert($cotizacionData);
-
-            // 2. Update Solicitud status
-            $solicitudModel->update($idSolicitud, [
-                'Estado' => 'Cotizando',
-                'ID_Proveedor' => $idProveedor,
-            ]);
-            // Enviar correo
+            $solicitudModel->update($idSolicitud, ['Estado' => 'Cotizando', 'ID_Proveedor' => $idProveedor]);
             $mail->send_email($to, $subject, $message, $option);
 
             $db->transComplete();
 
-            return $this->respondCreated([
-                'success' => true,
-                'message' => 'Cotización creada y solicitud actualizada.',
-            ]);
+            return $this->respondCreated(['success' => true, 'message' => 'Cotización creada y solicitud actualizada.']);
         } catch (\Exception $e) {
             log_message('error', '[crearCotizacion] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado al crear la cotización.');
@@ -304,8 +316,7 @@ class Api extends ResourceController
 
     /**
      * Envía una solicitud a revisión.
-     *
-     * @return \CodeIgniter\HTTP\Response El resultado de la operación.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function enviarSolicitudARevision()
     {
@@ -316,7 +327,6 @@ class Api extends ResourceController
         }
 
         $idSolicitud = (int) $request['ID_Solicitud'];
-
         $solicitud = $this->api->getSolicitudById($idSolicitud);
         $cotizacion = $this->api->getCotizacionBySolicitudID($idSolicitud);
         $idCotizacion = $cotizacion['ID_Cotizacion'];
@@ -325,13 +335,10 @@ class Api extends ResourceController
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
-
         if ($solicitud['Estado'] !== 'Cotizando') {
-            return $this->fail(
-                'La solicitud no está en estado "Cotizado".',
-                HttpStatus::BAD_REQUEST,
-            );
+            return $this->fail('La solicitud no está en estado "Cotizado".', HttpStatus::BAD_REQUEST);
         }
+
         switch ($request['tipo_pago']) {
             case 'efectivo':
                 $tipoPago = MetodoPago::Efectivo;
@@ -340,42 +347,30 @@ class Api extends ResourceController
                 $tipoPago = MetodoPago::Credito;
                 break;
         }
+
         try {
             $this->api->updateSolicitudById($idSolicitud, ['Estado' => 'En revision', 'MetodoPago' => $tipoPago]);
             $files = $this->request->getFiles();
             $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
             $this->api->CreateFolder($folder);
-            $tmp = [];
-            $count = 0;
+            
             if ($files) {
-                foreach ($files as $fileGroup) {
-                    foreach ($fileGroup as $file) {
-                        if ($file->isValid() && !$file->hasMoved()) {
-                            $timestamp = date('Y-m-d_H-i-s');
-                            $extension = $file->getExtension();
-                            $nuevoNombre =
-                                'cotizacion_' .
-                                $idCotizacion .
-                                '_' .
-                                $timestamp .
-                                '_' .
-                                $count++ .
-                                '.' .
-                                $extension;
-                            $tmp[] = $nuevoNombre;
-                            $file->move($folder, $nuevoNombre);
-                        }
+                $tmp = [];
+                $count = 0;
+                foreach ($files['cotizacion_files'] as $file) {
+                    if ($file->isValid() && !$file->hasMoved()) {
+                        $timestamp = date('Y-m-d_H-i-s');
+                        $extension = $file->getExtension();
+                        $nuevoNombre = 'cotizacion_' . $idCotizacion . '_' . $timestamp . '_' . $count++ . '.' . $extension;
+                        $tmp[] = $nuevoNombre;
+                        $file->move($folder, $nuevoNombre);
                     }
                 }
                 $cfls['Cotizacion_Files'] = implode(',', $tmp);
                 $this->api->updateCotizacionById($idCotizacion, $cfls);
-                //return Rest::ShowDebug($cfls);
             }
 
-            return $this->respondUpdated([
-                'success' => true,
-                'message' => 'Solicitud enviada a revisión.',
-            ]);
+            return $this->respondUpdated(['success' => true, 'message' => 'Solicitud enviada a revisión.']);
         } catch (\Exception $e) {
             log_message('error', '[enviarSolicitudARevision] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado.');
@@ -384,8 +379,7 @@ class Api extends ResourceController
 
     /**
      * Dictamina una solicitud (aprueba o rechaza).
-     *
-     * @return \CodeIgniter\HTTP\Response El resultado de la operación.
+     * @return \CodeIgniter\HTTP\Response
      */
     public function dictaminarSolicitud()
     {
@@ -402,12 +396,8 @@ class Api extends ResourceController
         if (!in_array($nuevoEstado, ['Aprobada', 'Rechazada'])) {
             return $this->fail('El estado proporcionado no es válido.', HttpStatus::BAD_REQUEST);
         }
-
         if ($nuevoEstado === 'Rechazada' && empty(trim((string) $comentarios))) {
-            return $this->fail(
-                'Para rechazar una solicitud, los comentarios son obligatorios.',
-                HttpStatus::BAD_REQUEST,
-            );
+            return $this->fail('Para rechazar una solicitud, los comentarios son obligatorios.', HttpStatus::BAD_REQUEST);
         }
 
         $solicitudModel = new SolicitudModel();
@@ -416,102 +406,117 @@ class Api extends ResourceController
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
-
         if ($solicitud['Estado'] !== 'En revision') {
-            return $this->fail(
-                'La solicitud no está en estado "En revision".',
-                HttpStatus::BAD_REQUEST,
-            );
+            return $this->fail('La solicitud no está en estado "En revision".', HttpStatus::BAD_REQUEST);
         }
 
         try {
-            $dataToUpdate = [
-                'Estado' => $nuevoEstado,
-                'ComentariosAdmin' => $comentarios,
-            ];
+            $dataToUpdate = ['Estado' => $nuevoEstado, 'ComentariosAdmin' => $comentarios];
             $solicitudModel->update($idSolicitud, $dataToUpdate);
-            return $this->respondUpdated([
-                'success' => true,
-                'message' => 'El dictamen de la solicitud se ha guardado correctamente.',
-            ]);
+            return $this->respondUpdated(['success' => true, 'message' => 'El dictamen de la solicitud se ha guardado correctamente.']);
         } catch (\Exception $e) {
             log_message('error', '[dictaminarSolicitud] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen.');
         }
     }
+    //endregion
 
+    //region Cotizaciones
+    // =================================================================================================================
     /**
-     * Obtiene las solicitudes pendientes de aprobación para el departamento del jefe actual.
+     * Obtiene los detalles de una cotizacion específica.
+     * @param int|null $id El ID de la cotizacion.
+     * @return \CodeIgniter\HTTP\Response
      */
-    public function getPendientesAprobacionJefe()
+    public function getCotizacionDetails($id = null)
     {
-        if (session('login_type') !== 'boss') {
-            return $this->failForbidden('Acceso denegado. Solo para jefes de departamento.');
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de cotizacion numérico.');
         }
 
-        $idDepartamento = session('id_departamento_usuario');
-        $idJefe = session('id');
+        $details = $this->api->getSolicitudWithCotizacion((int) $id);
 
-        $results = $this->api->getSolicitudesByStatusAndDept(
-            Status::Aprobacion_pendiente,
-            $idDepartamento,
-            $idJefe,
-        );
-        return $this->respond($results, HttpStatus::OK);
+        if (empty($details)) {
+            return $this->failNotFound('No se encontraron detalles para la cotizacion con ID: ' . $id);
+        }
+
+        return $this->respond($details);
     }
+    //endregion
 
+    //region Ordenes de Compra
+    // =================================================================================================================
     /**
-     * Permite a un jefe de departamento aprobar o rechazar una solicitud de un empleado.
+     * Genera una nueva Orden de Compra a partir de una solicitud aprobada.
+     * @param int $id El ID de la solicitud.
+     * @return \CodeIgniter\HTTP\Response
      */
-    public function dictaminarSolicitudJefe()
+    public function GenerarOrden($id)
     {
-        if (session('login_type') !== 'boss') {
-            return $this->failForbidden('Acceso denegado. Solo para jefes de departamento.');
+        // 1. Validaciones
+        if (!is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
         }
 
-        $json = $this->request->getJSON();
-        if (!isset($json->ID_Solicitud) || !isset($json->accion)) {
-            return $this->failValidationErrors(
-                'Se requiere ID de solicitud y una acción (aprobar/rechazar).',
-            );
-        }
-
-        $idSolicitud = (int) $json->ID_Solicitud;
-        $accion = $json->accion; // 'aprobar' o 'rechazar'
-        $comentarios = $json->comentarios ?? null;
+       
+        // if (!in_array(session('login_type'), ['admin', 'compras'])) {
+        //     return $this->failForbidden('Acceso denegado. Permiso insuficiente para generar órdenes de compra.');
+        // }
 
         $solicitudModel = new SolicitudModel();
-        $solicitud = $solicitudModel->find($idSolicitud);
+        $ordenCompraModel = new OrdenCompraModel();
+        $cotizacionModel = new CotizacionModel();
 
-        // Verificaciones de seguridad
+        $solicitud = $solicitudModel->find($id);
+
+        // 2. Verificar estado de la solicitud
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
-        if ($solicitud['ID_Dpto'] != session('id_departamento_usuario')) {
-            return $this->failForbidden('Esta solicitud no pertenece a su departamento.');
+
+        if ($solicitud['Estado'] !== 'Aprobada') {
+            return $this->fail('Solo se puede generar una orden de compra para solicitudes aprobadas. Estado actual: ' . $solicitud['Estado'], HttpStatus::BAD_REQUEST);
         }
-        if ($solicitud['Estado'] !== Status::Aprobacion_pendiente) {
-            return $this->fail('La solicitud ya ha sido procesada.', HttpStatus::BAD_REQUEST);
+
+        $cotizacion = $cotizacionModel->where('ID_Solicitud', $id)->first();
+        if (!$cotizacion) {
+            return $this->failNotFound('No se encontró una cotización asociada a esta solicitud para obtener los datos del proveedor y el total.');
         }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
 
         try {
-            $nuevoEstado = $accion === Status::Aprobar ? Status::En_espera : Status::Dept_Rechazada; //Cambiar rechazada para solo verlo en el historial del departamento
-            $solicitudModel->update($idSolicitud, [
-                'Estado' => $nuevoEstado,
-                'ComentariosAdmin' => $comentarios,
+            // 3. Crear la Orden de Compra
+            $ordenData = [
+                'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
+                'ID_Proveedor' => $cotizacion['ID_Proveedor'],
+                'Estado'       => Status::En_Proceso_Pago, // Estado inicial de la orden
+                'Fecha'        => date('Y-m-d') // Fecha de creación
+            ];
+
+            $ordenCompraModel->insert($ordenData);
+            $idOrdenCompra = $ordenCompraModel->getInsertID();
+
+           // $pdfGenerator = new \App\Controllers\GenerarPDF();
+            // $pdfGenerator->ordenDeCompra($idOrdenCompra);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                 log_message('error', '[GenerarOrden] Falla en la transacción de base de datos.');
+                 return $this->failServerError('No se pudo completar la transacción para generar la orden.');
+            }
+
+            return $this->respondCreated([
+                'success' => true,
+                'message' => 'Orden de Compra generada exitosamente.',
+                'id_orden_compra' => $idOrdenCompra
             ]);
 
-            return $this->respondUpdated([
-                'success' => $accion === Status::Aprobar ? true : false,
-                'message' =>
-                    'La solicitud ha sido ' .
-                    ($accion === Status::Aprobar
-                        ? 'aprobada y enviada a Compras.'
-                        : Status::Rechazada . '.'),
-            ]);
         } catch (\Exception $e) {
-            log_message('error', '[dictaminarSolicitudJefe] ' . $e->getMessage());
-            return $this->failServerError('Ocurrió un error inesperado.');
+            log_message('error', '[GenerarOrden] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado al generar la Orden de Compra.');
         }
     }
 
@@ -580,28 +585,23 @@ class Api extends ResourceController
 
     //region proveedores
     /**
-     * Obtiene todos los proveedores con solo ID y Nombre.
-     *
-     * @return \CodeIgniter\HTTP\Response Los proveedores encontrados en formato JSON.
+     * Obtiene los detalles de una orden de compra específica.
+     * @param int|null $id El ID de la solicitud para la orden de compra.
+     * @return \CodeIgniter\HTTP\Response
      */
-    public function getAllProviders()
-    {
-        $results = $this->api->getProveedorIdAndRazonSocial(); // Obtiene todos los proveedores de la API.
-        return $this->respond($results, HttpStatus::OK); // Responde con los resultados y un estado OK.
-    }
-    //endregion
-
-    //region Solicitudes
-    public function getSolicitudesUsers($id = null)
+    public function getOrdenCompra($id = null)
     {
         if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de usuario numérico.');
+            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
         }
 
-        return $this->respond(
-            $this->api->getSolicitudesUsersByDepartment((int) $id),
-            HttpStatus::OK,
-        );
+        $details = $this->api->getOrdenCompra((int) $id);
+
+        if (empty($details)) {
+            return $this->failNotFound('No se encontraron detalles para la orden de compra con ID de solicitud: ' . $id);
+        }
+
+        return $this->respond($details);
     }
     //endregion
 }
