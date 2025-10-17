@@ -239,7 +239,11 @@ class Modales extends BaseController
                 return view('modales/almacen');
 
             case 'reportes':
-                return view('modales/reportes');
+                $departamentoModel = new \App\Models\DepartamentosModel();
+                $data['departamentos'] = $departamentoModel->orderBy('Nombre', 'ASC')->findAll();
+
+                return view('modales/reportes', $data);
+
 
             default:
                 return 'Opción no válida';

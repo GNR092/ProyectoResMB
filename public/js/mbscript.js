@@ -50,6 +50,7 @@ function abrirModal(opcion) {
         ordenes_compra: initOrdenesCompra,
         crud_proveedores: initCrudProveedores,
         entrega_productos: initEntregaMaterial,
+        reportes: initPaginacionReportes,
         // Opciones con inicialización especial o sin ella se omiten
       };
 
@@ -3109,6 +3110,167 @@ function regresarFichaCredito() {
 }
 
 
+/**
+ * Lógica para reportes
+ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  initPaginacionReportes();
+
+  // Re-renderizar al cambiar filtros
+  document.getElementById('filtro-estado-reportes').addEventListener('change', initPaginacionReportes);
+  document.getElementById('filtroDepartamento-reportes').addEventListener('change', initPaginacionReportes);
+  document.getElementById('filtro-fecha-reportes').addEventListener('change', initPaginacionReportes);
+  document.getElementById('filtrar-por-mes-reportes').addEventListener('change', initPaginacionReportes);
+});
+
+function initPaginacionReportes() {
+  const tabla = document.getElementById('tabla-reportes');
+  if (!tabla) return;
+
+  const rowsPerPage = 10;
+  let currentPage = 1;
+  let allData = [];
+
+  function getStatusSVG(status) {
+    if (!status) return '';
+    const statusLower = status.toLowerCase();
+    const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`;
+    let svgClass = '';
+    let iconId = '';
+
+    switch (statusLower) {
+      case 'en proceso de pago':
+        svgClass = 'text-yellow-500';
+        iconId = 'en_espera';
+        break;
+      case 'completada':
+        svgClass = 'text-green-600';
+        iconId = 'aceptado';
+        break;
+      case 'cancelada':
+        svgClass = 'text-red-500';
+        iconId = 'rechazado';
+        break;
+      default:
+        return '';
+    }
+    return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`;
+  }
+
+  async function fetchData() {
+    try {
+      const res = await fetch(`${BASE_URL}api/orden-compra/alldata`);
+      allData = await res.json();
+      renderTable();
+      renderPagination();
+    } catch (error) {
+      console.error('Error al cargar reportes:', error);
+      tabla.querySelector('tbody').innerHTML =
+          '<tr><td colspan="5" class="text-center text-red-500">Error al cargar los registros.</td></tr>';
+    }
+  }
+
+  function renderTable() {
+    const tbody = tabla.querySelector('tbody');
+    tbody.innerHTML = '';
+
+    // Filtros
+    const fechaFiltro = document.getElementById('filtro-fecha-reportes').value;
+    const filtrarPorMes = document.getElementById('filtrar-por-mes-reportes').checked;
+    const estadoFiltro = document.getElementById('filtro-estado-reportes').value;
+
+    let filteredData = allData.filter(item => {
+      const coincideEstado = !estadoFiltro || item.EstadoOrden === estadoFiltro;
+      if (!fechaFiltro) return coincideEstado;
+
+      if (filtrarPorMes) {
+        return item.Fecha?.slice(0, 7) === fechaFiltro.slice(0, 7) && coincideEstado;
+      } else {
+        return item.Fecha?.slice(0, 10) === fechaFiltro && coincideEstado;
+      }
+    });
+
+    const start = (currentPage - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const pageData = filteredData.slice(start, end);
+
+    pageData.forEach(item => {
+      const svg = getStatusSVG(item.EstadoOrden);
+      tbody.innerHTML += `
+        <tr class="text-center">
+          <td class="border px-4 py-2">${item.ID_OrdenCompra}</td>
+          <td class="border px-4 py-2">${item.ID_Cotizacion}</td>
+          <td class="border px-4 py-2">${item.ID_Solicitud}</td>
+          <td class="border px-4 py-2 col-estado" data-estado="${item.EstadoOrden}" title="${item.EstadoOrden}">
+              ${svg}<span>${item.EstadoOrden}</span>
+          </td>
+          <td class="border px-4 py-2">
+              <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerReporte(${item.ID_OrdenCompra}); return false;">ver</a>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function renderPagination() {
+    const paginacion = document.getElementById('paginacion-reportes');
+    paginacion.innerHTML = '';
+
+    const totalPages = Math.ceil(allData.length / rowsPerPage);
+    if (totalPages <= 1) return;
+
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className =
+          'px-3 py-1 border rounded hover:bg-gray-200 ' + (i === currentPage ? 'bg-gray-300 font-bold' : '');
+      btn.addEventListener('click', () => {
+        currentPage = i;
+        renderTable();
+        renderPagination();
+      });
+      paginacion.appendChild(btn);
+    }
+  }
+
+  // Eventos de filtros
+  ['filtro-fecha-reportes', 'filtrar-por-mes-reportes', 'filtro-estado-reportes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => {
+      currentPage = 1;
+      renderTable();
+      renderPagination();
+    });
+  });
+
+  fetchData();
+}
+
+async function mostrarVerReporte(idOrden) {
+  document.getElementById('div-reportes').classList.add('hidden');
+  document.getElementById('div-ver-reporte').classList.remove('hidden');
+
+  const detallesContainer = document.getElementById('detalles-reporte');
+  detallesContainer.innerHTML = `<p class="text-gray-500">Cargando detalles de la orden #${idOrden}...</p>`;
+
+  try {
+    const res = await fetch(`/api/orden-compra/details/${idOrden}`);
+    const data = await res.json();
+    detallesContainer.innerHTML = JSON.stringify(data, null, 2); // Cambiar por tabla bonita si quieres
+  } catch (err) {
+    detallesContainer.innerHTML = `<p class="text-red-500">Error al cargar detalles.</p>`;
+  }
+}
+
+function regresarReportes() {
+  document.getElementById('div-reportes').classList.remove('hidden');
+  document.getElementById('div-ver-reporte').classList.add('hidden');
+}
+
+
+
+//==================================================================================================================
 /**
  * Varios
  */
