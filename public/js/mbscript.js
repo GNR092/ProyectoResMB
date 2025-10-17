@@ -2031,7 +2031,7 @@ async function mostrarVerOrdenCompra(idOrden) {
                     </button>
                     
                     <!-- Aqui se necesitaria que el boton envie la orden por pdf al proveedor y que cambie de estado a "Por Pagar" -->
-                    <button onclick="GenerarOrden(${idOrden}, this)" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+                    <button onclick="enviarOrdenCompra(${idOrden}, this)" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
                         Enviar orden de compra
                     </button>
 

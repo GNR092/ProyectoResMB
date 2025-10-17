@@ -31,7 +31,10 @@ class Home extends BaseController
                 'ver_historial',
                 'crud_usuarios',
                 'limpiar_almacenamiento', // Almacenamiento
-                'ficha_pago'
+                'ficha_pago',
+                'ordenes_compra',
+                'pagos_pendientes',
+                'almacen'
             ],
 
             // Rol Dirección
@@ -42,13 +45,19 @@ class Home extends BaseController
             ],
 
             // Rol Tesorería
-            'Tesoreria' => ['ordenes_compra'],
+            'Tesoreria' => [
+                'ordenes_compra',
+                'ficha_pago',
+                'pagos_pendientes',
+
+            ],
 
             // Rol Almacén
             'Almacen' => [
                 'registrar_productos',
                 'crud_productos', // Existencias
-                'entrega_productos'
+                'entrega_productos',
+                'almacen'
             ],
 
             // Rol por defecto (Jefes de Departamento)

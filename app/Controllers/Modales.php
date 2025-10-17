@@ -80,7 +80,16 @@ class Modales extends BaseController
             case 'ordenes_compra':
                 $solicitudModel = new SolicitudModel();
 
-                $data['solicitudes'] = $this->api->getSolicitudesSinOrdenPago();
+                $data['solicitudes'] = $solicitudModel
+                    ->select(
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+                    )
+                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                    ->where('Solicitud.Estado', 'Aprobada')
+                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                    ->findAll();
+               // $data['solicitudes'] = $this->api->getSolicitudesSinOrdenPago();
 
                 return view('modales/ordenes_compra', $data);
 
