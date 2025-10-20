@@ -52,6 +52,7 @@ function abrirModal(opcion) {
         entrega_productos: initEntregaMaterial,
         reportes: initPaginacionReportes,
         pagos_pendientes: initPagosPendientes,
+        ficha_pago: initFichasPago,
         // Opciones con inicialización especial o sin ella se omiten
       };
 
@@ -2923,20 +2924,20 @@ function mostrarDetalleOrden(id, metodoPago) {
   detalleDiv.classList.remove("hidden");
 
   detalleDiv.innerHTML = `
-    <div class="flex justify-between items-center mb-4">
-      <button onclick="volverATabla('${metodoPago}')" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-      <h2 class="text-lg font-semibold">Detalle Orden #${id}</h2>
-      <div></div>
-    </div>
-    <div class="flex justify-start gap-4 mt-4">
-      <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-lg transition">
-        Cerrar requisición
-      </button>
-      <button onclick="enviarATesoreria(${id}, '${metodoPago}')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-lg transition">
-        Enviar a tesorería para ficha
-      </button>
-    </div>
-  `;
+  <div class="flex justify-between items-center mb-4">
+    <button onclick="volverAFichas('${metodoPago}')" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+    <h2 class="text-lg font-semibold">Detalle Orden #${id}</h2>
+    <div></div>
+  </div>
+  <div class="flex justify-between mt-4 gap-4">
+    <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+      Cerrar requisición
+    </button>
+    <button onclick="enviarATesoreria(${id}, '${metodoPago}')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+      Enviar a tesorería para ficha
+    </button>
+  </div>
+`;
 }
 
 // --- Volver a la tabla desde detalle ---
@@ -2992,6 +2993,101 @@ async function enviarATesoreria(idSolicitud, metodoPago) {
 /**
  * Lógica para fichas de pago
  */
+async function initFichasPago() {
+  const tbodyContado = document.getElementById("body-contado");
+  const tbodyCredito = document.getElementById("body-credito");
+
+  tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`;
+  tbodyCredito.innerHTML = tbodyContado.innerHTML;
+
+  try {
+    const res = await fetch(`${BASE_URL}api/orden-compra/alldata`);
+    const ordenes = await res.json();
+
+    if (!ordenes || ordenes.length === 0) {
+      tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`;
+      tbodyCredito.innerHTML = tbodyContado.innerHTML;
+      return;
+    }
+
+    // Obtener detalles de todas las órdenes
+    const detallesPromises = ordenes.map(o =>
+        fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then(r => r.json())
+    );
+    const detalles = await Promise.all(detallesPromises);
+
+    tbodyContado.innerHTML = "";
+    tbodyCredito.innerHTML = "";
+
+    detalles.forEach(det => {
+      // Filtrar solo Estado "En Proceso de Pago"
+      if (det.Estado !== "En Proceso de Pago") return;
+
+      const fila = `
+        <tr class="hover:bg-gray-50 transition">
+          <td class="px-4 py-2 border-b">${det.No_Folio || "-"}</td>
+          <td class="px-4 py-2 border-b">${det.DepartamentoNombre || "-"}</td>
+          <td class="px-4 py-2 border-b">${det.Complejo || "-"}</td>
+          <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || "-"}</td>
+          <td class="px-4 py-2 border-b">${det.proveedor?.Banco || "-"}</td>
+          <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? "$" + det.cotizacion.Total : "-"}</td>
+          <td class="px-4 py-2 border-b text-center">
+            <button onclick="mostrarDetalleFicha(${det.ID_Solicitud}, '${det.MetodoPago}')" 
+                    class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+              VER
+            </button>
+          </td>
+        </tr>
+      `;
+
+      if (det.MetodoPago == "0") {
+        tbodyContado.insertAdjacentHTML("beforeend", fila);
+      } else if (det.MetodoPago == "1") {
+        tbodyCredito.insertAdjacentHTML("beforeend", fila);
+      }
+    });
+  } catch (error) {
+    console.error("Error al cargar las fichas:", error);
+    tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`;
+    tbodyCredito.innerHTML = tbodyContado.innerHTML;
+  }
+}
+
+// --- Función de navegación para VER detalles ---
+function mostrarDetalleFicha(id, metodoPago) {
+  const detalleDiv = metodoPago == "0" ? document.getElementById("detalle-contado") : document.getElementById("detalle-credito");
+  const tablaDiv = metodoPago == "0" ? document.getElementById("tabla-contado") : document.getElementById("tabla-credito");
+
+  tablaDiv.classList.add("hidden");
+  detalleDiv.classList.remove("hidden");
+
+  detalleDiv.innerHTML = `
+  <div class="flex justify-between items-center mb-4">
+    <button onclick="volverAFichas('${metodoPago}')" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+    <h2 class="text-lg font-semibold">Detalle Orden #${id}</h2>
+    <div></div>
+  </div>
+  <div class="flex justify-between mt-4 gap-4">
+    <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+      Cerrar requisición
+    </button>
+    <button onclick="regresarACompras(${id}, '${metodoPago}')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+      Regresar a Compras
+    </button>
+  </div>
+`;
+}
+
+// --- Volver a la tabla desde detalle ---
+function volverAFichas(metodoPago) {
+  const detalleDiv = metodoPago == "0" ? document.getElementById("detalle-contado") : document.getElementById("detalle-credito");
+  const tablaDiv = metodoPago == "0" ? document.getElementById("tabla-contado") : document.getElementById("tabla-credito");
+
+  detalleDiv.classList.add("hidden");
+  tablaDiv.classList.remove("hidden");
+}
+
+// --- Funciones de navegación principales ---
 function mostrarFichaContado() {
   document.getElementById('ficha-menu').classList.add('hidden')
   document.getElementById('ficha-contado').classList.remove('hidden')
@@ -3008,121 +3104,29 @@ function regresarFichaMenu() {
   document.getElementById('ficha-menu').classList.remove('hidden')
 }
 
-// ================== FICHA CONTADO ==================
-function verFichaContado(id) {
-  const detalle = document.getElementById('detalle-contado')
-  const tabla = document.getElementById('tabla-contado')
-  const botonRegresar = document.querySelector('#ficha-contado .flex.justify-between button')
-
-  tabla.classList.add('hidden')
-  if (botonRegresar) botonRegresar.classList.add('hidden')
-  detalle.classList.remove('hidden')
-
-  detalle.innerHTML = `
-    <div class="flex justify-between items-center mb-4">
-      <button onclick="regresarFichaContado()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-      <h2 class="text-lg font-semibold">Detalle de la ficha ${id}</h2>
-      <div></div>
-    </div>
-
-    <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
-      <p class="text-gray-700 mb-4">Detalle de la ficha de pago <strong>${id}</strong> (contenido dinámico aquí).</p>
-
-      <div class="flex justify-between mt-4">
-        <!-- Botón izquierdo: Cerrar solicitud -->
-        <button class="px-4 py-2 bg-red-600 text-white rounded-lg transition">
-                Cerrar requisición
-        </button>
-
-        <!-- Botón derecho: Regresar a Facturas -->
-        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
-                onclick="regresarAFacturas(${id})">
-          Regresar a Facturas
-        </button>
-      </div>
-    </div>
-  `
-}
-
-function regresarFichaContado() {
-  const detalle = document.getElementById('detalle-contado')
-  const tabla = document.getElementById('tabla-contado')
-  const botonRegresar = document.querySelector('#ficha-contado .flex.justify-between button')
-
-  detalle.classList.add('hidden')
-  tabla.classList.remove('hidden')
-  if (botonRegresar) botonRegresar.classList.remove('hidden')
-}
-
-// ================== Función para regresar a facturas con cambio de estado ==================
-async function regresarAFacturas(idSolicitud) {
-  if (!confirm('¿Deseas regresar esta solicitud a facturas pendientes?')) return;
-
+// --- Función para regresar la ficha a Compras y cambiar estado a "Por Pagar" ---
+async function regresarACompras(idSolicitud, metodoPago) {
   try {
-    const response = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoEstado: 'Por Pagar' })
+    const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nuevoEstado: "Por Pagar" })
     });
+    const data = await res.json();
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      alert(`⚠️ No se pudo actualizar el estado: ${data.message || 'Error desconocido.'}`);
-      return;
+    if (data.success) {
+      alert("Estado actualizado a 'Por Pagar'");
+      volverAFichas(metodoPago); // regresar a la tabla de fichas
+      initFichasPago(); // refrescar tabla
+    } else {
+      alert("No se pudo actualizar el estado");
     }
-
-    // ✅ Mostrar confirmación
-    alert('✅ La solicitud ha sido regresada a facturas pendientes.');
-
-    // ✅ Regresar a la tabla de fichas de contado
-    cerrarModal();
-    abrirModal('ficha_pago');
-
   } catch (error) {
-    console.error('Error al actualizar el estado:', error);
-    alert('❌ Ocurrió un error al intentar regresar la solicitud.');
+    console.error("Error al actualizar estado:", error);
+    alert("Ocurrió un error al actualizar el estado");
   }
 }
 
-// ================== FICHA CRÉDITO ==================
-function verFichaCredito(id) {
-  const detalle = document.getElementById('detalle-credito')
-  const tabla = document.getElementById('tabla-credito')
-  const botonRegresar = document.querySelector('#ficha-credito .flex.justify-between button')
-
-  tabla.classList.add('hidden')
-  if (botonRegresar) botonRegresar.classList.add('hidden')
-  detalle.classList.remove('hidden')
-
-  detalle.innerHTML = `
-    <div class="flex justify-between items-center mb-4">
-      <button onclick="regresarFichaCredito()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-      <h2 class="text-lg font-semibold">Detalle de la ficha ${id}</h2>
-      <div></div>
-    </div>
-
-    <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 shadow-sm">
-      <p class="text-gray-700 mb-4">Detalle de la ficha de pago <strong>${id}</strong> (contenido dinámico aquí).</p>
-
-      <div class="flex justify-end mt-4">
-        <button class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
-          Confirmar recepción en tesorería
-        </button>
-      </div>
-    </div>
-  `
-}
-
-function regresarFichaCredito() {
-  const detalle = document.getElementById('detalle-credito')
-  const tabla = document.getElementById('tabla-credito')
-  const botonRegresar = document.querySelector('#ficha-credito .flex.justify-between button')
-
-  detalle.classList.add('hidden')
-  tabla.classList.remove('hidden')
-  if (botonRegresar) botonRegresar.classList.remove('hidden')
-}
 
 
 /**
