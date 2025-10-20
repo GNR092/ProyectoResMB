@@ -17,96 +17,69 @@
 
 <!-- ================== Pago de contado ================== -->
 <div id="pago-contado" class="hidden p-6">
-    <div class="flex justify-between items-center mb-4">
-        <button onclick="regresarPagosMenu()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-        <h2 class="text-lg font-semibold">Pago de contado</h2>
-        <div></div>
-    </div>
 
     <!-- Tabla de solicitudes de contado -->
-    <div id="tabla-contado">
-        <table class="min-w-full border border-gray-300">
-            <thead class="bg-gray-100">
+    <div id="tabla-contado" class="overflow-x-auto">
+
+        <div class="flex justify-between items-center mb-4">
+            <button onclick="regresarPagosMenu()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+            <h2 class="text-lg font-semibold">Pago de contado</h2>
+            <div></div>
+        </div>
+
+        <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
+            <thead class="bg-gray-100 text-gray-800">
             <tr>
-                <th class="py-2 px-4 text-left">Folio</th>
-                <th class="py-2 px-4 text-left">Usuario</th>
-                <th class="py-2 px-4 text-left">Departamento</th>
-                <th class="py-2 px-4 text-left">Fecha</th>
-                <th class="py-2 px-4 text-left">Estado</th>
-                <th class="py-2 px-4 text-left">Acciones</th>
+                <th class="px-4 py-2 border-b">Departamento</th>
+                <th class="px-4 py-2 border-b">Complejo</th>
+                <th class="px-4 py-2 border-b">No. Folio</th>
+                <th class="px-4 py-2 border-b">Proveedor</th>
+                <th class="px-4 py-2 border-b">Banco</th>
+                <th class="px-4 py-2 border-b">Importe</th>
+                <th class="px-4 py-2 border-b text-center">Acciones</th>
             </tr>
             </thead>
-            <tbody>
-            <?php if (!empty($solicitudes_contado)): ?>
-                <?php foreach ($solicitudes_contado as $sol): ?>
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="py-2 px-4"><?= esc($sol['No_Folio']) ?></td>
-                        <td class="py-2 px-4"><?= esc($sol['UsuarioNombre']) ?></td>
-                        <td class="py-2 px-4"><?= esc($sol['DepartamentoNombre']) ?></td>
-                        <td class="py-2 px-4"><?= esc($sol['Fecha']) ?></td>
-                        <td class="py-2 px-4"><?= esc($sol['Estado']) ?></td>
-                        <td class="py-2 px-4">
-                            <button class="text-blue-600 hover:underline" onclick="verDetalleContado(<?= $sol['ID_Solicitud'] ?>)">Ver</button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="6" class="py-4 text-center text-gray-500">No hay solicitudes de contado pendientes por pagar.</td>
-                </tr>
-            <?php endif; ?>
+            <tbody id="body-contado">
+            <tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
             </tbody>
         </table>
     </div>
 
-    <!-- Detalle de solicitud contado -->
-    <div id="detalle-contado" class="hidden"></div>
+    <!-- Detalle de la orden de contado (se genera dinámicamente) -->
+    <div id="detalle-contado" class="hidden p-4 border border-gray-200 rounded-lg bg-gray-50"></div>
 </div>
 
 <!-- ================== Pago a crédito ================== -->
 <div id="pago-credito" class="hidden p-6">
-    <div class="flex justify-between items-center mb-4">
-        <button onclick="regresarPagosMenu()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-        <h2 class="text-lg font-semibold">Pago a crédito</h2>
-        <div></div>
-    </div>
 
     <!-- Tabla de solicitudes a crédito -->
-    <div id="tabla-credito">
-        <table class="min-w-full border border-gray-300">
-            <thead class="bg-gray-100">
+    <div id="tabla-credito" class="overflow-x-auto">
+
+        <div class="flex justify-between items-center mb-4">
+            <button onclick="regresarPagosMenu()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+            <h2 class="text-lg font-semibold">Pago a crédito</h2>
+            <div></div>
+        </div>
+
+        <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
+            <thead class="bg-gray-100 text-gray-800">
             <tr>
-                <th class="py-2 px-4 text-left">Folio</th>
-                <th class="py-2 px-4 text-left">Usuario</th>
-                <th class="py-2 px-4 text-left">Departamento</th>
-                <th class="py-2 px-4 text-left">Fecha</th>
-                <th class="py-2 px-4 text-left">Estado</th>
-                <th class="py-2 px-4 text-left">Acciones</th>
+                <th class="px-4 py-2 border-b">Departamento</th>
+                <th class="px-4 py-2 border-b">Complejo</th>
+                <th class="px-4 py-2 border-b">No. Folio</th>
+                <th class="px-4 py-2 border-b">Proveedor</th>
+                <th class="px-4 py-2 border-b">Banco</th>
+                <th class="px-4 py-2 border-b">Importe</th>
+                <th class="px-4 py-2 border-b text-center">Acciones</th>
+
             </tr>
             </thead>
-            <tbody>
-            <?php if (!empty($solicitudes_credito)): ?>
-                <?php foreach ($solicitudes_credito as $sol): ?>
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="py-2 px-4"><?= esc($sol['No_Folio']) ?></td>
-                        <td class="py-2 px-4"><?= esc($sol['UsuarioNombre']) ?></td>
-                        <td class="py-2 px-4"><?= esc($sol['DepartamentoNombre']) ?></td>
-                        <td class="py-2 px-4"><?= esc($sol['Fecha']) ?></td>
-                        <td class="py-2 px-4"><?= esc($sol['Estado']) ?></td>
-                        <td class="py-2 px-4">
-                            <button class="text-green-600 hover:underline" onclick="verDetalleCredito(<?= $sol['ID_Solicitud'] ?>)">Ver</button>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <tr>
-                    <td colspan="6" class="py-4 text-center text-gray-500">No hay solicitudes a crédito pendientes por pagar.</td>
-                </tr>
-            <?php endif; ?>
+            <tbody id="body-credito">
+            <tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
             </tbody>
         </table>
     </div>
 
-    <!-- Detalle de solicitud crédito -->
-    <div id="detalle-credito" class="hidden"></div>
+    <!-- Detalle de la orden de crédito (se genera dinámicamente) -->
+    <div id="detalle-credito" class="hidden p-4 border border-gray-200 rounded-lg bg-gray-50"></div>
 </div>

@@ -141,29 +141,8 @@ class Modales extends BaseController
                 return view('modales/limpiar_almacenamiento');
 
             case 'pagos_pendientes':
-                $solicitudModel = new SolicitudModel();
 
-                // ================== Solicitudes de contado (MetodoPago = 0) ==================
-                $data['solicitudes_contado'] = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
-                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
-                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                    ->where('Solicitud.Estado', 'Por Pagar')
-                    ->where('Solicitud.MetodoPago', 0)
-                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
-                    ->findAll();
-
-                // ================== Solicitudes a crédito (MetodoPago = 1) ==================
-                $data['solicitudes_credito'] = $solicitudModel
-                    ->select('Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre')
-                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
-                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                    ->where('Solicitud.Estado', 'Por Pagar')
-                    ->where('Solicitud.MetodoPago', 1)
-                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
-                    ->findAll();
-
-                return view('modales/pagos_pendientes', $data);
+                return view('modales/pagos_pendientes');
                 
             case 'registrar_productos':
                 $productoModel = new ProductoModel();
