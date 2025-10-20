@@ -108,9 +108,9 @@ class Modales extends BaseController
                 return view('modales/usuarios', $data);
 
             case 'crud_usuarios':
-                $usuariosModel = new UsuariosModel();
+                $razonSocialModel = new RazonSocialModel();
                 $data['usuarios'] = $this->api->getAllUsers();
-                $data['razones_sociales'] = new RazonSocialModel()->findAll();
+                $data['razones_sociales'] = $razonSocialModel->findAll();
                 $data['departamentos'] = $this->api->getAllDepartments();
                 return view('modales/crud_usuarios', $data);
 
