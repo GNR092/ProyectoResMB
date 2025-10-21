@@ -113,6 +113,11 @@ class MenuOptions extends BaseConfig
                 'label' => 'Reportes/Auditoria',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#reportes"></use></svg>',
             ],
+
+//            'razonsocial' => [
+//                'label' => 'Razon Social',
+//                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#razonsocial"></use></svg>',
+//            ],
         ];
     }
 }

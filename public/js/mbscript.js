@@ -26,6 +26,7 @@ function abrirModal(opcion) {
     ajustes: 'Ajustes',
     almacen: 'Almacén',
     reportes: 'Reportes/Auditoria',
+    razonsocial: 'Razón social',
   }
   // Título para la nueva opción
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
@@ -53,6 +54,7 @@ function abrirModal(opcion) {
         reportes: initPaginacionReportes,
         pagos_pendientes: initPagosPendientes,
         ficha_pago: initFichasPago,
+        razonsocial: initCrudRazonSocial,
         // Opciones con inicialización especial o sin ella se omiten
       };
 
@@ -3128,7 +3130,6 @@ async function regresarACompras(idSolicitud, metodoPago) {
 }
 
 
-
 /**
  * Lógica para reportes
  */
@@ -3286,6 +3287,185 @@ function regresarReportes() {
   document.getElementById('div-reportes').classList.remove('hidden');
   document.getElementById('div-ver-reporte').classList.add('hidden');
 }
+
+
+/**
+ * Lógica para crud razon social
+ */
+function initCrudRazonSocial() {
+  const tabla = document.getElementById('tabla-razonsocial');
+  if (!tabla) return;
+
+  initRazonSocialTabla();
+  initRazonSocialPantallas();
+  initRazonSocialForm();
+  initRazonSocialEditarForm();
+  initRazonSocialActions(tabla);
+}
+
+// --- Configuración de tabla con paginación y filtros ---
+function initRazonSocialTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-razonsocial tr[data-id]',
+    paginationSelector: 'paginacion-razonsocial',
+    filterFormSelector: '#form-filtros-razonsocial', // Si no existe, se ignora
+    filterFunction: (row, form) => {
+      const nombreFiltro = (document.getElementById('buscar-nombre')?.value || '').toLowerCase();
+      const nombre = row.querySelector('.nombre')?.textContent.toLowerCase() || '';
+      return nombre.includes(nombreFiltro);
+    },
+    rowsPerPage: 10
+  });
+}
+
+// --- Cambio de pantallas ---
+function initRazonSocialPantallas() {
+  const pantallaAgregar = document.getElementById('pantalla-agregar-razonsocial');
+  const pantallaEditar = document.getElementById('pantalla-editar-razonsocial');
+  const pantallaLista = document.getElementById('pantalla-lista-razonsocial');
+
+  const btnAgregar = document.getElementById('btn-agregar-razonsocial');
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista');
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar');
+
+  if (btnAgregar) btnAgregar.onclick = (e) => {
+    e.preventDefault();
+    pantallaLista?.classList.add('hidden');
+    pantallaAgregar?.classList.remove('hidden');
+  };
+
+  if (btnRegresarAgregar) btnRegresarAgregar.onclick = (e) => {
+    e.preventDefault();
+    pantallaAgregar?.classList.add('hidden');
+    pantallaLista?.classList.remove('hidden');
+  };
+
+  if (btnRegresarEditar) btnRegresarEditar.onclick = (e) => {
+    e.preventDefault();
+    pantallaEditar?.classList.add('hidden');
+    pantallaLista?.classList.remove('hidden');
+  };
+}
+
+// --- Formulario agregar ---
+function initRazonSocialForm() {
+  const formAgregar = document.getElementById('form-agregar-razonsocial');
+  const pantallaAgregar = document.getElementById('pantalla-agregar-razonsocial');
+  const pantallaLista = document.getElementById('pantalla-lista-razonsocial');
+  if (!formAgregar) return;
+
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(formAgregar);
+
+    try {
+      const response = await fetch('/modales/razonsocial/insertar', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        mostrarNotificacion('Razón social agregada ✅', 'success');
+        pantallaAgregar?.classList.add('hidden');
+        pantallaLista?.classList.remove('hidden');
+        formAgregar.reset();
+        location.reload();
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error');
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error');
+    }
+  };
+}
+
+// --- Formulario editar ---
+function initRazonSocialEditarForm() {
+  const formEditar = document.getElementById('form-editar-razonsocial');
+  const pantallaEditar = document.getElementById('pantalla-editar-razonsocial');
+  const pantallaLista = document.getElementById('pantalla-lista-razonsocial');
+  const tabla = document.getElementById('tabla-razonsocial');
+  if (!formEditar) return;
+
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(formEditar);
+    const id = formData.get('ID_RazonSocial');
+
+    try {
+      const response = await fetch(`/modales/razonsocial/editar/${id}`, {
+        method: 'POST',
+        body: formData
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        mostrarNotificacion('Razón social actualizada ✅', 'success');
+        // Actualizar fila en la tabla
+        const fila = tabla.querySelector(`tr[data-id='${id}']`);
+        if (fila) {
+          fila.querySelector('.nombre').textContent = formData.get('Nombre');
+          fila.dataset.rfc = formData.get('RFC');
+        }
+        pantallaEditar?.classList.add('hidden');
+        pantallaLista?.classList.remove('hidden');
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error');
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error');
+    }
+  };
+}
+
+// --- Botones editar/eliminar ---
+function initRazonSocialActions(tabla) {
+  if (!tabla) return;
+
+  tabla.addEventListener('click', (e) => {
+    // --- ELIMINAR ---
+    const btnEliminar = e.target.closest("[id^='btn-eliminar-razonsocial-']");
+    if (btnEliminar) {
+      e.preventDefault();
+      const id = btnEliminar.dataset.id;
+
+      if (!confirm('¿Seguro que deseas eliminar esta razón social?')) return;
+
+      fetch(`/modales/razonsocial/eliminar/${id}`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+          .then(res => res.json())
+          .then(result => {
+            if (result.success) {
+              mostrarNotificacion('Razón social eliminada ✅', 'success');
+              btnEliminar.closest('tr')?.remove();
+            } else {
+              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error');
+            }
+          })
+          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'));
+      return;
+    }
+
+    // --- EDITAR ---
+    const btnEditar = e.target.closest("[id^='btn-editar-razonsocial-']");
+    if (!btnEditar) return;
+    e.preventDefault();
+
+    const fila = btnEditar.closest('tr');
+    if (!fila) return;
+
+    document.getElementById('editar-ID_RazonSocial').value = fila.dataset.id;
+    document.getElementById('editar-Nombre').value = fila.querySelector('.nombre').textContent;
+    document.getElementById('editar-RFC').value = fila.dataset.rfc;
+
+    document.getElementById('pantalla-lista-razonsocial').classList.add('hidden');
+    document.getElementById('pantalla-editar-razonsocial').classList.remove('hidden');
+  });
+}
+
 
 
 

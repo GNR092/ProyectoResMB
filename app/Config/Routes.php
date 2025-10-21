@@ -85,14 +85,22 @@ if (!file_exists($installerLockFile)) {
         // Solicitudes
         $routes->get('api/solicitud/details/(:num)', 'Api::getSolicitudDetails/$1');
         $routes->get('api/cotizacion/details/(:num)', 'Api::getCotizacionDetails/$1');
-        $routes->get('api/orden-compra/details/(:num)', 'Api::getOrdenCompra/$1');
-        $routes->get('api/orden-compra/alldata', 'Api::getAllOrdenCompraData');
-        $routes->get('api/orden-compra/data/(:num)', 'Api::getOrdenCompraData/$1');
         $routes->get('api/solicitudes/cotizadas', 'Api::getSolicitudesCotizadas');
         $routes->get('api/solicitudes/getsoluser/(:num)', 'Api::getSolicitudesUsers/$1');
         $routes->get('api/solicitudes/en-revision', 'Api::getSolicitudesEnRevision');
+
+        //Orden de compra
+        $routes->get('api/orden-compra/details/(:num)', 'Api::getOrdenCompra/$1');
+        $routes->get('api/orden-compra/alldata', 'Api::getAllOrdenCompraData');
+        $routes->get('api/orden-compra/data/(:num)', 'Api::getOrdenCompraData/$1');
         $routes->post('api/solicitudes/cambiarEstado/(:num)', 'Api::cambiarEstadoOrden/$1');
         $routes->post('api/solicitud/enviarATesoreria', 'Api::enviarATesoreria');
+
+        //razon social
+        $routes->post('modales/razonsocial/insertar', 'Modales::insertarRazonSocial');
+        $routes->post('modales/razonsocial/editar/(:num)', 'Modales::editarRazonSocial/$1');
+        $routes->post('modales/razonsocial/eliminar/(:num)', 'Modales::eliminarRazonSocial/$1');
+
 
         // Auth
         $routes->get('auth/logout', 'Auth::logout');

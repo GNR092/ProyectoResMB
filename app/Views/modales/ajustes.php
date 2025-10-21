@@ -30,10 +30,19 @@
     <!-- Reportes/Auditorias -->
     <button onclick="abrirModal('reportes')"
             class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
-        <svg class="size-6" fill="none" stroke-width="2" >
+        <svg class="size-6" fill="none" stroke-width="1.5" >
             <use xlink:href="/icons/icons.svg#reportes"></use>
         </svg>
         <span>Reportes/Auditorias</span>
+    </button>
+
+    <!-- Razon social -->
+    <button onclick="abrirModal('razonsocial')"
+            class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
+        <svg class="size-6" fill="none" stroke-width="1.5" >
+            <use xlink:href="/icons/icons.svg#razonsocial"></use>
+        </svg>
+        <span>Razón Social</span>
     </button>
 
 </div>

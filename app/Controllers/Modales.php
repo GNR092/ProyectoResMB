@@ -232,6 +232,11 @@ class Modales extends BaseController
 
                 return view('modales/reportes', $data);
 
+            case 'razonsocial':
+                $razonModel = new RazonSocialModel();
+                $data['razones'] = $razonModel->orderBy('ID_RazonSocial', 'ASC')->findAll();
+                return view('modales/razonsocial', $data);
+
 
             default:
                 return 'Opción no válida';
@@ -643,31 +648,54 @@ class Modales extends BaseController
         }
     }
 
-    public function cambiarEstado($idSolicitud)
+    //Funcion crud para razon social
+    public function insertarRazonSocial()
     {
-        $solicitudModel = new \App\Models\SolicitudModel();
+        $model = new \App\Models\RazonSocialModel();
+        $data = $this->request->getPost(['Nombre', 'RFC']);
 
-        $json = $this->request->getJSON(true);
-        $nuevoEstado = $json['nuevoEstado'] ?? null;
-
-        if (!$nuevoEstado) {
-            return $this->response->setJSON(['message' => 'No se especificó el nuevo estado.'])->setStatusCode(400);
+        if ($model->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo insertar la razón social',
+            ]);
         }
-
-        $solicitud = $solicitudModel->find($idSolicitud);
-
-        if (!$solicitud) {
-            return $this->response->setJSON(['message' => 'Solicitud no encontrada.'])->setStatusCode(404);
-        }
-
-        // Actualizar estado
-        $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
-
-        return $this->response->setJSON([
-            'success' => true,
-            'message' => 'Estado actualizado correctamente.',
-            'nuevoEstado' => $nuevoEstado,
-        ]);
     }
+
+    public function editarRazonSocial($id)
+    {
+        $model = new \App\Models\RazonSocialModel();
+        $data = $this->request->getPost(['Nombre', 'RFC']);
+
+        try {
+            $model->update($id, $data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function eliminarRazonSocial($id)
+    {
+        $model = new \App\Models\RazonSocialModel();
+
+        if ($model->delete($id)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo eliminar la razón social',
+            ]);
+        }
+    }
+
+
+
+
 
 }
