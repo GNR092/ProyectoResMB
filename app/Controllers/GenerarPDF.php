@@ -71,9 +71,10 @@ class GenerarPDF extends BaseController
      * @param int $modo Modo de generación (0 = productos, 1 = cotización).
      * @return string|null La ruta del archivo PDF generado o null si hubo un error.
      */
-    public function generarYGuardarRequisicion(int $id, int $modo = 0): ?string
+    public function generarYGuardarRequisicion(int $id, int $modo = 0, int $adjuntar = 0): ?string
     {
         $dictamen = $modo == 1;
+        $adjuntararchivo = $adjuntar == 1;
 
         try {
             $response = $dictamen
@@ -98,12 +99,14 @@ class GenerarPDF extends BaseController
         $total = $this->_generarTablaProductos($pdf, $solicitud);
         $this->_generarTotales($pdf, $solicitud, $total);
         $this->_mostrarComentarios($pdf, $solicitud);
-        $this->_adjuntarArchivo(
-            $pdf,
-            FPath::FSOLICITUD . $solicitud['Fecha'] . '/',
-            $solicitud['Archivo'],
-            'Referencia',
-        );
+        if ($adjuntararchivo) {
+            $this->_adjuntarArchivo(
+                $pdf,
+                FPath::FSOLICITUD . $solicitud['Fecha'] . '/',
+                $solicitud['Archivo'],
+                'Referencia',
+            );
+        }
 
         if ($dictamen && !empty($solicitud['cotizacion']['Cotizacion_Files'])) {
             $cfiles = explode(',', $solicitud['cotizacion']['Cotizacion_Files']);
@@ -140,11 +143,11 @@ class GenerarPDF extends BaseController
         $titulo = in_array($solicitud['Tipo'], [0, 1])
             ? 'REQUISICIÓN DE COMPRA'
             : 'SOLICITUD DE SERVICIOS Y SUMINISTROS DE INSUMOS';
-        
+
         $pdf->AddPage();
         $pdf->Title($solicitud['Complejo'], 0, 0, 0, 0, 'C');
         $pdf->Ln(6);
-        $pdf->Title($titulo, 0, 0, 0, 0, 'C','B',13);
+        $pdf->Title($titulo, 0, 0, 0, 0, 'C', 'B', 13);
         $pdf->Ln(2);
         $pdf->SetFont('Arial', 'B', 12);
         $pdf->Cell(0, 10, 'Folio: ' . $solicitud['No_Folio'], 0, 1, 'C');
@@ -160,7 +163,11 @@ class GenerarPDF extends BaseController
             98,
             10,
             'Departamento: ' .
-                mb_convert_encoding(($solicitud['DepartamentoNombre'] ?? '') . ' ' . $solicitud['ID_Place'] ?? '', 'ISO-8859-1', 'UTF-8'),
+                mb_convert_encoding(
+                    ($solicitud['DepartamentoNombre'] ?? '') . ' ' . $solicitud['ID_Place'] ?? '',
+                    'ISO-8859-1',
+                    'UTF-8',
+                ),
             0,
             1,
             'R',
@@ -317,7 +324,7 @@ class GenerarPDF extends BaseController
     }
 
     //region Orden de Compra
-    
+
     public function GenerarOrden(int $id)
     {
         try {

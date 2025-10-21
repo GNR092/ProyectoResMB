@@ -3134,16 +3134,30 @@ async function regresarACompras(idSolicitud, metodoPago) {
  * Lógica para reportes
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', () => {
   initPaginacionReportes();
 
   // Re-renderizar al cambiar filtros
-  document.getElementById('filtro-estado-reportes').addEventListener('change', initPaginacionReportes);
-  document.getElementById('filtroDepartamento-reportes').addEventListener('change', initPaginacionReportes);
-  document.getElementById('filtro-fecha-reportes').addEventListener('change', initPaginacionReportes);
-  document.getElementById('filtrar-por-mes-reportes').addEventListener('change', initPaginacionReportes);
-});
+  const filtroEstadoReportes = document.getElementById('filtro-estado-reportes');
+  if (filtroEstadoReportes) {
+    filtroEstadoReportes.addEventListener('change', initPaginacionReportes);
+  }
 
+  const filtroDepartamentoReportes = document.getElementById('filtroDepartamento-reportes');
+  if (filtroDepartamentoReportes) {
+    filtroDepartamentoReportes.addEventListener('change', initPaginacionReportes);
+  }
+
+  const filtroFechaReportes = document.getElementById('filtro-fecha-reportes');
+  if (filtroFechaReportes) {
+    filtroFechaReportes.addEventListener('change', initPaginacionReportes);
+  }
+
+  const filtrarPorMesReportes = document.getElementById('filtrar-por-mes-reportes');
+  if (filtrarPorMesReportes) {
+    filtrarPorMesReportes.addEventListener('change', initPaginacionReportes);
+  }
+});
 function initPaginacionReportes() {
   const tabla = document.getElementById('tabla-reportes');
   if (!tabla) return;

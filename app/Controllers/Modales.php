@@ -20,7 +20,7 @@ class Modales extends BaseController
     }
     public function mostrar($opcion)
     {
-        //agregar el lugar de los de partamentos
+
         $session = session();
         $data = [
             'departamentos' => $session->get('departamentos'),
@@ -30,8 +30,7 @@ class Modales extends BaseController
 
         switch ($opcion) {
             case 'ver_historial':
-                // Cargar el modelo de Departamentos
-                $departamentoModel = new \App\Models\DepartamentosModel();
+                $departamentoModel = new DepartamentosModel();
                 $data['departamentos'] = $departamentoModel->orderBy('Nombre', 'ASC')->findAll();
                 return view('modales/ver_historial', $data);
 
@@ -289,7 +288,7 @@ class Modales extends BaseController
             $data['ContrasenaG'] = null; // Opcional: asegúrate de que se guarde como nulo si está vacío
         }
 
-        $newUserId = new UsuariosModel()->insert($data, true);
+        $newUserId = (new UsuariosModel())->insert($data, true);
 
         if ($newUserId) {
             $newUser = $this->api->getUserById($newUserId);

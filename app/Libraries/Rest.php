@@ -988,9 +988,14 @@ class Rest
     //endregion
 
     //region misceláneos
-    public static function ShowDebug($data)
+    public static function ShowDebug($data, $json = false)
     {
-        return "<pre>Debug Info:\n" . print_r($data, true) . '</pre>';
+        if ($json) {
+            return ['success' => true, 'debug' => $data];
+        }
+        return "<pre>Debug Info:\n" .
+            print_r($data, true) .
+            '</pre>';
     }
     /**
      * Crea una carpeta en la ruta especificada si no existe.
