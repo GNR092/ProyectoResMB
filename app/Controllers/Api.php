@@ -14,6 +14,7 @@ use App\Libraries\SolicitudTipo;
 use App\Libraries\Status;
 use App\Libraries\MBSMail;
 use App\Libraries\MetodoPago;
+use App\Models\RazonSocialModel;
 
 class Api extends ResourceController
 {
@@ -374,20 +375,15 @@ class Api extends ResourceController
      */
     public function crearCotizacion()
     {
+        $cotizacionModel = new CotizacionModel();
+        $solicitudModel = new SolicitudModel();
+        $razonSocialModel = new RazonSocialModel();
+
+
         $json = $this->request->getJSON();
         $mail = new MBSMail();
         $to = getenv('EMAIL_TO_TEST'); //Cambiar en producción para enviar al proveedor
         $subject = 'Cotización de requisición de compra';
-        $message = '
-                    <p>Estimado proveedor,</p>
-                    <p>Le contactamos de parte de MBSP RENTAS S.A. DE C.V.</p>
-                    <p>Adjunto a este correo encontrará la requisición de compra para su cotización.</p>
-                    <p>Quedamos a la espera de su pronta respuesta.</p>
-                    <br>
-                    <p>Saludos cordiales,</p>
-                    <p><strong>Departamento de Compras</strong></p>
-                    <p>MBSP RENTAS S.A. DE C.V.</p>
-        ';
 
         if (!isset($json->ID_Solicitud) || !isset($json->ID_Proveedor)) {
             return $this->failValidationErrors('Se requiere ID de solicitud y de proveedor.');
@@ -396,11 +392,10 @@ class Api extends ResourceController
         $idSolicitud = (int) $json->ID_Solicitud;
         $idProveedor = (int) $json->ID_Proveedor;
 
-        $cotizacionModel = new CotizacionModel();
-        $solicitudModel = new SolicitudModel();
         $details = $this->api->getSolicitudWithProducts($idSolicitud);
 
         $solicitud = $solicitudModel->find($idSolicitud);
+
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
@@ -410,6 +405,9 @@ class Api extends ResourceController
                 HttpStatus::BAD_REQUEST,
             );
         }
+
+        $razon = $razonSocialModel->find($solicitud['ID_RazonSocial']);
+        $razonNombre = $razon['Nombre'];
 
         $total = 0;
         if ($solicitud['Tipo'] != SolicitudTipo::Servicios) {
@@ -426,6 +424,15 @@ class Api extends ResourceController
             }
         }
 
+        $message = "
+                    <p>Estimado proveedor,</p>
+                    <p>Le contactamos de parte de  $razonNombre</p>
+                    <p>Adjunto a este correo encontrará la requisición para su cotización.</p>
+                    <p>Quedamos a la espera de su pronta respuesta.</p>
+                    <br>
+                    <p>Saludos cordiales,</p>
+        ";
+
         $db = \Config\Database::connect();
         $db->transStart();
 
@@ -439,7 +446,7 @@ class Api extends ResourceController
             $pdf->generarYGuardarRequisicion($idSolicitud);
             $option = [
                 'attachments' => [FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf'],
-                'fromName' => 'MBSP RENTAS S.A. DE C.V.',
+                'fromName' => $razonNombre,
             ];
 
             $cotizacionModel->insert($cotizacionData);

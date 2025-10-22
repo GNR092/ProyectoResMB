@@ -12,7 +12,7 @@
 
 
     <!-- Buscadores y botón AGREGAR -->
-    <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+    <form id="form-filtros-proveedores" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
         <div class="flex flex-1 gap-4">
             <label for="buscar-nombre" class="sr-only">Buscar por nombre</label>
             <input type="text" id="buscar-nombre" name="buscar_nombre" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
@@ -24,7 +24,7 @@
                 AGREGAR
             </a>
         </div>
-    </div>
+    </form>
 
     <!-- Tabla -->
     <div class="overflow-x-auto">
