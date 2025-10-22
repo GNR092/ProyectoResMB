@@ -7,6 +7,7 @@
             <table class="min-w-full border border-gray-300">
                 <thead class="bg-gray-100">
                     <tr>
+                        <th class="py-3 px-6 text-left">Folio</th>
                         <th class="py-3 px-6 text-left">Usuario</th>
                         <th class="py-3 px-6 text-left">Departamento</th>
                         <th class="py-3 px-6 text-left">Fecha</th>
@@ -18,6 +19,7 @@
                     <?php if (!empty($solicitudes)): ?>
                     <?php foreach ($solicitudes as $solicitud): ?>
                     <tr class="hover:bg-gray-50" data-id="<?= $solicitud['ID_Solicitud'] ?>">
+                        <td class="py-3 px-6 text-left"><?= esc($solicitud['No_Folio']) ?></td>
                         <td class="py-3 px-6 text-left"><?= esc($solicitud['UsuarioNombre']) ?></td>
                         <td class="py-3 px-6 text-left"><?= esc(
                             $solicitud['DepartamentoNombre'],
