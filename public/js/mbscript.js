@@ -42,7 +42,7 @@ function abrirModal(opcion) {
     enviar_revision: 'Enviar a Revisión',
     usuarios: 'Usuarios',
     dictamen_solicitudes: 'Dictamen de requisiciones',
-    crud_proveedores: 'CRUD Proveedores',
+    crud_proveedores: 'Proveedores',
     limpiar_almacenamiento: 'Limpiar Almacenamiento',
     crud_usuarios: 'Administrar Usuarios',
     pagos_pendientes: 'Facturas Pendientes',

@@ -66,6 +66,26 @@ class Home extends BaseController
                 'ver_historial'
             ]
         ];
+        
+        $opcionesAjustes = [
+            'crud_usuarios',
+            'limpiar_almacenamiento',
+            'crud_proveedores',
+            'reportes',
+            'razonsocial'
+
+        ];
+
+        $permisosAjustesDpto = [
+            'Administración' => array_values($opcionesAjustes),
+            'Compras' => array_values($opcionesAjustes),
+            'Direccion' => array_values($opcionesAjustes),   
+            'Tesoreria' => array_values($opcionesAjustes),
+            // Rol por defecto (Jefes de Departamento)
+            'default' => [
+                'limpiar_almacenamiento'
+            ]
+        ];
 
         $departamentos = new DepartamentosModel();
         $usuarios = new UsuariosModel();
@@ -85,6 +105,7 @@ class Home extends BaseController
 
         $opcionesFiltradas = array_filter($opcionesDisponibles, fn($key) => in_array($key, $permisosUsuario), ARRAY_FILTER_USE_KEY);
 
+        $ajustesFiltrados = array_intersect($opcionesAjustes, $permisosAjustesDpto[$nombreDepartamento] ?? $permisosAjustesDpto['default']);
         // Determinar el texto del modo de inicio de sesión
         $loginType = session('login_type');
         $loginModeText = '';
@@ -96,6 +117,7 @@ class Home extends BaseController
 
         $data = [
             'opcionesDinamicas' => $opcionesFiltradas,
+            'ajustes' => $ajustesFiltrados,
             'nombre_usuario' => session('nombre_usuario') ?? 'Usuario',
             'departamento_usuario' => $departamento['Nombre'] ?? 'Departamento',
             'id_departamento_usuario' => $usuario['ID_Dpto'] ?? null,
