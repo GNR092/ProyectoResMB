@@ -63,7 +63,7 @@ class SendTestEmail extends BaseCommand
 
             $mail = new MBSMail();
 
-            $to = 'mail.example.com'; // Reemplaza con la dirección de correo del destinatario
+            $to = 'carlos.2107006@itsmotul.edu.mx'; // Reemplaza con la dirección de correo del destinatario
             $subject = 'Prueba de envío desde Comando Spark'; // Reemplaza con el asunto del correo
             $message = '<h1>Hola desde CodeIgniter Spark!</h1><p>Este es un correo de prueba enviado usando un comando de Spark.</p>'; // Reemplaza con el cuerpo del correo en formato HTML
 

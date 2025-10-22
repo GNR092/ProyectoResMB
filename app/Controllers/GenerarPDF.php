@@ -359,6 +359,63 @@ class GenerarPDF extends BaseController
         $pdf->Output('I', 'OrdenCompra-' . $orden['No_Folio'] . '.pdf');
     }
 
+    /**
+     * Genera un PDF de Orden de Compra y lo guarda en el servidor.
+     *
+     * @param int $id El ID de la solicitud (para obtener los datos de la OC).
+     * @return string|null La ruta del archivo PDF generado o null si hubo un error.
+     */
+    public function generarYGuardarOrden(int $id): ?string
+    {
+        try {
+            // Usamos la misma API que ya tienes para obtener los datos de la OC
+            $orden = $this->api->getOrdenCompra($id);
+        } catch (\Exception $e) {
+            log_message('error', '[generarYGuardarOrden] Error al conectar con el API: ' . $e->getMessage());
+            return null;
+        }
+
+        if (empty($orden)) {
+            log_message('error', '[generarYGuardarOrden] Respuesta de API inválida para la orden con ID de solicitud: ' . $id);
+            return null;
+        }
+
+        $pdf = new PDF('P', 'mm', 'Letter');
+        $pdf->AliasNbPages();
+        $pdf->AddPage();
+
+        // Reutilizamos las mismas funciones privadas que ya tenías
+        $this->_generarCabeceraOrden($pdf, $orden);
+        $this->_generarInfoProveedorOrden($pdf, $orden);
+        $this->_generarInfoFacturacionOrden($pdf, $orden);
+        $subtotal = $this->_generarTablaProductosOrden($pdf, $orden);
+        $pdf->Ln(5);
+        $this->_generarTotalesOrden($pdf, $orden, $subtotal);
+        $this->_generarPieOrden($pdf, $orden);
+
+        // --- INICIO DE LA LÓGICA DE GUARDADO ---
+
+        // Define la ruta para guardar los PDFs de Órdenes de Compra
+        $folderPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_ordenes';
+        if (!is_dir($folderPath)) {
+            if (!mkdir($folderPath, 0777, true)) {
+                log_message('error', 'No se pudo crear el directorio para los PDFs de órdenes de compra.');
+                return null;
+            }
+        }
+
+        // Usamos el No_Folio de la solicitud para el nombre
+        $fileName = 'OrdenCompra-' . $orden['No_Folio'] . '.pdf';
+        $filePath = $folderPath . DIRECTORY_SEPARATOR . $fileName;
+
+        // Guarda el PDF en el servidor
+        $pdf->Output('F', $filePath);
+
+        // Devuelve la ruta completa del archivo
+        return $filePath;
+        // --- FIN DE LA LÓGICA DE GUARDADO ---
+    }
+
     private function _generarCabeceraOrden(PDF $pdf, array $orden)
     {
         // This is based on the image, might need adjustments

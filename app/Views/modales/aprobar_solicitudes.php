@@ -1,11 +1,11 @@
-<div x-data="aprobarSolicitudes()">
+<div x-data="aprobarSolicitudes()" class="p-4">
 
     <!-- Vista de Tabla -->
     <div id="div-tabla-aprobacion">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Requisiciones Pendientes de Aprobación</h3>
-        <div class="overflow-x-auto bg-white rounded-lg shadow">
-            <table class="min-w-full">
-                <thead class="bg-gray-200">
+        <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-300">
+                <thead class="bg-gray-100">
                     <tr>
                         <th class="py-2 px-4 text-left">Folio</th>
                         <th class="py-2 px-4 text-left">Fecha</th>

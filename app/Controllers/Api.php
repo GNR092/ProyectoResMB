@@ -14,6 +14,7 @@ use App\Libraries\SolicitudTipo;
 use App\Libraries\Status;
 use App\Libraries\MBSMail;
 use App\Libraries\MetodoPago;
+use App\Controllers\GenerarPDF;
 
 class Api extends ResourceController
 {
@@ -745,7 +746,6 @@ class Api extends ResourceController
     public function cambiarEstadoOrden($idSolicitud)
     {
         $solicitudModel = new \App\Models\SolicitudModel();
-
         $json = $this->request->getJSON(true);
         $nuevoEstado = $json['nuevoEstado'] ?? null;
 
@@ -753,20 +753,92 @@ class Api extends ResourceController
             return $this->failValidationErrors('No se especificó el nuevo estado.');
         }
 
-        $solicitud = $solicitudModel->find($idSolicitud);
+        // 1. Iniciar Transacción
+        $db = \Config\Database::connect();
+        $db->transStart();
 
-        if (!$solicitud) {
-            return $this->failNotFound('Solicitud no encontrada.');
+        try {
+            // 2. Obtener datos de la solicitud
+            $solicitud = $solicitudModel->find($idSolicitud);
+            if (!$solicitud) {
+                return $this->failNotFound('Solicitud no encontrada.');
+            }
+
+            // --- INICIO DE LA MODIFICACIÓN ---
+
+            // 3. Obtener email de PRUEBA (igual que en crearCotizacion)
+            $to = getenv('EMAIL_TO_TEST');
+
+            if (empty($to)) {
+                // Si no hay email de prueba, no podemos enviar.
+                throw new \Exception('La variable de entorno EMAIL_TO_TEST no está configurada.');
+            }
+
+            // (Opcional) Obtenemos el nombre del proveedor solo para el texto del email
+            $proveedorNombre = 'Proveedor';
+            if (!empty($solicitud['ID_Proveedor'])) {
+                // Usamos la función que corregiste (ej. getProveedorPorID)
+                $proveedor = $this->api->getProveedorByID($solicitud['ID_Proveedor']);
+                if (!empty($proveedor) && !empty($proveedor['RazonSocial'])) {
+                    $proveedorNombre = esc($proveedor['RazonSocial']);
+                }
+            }
+
+            $subject = 'Nueva Orden de Compra MBSP - Folio: ' . $solicitud['No_Folio'];
+            $message = '
+                <p>Estimado Proveedor: ' . $proveedorNombre . '</p>
+                <p>Le contactamos de parte de MBSP RENTAS S.A. DE C.V. para hacerle llegar nuestra orden de compra.</p>
+                <p>Adjunto a este correo encontrará el documento PDF con los detalles.</p>
+                <p>Quedamos a la espera de su confirmación.</p>
+                <br>
+                <p>Saludos cordiales,</p>
+                <p><strong>Departamento de Compras</strong></p>
+                <p>MBSP RENTAS S.A. DE C.V.</p>
+            ';
+
+            // --- FIN DE LA MODIFICACIÓN ---
+
+
+            // 4. Generar y Guardar el PDF de la Orden de Compra
+            $pdf = new GenerarPDF();
+            $pdfPath = $pdf->generarYGuardarOrden($idSolicitud);
+
+            if (empty($pdfPath)) {
+                throw new \Exception('No se pudo generar o guardar el PDF de la Orden de Compra.');
+            }
+
+            // 5. Preparar opciones del correo (con el adjunto)
+            $option = [
+                'attachments' => [$pdfPath],
+                'fromName' => 'MBSP RENTAS S.A. DE C.V.'
+            ];
+
+            // 6. Actualizar el estado de la solicitud (Tu lógica original)
+            $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
+
+            // 7. Enviar el Correo
+            $mail = new MBSMail();
+            $mail->send_email($to, $subject, $message, $option);
+
+            // 8. Completar Transacción
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Falla en la transacción de base de datos.');
+            }
+
+            // 9. Enviar respuesta exitosa al frontend
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'Estado actualizado y Orden de Compra enviada por correo.',
+                'nuevoEstado' => $nuevoEstado,
+            ]);
+
+        } catch (\Exception $e) {
+            // 10. Manejar errores
+            log_message('error', '[cambiarEstadoOrden] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado: ' . $e->getMessage());
         }
-
-        // Actualizar estado
-        $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
-
-        return $this->respondUpdated([
-            'success' => true,
-            'message' => 'Estado actualizado correctamente.',
-            'nuevoEstado' => $nuevoEstado,
-        ]);
     }
 
     public function enviarATesoreria()
