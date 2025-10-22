@@ -1381,165 +1381,314 @@ function initEnviarRevision() {
         </tr>
       `;
     }
+  }).catch(error => {
+    console.error('Error al inicializar tabla de revisión:', error);
+    mostrarNotificacion('Error al cargar solicitudes para revisión.', 'error');
   });
 }
 
-async function enviarRevisionHandler(event) {
-  const fila = event.target.closest('tr')
-  const idSolicitud = fila.dataset.id
+function RevisionX() {
+  return {
+    init() {
+      this.loadTable();
+    },
+    loadTable() {
+      createPaginatedTable({
+        tableSelector: '#tabla-enviar tbody',
+        paginationSelector: 'paginacion-enviar-revision',
+        endpoint: 'api/solicitudes/cotizadas',
+        processData: (data) => data.filter((s) => s.Estado !== 'En revision'),
+        noResultsMessage: 'No hay solicitudes cotizadas para mostrar.',
+        renderRow: (s) => {
+          const monto = parseFloat(s.Monto || 0).toLocaleString('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+          });
+          return `
+            <tr class="hover:bg-gray-50" data-id="${s.ID_Solicitud}">
+                <td class="py-3 px-6 text-left">${s.Folio}</td>
+                <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
+                <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
+                <td class="py-3 px-6 text-left">${s.Proveedor || 'N/A'}</td>
+                <td class="py-3 px-6 text-left">${monto}</td>
+                <td class="py-3 px-6 text-left">${s.Estado}</td>
+                <td class="py-3 px-6 text-left">
+                    <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded btn-enviar" @click="VerDetalle(${s.ID_Solicitud})">
+                        Ver
+                    </button>
+                </td>
+            </tr>
+          `;
+        }
+      }).catch(error => {
+        console.error('Error al cargar tabla de revisión:', error);
+        mostrarNotificacion('Error al cargar solicitudes para revisión.', 'error');
+      });
+    },
+    VerDetalle: async function (idSolicitud) {
+      const divTabla = document.getElementById('div-tabla-enviar');
+      const divRevision = document.getElementById('div-enviar-revision');
+      const detallesContainer = document.getElementById('detalles-para-revision');
+      const form = document.getElementById('form-enviar-revision');
+      const btnConfirmar = document.getElementById('btn-confirmar-revision');
 
-  const divTabla = document.getElementById('div-tabla-enviar')
-  const divRevision = document.getElementById('div-enviar-revision')
-  const detallesContainer = document.getElementById('detalles-para-revision')
-  const form = document.getElementById('form-enviar-revision')
-  const btnConfirmar = document.getElementById('btn-confirmar-revision')
+      // Mostrar div revision
+      divTabla.classList.add('hidden');
+      divRevision.classList.remove('hidden');
+      detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>';
 
-  // Mostrar div revision
-  divTabla.classList.add('hidden')
-  divRevision.classList.remove('hidden')
-  detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>'
-
-  try {
-    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
-    if (!response.ok) throw new Error('No se pudieron cargar los detalles.')
-    const data = await response.json()
-    let estadoClass = getStatus(data.Estado)
-    const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    })
-    let html = `
-       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
-                <div><strong>Fecha:</strong> ${data.Fecha}</div>
-                <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
-                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
-                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
-                <div><strong>Complejo:</strong> ${data.Complejo}</div>
-                <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
-                ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
-            </div>
-    `
-    if (data.ComentariosAdmin) {
-      html += `
-            <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
-                <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
-                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-            </div>`
-    }
-    html += `
-            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
-            <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-300">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="py-2 px-4 text-left">Código</th>
-                            <th class="py-2 px-4 text-left">Producto</th>
-                            <th class="py-2 px-4 text-right">Cantidad</th>
-                            <th class="py-2 px-4 text-right">Importe</th>
-                            <th class="py-2 px-4 text-right">Costo Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `
-    data.productos.forEach((p) => {
-      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
-      html += `
-                <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
-                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
-                    <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(2)}</td>
-                    <td class="py-2 px-4 border-t text-right">${costoTotal}</td>
-                </tr>
-            `
-    })
-
-    html += `
-                    </tbody>
-                </table>   
-            </div>
-        `
-    if (data.ComentariosUser) {
-      html += `
-            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
-                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
-                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
-            </div>`
-    }
-    if (data.Archivo) {
-      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
-      html += `
-                <div class="mt-6">
-                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
-                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
+      try {
+        const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
+        if (!response.ok) throw new Error('No se pudieron cargar los detalles.');
+        const data = await response.json();
+        let estadoClass = getStatus(data.Estado);
+        const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
+          style: 'currency',
+          currency: 'MXN',
+        });
+        let html = `
+           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+                    <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+                    <div><strong>Fecha:</strong> ${data.Fecha}</div>
+                    <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
+                    <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+                    <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                    <div><strong>Complejo:</strong> ${data.Complejo}</div>
+                    <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
+                    ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
                 </div>
-            `
-    }
-    html += `
-              <div class="mt-6">
-                <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
-            </div>
-            `
+        `;
+        if (data.ComentariosAdmin) {
+          html += `
+                <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                    <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`;
+        }
+        html += `
+                <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border border-gray-300">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="py-2 px-4 text-left">Código</th>
+                                <th class="py-2 px-4 text-left">Producto</th>
+                                <th class="py-2 px-4 text-right">Cantidad</th>
+                                <th class="py-2 px-4 text-right">Importe</th>
+                                <th class="py-2 px-4 text-right">Costo Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+        data.productos.forEach((p) => {
+          const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
+          html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
+                        <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                        <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                        <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(2)}</td>
+                        <td class="py-2 px-4 border-t text-right">${costoTotal}</td>
+                    </tr>
+                `;
+        });
 
-    detallesContainer.innerHTML = html
-  } catch (error) {
-    detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`
-  }
+        html += `
+                        </tbody>
+                    </table>   
+                </div>
+            `;
+        if (data.ComentariosUser) {
+          html += `
+                <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
+                    <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
+                </div>`;
+        }
+        if (data.Archivo) {
+          const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`;
+          html += `
+                    <div class="mt-6">
+                        <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
+                        <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
+                    </div>
+                `;
+        }
+        html += `
+                <div class="mt-6">
+                    <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
+                    <button @click="mostrarModalModificarMontos(${idSolicitud})" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Modificar valores</button>
+                </div>
+                `;
 
-  form.onsubmit = async (e) => {
-    e.preventDefault()
-    const formData = new FormData()
-    formData.append('ID_Solicitud', idSolicitud)
-
-    const archivos = document.getElementById('archivos-revision').files;
-    if (archivos.length === 0) {
-      mostrarNotificacion('Debe adjuntar al menos un archivo.', 'error');
-      return;
-    }
-    for (let i = 0; i < archivos.length; i++) {
-      formData.append('cotizacion_files[]', archivos[i])
-    }
-
-    const tipoPago = document.querySelector('input[name="tipo_pago"]:checked');
-    if (!tipoPago) {
-      mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error');
-      return;
-    }
-    formData.append('tipo_pago', tipoPago.value);
-
-    btnConfirmar.disabled = true
-    btnConfirmar.textContent = 'Enviando...'
-
-    try {
-      const response = await fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
-        method: 'POST',
-        body: formData,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success')
-        regresarEnviarRevision()
-        initEnviarRevision() // refrescar tabla
-      } else {
-        mostrarNotificacion(result.messages || 'Error al enviar a revisión.', 'error')
+        detallesContainer.innerHTML = html;
+      } catch (error) {
+        detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
       }
-    } catch (error) {
-      console.error('Error:', error)
-      mostrarNotificacion('Error de red al enviar a revisión.', 'error')
-    } finally {
-      btnConfirmar.disabled = false
-      btnConfirmar.textContent = 'Confirmar y Enviar'
-    }
-  }
-}
 
-function regresarEnviarRevision() {
-  document.getElementById('div-tabla-enviar').classList.remove('hidden')
-  document.getElementById('div-enviar-revision').classList.add('hidden')
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('ID_Solicitud', idSolicitud);
+
+        const archivos = document.getElementById('archivos-revision').files;
+        if (archivos.length === 0) {
+          mostrarNotificacion('Debe adjuntar al menos un archivo.', 'error');
+          return;
+        }
+        for (let i = 0; i < archivos.length; i++) {
+          formData.append('cotizacion_files[]', archivos[i]);
+        }
+
+        const tipoPago = document.querySelector('input[name="tipo_pago"]:checked');
+        if (!tipoPago) {
+          mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error');
+          return;
+        }
+        formData.append('tipo_pago', tipoPago.value);
+
+        btnConfirmar.disabled = true;
+        btnConfirmar.textContent = 'Enviando...';
+
+        try {
+          const response = await fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success');
+            this.regresar();
+            this.loadTable(); // refrescar tabla
+          } else {
+            mostrarNotificacion(result.messages || 'Error al enviar a revisión.', 'error');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          mostrarNotificacion('Error de red al enviar a revisión.', 'error');
+        } finally {
+          btnConfirmar.disabled = false;
+          btnConfirmar.textContent = 'Confirmar y Enviar';
+        }
+      };
+    },
+    regresar: function () {
+      document.getElementById('div-tabla-enviar').classList.remove('hidden');
+      document.getElementById('div-enviar-revision').classList.add('hidden');
+    },
+    mostrarModalModificarMontos: async function (idSolicitud) {
+      const modalModificar = document.getElementById('modal-modificar-montos');
+      const productosContainer = document.getElementById('productos-modificar-container');
+      const formModificar = document.getElementById('form-modificar-montos');
+      const idSolicitudInput = document.getElementById('modificar_id_solicitud');
+
+      if (!modalModificar || !productosContainer || !formModificar || !idSolicitudInput) {
+        console.error('Elementos del modal de modificación no encontrados.');
+        return;
+      }
+
+      idSolicitudInput.value = idSolicitud;
+      productosContainer.innerHTML = '<p class="text-center text-gray-500">Cargando productos...</p>';
+      modalModificar.classList.remove('hidden');
+
+      try {
+        const data = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`).then(res => res.json());
+
+        if (data.error) throw new Error(data.error);
+
+        let productosHtml = `
+          <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-300">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="py-2 px-4 text-left">Código</th>
+                  <th class="py-2 px-4 text-left">Producto</th>
+                  <th class="py-2 px-4 text-right">Cantidad</th>
+                  <th class="py-2 px-4 text-right">Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+        data.productos.forEach((p, index) => {
+          productosHtml += `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-t text-right">
+                        <input type="text" name="productos[${index}][codigo]" placeholder="${p.codigo | 'N/A'}" class="w-full px-2 py-1 border rounded text-right">
+                    </td>
+                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    <td class="py-2 px-4 border-t text-right">
+                        <input type="number" name="productos[${index}][cantidad]" value="${p.Cantidad}" min="1" class="w-full px-2 py-1 border rounded text-right">
+                    </td>
+                    <td class="py-2 px-4 border-t text-right">
+                        <input type="number" name="productos[${index}][importe]" value="${parseFloat(p.Importe).toFixed(2)}" step="0.01" min="0" class="w-full px-2 py-1 border rounded text-right">
+                    </td>
+                </tr>
+          `;
+        });
+        productosHtml += `
+              </tbody>
+            </table>
+          </div>
+        `;
+        productosContainer.innerHTML = productosHtml;
+
+        formModificar.onsubmit = async (e) => {
+          e.preventDefault();
+          const formData = new FormData(formModificar);
+          const productosModificados = [];
+
+          // Recolectar los datos de los productos/servicios
+          data.productos.forEach((p, index) => {
+            productosModificados.push({
+              codigo: formData.get(`productos[${index}][codigo]`),
+              cantidad: formData.get(`productos[${index}][cantidad]`),
+              importe: formData.get(`productos[${index}][importe]`),
+            });
+          });
+
+          const payload = {
+            id_solicitud: idSolicitud,
+            productos: productosModificados,
+            comentarios: formData.get('comentarios')
+          };
+
+          try {
+            const updateResponse = await fetch(`${BASE_URL}api/solicitud/update`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: JSON.stringify(payload),
+            });
+            const updateResult = await updateResponse.json();
+
+            if (updateResult.success) {
+              mostrarNotificacion(updateResult.message || 'Montos actualizados correctamente.', 'success');
+              this.cerrarModalModificarMontos(idSolicitud);
+              this.VerDetalle(idSolicitud); // Refrescar los detalles de la solicitud
+            } else {
+              mostrarNotificacion(updateResult.message || 'Error al actualizar montos.', 'error');
+            }
+          } catch (updateError) {
+            console.error('Error al enviar actualización de montos:', updateError);
+            mostrarNotificacion('Error de red al actualizar montos.', 'error');
+          }
+        };
+
+      } catch (error) {
+        console.error('Error al cargar detalles para modificar montos:', error);
+        productosContainer.innerHTML = `<p class="text-red-500 text-center">No se pudieron cargar los detalles para modificar. ${error.message}</p>`;
+      }
+    },
+    cerrarModalModificarMontos: function (idSolicitud) {
+      document.getElementById('modal-modificar-montos').classList.add('hidden');
+      this.VerDetalle(idSolicitud);
+    }
+  };
 }
 
 /**
@@ -3617,7 +3766,8 @@ async function getData(endpoint, option = {}, api = true) {
     response = option ? await fetch(apiUrl, option) : await fetch(apiUrl)
 
     if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.statusus} - ${response.statususText}`)
+      const errorBody = await response.text(); // Try to read response body for more details
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}. URL: ${apiUrl}. Response: ${errorBody}`)
     }
 
     const data = await response.json()
@@ -3625,6 +3775,7 @@ async function getData(endpoint, option = {}, api = true) {
     return data
   } catch (error) {
     console.error('Hubo un error al obtener los datos:', error)
+    // Return an empty array or re-throw a more specific error if needed by callers
     return []
   }
 }

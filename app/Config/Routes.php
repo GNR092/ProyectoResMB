@@ -54,6 +54,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('proveedores/editar/(:num)', 'Modales::editarProveedor/$1');
         // Solicitudes y Cotizaciones
         $routes->post('api/cotizacion/crear', 'Api::crearCotizacion');
+        $routes->post('api/solicitud/actualizar-montos', 'Api::actualizarMontos');
         $routes->post('api/solicitud/enviar-revision', 'Api::enviarSolicitudARevision');
         $routes->post('api/solicitud/dictaminar', 'Api::dictaminarSolicitud');
         $routes->get('api/solicitudes/pendientes-jefe', 'Api::getPendientesAprobacionJefe');
@@ -107,7 +108,6 @@ if (!file_exists($installerLockFile)) {
         //PDF
         $routes->get('api/solicitud/pdf/(:num)', 'GenerarPDF::GenerarRequisicion/$1');
         $routes->get('api/solicitud/pdf/(:num)/(:num)', 'GenerarPDF::GenerarRequisicion/$1/$2');
-        $routes->get('api/pago/pdf/(:num)', 'GenerarPDF::GenerarOrdenPago/$1');
         $routes->get('api/orden/pdf/(:num)', 'GenerarPDF::GenerarOrden/$1');
     });
 }
