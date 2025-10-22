@@ -3,9 +3,36 @@
  * y la inicialización de su contenido dinámico.
  */
 function abrirModal(opcion) {
-  const modal = document.getElementById('modal-general')
-  const titulo = document.getElementById('modal-title')
-  const contenido = document.getElementById('modal-contenido')
+  const modal = document.getElementById('modal-general');
+  const titulo = document.getElementById('modal-title');
+  const contenido = document.getElementById('modal-contenido');
+
+  // --- INICIO DE CAMBIOS ---
+
+  // 1. Seleccionamos la caja blanca (el 'div' padre del título)
+  //    Esta es la caja que tiene la clase 'max-w-4xl'
+  const modalBox = titulo.parentElement;
+
+  // 2. Lista de modales que queremos que sean anchos
+  const modalesAnchos = ['reportes', 'ver_historial'];
+
+  // 3. Lógica para añadir/quitar clases de Tailwind
+  if (modalesAnchos.includes(opcion)) {
+    // Para el modal ancho:
+    // a. Quitamos el centrado del fondo oscuro ('modal')
+    modal.classList.remove('justify-center');
+
+    // b. Quitamos el límite de ancho y los márgenes de la caja blanca ('modalBox')
+    modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto');
+  } else {
+    // Para el modal normal (RESTABLECEMOS las clases)
+    // a. Añadimos el centrado al fondo oscuro
+    modal.classList.add('justify-center');
+
+    // b. Añadimos el límite de ancho y márgenes a la caja blanca
+    modalBox.classList.add('max-w-4xl', 'mx-4', 'sm:mx-auto');
+  }
+  // --- FIN DE CAMBIOS ---
 
   let titulos = {
     solicitar_material: 'Requisiciones',
@@ -27,47 +54,48 @@ function abrirModal(opcion) {
     almacen: 'Almacén',
     reportes: 'Reportes/Auditoria',
     razonsocial: 'Razón social',
-  }
+  };
   // Título para la nueva opción
-  titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
+  titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados';
 
-  titulo.innerText = titulos[opcion] ?? 'Opción'
+  titulo.innerText = titulos[opcion] ?? 'Opción';
 
   fetch(`${BASE_URL}modales/${opcion}`)
-    .then((response) => response.text())
-    .then((html) => {
-      contenido.innerHTML = html
-      modal.classList.remove('hidden')
+      .then((response) => response.text())
+      .then((html) => {
+        contenido.innerHTML = html;
+        modal.classList.remove('hidden');
 
-      // Llama a la función de inicialización correspondiente
-      const inicializadores = {
-        ver_historial: initPaginacionHistorial,
-        usuarios: initUsuarios,
-        revisar_solicitudes: initRevisarSolicitud,
-        registrar_productos: initRegistrarMaterial,
-        enviar_revision: initEnviarRevision,
-        dictamen_solicitudes: initDictamenSolicitudes,
-        crud_productos: initCrudProductos,
-        ordenes_compra: initOrdenesCompra,
-        crud_proveedores: initCrudProveedores,
-        entrega_productos: initEntregaMaterial,
-        reportes: initPaginacionReportes,
-        pagos_pendientes: initPagosPendientes,
-        ficha_pago: initFichasPago,
-        razonsocial: initCrudRazonSocial,
-        // Opciones con inicialización especial o sin ella se omiten
-      };
+        // Llama a la función de inicialización correspondiente
+        const inicializadores = {
+          ver_historial: initPaginacionHistorial,
+          usuarios: initUsuarios,
+          revisar_solicitudes: initRevisarSolicitud,
+          registrar_productos: initRegistrarMaterial,
+          enviar_revision: initEnviarRevision,
+          dictamen_solicitudes: initDictamenSolicitudes,
+          crud_productos: initCrudProductos,
+          ordenes_compra: initOrdenesCompra,
+          crud_proveedores: initCrudProveedores,
+          entrega_productos: initEntregaMaterial,
+          reportes: initPaginacionReportes,
+          pagos_pendientes: initPagosPendientes,
+          ficha_pago: initFichasPago,
+          razonsocial: initCrudRazonSocial,
+          // Opciones con inicialización especial o sin ella se omiten
+        };
 
-      const inicializador = inicializadores[opcion];
-      if (inicializador) {
-        inicializador();
-      }
-    })
-    .catch((error) => {
-      console.error('Error al cargar modal:', error)
-      contenido.innerHTML = '<p class="text-red-500">Error al cargar el contenido del modal.</p>'
-      modal.classList.remove('hidden')
-    })
+        const inicializador = inicializadores[opcion];
+        if (inicializador) {
+          inicializador();
+        }
+      })
+      .catch((error) => {
+        console.error('Error al cargar modal:', error);
+        contenido.innerHTML =
+            '<p class="text-red-500">Error al cargar el contenido del modal.</p>';
+        modal.classList.remove('hidden');
+      });
 }
 function cerrarModal() {
   document.getElementById('modal-general').classList.add('hidden')
@@ -2212,27 +2240,26 @@ async function enviarOrdenCompra(idSolicitud) {
   if (!confirm('¿Deseas enviar esta orden de compra a Tesorería?')) return;
 
   try {
-    const response = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
+    const response = await fetch(`${BASE_URL}api/orden/enviar-proveedor/${idSolicitud}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoEstado: 'Por Pagar' })
     });
 
     const data = await response.json();
 
     if (!response.ok || !data.success) {
-      mostrarNotificacion(data.message || 'Error desconocido al actualizar el estado.', 'error');
+      mostrarNotificacion(data.message || 'Error desconocido al enviar la orden.', 'error');
       return;
     }
 
-    // Confirmación
-    mostrarNotificacion('✅ La orden fue enviada correctamente y está en proceso de pago.', 'success');
+    mostrarNotificacion('✅ La orden fue enviada al proveedor y a tesorería.', 'success');
 
-    // Volver a la tabla principal de órdenes
     regresarTablaOrdenCompra();
 
+     initOrdenesCompra(); // <-- Descomenta si la tabla debe recargarse
+
   } catch (error) {
-    console.error('Error al actualizar el estado:', error);
+    console.error('Error al enviar orden:', error);
     mostrarNotificacion('❌ Ocurrió un error al intentar enviar la orden.', 'error');
   }
 }

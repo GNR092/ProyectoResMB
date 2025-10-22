@@ -16,6 +16,7 @@ use App\Libraries\MBSMail;
 use App\Libraries\MetodoPago;
 use App\Controllers\GenerarPDF;
 
+
 class Api extends ResourceController
 {
     protected $format = 'json';
@@ -753,36 +754,90 @@ class Api extends ResourceController
             return $this->failValidationErrors('No se especificó el nuevo estado.');
         }
 
-        // 1. Iniciar Transacción
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) {
+            return $this->failNotFound('Solicitud no encontrada.');
+        }
+
+        try {
+            // Lógica simple: solo actualizar el estado
+            $updateResult = $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
+
+            if ($updateResult === false) {
+                $errors = $solicitudModel->errors();
+                $errorMessage = $errors ? implode(', ', $errors) : 'La actualización del estado falló.';
+                throw new \Exception($errorMessage);
+            }
+
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'Estado actualizado correctamente.',
+                'nuevoEstado' => $nuevoEstado,
+            ]);
+
+        } catch (\Exception $e) {
+            log_message('error', '[cambiarEstadoOrden - Simple] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    /**
+     * Función específica para generar la OC, enviarla por correo y cambiar su estado.
+     * Llamada solo desde la vista de 'ordenes_compra'.
+     */
+    public function enviarOrdenAProveedor($idSolicitud = null)
+    {
+        if ($idSolicitud === null) {
+            return $this->failValidationErrors('Se requiere un ID de solicitud.');
+        }
+
+        // Modelos que usaremos
+        $solicitudModel = new \App\Models\SolicitudModel();
+        $ordenCompraModel = new OrdenCompraModel();
+        $cotizacionModel = new CotizacionModel();
+
+        $nuevoEstadoSolicitud = 'Por Pagar';
+
         $db = \Config\Database::connect();
         $db->transStart();
 
         try {
-            // 2. Obtener datos de la solicitud
+            // 1. OBTENER SOLICITUD
             $solicitud = $solicitudModel->find($idSolicitud);
             if (!$solicitud) {
-                return $this->failNotFound('Solicitud no encontrada.');
+                throw new \Exception('Solicitud no encontrada.');
             }
 
-            // --- INICIO DE LA MODIFICACIÓN ---
+            // Verificación de estado (solo 'Aprobada' puede continuar)
+            if ($solicitud['Estado'] !== 'Aprobada') {
+                throw new \Exception('Solo se puede enviar una orden desde el estado "Aprobada".');
+            }
 
-            // 3. Obtener email de PRUEBA (igual que en crearCotizacion)
+            // 2. CREAR EL REGISTRO DE 'orden_compra' (Lógica de Api::GenerarOrden)
+            $cotizacion = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
+            if (!$cotizacion) {
+                throw new \Exception('No se encontró una cotización asociada a esta solicitud.');
+            }
+
+            $ordenData = [
+                'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
+                'ID_Proveedor'  => $cotizacion['ID_Proveedor'],
+                'Estado'        => Status::En_Proceso_Pago, // Estado inicial de la OC
+                'Fecha'         => date('Y-m-d')
+            ];
+
+            // Insertamos la nueva orden de compra
+            $ordenCompraModel->insert($ordenData);
+            // $idOrdenCompra = $ordenCompraModel->getInsertID(); // No lo usamos, pero es bueno saberlo
+
+            // 3. OBTENER EMAIL DE PRUEBA
             $to = getenv('EMAIL_TO_TEST');
-
             if (empty($to)) {
-                // Si no hay email de prueba, no podemos enviar.
                 throw new \Exception('La variable de entorno EMAIL_TO_TEST no está configurada.');
             }
 
-            // (Opcional) Obtenemos el nombre del proveedor solo para el texto del email
-            $proveedorNombre = 'Proveedor';
-            if (!empty($solicitud['ID_Proveedor'])) {
-                // Usamos la función que corregiste (ej. getProveedorPorID)
-                $proveedor = $this->api->getProveedorByID($solicitud['ID_Proveedor']);
-                if (!empty($proveedor) && !empty($proveedor['RazonSocial'])) {
-                    $proveedorNombre = esc($proveedor['RazonSocial']);
-                }
-            }
+            $proveedorNombre = esc($cotizacion['RazonSocial'] ?? 'Proveedor'); // Usamos la info de la cotización
 
             $subject = 'Nueva Orden de Compra MBSP - Folio: ' . $solicitud['No_Folio'];
             $message = '
@@ -796,47 +851,48 @@ class Api extends ResourceController
                 <p>MBSP RENTAS S.A. DE C.V.</p>
             ';
 
-            // --- FIN DE LA MODIFICACIÓN ---
-
-
-            // 4. Generar y Guardar el PDF de la Orden de Compra
+            // 4. GENERAR PDF
             $pdf = new GenerarPDF();
             $pdfPath = $pdf->generarYGuardarOrden($idSolicitud);
-
             if (empty($pdfPath)) {
                 throw new \Exception('No se pudo generar o guardar el PDF de la Orden de Compra.');
             }
 
-            // 5. Preparar opciones del correo (con el adjunto)
+            // 5. PREPARAR OPCIONES DE CORREO
             $option = [
                 'attachments' => [$pdfPath],
                 'fromName' => 'MBSP RENTAS S.A. DE C.V.'
             ];
 
-            // 6. Actualizar el estado de la solicitud (Tu lógica original)
-            $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
+            // 6. ACTUALIZAR ESTADO DE LA 'solicitud'
+            $updateResult = $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstadoSolicitud]);
 
-            // 7. Enviar el Correo
+            if ($updateResult === false) {
+                $errors = $solicitudModel->errors();
+                $errorMessage = $errors ? implode(', ', $errors) : 'La actualización del estado de la solicitud falló.';
+                throw new \Exception($errorMessage);
+            }
+
+            // 7. ENVIAR CORREO
             $mail = new MBSMail();
             $mail->send_email($to, $subject, $message, $option);
 
-            // 8. Completar Transacción
+            // 8. COMPLETAR TRANSACCIÓN
             $db->transComplete();
 
             if ($db->transStatus() === false) {
                 throw new \Exception('Falla en la transacción de base de datos.');
             }
 
-            // 9. Enviar respuesta exitosa al frontend
+            // 9. ENVIAR RESPUESTA EXITOSA
             return $this->respondUpdated([
                 'success' => true,
-                'message' => 'Estado actualizado y Orden de Compra enviada por correo.',
-                'nuevoEstado' => $nuevoEstado,
+                'message' => 'Orden Creada, estado actualizado y correo enviado.',
+                'nuevoEstado' => $nuevoEstadoSolicitud,
             ]);
 
         } catch (\Exception $e) {
-            // 10. Manejar errores
-            log_message('error', '[cambiarEstadoOrden] ' . $e->getMessage());
+            log_message('error', '[enviarOrdenAProveedor] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado: ' . $e->getMessage());
         }
     }
