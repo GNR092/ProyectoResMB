@@ -1616,9 +1616,11 @@ function RevisionX() {
           productosHtml += `
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t text-right">
-                        <input type="text" name="productos[${index}][codigo]" placeholder="${p.codigo | 'N/A'}" class="w-full px-2 py-1 border rounded text-right">
+                        <input type="text" name="productos[${index}][codigo]" placeholder="N/A" value="${p.Codigo || ''}" class="w-full px-2 py-1 border rounded text-left">
                     </td>
-                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    <td class="py-2 px-4 border-t">
+                        <input type="text" name="productos[${index}][nombre]" value="${p.Nombre}" class="w-full px-2 py-1 border rounded text-left">
+                    </td>
                     <td class="py-2 px-4 border-t text-right">
                         <input type="number" name="productos[${index}][cantidad]" value="${p.Cantidad}" min="1" class="w-full px-2 py-1 border rounded text-right">
                     </td>
@@ -1641,9 +1643,12 @@ function RevisionX() {
           const productosModificados = [];
 
           // Recolectar los datos de los productos/servicios
+          const commnt = formData.get('comentarios')
           data.productos.forEach((p, index) => {
+            const c = formData.get(`productos[${index}][codigo]`);
             productosModificados.push({
-              codigo: formData.get(`productos[${index}][codigo]`),
+              codigo: c === "" ? null : c,
+              nombre: formData.get(`productos[${index}][nombre]`),
               cantidad: formData.get(`productos[${index}][cantidad]`),
               importe: formData.get(`productos[${index}][importe]`),
             });
@@ -1652,7 +1657,7 @@ function RevisionX() {
           const payload = {
             id_solicitud: idSolicitud,
             productos: productosModificados,
-            comentarios: formData.get('comentarios')
+            comentarios: commnt === "" ? null : commnt,
           };
 
           try {

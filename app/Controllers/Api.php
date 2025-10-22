@@ -131,7 +131,9 @@ class Api extends ResourceController
         $details = $this->api->getSolicitudWithProducts((int) $id);
 
         if (empty($details)) {
-            return $this->failNotFound('No se encontraron detalles para la solicitud con ID: ' . $id);
+            return $this->failNotFound(
+                'No se encontraron detalles para la solicitud con ID: ' . $id,
+            );
         }
 
         return $this->respond($details);
@@ -170,7 +172,11 @@ class Api extends ResourceController
         $idDepartamento = session('id_departamento_usuario');
         $idJefe = session('id');
 
-        $results = $this->api->getSolicitudesByStatusAndDept(Status::Aprobacion_pendiente, $idDepartamento, $idJefe);
+        $results = $this->api->getSolicitudesByStatusAndDept(
+            Status::Aprobacion_pendiente,
+            $idDepartamento,
+            $idJefe,
+        );
         return $this->respond($results, HttpStatus::OK);
     }
 
@@ -185,12 +191,128 @@ class Api extends ResourceController
             return $this->failValidationErrors('Se requiere un ID de usuario numérico.');
         }
 
-        return $this->respond($this->api->getSolicitudesUsersByDepartment((int) $id), HttpStatus::OK);
+        return $this->respond(
+            $this->api->getSolicitudesUsersByDepartment((int) $id),
+            HttpStatus::OK,
+        );
     }
     //endregion
 
     //region Solicitudes (Acciones)
     // =================================================================================================================
+
+    /**
+     * Actualiza los montos y comentarios de una solicitud.
+     *
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function actualizarMontos()
+    {
+        // // 1. Validar permisos (solo admin o compras pueden modificar montos)
+        // if (!in_array(session('login_type'), ['admin', 'compras'])) {
+        //     return $this->failForbidden('Acceso denegado. Permiso insuficiente para modificar montos de solicitudes.');
+        // }
+
+        $json = $this->request->getJSON();
+
+        // 2. Validar datos de entrada
+        if (
+            !isset($json->id_solicitud) ||
+            !isset($json->productos) ||
+            !is_array($json->productos)
+        ) {
+            return $this->failValidationErrors(
+                'Se requiere ID de solicitud y un array de productos.',
+            );
+        }
+
+        $idSolicitud = (int) $json->id_solicitud;
+        $productosPayload = $json->productos;
+        $comentarios = $json->comentarios ?? null;
+
+        $solicitudModel = new SolicitudModel();
+        $solicitudProductModel = new SolicitudProductModel();
+        $cotizacionModel = new CotizacionModel();
+
+        // Verificar que la solicitud exista
+        $solicitud = $solicitudModel->find($idSolicitud);
+        if (!$solicitud) {
+            return $this->failNotFound('La solicitud no existe.');
+        }
+
+        // Iniciar transacción
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            $solicitudProductsDB = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
+
+            if (count($productosPayload) !== count($solicitudProductsDB)) {
+                throw new \Exception('El número de productos en el payload no coincide con el número de productos existentes en la solicitud.');
+            }
+
+            // 3. Actualizar productos
+            foreach ($productosPayload as $index => $p) {
+                if (!isset($p->codigo) || !isset($p->nombre) || !isset($p->cantidad) || !isset($p->importe)) {
+                    throw new \Exception('Cada producto debe tener código, nombre, cantidad e importe.');
+                }
+
+                $idSolicitudProd = $solicitudProductsDB[$index]['ID_SolicitudProd']; // Obtener ID_SolicitudProd de la base de datos
+                $codigo = (string) $p->codigo;
+                $nombre = (string) $p->nombre;
+                $cantidad = (int) $p->cantidad;
+                $importe = (float) $p->importe;
+
+                $solicitudProductModel->update($idSolicitudProd, [
+                    'Codigo' => $codigo,
+                    'Nombre' => $nombre,
+                    'Cantidad' => $cantidad,
+                    'Importe' => $importe,
+                ]);
+            }
+
+            // 4. Actualizar comentarios de la solicitud
+            $solicitudModel->update($idSolicitud, ['ComentariosUser' => $comentarios]);
+
+            // 5. Recalcular y actualizar el total de la cotización
+            $details = $this->api->getSolicitudWithProducts($idSolicitud);
+            $nuevoTotal = 0;
+            if (!empty($details['productos'])) {
+                foreach ($details['productos'] as $p) {
+                    $nuevoTotal += (float) $p['Cantidad'] * (float) $p['Importe'];
+                }
+            }
+
+            $cotizacion = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
+            if ($cotizacion) {
+                $cotizacionModel->update($cotizacion['ID_Cotizacion'], ['Total' => $nuevoTotal]);
+            } else {
+                // Si no hay cotización, se podría crear una o lanzar un error.
+                // Por ahora, lanzaremos un error.
+                throw new \Exception('No se encontró cotización asociada a la solicitud.');
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception(
+                    'Falla en la transacción de base de datos al actualizar montos.',
+                );
+            }
+
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'Solicitud actualizada correctamente.',
+            ]);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', '[actualizarMontos] ' . $e->getMessage());
+            return $this->failServerError(
+                'Ocurrió un error inesperado al actualizar los montos: ' . $e->getMessage(),
+            );
+        }
+    }
+
     /**
      * Permite a un jefe de departamento aprobar o rechazar una solicitud de un empleado.
      * @return \CodeIgniter\HTTP\Response
@@ -203,7 +325,9 @@ class Api extends ResourceController
 
         $json = $this->request->getJSON();
         if (!isset($json->ID_Solicitud) || !isset($json->accion)) {
-            return $this->failValidationErrors('Se requiere ID de solicitud y una acción (aprobar/rechazar).');
+            return $this->failValidationErrors(
+                'Se requiere ID de solicitud y una acción (aprobar/rechazar).',
+            );
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
@@ -225,11 +349,18 @@ class Api extends ResourceController
 
         try {
             $nuevoEstado = $accion === Status::Aprobar ? Status::En_espera : Status::Dept_Rechazada;
-            $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado, 'ComentariosAdmin' => $comentarios]);
+            $solicitudModel->update($idSolicitud, [
+                'Estado' => $nuevoEstado,
+                'ComentariosAdmin' => $comentarios,
+            ]);
 
             return $this->respondUpdated([
                 'success' => $accion === Status::Aprobar,
-                'message' => 'La solicitud ha sido ' . ($accion === Status::Aprobar ? 'aprobada y enviada a Compras.' : Status::Rechazada . '.'),
+                'message' =>
+                    'La solicitud ha sido ' .
+                    ($accion === Status::Aprobar
+                        ? 'aprobada y enviada a Compras.'
+                        : Status::Rechazada . '.'),
             ]);
         } catch (\Exception $e) {
             log_message('error', '[dictaminarSolicitudJefe] ' . $e->getMessage());
@@ -274,7 +405,10 @@ class Api extends ResourceController
             return $this->failNotFound('La solicitud no existe.');
         }
         if ($solicitud['Estado'] !== 'En espera') {
-            return $this->fail('La solicitud ya no está en estado "En espera".', HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'La solicitud ya no está en estado "En espera".',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         $total = 0;
@@ -296,18 +430,31 @@ class Api extends ResourceController
         $db->transStart();
 
         try {
-            $cotizacionData = ['ID_Solicitud' => $idSolicitud, 'ID_Proveedor' => $idProveedor, 'Total' => $total];
+            $cotizacionData = [
+                'ID_Solicitud' => $idSolicitud,
+                'ID_Proveedor' => $idProveedor,
+                'Total' => $total,
+            ];
             $pdf = new GenerarPDF();
             $pdf->generarYGuardarRequisicion($idSolicitud);
-            $option = ['attachments' => [FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf'], 'fromName' => 'MBSP RENTAS S.A. DE C.V.'];
+            $option = [
+                'attachments' => [FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf'],
+                'fromName' => 'MBSP RENTAS S.A. DE C.V.',
+            ];
 
             $cotizacionModel->insert($cotizacionData);
-            $solicitudModel->update($idSolicitud, ['Estado' => 'Cotizando', 'ID_Proveedor' => $idProveedor]);
+            $solicitudModel->update($idSolicitud, [
+                'Estado' => 'Cotizando',
+                'ID_Proveedor' => $idProveedor,
+            ]);
             $mail->send_email($to, $subject, $message, $option);
 
             $db->transComplete();
 
-            return $this->respondCreated(['success' => true, 'message' => 'Cotización creada y solicitud actualizada.']);
+            return $this->respondCreated([
+                'success' => true,
+                'message' => 'Cotización creada y solicitud actualizada.',
+            ]);
         } catch (\Exception $e) {
             log_message('error', '[crearCotizacion] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado al crear la cotización.');
@@ -336,7 +483,10 @@ class Api extends ResourceController
             return $this->failNotFound('La solicitud no existe.');
         }
         if ($solicitud['Estado'] !== 'Cotizando') {
-            return $this->fail('La solicitud no está en estado "Cotizado".', HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'La solicitud no está en estado "Cotizado".',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         switch ($request['tipo_pago']) {
@@ -349,11 +499,14 @@ class Api extends ResourceController
         }
 
         try {
-            $this->api->updateSolicitudById($idSolicitud, ['Estado' => 'En revision', 'MetodoPago' => $tipoPago]);
+            $this->api->updateSolicitudById($idSolicitud, [
+                'Estado' => 'En revision',
+                'MetodoPago' => $tipoPago,
+            ]);
             $files = $this->request->getFiles();
             $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
             $this->api->CreateFolder($folder);
-            
+
             if ($files) {
                 $tmp = [];
                 $count = 0;
@@ -361,7 +514,15 @@ class Api extends ResourceController
                     if ($file->isValid() && !$file->hasMoved()) {
                         $timestamp = date('Y-m-d_H-i-s');
                         $extension = $file->getExtension();
-                        $nuevoNombre = 'cotizacion_' . $idCotizacion . '_' . $timestamp . '_' . $count++ . '.' . $extension;
+                        $nuevoNombre =
+                            'cotizacion_' .
+                            $idCotizacion .
+                            '_' .
+                            $timestamp .
+                            '_' .
+                            $count++ .
+                            '.' .
+                            $extension;
                         $tmp[] = $nuevoNombre;
                         $file->move($folder, $nuevoNombre);
                     }
@@ -370,7 +531,10 @@ class Api extends ResourceController
                 $this->api->updateCotizacionById($idCotizacion, $cfls);
             }
 
-            return $this->respondUpdated(['success' => true, 'message' => 'Solicitud enviada a revisión.']);
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'Solicitud enviada a revisión.',
+            ]);
         } catch (\Exception $e) {
             log_message('error', '[enviarSolicitudARevision] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado.');
@@ -397,7 +561,10 @@ class Api extends ResourceController
             return $this->fail('El estado proporcionado no es válido.', HttpStatus::BAD_REQUEST);
         }
         if ($nuevoEstado === 'Rechazada' && empty(trim((string) $comentarios))) {
-            return $this->fail('Para rechazar una solicitud, los comentarios son obligatorios.', HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'Para rechazar una solicitud, los comentarios son obligatorios.',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         $solicitudModel = new SolicitudModel();
@@ -407,13 +574,19 @@ class Api extends ResourceController
             return $this->failNotFound('La solicitud no existe.');
         }
         if ($solicitud['Estado'] !== 'En revision') {
-            return $this->fail('La solicitud no está en estado "En revision".', HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'La solicitud no está en estado "En revision".',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         try {
             $dataToUpdate = ['Estado' => $nuevoEstado, 'ComentariosAdmin' => $comentarios];
             $solicitudModel->update($idSolicitud, $dataToUpdate);
-            return $this->respondUpdated(['success' => true, 'message' => 'El dictamen de la solicitud se ha guardado correctamente.']);
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'El dictamen de la solicitud se ha guardado correctamente.',
+            ]);
         } catch (\Exception $e) {
             log_message('error', '[dictaminarSolicitud] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen.');
@@ -437,7 +610,9 @@ class Api extends ResourceController
         $details = $this->api->getSolicitudWithCotizacion((int) $id);
 
         if (empty($details)) {
-            return $this->failNotFound('No se encontraron detalles para la cotizacion con ID: ' . $id);
+            return $this->failNotFound(
+                'No se encontraron detalles para la cotizacion con ID: ' . $id,
+            );
         }
 
         return $this->respond($details);
@@ -458,7 +633,6 @@ class Api extends ResourceController
             return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
         }
 
-       
         // if (!in_array(session('login_type'), ['admin', 'compras'])) {
         //     return $this->failForbidden('Acceso denegado. Permiso insuficiente para generar órdenes de compra.');
         // }
@@ -475,12 +649,18 @@ class Api extends ResourceController
         }
 
         if ($solicitud['Estado'] !== 'Aprobada') {
-            return $this->fail('Solo se puede generar una orden de compra para solicitudes aprobadas. Estado actual: ' . $solicitud['Estado'], HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'Solo se puede generar una orden de compra para solicitudes aprobadas. Estado actual: ' .
+                    $solicitud['Estado'],
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         $cotizacion = $cotizacionModel->where('ID_Solicitud', $id)->first();
         if (!$cotizacion) {
-            return $this->failNotFound('No se encontró una cotización asociada a esta solicitud para obtener los datos del proveedor y el total.');
+            return $this->failNotFound(
+                'No se encontró una cotización asociada a esta solicitud para obtener los datos del proveedor y el total.',
+            );
         }
 
         $db = \Config\Database::connect();
@@ -491,32 +671,35 @@ class Api extends ResourceController
             $ordenData = [
                 'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
                 'ID_Proveedor' => $cotizacion['ID_Proveedor'],
-                'Estado'       => Status::En_Proceso_Pago, // Estado inicial de la orden
-                'Fecha'        => date('Y-m-d') // Fecha de creación
+                'Estado' => Status::En_Proceso_Pago, // Estado inicial de la orden
+                'Fecha' => date('Y-m-d'), // Fecha de creación
             ];
 
             $ordenCompraModel->insert($ordenData);
             $idOrdenCompra = $ordenCompraModel->getInsertID();
 
-           // $pdfGenerator = new \App\Controllers\GenerarPDF();
+            // $pdfGenerator = new \App\Controllers\GenerarPDF();
             // $pdfGenerator->ordenDeCompra($idOrdenCompra);
 
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                 log_message('error', '[GenerarOrden] Falla en la transacción de base de datos.');
-                 return $this->failServerError('No se pudo completar la transacción para generar la orden.');
+                log_message('error', '[GenerarOrden] Falla en la transacción de base de datos.');
+                return $this->failServerError(
+                    'No se pudo completar la transacción para generar la orden.',
+                );
             }
 
             return $this->respondCreated([
                 'success' => true,
                 'message' => 'Orden de Compra generada exitosamente.',
-                'id_orden_compra' => $idOrdenCompra
+                'id_orden_compra' => $idOrdenCompra,
             ]);
-
         } catch (\Exception $e) {
             log_message('error', '[GenerarOrden] ' . $e->getMessage());
-            return $this->failServerError('Ocurrió un error inesperado al generar la Orden de Compra.');
+            return $this->failServerError(
+                'Ocurrió un error inesperado al generar la Orden de Compra.',
+            );
         }
     }
 
@@ -535,7 +718,9 @@ class Api extends ResourceController
         $data = $this->api->getOrdenCompraData((int) $id);
 
         if (empty($data)) {
-            return $this->failNotFound('No se encontraron datos para la orden de compra con ID: ' . $id);
+            return $this->failNotFound(
+                'No se encontraron datos para la orden de compra con ID: ' . $id,
+            );
         }
 
         return $this->respond($data);
@@ -592,7 +777,7 @@ class Api extends ResourceController
         if (empty($data['ID_Solicitud'])) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se proporcionó el ID de la solicitud.'
+                'message' => 'No se proporcionó el ID de la solicitud.',
             ]);
         }
 
@@ -604,7 +789,7 @@ class Api extends ResourceController
         if (!$solicitud) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Solicitud no encontrada.'
+                'message' => 'Solicitud no encontrada.',
             ]);
         }
 
@@ -613,10 +798,9 @@ class Api extends ResourceController
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Solicitud enviada a Tesorería con éxito.'
+            'message' => 'Solicitud enviada a Tesorería con éxito.',
         ]);
     }
-
 
     //endregion
 
@@ -635,7 +819,9 @@ class Api extends ResourceController
         $details = $this->api->getOrdenCompra((int) $id);
 
         if (empty($details)) {
-            return $this->failNotFound('No se encontraron detalles para la orden de compra con ID de solicitud: ' . $id);
+            return $this->failNotFound(
+                'No se encontraron detalles para la orden de compra con ID de solicitud: ' . $id,
+            );
         }
 
         return $this->respond($details);

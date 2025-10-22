@@ -54,7 +54,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('proveedores/editar/(:num)', 'Modales::editarProveedor/$1');
         // Solicitudes y Cotizaciones
         $routes->post('api/cotizacion/crear', 'Api::crearCotizacion');
-        $routes->post('api/solicitud/actualizar-montos', 'Api::actualizarMontos');
+        $routes->post('api/solicitud/update', 'Api::actualizarMontos');
         $routes->post('api/solicitud/enviar-revision', 'Api::enviarSolicitudARevision');
         $routes->post('api/solicitud/dictaminar', 'Api::dictaminarSolicitud');
         $routes->get('api/solicitudes/pendientes-jefe', 'Api::getPendientesAprobacionJefe');
