@@ -3035,7 +3035,6 @@ function regresarBuscarMateriales() {
 /**
  * Lógica para pagos pendientes (facturas)
  */
-
 async function initPagosPendientes() {
   const tbodyContado = document.getElementById("body-contado");
   const tbodyCredito = document.getElementById("body-credito");
@@ -3097,58 +3096,169 @@ async function initPagosPendientes() {
     tbodyCredito.innerHTML = tbodyContado.innerHTML;
   }
 }
-
 // --- Función de navegación para VER detalles ---
-function mostrarDetalleOrden(id, metodoPago) {
-  const detalleDiv = metodoPago == "0" ? document.getElementById("detalle-contado") : document.getElementById("detalle-credito");
-  const tablaDiv = metodoPago == "0" ? document.getElementById("tabla-contado") : document.getElementById("tabla-credito");
+async function mostrarDetalleOrden(id, metodoPago) {
+  const detalleDiv =
+      metodoPago == '0'
+          ? document.getElementById('detalle-contado')
+          : document.getElementById('detalle-credito')
+  const tablaDiv =
+      metodoPago == '0'
+          ? document.getElementById('tabla-contado')
+          : document.getElementById('tabla-credito')
 
-  tablaDiv.classList.add("hidden");
-  detalleDiv.classList.remove("hidden");
+  tablaDiv.classList.add('hidden')
+  detalleDiv.classList.remove('hidden')
 
-  detalleDiv.innerHTML = `
-  <div class="flex justify-between items-center mb-4">
-    <button onclick="volverAFichas('${metodoPago}')" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-    <h2 class="text-lg font-semibold">Detalle Orden #${id}</h2>
-    <div></div>
-  </div>
-  <div class="flex justify-between mt-4 gap-4">
-    <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
-      Cerrar requisición
-    </button>
-    <button onclick="enviarATesoreria(${id}, '${metodoPago}')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
-      Enviar a tesorería para ficha
-    </button>
-  </div>
-`;
+  detalleDiv.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la orden #${id}...</p>`
+
+  try {
+    const response = await fetch(`${BASE_URL}api/orden-compra/details/${id}`)
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`)
+    }
+    const data = await response.json()
+
+    const prov = data.proveedor || {}
+    const totalFormateado = parseFloat(
+        data.cotizacion?.Total || 0,
+    ).toLocaleString('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+    })
+
+    const metodoPagoTexto =
+        data.MetodoPago == 0
+            ? 'Efectivo'
+            : data.MetodoPago == 1
+                ? 'Crédito'
+                : data.MetodoPago == 9
+                    ? 'En Espera'
+                    : 'N/A'
+
+    let html = `
+      <div class="flex justify-between items-center mb-4">
+        <button onclick="volverATabla('${metodoPago}')" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+        <h2 class="text-lg font-semibold">Detalle Orden #${
+        data.No_Folio || id
+    }</h2>
+        <div></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+        <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
+        <div><strong>Departamento:</strong> ${
+        data.DepartamentoNombre || 'N/A'
+    }</div>
+        <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
+        <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
+        <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div> </div>
+
+      <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+        <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
+        <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
+        <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
+        <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+        <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
+        <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
+        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
+        prov.Monto_Credito
+            ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
+              style: 'currency',
+              currency: 'MXN',
+            })
+            : 'N/A'
+    }</div>
+      </div>
+
+      <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
+      
+      <div class="overflow-x-auto">
+        <table class="min-w-full border border-gray-300">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="py-2 px-4 text-left">Código</th>
+                    <th class="py-2 px-4 text-left">Producto</th>
+                    <th class="py-2 px-4 text-right">Cantidad</th>
+                    <th class="py-2 px-4 text-right">Importe</th>
+                    <th class="py-2 px-4 text-right">Costo Total</th>
+                </tr>
+            </thead>
+            <tbody>
+    `
+
+    if (data.productos && data.productos.length > 0) {
+      data.productos.forEach((p) => {
+        const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+        html += `
+            <tr class="hover:bg-gray-50">
+                <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
+                <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                <td class="py-2 px-4 border-t text-right">$${parseFloat(
+            p.Importe,
+        ).toFixed(2)}</td>
+                <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
+            </tr>
+        `
+      })
+    } else {
+      html += `<tr><td colspan="5" class="text-center py-3">No hay productos en esta orden.</td></tr>`
+    }
+
+    html += `
+            </tbody>
+        </table>
+      </div>
+    `
+
+    html += `
+      <div class="flex justify-between mt-6 pt-4 border-t gap-4">
+        <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+          Cerrar requisición
+        </button>
+        <button onclick="enviarATesoreria(${id}, '${metodoPago}')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+          Enviar a tesorería para ficha
+        </button>
+      </div>
+    `
+
+    detalleDiv.innerHTML = html
+  } catch (error) {
+    console.error('Error al cargar detalle de orden:', error)
+    detalleDiv.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
+  }
 }
-
 // --- Volver a la tabla desde detalle ---
 function volverATabla(metodoPago) {
-  const detalleDiv = metodoPago == "0" ? document.getElementById("detalle-contado") : document.getElementById("detalle-credito");
-  const tablaDiv = metodoPago == "0" ? document.getElementById("tabla-contado") : document.getElementById("tabla-credito");
+  const detalleDiv =
+      metodoPago == '0'
+          ? document.getElementById('detalle-contado')
+          : document.getElementById('detalle-credito')
+  const tablaDiv =
+      metodoPago == '0'
+          ? document.getElementById('tabla-contado')
+          : document.getElementById('tabla-credito')
 
-  detalleDiv.classList.add("hidden");
-  tablaDiv.classList.remove("hidden");
+  detalleDiv.classList.add('hidden')
+  tablaDiv.classList.remove('hidden')
 }
-
 // --- Funciones de navegación principales ---
 function mostrarPagoContado() {
   document.getElementById('pagos-menu').classList.add('hidden')
   document.getElementById('pago-contado').classList.remove('hidden')
 }
-
 function mostrarPagoCredito() {
   document.getElementById('pagos-menu').classList.add('hidden')
   document.getElementById('pago-credito').classList.remove('hidden')
 }
-
 function regresarPagosMenu() {
   document.getElementById('pago-contado').classList.add('hidden')
   document.getElementById('pago-credito').classList.add('hidden')
   document.getElementById('pagos-menu').classList.remove('hidden')
 }
-
 //Funcion para cambio de estado
 async function enviarATesoreria(idSolicitud, metodoPago) {
   try {

@@ -636,14 +636,10 @@ class Api extends ResourceController
      */
     public function GenerarOrden($id)
     {
-        // 1. Validaciones
         if (!is_numeric($id)) {
             return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
         }
 
-        // if (!in_array(session('login_type'), ['admin', 'compras'])) {
-        //     return $this->failForbidden('Acceso denegado. Permiso insuficiente para generar órdenes de compra.');
-        // }
 
         $solicitudModel = new SolicitudModel();
         $ordenCompraModel = new OrdenCompraModel();
@@ -750,6 +746,28 @@ class Api extends ResourceController
         return $this->respond($data);
     }
 
+    /**
+     * Obtiene los detalles de una orden de compra específica.
+     * @param int|null $id El ID de la solicitud para la orden de compra.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getOrdenCompra($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+        }
+
+        $details = $this->api->getOrdenCompra((int) $id);
+
+        if (empty($details)) {
+            return $this->failNotFound(
+                'No se encontraron detalles para la orden de compra con ID de solicitud: ' . $id,
+            );
+        }
+
+        return $this->respond($details);
+    }
+
     public function cambiarEstadoOrden($idSolicitud)
     {
         $solicitudModel = new \App\Models\SolicitudModel();
@@ -809,18 +827,15 @@ class Api extends ResourceController
         $db->transStart();
 
         try {
-            // 1. OBTENER SOLICITUD
             $solicitud = $solicitudModel->find($idSolicitud);
             if (!$solicitud) {
                 throw new \Exception('Solicitud no encontrada.');
             }
 
-            // Verificación de estado (solo 'Aprobada' puede continuar)
             if ($solicitud['Estado'] !== 'Aprobada') {
                 throw new \Exception('Solo se puede enviar una orden desde el estado "Aprobada".');
             }
 
-            // 2. CREAR EL REGISTRO DE 'orden_compra' (Lógica de Api::GenerarOrden)
             $cotizacion = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
             if (!$cotizacion) {
                 throw new \Exception('No se encontró una cotización asociada a esta solicitud.');
@@ -833,11 +848,8 @@ class Api extends ResourceController
                 'Fecha'         => date('Y-m-d')
             ];
 
-            // Insertamos la nueva orden de compra
             $ordenCompraModel->insert($ordenData);
-            // $idOrdenCompra = $ordenCompraModel->getInsertID(); // No lo usamos, pero es bueno saberlo
 
-            // 3. OBTENER EMAIL DE PRUEBA
             $to = getenv('EMAIL_TO_TEST');
             if (empty($to)) {
                 throw new \Exception('La variable de entorno EMAIL_TO_TEST no está configurada.');
@@ -857,20 +869,17 @@ class Api extends ResourceController
                 <p>MBSP RENTAS S.A. DE C.V.</p>
             ';
 
-            // 4. GENERAR PDF
             $pdf = new GenerarPDF();
             $pdfPath = $pdf->generarYGuardarOrden($idSolicitud);
             if (empty($pdfPath)) {
                 throw new \Exception('No se pudo generar o guardar el PDF de la Orden de Compra.');
             }
 
-            // 5. PREPARAR OPCIONES DE CORREO
             $option = [
                 'attachments' => [$pdfPath],
                 'fromName' => 'MBSP RENTAS S.A. DE C.V.'
             ];
 
-            // 6. ACTUALIZAR ESTADO DE LA 'solicitud'
             $updateResult = $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstadoSolicitud]);
 
             if ($updateResult === false) {
@@ -879,18 +888,15 @@ class Api extends ResourceController
                 throw new \Exception($errorMessage);
             }
 
-            // 7. ENVIAR CORREO
             $mail = new MBSMail();
             $mail->send_email($to, $subject, $message, $option);
 
-            // 8. COMPLETAR TRANSACCIÓN
             $db->transComplete();
 
             if ($db->transStatus() === false) {
                 throw new \Exception('Falla en la transacción de base de datos.');
             }
 
-            // 9. ENVIAR RESPUESTA EXITOSA
             return $this->respondUpdated([
                 'success' => true,
                 'message' => 'Orden Creada, estado actualizado y correo enviado.',
@@ -939,26 +945,6 @@ class Api extends ResourceController
     //endregion
 
     //region proveedores
-    /**
-     * Obtiene los detalles de una orden de compra específica.
-     * @param int|null $id El ID de la solicitud para la orden de compra.
-     * @return \CodeIgniter\HTTP\Response
-     */
-    public function getOrdenCompra($id = null)
-    {
-        if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
-        }
 
-        $details = $this->api->getOrdenCompra((int) $id);
-
-        if (empty($details)) {
-            return $this->failNotFound(
-                'No se encontraron detalles para la orden de compra con ID de solicitud: ' . $id,
-            );
-        }
-
-        return $this->respond($details);
-    }
     //endregion
 }
