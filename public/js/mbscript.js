@@ -44,6 +44,7 @@ function abrirModal(opcion) {
     almacen: 'Almacén',
     reportes: 'Reportes/Auditoria',
     razonsocial: 'Razón social',
+    reporte_almacen: 'Reportes/Historial',
   };
   // Título para la nueva opción
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados';
@@ -72,6 +73,7 @@ function abrirModal(opcion) {
           pagos_pendientes: initPagosPendientes,
           ficha_pago: initFichasPago,
           razonsocial: initCrudRazonSocial,
+          reporte_almacen: initReporteAlmacen,
         };
 
         const inicializador = inicializadores[opcion];
@@ -3851,6 +3853,28 @@ function initRazonSocialActions(tabla) {
 }
 
 
+
+/**
+ * Lógica para reportes de almacen
+ */
+// Función de inicialización para el modal de reporte de almacén
+function initReporteAlmacen() {
+  // Asegurarse de que la tabla exista antes de continuar
+  if (!document.getElementById('tablaReporteAlmacen')) {
+    console.warn("initReporteAlmacen: Tabla con ID 'tablaReporteAlmacen' no encontrada.");
+    return;
+  }
+
+  // Llamar a setupClientSideTable para añadir paginación
+  setupClientSideTable({
+    rowsSelector: '#tablaReporteAlmacen tr.historial-row', // Selector para las filas de datos
+    paginationSelector: 'paginacion-reporte-almacen',    // ID del div de paginación
+    rowsPerPage: 15, // Puedes ajustar el número de filas por página
+    // No añadimos filtro por ahora, pero se podría hacer aquí si se necesita
+    // filterFormSelector: '#id-del-form-de-filtros',
+    // filterFunction: (row, form) => { /* ... lógica de filtro ... */ }
+  });
+}
 
 
 //==================================================================================================================

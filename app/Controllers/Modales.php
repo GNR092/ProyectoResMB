@@ -237,6 +237,13 @@ class Modales extends BaseController
                 return view('modales/razonsocial', $data);
 
 
+            case 'reporte_almacen':
+                $historialModel = new \App\Models\HistorialProductosModel();
+                $data['historial'] = $historialModel->orderBy('created_at', 'DESC')->findAll();
+
+                return view('modales/reporte_almacen', $data);
+
+
             default:
                 return 'Opción no válida';
         }
