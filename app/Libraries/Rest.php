@@ -554,7 +554,9 @@ class Rest
                 !$solicitud ||
                 ($solicitud['Estado'] ?? '') === 'En revision' ||
                 ($solicitud['Estado'] ?? '') === 'Aprobada' ||
-                ($solicitud['Estado'] ?? '') === 'Rechazada'
+                ($solicitud['Estado'] ?? '') === 'Rechazada' ||
+                ($solicitud['Estado'] ?? '') === 'En Proceso de Pago' ||
+                ($solicitud['Estado'] ?? '') === 'Por Pagar'
             ) {
                 continue;
             }
