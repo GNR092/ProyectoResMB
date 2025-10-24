@@ -24,8 +24,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
         <!-- Barra de búsqueda -->
         <div class="mb-4">
             <label for="buscarUsuario" class="sr-only">Buscar usuario por nombre o correo</label>
-            <input type="text" id="buscarUsuario" name="buscar_usuario" @input="filtrarUsuarios" placeholder="Buscar por nombre o correo..." class="w-full px-4 py-2 border rounded-md">
-        </div>
+            <input type="text" id="buscarUsuario" name="buscar_usuario" placeholder="Buscar por nombre o correo..." class="w-full px-4 py-2 border rounded-md"></div>
 
         <!-- Tabla de usuarios -->
         <div class="overflow-x-auto">
@@ -77,7 +76,9 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </tbody>
             </table>
         </div>
+        <div id="paginacion-crud-usuarios" class="flex justify-center mt-4 space-x-2"></div>
     </div>
+
 
     <!-- Pantalla de Creación -->
     <div id="div-crear-usuario" class="hidden" x-data="{ showPasswords: false }">

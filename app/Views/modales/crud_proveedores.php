@@ -98,11 +98,7 @@
     </div>
 
     <!-- Paginación -->
-    <div class="flex justify-center items-center mt-4 space-x-2">
-        <button id="prev-proveedores" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Anterior</button>
-        <span id="info-proveedores" class="text-sm text-gray-700"></span>
-        <button id="next-proveedores" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Siguiente</button>
-    </div>
+    <div id="paginacion-proveedores" class="flex justify-center mt-4 space-x-2"></div>
 </div>
 
 <!-- Pantalla 2: agregar proveedor -->

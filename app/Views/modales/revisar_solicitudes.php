@@ -107,9 +107,12 @@
                 </svg>
             </div>
         </div>
+
+
         <div id="detalles-para-revision">
             <!-- Details will be loaded here -->
         </div>
+
         <form id="form-enviar-revision" class="mt-4">
             <input type="hidden" id="revision_id_solicitud">
             <div>

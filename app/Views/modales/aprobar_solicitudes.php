@@ -1,30 +1,30 @@
 <div x-data="aprobarSolicitudes()" class="p-4">
+    <h2 class="text-lg font-bold mb-4">Requisiciones Pendientes de Aprobación</h2>
 
     <!-- Vista de Tabla -->
     <div id="div-tabla-aprobacion">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Requisiciones Pendientes de Aprobación</h3>
         <div class="overflow-x-auto">
             <table class="min-w-full border border-gray-300">
                 <thead class="bg-gray-100">
                     <tr>
-                        <th class="py-2 px-4 text-left">Folio</th>
-                        <th class="py-2 px-4 text-left">Fecha</th>
-                        <th class="py-2 px-4 text-left">Solicitante</th>
-                        <th class="py-2 px-4 text-center">Acciones</th>
+                        <th class="py-3 px-6 text-left">Folio</th>
+                        <th class="py-3 px-6 text-left">Fecha</th>
+                        <th class="py-3 px-6 text-left">Solicitante</th>
+                        <th class="py-3 px-6 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaAprobarSolicitudes">
                     <?php if (empty($solicitudes_pendientes)): ?>
                         <tr>
-                            <td colspan="4" class="text-center py-4 text-gray-500">No hay solicitudes pendientes de su departamento.</td>
+                            <td colspan="7" class="text-center px-4 py-2 border">No hay solicitudes pendientes de su departamento.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($solicitudes_pendientes as $solicitud): ?>
-                            <tr class="border-b hover:bg-gray-50">
-                                <td class="py-2 px-4"><?= esc($solicitud['No_Folio']) ?></td>
-                                <td class="py-2 px-4"><?= esc($solicitud['Fecha']) ?></td>
-                                <td class="py-2 px-4"><?= esc($solicitud['UsuarioNombre']) ?></td>
-                                <td class="py-2 px-4 text-center">
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-3 px-6"><?= esc($solicitud['No_Folio']) ?></td>
+                                <td class="py-3 px-6"><?= esc($solicitud['Fecha']) ?></td>
+                                <td class="py-3 px-6"><?= esc($solicitud['UsuarioNombre']) ?></td>
+                                <td class="py-3 px-6 text-center">
                                     <button @click="verDetalle(<?= $solicitud['ID_Solicitud'] ?>)" class="text-blue-600 hover:underline">Revisar</button>
                                 </td>
                             </tr>
@@ -33,6 +33,9 @@
                 </tbody>
             </table>
         </div>
+
+        <div id="paginacion-aprobar-solicitudes" class="flex justify-center mt-4 space-x-2"></div>
+
     </div>
 
     <!-- Vista de Detalles -->

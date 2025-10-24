@@ -41,10 +41,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
 </div>
 
 <!-- Pantalla 2: Solicitar Material -->
-<div id="solicitar-material-content" class="hidden">
+<div id="solicitar-material-content" class="hidden p-6">
     <div class="flex justify-between mb-4">
         <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSubmenuMaterial()">&larr;
-            Regresar</button>
+            Regresar
+        </button>
         <h2 class="text-lg font-semibold">Requisicion de Material</h2>
         <div></div>
     </div>
@@ -333,10 +334,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
 </div>
 
 <!-- Pantalla 3: Solicitud de servicios -->
-<div id="solicitar-servicio-content" class="hidden">
+<div id="solicitar-servicio-content" class="hidden p-6">
     <div class="flex justify-between mb-4">
         <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">&larr;
-            Regresar</button>
+            Regresar
+        </button>
         <h2 class="text-lg font-semibold">Requisicion de pago o servicio</h2>
         <div></div>
     </div>

@@ -7,32 +7,22 @@ function abrirModal(opcion) {
   const titulo = document.getElementById('modal-title');
   const contenido = document.getElementById('modal-contenido');
 
-  // --- INICIO DE CAMBIOS ---
 
-  // 1. Seleccionamos la caja blanca (el 'div' padre del título)
-  //    Esta es la caja que tiene la clase 'max-w-4xl'
   const modalBox = titulo.parentElement;
 
-  // 2. Lista de modales que queremos que sean anchos
   const modalesAnchos = ['reportes', 'ver_historial'];
 
-  // 3. Lógica para añadir/quitar clases de Tailwind
   if (modalesAnchos.includes(opcion)) {
-    // Para el modal ancho:
-    // a. Quitamos el centrado del fondo oscuro ('modal')
+
     modal.classList.remove('justify-center');
 
-    // b. Quitamos el límite de ancho y los márgenes de la caja blanca ('modalBox')
     modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto');
   } else {
-    // Para el modal normal (RESTABLECEMOS las clases)
-    // a. Añadimos el centrado al fondo oscuro
+
     modal.classList.add('justify-center');
 
-    // b. Añadimos el límite de ancho y márgenes a la caja blanca
     modalBox.classList.add('max-w-4xl', 'mx-4', 'sm:mx-auto');
   }
-  // --- FIN DE CAMBIOS ---
 
   let titulos = {
     solicitar_material: 'Requisiciones',
@@ -961,87 +951,6 @@ function regresarHistorial() {
   console.log('Regresando a la tabla de historial')
 }
 
-/**
- * Lógica para el modal "Usuarios"
- */
-function initUsuarios() {
-  const modalContenido = document.getElementById('modal-contenido')
-  if (!modalContenido) return
-
-  const form = modalContenido.querySelector('#form-register')
-  const mensajeDiv = modalContenido.querySelector('#mensaje')
-
-  loadDepartamentos()
-
-  if (!form) {
-    console.warn('initUsuarios: no se encontró #form-register dentro del modal')
-    return
-  }
-
-  if (form.dataset.init === '1') return
-  form.dataset.init = '1'
-
-  form.addEventListener('submit', async function (e) {
-    e.preventDefault()
-
-    if (mensajeDiv) {
-      mensajeDiv.textContent = ''
-      mensajeDiv.classList.remove('text-green-600', 'text-red-600')
-    }
-
-    const submitBtn = form.querySelector('button[type="submit"]')
-    const prevBtnHtml = submitBtn ? submitBtn.innerHTML : null
-    if (submitBtn) {
-      submitBtn.disabled = true
-      submitBtn.innerHTML = 'Guardando...'
-    }
-
-    try {
-      const formData = new FormData(form)
-      const resp = await fetch(form.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          Accept: 'application/json',
-        },
-      })
-
-      const text = await resp.text()
-      let data
-      try {
-        data = JSON.parse(text)
-      } catch (err) {
-        console.error('Respuesta no JSON recibida al registrar usuario:', text)
-        if (mensajeDiv)
-          mensajeDiv.innerHTML =
-            '<span class="text-red-600">Error: respuesta inesperada del servidor.</span>'
-        return
-      }
-
-      if (data.success) {
-        if (mensajeDiv) {
-          mensajeDiv.innerHTML = `<span class="text-green-600">${data.message || 'Registro correcto.'}</span>`
-        }
-        form.reset()
-        form.querySelector('input, select, textarea')?.focus()
-      } else {
-        if (mensajeDiv) {
-          mensajeDiv.innerHTML = `<span class="text-red-600">${data.message || 'Error al registrar usuario.'}</span>`
-        }
-      }
-    } catch (err) {
-      console.error('Error en la solicitud:', err)
-      if (mensajeDiv)
-        mensajeDiv.innerHTML = `<span class="text-red-600">Error en la solicitud: ${err.message}</span>`
-    } finally {
-      if (submitBtn) {
-        submitBtn.disabled = false
-        submitBtn.innerHTML = prevBtnHtml
-      }
-    }
-  })
-}
 
 /**
  * Lógica para el modal "Revisar Solicitudes"
@@ -2265,7 +2174,6 @@ async function enviarOrdenCompra(idSolicitud) {
 }
 
 
-
 /**
  * Lógica para el CRUD de proveedores
  */
@@ -2297,8 +2205,6 @@ function initProveedorTabla() {
     rowsPerPage: 10
   });
 }
-
-
 // --- Cambio de pantallas ---
 function initProveedorPantallas() {
   const pantallaAgregar = document.getElementById('pantalla-agregar-proveedor')
@@ -2600,20 +2506,23 @@ function initEntregaMaterial() {
  */
 function crudUsuarios() {
   return {
-    // Función para filtrar usuarios en la tabla
-    filtrarUsuarios() {
-      const termino = document.getElementById('buscarUsuario').value.toLowerCase()
-      const filas = document.querySelectorAll('#tablaCrudUsuarios .usuario-row')
+    init() {
+      setupClientSideTable({
+        rowsSelector: '#tablaCrudUsuarios tr.usuario-row', // Las filas de tu tabla
+        paginationSelector: 'paginacion-crud-usuarios',   // El ID del div de paginación
+        filterFormSelector: '#div-lista-usuarios',          // El div que contiene tu campo de búsqueda
+        filterFunction: (row, form) => {
+          const termino = (form.querySelector('#buscarUsuario')?.value || '').toLowerCase();
 
-      filas.forEach((fila) => {
-        const nombre = fila.querySelector('.nombre').textContent.toLowerCase()
-        const correo = fila.querySelector('.correo').textContent.toLowerCase()
-        const visible = nombre.includes(termino) || correo.includes(termino)
-        fila.style.display = visible ? '' : 'none'
-      })
+          const nombre = row.querySelector('.nombre')?.textContent.toLowerCase() || '';
+          const correo = row.querySelector('.correo')?.textContent.toLowerCase() || '';
+
+          return nombre.includes(termino) || correo.includes(termino);
+        },
+        rowsPerPage: 10 // O el número de filas que prefieras
+      });
     },
 
-    // Muestra el formulario de edición con los datos del usuario
     editarUsuario(id) {
       const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)
       if (!fila) return
@@ -2622,7 +2531,7 @@ function crudUsuarios() {
       document.getElementById('editar-Nombre').value = fila.querySelector('.nombre').textContent
       document.getElementById('editar-Correo').value = fila.querySelector('.correo').textContent
       document.getElementById('editar-ID_Dpto').value =
-        fila.querySelector('.departamento').dataset.idDpto
+          fila.querySelector('.departamento').dataset.idDpto
       document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonsocial
       document.getElementById('editar-Numero').value = fila.dataset.numero || ''
       document.getElementById('editar-ContrasenaP').value = '' // Limpiar campo de contraseña
@@ -2634,21 +2543,18 @@ function crudUsuarios() {
       document.getElementById('div-editar-usuario').classList.remove('hidden')
     },
 
-    // Muestra el formulario de creación de usuario
     mostrarFormularioCrear() {
       document.getElementById('form-crear-usuario').reset()
       document.getElementById('div-lista-usuarios').classList.add('hidden')
       document.getElementById('div-crear-usuario').classList.remove('hidden')
     },
 
-    // Regresa a la vista de la lista de usuarios
     regresarALista() {
       document.getElementById('div-editar-usuario').classList.add('hidden')
       document.getElementById('div-crear-usuario').classList.add('hidden')
       document.getElementById('div-lista-usuarios').classList.remove('hidden')
     },
 
-    // Guarda los cambios del formulario de edición
     async guardarCambiosUsuario() {
       const id = document.getElementById('editar-ID_Usuario').value
       const nombre = document.getElementById('editar-Nombre').value
@@ -2721,7 +2627,6 @@ function crudUsuarios() {
       }
     },
 
-    // Guarda un nuevo usuario
     async guardarNuevoUsuario() {
       const nombre = document.getElementById('crear-Nombre').value
       const correo = document.getElementById('crear-Correo').value
@@ -2747,8 +2652,8 @@ function crudUsuarios() {
       if (contrasenaG) {
         if (contrasenaG.length < 8) {
           mostrarNotificacion(
-            'La contraseña de Empleado debe tener al menos 8 caracteres.',
-            'error',
+              'La contraseña de Empleado debe tener al menos 8 caracteres.',
+              'error',
           )
           return
         }
@@ -2816,12 +2721,11 @@ function crudUsuarios() {
       }
     },
 
-    // Elimina un usuario
     async eliminarUsuario(id) {
       if (
-        !confirm(
-          '¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.',
-        )
+          !confirm(
+              '¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.',
+          )
       ) {
         return
       }
@@ -2846,11 +2750,99 @@ function crudUsuarios() {
   }
 }
 
+function initUsuarios() {
+  const modalContenido = document.getElementById('modal-contenido')
+  if (!modalContenido) return
+
+  const form = modalContenido.querySelector('#form-register')
+  const mensajeDiv = modalContenido.querySelector('#mensaje')
+
+  loadDepartamentos()
+
+  if (!form) {
+    console.warn('initUsuarios: no se encontró #form-register dentro del modal')
+    return
+  }
+
+  if (form.dataset.init === '1') return
+  form.dataset.init = '1'
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault()
+
+    if (mensajeDiv) {
+      mensajeDiv.textContent = ''
+      mensajeDiv.classList.remove('text-green-600', 'text-red-600')
+    }
+
+    const submitBtn = form.querySelector('button[type="submit"]')
+    const prevBtnHtml = submitBtn ? submitBtn.innerHTML : null
+    if (submitBtn) {
+      submitBtn.disabled = true
+      submitBtn.innerHTML = 'Guardando...'
+    }
+
+    try {
+      const formData = new FormData(form)
+      const resp = await fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+        },
+      })
+
+      const text = await resp.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (err) {
+        console.error('Respuesta no JSON recibida al registrar usuario:', text)
+        if (mensajeDiv)
+          mensajeDiv.innerHTML =
+              '<span class="text-red-600">Error: respuesta inesperada del servidor.</span>'
+        return
+      }
+
+      if (data.success) {
+        if (mensajeDiv) {
+          mensajeDiv.innerHTML = `<span class="text-green-600">${data.message || 'Registro correcto.'}</span>`
+        }
+        form.reset()
+        form.querySelector('input, select, textarea')?.focus()
+      } else {
+        if (mensajeDiv) {
+          mensajeDiv.innerHTML = `<span class="text-red-600">${data.message || 'Error al registrar usuario.'}</span>`
+        }
+      }
+    } catch (err) {
+      console.error('Error en la solicitud:', err)
+      if (mensajeDiv)
+        mensajeDiv.innerHTML = `<span class="text-red-600">Error en la solicitud: ${err.message}</span>`
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false
+        submitBtn.innerHTML = prevBtnHtml
+      }
+    }
+  })
+}
+
 /**
  * Lógica para el modal "Aprobar Solicitudes" (Jefes de Depto) con Alpine.js
  */
 function aprobarSolicitudes() {
   return {
+
+    init() {
+      setupClientSideTable({
+        rowsSelector: '#tablaAprobarSolicitudes tr.solicitud-row',
+        paginationSelector: 'paginacion-aprobar-solicitudes',
+        rowsPerPage: 10, // Puedes ajustar esto
+      })
+    },
+
     verDetalle: async function (idSolicitud) {
       document.getElementById('div-tabla-aprobacion').classList.add('hidden')
       const divVer = document.getElementById('div-ver-aprobacion')
