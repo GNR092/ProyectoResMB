@@ -72,7 +72,6 @@ function abrirModal(opcion) {
           pagos_pendientes: initPagosPendientes,
           ficha_pago: initFichasPago,
           razonsocial: initCrudRazonSocial,
-          // Opciones con inicialización especial o sin ella se omiten
         };
 
         const inicializador = inicializadores[opcion];
@@ -815,7 +814,6 @@ function initPaginacionHistorial() {
   });
 }
 
-// Funciones para mostrar/ocultar la pantalla de ver historial
 async function mostrarVerHistorial(idSolicitud) {
   const divHistorial = document.getElementById('div-historial')
   if (divHistorial) divHistorial.classList.add('hidden')
@@ -1035,7 +1033,6 @@ async function mostrarVer(idSolicitud) {
                 </table>
             </div>
         `
-    // poner comentario aqui
     if (data.ComentariosUser) {
       html += `
             <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
@@ -1045,7 +1042,7 @@ async function mostrarVer(idSolicitud) {
     }
 
     if (data.Archivo) {
-      // Usamos la nueva ruta segura que creamos para descargar el archivo
+      // Usamos la nueva ruta para descargar el archivo
       const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
       html += `
                 <div class="mt-6">
@@ -1499,7 +1496,7 @@ function RevisionX() {
           if (result.success) {
             mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success');
             this.regresar();
-            this.loadTable(); // refrescar tabla
+            this.loadTable();
           } else {
             mostrarNotificacion(result.messages || 'Error al enviar a revisión.', 'error');
           }
@@ -1813,7 +1810,6 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
   if (nuevoEstado === 'Rechazada') {
     comentarios = prompt('Por favor, ingrese el motivo del rechazo:')
     if (comentarios === null) {
-      // Usuario presionó 'Cancelar'
       return
     }
     if (!comentarios.trim()) {
@@ -1899,7 +1895,7 @@ function eliminarProducto(idProducto) {
         const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`)
         if (fila) fila.remove()
         alert(data.message)
-        initCrudProductos() // reiniciar filtros/paginación
+        initCrudProductos()
       } else {
         alert(data.message)
       }
@@ -1911,12 +1907,10 @@ function eliminarProducto(idProducto) {
 }
 
 function editarProducto(idProducto) {
-  // Ocultar tabla y búsqueda
   document.getElementById('div-tabla').classList.add('hidden')
   document.getElementById('div-busqueda').classList.add('hidden')
   document.getElementById('div-editar').classList.remove('hidden')
 
-  // Obtener fila seleccionada
   const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`)
   if (!fila) return
 
@@ -1924,7 +1918,6 @@ function editarProducto(idProducto) {
   const nombre = fila.children[1].textContent.trim()
   const existencia = fila.children[2].textContent.trim()
 
-  // ID oculto
   document.getElementById('editarID_Producto').value = idProducto
 
   // Campos NO editables
@@ -1960,7 +1953,6 @@ function guardarEdicion() {
     return
   }
 
-  // 1️⃣ Actualizar Producto
   fetch(`${BASE_URL}modales/actualizarProducto/${idProducto}`, {
     method: 'POST',
     headers: {
@@ -1975,7 +1967,6 @@ function guardarEdicion() {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        // 2️⃣ Insertar en HistorialProductos
         fetch(`${BASE_URL}modales/insertarHistorialProducto`, {
           method: 'POST',
           headers: {
@@ -2010,10 +2001,6 @@ function guardarEdicion() {
       console.error(err)
       alert('Ocurrió un error al guardar los cambios.')
     })
-}
-
-function regresarAlmacen() {
-  abrirModal('almacen');
 }
 
 
@@ -2144,7 +2131,6 @@ function regresarTablaOrdenCompra() {
   document.getElementById('div-tabla-ordenes').classList.remove('hidden')
 }
 
-// ================== Enviar a facturas ==================
 async function enviarOrdenCompra(idSolicitud) {
   if (!confirm('¿Deseas enviar esta orden de compra a Tesorería?')) return;
 
@@ -2165,7 +2151,7 @@ async function enviarOrdenCompra(idSolicitud) {
 
     regresarTablaOrdenCompra();
 
-     initOrdenesCompra(); // <-- Descomenta si la tabla debe recargarse
+     initOrdenesCompra();
 
   } catch (error) {
     console.error('Error al enviar orden:', error);
@@ -2191,8 +2177,8 @@ function initCrudProveedores() {
 function initProveedorTabla() {
   setupClientSideTable({
     rowsSelector: '#tabla-proveedores tr[data-id]',
-    paginationSelector: 'paginacion-proveedores', // Assuming a new ID for pagination container
-    filterFormSelector: '#form-filtros-proveedores', // Assuming a form for filters
+    paginationSelector: 'paginacion-proveedores',
+    filterFormSelector: '#form-filtros-proveedores',
     filterFunction: (row, form) => {
       const nombreFiltro = (form.querySelector('#buscar-nombre')?.value || '').toLowerCase();
       const servicioFiltro = (form.querySelector('#buscar-servicio')?.value || '').toLowerCase();
@@ -2205,7 +2191,7 @@ function initProveedorTabla() {
     rowsPerPage: 10
   });
 }
-// --- Cambio de pantallas ---
+
 function initProveedorPantallas() {
   const pantallaAgregar = document.getElementById('pantalla-agregar-proveedor')
   const pantallaEditar = document.getElementById('pantalla-editar-proveedor')
@@ -2237,7 +2223,6 @@ function initProveedorPantallas() {
     }
 }
 
-// --- Formulario agregar ---
 function initProveedorForm() {
   const formProveedor = document.getElementById('form-agregar-proveedor')
   const pantallaAgregar = document.getElementById('pantalla-agregar-proveedor')
@@ -2271,7 +2256,6 @@ function initProveedorForm() {
   }
 }
 
-// --- Formulario editar ---
 function initProveedorEditarForm() {
   const formEditar = document.getElementById('form-editar-proveedor')
   const pantallaEditar = document.getElementById('pantalla-editar-proveedor')
@@ -2323,7 +2307,6 @@ function initProveedorEditarForm() {
   }
 }
 
-// --- Botones editar/eliminar ---
 function initProveedorActions(tabla) {
   if (!tabla) return
 
@@ -2508,9 +2491,9 @@ function crudUsuarios() {
   return {
     init() {
       setupClientSideTable({
-        rowsSelector: '#tablaCrudUsuarios tr.usuario-row', // Las filas de tu tabla
-        paginationSelector: 'paginacion-crud-usuarios',   // El ID del div de paginación
-        filterFormSelector: '#div-lista-usuarios',          // El div que contiene tu campo de búsqueda
+        rowsSelector: '#tablaCrudUsuarios tr.usuario-row',
+        paginationSelector: 'paginacion-crud-usuarios',
+        filterFormSelector: '#div-lista-usuarios',
         filterFunction: (row, form) => {
           const termino = (form.querySelector('#buscarUsuario')?.value || '').toLowerCase();
 
@@ -2519,7 +2502,7 @@ function crudUsuarios() {
 
           return nombre.includes(termino) || correo.includes(termino);
         },
-        rowsPerPage: 10 // O el número de filas que prefieras
+        rowsPerPage: 10
       });
     },
 
@@ -3338,7 +3321,6 @@ async function initFichasPago() {
   }
 }
 
-// --- Función de VER
 async function mostrarDetalleFicha(id, metodoPago) {
   const detalleDiv =
       metodoPago == '0'
@@ -3476,7 +3458,6 @@ async function mostrarDetalleFicha(id, metodoPago) {
   }
 }
 
-// --- Volver a la tabla desde detalle ---
 function volverAFichas(metodoPago) {
   const detalleDiv = metodoPago == "0" ? document.getElementById("detalle-contado") : document.getElementById("detalle-credito");
   const tablaDiv = metodoPago == "0" ? document.getElementById("tabla-contado") : document.getElementById("tabla-credito");
@@ -3485,7 +3466,6 @@ function volverAFichas(metodoPago) {
   tablaDiv.classList.remove("hidden");
 }
 
-// --- Funciones de navegación principales ---
 function mostrarFichaContado() {
   document.getElementById('ficha-menu').classList.add('hidden')
   document.getElementById('ficha-contado').classList.remove('hidden')
@@ -3502,7 +3482,6 @@ function regresarFichaMenu() {
   document.getElementById('ficha-menu').classList.remove('hidden')
 }
 
-// --- Función para regresar la ficha a Compras y cambiar estado a "Por Pagar" ---
 async function regresarACompras(idSolicitud, metodoPago) {
   try {
     const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
@@ -3713,7 +3692,6 @@ function initCrudRazonSocial() {
   initRazonSocialActions(tabla);
 }
 
-// --- Configuración de tabla con paginación y filtros ---
 function initRazonSocialTabla() {
   setupClientSideTable({
     rowsSelector: '#tabla-razonsocial tr[data-id]',
@@ -3728,7 +3706,6 @@ function initRazonSocialTabla() {
   });
 }
 
-// --- Cambio de pantallas ---
 function initRazonSocialPantallas() {
   const pantallaAgregar = document.getElementById('pantalla-agregar-razonsocial');
   const pantallaEditar = document.getElementById('pantalla-editar-razonsocial');
@@ -3757,7 +3734,6 @@ function initRazonSocialPantallas() {
   };
 }
 
-// --- Formulario agregar ---
 function initRazonSocialForm() {
   const formAgregar = document.getElementById('form-agregar-razonsocial');
   const pantallaAgregar = document.getElementById('pantalla-agregar-razonsocial');
@@ -3790,7 +3766,6 @@ function initRazonSocialForm() {
   };
 }
 
-// --- Formulario editar ---
 function initRazonSocialEditarForm() {
   const formEditar = document.getElementById('form-editar-razonsocial');
   const pantallaEditar = document.getElementById('pantalla-editar-razonsocial');
@@ -3829,7 +3804,6 @@ function initRazonSocialEditarForm() {
   };
 }
 
-// --- Botones editar/eliminar ---
 function initRazonSocialActions(tabla) {
   if (!tabla) return;
 
