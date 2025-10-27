@@ -3511,172 +3511,404 @@ async function regresarACompras(idSolicitud, metodoPago) {
  * Lógica para reportes
  */
 
-  document.addEventListener('DOMContentLoaded', () => {
-  initPaginacionReportes();
+document.addEventListener('DOMContentLoaded', () => {
+})
 
-  // Re-renderizar al cambiar filtros
-  const filtroEstadoReportes = document.getElementById('filtro-estado-reportes');
-  if (filtroEstadoReportes) {
-    filtroEstadoReportes.addEventListener('change', initPaginacionReportes);
-  }
+async function cargarFiltroProveedores() {
+  const selectProveedor = document.getElementById('filtroProveedor-reportes')
+  if (!selectProveedor) return
 
-  const filtroDepartamentoReportes = document.getElementById('filtroDepartamento-reportes');
-  if (filtroDepartamentoReportes) {
-    filtroDepartamentoReportes.addEventListener('change', initPaginacionReportes);
-  }
+  try {
+    const response = await fetch(`${BASE_URL}api/providers/all`)
+    const proveedores = await response.json()
 
-  const filtroFechaReportes = document.getElementById('filtro-fecha-reportes');
-  if (filtroFechaReportes) {
-    filtroFechaReportes.addEventListener('change', initPaginacionReportes);
-  }
+    if (proveedores && proveedores.length > 0) {
+      // Limpiar opciones existentes (excepto la primera)
+      selectProveedor.length = 1
 
-  const filtrarPorMesReportes = document.getElementById('filtrar-por-mes-reportes');
-  if (filtrarPorMesReportes) {
-    filtrarPorMesReportes.addEventListener('change', initPaginacionReportes);
+      proveedores.forEach((prov) => {
+        const option = document.createElement('option')
+        // Usamos RazonSocial como valor y texto
+        option.value = prov.RazonSocial
+        option.textContent = prov.RazonSocial
+        selectProveedor.appendChild(option)
+      })
+    }
+  } catch (error) {
+    console.error('Error al cargar filtro de proveedores:', error)
+    // Podrías deshabilitar el filtro o mostrar un mensaje
   }
-});
+}
+
 function initPaginacionReportes() {
-  const tabla = document.getElementById('tabla-reportes');
-  if (!tabla) return;
+  const tabla = document.getElementById('tabla-reportes')
+  if (!tabla) return
 
-  const rowsPerPage = 10;
-  let currentPage = 1;
-  let allData = [];
+  // Si ya está inicializado (por si se llama múltiples veces), salimos.
+  if (tabla.dataset.initialized === 'true') {
+    // console.log("initPaginacionReportes ya inicializado.");
+    return;
+  }
+  tabla.dataset.initialized = 'true'; // Marcar como inicializado
+
+  const rowsPerPage = 10
+  let currentPage = 1
+  let allData = []
+  let filteredData = []
+
+  // Llamar para cargar el desplegable de proveedores
+  cargarFiltroProveedores()
 
   function getStatusSVG(status) {
-    if (!status) return '';
-    const statusLower = status.toLowerCase();
-    const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`;
-    let svgClass = '';
-    let iconId = '';
+    if (!status) return ''
+    const statusClean = status.trim().toLowerCase()
+    const iconUrl = `/icons/icons.svg?v=${
+        window.ICON_SVG_VERSION || new Date().getTime()
+    }`
+    let svgClass = 'text-gray-500'
+    let iconId = 'pregunta'
 
-    switch (statusLower) {
-      case 'en proceso de pago':
-        svgClass = 'text-yellow-500';
-        iconId = 'en_espera';
-        break;
-      case 'completada':
-        svgClass = 'text-green-600';
-        iconId = 'aceptado';
-        break;
-      case 'cancelada':
-        svgClass = 'text-red-500';
-        iconId = 'rechazado';
-        break;
-      default:
-        return '';
+    const statusMap = {
+      'en proceso de pago': { class: 'text-yellow-500', icon: 'en_espera' },
+      completada: { class: 'text-green-600', icon: 'aceptado' },
+      cancelada: { class: 'text-red-500', icon: 'rechazado' },
+      'por pagar': { class: 'text-yellow-500', icon: 'en_espera' },
     }
-    return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`;
+
+    if (statusMap[statusClean]) {
+      svgClass = statusMap[statusClean].class
+      iconId = statusMap[statusClean].icon
+    } else {
+      console.warn(
+          `Estado desconocido: "${status}" (Limpiado: "${statusClean}"). Icono defecto.`,
+      )
+    }
+    return `<svg class="${svgClass} mx-auto size-6" title="${status}" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
   }
 
   async function fetchData() {
+    const tbody = tabla.querySelector('tbody')
+    tbody.innerHTML =
+        '<tr><td colspan="7" class="text-center py-4">Cargando reportes...</td></tr>' // Colspan 7 ahora
     try {
-      const res = await fetch(`${BASE_URL}api/orden-compra/alldata`);
-      allData = await res.json();
-      renderTable();
-      renderPagination();
+      const resOrdenes = await fetch(`${BASE_URL}api/orden-compra/alldata`)
+      const ordenesBasicas = await resOrdenes.json()
+
+      if (!ordenesBasicas || ordenesBasicas.length === 0) {
+        allData = []
+        applyFiltersAndRender()
+        return
+      }
+
+      const detallesPromises = ordenesBasicas.map((orden) =>
+          fetch(`${BASE_URL}api/orden-compra/details/${orden.ID_Solicitud}`)
+              .then((res) => {
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                return res.json();
+              })
+              .catch((err) => {
+                console.error(
+                    `Error fetching details for Solicitud ID ${orden.ID_Solicitud}:`,
+                    err,
+                )
+                return null
+              }),
+      )
+
+      const detallesCompletos = await Promise.all(detallesPromises)
+      allData = detallesCompletos.filter((d) => d && typeof d === 'object') // Asegurar que sean objetos válidos
+
+      applyFiltersAndRender()
     } catch (error) {
-      console.error('Error al cargar reportes:', error);
-      tabla.querySelector('tbody').innerHTML =
-          '<tr><td colspan="5" class="text-center text-red-500">Error al cargar los registros.</td></tr>';
+      console.error('Error al cargar reportes:', error)
+      tbody.innerHTML =
+          '<tr><td colspan="7" class="text-center text-red-500">Error al cargar los registros.</td></tr>' // Colspan 7
     }
   }
 
-  function renderTable() {
-    const tbody = tabla.querySelector('tbody');
-    tbody.innerHTML = '';
+  // Hacer global o asegurar que los listeners la puedan llamar
+  window.applyFiltersAndRender = function () {
+    const fechaFiltro = document.getElementById('filtro-fecha-reportes').value
+    const filtrarPorMes = document.getElementById(
+        'filtrar-por-mes-reportes',
+    ).checked
+    const estadoFiltro = document.getElementById('filtro-estado-reportes').value
+    const deptoFiltro = document.getElementById(
+        'filtroDepartamento-reportes',
+    ).value
+    // --- LEER NUEVOS FILTROS ---
+    const razonSocialFiltro = document.getElementById(
+        'filtroRazonSocial-reportes',
+    ).value
+    const proveedorFiltro = document.getElementById(
+        'filtroProveedor-reportes',
+    ).value
 
-    // Filtros
-    const fechaFiltro = document.getElementById('filtro-fecha-reportes').value;
-    const filtrarPorMes = document.getElementById('filtrar-por-mes-reportes').checked;
-    const estadoFiltro = document.getElementById('filtro-estado-reportes').value;
+    filteredData = allData.filter((item) => {
+      // --- LÓGICA DE FILTRADO ACTUALIZADA ---
+      const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
+      const coincideDepto =
+          !deptoFiltro || item.DepartamentoNombre === deptoFiltro
+      const coincideRazonSocial =
+          !razonSocialFiltro || item.Complejo === razonSocialFiltro // Asumiendo que 'Complejo' es la Razón Social
+      const coincideProveedor =
+          !proveedorFiltro || item.proveedor?.RazonSocial === proveedorFiltro
 
-    let filteredData = allData.filter(item => {
-      const coincideEstado = !estadoFiltro || item.EstadoOrden === estadoFiltro;
-      if (!fechaFiltro) return coincideEstado;
-
-      if (filtrarPorMes) {
-        return item.Fecha?.slice(0, 7) === fechaFiltro.slice(0, 7) && coincideEstado;
-      } else {
-        return item.Fecha?.slice(0, 10) === fechaFiltro && coincideEstado;
+      let coincideFecha = true
+      if (fechaFiltro) {
+        if (filtrarPorMes) {
+          coincideFecha = item.Fecha?.slice(0, 7) === fechaFiltro.slice(0, 7)
+        } else {
+          coincideFecha = item.Fecha?.slice(0, 10) === fechaFiltro
+        }
       }
-    });
+      return (
+          coincideEstado &&
+          coincideDepto &&
+          coincideRazonSocial && // Añadido
+          coincideProveedor && // Añadido
+          coincideFecha
+      )
+      // --- FIN LÓGICA ---
+    })
 
-    const start = (currentPage - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    const pageData = filteredData.slice(start, end);
+    currentPage = 1
+    renderTable()
+    renderPagination()
+  }
 
-    pageData.forEach(item => {
-      const svg = getStatusSVG(item.EstadoOrden);
+  function renderTable() {
+    const tbody = tabla.querySelector('tbody')
+    tbody.innerHTML = ''
+
+    const start = (currentPage - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    const pageData = filteredData.slice(start, end)
+
+    if (pageData.length === 0) {
+      tbody.innerHTML =
+          '<tr><td colspan="7" class="text-center py-4">No hay registros que coincidan con los filtros.</td></tr>' // Colspan 7
+      return
+    }
+
+    pageData.forEach((item) => {
+      const svg = getStatusSVG(item.Estado)
       tbody.innerHTML += `
-        <tr class="text-center">
-          <td class="border px-4 py-2">${item.ID_OrdenCompra}</td>
-          <td class="border px-4 py-2">${item.ID_Cotizacion}</td>
-          <td class="border px-4 py-2">${item.ID_Solicitud}</td>
-          <td class="border px-4 py-2 col-estado" data-estado="${item.EstadoOrden}" title="${item.EstadoOrden}">
-              ${svg}<span>${item.EstadoOrden}</span>
+        <tr class="text-center hover:bg-gray-50 text-sm">
+          <td class="border px-3 py-2 text-left">${item.No_Folio || 'N/A'}</td>
+          <td class="border px-3 py-2 text-left">${item.DepartamentoNombre || 'N/A'}</td>
+          <td class="border px-3 py-2 text-left">${item.Complejo || 'N/A'}</td>
+          <td class="border px-3 py-2 text-left">${item.proveedor?.RazonSocial || 'N/A'}</td>
+          <td class="border px-3 py-2 text-left">${item.Fecha ? new Date(item.Fecha).toLocaleDateString() : 'N/A'}</td>
+          <td class="border px-3 py-2 col-estado" data-estado="${item.Estado}" title="${item.Estado}">
+              ${svg}
           </td>
-          <td class="border px-4 py-2">
-              <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerReporte(${item.ID_OrdenCompra}); return false;">ver</a>
+          <td class="border px-3 py-2">
+              <button class="text-blue-600 hover:underline" onclick="mostrarVerReporte(${item.ID_Solicitud}); return false;">Ver</button>
           </td>
         </tr>
-      `;
-    });
+      `
+    })
   }
 
   function renderPagination() {
     const paginacion = document.getElementById('paginacion-reportes');
     paginacion.innerHTML = '';
 
-    const totalPages = Math.ceil(allData.length / rowsPerPage);
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
     if (totalPages <= 1) return;
 
-    for (let i = 1; i <= totalPages; i++) {
-      const btn = document.createElement('button');
-      btn.textContent = i;
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+
+    if (currentPage <= 3) endPage = Math.min(totalPages, 5);
+    if (currentPage > totalPages - 3) startPage = Math.max(1, totalPages - 4);
+
+    // Botón Anterior (si no estamos en la primera página)
+    if (currentPage > 1) {
+      const prevBtn = document.createElement('button');
+      prevBtn.innerHTML = '&laquo;'; // O 'Anterior'
+      prevBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-200';
+      prevBtn.addEventListener('click', () => { currentPage--; renderTable(); renderPagination(); });
+      paginacion.appendChild(prevBtn);
+    }
+
+
+    if (startPage > 1) {
+      const firstBtn = document.createElement('button');
+      firstBtn.textContent = '1';
+      firstBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-200';
+      firstBtn.addEventListener('click', () => { currentPage = 1; renderTable(); renderPagination(); });
+      paginacion.appendChild(firstBtn);
+      if(startPage > 2) paginacion.appendChild(document.createTextNode('...'));
+    }
+
+
+    for (let i = startPage; i <= endPage; i++) {
+      const btn = document.createElement('button')
+      btn.textContent = i
       btn.className =
-          'px-3 py-1 border rounded hover:bg-gray-200 ' + (i === currentPage ? 'bg-gray-300 font-bold' : '');
+          'px-3 py-1 border rounded hover:bg-gray-200 ' +
+          (i === currentPage ? 'bg-gray-300 font-bold' : 'bg-white')
       btn.addEventListener('click', () => {
-        currentPage = i;
-        renderTable();
-        renderPagination();
-      });
-      paginacion.appendChild(btn);
+        currentPage = i
+        renderTable()
+        renderPagination()
+      })
+      paginacion.appendChild(btn)
+    }
+
+    if (endPage < totalPages) {
+      if(endPage < totalPages - 1) paginacion.appendChild(document.createTextNode('...'));
+      const lastBtn = document.createElement('button');
+      lastBtn.textContent = totalPages;
+      lastBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-200';
+      lastBtn.addEventListener('click', () => { currentPage = totalPages; renderTable(); renderPagination(); });
+      paginacion.appendChild(lastBtn);
+    }
+
+    // Botón Siguiente (si no estamos en la última página)
+    if (currentPage < totalPages) {
+      const nextBtn = document.createElement('button');
+      nextBtn.innerHTML = '&raquo;'; // O 'Siguiente'
+      nextBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-200';
+      nextBtn.addEventListener('click', () => { currentPage++; renderTable(); renderPagination(); });
+      paginacion.appendChild(nextBtn);
     }
   }
 
-  // Eventos de filtros
-  ['filtro-fecha-reportes', 'filtrar-por-mes-reportes', 'filtro-estado-reportes'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('change', () => {
-      currentPage = 1;
-      renderTable();
-      renderPagination();
-    });
-  });
+  // Asegurarse de que los listeners se añadan solo una vez
+  const listenerIds = [
+    'filtro-fecha-reportes',
+    'filtrar-por-mes-reportes',
+    'filtro-estado-reportes',
+    'filtroDepartamento-reportes',
+    'filtroRazonSocial-reportes', // Añadido
+    'filtroProveedor-reportes', // Añadido
+  ]
 
-  fetchData();
+  listenerIds.forEach((id) => {
+    const el = document.getElementById(id)
+    // Verificar si el listener ya fue añadido antes de agregarlo
+    if (el && !el.dataset.listenerAttached) {
+      el.addEventListener('change', window.applyFiltersAndRender);
+      el.dataset.listenerAttached = 'true'; // Marcar como añadido
+    } else if (!el) {
+      console.warn(`Elemento de filtro con ID '${id}' no encontrado.`);
+    }
+  })
+
+  fetchData() // Carga inicial
 }
 
-async function mostrarVerReporte(idOrden) {
-  document.getElementById('div-reportes').classList.add('hidden');
-  document.getElementById('div-ver-reporte').classList.remove('hidden');
+async function mostrarVerReporte(idSolicitud) {
+  document.getElementById('div-reportes').classList.add('hidden')
+  document.getElementById('div-ver-reporte').classList.remove('hidden')
 
-  const detallesContainer = document.getElementById('detalles-reporte');
-  detallesContainer.innerHTML = `<p class="text-gray-500">Cargando detalles de la orden #${idOrden}...</p>`;
+  const detallesContainer = document.getElementById('detalles-reporte')
+  detallesContainer.innerHTML = `<p class="text-gray-500 text-center py-4">Cargando detalles de la orden...</p>`
 
   try {
-    const res = await fetch(`/api/orden-compra/details/${idOrden}`);
-    const data = await res.json();
-    detallesContainer.innerHTML = JSON.stringify(data, null, 2); // Cambiar por tabla bonita si quieres
+    const response = await fetch(
+        `${BASE_URL}api/orden-compra/details/${idSolicitud}`,
+    )
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`)
+    }
+    const data = await response.json()
+
+    const prov = data.proveedor || {}
+    const totalFormateado = parseFloat(
+        data.cotizacion?.Total || 0,
+    ).toLocaleString('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+    })
+
+    const metodoPagoTexto =
+        data.MetodoPago == 0
+            ? 'Efectivo'
+            : data.MetodoPago == 1
+                ? 'Crédito'
+                : data.MetodoPago == 9
+                    ? 'En Espera'
+                    : 'N/A'
+
+    let html = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+        <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
+        <div><strong>Departamento:</strong> ${
+        data.DepartamentoNombre || 'N/A'
+    }</div>
+        <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
+        <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
+        <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
+      </div>
+      <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+        <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
+        <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
+        <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
+        <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+        <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
+        <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
+        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
+        prov.Monto_Credito
+            ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
+              style: 'currency',
+              currency: 'MXN',
+            })
+            : 'N/A'
+    }</div>
+      </div>
+      <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
+      <div class="overflow-x-auto shadow rounded-lg mb-6">
+        <table class="min-w-full border border-gray-300">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="py-2 px-4 text-left text-sm">Código</th>
+                    <th class="py-2 px-4 text-left text-sm">Producto</th>
+                    <th class="py-2 px-4 text-right text-sm">Cantidad</th>
+                    <th class="py-2 px-4 text-right text-sm">Importe Unit.</th>
+                    <th class="py-2 px-4 text-right text-sm">Costo Total</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white">
+    `
+    if (data.productos && data.productos.length > 0) {
+      data.productos.forEach((p) => {
+        const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+        html += `
+            <tr class="hover:bg-gray-50">
+                <td class="py-2 px-4 border-t text-sm">${p.Codigo || 'N/A'}</td>
+                <td class="py-2 px-4 border-t text-sm">${p.Nombre}</td>
+                <td class="py-2 px-4 border-t text-right text-sm">${p.Cantidad}</td>
+                <td class="py-2 px-4 border-t text-right text-sm">$${parseFloat(
+            p.Importe,
+        ).toFixed(2)}</td>
+                <td class="py-2 px-4 border-t text-right text-sm">$${costoTotal}</td>
+            </tr>
+        `
+      })
+    } else {
+      html += `<tr><td colspan="5" class="text-center py-3 text-sm">No hay productos en esta orden.</td></tr>`
+    }
+    html += `
+            </tbody>
+        </table>
+      </div>
+    `
+    detallesContainer.innerHTML = html
   } catch (err) {
-    detallesContainer.innerHTML = `<p class="text-red-500">Error al cargar detalles.</p>`;
+    console.error('Error al cargar detalles del reporte:', err)
+    detallesContainer.innerHTML = `<p class="text-red-500 text-center py-4">Error al cargar detalles: ${err.message}</p>`
   }
 }
 
 function regresarReportes() {
-  document.getElementById('div-reportes').classList.remove('hidden');
-  document.getElementById('div-ver-reporte').classList.add('hidden');
+  document.getElementById('div-reportes').classList.remove('hidden')
+  document.getElementById('div-ver-reporte').classList.add('hidden')
+
 }
 
 

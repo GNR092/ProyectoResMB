@@ -944,7 +944,4 @@ class Api extends ResourceController
 
     //endregion
 
-    //region proveedores
-
-    //endregion
 }

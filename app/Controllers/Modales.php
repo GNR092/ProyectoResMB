@@ -226,9 +226,17 @@ class Modales extends BaseController
                 return view('modales/almacen');
 
             case 'reportes':
-                $departamentoModel = new \App\Models\DepartamentosModel();
-                $data['departamentos'] = $departamentoModel->orderBy('Nombre', 'ASC')->findAll();
+                $razonSocialModel = new \App\Models\RazonSocialModel();
+                $data['razones_sociales'] = $razonSocialModel->select('ID_RazonSocial, Nombre')
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
 
+                $departamentoModel = new \App\Models\DepartamentosModel();
+                $data['departamentos'] = $departamentoModel->select('ID_Dpto, Nombre')
+                ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+
+                // 4. Pasar los datos a la vista
                 return view('modales/reportes', $data);
 
             case 'razonsocial':
