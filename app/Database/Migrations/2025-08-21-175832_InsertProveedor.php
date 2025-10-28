@@ -13,7 +13,7 @@ class InsertProveedor extends Migration
             throw new \RuntimeException('La tabla Proveedor no existe');
         }
 
-        // Datos de proveedores 
+        // Datos de proveedores
         $proveedores = [
             [
                 'RazonSocial' => 'ABASTECEDORA MAXIMO SA DE CV',
@@ -24,7 +24,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '021580040297787352',
                 'Tel_Contacto' => '9992989750',
                 'Nombre_Contacto' => 'MIGUEL YAM',
-                'Servicio' => 'PINTURA, TABLAROCA'
+                'Servicio' => 'PINTURA, TABLAROCA',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'ABELARDO SIERRA CALDERON',
@@ -35,7 +37,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '058910000001879217',
                 'Tel_Contacto' => '9992566074',
                 'Nombre_Contacto' => 'ABELARDO SIERRA',
-                'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA'
+                'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA',
+                'Dias_Credito' => 21,
+                'Monto_Credito' => 50000
             ],
             [
                 'RazonSocial' => 'AGROCAMPO PENINSULAR SA DE CV',
@@ -46,7 +50,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001036215292',
                 'Tel_Contacto' => '9993474779',
                 'Nombre_Contacto' => 'JORGE AKE',
-                'Servicio' => 'FERTILIZANTES, CULTIVOS, EQUIPO MECANICO'
+                'Servicio' => 'FERTILIZANTES, CULTIVOS, EQUIPO MECANICO',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'ANDAMIOS Y MAQUINARIA LA PIRAMIDE SA DE CV',
@@ -57,7 +63,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '021910040238538499',
                 'Tel_Contacto' => '9991277029',
                 'Nombre_Contacto' => 'GREGORY VAZQUEZ',
-                'Servicio' => 'RENTA ANDAMIOS'
+                'Servicio' => 'RENTA ANDAMIOS',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 50000
             ],
             [
                 'RazonSocial' => 'ARMADORA Y ENSAMBLE DE ALUMINIOS-ANEROL´S',
@@ -68,7 +76,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910004795650946',
                 'Tel_Contacto' => '9993374693',
                 'Nombre_Contacto' => 'ANGEL HERRERA',
-                'Servicio' => 'SERVICIOS DE CANCELERIA Y ALUMINIO'
+                'Servicio' => 'SERVICIOS DE CANCELERIA Y ALUMINIO',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'ARTURO HiPOLiTO MOLiNA',
@@ -79,7 +89,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '072910008142465400',
                 'Tel_Contacto' => '9991144759',
                 'Nombre_Contacto' => 'ARTURO HiPOLiTO MOLiNA',
-                'Servicio' => 'COMPRA DE TORTILLA'
+                'Servicio' => 'COMPRA DE TORTILLA',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 10000
             ],
             [
                 'RazonSocial' => 'AUTOMOTRIZ MONTECRISTO SA DE CV',
@@ -90,7 +102,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001061994889',
                 'Tel_Contacto' => '9991578856',
                 'Nombre_Contacto' => 'BRIAN HERRERA',
-                'Servicio' => 'ASESOR DE CHEVROLET, CITAS, SERVICIOS ETC.'
+                'Servicio' => 'ASESOR DE CHEVROLET, CITAS, SERVICIOS ETC.',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'AUTOTRANSPORTES PROGRESO',
@@ -101,7 +115,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002910701251509750',
                 'Tel_Contacto' => '9999063883',
                 'Nombre_Contacto' => 'LiC GLADYS',
-                'Servicio' => 'RENTA CAMION'
+                'Servicio' => 'RENTA CAMION',
+                'Dias_Credito' => 10,
+                'Monto_Credito' => 100000
             ],
             [
                 'RazonSocial' => 'AVAN TRADE FOOD SERViCE S DE RL CV',
@@ -112,7 +128,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655080881725',
                 'Tel_Contacto' => '9995710804',
                 'Nombre_Contacto' => 'LiC GABRiELA SANTOYYO',
-                'Servicio' => 'ABARROTES'
+                'Servicio' => 'ABARROTES',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 20000
             ],
             [
                 'RazonSocial' => 'BODEGA ELECTRONICA XAZE SA DE CV',
@@ -123,7 +141,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001414801118',
                 'Tel_Contacto' => '9991224197',
                 'Nombre_Contacto' => 'SERGIO PATRON',
-                'Servicio' => 'MUBLES, ELECTRONICA AIRES ACONDICIONADOS'
+                'Servicio' => 'MUBLES, ELECTRONICA AIRES ACONDICIONADOS',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 500000
             ],
             [
                 'RazonSocial' => 'BOMSSA',
@@ -134,7 +154,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655048422126',
                 'Tel_Contacto' => '9992335144',
                 'Nombre_Contacto' => 'EDGAR M',
-                'Servicio' => 'MUBLES, ELECTRONICA AIRES ACONDICIONADOS'
+                'Servicio' => 'MUBLES, ELECTRONICA AIRES ACONDICIONADOS',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'CAFIVER',
@@ -145,7 +167,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014882655004409907',
                 'Tel_Contacto' => '9845931199',
                 'Nombre_Contacto' => 'RUBEN G',
-                'Servicio' => 'CAPSULAS DE CAFÉ PARA HOTEL'
+                'Servicio' => 'CAPSULAS DE CAFÉ PARA HOTEL',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'CARLOS ANTONIO BARRERA AGUILAR CERIMAT',
@@ -156,7 +180,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001485012460',
                 'Tel_Contacto' => '9996399777',
                 'Nombre_Contacto' => 'MARY',
-                'Servicio' => 'CONSTRURAMA, MATERIALES DE CONSTRUCCION'
+                'Servicio' => 'CONSTRURAMA, MATERIALES DE CONSTRUCCION',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'CARLOS FAUSTINO FARFAN CHAN (ELECTRONICA CANEK)',
@@ -167,7 +193,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '021910040457818796',
                 'Tel_Contacto' => '9991511339',
                 'Nombre_Contacto' => 'CARLOS FARFAN',
-                'Servicio' => 'REPARACION TVS Y ELECTRONICA'
+                'Servicio' => 'REPARACION TVS Y ELECTRONICA',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 20000
             ],
             [
                 'RazonSocial' => 'CARLOS RAFAEL CETINA',
@@ -178,7 +206,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '127910013570643782',
                 'Tel_Contacto' => '99911162855',
                 'Nombre_Contacto' => 'ROBERTO MEDINA ALBERTOS',
-                'Servicio' => 'FUMIGACION DE PLAGAS / FUMIGUAY'
+                'Servicio' => 'FUMIGACION DE PLAGAS / FUMIGUAY',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'CASA FERNANDEZ DEL SURESTE SA DE C',
@@ -189,7 +219,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001509307763',
                 'Tel_Contacto' => '9993643177',
                 'Nombre_Contacto' => 'CATALINA PACHO',
-                'Servicio' => 'FERRETERIA'
+                'Servicio' => 'FERRETERIA',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 70000
             ],
             [
                 'RazonSocial' => 'CASA SANTOS LUGO SA DE CV',
@@ -200,7 +232,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '072910001392381185',
                 'Tel_Contacto' => '9995105913',
                 'Nombre_Contacto' => 'SAHIRA CASTRO',
-                'Servicio' => 'ABARROTES'
+                'Servicio' => 'ABARROTES',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'COMERCIALIZADORA DE CRISTALES DE ME',
@@ -211,7 +245,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002910700480958429',
                 'Tel_Contacto' => '9992180900',
                 'Nombre_Contacto' => 'FERNANDO RIU',
-                'Servicio' => 'TODO EN CUANTO A CRISTALES Y VIDRIOS'
+                'Servicio' => 'TODO EN CUANTO A CRISTALES Y VIDRIOS',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'COMERCIALIZADORA E IMPORTADORA PALEMO',
@@ -222,7 +258,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001108269367',
                 'Tel_Contacto' => '9992145536',
                 'Nombre_Contacto' => 'RICARDO VALLE',
-                'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA'
+                'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA',
+                'Dias_Credito' => 21,
+                'Monto_Credito' => 30000
             ],
             [
                 'RazonSocial' => 'COMERCIALIZADORA SLIK',
@@ -233,7 +271,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001214624825',
                 'Tel_Contacto' => '9996039592',
                 'Nombre_Contacto' => 'ALFREDO CHI',
-                'Servicio' => 'LAVADO COLCHONES'
+                'Servicio' => 'LAVADO COLCHONES',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 20000
             ],
             [
                 'RazonSocial' => 'COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS',
@@ -244,7 +284,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001213549817',
                 'Tel_Contacto' => '9992690635',
                 'Nombre_Contacto' => 'FELIX ALONSO ROMERO',
-                'Servicio' => 'TECNICO EN CLIMAS, INSTALACION ETC.'
+                'Servicio' => 'TECNICO EN CLIMAS, INSTALACION ETC.',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'COMPUFAX SA DE CV',
@@ -255,7 +297,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '036910330012900168',
                 'Tel_Contacto' => '9999201416',
                 'Nombre_Contacto' => 'WENDI TELLES-VICENTE REYES',
-                'Servicio' => 'ELECTRONICA'
+                'Servicio' => 'ELECTRONICA',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 200000
             ],
             [
                 'RazonSocial' => 'CONSORCIO ZOUMA',
@@ -266,7 +310,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655097398777',
                 'Tel_Contacto' => '9992427020',
                 'Nombre_Contacto' => 'EDUARDO AGUILAR',
-                'Servicio' => 'MANTENIMIENTO DE PISOS DE CONCRETO'
+                'Servicio' => 'MANTENIMIENTO DE PISOS DE CONCRETO',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'CONSTRUCTORES LOGAR SA DE CV',
@@ -277,7 +323,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002910061670660017',
                 'Tel_Contacto' => '9995472580',
                 'Nombre_Contacto' => 'JAHAZIEL HERNANDEZ',
-                'Servicio' => 'ALUMINIERO'
+                'Servicio' => 'ALUMINIERO',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'CONTROL INTEGRAL DE COMBUSTiBLE',
@@ -288,7 +336,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655058602091',
                 'Tel_Contacto' => '9993358600',
                 'Nombre_Contacto' => 'LiC ERiCA RUIZ',
-                'Servicio' => 'COMBUSTIBLES'
+                'Servicio' => 'COMBUSTIBLES',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'COORPORATVO DE CAMONES PENiNSULA SA DE CV',
@@ -299,7 +349,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001686432881',
                 'Tel_Contacto' => '9999476164',
                 'Nombre_Contacto' => 'ASESOR TALLER JESUS ESTRELLA',
-                'Servicio' => 'MANTTO. CAMION HINO'
+                'Servicio' => 'MANTTO. CAMION HINO',
+                'Dias_Credito' => 10,
+                'Monto_Credito' => 100000
             ],
             [
                 'RazonSocial' => 'CORPORATIVO INTERCERAMIC',
@@ -310,7 +362,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001319143751',
                 'Tel_Contacto' => '9992022888',
                 'Nombre_Contacto' => 'ROBERTO JASSO HERNANDEZ',
-                'Servicio' => 'INTERCERAMIC'
+                'Servicio' => 'INTERCERAMIC',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'COSTCO DE MEXiCO SA CV',
@@ -321,7 +375,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012914002012801557',
                 'Tel_Contacto' => '99998016200',
                 'Nombre_Contacto' => 'LENNY GUZMAN/MARiO ZiTLE',
-                'Servicio' => 'SUPER MERCADO'
+                'Servicio' => 'SUPER MERCADO',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'CREVAICA (QUIMICOS DE LIMPIEZA)',
@@ -332,7 +388,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '058910000002734843',
                 'Tel_Contacto' => '9991385813',
                 'Nombre_Contacto' => 'RICARDO BAKTUN',
-                'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA'
+                'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 50000
             ],
             [
                 'RazonSocial' => 'DANTE LUNA NORIEO',
@@ -343,7 +401,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001085000539',
                 'Tel_Contacto' => '9999971779',
                 'Nombre_Contacto' => 'LORENA CAAMAL',
-                'Servicio' => 'LIMPIEZA DE COLCHONES, SOFAS, SILLA ETC.'
+                'Servicio' => 'LIMPIEZA DE COLCHONES, SOFAS, SILLA ETC.',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 25000
             ],
             [
                 'RazonSocial' => 'DAVID ANTONIO HERRERA ESPADAS',
@@ -354,7 +414,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '021910063916764782',
                 'Tel_Contacto' => '9994528177',
                 'Nombre_Contacto' => 'DAVID HERRERA',
-                'Servicio' => 'SERV. LAVANDERIA'
+                'Servicio' => 'SERV. LAVANDERIA',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 30000
             ],
             [
                 'RazonSocial' => 'DISTRIBUIDORA FERRETERA OSITO S.A DE C.V',
@@ -365,7 +427,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '072910011711138381',
                 'Tel_Contacto' => '9993775467',
                 'Nombre_Contacto' => 'MARIA',
-                'Servicio' => 'FERRETERIA, HERRAMIENTAS, REFACCIONES'
+                'Servicio' => 'FERRETERIA, HERRAMIENTAS, REFACCIONES',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'DISTRIBUIDORA DE ALUMINIO DEL MAYAB SA DE CV',
@@ -376,7 +440,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '021910040250857213',
                 'Tel_Contacto' => '9994429863',
                 'Nombre_Contacto' => 'VENTAS MOSTRADOR',
-                'Servicio' => 'FERRETERIA Y HERRAJES'
+                'Servicio' => 'FERRETERIA Y HERRAJES',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'DISTRIBUIDORA DE PRODUCTOS DE LIMPIEZA',
@@ -387,7 +453,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910004484516993',
                 'Tel_Contacto' => '9999004142',
                 'Nombre_Contacto' => 'KARINA AGUIÑAGA',
-                'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA'
+                'Servicio' => 'QUIMICOS LIMPIEZA Y JARCERIA',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 40000
             ],
             [
                 'RazonSocial' => 'DiSTRiBUiDORA Gci SA CV',
@@ -398,7 +466,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002910701577806441',
                 'Tel_Contacto' => '9991274491',
                 'Nombre_Contacto' => 'DANiEL RAMiREZ',
-                'Servicio' => 'CARNES'
+                'Servicio' => 'CARNES',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 30000
             ],
             [
                 'RazonSocial' => 'ECOLAB S DE RL DE CV',
@@ -409,7 +479,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '106180000147670256',
                 'Tel_Contacto' => '9992426618',
                 'Nombre_Contacto' => 'EMIR SIERRA',
-                'Servicio' => 'QUIMICOS DE LIMPIEZA'
+                'Servicio' => 'QUIMICOS DE LIMPIEZA',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 30000
             ],
             [
                 'RazonSocial' => 'EL NIPLITO DEL SURESTE SA DE CV',
@@ -420,7 +492,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '021910040013188158',
                 'Tel_Contacto' => '9992178558',
                 'Nombre_Contacto' => 'ALEJANDRO UCAN',
-                'Servicio' => 'MUEBLES,BAÑO, FERRETERIA ETC'
+                'Servicio' => 'MUEBLES,BAÑO, FERRETERIA ETC',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'ELIDE ELOISA SOSA CHUIL',
@@ -431,7 +505,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002910701784125724',
                 'Tel_Contacto' => '9993556135',
                 'Nombre_Contacto' => 'ELIDE SOSA',
-                'Servicio' => 'HERRERIA'
+                'Servicio' => 'HERRERIA',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'EMBOTELLADORA BEPENSA SA CV',
@@ -442,7 +518,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014180655058166901',
                 'Tel_Contacto' => '9991023532',
                 'Nombre_Contacto' => 'SUPERViSOR',
-                'Servicio' => 'REFRESCOS COCA'
+                'Servicio' => 'REFRESCOS COCA',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'GABRIEL BARANDA CASTILLA',
@@ -453,7 +531,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910605321213293',
                 'Tel_Contacto' => '9993385481',
                 'Nombre_Contacto' => 'LUIS MARTIN',
-                'Servicio' => 'SUMINISTRA Y APLICA TRATAMIENTO PARA ELIMAR LA HUMEDAD'
+                'Servicio' => 'SUMINISTRA Y APLICA TRATAMIENTO PARA ELIMAR LA HUMEDAD',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'GAS Y DERiVADOS',
@@ -464,7 +544,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655060941533',
                 'Tel_Contacto' => '9999429090',
                 'Nombre_Contacto' => 'HARiS CHAVEZ',
-                'Servicio' => 'GAS LP'
+                'Servicio' => 'GAS LP',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'GRUPO BOXITO',
@@ -475,7 +557,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '021910040569012008',
                 'Tel_Contacto' => '9993349213',
                 'Nombre_Contacto' => 'ALVARO GAMBOA',
-                'Servicio' => 'MUEBLES,BAÑO, FERRETERIA ETC'
+                'Servicio' => 'MUEBLES,BAÑO, FERRETERIA ETC',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'GRUPO ROMERUC SA CV',
@@ -486,7 +570,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '044910256006893700',
                 'Tel_Contacto' => '9993881830',
                 'Nombre_Contacto' => 'JOSE ROMERO',
-                'Servicio' => 'SUMINISTRO DE AGUA'
+                'Servicio' => 'SUMINISTRO DE AGUA',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 20000
             ],
             [
                 'RazonSocial' => 'HIFI PINTURAS DEL SURESTE',
@@ -497,7 +583,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001824764285',
                 'Tel_Contacto' => '9995504304',
                 'Nombre_Contacto' => 'ADOLFO CANTO',
-                'Servicio' => 'PINTURAS'
+                'Servicio' => 'PINTURAS',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 20000
             ],
             [
                 'RazonSocial' => 'HORECA',
@@ -508,7 +596,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655074924360',
                 'Tel_Contacto' => null,
                 'Nombre_Contacto' => 'MELISA MAY',
-                'Servicio' => 'ACCESORIOS PARA COCINA'
+                'Servicio' => 'ACCESORIOS PARA COCINA',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'IMPREX',
@@ -519,7 +609,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910004438349488',
                 'Tel_Contacto' => '9999285555',
                 'Nombre_Contacto' => 'YENIFER MORENO',
-                'Servicio' => 'IMPRESION DE DOCUMENTOS'
+                'Servicio' => 'IMPRESION DE DOCUMENTOS',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'JABONES Y PRODUCTOS ESPECIALIZADOS JYPESA',
@@ -530,7 +622,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '072320006490147528',
                 'Tel_Contacto' => '3335402939',
                 'Nombre_Contacto' => 'BRENDA PIZARRO',
-                'Servicio' => 'JABONES, SHAMPO P/HOTEL AMENIDADES'
+                'Servicio' => 'JABONES, SHAMPO P/HOTEL AMENIDADES',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'JOANA DE JESUS BENITEZ UC (HM PENINSULAR)',
@@ -541,7 +635,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910004794229352',
                 'Tel_Contacto' => '9995118042',
                 'Nombre_Contacto' => 'JOANA BENITEZ UC',
-                'Servicio' => 'PINTURA, FERRETERIA, MAT. CONSTRUCCION'
+                'Servicio' => 'PINTURA, FERRETERIA, MAT. CONSTRUCCION',
+                'Dias_Credito' => 21,
+                'Monto_Credito' => 30000
             ],
             [
                 'RazonSocial' => 'JORGE YSIDRO EUAN CEN (REFRIELECTRO)',
@@ -552,7 +648,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002910700435305409',
                 'Tel_Contacto' => '9994164506',
                 'Nombre_Contacto' => 'LUIS PECH',
-                'Servicio' => 'MATERIALES Y REFACCIONES P/AIRES ACONDICIONADOS Y REFRIGERADORES'
+                'Servicio' => 'MATERIALES Y REFACCIONES P/AIRES ACONDICIONADOS Y REFRIGERADORES',
+                'Dias_Credito' => 21,
+                'Monto_Credito' => 50000
             ],
             [
                 'RazonSocial' => 'JOSE ROLANDO BEJAR HERRERA',
@@ -563,7 +661,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655039557822',
                 'Tel_Contacto' => '9999826177',
                 'Nombre_Contacto' => 'ROLANDO BEJAR',
-                'Servicio' => 'RENTA EQ COPIADO Y TONER'
+                'Servicio' => 'RENTA EQ COPIADO Y TONER',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 20000
             ],
             [
                 'RazonSocial' => 'KONE MEXICO SA DE CV',
@@ -574,7 +674,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002180650558968658',
                 'Tel_Contacto' => '9982416566',
                 'Nombre_Contacto' => 'CELESTE CEN',
-                'Servicio' => 'MANTENIMIENTO ELEVADOR'
+                'Servicio' => 'MANTENIMIENTO ELEVADOR',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 15000
             ],
             [
                 'RazonSocial' => 'LB SISTEMAS',
@@ -585,7 +687,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002180057380043470',
                 'Tel_Contacto' => '5586861901',
                 'Nombre_Contacto' => 'JORDY JAKCSON',
-                'Servicio' => 'EQUIPO DE COMPUTO'
+                'Servicio' => 'EQUIPO DE COMPUTO',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 50000
             ],
             [
                 'RazonSocial' => 'MANUEL ALEXANDRO PEREZ MALERVA/ AIRETIKA',
@@ -596,7 +700,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012225015225954197',
                 'Tel_Contacto' => '9997800447',
                 'Nombre_Contacto' => 'MANUEL ALEXANDRO',
-                'Servicio' => 'INSTALACION DE CLIMAS'
+                'Servicio' => 'INSTALACION DE CLIMAS',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'MARTIN JOSE LOPEZ FLORES',
@@ -607,7 +713,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '127910001250542908',
                 'Tel_Contacto' => '9993951623',
                 'Nombre_Contacto' => 'YANIRA JIMENEZ',
-                'Servicio' => 'QUIMICOS DE LIMPIEZA'
+                'Servicio' => 'QUIMICOS DE LIMPIEZA',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 30000
             ],
             [
                 'RazonSocial' => 'NERHY GILLESII MARTINEZ CACHON',
@@ -618,7 +726,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '072910008517101127',
                 'Tel_Contacto' => '9992345436',
                 'Nombre_Contacto' => 'RICARDO CACERES',
-                'Servicio' => 'CONTROL DE PLAGAS'
+                'Servicio' => 'CONTROL DE PLAGAS',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 30000
             ],
             [
                 'RazonSocial' => 'OFFICE DEPOT MEXICO SA DE CV',
@@ -629,7 +739,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002180010077323563',
                 'Tel_Contacto' => '9997383686',
                 'Nombre_Contacto' => 'MARIO VARGUEZ',
-                'Servicio' => 'PAPELERIA, EQ. COMPUTO, MUEBLES P/OFICINA'
+                'Servicio' => 'PAPELERIA, EQ. COMPUTO, MUEBLES P/OFICINA',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 50000
             ],
             [
                 'RazonSocial' => 'OPERADORA DE TIENDAS VOLUNTARIAS SA DE CV',
@@ -640,7 +752,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655023902412',
                 'Tel_Contacto' => '9991188638',
                 'Nombre_Contacto' => 'JOSEFINA CERVANTES',
-                'Servicio' => 'PAPELERIA, RENTA COPIADORAS, MUEBLES P/OFICINA'
+                'Servicio' => 'PAPELERIA, RENTA COPIADORAS, MUEBLES P/OFICINA',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 50000
             ],
             [
                 'RazonSocial' => 'PARTES Y EQUIPOS DE REFRIGERACION DEL SURESTE',
@@ -651,7 +765,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910500000446596',
                 'Tel_Contacto' => '9999473990',
                 'Nombre_Contacto' => 'EDY CETINA',
-                'Servicio' => 'REFACCIONES, PIEZAS, MATERIAL PARA AIRES'
+                'Servicio' => 'REFACCIONES, PIEZAS, MATERIAL PARA AIRES',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'PISCINAS MASTER POOOL',
@@ -662,7 +778,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001923805951',
                 'Tel_Contacto' => '9999686627',
                 'Nombre_Contacto' => 'EFRAIN SILVA',
-                'Servicio' => 'QUIMICOS PARA PISCINA'
+                'Servicio' => 'QUIMICOS PARA PISCINA',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 30000
             ],
             [
                 'RazonSocial' => 'POLIYUCAS',
@@ -673,7 +791,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '072910002376939497',
                 'Tel_Contacto' => '9992634122',
                 'Nombre_Contacto' => 'ITZAES',
-                'Servicio' => 'DISTRIBUCION DE DESECHABLES,CONTENEDORES DE TODO TIPO, BOLSAS ETC.'
+                'Servicio' => 'DISTRIBUCION DE DESECHABLES,CONTENEDORES DE TODO TIPO, BOLSAS ETC.',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'PROMESSA PRODIN',
@@ -684,7 +804,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '058910000009862941',
                 'Tel_Contacto' => '9999494663',
                 'Nombre_Contacto' => 'PABLO RAMIREZ',
-                'Servicio' => 'FERRETERIA, ELECTRICIDAD, PLOMERIA'
+                'Servicio' => 'FERRETERIA, ELECTRICIDAD, PLOMERIA',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'RECOLECCIONES INDUSTRIALES SA DE CV',
@@ -695,7 +817,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655061664398',
                 'Tel_Contacto' => '9992622980',
                 'Nombre_Contacto' => 'MARIA',
-                'Servicio' => 'LIMPIEZA DE BIODIGESTORES, DRENAJES,FOSA..'
+                'Servicio' => 'LIMPIEZA DE BIODIGESTORES, DRENAJES,FOSA..',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'REFRIMART AGUILAR',
@@ -706,7 +830,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001698890945',
                 'Tel_Contacto' => '9994424144',
                 'Nombre_Contacto' => 'LEVI QUINTAL',
-                'Servicio' => 'MATERIALES Y REFACCIONES P/AIRES ACONDICIONADOS Y REFRIGERADORES'
+                'Servicio' => 'MATERIALES Y REFACCIONES P/AIRES ACONDICIONADOS Y REFRIGERADORES',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 50000
             ],
             [
                 'RazonSocial' => 'REMODELACION Y REPARACION ONLI MANTENIMIENTO',
@@ -717,7 +843,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '044910256050605779',
                 'Tel_Contacto' => '9991417368',
                 'Nombre_Contacto' => 'ERIK SANCHEZ QUINTAL',
-                'Servicio' => 'REPARACION, INSTALACION, Y MAS DE CLIMAS'
+                'Servicio' => 'REPARACION, INSTALACION, Y MAS DE CLIMAS',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'RITCO INDUSTRIAL',
@@ -728,7 +856,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012691001490490451',
                 'Tel_Contacto' => '9992174546',
                 'Nombre_Contacto' => 'CARLOS FRANCO',
-                'Servicio' => 'QUIMICOS DE LIMPIEZA'
+                'Servicio' => 'QUIMICOS DE LIMPIEZA',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 30000
             ],
             [
                 'RazonSocial' => 'ROSA CANDELARIA VERA MAGAÑA',
@@ -739,7 +869,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002914700978331907',
                 'Tel_Contacto' => null,
                 'Nombre_Contacto' => 'ROSA VERA',
-                'Servicio' => 'FRUTAS Y VERDURAS'
+                'Servicio' => 'FRUTAS Y VERDURAS',
+                'Dias_Credito' => 15,
+                'Monto_Credito' => 20000
             ],
             [
                 'RazonSocial' => 'ROTULOS COMPUTARIZADOS E IMPRESOS DEL SURESTE',
@@ -750,7 +882,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '014910655036441504',
                 'Tel_Contacto' => '9994867012',
                 'Nombre_Contacto' => 'ARACELY',
-                'Servicio' => 'IMPRENTA'
+                'Servicio' => 'IMPRENTA',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'SANEAMIENTO SANA',
@@ -761,7 +895,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012914002017266171',
                 'Tel_Contacto' => '9999442472',
                 'Nombre_Contacto' => 'ATENCION CLIENTES',
-                'Servicio' => 'RECOLECTA DE BASUR A'
+                'Servicio' => 'RECOLECTA DE BASUR A',
+                'Dias_Credito' => 10,
+                'Monto_Credito' => 15000
             ],
             [
                 'RazonSocial' => 'SERVICIOS PENINSULARES NOGAL',
@@ -772,7 +908,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012910001129968980',
                 'Tel_Contacto' => '9991719671',
                 'Nombre_Contacto' => 'CARLOS',
-                'Servicio' => 'SERVICIOS DE SEGURIDAD PRIVADA'
+                'Servicio' => 'SERVICIOS DE SEGURIDAD PRIVADA',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'SISTEMAS EN RECUBRIMIENTOS INDUSTRIALES SA DE CV',
@@ -783,7 +921,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '021910040545614800',
                 'Tel_Contacto' => '9999493275',
                 'Nombre_Contacto' => 'MANUEL CHUC',
-                'Servicio' => 'MATERIALES PARA TRATAMIENTOS HIDROFUGANTES'
+                'Servicio' => 'MATERIALES PARA TRATAMIENTOS HIDROFUGANTES',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ],
             [
                 'RazonSocial' => 'THE HOME DEPOT MEXICO S DE RL DE CV',
@@ -794,7 +934,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '002580008777305574',
                 'Tel_Contacto' => '9992308389',
                 'Nombre_Contacto' => 'GLORIA GONZALEZ',
-                'Servicio' => 'FERRETERIA, ELECTRONICA ETC'
+                'Servicio' => 'FERRETERIA, ELECTRONICA ETC',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 100000
             ],
             [
                 'RazonSocial' => 'ULINE SHIPPING SUPPLIES S DE RL DE CV',
@@ -805,7 +947,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012028004531789002',
                 'Tel_Contacto' => '8181567400',
                 'Nombre_Contacto' => 'LUIS SANTANA',
-                'Servicio' => 'TIENDA EN LINEA'
+                'Servicio' => 'TIENDA EN LINEA',
+                'Dias_Credito' => 30,
+                'Monto_Credito' => 50000
             ],
             [
                 'RazonSocial' => 'UNIFORMES TAMPICO',
@@ -816,7 +960,9 @@ class InsertProveedor extends Migration
                 'Clabe' => '012813001179422492',
                 'Tel_Contacto' => '9992678774',
                 'Nombre_Contacto' => 'LISSET',
-                'Servicio' => 'UNIFORMES'
+                'Servicio' => 'UNIFORMES',
+                'Dias_Credito' => 0,
+                'Monto_Credito' => 0
             ]
         ];
 
