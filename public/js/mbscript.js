@@ -1069,173 +1069,222 @@ async function mostrarVer(idSolicitud) {
 }
 
 async function mostrarCotizar(idSolicitud) {
-  document.getElementById('div-tabla').classList.add('hidden')
-  const divCotizar = document.getElementById('div-cotizar')
-  divCotizar.classList.remove('hidden')
+  document.getElementById('div-tabla').classList.add('hidden');
+  const divCotizar = document.getElementById('div-cotizar');
+  divCotizar.classList.remove('hidden');
 
-  const idSolicitudInput = document.getElementById('cotizar_id_solicitud')
+  const idSolicitudInput = document.getElementById('cotizar_id_solicitud');
   if (idSolicitudInput) {
-    idSolicitudInput.value = idSolicitud
+    idSolicitudInput.value = idSolicitud;
   }
 
-  const tbody = divCotizar.querySelector('tbody')
-  const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores')
-  const btnGenerar = document.getElementById('btn-generar-cotizacion')
-  const inputBusqueda = document.getElementById('buscar-proveedor')
+  const tbody = divCotizar.querySelector('tbody');
+  const paginacionDiv = divCotizar.querySelector('#paginacion-proveedores');
+  const btnGenerar = document.getElementById('btn-generar-cotizacion');
+  const inputBusqueda = document.getElementById('buscar-proveedor');
 
-  if (btnGenerar) btnGenerar.disabled = true
+  const selectedProviderIds = new Set();
+
+  if (btnGenerar) btnGenerar.disabled = true;
 
   tbody.innerHTML =
-    '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>'
+      '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>';
 
   try {
-    const response = await getData('providers/all')
-    const response2 = await getData(`solicitud/details/${idSolicitud}`)
+    const response = await getData('providers/all');
+    const response2 = await getData(`solicitud/details/${idSolicitud}`);
 
-    let todosLosProveedores = response
+    let todosLosProveedores = response;
 
-    if (!todosLosProveedores.length) {
+    if (!todosLosProveedores || !todosLosProveedores.length) {
       tbody.innerHTML =
-        '<tr><td colspan="4" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>'
-      return
+          '<tr><td colspan="4" class="text-center text-gray-500">No hay proveedores registrados.</td></tr>';
+      return;
     }
 
-    let proveedoresFiltrados = [...todosLosProveedores]
+    let proveedoresFiltrados = [...todosLosProveedores];
+    const filasPorPagina = 10;
+    let paginaActual = 1;
 
-    const filasPorPagina = 10
-    let paginaActual = 1
+    function checkSeleccion() {
+      if (btnGenerar) {
+        btnGenerar.disabled = selectedProviderIds.size === 0;
+      }
+    }
+
+    function handleCheckboxChange(event) {
+      const checkbox = event.target;
+      const providerId = checkbox.value;
+
+      if (checkbox.checked) {
+        selectedProviderIds.add(providerId);
+      } else {
+        selectedProviderIds.delete(providerId);
+      }
+      checkSeleccion();
+    }
+
 
     function renderizarTabla() {
-      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina) || 1
-      paginaActual = Math.min(paginaActual, totalPaginas)
+      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina) || 1;
+      paginaActual = Math.min(paginaActual, totalPaginas);
 
-      const start = (paginaActual - 1) * filasPorPagina
-      const end = start + filasPorPagina
+      const start = (paginaActual - 1) * filasPorPagina;
+      const end = start + filasPorPagina;
 
       tbody.innerHTML = proveedoresFiltrados
-        .slice(start, end)
-        .map(
-          (p) => `
+          .slice(start, end)
+          .map((p) => {
+            const isChecked = selectedProviderIds.has(String(p.ID_Proveedor)); // Convertir a string por si acaso
+
+            return `
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t text-center">
-                        <input type="radio" name="proveedor_seleccionado" value="${p.ID_Proveedor}" class="radio-proveedor accent-blue-600">
-                    </td>
+                        <input type="checkbox"
+                               name="proveedor_seleccionado[]"
+                               value="${p.ID_Proveedor}"
+                               class="check-proveedor accent-blue-600 h-4 w-4"
+                               ${isChecked ? 'checked' : ''}> </td>
                     <td class="py-2 px-4 border-t">${p.RazonSocial}</td>
-                    <td class="py-2 px-4 border-t">${p.Tel_Contacto}</td>
-                    <td class="py-2 px-4 border-t">${p.RFC}</td>
+                    <td class="py-2 px-4 border-t">${p.Tel_Contacto || '-'}</td>
+                    <td class="py-2 px-4 border-t">${p.RFC || '-'}</td>
                 </tr>
-            `,
-        )
-        .join('')
+            `;
+          })
+          .join('');
 
-      tbody.querySelectorAll('.radio-proveedor').forEach((radio) => {
-        radio.addEventListener('change', () => {
-          if (btnGenerar) btnGenerar.disabled = false
-        })
-      })
+      tbody.querySelectorAll('.check-proveedor').forEach(check => {
+        check.removeEventListener('change', handleCheckboxChange); // Quitar listener anterior por si acaso
+        check.addEventListener('change', handleCheckboxChange);
+      });
 
-      renderizarPaginacion()
+      checkSeleccion();
+      renderizarPaginacion();
     }
 
     function renderizarPaginacion() {
-      if (!paginacionDiv) return
-      paginacionDiv.innerHTML = ''
-      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina)
-      if (totalPaginas <= 1) return
+      if (!paginacionDiv) return;
+      paginacionDiv.innerHTML = '';
+      const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina);
+      if (totalPaginas <= 1) return;
 
       for (let i = 1; i <= totalPaginas; i++) {
-        const boton = document.createElement('button')
-        boton.textContent = i
-        boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+        const boton = document.createElement('button');
+        boton.textContent = i;
+        boton.className = `px-3 py-1 border rounded ${i === paginaActual ? 'bg-blue-500 text-white' : 'bg-white text-black'}`;
         boton.addEventListener('click', () => {
-          paginaActual = i
-          renderizarTabla()
-        })
-        paginacionDiv.appendChild(boton)
+          paginaActual = i;
+          renderizarTabla();
+        });
+        paginacionDiv.appendChild(boton);
       }
     }
 
     function filtrarProveedores() {
-      const termino = inputBusqueda.value.toLowerCase()
+      const termino = inputBusqueda.value.toLowerCase();
       proveedoresFiltrados = todosLosProveedores.filter((p) =>
-        p.RazonSocial.toLowerCase().includes(termino),
-      )
-      paginaActual = 1
-      renderizarTabla()
+          p.RazonSocial.toLowerCase().includes(termino),
+      );
+      paginaActual = 1;
+      renderizarTabla();
     }
 
-    inputBusqueda.addEventListener('input', filtrarProveedores)
+    inputBusqueda.addEventListener('input', filtrarProveedores);
+
     if (response2.RazonSocialNombre) {
-      inputBusqueda.value = response2.RazonSocialNombre
-      filtrarProveedores()
+      inputBusqueda.value = response2.RazonSocialNombre;
+      filtrarProveedores();
+    } else {
+      renderizarTabla();
     }
 
-    renderizarTabla()
   } catch (error) {
-    console.error('Error al cargar proveedores:', error)
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`
+    console.error('Error al cargar proveedores:', error);
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`;
   }
 
   if (btnGenerar && !btnGenerar.dataset.listenerAttached) {
-    btnGenerar.addEventListener('click', handleGenerarCotizacion)
-    btnGenerar.dataset.listenerAttached = 'true'
+    btnGenerar.addEventListener('click', handleGenerarCotizacion);
+    btnGenerar.dataset.listenerAttached = 'true';
   }
-
-  console.log('COTIZAR solicitud ID:', idSolicitud)
 }
 
 async function handleGenerarCotizacion() {
-  const idSolicitud = document.getElementById('cotizar_id_solicitud').value
-  const selectedProviderRadio = document.querySelector(
-    'input[name="proveedor_seleccionado"]:checked',
-  )
+  const idSolicitud = document.getElementById('cotizar_id_solicitud').value;
 
-  if (!selectedProviderRadio) {
-    alert('Por favor, seleccione un proveedor.')
-    return
+  const selectedCheckboxes = document.querySelectorAll(
+      '.check-proveedor:checked',
+  );
+
+  if (selectedCheckboxes.length === 0) {
+    alert('Por favor, seleccione al menos un proveedor.');
+    return;
   }
 
-  const idProveedor = selectedProviderRadio.value
+  // (Temporalmente quitamos la extracción del ID_Proveedor único)
+  // const idProveedor = selectedProviderRadio.value; // Ya no aplica directamente aquí
 
+  //    Podrías cambiar el mensaje para reflejar la selección múltiple,
   if (
-    !confirm('¿Está seguro de que desea generar la solicitud de cotización para este proveedor?')
+      !confirm(
+          `¿Está seguro de que desea generar la solicitud de cotización para el/los proveedor(es) seleccionado(s)?`,
+      )
   ) {
-    return
+    return;
   }
 
-  const btn = document.getElementById('btn-generar-cotizacion')
-  btn.disabled = true
-  btn.textContent = 'Generando...'
 
+  const btn = document.getElementById('btn-generar-cotizacion');
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
+
+  // --- IMPORTANTE ---
+  // La lógica de 'fetch' que sigue AÚN NO ESTÁ PREPARADA para enviar múltiples IDs.
   try {
-    const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: JSON.stringify({
-        ID_Solicitud: idSolicitud,
-        ID_Proveedor: idProveedor,
-      }),
-    })
+    // --- COMENTAMOS ESTA PARTE POR AHORA PARA EVITAR ERRORES ---
+    /*
+   //
+   const idProveedor = selectedCheckboxes[0].value; // SOLO PARA EJEMPLO TEMPORAL, TOMA EL PRIMERO
 
-    const result = await response.json()
+   const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
+     method: 'POST',
+     headers: {
+       'Content-Type': 'application/json',
+       'X-Requested-With': 'XMLHttpRequest',
+     },
+     body: JSON.stringify({
+       ID_Solicitud: idSolicitud,
+       // Aquí necesitarás enviar el array de IDs
+       ID_Proveedor: idProveedor, // O ID_Proveedores: [id1, id2, ...]
+     }),
+   });
 
-    if (result.success) {
-      alert('Solicitud de cotización generada y estado de la solicitud actualizado.')
-      // Refresh the modal content to see the updated list of pending requests
-      abrirModal('revisar_solicitudes')
-    } else {
-      alert('Error: ' + (result.message || 'No se pudo generar la cotización.'))
-      btn.disabled = false
-      btn.textContent = 'Generar Solicitud de Cotización'
-    }
+   const result = await response.json();
+
+   if (result.success) {
+     alert(
+       'Solicitud de cotización generada y estado de la solicitud actualizado.',
+     );
+     abrirModal('revisar_solicitudes');
+   } else {
+     alert(
+       'Error: ' + (result.message || 'No se pudo generar la cotización.'),
+     );
+     btn.disabled = false;
+     btn.textContent = 'Generar Solicitud de Cotización';
+   }
+   */
+
+    alert("Validación pasada. Lógica de envío múltiple pendiente.");
+    btn.disabled = false; // Re-habilitar botón
+    btn.textContent = 'Generar requisicion de Cotización';
+
+
   } catch (error) {
-    console.error('Error al generar cotización:', error)
-    alert('Ocurrió un error de red al generar la cotización.')
-    btn.disabled = false
-    btn.textContent = 'Generar Solicitud de Cotización'
+    console.error('Error al generar cotización:', error);
+    alert('Ocurrió un error de red al generar la cotización.');
+    btn.disabled = false;
+    btn.textContent = 'Generar requisicion de Cotización';
   }
 }
 
@@ -1244,6 +1293,7 @@ function regresarTabla() {
   document.getElementById('div-cotizar').classList.add('hidden')
   document.getElementById('div-tabla').classList.remove('hidden')
 }
+
 
 /**
  * Lógica para el modal "Registrar Material" (Almacén)
