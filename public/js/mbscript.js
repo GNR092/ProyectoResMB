@@ -1372,7 +1372,6 @@ function initEnviarRevision() {
     mostrarNotificacion('Error al cargar solicitudes para revisión.', 'error');
   });
 }
-
 function RevisionX() {
   return {
     init() {
@@ -1411,6 +1410,7 @@ function RevisionX() {
         mostrarNotificacion('Error al cargar solicitudes para revisión.', 'error');
       });
     },
+
     VerDetalle: async function (idSolicitud) {
       const divTabla = document.getElementById('div-tabla-enviar');
       const divRevision = document.getElementById('div-enviar-revision');
@@ -1418,7 +1418,6 @@ function RevisionX() {
       const form = document.getElementById('form-enviar-revision');
       const btnConfirmar = document.getElementById('btn-confirmar-revision');
 
-      // Mostrar div revision
       divTabla.classList.add('hidden');
       divRevision.classList.remove('hidden');
       detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>';
@@ -1432,17 +1431,18 @@ function RevisionX() {
           style: 'currency',
           currency: 'MXN',
         });
+
         let html = `
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-                    <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
-                    <div><strong>Fecha:</strong> ${data.Fecha}</div>
-                    <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
-                    <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
-                    <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
-                    <div><strong>Complejo:</strong> ${data.Complejo}</div>
-                    <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
-                    ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
-                </div>
+                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+                <div><strong>Fecha:</strong> ${data.Fecha}</div>
+                <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
+                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
+                <div><strong>Complejo:</strong> ${data.Complejo}</div>
+                <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
+                ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
+            </div>
         `;
         if (data.ComentariosAdmin) {
           html += `
@@ -1481,7 +1481,7 @@ function RevisionX() {
 
         html += `
                         </tbody>
-                    </table>   
+                    </table>
                 </div>
             `;
         if (data.ComentariosUser) {
@@ -1495,7 +1495,7 @@ function RevisionX() {
           const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`;
           html += `
                     <div class="mt-6">
-                        <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
+                        <h4 class="text-md font-bold mb-2">Archivo Adjunto (Solicitante)</h4>
                         <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
                     </div>
                 `;
@@ -1506,66 +1506,130 @@ function RevisionX() {
                     <button @click="mostrarModalModificarMontos(${idSolicitud})" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Modificar valores</button>
                 </div>
                 `;
-
         detallesContainer.innerHTML = html;
+
+        form.onsubmit = async (e) => {
+          e.preventDefault();
+          const formData = new FormData();
+          formData.append('ID_Solicitud', idSolicitud);
+
+          const adjuntarSoloSolicitante = document.getElementById('adjuntar-solicitante-check')?.checked || false;
+
+          const archivos = document.getElementById('archivos-revision').files;
+
+          if (!adjuntarSoloSolicitante && archivos.length === 0) {
+            mostrarNotificacion('Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.', 'error');
+            return;
+          }
+          // Adjuntar archivos solo si el checkbox NO está marcado y hay archivos
+          if (!adjuntarSoloSolicitante && archivos.length > 0) {
+            for (let i = 0; i < archivos.length; i++) {
+              formData.append('cotizacion_files[]', archivos[i]);
+            }
+          }
+          // Si adjuntarSoloSolicitante es true, NO añadimos 'cotizacion_files[]'
+
+          const tipoPago = document.querySelector('input[name="tipo_pago"]:checked');
+          if (!tipoPago) {
+            mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error');
+            return;
+          }
+          formData.append('tipo_pago', tipoPago.value);
+
+
+          formData.append('usar_archivo_solicitante', adjuntarSoloSolicitante);
+
+          btnConfirmar.disabled = true;
+          btnConfirmar.textContent = 'Enviando...';
+
+          try {
+            const response = await fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
+              method: 'POST',
+              body: formData,
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+              mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success');
+              this.regresar();
+              this.loadTable();
+            } else {
+              // Si falla, verificar si el error es por el archivo faltante y el check no marcado
+              if (!adjuntarSoloSolicitante && archivos.length === 0 && result.message && result.message.includes("archivo")) {
+                mostrarNotificacion('Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.', 'error');
+              } else {
+                mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error');
+              }
+            }
+          } catch (error) {
+            console.error('Error:', error);
+            mostrarNotificacion('Error de red al enviar a revisión.', 'error');
+          } finally {
+            btnConfirmar.disabled = false;
+            btnConfirmar.textContent = 'Confirmar y Enviar';
+          }
+        };
+
       } catch (error) {
         detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
       }
-
-      form.onsubmit = async (e) => {
-        e.preventDefault();
-        const formData = new FormData();
-        formData.append('ID_Solicitud', idSolicitud);
-
-        const archivos = document.getElementById('archivos-revision').files;
-        if (archivos.length === 0) {
-          mostrarNotificacion('Debe adjuntar al menos un archivo.', 'error');
-          return;
-        }
-        for (let i = 0; i < archivos.length; i++) {
-          formData.append('cotizacion_files[]', archivos[i]);
-        }
-
-        const tipoPago = document.querySelector('input[name="tipo_pago"]:checked');
-        if (!tipoPago) {
-          mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error');
-          return;
-        }
-        formData.append('tipo_pago', tipoPago.value);
-
-        btnConfirmar.disabled = true;
-        btnConfirmar.textContent = 'Enviando...';
-
-        try {
-          const response = await fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          });
-
-          const result = await response.json();
-
-          if (result.success) {
-            mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success');
-            this.regresar();
-            this.loadTable();
-          } else {
-            mostrarNotificacion(result.messages || 'Error al enviar a revisión.', 'error');
-          }
-        } catch (error) {
-          console.error('Error:', error);
-          mostrarNotificacion('Error de red al enviar a revisión.', 'error');
-        } finally {
-          btnConfirmar.disabled = false;
-          btnConfirmar.textContent = 'Confirmar y Enviar';
-        }
-      };
     },
+
     regresar: function () {
       document.getElementById('div-tabla-enviar').classList.remove('hidden');
-      document.getElementById('div-enviar-revision').classList.add('hidden');
+      document.getElementById('div-enviar-revision').classList.add('hidden')
+      const form = document.getElementById('form-enviar-revision');
+      if (form) form.reset();
+      const detalles = document.getElementById('detalles-para-revision');
+      if (detalles) detalles.innerHTML = '';
     },
+
+    _añadirCheckboxAlFormulario: function(data) {
+      const form = document.getElementById('form-enviar-revision');
+      const inputArchivos = document.getElementById('archivos-revision');
+      if (!form || !inputArchivos) return;
+
+      const checkboxDiv = document.createElement('div');
+      checkboxDiv.className = 'mt-4 flex items-center'; // Clases de Tailwind para espaciado y alineación
+
+      const checkboxInput = document.createElement('input');
+      checkboxInput.type = 'checkbox';
+      checkboxInput.id = 'adjuntar-solicitante-check';
+      checkboxInput.name = 'adjuntar_solicitante'; // Nombre opcional para el backend
+      checkboxInput.className = 'h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded';
+
+      const checkboxLabel = document.createElement('label');
+      checkboxLabel.htmlFor = 'adjuntar-solicitante-check';
+      checkboxLabel.className = 'ml-2 block text-sm text-gray-900 cursor-pointer';
+      checkboxLabel.textContent = 'Adjuntar solo la cotización del solicitante';
+
+      checkboxDiv.appendChild(checkboxInput);
+      checkboxDiv.appendChild(checkboxLabel);
+
+      inputArchivos.parentNode.insertBefore(checkboxDiv, inputArchivos.parentNode.firstElementChild.nextElementSibling); // Insertar después del label de "Adjuntar Cotización"
+
+      // Deshabilitar checkbox si no hay archivo del solicitante
+      if (!data.Archivo) {
+        checkboxInput.disabled = true;
+        checkboxLabel.textContent += ' (No disponible)';
+        checkboxLabel.classList.add('text-gray-500', 'cursor-not-allowed');
+      } else {
+        checkboxInput.addEventListener('change', (e) => {
+          inputArchivos.disabled = e.target.checked;
+          inputArchivos.classList.toggle('bg-gray-100', e.target.checked); // Opcional: Estilo visual
+          inputArchivos.classList.toggle('cursor-not-allowed', e.target.checked); // Opcional: Estilo cursor
+          // Limpiar archivos si se marca el check
+          if (e.target.checked) {
+            inputArchivos.value = '';
+          }
+        });
+      }
+    },
+
     mostrarModalModificarMontos: async function (idSolicitud) {
+      // ... (código existente sin cambios) ...
       const modalModificar = document.getElementById('modal-modificar-montos');
       const productosContainer = document.getElementById('productos-modificar-container');
       const formModificar = document.getElementById('form-modificar-montos');
@@ -1628,7 +1692,6 @@ function RevisionX() {
           const formData = new FormData(formModificar);
           const productosModificados = [];
 
-          // Recolectar los datos de los productos/servicios
           const commnt = formData.get('comentarios')
           data.productos.forEach((p, index) => {
             const c = formData.get(`productos[${index}][codigo]`);
@@ -1660,7 +1723,7 @@ function RevisionX() {
             if (updateResult.success) {
               mostrarNotificacion(updateResult.message || 'Montos actualizados correctamente.', 'success');
               this.cerrarModalModificarMontos(idSolicitud);
-              this.VerDetalle(idSolicitud); // Refrescar los detalles de la solicitud
+              this.VerDetalle(idSolicitud);
             } else {
               mostrarNotificacion(updateResult.message || 'Error al actualizar montos.', 'error');
             }
