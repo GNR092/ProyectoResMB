@@ -453,10 +453,10 @@ class Api extends ResourceController
 
                 $to = getenv('EMAIL_TO_TEST');
                 if (empty($to)) {
-                    if (!$proveedor || empty($proveedor['correo'])) {
+                    if (!$proveedor || empty($proveedor['Correo'])) {
                         throw new \Exception("No se pudo encontrar un correo electrónico para el proveedor con ID: {$idProveedor}.");
                     }
-                    $to = $proveedor['correo'];
+                    $to = $proveedor['Correo'];
                 }
 
                 $proveedorNombre = $proveedor ? esc($proveedor['RazonSocial']) : 'Proveedor';
