@@ -15,6 +15,7 @@ use App\Libraries\Status;
 use App\Libraries\MBSMail;
 use App\Libraries\MetodoPago;
 use App\Controllers\GenerarPDF;
+use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
 
 class Api extends ResourceController
@@ -384,7 +385,7 @@ class Api extends ResourceController
         $cotizacionModel = new CotizacionModel();
         $solicitudModel = new SolicitudModel();
         $razonSocialModel = new RazonSocialModel();
-        $proveedorModel = new \App\Models\ProveedorModel();
+        $proveedorModel = new ProveedorModel();
 
         $json = $this->request->getJSON();
         if (!$json) {
@@ -438,30 +439,64 @@ class Api extends ResourceController
 
         try {
             $mail = new MBSMail();
-            $subject = 'Cotización de requisición de compra - Folio ' . $solicitud['No_Folio'];
-            $message = "
-                <p>Estimado proveedor,</p>
-                <p>Le contactamos de parte de $razonNombre</p>
-                <p>Adjunto a este correo encontrará la requisición para su cotización.</p>
-                <p>Quedamos a la espera de su pronta respuesta.</p>
-                <br>
-                <p>Saludos cordiales,</p>
-            ";
-            $option = [
-                'attachments' => [$attachmentPath],
-                'fromName' => $razonNombre,
-            ];
 
             foreach ($idProveedores as $idProveedor) {
+                $idProveedor = (int) $idProveedor;
+                $proveedor = $proveedorModel->find($idProveedor);
+
                 $cotizacionData = [
                     'ID_Solicitud' => $idSolicitud,
-                    'ID_Proveedor' => (int) $idProveedor,
+                    'ID_Proveedor' => $idProveedor,
                     'Total' => $total,
                 ];
                 $cotizacionModel->insert($cotizacionData);
 
-                // Enviar email a cada proveedor
-                $to = getenv('EMAIL_TO_TEST'); // TODO: Cambiar por el email real del proveedor
+                $to = getenv('EMAIL_TO_TEST');
+                if (empty($to)) {
+                    if (!$proveedor || empty($proveedor['correo'])) {
+                        throw new \Exception("No se pudo encontrar un correo electrónico para el proveedor con ID: {$idProveedor}.");
+                    }
+                    $to = $proveedor['correo'];
+                }
+
+                $proveedorNombre = $proveedor ? esc($proveedor['RazonSocial']) : 'Proveedor';
+                $folio = esc($solicitud['No_Folio']);
+                $fecha = esc($solicitud['Fecha']);
+                $razonSocialEsc = esc($razonNombre);
+
+                $subject = "Solicitud de Cotización - Folio {$folio} - {$razonSocialEsc}";
+
+                $message = '';
+                $message .= '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Solicitud de Cotización</title>';
+                $message .= '<style>';
+                $message .= 'body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }';
+                $message .= '.container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }';
+                $message .= '.header { padding: 15px 20px; background-color: #004a99; color: #ffffff; text-align: center; border-radius: 8px 8px 0 0; }';
+                $message .= '.header h2 { margin: 0; font-size: 24px; }';
+                $message .= '.content { padding: 25px 20px; }';
+                $message .= '.content p { margin: 0 0 15px; }';
+                $message .= '.content ul { list-style: none; padding: 0; margin: 15px 0; border-left: 3px solid #004a99; padding-left: 15px; }';
+                $message .= '.content li { margin-bottom: 8px; }';
+                $message .= '.footer { margin-top: 20px; padding: 15px 20px; font-size: 0.85em; color: #6c757d; text-align: center; background-color: #f4f4f4; border-radius: 0 0 8px 8px; }';
+                $message .= '</style></head><body>';
+                $message .= '<div class="container">';
+                $message .= '<div class="header"><h2>Solicitud de Cotización</h2></div>';
+                $message .= '<div class="content">';
+                $message .= "<p>Estimado proveedor <strong>{$proveedorNombre}</strong>,</p>";
+                $message .= "<p>Por medio de la presente, <strong>{$razonSocialEsc}</strong> le solicita amablemente la cotización de los productos/servicios descritos en el documento PDF adjunto.</p>";
+                $message .= '<p><strong>Detalles de la Requisición:</strong></p>';
+                $message .= "<ul><li><strong>Folio:</strong> {$folio}</li><li><strong>Fecha de Solicitud:</strong> {$fecha}</li></ul>";
+                $message .= '<p>Agradeceríamos enormemente que nos hiciera llegar su propuesta a la brevedad posible. Si tiene alguna duda o requiere información adicional, no dude en contactarnos por los medios habituales.</p>';
+                $message .= '<p>Quedamos a su disposición.</p>';
+                $message .= '</div>';
+                $message .= "<div class=\"footer\"><p><strong>{$razonSocialEsc}</strong></p></div>";
+                $message .= '</div></body></html>';
+
+                $option = [
+                    'attachments' => [$attachmentPath],
+                    'fromName' => $razonNombre,
+                ];
+
                 $mail->send_email($to, $subject, $message, $option);
             }
 
