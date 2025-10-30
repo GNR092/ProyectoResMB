@@ -205,15 +205,65 @@ class Rest
     {
         $excluded_statuses = [Status::Dept_Rechazada, Status::Aprobacion_pendiente];
         $solicitudModel = new SolicitudModel();
+        $cotizacionModel = new CotizacionModel();
+        $ordenCompraModel = new OrdenCompraModel();
 
-        $results = $solicitudModel
+        $solicitudes = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
             ->whereNotIn('Solicitud.Estado', $excluded_statuses)
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
 
-        return $results ?: [];
+        if (empty($solicitudes)) {
+            return [];
+        }
+
+        // Get all relevant cotizacion and orden_compra in fewer queries
+        $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
+        
+        $cotizaciones = $cotizacionModel
+            ->whereIn('ID_Solicitud', $solicitudIds)
+            ->findAll();
+        
+        $cotizacionIds = array_column($cotizaciones, 'ID_Cotizacion');
+        
+        $ordenes = [];
+        if (!empty($cotizacionIds)) {
+            $ordenes = $ordenCompraModel
+                ->whereIn('ID_Cotizacion', $cotizacionIds)
+                ->findAll();
+        }
+
+        // Map for quick lookups
+        $cotizacionesMap = [];
+        foreach ($cotizaciones as $cot) {
+            // This assumes one cotizacion per solicitud for this logic path
+            if (!isset($cotizacionesMap[$cot['ID_Solicitud']])) {
+                $cotizacionesMap[$cot['ID_Solicitud']] = $cot;
+            }
+        }
+
+        $ordenesMap = [];
+        foreach ($ordenes as $orden) {
+            $ordenesMap[$orden['ID_Cotizacion']] = $orden;
+        }
+
+        foreach ($solicitudes as &$solicitud) { // Use reference to modify in place
+            if ($solicitud['Estado'] === 'Aprobada') {
+                if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
+                    $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
+                    if (isset($ordenesMap[$cotizacion['ID_Cotizacion']])) {
+                        $orden = $ordenesMap[$cotizacion['ID_Cotizacion']];
+                        if (!empty($orden['Estado'])) {
+                            $solicitud['Estado'] = $orden['Estado'];
+                        }
+                    }
+                }
+            }
+        }
+
+        return $solicitudes;
     }
     /**
      * Obtiene todas las solicitudes de un departamento específico.
@@ -224,15 +274,65 @@ class Rest
     public function getSolicitudByDepartment(int $id)
     {
         $solicitudModel = new SolicitudModel();
+        $cotizacionModel = new CotizacionModel();
+        $ordenCompraModel = new OrdenCompraModel();
 
-        $results = $solicitudModel
+        $solicitudes = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->where('Solicitud.ID_Dpto', $id)
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
 
-        return $results ?: [];
+        if (empty($solicitudes)) {
+            return [];
+        }
+
+        // Get all relevant cotizacion and orden_compra in fewer queries
+        $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
+        
+        $cotizaciones = $cotizacionModel
+            ->whereIn('ID_Solicitud', $solicitudIds)
+            ->findAll();
+        
+        $cotizacionIds = array_column($cotizaciones, 'ID_Cotizacion');
+        
+        $ordenes = [];
+        if (!empty($cotizacionIds)) {
+            $ordenes = $ordenCompraModel
+                ->whereIn('ID_Cotizacion', $cotizacionIds)
+                ->findAll();
+        }
+
+        // Map for quick lookups
+        $cotizacionesMap = [];
+        foreach ($cotizaciones as $cot) {
+            // This assumes one cotizacion per solicitud for this logic path
+            if (!isset($cotizacionesMap[$cot['ID_Solicitud']])) {
+                $cotizacionesMap[$cot['ID_Solicitud']] = $cot;
+            }
+        }
+
+        $ordenesMap = [];
+        foreach ($ordenes as $orden) {
+            $ordenesMap[$orden['ID_Cotizacion']] = $orden;
+        }
+
+        foreach ($solicitudes as &$solicitud) { // Use reference to modify in place
+            if ($solicitud['Estado'] === 'Aprobada') {
+                if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
+                    $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
+                    if (isset($ordenesMap[$cotizacion['ID_Cotizacion']])) {
+                        $orden = $ordenesMap[$cotizacion['ID_Cotizacion']];
+                        if (!empty($orden['Estado'])) {
+                            $solicitud['Estado'] = $orden['Estado'];
+                        }
+                    }
+                }
+            }
+        }
+
+        return $solicitudes;
     }
 
     /**
@@ -324,6 +424,11 @@ class Rest
 
         if ($cotizacion) {
             $solicitud['cotizacion'] = $cotizacion;
+            $ordenCompraModel = new OrdenCompraModel();
+            $orden = $ordenCompraModel->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])->first();
+            if ($orden) {
+                $solicitud['EstadoOrden'] = $orden['Estado'];
+            }
         }
 
         return $solicitud ? $solicitud : [];

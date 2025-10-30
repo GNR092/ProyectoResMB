@@ -748,6 +748,14 @@ function initPaginacionHistorial() {
         svgClass = 'text-orange-500';
         iconId = 'pendiente';
         break;
+      case 'en proceso de pago':
+        svgClass = 'text-yellow-500';
+        iconId = 'procesopago';
+        break;
+      case 'por pagar':
+        svgClass = 'text-yellow-500';
+        iconId = 'porpagar';
+        break;
       default:
         return '';
     }
@@ -842,7 +850,7 @@ async function mostrarVerHistorial(idSolicitud) {
       throw new Error(data.error)
     }
 
-    let estadoClass = getStatus(data.Estado)
+    let estadoClass = getStatus(data.EstadoOrden ?? data.Estado)
 
     let html = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
@@ -936,6 +944,9 @@ function getStatus(status) {
     case 'aprobacion pendiente':
     case 'en espera':
       return 'text-yellow-600'
+    case 'en proceso de pago':
+    case 'por pagar':
+      return 'text-yellow-500';
     default:
       return 'text-gray-600'
   }
