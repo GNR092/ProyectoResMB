@@ -63,7 +63,6 @@ function abrirModal(opcion) {
           usuarios: initUsuarios,
           revisar_solicitudes: initRevisarSolicitud,
           registrar_productos: initRegistrarMaterial,
-          enviar_revision: initEnviarRevision,
           dictamen_solicitudes: initDictamenSolicitudes,
           crud_productos: initCrudProductos,
           ordenes_compra: initOrdenesCompra,
@@ -1316,43 +1315,11 @@ function initRegistrarMaterial() {
 
 
 /**
- * Lógica para el modal "Enviar a Revisión"
- */
-function initEnviarRevision() {
-  if (!document.getElementById('tabla-enviar')) return;
 
-  createPaginatedTable({
-    tableSelector: '#tabla-enviar tbody',
-    paginationSelector: 'paginacion-enviar-revision',
-    endpoint: 'api/solicitudes/cotizadas',
-    processData: (data) => data.filter((s) => s.Estado !== 'En revision'),
-    noResultsMessage: 'No hay solicitudes cotizadas para mostrar.',
-    renderRow: (s) => {
-      const monto = parseFloat(s.Monto || 0).toLocaleString('es-MX', {
-        style: 'currency',
-        currency: 'MXN',
-      });
-      return `
-        <tr class="hover:bg-gray-50" data-id="${s.ID_Solicitud}">
-            <td class="py-3 px-6 text-left">${s.Folio}</td>
-            <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
-            <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
-            <td class="py-3 px-6 text-left">${s.Proveedor || 'N/A'}</td>
-            <td class="py-3 px-6 text-left">${monto}</td>
-            <td class="py-3 px-6 text-left">${s.Estado}</td>
-            <td class="py-3 px-6 text-left">
-                <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded btn-enviar" onclick="enviarRevisionHandler(event)">
-                    Ver
-                </button>
-            </td>
-        </tr>
-      `;
-    }
-  }).catch(error => {
-    console.error('Error al inicializar tabla de revisión:', error);
-    mostrarNotificacion('Error al cargar solicitudes para revisión.', 'error');
-  });
-}
+
+ * Lógica para el modal "Enviar a Revisión"
+
+ */
 function RevisionX() {
   return {
     init() {
