@@ -675,5 +675,208 @@ class GenerarPDF extends BaseController
         $pdf->Ln(5);
         $pdf->Cell(100, 5, $orden['UsuarioNombre'] ?? '', 0, 0, 'C');
     }
+    
     //endregion
+
+    /**
+     * Genera un PDF de requisición de pago a partir de una solicitud.
+     *
+     * @param int $id El ID de la solicitud de la cual se generará la requisición de pago.
+     * @return string|void Retorna un string con un mensaje de error si falla, o void si el PDF se genera correctamente y se envía al navegador.
+     */
+    /**
+     * Genera un PDF de requisición de pago a partir de una solicitud.
+     *
+     * @param int $id El ID de la solicitud de la cual se generará la requisición de pago.
+     * @return string|void Retorna un string con un mensaje de error si falla, o void si el PDF se genera correctamente y se envía al navegador.
+     */
+    public function GenerarRequisicionPago(int $id)
+    {
+        try {
+            $solicitud = $this->api->getSolicitudPago($id);
+
+            if (empty($solicitud)) {
+                log_message('error', 'API devolvió datos vacíos para la requisición de pago ID: ' . $id);
+                return 'Error al generar el PDF: No se recibieron datos válidos de la requisición de pago.';
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Excepción al conectar con el API para requisición de pago ID ' . $id . ': ' . $e->getMessage());
+            return 'Error al generar el PDF: No se pudo conectar al API.';
+        }
+        
+        $pdf = new PDF('P', 'mm', 'Letter');
+        $pdf->AliasNbPages();
+        $pdf->AddPage();
+
+        $this->_generarRequisicionPago($pdf, $solicitud);
+
+        $this->response->setHeader('Content-Type', 'application/pdf');
+        $pdf->Output('I', 'RequisicionPago-' . $solicitud['No_Folio'] . '.pdf');
+    }
+
+    /**
+     * Dibuja el contenido de la requisición de pago en el objeto PDF.
+     *
+     * @param PDF $pdf El objeto PDF en el que se dibujará la requisición.
+     * @param array $data Los datos de la requisición de pago.
+     * @return void
+     */
+    private function _generarRequisicionPago(PDF $pdf, array $data)
+    {
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 3, 'MBSP RENTAS SA DE CV', 0, 1, 'C');
+        $pdf->SetFont('Arial', 'B', 14);
+        $pdf->Cell(0, 7, mb_convert_encoding('REQUISICIÓN DE PAGO', 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+        $pdf->Ln(10);
+
+        // Tipo de Pago
+        $pdf->SetFont('Arial', '', 10);
+        $x = 15;
+        $y = $pdf->GetY();
+
+        $pdf->Rect($x, $y, 5, 5);
+        if ($data['Tipo'] == 0) {
+            $pdf->SetFont('ZapfDingbats', '', 10);
+            $pdf->Text($x + 1, $y + 4, '4'); // Marca de verificación
+            $pdf->SetFont('Arial', '', 10);
+        }
+        $pdf->Text($x + 7, $y + 4, 'Efectivo');
+
+        $y += 7;
+        $pdf->Rect($x, $y, 5, 5);
+        if ($data['Tipo'] == 1) {
+            $pdf->SetFont('ZapfDingbats', '', 10);
+            $pdf->Text($x + 1, $y + 4, '4');
+            $pdf->SetFont('Arial', '', 10);
+        }
+        $pdf->Text($x + 7, $y + 4, 'Credito');
+        $pdf->SetY($y + 10);
+
+        // Datos de la Solicitud
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(50, 7, 'Fecha de Solicitud', 1, 0, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(50, 7, date('d-M-Y', strtotime($data['Fecha'])), 1, 1, 'L');
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(50, 7, 'Departamento', 1, 0, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(
+            50,
+            7,
+            mb_convert_encoding(
+                $data['DepartamentoNombre'] . ' ' . $data['ID_Place'],
+                'ISO-8859-1',
+                'UTF-8',
+            ),
+            1,
+            1,
+            'L',
+        );
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(50, 7, 'Proyecto', 1, 0, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(50, 7, mb_convert_encoding($data['DepartamentoNombre'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(50, 7, 'Proveedor', 1, 0, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(50, 7, mb_convert_encoding($data['ProveedorNombre'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(50, 7, 'Fecha de Pago', 1, 0, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(50, 7, '', 1, 1, 'L'); // Fecha de Pago está vacío en la imagen
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(50, 7, 'Importe Total', 1, 0, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(50, 7, '$' . number_format($data['ImporteTotal'], 2), 1, 1, 'L');
+        $pdf->Ln(5);
+
+        // Tabla de Detalles
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(15, 7, 'NO.', 1, 0, 'C');
+        $pdf->Cell(40, 7, 'NO. FACTURA', 1, 0, 'C');
+        $pdf->Cell(30, 7, 'IMPORTE', 1, 0, 'C');
+        $pdf->Cell(110, 7, 'DESCRIPCION DE PAGO', 1, 1, 'C');
+
+        $pdf->SetFont('Arial', '', 10);
+        // Fila 1 (ejemplo con datos)
+        $pdf->Cell(15, 7, '1', 1, 0, 'C');
+        $pdf->Cell(40, 7, '', 1, 0, 'C');
+        $pdf->Cell(30, 7, '$' . number_format($data['ImporteTotal'], 2), 1, 0, 'R');
+        $pdf->Cell(110, 7, mb_convert_encoding($data['DescripcionPago'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+
+        // Filas vacías (2 a 10)
+        for ($i = 2; $i <= 10; $i++) {
+            $pdf->Cell(15, 7, $i, 1, 0, 'C');
+            $pdf->Cell(40, 7, '', 1, 0, 'C');
+            $pdf->Cell(30, 7, '', 1, 0, 'C');
+            $pdf->Cell(110, 7, '', 1, 1, 'L');
+        }
+        $pdf->Ln(5);
+
+        // Datos Bancarios
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(30, 7, 'BANCO:', 1, 0, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(70, 7, mb_convert_encoding($data['Banco'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(30, 7, 'CUENTA:', 1, 0, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(70, 7, mb_convert_encoding($data['Cuenta'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(30, 7, 'CLABE:', 1, 0, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(70, 7, mb_convert_encoding($data['Clabe'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+
+        $pdf->Ln(10);
+
+        // Firmas
+        $y_firmas = $pdf->GetY();
+        $ancho_firma = 60;
+        $alto_firma = 20;
+
+        // Solicita
+        $pdf->SetXY(15, $y_firmas);
+        $pdf->Cell($ancho_firma, 5, 'Solicita', 0, 1, 'C');
+        $pdf->SetX(15);
+        $pdf->Cell($ancho_firma, $alto_firma, '', 'B', 1, 'C');
+        $pdf->SetX(15);
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell($ancho_firma, 5, mb_convert_encoding($data['Solicita'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+
+        // Vo. Bo
+        $pdf->SetXY(75, $y_firmas);
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell($ancho_firma, 5, 'Vo. Bo', 0, 1, 'C');
+        $pdf->SetX(75);
+        $pdf->Cell($ancho_firma, $alto_firma, '', 'B', 1, 'C');
+        $pdf->SetX(75);
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell($ancho_firma, 5, mb_convert_encoding($data['VoBo'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+
+        // Autoriza
+        $pdf->SetXY(135, $y_firmas);
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell($ancho_firma, 5, 'Autoriza', 0, 1, 'C');
+        $pdf->SetX(135);
+        $pdf->Cell($ancho_firma, $alto_firma, '', 'B', 1, 'C');
+        $pdf->SetX(135);
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell($ancho_firma, 5, mb_convert_encoding($data['Autoriza'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+        $pdf->Ln(10);
+
+        // Notificar a:
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 7, 'Notificar a:', 0, 1, 'L');
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(0, 10, mb_convert_encoding($data['NotificarA'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+    }
 }
+
+

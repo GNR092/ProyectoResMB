@@ -27,6 +27,11 @@ class Api extends ResourceController
         $this->api = new Rest();
     }
 
+    public function test($id)
+    {
+        return $this->respond($this->api->getSolicitudPago($id));
+    }
+
     //region Productos
     // =================================================================================================================
     /**
@@ -379,21 +384,19 @@ class Api extends ResourceController
         $cotizacionModel = new CotizacionModel();
         $solicitudModel = new SolicitudModel();
         $razonSocialModel = new RazonSocialModel();
-
+        $proveedorModel = new \App\Models\ProveedorModel();
 
         $json = $this->request->getJSON();
-        $mail = new MBSMail();
-        $to = getenv('EMAIL_TO_TEST'); //Cambiar en producción para enviar al proveedor
-        $subject = 'Cotización de requisición de compra';
+        if (!$json) {
+            return $this->fail('Invalid JSON.', HttpStatus::BAD_REQUEST);
+        }
 
-        if (!isset($json->ID_Solicitud) || !isset($json->ID_Proveedor)) {
-            return $this->failValidationErrors('Se requiere ID de solicitud y de proveedor.');
+        if (!isset($json->ID_Solicitud) || !isset($json->ID_Proveedores) || !is_array($json->ID_Proveedores) || empty($json->ID_Proveedores)) {
+            return $this->failValidationErrors('Se requiere ID de solicitud y un array de IDs de proveedor.');
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
-        $idProveedor = (int) $json->ID_Proveedor;
-
-        $details = $this->api->getSolicitudWithProducts($idSolicitud);
+        $idProveedores = $json->ID_Proveedores;
 
         $solicitud = $solicitudModel->find($idSolicitud);
 
@@ -402,11 +405,12 @@ class Api extends ResourceController
         }
         if ($solicitud['Estado'] !== 'En espera') {
             return $this->fail(
-                'La solicitud ya no está en estado "En espera".',
+                'La solicitud ya no está en estado "En espera". Estado actual: ' . $solicitud['Estado'],
                 HttpStatus::BAD_REQUEST,
             );
         }
 
+        $details = $this->api->getSolicitudWithProducts($idSolicitud);
         $razon = $razonSocialModel->find($solicitud['ID_RazonSocial']);
         $razonNombre = $razon['Nombre'];
 
@@ -425,47 +429,58 @@ class Api extends ResourceController
             }
         }
 
-        $message = "
-                    <p>Estimado proveedor,</p>
-                    <p>Le contactamos de parte de  $razonNombre</p>
-                    <p>Adjunto a este correo encontrará la requisición para su cotización.</p>
-                    <p>Quedamos a la espera de su pronta respuesta.</p>
-                    <br>
-                    <p>Saludos cordiales,</p>
-        ";
+        $pdf = new GenerarPDF();
+        $pdf->generarYGuardarRequisicion($idSolicitud);
+        $attachmentPath = FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf';
 
         $db = \Config\Database::connect();
         $db->transStart();
 
         try {
-            $cotizacionData = [
-                'ID_Solicitud' => $idSolicitud,
-                'ID_Proveedor' => $idProveedor,
-                'Total' => $total,
-            ];
-            $pdf = new GenerarPDF();
-            $pdf->generarYGuardarRequisicion($idSolicitud);
+            $mail = new MBSMail();
+            $subject = 'Cotización de requisición de compra - Folio ' . $solicitud['No_Folio'];
+            $message = "
+                <p>Estimado proveedor,</p>
+                <p>Le contactamos de parte de $razonNombre</p>
+                <p>Adjunto a este correo encontrará la requisición para su cotización.</p>
+                <p>Quedamos a la espera de su pronta respuesta.</p>
+                <br>
+                <p>Saludos cordiales,</p>
+            ";
             $option = [
-                'attachments' => [FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf'],
+                'attachments' => [$attachmentPath],
                 'fromName' => $razonNombre,
             ];
 
-            $cotizacionModel->insert($cotizacionData);
-            $solicitudModel->update($idSolicitud, [
-                'Estado' => 'Cotizando',
-                'ID_Proveedor' => $idProveedor,
-            ]);
-            $mail->send_email($to, $subject, $message, $option);
+            foreach ($idProveedores as $idProveedor) {
+                $cotizacionData = [
+                    'ID_Solicitud' => $idSolicitud,
+                    'ID_Proveedor' => (int) $idProveedor,
+                    'Total' => $total,
+                ];
+                $cotizacionModel->insert($cotizacionData);
+
+                // Enviar email a cada proveedor
+                $to = getenv('EMAIL_TO_TEST'); // TODO: Cambiar por el email real del proveedor
+                $mail->send_email($to, $subject, $message, $option);
+            }
+
+            $solicitudModel->update($idSolicitud, ['Estado' => 'Cotizando']);
 
             $db->transComplete();
 
+            if ($db->transStatus() === false) {
+                return $this->failServerError('Ocurrió un error en la transacción de la base de datos.');
+            }
+
             return $this->respondCreated([
                 'success' => true,
-                'message' => 'Cotización creada y solicitud actualizada.',
+                'message' => 'Cotizaciones creadas y solicitud actualizada.',
             ]);
         } catch (\Exception $e) {
+            $db->transRollback();
             log_message('error', '[crearCotizacion] ' . $e->getMessage());
-            return $this->failServerError('Ocurrió un error inesperado al crear la cotización.');
+            return $this->failServerError('Ocurrió un error inesperado al crear las cotizaciones: ' . $e->getMessage());
         }
     }
 
@@ -770,7 +785,7 @@ class Api extends ResourceController
 
     public function cambiarEstadoOrden($idSolicitud)
     {
-        $solicitudModel = new \App\Models\SolicitudModel();
+        $solicitudModel = new SolicitudModel();
         $json = $this->request->getJSON(true);
         $nuevoEstado = $json['nuevoEstado'] ?? null;
 
@@ -817,7 +832,7 @@ class Api extends ResourceController
         }
 
         // Modelos que usaremos
-        $solicitudModel = new \App\Models\SolicitudModel();
+        $solicitudModel = new SolicitudModel();
         $ordenCompraModel = new OrdenCompraModel();
         $cotizacionModel = new CotizacionModel();
 
@@ -921,7 +936,7 @@ class Api extends ResourceController
             ]);
         }
 
-        $solicitudModel = new \App\Models\SolicitudModel();
+        $solicitudModel = new SolicitudModel();
         $id = $data['ID_Solicitud'];
 
         $solicitud = $solicitudModel->find($id);

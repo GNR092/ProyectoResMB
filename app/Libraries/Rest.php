@@ -289,13 +289,15 @@ class Rest
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
-            ->join('Razon_Social','Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
 
         if (!$solicitud) {
             return null;
         }
-        $solicitud['ID_Place'] = $placesModel->find($this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'])['Nombre_Corto'];
+        $solicitud['ID_Place'] = $placesModel->find(
+            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
+        )['Nombre_Corto'];
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
 
@@ -349,13 +351,15 @@ class Rest
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
-            ->join('Razon_Social','Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
 
         if (!$solicitud) {
             return null;
         }
-        $solicitud['ID_Place'] = $placesModel->find($this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'])['Nombre_Corto'];
+        $solicitud['ID_Place'] = $placesModel->find(
+            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
+        )['Nombre_Corto'];
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
 
@@ -410,7 +414,7 @@ class Rest
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('Razon_Social','Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
 
         if (!$solicitud) {
@@ -430,7 +434,9 @@ class Rest
 
             $solicitud['proveedor'] = $proveedor;
         }
-        $solicitud['ID_Place'] = $placesModel->find($this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'])['Nombre_Corto'];
+        $solicitud['ID_Place'] = $placesModel->find(
+            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
+        )['Nombre_Corto'];
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
         if (
@@ -471,7 +477,9 @@ class Rest
         $ordenCompraModel = new OrdenCompraModel();
 
         $result = $ordenCompraModel
-            ->select('OrdenCompra.ID_OrdenCompra, Cotizacion.ID_Cotizacion, Solicitud.ID_Solicitud, Solicitud.MetodoPago, OrdenCompra.Estado as EstadoOrden')
+            ->select(
+                'OrdenCompra.ID_OrdenCompra, Cotizacion.ID_Cotizacion, Solicitud.ID_Solicitud, Solicitud.MetodoPago, OrdenCompra.Estado as EstadoOrden',
+            )
             ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion')
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud')
             ->where('OrdenCompra.ID_OrdenCompra', $id)
@@ -490,7 +498,9 @@ class Rest
         $ordenCompraModel = new OrdenCompraModel();
 
         $results = $ordenCompraModel
-            ->select('OrdenCompra.ID_OrdenCompra, Cotizacion.ID_Cotizacion, Solicitud.ID_Solicitud, Solicitud.MetodoPago, OrdenCompra.Estado as EstadoOrden')
+            ->select(
+                'OrdenCompra.ID_OrdenCompra, Cotizacion.ID_Cotizacion, Solicitud.ID_Solicitud, Solicitud.MetodoPago, OrdenCompra.Estado as EstadoOrden',
+            )
             ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion')
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud')
             ->findAll();
@@ -928,7 +938,9 @@ class Rest
     public function getProveedorIdAndRazonSocial(): array
     {
         $proveedorModel = new ProveedorModel();
-        $results = $proveedorModel->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC')->findAll();
+        $results = $proveedorModel
+            ->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC')
+            ->findAll();
         return $results;
     }
     //endregion
@@ -985,7 +997,6 @@ class Rest
     {
         $razonSocialModel = new RazonSocialModel();
         return $razonSocialModel->find($id) ?: null;
-
     }
     //endregion
 
@@ -995,9 +1006,7 @@ class Rest
         if ($json) {
             return ['success' => true, 'debug' => $data];
         }
-        return "<pre>Debug Info:\n" .
-            print_r($data, true) .
-            '</pre>';
+        return "<pre>Debug Info:\n" . print_r($data, true) . '</pre>';
     }
     /**
      * Crea una carpeta en la ruta especificada si no existe.
@@ -1018,44 +1027,117 @@ class Rest
     }
 
     /**
-     * Obtiene los datos de una solicitud de pago para generar un PDF.
+     * Obtiene los datos completos de una solicitud de pago para generar un PDF de requisición.
      *
-     * @param int $id El ID de la solicitud.
-     * @return array|null Un array con los datos de la solicitud de pago o null si no se encuentra.
+     * Incluye información de usuario, departamento, proveedor, razón social, y calcula el importe total
+     * y la descripción de los productos/servicios asociados a la solicitud.
+     *
+     * @param int $id El ID de la solicitud de la cual se obtendrán los datos de pago.
+     * @return array|null Un array con todos los datos formateados para la requisición de pago, o null si la solicitud no se encuentra.
      */
     public function getSolicitudPago(int $id): ?array
     {
-        /*
-            ------------Datos-------------
-            Razón Social 
-            Titulo:Requisición de pago 
-            Metodo:Transferencia,Cheque,Efectivo 
-            Fecha de solicitud 
-            Departamento 
-            Proyecto 
-            Prooveedor 
-            Fecha de pago 
-            Importe Total 
-            --------------Datos Tabla---------
-            |No.|No. Factura|Importe|Descripcion de pago| 
-            ----------------------------------
-        */
-        $usuarioModel = new UsuariosModel();
-        $razonSocialModel = new RazonSocialModel();
+        log_message('debug', 'Iniciando getSolicitudPago para ID: ' . $id);
         $solicitudModel = new SolicitudModel();
+        $placesModel = new PlacesModel();
+        $razonSocialModel = new RazonSocialModel();
+        $proveedorModel = new ProveedorModel();
 
-        $solicitud = $solicitudModel->find($id);
-        $usuario = $usuarioModel->find($solicitud['ID_Usuario']);
-        $razonSocial = $razonSocialModel->find($usuario['ID_RazonSocial']);
-
-        $solicitud['UsuarioNombre'] = $usuario['Nombre'];
-        $solicitud['RazonSocialNombre'] = $razonSocial['Nombre'];
+        $solicitud = $solicitudModel
+            ->select('Solicitud.*')
+            ->select('Solicitud.ID_Proveedor as SolicitudProveedorID')
+            ->select('Usuarios.Nombre as UsuarioNombre')
+            ->select('Departamentos.Nombre as DepartamentoNombre')
+            ->select('Proveedor.RazonSocial as ProveedorNombre')
+            ->select('Proveedor.Banco as ProveedorBanco')
+            ->select('Proveedor.Cuenta as ProveedorCuenta')
+            ->select('Proveedor.Clabe as ProveedorClabe')
+            // ->select('Proveedor.Sucursal as ProveedorSucursal')
+            ->select('Razon_Social.Nombre as Complejo')
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->find($id);
 
         if (!$solicitud) {
+            log_message('debug', 'Solicitud no encontrada para ID: ' . $id);
             return null;
         }
 
-        return $solicitud ?: [];
+        log_message('debug', 'Solicitud encontrada: ' . json_encode($solicitud));
+
+        $solicitud['ID_Place'] = $placesModel->find(
+            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
+        )['Nombre_Corto'];
+        log_message('debug', 'ID_Place: ' . $solicitud['ID_Place']);
+
+        $importeTotal = 0;
+        $descripcionPago = '';
+
+        if (
+            $solicitud['Tipo'] == SolicitudTipo::Cotizacion ||
+            $solicitud['Tipo'] == SolicitudTipo::NoCotizacion
+        ) {
+            $solicitudProductModel = new SolicitudProductModel();
+            $productos = $solicitudProductModel->where('ID_Solicitud', $id)->findAll();
+            foreach ($productos as $producto) {
+                $importeTotal += $producto['Cantidad'] * $producto['Importe'];
+                $descripcionPago .= $producto['Cantidad'] . ' ' . $producto['Nombre'] . ', ';
+            }
+            log_message('debug', 'Productos encontrados: ' . json_encode($productos));
+        } else {
+            $solicitudServicioModel = new SolicitudServiciosModel();
+            $servicios = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
+            foreach ($servicios as $servicio) {
+                $importeTotal += $servicio['Importe'];
+                $descripcionPago .= $servicio['Nombre'] . ', ';
+            }
+            log_message('debug', 'Servicios encontrados: ' . json_encode($servicios));
+        }
+
+        $solicitud['ImporteTotal'] = $importeTotal;
+        $solicitud['DescripcionPago'] = rtrim($descripcionPago, ', ');
+        log_message(
+            'debug',
+            'ImporteTotal: ' . $importeTotal . ', DescripcionPago: ' . $descripcionPago,
+        );
+
+        // Mapear el valor numérico (la constante) al texto deseado
+        $tipoPagoMap = [
+            MetodoPago::Efectivo => 'Efectivo',
+            MetodoPago::Credito => 'Crédito',
+        ];
+
+        // Esta línea ahora funcionará
+        // Asumiendo que $solicitud['Tipo'] contiene el valor (ej: 0 o 1)
+        $solicitud['TipoPagoTexto'] = $tipoPagoMap[$solicitud['Tipo']] ?? 'Desconocido';
+        log_message('debug', 'TipoPagoTexto: ' . $solicitud['TipoPagoTexto']);
+
+        // Datos bancarios del proveedor
+        $solicitud['Banco'] = $solicitud['ProveedorBanco'] ?? '';
+        $solicitud['Cuenta'] = $solicitud['ProveedorCuenta'] ?? '';
+        $solicitud['Clabe'] = $solicitud['ProveedorClabe'] ?? '';
+        log_message(
+            'debug',
+            'Datos bancarios: ' .
+                json_encode(['Banco' => $solicitud['Banco'], 'Cuenta' => $solicitud['Cuenta']]),
+        );
+
+        // Campos de firma (asumiendo que vienen de la solicitud o son estáticos por ahora)
+        $solicitud['Solicita'] = $solicitud['UsuarioNombre'] ?? ''; // Asumiendo que el solicitante es el usuario
+        $solicitud['VoBo'] = 'Administracion'; // Valor estático por ahora
+        $solicitud['Autoriza'] = 'Direccion General'; // Valor estático por ahora
+        $solicitud['NotificarA'] = ''; // Vacío por ahora
+        log_message(
+            'debug',
+            'Campos de firma: ' .
+                json_encode(['Solicita' => $solicitud['Solicita'], 'VoBo' => $solicitud['VoBo']]),
+        );
+
+        log_message('debug', 'Finalizando getSolicitudPago con éxito.');
+         log_message('debug',print_r($solicitud,true));
+        return $solicitud;
     }
     //endregion
 }

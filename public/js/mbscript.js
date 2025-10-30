@@ -1211,78 +1211,48 @@ async function mostrarCotizar(idSolicitud) {
 
 async function handleGenerarCotizacion() {
   const idSolicitud = document.getElementById('cotizar_id_solicitud').value;
-
-  const selectedCheckboxes = document.querySelectorAll(
-      '.check-proveedor:checked',
-  );
+  const selectedCheckboxes = document.querySelectorAll('.check-proveedor:checked');
 
   if (selectedCheckboxes.length === 0) {
     alert('Por favor, seleccione al menos un proveedor.');
     return;
   }
 
-  // (Temporalmente quitamos la extracción del ID_Proveedor único)
-  // const idProveedor = selectedProviderRadio.value; // Ya no aplica directamente aquí
-
-  //    Podrías cambiar el mensaje para reflejar la selección múltiple,
-  if (
-      !confirm(
-          `¿Está seguro de que desea generar la solicitud de cotización para el/los proveedor(es) seleccionado(s)?`,
-      )
-  ) {
+  if (!confirm(`¿Está seguro de que desea generar la solicitud de cotización para los ${selectedCheckboxes.length} proveedor(es) seleccionado(s)?`)) {
     return;
   }
-
 
   const btn = document.getElementById('btn-generar-cotizacion');
   btn.disabled = true;
   btn.textContent = 'Generando...';
 
-  // --- IMPORTANTE ---
-  // La lógica de 'fetch' que sigue AÚN NO ESTÁ PREPARADA para enviar múltiples IDs.
+  const providerIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+
   try {
-    // --- COMENTAMOS ESTA PARTE POR AHORA PARA EVITAR ERRORES ---
-    /*
-   //
-   const idProveedor = selectedCheckboxes[0].value; // SOLO PARA EJEMPLO TEMPORAL, TOMA EL PRIMERO
+    const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({
+        ID_Solicitud: idSolicitud,
+        ID_Proveedores: providerIds, // Enviar un array de IDs
+      }),
+    });
 
-   const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
-     method: 'POST',
-     headers: {
-       'Content-Type': 'application/json',
-       'X-Requested-With': 'XMLHttpRequest',
-     },
-     body: JSON.stringify({
-       ID_Solicitud: idSolicitud,
-       // Aquí necesitarás enviar el array de IDs
-       ID_Proveedor: idProveedor, // O ID_Proveedores: [id1, id2, ...]
-     }),
-   });
+    const result = await response.json();
 
-   const result = await response.json();
-
-   if (result.success) {
-     alert(
-       'Solicitud de cotización generada y estado de la solicitud actualizado.',
-     );
-     abrirModal('revisar_solicitudes');
-   } else {
-     alert(
-       'Error: ' + (result.message || 'No se pudo generar la cotización.'),
-     );
-     btn.disabled = false;
-     btn.textContent = 'Generar Solicitud de Cotización';
-   }
-   */
-
-    alert("Validación pasada. Lógica de envío múltiple pendiente.");
-    btn.disabled = false; // Re-habilitar botón
-    btn.textContent = 'Generar requisicion de Cotización';
-
-
+    if (result.success) {
+      alert(result.message || 'Solicitudes de cotización generadas y estado de la solicitud actualizado.');
+      abrirModal('revisar_solicitudes');
+    } else {
+      alert('Error: ' + (result.message || 'No se pudieron generar las cotizaciones.'));
+    }
   } catch (error) {
     console.error('Error al generar cotización:', error);
-    alert('Ocurrió un error de red al generar la cotización.');
+    alert('Ocurrió un error de red al generar las cotizaciones.');
+  } finally {
     btn.disabled = false;
     btn.textContent = 'Generar requisicion de Cotización';
   }
@@ -3436,15 +3406,10 @@ async function initFichasPago() {
   }
 }
 
+// --- Función de navegación para VER detalles ---
 async function mostrarDetalleFicha(id, metodoPago) {
-  const detalleDiv =
-      metodoPago == '0'
-          ? document.getElementById('detalle-contado')
-          : document.getElementById('detalle-credito')
-  const tablaDiv =
-      metodoPago == '0'
-          ? document.getElementById('tabla-contado')
-          : document.getElementById('tabla-credito')
+  const detalleDiv = metodoPago == "0" ? document.getElementById("detalle-contado") : document.getElementById("detalle-credito");
+  const tablaDiv = metodoPago == "0" ? document.getElementById("tabla-contado") : document.getElementById("tabla-credito");
 
   tablaDiv.classList.add('hidden')
   detalleDiv.classList.remove('hidden')
