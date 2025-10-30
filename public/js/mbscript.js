@@ -2252,6 +2252,7 @@ function initCrudProveedores() {
   const tabla = document.getElementById('tabla-proveedores');
   if (!tabla) return;
 
+
   initProveedorTabla();
   initProveedorPantallas();
   initProveedorForm();
@@ -2267,10 +2268,10 @@ function initProveedorTabla() {
     filterFunction: (row, form) => {
       const nombreFiltro = (form.querySelector('#buscar-nombre')?.value || '').toLowerCase();
       const servicioFiltro = (form.querySelector('#buscar-servicio')?.value || '').toLowerCase();
-      
+
       const razonsocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || '';
       const servicio = row.querySelector('.servicio')?.textContent.toLowerCase() || '';
-      
+
       return razonsocial.includes(nombreFiltro) && servicio.includes(servicioFiltro);
     },
     rowsPerPage: 10
@@ -2286,7 +2287,7 @@ function initProveedorPantallas() {
   const btnRegresarAgregar = document.getElementById('btn-regresar-lista')
   const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar')
 
-  if (btnAgregar) 
+  if (btnAgregar)
     btnAgregar.onclick = (e) => {
       e.preventDefault()
       pantallaLista?.classList.add('hidden')
@@ -2328,8 +2329,6 @@ function initProveedorForm() {
 
       if (result.success) {
         mostrarNotificacion('Proveedor agregado correctamente ✅', 'success')
-        pantallaAgregar?.classList.add('hidden')
-        pantallaLista?.classList.remove('hidden')
         formProveedor.reset()
         location.reload()
       } else {
@@ -2364,13 +2363,11 @@ function initProveedorEditarForm() {
       if (result.success) {
         mostrarNotificacion('Proveedor actualizado ✅', 'success')
 
-        // Actualizar la fila correspondiente en la tabla
         const fila = tabla.querySelector(`tr[data-id='${id}']`)
         if (fila) {
           fila.querySelector('.razonsocial').textContent = formData.get('RazonSocial')
           fila.querySelector('.servicio').textContent = formData.get('Servicio')
 
-          // actualizar los data-* de la fila
           fila.dataset.rfc = formData.get('RFC')
           fila.dataset.banco = formData.get('Banco')
           fila.dataset.cuenta = formData.get('Cuenta')
@@ -2379,10 +2376,7 @@ function initProveedorEditarForm() {
           fila.dataset.nombreContacto = formData.get('Nombre_Contacto')
           fila.dataset.correo = formData.get('correo')
         }
-
-        // Cerrar pantalla de edición y mostrar lista
-        pantallaEditar?.classList.add('hidden')
-        pantallaLista?.classList.remove('hidden')
+        abrirModal('crud_proveedores');
       } else {
         mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
       }
@@ -2396,7 +2390,6 @@ function initProveedorActions(tabla) {
   if (!tabla) return
 
   tabla.addEventListener('click', (e) => {
-    // --- ELIMINAR ---
     const svgEliminar = e.target.closest('svg')
     if (svgEliminar) {
       const btnEliminar = svgEliminar.closest("[id^='btn-eliminar-proveedor-']")
@@ -2409,33 +2402,31 @@ function initProveedorActions(tabla) {
           method: 'POST',
           headers: { 'X-Requested-With': 'XMLHttpRequest' },
         })
-          .then((res) => res.json())
-          .then((result) => {
-            if (result.success) {
-              mostrarNotificacion('Proveedor eliminado ✅', 'success')
-              btnEliminar.closest('tr')?.remove()
-            } else {
-              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-            }
-          })
-          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+            .then((res) => res.json())
+            .then((result) => {
+              if (result.success) {
+                mostrarNotificacion('Proveedor eliminado ✅', 'success')
+                btnEliminar.closest('tr')?.remove()
+              } else {
+                mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+              }
+            })
+            .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
         return
       }
     }
 
-    // --- EDITAR ---
     const btnEditar = e.target.closest("[id^='btn-editar-proveedor-']")
     if (!btnEditar) return
     e.preventDefault()
 
     const fila = btnEditar.closest('tr')
     if (!fila) return
-    const credito = fila.dataset.diasCredito > 0 
+    const credito = fila.dataset.diasCredito > 0
 
-    // Cargar datos desde data-* de la fila
     document.getElementById('editar-ID_Proveedor').value = fila.dataset.id
     document.getElementById('editar-RazonSocial').value =
-      fila.querySelector('.razonsocial').textContent
+        fila.querySelector('.razonsocial').textContent
     document.getElementById('editar-correo').value = fila.dataset.correo
     document.getElementById('editar-RFC').value = fila.dataset.rfc
     document.getElementById('editar-Banco').value = fila.dataset.banco
@@ -2444,12 +2435,19 @@ function initProveedorActions(tabla) {
     document.getElementById('editar-Tel_Contacto').value = fila.dataset.telContacto
     document.getElementById('editar-Nombre_Contacto').value = fila.dataset.nombreContacto
     document.getElementById('editar-Servicio').value = fila.querySelector('.servicio').textContent
-    document.getElementById('editar-tiene_credito').checked = credito
+
+
+    const checkboxCredito = document.getElementById('editar-tiene_credito');
+    checkboxCredito.checked = credito;
+
+    checkboxCredito.dispatchEvent(new Event('input', { bubbles: true }));
+
+
     const dias_credito = document.getElementById('editar-dias_credito')
     const monto_credito = document.getElementById('editar-monto_credito')
     dias_credito.value = credito ? fila.dataset.diasCredito : 0
     monto_credito.value = credito ? fila.dataset.montoCredito : 0
-    
+
     document.getElementById('pantalla-lista-proveedores').classList.add('hidden')
     document.getElementById('pantalla-editar-proveedor').classList.remove('hidden')
   })

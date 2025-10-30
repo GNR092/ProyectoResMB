@@ -244,7 +244,6 @@ class Modales extends BaseController
                 $data['razones'] = $razonModel->orderBy('ID_RazonSocial', 'ASC')->findAll();
                 return view('modales/razonsocial', $data);
 
-
             case 'reporte_almacen':
                 $historialModel = new \App\Models\HistorialProductosModel();
                 $data['historial'] = $historialModel->orderBy('created_at', 'DESC')->findAll();
@@ -590,24 +589,45 @@ class Modales extends BaseController
     public function insertarProveedor()
     {
         $proveedorModel = new ProveedorModel();
+        $request = $this->request;
 
-        $data = $this->request->getPost([
-            'RazonSocial',
-            'RFC',
-            'Banco',
-            'Cuenta',
-            'Clabe',
-            'Tel_Contacto',
-            'Nombre_Contacto',
-            'Servicio',
-        ]);
+        $data = [
+            'RazonSocial'     => $request->getPost('RazonSocial'),
+            'RFC'             => $request->getPost('RFC'),
+            'Banco'           => $request->getPost('Banco'),
+            'Cuenta'          => $request->getPost('Cuenta'),
+            'Clabe'           => $request->getPost('Clabe'),
+            'Tel_Contacto'    => $request->getPost('Tel_Contacto'),
+            'Nombre_Contacto' => $request->getPost('Nombre_Contacto'),
+            'Servicio'        => $request->getPost('Servicio'),
+            'Correo'          => $request->getPost('correo')
+        ];
 
-        if ($proveedorModel->insert($data)) {
-            return $this->response->setJSON(['success' => true]);
+
+        $tiene_credito = $request->getPost('tiene_credito');
+
+        if (isset($tiene_credito)) {
+            $data['Dias_Credito'] = $request->getPost('dias_credito');
+            $data['Monto_Credito'] = $request->getPost('monto_credito');
         } else {
+            $data['Dias_Credito'] = null;
+            $data['Monto_Credito'] = null;
+        }
+
+        try {
+            if ($proveedorModel->insert($data)) {
+                return $this->response->setJSON(['success' => true]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se pudo insertar el proveedor. Verifique los datos.',
+                    'errors' => $proveedorModel->errors() // Opcional: enviar errores de validación
+                ]);
+            }
+        } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo insertar el proveedor',
+                'message' => $e->getMessage(),
             ]);
         }
     }

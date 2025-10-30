@@ -217,7 +217,7 @@
             </div>
         </div>
 
-        <div id="editar-credito-section" class="space-y-4 border-t pt-4">
+        <div id="editar-credito-section" x-data="{ tiene_credito: false }" class="space-y-4 border-t pt-4">
             <div class="flex items-center">
                 <input type="checkbox" name="tiene_credito" id="editar-tiene_credito" x-model="tiene_credito" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                 <label for="editar-tiene_credito" class="ml-2 block text-sm text-gray-900">¿Tiene crédito?</label>
