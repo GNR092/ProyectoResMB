@@ -1496,7 +1496,11 @@ function RevisionX() {
           if (!data.Archivo) {
             checkboxInput.disabled = true;
             checkboxLabel.textContent += ' (No disponible)';
-            checkboxLabel.classList.add('text-gray-500', 'cursor-not-allowed');
+
+            checkboxLabel.classList.add('text-red-700', 'cursor-not-allowed');
+            checkboxInput.classList.add('cursor-not-allowed', 'bg-red-100', 'border-red-400', 'accent-red-500');
+            checkboxInput.classList.remove('text-indigo-600', 'focus:ring-indigo-500');
+
           } else {
             checkboxInput.onchange = (e) => {
               inputArchivos.disabled = e.target.checked;
@@ -1507,6 +1511,7 @@ function RevisionX() {
               }
             };
           }
+
         }
         form.onsubmit = async (e) => {
           e.preventDefault();
@@ -3302,6 +3307,14 @@ async function mostrarDetalleOrden(id, metodoPago) {
             </tbody>
         </table>
       </div>
+      
+      
+      <div >
+               <label for="archivos-revision" class="block text-sm font-medium text-black-500 ">Adjuntar Cotización (Imágenes o PDF)</label>
+               <input type="file" id="archivos-revision" name="archivos[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-black-300 border border-gray-700 rounded-lg cursor-pointer bg-gray-100 focus:outline-none border-2">
+               <p class="mt-1 text-sm text-gray-500">Puede seleccionar múltiples archivos.</p>
+      </div>
+      
     `
 
     html += `

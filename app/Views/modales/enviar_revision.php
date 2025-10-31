@@ -48,7 +48,7 @@
                 <input type="checkbox"
                        id="adjuntar-solicitante-check"
                        name="adjuntar_solicitante"
-                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-black-300 rounded ">
                 <label for="adjuntar-solicitante-check"
                        id="adjuntar-solicitante-label"
                        class="ml-2 block text-sm text-gray-900 cursor-pointer">
