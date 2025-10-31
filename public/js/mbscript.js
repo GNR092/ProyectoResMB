@@ -1404,9 +1404,8 @@ function RevisionX() {
 
         let estadoClass = getStatus(data.Estado);
         const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-        const proveedorNombre = data.cotizaciones && data.cotizaciones.length > 1 ? 'Múltiples proveedores' : data.cotizacion?.ProveedorNombre || 'N/A';
-        let html = `...`; // (Tu lógica HTML original)
-        html = `
+        const proveedorNombre = data.cotizaciones && data.cotizaciones.length > 1 ? 'Múltiples proveedores' : (data.cotizacion?.ProveedorNombre || 'N/A');
+        let html = `
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
@@ -1687,7 +1686,7 @@ function RevisionX() {
             const c = formData.get(`productos[${index}][codigo]`);
             productosModificados.push({
               codigo: c === "" ? null : c,
-              nombre: formData.gacmet(`productos[${index}][nombre]`),
+              nombre: formData.get(`productos[${index}][nombre]`),
               cantidad: formData.get(`productos[${index}][cantidad]`),
               importe: formData.get(`productos[${index}][importe]`),
             });
