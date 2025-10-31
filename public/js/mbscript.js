@@ -1390,6 +1390,71 @@ function RevisionX() {
         mostrarNotificacion('Error al cargar solicitudes para revisión.', 'error');
       });
     },
+    /**
+     * (NUEVA FUNCIÓN INTERNA)
+     * Obtiene los días de crédito.
+     * Si hay múltiples proveedores (idprov está seteado), consulta la API.
+     * Si hay un solo proveedor, lee los datos de la solicitud.
+     * @param {object} data - El objeto de detalles de la solicitud
+     * @returns {Promise<number>} - Promesa que resuelve a los días de crédito
+     */
+    async _getDiasDeCredito(data) {
+      let diasCredito = 0;
+
+      // Caso 1: Múltiples proveedores
+      if (idprov) {
+        try {
+          // Consultar la API específica del proveedor
+          const response = await fetch(`${BASE_URL}api/provider/${idprov}`);
+          if (!response.ok) throw new Error('Proveedor no encontrado');
+          const proveedorData = await response.json();
+          diasCredito = parseInt(proveedorData.Dias_Credito) || 0;
+        } catch (error) {
+          console.error(`Error al buscar proveedor ${idprov}:`, error);
+          diasCredito = 0; //Si falla se toma el valor 0
+        }
+      }
+      // Caso 2: Un solo proveedor (usar los datos ya cargados en 'data')
+      else if (data.cotizacion && data.cotizacion.Dias_Credito !== undefined) {
+        diasCredito = parseInt(data.cotizacion.Dias_Credito) || 0;
+      } else if (data.Dias_Credito !== undefined) {
+        diasCredito = parseInt(data.Dias_Credito) || 0;
+      } else {
+        console.warn("No se pudo determinar los Días de Crédito (caso único).");
+      }
+
+      return diasCredito;
+    },
+
+    /**
+     * (NUEVA FUNCIÓN INTERNA - CORREGIDA)
+     * Valida y actualiza la UI del radio button de crédito.
+     * @param {object} data - El objeto de detalles de la solicitud
+     */
+    async validarOpcionCredito(data) {
+      const radioCredito = document.querySelector('#form-enviar-revision input[name="tipo_pago"][value="credito"]');
+      const radioContado = document.querySelector('#form-enviar-revision input[name="tipo_pago"][value="efectivo"]');
+      if (!radioCredito || !radioContado) return;
+
+      // Deshabilitar mientras se consulta
+      radioCredito.disabled = true;
+      radioCredito.closest('label').classList.add('text-gray-400', 'cursor-not-allowed');
+
+      const diasCredito = await this._getDiasDeCredito(data);
+
+      if (diasCredito <= 0) {
+        // Si NO tiene crédito: Deshabilitar y seleccionar "Contado"
+        radioCredito.disabled = true;
+        radioCredito.checked = false;
+        radioContado.checked = true;
+        radioCredito.closest('label').classList.add('text-gray-400', 'cursor-not-allowed');
+      } else {
+        // Si SÍ tiene crédito: Habilitar
+        radioCredito.disabled = false;
+        radioCredito.closest('label').classList.remove('text-gray-400', 'cursor-not-allowed');
+      }
+    },
+
     VerDetalle: async function (idSolicitud) {
       console.log(`ID seleccionado ${idprov}`)
       const divTabla = document.getElementById('div-tabla-enviar');
@@ -1519,8 +1584,33 @@ function RevisionX() {
           }
 
         }
+        this.validarOpcionCredito(data);
+
+        const radioCredito = form.querySelector('input[name="tipo_pago"][value="credito"]');
+        if (radioCredito) {
+          radioCredito.onclick = () => this.validarOpcionCredito(data);
+        }
+
         form.onsubmit = async (e) => {
           e.preventDefault();
+
+          const tipoPagoRadio = document.querySelector('input[name="tipo_pago"]:checked');
+
+          if (!tipoPagoRadio) {
+            mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error');
+            return;
+          }
+
+          if (tipoPagoRadio.value === 'credito') {
+            const diasCredito = await this._getDiasDeCredito(data);
+
+            if (diasCredito <= 0) {
+              // Si no tiene crédito, mostrar error y DETENER el envío
+              mostrarNotificacion('No se puede enviar: El proveedor no tiene crédito aprobado.', 'error');
+              return; // Detiene el submit
+            }
+          }
+
           if (!confirm('¿Está seguro de que desea enviar la solicitud a revisión? Esta acción es irreversible y las cotizaciones no seleccionadas serán eliminadas.')) {
             return;
           }
@@ -1644,6 +1734,8 @@ function RevisionX() {
               console.log(`provedor seleccionado ${idprov}`);
               //actualizarProductos(selectedCotizacion.productos);
             }
+
+            this.validarOpcionCredito(data);
           });
         }
 
