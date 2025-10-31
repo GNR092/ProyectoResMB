@@ -1267,7 +1267,6 @@ async function mostrarCotizar(idSolicitud) {
   }
 }
 
-
 function regresarTabla() {
   document.getElementById('div-ver').classList.add('hidden');
   document.getElementById('div-cotizar').classList.add('hidden');
@@ -2238,9 +2237,15 @@ function regresarTablaOrdenCompra() {
   document.getElementById('div-tabla-ordenes').classList.remove('hidden')
 }
 
-async function enviarOrdenCompra(idSolicitud) {
+async function enviarOrdenCompra(idSolicitud, boton) {
   if (!confirm('¿Deseas enviar esta orden de compra a Tesorería?')) return;
 
+  const originalHtml = boton.innerHTML;
+
+  boton.disabled = true;
+  boton.textContent = `
+    Enviando...
+  `;
   try {
     const response = await fetch(`${BASE_URL}api/orden/enviar-proveedor/${idSolicitud}`, {
       method: 'POST',
@@ -2251,18 +2256,23 @@ async function enviarOrdenCompra(idSolicitud) {
 
     if (!response.ok || !data.success) {
       mostrarNotificacion(data.message || 'Error desconocido al enviar la orden.', 'error');
+
+      boton.disabled = false;
+      boton.innerHTML = originalHtml;
       return;
     }
 
     mostrarNotificacion('✅ La orden fue enviada al proveedor y a tesorería.', 'success');
 
-    regresarTablaOrdenCompra();
-
-     initOrdenesCompra();
+    // Si la operación es exitosa, recargamos el modal.
+    abrirModal('ordenes_compra');
 
   } catch (error) {
     console.error('Error al enviar orden:', error);
     mostrarNotificacion('❌ Ocurrió un error al intentar enviar la orden.', 'error');
+
+    boton.disabled = false;
+    boton.innerHTML = originalHtml
   }
 }
 

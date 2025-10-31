@@ -861,10 +861,12 @@ class Api extends ResourceController
             return $this->failValidationErrors('Se requiere un ID de solicitud.');
         }
 
-        // Modelos que usaremos
-        $solicitudModel = new SolicitudModel();
-        $ordenCompraModel = new OrdenCompraModel();
-        $cotizacionModel = new CotizacionModel();
+        $solicitudModel = new \App\Models\SolicitudModel();
+        $ordenCompraModel = new \App\Models\OrdenCompraModel();
+        $cotizacionModel = new \App\Models\CotizacionModel();
+
+        $proveedorModel = new \App\Models\ProveedorModel();
+
 
         $nuevoEstadoSolicitud = 'Por Pagar';
 
@@ -886,33 +888,38 @@ class Api extends ResourceController
                 throw new \Exception('No se encontró una cotización asociada a esta solicitud.');
             }
 
+            $proveedor = $proveedorModel->find($cotizacion['ID_Proveedor']);
+
             $ordenData = [
                 'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
                 'ID_Proveedor'  => $cotizacion['ID_Proveedor'],
-                'Estado'        => Status::En_Proceso_Pago, // Estado inicial de la OC
+                'Estado'        => Status::En_Proceso_Pago,
                 'Fecha'         => date('Y-m-d')
             ];
 
             $ordenCompraModel->insert($ordenData);
 
+            // Logica para correos de proveedor
             $to = getenv('EMAIL_TO_TEST');
             if (empty($to)) {
-                throw new \Exception('La variable de entorno EMAIL_TO_TEST no está configurada.');
+                if (!$proveedor || empty($proveedor['Correo'])) {
+                    throw new \Exception("No se pudo encontrar un correo electrónico para el proveedor con ID: {$cotizacion['ID_Proveedor']}.");
+                }
+                $to = $proveedor['Correo'];
             }
-
-            $proveedorNombre = esc($cotizacion['RazonSocial'] ?? 'Proveedor'); // Usamos la info de la cotización
+            $proveedorNombre = esc($proveedor['RazonSocial'] ?? 'Proveedor');
 
             $subject = 'Nueva Orden de Compra MBSP - Folio: ' . $solicitud['No_Folio'];
             $message = '
-                <p>Estimado Proveedor: ' . $proveedorNombre . '</p>
-                <p>Le contactamos de parte de MBSP RENTAS S.A. DE C.V. para hacerle llegar nuestra orden de compra.</p>
-                <p>Adjunto a este correo encontrará el documento PDF con los detalles.</p>
-                <p>Quedamos a la espera de su confirmación.</p>
-                <br>
-                <p>Saludos cordiales,</p>
-                <p><strong>Departamento de Compras</strong></p>
-                <p>MBSP RENTAS S.A. DE C.V.</p>
-            ';
+            <p>Estimado Proveedor: ' . $proveedorNombre . '</p>
+            <p>Le contactamos de parte de MBSP RENTAS S.A. DE C.V. para hacerle llegar nuestra orden de compra.</p>
+            <p>Adjunto a este correo encontrará el documento PDF con los detalles.</p>
+            <p>Quedamos a la espera de su confirmación.</p>
+            <br>
+            <p>Saludos cordiales,</p>
+            <p><strong>Departamento de Compras</strong></p>
+            <p>MBSP RENTAS S.A. DE C.V.</p>
+        ';
 
             $pdf = new GenerarPDF();
             $pdfPath = $pdf->generarYGuardarOrden($idSolicitud);
@@ -953,7 +960,6 @@ class Api extends ResourceController
             return $this->failServerError('Ocurrió un error inesperado: ' . $e->getMessage());
         }
     }
-
     public function enviarATesoreria()
     {
         $this->response->setHeader('Content-Type', 'application/json');
