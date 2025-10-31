@@ -416,16 +416,18 @@ class Rest
 
         // También obtiene datos de cotización si existen
         $cotizacionModel = new CotizacionModel();
-        $cotizacion = $cotizacionModel
+        $cotizaciones = $cotizacionModel
             ->select('Cotizacion.*, Proveedor.RazonSocial as ProveedorNombre')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
             ->where('ID_Solicitud', $id)
-            ->first();
+            ->findAll();
 
-        if ($cotizacion) {
-            $solicitud['cotizacion'] = $cotizacion;
+        if (!empty($cotizaciones)) {
+            $solicitud['cotizaciones'] = $cotizaciones;
+            $solicitud['cotizacion'] = $cotizaciones[0]; // Mantener la primera para compatibilidad
+
             $ordenCompraModel = new OrdenCompraModel();
-            $orden = $ordenCompraModel->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])->first();
+            $orden = $ordenCompraModel->where('ID_Cotizacion', $cotizaciones[0]['ID_Cotizacion'])->first();
             if ($orden) {
                 $solicitud['EstadoOrden'] = $orden['Estado'];
             }

@@ -11,6 +11,7 @@
         <div class="mt-2">
             <form id="form-modificar-montos">
                 <input type="hidden" id="modificar_id_solicitud" name="id_solicitud">
+                <div id="proveedor-select-container" class="mb-4"></div>
                 <div id="productos-modificar-container" class="space-y-4">
                     <!-- Productos/Servicios cargados dinámicamente por JS -->
                 </div>

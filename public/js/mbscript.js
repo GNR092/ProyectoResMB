@@ -1330,7 +1330,33 @@ function RevisionX() {
         tableSelector: '#tabla-enviar tbody',
         paginationSelector: 'paginacion-enviar-revision',
         endpoint: 'api/solicitudes/cotizadas',
-        processData: (data) => data.filter((s) => s.Estado !== 'En revision'),
+        processData: (data) => {
+          const agrupado = data.reduce((acc, s) => {
+            if (s.Estado === 'En revision') return acc;
+            if (!acc[s.ID_Solicitud]) {
+              acc[s.ID_Solicitud] = {
+                ...s,
+                Monto: parseFloat(s.Monto) || 0,
+                Proveedor: new Set([s.Proveedor]),
+                cotizaciones: [s]
+              };
+            } else {
+              acc[s.ID_Solicitud].Monto += parseFloat(s.Monto) || 0;
+              acc[s.ID_Solicitud].Proveedor.add(s.Proveedor);
+              acc[s.ID_Solicitud].cotizaciones.push(s);
+            }
+            return acc;
+          }, {});
+
+          return Object.values(agrupado).map(s => {
+            if (s.Proveedor.size > 1) {
+              s.Proveedor = 'Múltiples proveedores';
+            } else {
+              s.Proveedor = [...s.Proveedor][0] || 'N/A';
+            }
+            return s;
+          });
+        },
         noResultsMessage: 'No hay solicitudes cotizadas para mostrar.',
         renderRow: (s) => {
           const monto = parseFloat(s.Monto || 0).toLocaleString('es-MX', {
@@ -1342,7 +1368,7 @@ function RevisionX() {
                 <td class="py-3 px-6 text-left">${s.Folio}</td>
                 <td class="py-3 px-6 text-left">${s.Usuario || 'N/A'}</td>
                 <td class="py-3 px-6 text-left">${s.Departamento || 'N/A'}</td>
-                <td class="py-3 px-6 text-left">${s.Proveedor || 'N/A'}</td>
+                <td class="py-3 px-6 text-left">${s.Proveedor}</td>
                 <td class="py-3 px-6 text-left">${monto}</td>
                 <td class="py-3 px-6 text-left">${s.Estado}</td>
                 <td class="py-3 px-6 text-left">
@@ -1380,6 +1406,10 @@ function RevisionX() {
           currency: 'MXN',
         });
 
+        const proveedorNombre = data.cotizaciones && data.cotizaciones.length > 1 
+          ? 'Múltiples proveedores' 
+          : data.cotizacion?.ProveedorNombre || 'N/A';
+
         let html = `
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
@@ -1388,7 +1418,7 @@ function RevisionX() {
                 <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
                 <div><strong>Complejo:</strong> ${data.Complejo}</div>
-                <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
+                <div><strong>Proveedor (Cotización):</strong> ${proveedorNombre}</div>
                 ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
             </div>
         `;
@@ -1458,8 +1488,17 @@ function RevisionX() {
 
         form.onsubmit = async (e) => {
           e.preventDefault();
+          if (!confirm('¿Está seguro de que desea enviar la solicitud a revisión? Esta acción es irreversible y las cotizaciones no seleccionadas serán eliminadas.')) {
+            return;
+          }
+
           const formData = new FormData();
           formData.append('ID_Solicitud', idSolicitud);
+
+          const selectedCotizacionId = document.getElementById('proveedor-select')?.value;
+          if (selectedCotizacionId) {
+            formData.append('id_cotizacion_seleccionada', selectedCotizacionId);
+          }
 
           const adjuntarSoloSolicitante = document.getElementById('adjuntar-solicitante-check')?.checked || false;
 
@@ -1577,19 +1616,20 @@ function RevisionX() {
     },
 
     mostrarModalModificarMontos: async function (idSolicitud) {
-      // ... (código existente sin cambios) ...
       const modalModificar = document.getElementById('modal-modificar-montos');
       const productosContainer = document.getElementById('productos-modificar-container');
       const formModificar = document.getElementById('form-modificar-montos');
       const idSolicitudInput = document.getElementById('modificar_id_solicitud');
+      const proveedorSelectContainer = document.getElementById('proveedor-select-container');
 
-      if (!modalModificar || !productosContainer || !formModificar || !idSolicitudInput) {
+      if (!modalModificar || !productosContainer || !formModificar || !idSolicitudInput || !proveedorSelectContainer) {
         console.error('Elementos del modal de modificación no encontrados.');
         return;
       }
 
       idSolicitudInput.value = idSolicitud;
       productosContainer.innerHTML = '<p class="text-center text-gray-500">Cargando productos...</p>';
+      proveedorSelectContainer.innerHTML = ''; // Limpiar el contenedor del select
       modalModificar.classList.remove('hidden');
 
       try {
@@ -1597,43 +1637,69 @@ function RevisionX() {
 
         if (data.error) throw new Error(data.error);
 
-        let productosHtml = `
-          <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-300">
-              <thead class="bg-gray-100">
-                <tr>
-                  <th class="py-2 px-4 text-left">Código</th>
-                  <th class="py-2 px-4 text-left">Producto</th>
-                  <th class="py-2 px-4 text-right">Cantidad</th>
-                  <th class="py-2 px-4 text-right">Importe</th>
-                </tr>
-              </thead>
-              <tbody>
-        `;
-        data.productos.forEach((p, index) => {
-          productosHtml += `
-                <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-t text-right">
-                        <input type="text" name="productos[${index}][codigo]" placeholder="N/A" value="${p.Codigo || ''}" class="w-full px-2 py-1 border rounded text-left">
-                    </td>
-                    <td class="py-2 px-4 border-t">
-                        <input type="text" name="productos[${index}][nombre]" value="${p.Nombre}" class="w-full px-2 py-1 border rounded text-left">
-                    </td>
-                    <td class="py-2 px-4 border-t text-right">
-                        <input type="number" name="productos[${index}][cantidad]" value="${p.Cantidad}" min="1" class="w-full px-2 py-1 border rounded text-right">
-                    </td>
-                    <td class="py-2 px-4 border-t text-right">
-                        <input type="number" name="productos[${index}][importe]" value="${parseFloat(p.Importe).toFixed(2)}" step="0.01" min="0" class="w-full px-2 py-1 border rounded text-right">
-                    </td>
-                </tr>
+        // Si hay múltiples cotizaciones, crear y mostrar el select de proveedores
+        if (data.cotizaciones && data.cotizaciones.length > 1) {
+          let selectHtml = '<label for="proveedor-select" class="block text-sm font-medium text-gray-700">Seleccionar Proveedor:</label>';
+          selectHtml += '<select id="proveedor-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">';
+          data.cotizaciones.forEach(cot => {
+            selectHtml += `<option value="${cot.ID_Cotizacion}">${cot.ProveedorNombre}</option>`;
+          });
+          selectHtml += '</select>';
+          proveedorSelectContainer.innerHTML = selectHtml;
+
+          const proveedorSelect = document.getElementById('proveedor-select');
+          proveedorSelect.addEventListener('change', (e) => {
+            const selectedCotizacionId = e.target.value;
+            const selectedCotizacion = data.cotizaciones.find(cot => cot.ID_Cotizacion == selectedCotizacionId);
+            if (selectedCotizacion) {
+              actualizarProductos(selectedCotizacion.productos);
+            }
+          });
+        }
+
+        // Función para actualizar la tabla de productos
+        function actualizarProductos(productos) {
+          let productosHtml = `
+            <div class="overflow-x-auto">
+              <table class="min-w-full border border-gray-300">
+                <thead class="bg-gray-100">
+                  <tr>
+                    <th class="py-2 px-4 text-left">Código</th>
+                    <th class="py-2 px-4 text-left">Producto</th>
+                    <th class="py-2 px-4 text-right">Cantidad</th>
+                    <th class="py-2 px-4 text-right">Importe</th>
+                  </tr>
+                </thead>
+                <tbody>
           `;
-        });
-        productosHtml += `
-              </tbody>
-            </table>
-          </div>
-        `;
-        productosContainer.innerHTML = productosHtml;
+          productos.forEach((p, index) => {
+            productosHtml += `
+                  <tr class="hover:bg-gray-50">
+                      <td class="py-2 px-4 border-t text-right">
+                          <input type="text" name="productos[${index}][codigo]" placeholder="N/A" value="${p.Codigo || ''}" class="w-full px-2 py-1 border rounded text-left">
+                      </td>
+                      <td class="py-2 px-4 border-t">
+                          <input type="text" name="productos[${index}][nombre]" value="${p.Nombre}" class="w-full px-2 py-1 border rounded text-left">
+                      </td>
+                      <td class="py-2 px-4 border-t text-right">
+                          <input type="number" name="productos[${index}][cantidad]" value="${p.Cantidad}" min="1" class="w-full px-2 py-1 border rounded text-right">
+                      </td>
+                      <td class="py-2 px-4 border-t text-right">
+                          <input type="number" name="productos[${index}][importe]" value="${parseFloat(p.Importe).toFixed(2)}" step="0.01" min="0" class="w-full px-2 py-1 border rounded text-right">
+                      </td>
+                  </tr>
+            `;
+          });
+          productosHtml += `
+                </tbody>
+              </table>
+            </div>
+          `;
+          productosContainer.innerHTML = productosHtml;
+        }
+
+        // Cargar productos de la primera cotización por defecto
+        actualizarProductos(data.productos);
 
         formModificar.onsubmit = async (e) => {
           e.preventDefault();
@@ -1651,8 +1717,11 @@ function RevisionX() {
             });
           });
 
+          const selectedCotizacionId = document.getElementById('proveedor-select')?.value;
+
           const payload = {
             id_solicitud: idSolicitud,
+            id_cotizacion_seleccionada: selectedCotizacionId,
             productos: productosModificados,
             comentarios: commnt === "" ? null : commnt,
           };

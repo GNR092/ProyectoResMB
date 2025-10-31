@@ -216,22 +216,10 @@ class Api extends ResourceController
      */
     public function actualizarMontos()
     {
-        // // 1. Validar permisos (solo admin o compras pueden modificar montos)
-        // if (!in_array(session('login_type'), ['admin', 'compras'])) {
-        //     return $this->failForbidden('Acceso denegado. Permiso insuficiente para modificar montos de solicitudes.');
-        // }
-
         $json = $this->request->getJSON();
 
-        // 2. Validar datos de entrada
-        if (
-            !isset($json->id_solicitud) ||
-            !isset($json->productos) ||
-            !is_array($json->productos)
-        ) {
-            return $this->failValidationErrors(
-                'Se requiere ID de solicitud y un array de productos.',
-            );
+        if (!isset($json->id_solicitud) || !isset($json->productos) || !is_array($json->productos)) {
+            return $this->failValidationErrors('Se requiere ID de solicitud y un array de productos.');
         }
 
         $idSolicitud = (int) $json->id_solicitud;
@@ -242,13 +230,11 @@ class Api extends ResourceController
         $solicitudProductModel = new SolicitudProductModel();
         $cotizacionModel = new CotizacionModel();
 
-        // Verificar que la solicitud exista
         $solicitud = $solicitudModel->find($idSolicitud);
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
 
-        // Iniciar transacción
         $db = \Config\Database::connect();
         $db->transStart();
 
@@ -259,13 +245,12 @@ class Api extends ResourceController
                 throw new \Exception('El número de productos en el payload no coincide con el número de productos existentes en la solicitud.');
             }
 
-            // 3. Actualizar productos
             foreach ($productosPayload as $index => $p) {
                 if (!isset($p->codigo) || !isset($p->nombre) || !isset($p->cantidad) || !isset($p->importe)) {
                     throw new \Exception('Cada producto debe tener código, nombre, cantidad e importe.');
                 }
 
-                $idSolicitudProd = $solicitudProductsDB[$index]['ID_SolicitudProd']; // Obtener ID_SolicitudProd de la base de datos
+                $idSolicitudProd = $solicitudProductsDB[$index]['ID_SolicitudProd'];
                 $codigo = (string) $p->codigo;
                 $nombre = (string) $p->nombre;
                 $cantidad = (int) $p->cantidad;
@@ -279,10 +264,8 @@ class Api extends ResourceController
                 ]);
             }
 
-            // 4. Actualizar comentarios de la solicitud
             $solicitudModel->update($idSolicitud, ['ComentariosUser' => $comentarios]);
 
-            // 5. Recalcular y actualizar el total de la cotización
             $details = $this->api->getSolicitudWithProducts($idSolicitud);
             $nuevoTotal = 0;
             if (!empty($details['productos'])) {
@@ -295,17 +278,13 @@ class Api extends ResourceController
             if ($cotizacion) {
                 $cotizacionModel->update($cotizacion['ID_Cotizacion'], ['Total' => $nuevoTotal]);
             } else {
-                // Si no hay cotización, se podría crear una o lanzar un error.
-                // Por ahora, lanzaremos un error.
                 throw new \Exception('No se encontró cotización asociada a la solicitud.');
             }
 
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                throw new \Exception(
-                    'Falla en la transacción de base de datos al actualizar montos.',
-                );
+                throw new \Exception('Falla en la transacción de base de datos al actualizar montos.');
             }
 
             return $this->respondUpdated([
@@ -315,9 +294,7 @@ class Api extends ResourceController
         } catch (\Exception $e) {
             $db->transRollback();
             log_message('error', '[actualizarMontos] ' . $e->getMessage());
-            return $this->failServerError(
-                'Ocurrió un error inesperado al actualizar los montos: ' . $e->getMessage(),
-            );
+            return $this->failServerError('Ocurrió un error inesperado al actualizar los montos: ' . $e->getMessage());
         }
     }
 
@@ -532,9 +509,10 @@ class Api extends ResourceController
         }
 
         $idSolicitud = (int) $request['ID_Solicitud'];
+        $idCotizacionSeleccionada = $request['id_cotizacion_seleccionada'] ?? null;
+
         $solicitud = $this->api->getSolicitudById($idSolicitud);
-        $cotizacion = $this->api->getCotizacionBySolicitudID($idSolicitud);
-        $idCotizacion = $cotizacion['ID_Cotizacion'];
+        $cotizacionModel = new CotizacionModel();
         $tipoPago = MetodoPago::EnEspera;
 
         if (!$solicitud) {
@@ -557,6 +535,12 @@ class Api extends ResourceController
         }
 
         try {
+            if ($idCotizacionSeleccionada) {
+                $cotizacionModel->where('ID_Solicitud', $idSolicitud)
+                                ->where('ID_Cotizacion !=', $idCotizacionSeleccionada)
+                                ->delete();
+            }
+
             $this->api->updateSolicitudById($idSolicitud, [
                 'Estado' => 'En revision',
                 'MetodoPago' => $tipoPago,
@@ -566,6 +550,8 @@ class Api extends ResourceController
             $this->api->CreateFolder($folder);
 
             if ($files) {
+                $cotizacion = $this->api->getCotizacionBySolicitudID($idSolicitud);
+                $idCotizacion = $cotizacion['ID_Cotizacion'];
                 $tmp = [];
                 $count = 0;
                 foreach ($files['cotizacion_files'] as $file) {
