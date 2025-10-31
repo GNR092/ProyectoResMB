@@ -1320,6 +1320,12 @@ function initRegistrarMaterial() {
 
  */
 function RevisionX() {
+  /*
+    ID del proveedor seleccionado puedes usar /api/provider/ID_Proveedor para obtener los montos y los datos
+    verifica primero si idprov esta definida dado caso si hay multiples proveedores, de lo contrario si no hay multiples proveedores
+    toma el proveedor de la solicitud ya que si no se hace mostrara error
+  */
+  let idprov = null; 
   return {
     init() {
       this.loadTable();
@@ -1384,8 +1390,8 @@ function RevisionX() {
         mostrarNotificacion('Error al cargar solicitudes para revisión.', 'error');
       });
     },
-
     VerDetalle: async function (idSolicitud) {
+      console.log(`ID seleccionado ${idprov}`)
       const divTabla = document.getElementById('div-tabla-enviar');
       const divRevision = document.getElementById('div-enviar-revision');
       const detallesContainer = document.getElementById('detalles-para-revision');
@@ -1586,8 +1592,8 @@ function RevisionX() {
         detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
       }
     },
-
     regresar: function () {
+      idprov = null;
       document.getElementById('div-tabla-enviar').classList.remove('hidden');
       document.getElementById('div-enviar-revision').classList.add('hidden')
       const form = document.getElementById('form-enviar-revision');
@@ -1595,7 +1601,6 @@ function RevisionX() {
       const detalles = document.getElementById('detalles-para-revision');
       if (detalles) detalles.innerHTML = '';
     },
-
     mostrarModalModificarMontos: async function (idSolicitud) {
       const modalModificar = document.getElementById('modal-modificar-montos');
       const productosContainer = document.getElementById('productos-modificar-container');
@@ -1618,10 +1623,13 @@ function RevisionX() {
 
         if (data.error) throw new Error(data.error);
 
-        if (data.cotizaciones && data.cotizaciones.length > 1) {
+        const cotizacionesData = data.cotizaciones || [];
+
+        if (cotizacionesData.length > 1) {
           let selectHtml = '<label for="proveedor-select" class="block text-sm font-medium text-gray-700">Seleccionar Proveedor:</label>';
           selectHtml += '<select id="proveedor-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">';
-          data.cotizaciones.forEach(cot => {
+          selectHtml += '<option value="">Seleccione un proveedor</option>';
+          cotizacionesData.forEach(cot => {
             selectHtml += `<option value="${cot.ID_Cotizacion}">${cot.ProveedorNombre}</option>`;
           });
           selectHtml += '</select>';
@@ -1630,9 +1638,11 @@ function RevisionX() {
           const proveedorSelect = document.getElementById('proveedor-select');
           proveedorSelect.addEventListener('change', (e) => {
             const selectedCotizacionId = e.target.value;
-            const selectedCotizacion = data.cotizaciones.find(cot => cot.ID_Cotizacion == selectedCotizacionId);
+            const selectedCotizacion = cotizacionesData.find(cot => cot.ID_Cotizacion == selectedCotizacionId);
             if (selectedCotizacion) {
-              actualizarProductos(selectedCotizacion.productos);
+              idprov = selectedCotizacion.ID_Proveedor
+              console.log(`provedor seleccionado ${idprov}`);
+              //actualizarProductos(selectedCotizacion.productos);
             }
           });
         }
@@ -1683,19 +1693,38 @@ function RevisionX() {
           e.preventDefault();
           const formData = new FormData(formModificar);
           const productosModificados = [];
+          let nuevoTotal = 0;
 
           const commnt = formData.get('comentarios')
           data.productos.forEach((p, index) => {
             const c = formData.get(`productos[${index}][codigo]`);
+            const cantidad = formData.get(`productos[${index}][cantidad]`);
+            const importe = formData.get(`productos[${index}][importe]`);
+            nuevoTotal += (parseFloat(cantidad) || 0) * (parseFloat(importe) || 0);
             productosModificados.push({
               codigo: c === "" ? null : c,
               nombre: formData.get(`productos[${index}][nombre]`),
-              cantidad: formData.get(`productos[${index}][cantidad]`),
-              importe: formData.get(`productos[${index}][importe]`),
+              cantidad: cantidad,
+              importe: importe,
             });
           });
 
           const selectedCotizacionId = document.getElementById('proveedor-select')?.value;
+          
+          const selectedCotizacion = selectedCotizacionId 
+              ? cotizacionesData.find(cot => cot.ID_Cotizacion == selectedCotizacionId) 
+              : (cotizacionesData.length === 1 ? cotizacionesData[0] : null);
+          
+          const proveedor = selectedCotizacion ? selectedCotizacion.proveedor : (data.proveedor || null);
+
+          if (proveedor && proveedor.Monto_Credito && parseFloat(proveedor.Monto_Credito) > 0) {
+            const montoCredito = parseFloat(proveedor.Monto_Credito);
+            if (nuevoTotal > montoCredito) {
+              if (!confirm(`ALERTA: El monto total (${nuevoTotal.toFixed(2)}) excede el límite de crédito del proveedor ${proveedor.RazonSocial} (${montoCredito.toFixed(2)}).\n\n¿Desea continuar?`)) {
+                return; 
+              }
+            }
+          }
 
           const payload = {
             id_solicitud: idSolicitud,
