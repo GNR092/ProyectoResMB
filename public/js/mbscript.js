@@ -3308,11 +3308,13 @@ async function mostrarDetalleOrden(id, metodoPago) {
       </div>
       
       
-      <div >
-               <label for="archivos-revision" class="block text-sm font-medium text-black-500 ">Adjuntar Cotización (Imágenes o PDF)</label>
-               <input type="file" id="archivos-revision" name="archivos[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-black-300 border-gray-700 rounded-lg cursor-pointer bg-gray-100 focus:outline-none border-2">
-               <p class="mt-1 text-sm text-gray-500">Puede seleccionar múltiples archivos.</p>
-      </div>
+<div >
+     <label for="archivos-revision" class="block text-sm font-medium text-black-500 ">Adjuntar Cotización (Imágenes o PDF)</label>
+     
+     <input type="file" id="archivos-revision" name="archivos" accept="image/*,.pdf" class="mt-1 block w-full text-sm text-black-300 border-gray-700 rounded-lg cursor-pointer bg-gray-100 focus:outline-none border-2">
+     
+     <p class="mt-1 text-sm text-gray-500">Solo se permite un archivo.</p>
+</div>
       
     `
 
@@ -3559,6 +3561,15 @@ async function mostrarDetalleFicha(id, metodoPago) {
             </tbody>
         </table>
       </div>
+      
+<div >
+     <label for="archivos-revision" class="block text-sm font-medium text-black-500 ">Adjuntar Cotización (Imágenes o PDF)</label>
+     
+     <input type="file" id="archivos-revision" name="archivos" accept="image/*,.pdf" class="mt-1 block w-full text-sm text-black-300 border-gray-700 rounded-lg cursor-pointer bg-gray-100 focus:outline-none border-2">
+     
+     <p class="mt-1 text-sm text-gray-500">Solo se permite un archivo.</p>
+</div>
+      
     `
 
     html += `
