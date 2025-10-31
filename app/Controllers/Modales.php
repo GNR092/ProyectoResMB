@@ -226,12 +226,12 @@ class Modales extends BaseController
                 return view('modales/almacen');
 
             case 'reportes':
-                $razonSocialModel = new \App\Models\RazonSocialModel();
+                $razonSocialModel = new RazonSocialModel();
                 $data['razones_sociales'] = $razonSocialModel->select('ID_RazonSocial, Nombre')
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
 
-                $departamentoModel = new \App\Models\DepartamentosModel();
+                $departamentoModel = new DepartamentosModel();
                 $data['departamentos'] = $departamentoModel->select('ID_Dpto, Nombre')
                 ->orderBy('Nombre', 'ASC')
                     ->findAll();
@@ -245,7 +245,7 @@ class Modales extends BaseController
                 return view('modales/razonsocial', $data);
 
             case 'reporte_almacen':
-                $historialModel = new \App\Models\HistorialProductosModel();
+                $historialModel = new HistorialProductosModel();
                 $data['historial'] = $historialModel->orderBy('created_at', 'DESC')->findAll();
 
                 return view('modales/reporte_almacen', $data);
@@ -685,7 +685,7 @@ class Modales extends BaseController
     //Funcion crud para razon social
     public function insertarRazonSocial()
     {
-        $model = new \App\Models\RazonSocialModel();
+        $model = new RazonSocialModel();
         $data = $this->request->getPost(['Nombre', 'RFC']);
 
         if ($model->insert($data)) {
@@ -700,7 +700,7 @@ class Modales extends BaseController
 
     public function editarRazonSocial($id)
     {
-        $model = new \App\Models\RazonSocialModel();
+        $model = new RazonSocialModel();
         $data = $this->request->getPost(['Nombre', 'RFC']);
 
         try {
@@ -716,7 +716,7 @@ class Modales extends BaseController
 
     public function eliminarRazonSocial($id)
     {
-        $model = new \App\Models\RazonSocialModel();
+        $model = new RazonSocialModel();
 
         if ($model->delete($id)) {
             return $this->response->setJSON(['success' => true]);

@@ -1597,7 +1597,6 @@ function RevisionX() {
     },
 
     mostrarModalModificarMontos: async function (idSolicitud) {
-      // ... (tu código existente de modificar montos no cambia) ...
       const modalModificar = document.getElementById('modal-modificar-montos');
       const productosContainer = document.getElementById('productos-modificar-container');
       const formModificar = document.getElementById('form-modificar-montos');
@@ -1621,7 +1620,7 @@ function RevisionX() {
 
         if (data.cotizaciones && data.cotizaciones.length > 1) {
           let selectHtml = '<label for="proveedor-select" class="block text-sm font-medium text-gray-700">Seleccionar Proveedor:</label>';
-          selectHtml += '<select id="proveedor-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">';
+          selectHtml += '<select id="proveedor-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">';
           data.cotizaciones.forEach(cot => {
             selectHtml += `<option value="${cot.ID_Cotizacion}">${cot.ProveedorNombre}</option>`;
           });
@@ -3311,7 +3310,7 @@ async function mostrarDetalleOrden(id, metodoPago) {
       
       <div >
                <label for="archivos-revision" class="block text-sm font-medium text-black-500 ">Adjuntar Cotización (Imágenes o PDF)</label>
-               <input type="file" id="archivos-revision" name="archivos[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-black-300 border border-gray-700 rounded-lg cursor-pointer bg-gray-100 focus:outline-none border-2">
+               <input type="file" id="archivos-revision" name="archivos[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-black-300 border-gray-700 rounded-lg cursor-pointer bg-gray-100 focus:outline-none border-2">
                <p class="mt-1 text-sm text-gray-500">Puede seleccionar múltiples archivos.</p>
       </div>
       

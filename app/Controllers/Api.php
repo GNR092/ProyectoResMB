@@ -861,11 +861,12 @@ class Api extends ResourceController
             return $this->failValidationErrors('Se requiere un ID de solicitud.');
         }
 
-        $solicitudModel = new \App\Models\SolicitudModel();
-        $ordenCompraModel = new \App\Models\OrdenCompraModel();
-        $cotizacionModel = new \App\Models\CotizacionModel();
+        $solicitudModel = new SolicitudModel();
+        $ordenCompraModel = new OrdenCompraModel();
+        $cotizacionModel = new CotizacionModel();
+        $proveedorModel = new ProveedorModel();
+        $razonSocialModel = new RazonSocialModel();
 
-        $proveedorModel = new \App\Models\ProveedorModel();
 
 
         $nuevoEstadoSolicitud = 'Por Pagar';
@@ -889,6 +890,8 @@ class Api extends ResourceController
             }
 
             $proveedor = $proveedorModel->find($cotizacion['ID_Proveedor']);
+            $razon = $razonSocialModel->find($solicitud['ID_RazonSocial']);
+            $razonNombre = $razon['Nombre'];
 
             $ordenData = [
                 'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
@@ -908,18 +911,36 @@ class Api extends ResourceController
                 $to = $proveedor['Correo'];
             }
             $proveedorNombre = esc($proveedor['RazonSocial'] ?? 'Proveedor');
+            $folio = esc($solicitud['No_Folio']);
 
-            $subject = 'Nueva Orden de Compra MBSP - Folio: ' . $solicitud['No_Folio'];
-            $message = '
-            <p>Estimado Proveedor: ' . $proveedorNombre . '</p>
-            <p>Le contactamos de parte de MBSP RENTAS S.A. DE C.V. para hacerle llegar nuestra orden de compra.</p>
-            <p>Adjunto a este correo encontrará el documento PDF con los detalles.</p>
-            <p>Quedamos a la espera de su confirmación.</p>
-            <br>
-            <p>Saludos cordiales,</p>
-            <p><strong>Departamento de Compras</strong></p>
-            <p>MBSP RENTAS S.A. DE C.V.</p>
-        ';
+            $subject = "Nueva Orden de Compra - {$razonNombre} - Folio {$folio}";
+
+            $message = '';
+            $message .= '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Nueva Orden de Compra</title>';
+            $message .= '<style>';
+            $message .= 'body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }';
+            $message .= '.container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }';
+            $message .= '.header { padding: 15px 20px; background-color: #004a99; color: #ffffff; text-align: center; border-radius: 8px 8px 0 0; }';
+            $message .= '.header h2 { margin: 0; font-size: 24px; }';
+            $message .= '.content { padding: 25px 20px; }';
+            $message .= '.content p { margin: 0 0 15px; }';
+            $message .= '.content ul { list-style: none; padding: 0; margin: 15px 0; border-left: 3px solid #004a99; padding-left: 15px; }';
+            $message .= '.content li { margin-bottom: 8px; }';
+            $message .= '.footer { margin-top: 20px; padding: 15px 20px; font-size: 0.85em; color: #6c757d; text-align: center; background-color: #f4f4f4; border-radius: 0 0 8px 8px; }';
+            $message .= '</style></head><body>';
+            $message .= '<div class="container">';
+            $message .= '<div class="header"><h2>Nueva Orden de Compra</h2></div>';
+            $message .= '<div class="content">';
+            $message .= "<p>Estimado proveedor <strong>{$proveedorNombre}</strong>,</p>";
+            $message .= "<p>Por medio de la presente, <strong>{$razonNombre}</strong> se complace en enviarle la Orden de Compra correspondiente a su cotización.</p>";
+            $message .= '<p><strong>Detalles de la Orden:</strong></p>';
+            $message .= "<ul><li><strong>Folio de Requisición:</strong> {$folio}</li><li><strong>Fecha de Orden:</strong> " . date('d/m/Y') . "</li></ul>";
+            $message .= '<p>En el documento PDF adjunto encontrará todos los detalles de los productos/servicios solicitados, así como los términos y condiciones aplicables.</p>';
+            $message .= '<p>Agradecemos su colaboración y quedamos a la espera de la confirmación de recibido. Para cualquier consulta, no dude en contactar a nuestro departamento de compras.</p>';
+            $message .= '<p>Saludos cordiales,</p>';
+            $message .= '</div>';
+            $message .= "<div class=\"footer\"><p><strong>Departamento de Compras</strong><br>{$razonNombre}</p></div>";
+            $message .= '</div></body></html>';
 
             $pdf = new GenerarPDF();
             $pdfPath = $pdf->generarYGuardarOrden($idSolicitud);
@@ -929,7 +950,7 @@ class Api extends ResourceController
 
             $option = [
                 'attachments' => [$pdfPath],
-                'fromName' => 'MBSP RENTAS S.A. DE C.V.'
+                'fromName' => $razonNombre
             ];
 
             $updateResult = $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstadoSolicitud]);
