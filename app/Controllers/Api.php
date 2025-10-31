@@ -226,6 +226,8 @@ class Api extends ResourceController
         $productosPayload = $json->productos;
         $comentarios = $json->comentarios ?? null;
 
+        $idCotizacionSeleccionada = $json->id_cotizacion_seleccionada ?? null;
+
         $solicitudModel = new SolicitudModel();
         $solicitudProductModel = new SolicitudProductModel();
         $cotizacionModel = new CotizacionModel();
@@ -239,6 +241,13 @@ class Api extends ResourceController
         $db->transStart();
 
         try {
+            if ($idCotizacionSeleccionada) {
+                $cotizacionSeleccionada = $cotizacionModel->find($idCotizacionSeleccionada);
+                if ($cotizacionSeleccionada) {
+                    $solicitudModel->update($idSolicitud, ['ID_Proveedor' => $cotizacionSeleccionada['ID_Proveedor']]);
+                }
+            }
+
             $solicitudProductsDB = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
 
             if (count($productosPayload) !== count($solicitudProductsDB)) {
