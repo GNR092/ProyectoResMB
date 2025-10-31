@@ -1331,6 +1331,7 @@ function RevisionX() {
         paginationSelector: 'paginacion-enviar-revision',
         endpoint: 'api/solicitudes/cotizadas',
         processData: (data) => {
+          // ... (tu lógica de 'processData' existente) ...
           const agrupado = data.reduce((acc, s) => {
             if (s.Estado === 'En revision') return acc;
             if (!acc[s.ID_Solicitud]) {
@@ -1400,17 +1401,12 @@ function RevisionX() {
         const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
         if (!response.ok) throw new Error('No se pudieron cargar los detalles.');
         const data = await response.json();
+
         let estadoClass = getStatus(data.Estado);
-        const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
-          style: 'currency',
-          currency: 'MXN',
-        });
-
-        const proveedorNombre = data.cotizaciones && data.cotizaciones.length > 1 
-          ? 'Múltiples proveedores' 
-          : data.cotizacion?.ProveedorNombre || 'N/A';
-
-        let html = `
+        const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+        const proveedorNombre = data.cotizaciones && data.cotizaciones.length > 1 ? 'Múltiples proveedores' : data.cotizacion?.ProveedorNombre || 'N/A';
+        let html = `...`; // (Tu lógica HTML original)
+        html = `
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
@@ -1486,6 +1482,34 @@ function RevisionX() {
                 `;
         detallesContainer.innerHTML = html;
 
+        const checkboxInput = document.getElementById('adjuntar-solicitante-check');
+        const checkboxLabel = document.getElementById('adjuntar-solicitante-label');
+        const inputArchivos = document.getElementById('archivos-revision');
+
+        if (checkboxInput && checkboxLabel && inputArchivos) {
+          checkboxInput.checked = false;
+          checkboxInput.disabled = false;
+          inputArchivos.disabled = false;
+          inputArchivos.value = ''; // Limpiar selección de archivos anterior
+          inputArchivos.classList.remove('bg-gray-100', 'cursor-not-allowed');
+          checkboxLabel.textContent = 'Adjuntar solo la cotización del solicitante';
+          checkboxLabel.classList.remove('text-gray-500', 'cursor-not-allowed');
+
+          if (!data.Archivo) {
+            checkboxInput.disabled = true;
+            checkboxLabel.textContent += ' (No disponible)';
+            checkboxLabel.classList.add('text-gray-500', 'cursor-not-allowed');
+          } else {
+            checkboxInput.onchange = (e) => {
+              inputArchivos.disabled = e.target.checked;
+              inputArchivos.classList.toggle('bg-gray-100', e.target.checked);
+              inputArchivos.classList.toggle('cursor-not-allowed', e.target.checked);
+              if (e.target.checked) {
+                inputArchivos.value = '';
+              }
+            };
+          }
+        }
         form.onsubmit = async (e) => {
           e.preventDefault();
           if (!confirm('¿Está seguro de que desea enviar la solicitud a revisión? Esta acción es irreversible y las cotizaciones no seleccionadas serán eliminadas.')) {
@@ -1501,20 +1525,18 @@ function RevisionX() {
           }
 
           const adjuntarSoloSolicitante = document.getElementById('adjuntar-solicitante-check')?.checked || false;
-
           const archivos = document.getElementById('archivos-revision').files;
 
           if (!adjuntarSoloSolicitante && archivos.length === 0) {
             mostrarNotificacion('Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.', 'error');
             return;
           }
-          // Adjuntar archivos solo si el checkbox NO está marcado y hay archivos
+
           if (!adjuntarSoloSolicitante && archivos.length > 0) {
             for (let i = 0; i < archivos.length; i++) {
               formData.append('cotizacion_files[]', archivos[i]);
             }
           }
-          // Si adjuntarSoloSolicitante es true, NO añadimos 'cotizacion_files[]'
 
           const tipoPago = document.querySelector('input[name="tipo_pago"]:checked');
           if (!tipoPago) {
@@ -1522,7 +1544,6 @@ function RevisionX() {
             return;
           }
           formData.append('tipo_pago', tipoPago.value);
-
 
           formData.append('usar_archivo_solicitante', adjuntarSoloSolicitante);
 
@@ -1543,7 +1564,6 @@ function RevisionX() {
               this.regresar();
               this.loadTable();
             } else {
-              // Si falla, verificar si el error es por el archivo faltante y el check no marcado
               if (!adjuntarSoloSolicitante && archivos.length === 0 && result.message && result.message.includes("archivo")) {
                 mostrarNotificacion('Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.', 'error');
               } else {
@@ -1573,49 +1593,8 @@ function RevisionX() {
       if (detalles) detalles.innerHTML = '';
     },
 
-    _añadirCheckboxAlFormulario: function(data) {
-      const form = document.getElementById('form-enviar-revision');
-      const inputArchivos = document.getElementById('archivos-revision');
-      if (!form || !inputArchivos) return;
-
-      const checkboxDiv = document.createElement('div');
-      checkboxDiv.className = 'mt-4 flex items-center'; // Clases de Tailwind para espaciado y alineación
-
-      const checkboxInput = document.createElement('input');
-      checkboxInput.type = 'checkbox';
-      checkboxInput.id = 'adjuntar-solicitante-check';
-      checkboxInput.name = 'adjuntar_solicitante'; // Nombre opcional para el backend
-      checkboxInput.className = 'h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded';
-
-      const checkboxLabel = document.createElement('label');
-      checkboxLabel.htmlFor = 'adjuntar-solicitante-check';
-      checkboxLabel.className = 'ml-2 block text-sm text-gray-900 cursor-pointer';
-      checkboxLabel.textContent = 'Adjuntar solo la cotización del solicitante';
-
-      checkboxDiv.appendChild(checkboxInput);
-      checkboxDiv.appendChild(checkboxLabel);
-
-      inputArchivos.parentNode.insertBefore(checkboxDiv, inputArchivos.parentNode.firstElementChild.nextElementSibling); // Insertar después del label de "Adjuntar Cotización"
-
-      // Deshabilitar checkbox si no hay archivo del solicitante
-      if (!data.Archivo) {
-        checkboxInput.disabled = true;
-        checkboxLabel.textContent += ' (No disponible)';
-        checkboxLabel.classList.add('text-gray-500', 'cursor-not-allowed');
-      } else {
-        checkboxInput.addEventListener('change', (e) => {
-          inputArchivos.disabled = e.target.checked;
-          inputArchivos.classList.toggle('bg-gray-100', e.target.checked); // Opcional: Estilo visual
-          inputArchivos.classList.toggle('cursor-not-allowed', e.target.checked); // Opcional: Estilo cursor
-          // Limpiar archivos si se marca el check
-          if (e.target.checked) {
-            inputArchivos.value = '';
-          }
-        });
-      }
-    },
-
     mostrarModalModificarMontos: async function (idSolicitud) {
+      // ... (tu código existente de modificar montos no cambia) ...
       const modalModificar = document.getElementById('modal-modificar-montos');
       const productosContainer = document.getElementById('productos-modificar-container');
       const formModificar = document.getElementById('form-modificar-montos');
@@ -1629,7 +1608,7 @@ function RevisionX() {
 
       idSolicitudInput.value = idSolicitud;
       productosContainer.innerHTML = '<p class="text-center text-gray-500">Cargando productos...</p>';
-      proveedorSelectContainer.innerHTML = ''; // Limpiar el contenedor del select
+      proveedorSelectContainer.innerHTML = '';
       modalModificar.classList.remove('hidden');
 
       try {
@@ -1637,7 +1616,6 @@ function RevisionX() {
 
         if (data.error) throw new Error(data.error);
 
-        // Si hay múltiples cotizaciones, crear y mostrar el select de proveedores
         if (data.cotizaciones && data.cotizaciones.length > 1) {
           let selectHtml = '<label for="proveedor-select" class="block text-sm font-medium text-gray-700">Seleccionar Proveedor:</label>';
           selectHtml += '<select id="proveedor-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">';
@@ -1657,7 +1635,6 @@ function RevisionX() {
           });
         }
 
-        // Función para actualizar la tabla de productos
         function actualizarProductos(productos) {
           let productosHtml = `
             <div class="overflow-x-auto">
@@ -1698,7 +1675,6 @@ function RevisionX() {
           productosContainer.innerHTML = productosHtml;
         }
 
-        // Cargar productos de la primera cotización por defecto
         actualizarProductos(data.productos);
 
         formModificar.onsubmit = async (e) => {
@@ -1711,7 +1687,7 @@ function RevisionX() {
             const c = formData.get(`productos[${index}][codigo]`);
             productosModificados.push({
               codigo: c === "" ? null : c,
-              nombre: formData.get(`productos[${index}][nombre]`),
+              nombre: formData.gacmet(`productos[${index}][nombre]`),
               cantidad: formData.get(`productos[${index}][cantidad]`),
               importe: formData.get(`productos[${index}][importe]`),
             });

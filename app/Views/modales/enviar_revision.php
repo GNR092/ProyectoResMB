@@ -43,6 +43,18 @@
 
         <!-- Formulario -->
         <form id="form-enviar-revision" class="mt-4">
+
+            <div class="flex items-center mb-4">
+                <input type="checkbox"
+                       id="adjuntar-solicitante-check"
+                       name="adjuntar_solicitante"
+                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                <label for="adjuntar-solicitante-check"
+                       id="adjuntar-solicitante-label"
+                       class="ml-2 block text-sm text-gray-900 cursor-pointer">
+                    Adjuntar solo la cotización del solicitante
+                </label>
+            </div>
             <div>
                 <label for="archivos-revision" class="block text-sm font-medium text-gray-700">Adjuntar Cotización (Imágenes o PDF)</label>
                 <input type="file" id="archivos-revision" name="archivos[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
