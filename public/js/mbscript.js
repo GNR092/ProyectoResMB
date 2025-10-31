@@ -974,31 +974,31 @@ function initRevisarSolicitud() {
 }
 
 async function mostrarVer(idSolicitud) {
-  const divTabla = document.getElementById('div-tabla')
-  const divVer = document.getElementById('div-ver')
-  const detallesContainer = document.getElementById('detalles-solicitud')
+  const divTabla = document.getElementById('div-tabla');
+  const divVer = document.getElementById('div-ver');
+  const detallesContainer = document.getElementById('detalles-solicitud');
 
   if (!divTabla || !divVer || !detallesContainer) {
-    console.error('Elementos del DOM no encontrados para mostrar detalles.')
-    return
+    console.error('Elementos del DOM no encontrados para mostrar detalles.');
+    return;
   }
 
-  divTabla.classList.add('hidden')
-  divVer.classList.remove('hidden')
-  detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>'
+  divTabla.classList.add('hidden');
+  divVer.classList.remove('hidden');
+  detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>';
 
   try {
-    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
+    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`);
     if (!response.ok) {
-      throw new Error(`Error ${response.statusus}: ${response.statususText}`)
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
-    const data = await response.json()
+    const data = await response.json();
 
     if (data.error) {
-      throw new Error(data.error)
+      throw new Error(data.error);
     }
 
-    const iva = data.IVA === 't'
+    const iva = data.IVA === 't';
 
     let html = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
@@ -1024,10 +1024,10 @@ async function mostrarVer(idSolicitud) {
                         </tr>
                     </thead>
                     <tbody>
-        `
+        `;
 
     data.productos.forEach((p) => {
-      const costoTotal = iva ? 1.16 * (p.Cantidad * p.Importe) : p.Cantidad * p.Importe
+      const costoTotal = iva ? 1.16 * (p.Cantidad * p.Importe) : p.Cantidad * p.Importe;
       html += `
                 <tr class="hover:bg-gray-50">
                     <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'} </td>
@@ -1037,31 +1037,30 @@ async function mostrarVer(idSolicitud) {
                     ${iva ? `<td class="py-2 px-4 border-t text-right">$${parseFloat(0.16 * p.Importe).toFixed(2)}</td>` : ''}
                     ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">$${parseFloat(costoTotal).toFixed(2)}</td>`}
                 </tr>
-            `
-    })
+            `;
+    });
 
     html += `
                     </tbody>
                 </table>
             </div>
-        `
+        `;
     if (data.ComentariosUser) {
       html += `
             <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
                 <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
                 <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
-            </div>`
+            </div>`;
     }
 
     if (data.Archivo) {
-      // Usamos la nueva ruta para descargar el archivo
-      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
+      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`;
       html += `
                 <div class="mt-6">
                     <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
                     <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
                 </div>
-            `
+            `;
     }
 
     html += `
@@ -1069,12 +1068,12 @@ async function mostrarVer(idSolicitud) {
                 <h4 class="text-md font-bold mb-2">Acciones</h4>
                 <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
             </div>
-            `
+            `;
 
-    detallesContainer.innerHTML = html
+    detallesContainer.innerHTML = html;
   } catch (error) {
-    console.error('Error al cargar detalles de la solicitud:', error)
-    detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
+    console.error('Error al cargar detalles de la solicitud:', error);
+    detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`;
   }
 }
 
@@ -1134,7 +1133,6 @@ async function mostrarCotizar(idSolicitud) {
       checkSeleccion();
     }
 
-
     function renderizarTabla() {
       const totalPaginas = Math.ceil(proveedoresFiltrados.length / filasPorPagina) || 1;
       paginaActual = Math.min(paginaActual, totalPaginas);
@@ -1145,7 +1143,8 @@ async function mostrarCotizar(idSolicitud) {
       tbody.innerHTML = proveedoresFiltrados
           .slice(start, end)
           .map((p) => {
-            const isChecked = selectedProviderIds.has(String(p.ID_Proveedor)); // Convertir a string por si acaso
+            // Comprueba si el ID está en el Set para mantenerlo marcado
+            const isChecked = selectedProviderIds.has(String(p.ID_Proveedor));
 
             return `
                 <tr class="hover:bg-gray-50">
@@ -1164,7 +1163,6 @@ async function mostrarCotizar(idSolicitud) {
           .join('');
 
       tbody.querySelectorAll('.check-proveedor').forEach(check => {
-        check.removeEventListener('change', handleCheckboxChange); // Quitar listener anterior por si acaso
         check.addEventListener('change', handleCheckboxChange);
       });
 
@@ -1213,65 +1211,67 @@ async function mostrarCotizar(idSolicitud) {
     tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`;
   }
 
+  async function handleGenerarCotizacion() {
+    const idSolicitud = document.getElementById('cotizar_id_solicitud').value;
+
+    if (selectedProviderIds.size === 0) {
+      alert('Por favor, seleccione al menos un proveedor.');
+      return;
+    }
+
+    if (!confirm(`¿Está seguro de que desea generar la solicitud de cotización para los ${selectedProviderIds.size} proveedor(es) seleccionado(s)?`)) {
+      return;
+    }
+
+    const btn = document.getElementById('btn-generar-cotizacion');
+    btn.disabled = true;
+    btn.textContent = 'Generando...';
+
+    const providerIds = Array.from(selectedProviderIds);
+
+    try {
+      const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({
+          ID_Solicitud: idSolicitud,
+          ID_Proveedores: providerIds,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(result.message || 'Solicitudes de cotización generadas y estado de la solicitud actualizado.');
+        abrirModal('revisar_solicitudes');
+      } else {
+        alert('Error: ' + (result.message || 'No se pudieron generar las cotizaciones.'));
+        // Re-habilitar el botón si falla
+        btn.disabled = false;
+        btn.textContent = 'Generar requisicion de Cotización';
+      }
+    } catch (error) {
+      console.error('Error al generar cotización:', error);
+      alert('Ocurrió un error de red al generar las cotizaciones.');
+      btn.disabled = false;
+      btn.textContent = 'Generar requisicion de Cotización';
+    }
+  }
+
   if (btnGenerar && !btnGenerar.dataset.listenerAttached) {
     btnGenerar.addEventListener('click', handleGenerarCotizacion);
     btnGenerar.dataset.listenerAttached = 'true';
   }
 }
 
-async function handleGenerarCotizacion() {
-  const idSolicitud = document.getElementById('cotizar_id_solicitud').value;
-  const selectedCheckboxes = document.querySelectorAll('.check-proveedor:checked');
-
-  if (selectedCheckboxes.length === 0) {
-    alert('Por favor, seleccione al menos un proveedor.');
-    return;
-  }
-
-  if (!confirm(`¿Está seguro de que desea generar la solicitud de cotización para los ${selectedCheckboxes.length} proveedor(es) seleccionado(s)?`)) {
-    return;
-  }
-
-  const btn = document.getElementById('btn-generar-cotizacion');
-  btn.disabled = true;
-  btn.textContent = 'Generando...';
-
-  const providerIds = Array.from(selectedCheckboxes).map(cb => cb.value);
-
-  try {
-    const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: JSON.stringify({
-        ID_Solicitud: idSolicitud,
-        ID_Proveedores: providerIds, // Enviar un array de IDs
-      }),
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      alert(result.message || 'Solicitudes de cotización generadas y estado de la solicitud actualizado.');
-      abrirModal('revisar_solicitudes');
-    } else {
-      alert('Error: ' + (result.message || 'No se pudieron generar las cotizaciones.'));
-    }
-  } catch (error) {
-    console.error('Error al generar cotización:', error);
-    alert('Ocurrió un error de red al generar las cotizaciones.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Generar requisicion de Cotización';
-  }
-}
 
 function regresarTabla() {
-  document.getElementById('div-ver').classList.add('hidden')
-  document.getElementById('div-cotizar').classList.add('hidden')
-  document.getElementById('div-tabla').classList.remove('hidden')
+  document.getElementById('div-ver').classList.add('hidden');
+  document.getElementById('div-cotizar').classList.add('hidden');
+  document.getElementById('div-tabla').classList.remove('hidden');
 }
 
 
