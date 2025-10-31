@@ -1002,17 +1002,24 @@ class Rest
     //endregion
 
     //region Proveedor
+
     /**
-     * Obtiene un proveedor por su ID.
+     * Obtiene un proveedor por su ID sin incluir datos de contacto sensibles.
      *
      * @param int $id El ID del proveedor.
      * @return array|null El proveedor encontrado o null si no se encuentra.
      */
-    public function getProveedorById(int $id): ?array
+    public function getProveedorByID(int $id): ?array
     {
         $proveedorModel = new ProveedorModel();
-        $result = $proveedorModel->find($id);
-        return $result ?: null;
+        $proveedor = $proveedorModel->find($id);
+
+        if ($proveedor) {
+            unset($proveedor['Correo']);
+            unset($proveedor['Tel_Contacto']);
+        }
+
+        return $proveedor ?: [];
     }
     /**
      * Obtiene todos los proveedores.

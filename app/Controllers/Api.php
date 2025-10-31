@@ -87,6 +87,20 @@ class Api extends ResourceController
         $results = $this->api->getProveedorIdAndRazonSocial();
         return $this->respond($results, HttpStatus::OK);
     }
+
+    /**
+     * Obtiene un proveedor por su ID.
+     * @param int|null $id El ID del proveedor.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getProviderById(int $id)
+    {
+        $result = $this->api->getProveedorByID($id);
+        if ($result === null) {
+            return $this->failNotFound('Proveedor no encontrado.');
+        }
+        return $this->respond($result, HttpStatus::OK);
+    }
     //endregion
 
     //region Departamentos

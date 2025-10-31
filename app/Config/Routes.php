@@ -80,6 +80,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/departments/all', 'Api::getDepartments');
         //region proveedores
         $routes->get('api/providers/all', 'Api::getAllProviders');
+        $routes->get('api/provider/(:num)', 'Api::getProviderById/$1');
         // Historial
         $routes->get('api/historic', 'Api::getHistorial');
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
