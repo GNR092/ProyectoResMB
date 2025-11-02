@@ -159,3 +159,4 @@ GEMINI.md
 app/Commands/SendTestEmail.php
 /app/Commands
 agent.bat
+.gemini/settings.json

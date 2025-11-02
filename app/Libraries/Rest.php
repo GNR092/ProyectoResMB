@@ -454,6 +454,7 @@ class Rest
                 'Departamentos.Nombre as DepartamentoNombre',
                 'Proveedor.RazonSocial as RazonSocialNombre',
                 'Razon_Social.Nombre as Complejo',
+                'Solicitud.Fecha_Aprobacion',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -1251,7 +1252,7 @@ class Rest
 
         log_message('debug', 'Finalizando getSolicitudPago con éxito.');
          log_message('debug',print_r($solicitud,true));
-        return $solicitud;
+        return $solicitud ?: [];
     }
     //endregion
 }

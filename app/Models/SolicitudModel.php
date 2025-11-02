@@ -26,6 +26,7 @@ class SolicitudModel extends Model
         'ComentariosUser',
         'Tipo',
         'MetodoPago',
+        'Fecha_Aprobacion',
     ];
 
     // Dates

@@ -1897,12 +1897,14 @@ function generarDetallesSolicitudHTML(data) {
     currency: 'MXN',
   })
   const metodoPago = data.MetodoPago == 0 ? 'Efectivo' : 'Crédito'
+  const fechaAprobacionHTML = data.Fecha_Aprobacion ? `<div><strong>Fecha de Aprobación:</strong> ${new Date(data.Fecha_Aprobacion).toLocaleString('es-MX')}</div>` : ''
 
   return `
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
             <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
             <div><strong>Fecha:</strong> ${data.Fecha}</div>
             <div><strong>Estado:</strong> <span class="font-semibold text-blue-600">${data.Estado}</span></div>
+            ${fechaAprobacionHTML}
             <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
             <div><strong>Departamento:</strong> ${data.DepartamentoNombre + ' - ' + data.ID_Place}</div>
             <div><strong>Complejo:</strong> ${data.Complejo}</div>

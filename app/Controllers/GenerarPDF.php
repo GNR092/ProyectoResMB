@@ -287,39 +287,127 @@ class GenerarPDF extends BaseController
         if (file_exists($filePath)) {
             $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
             $imageExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+            $maxFileSize = 10 * 1024 * 1024; // 10 MB
 
             if (in_array($fileExtension, $imageExtensions)) {
-                [$width, $height] = getimagesize($filePath);
-                $aspectRatio = $width / $height;
-                $maxWidth = 190;
-                $maxHeight = 250;
+                $maxFileSizeForResize = 500 * 1024; // 500KB
+                $fileSize = filesize($filePath);
+                $tempImagePath = null;
 
-                if ($width / $height > $maxWidth / $maxHeight) {
-                    $newWidth = $maxWidth;
-                    $newHeight = $maxWidth / $aspectRatio;
+                if ($fileSize > $maxFileSizeForResize) {
+                    $imageInfo = getimagesize($filePath);
+                    $mime = $imageInfo['mime'];
+                    $sourceImage = null;
+
+                    switch ($mime) {
+                        case 'image/jpeg':
+                            $sourceImage = imagecreatefromjpeg($filePath);
+                            break;
+                        case 'image/png':
+                            $sourceImage = imagecreatefrompng($filePath);
+                            break;
+                        case 'image/gif':
+                            $sourceImage = imagecreatefromgif($filePath);
+                            break;
+                    }
+
+                    if ($sourceImage) {
+                        $originalWidth = imagesx($sourceImage);
+                        $originalHeight = imagesy($sourceImage);
+                        $maxWidth = 1024;
+
+                        if ($originalWidth > $maxWidth) {
+                            $aspectRatio = $originalHeight / $originalWidth;
+                            $newWidth = $maxWidth;
+                            $newHeight = (int) ($newWidth * $aspectRatio);
+                            $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+                            if ($mime == 'image/png') {
+                                imagealphablending($resizedImage, false);
+                                imagesavealpha($resizedImage, true);
+                                $transparent = imagecolorallocatealpha($resizedImage, 255, 255, 255, 127);
+                                imagefilledrectangle($resizedImage, 0, 0, $newWidth, $newHeight, $transparent);
+                            }
+                            imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
+                            $tempImagePath = tempnam(sys_get_temp_dir(), 'pdf_img_') . '.' . $fileExtension;
+                            switch ($mime) {
+                                case 'image/jpeg':
+                                    imagejpeg($resizedImage, $tempImagePath, 85);
+                                    break;
+                                case 'image/png':
+                                    imagepng($resizedImage, $tempImagePath, 7);
+                                    break;
+                                case 'image/gif':
+                                    imagegif($resizedImage, $tempImagePath);
+                                    break;
+                            }
+                            imagedestroy($sourceImage);
+                            imagedestroy($resizedImage);
+                        }
+                    }
+                }
+
+                $imageToEmbed = $tempImagePath ?: $filePath;
+
+                [$width, $height] = getimagesize($imageToEmbed);
+                $aspectRatio = $width / $height;
+                $maxWidthPdf = 190;
+                $maxHeightPdf = 250;
+
+                if ($width / $height > $maxWidthPdf / $maxHeightPdf) {
+                    $newWidthPdf = $maxWidthPdf;
+                    $newHeightPdf = $maxWidthPdf / $aspectRatio;
                 } else {
-                    $newHeight = $maxHeight;
-                    $newWidth = $maxHeight * $aspectRatio;
+                    $newHeightPdf = $maxHeightPdf;
+                    $newWidthPdf = $maxHeightPdf * $aspectRatio;
                 }
                 $pdf->AddPage();
                 $pdf->Title($title, 0, 0, 0, 0, 'C');
                 $pdf->Ln(2);
-                $pdf->Image($filePath, 10, 35, $newWidth, $newHeight);
-            } elseif ($fileExtension === 'pdf') {
-                $pageCount = $pdf->setSourceFile($filePath);
-                for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-                    $templateId = $pdf->importPage($pageNo);
-                    $size = $pdf->getTemplateSize($templateId);
-                    $pdf->AddPage($size['width'] > $size['height'] ? 'L' : 'P', $size);
-                    $pdf->useTemplate($templateId);
+                $pdf->Image($imageToEmbed, 10, 35, $newWidthPdf, $newHeightPdf);
+
+                if ($tempImagePath && file_exists($tempImagePath)) {
+                    unlink($tempImagePath);
                 }
-                $pdf->Title($title, 0, -35, 0, 0, 'C');
+
+            } elseif ($fileExtension === 'pdf') {
+                $fileSize = filesize($filePath);
+                if ($fileSize > $maxFileSize) {
+                    $pdf->AddPage();
+                    $pdf->Title($title, 0, 0, 0, 0, 'C');
+                    $pdf->Ln(10);
+                    $pdf->SetFont('Arial', 'B', 12);
+                    $pdf->MultiCell(190, 10, mb_convert_encoding('El archivo adjunto (PDF) "' . $fileName . '" es demasiado grande (' . round($fileSize / 1024 / 1024, 2) . ' MB) para ser incluido.', 'ISO-8859-1', 'UTF-8'), 0, 'C');
+                    return;
+                }
+
+                try {
+                    $pageCount = $pdf->setSourceFile($filePath);
+                    for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                        $templateId = $pdf->importPage($pageNo);
+                        $size = $pdf->getTemplateSize($templateId);
+                        $pdf->AddPage($size['width'] > $size['height'] ? 'L' : 'P', $size);
+                        $pdf->useTemplate($templateId);
+                    }
+                    $pdf->Title($title, 0, -35, 0, 0, 'C');
+                } catch (\Exception $e) {
+                    $pdf->AddPage();
+                    $pdf->Title($title, 0, 0, 0, 0, 'C');
+                    $pdf->Ln(10);
+                    $pdf->SetFont('Arial', 'B', 12);
+                    $pdf->MultiCell(190, 10, mb_convert_encoding('Error al procesar el archivo PDF adjunto: "' . $fileName . '".', 'ISO-8859-1', 'UTF-8'), 0, 'C');
+                }
+
             } else {
+                $pdf->AddPage();
+                $pdf->Title($title, 0, 0, 0, 0, 'C');
+                $pdf->Ln(10);
                 $pdf->SetFont('Arial', 'B', 12);
                 $pdf->Cell(0, 10, 'Archivo adjunto no compatible para visualizacion:', 0, 1);
                 $pdf->SetFont('Arial', '', 12);
                 $pdf->Cell(0, 10, $fileName, 0, 1);
             }
+        } else {
+            log_message('warning', '[Adjuntar] Archivo no encontrado en la ruta: ' . $filePath);
         }
     }
 
@@ -878,5 +966,3 @@ class GenerarPDF extends BaseController
         $pdf->Cell(0, 10, mb_convert_encoding($data['NotificarA'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
     }
 }
-
-

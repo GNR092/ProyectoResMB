@@ -649,6 +649,9 @@ class Api extends ResourceController
 
         try {
             $dataToUpdate = ['Estado' => $nuevoEstado, 'ComentariosAdmin' => $comentarios];
+            if ($nuevoEstado === 'Aprobada') {
+                $dataToUpdate['Fecha_Aprobacion'] = date('Y-m-d H:i:s');
+            }
             $solicitudModel->update($idSolicitud, $dataToUpdate);
             return $this->respondUpdated([
                 'success' => true,
