@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "check-format": "prettier --check .",
     "build:product": "postcss input.css -o public/css/styless.css --minify",
-    "watch": "postcss input.css -o public/css/styless.css --watch"
+    "watch": "postcss input.css -o public/css/styless.css --watch",
+    "obfuscate": "javascript-obfuscator public/js/mbscript.js --output public/js/mbscript.min.js --compact true --self-defending true --string-array true --string-array-rotate true --string-array-shuffle true --string-array-threshold 0.75"
   },
   "repository": {
     "type": "git",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@prettier/plugin-php": "^0.24.0",
     "@stedi/prettier-plugin-jsonata": "^2.1.5",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "javascript-obfuscator": "^4.1.0"
   }
 }

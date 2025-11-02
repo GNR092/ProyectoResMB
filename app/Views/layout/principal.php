@@ -98,7 +98,7 @@ $session = session();
     const ICON_SVG_VERSION = "<?= $iconVersion ?>";
     </script>
     <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
-    <script src="<?= base_url() ?>js/mbscript.js" defer></script>
+    <script src="<?= base_url(file_exists(FCPATH . 'js/mbscript.js') ? 'js/mbscript.js' : 'js/mbscript.min.js') ?>" defer></script>
 </body>
 
 </html>
