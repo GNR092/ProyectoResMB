@@ -45,6 +45,7 @@ function abrirModal(opcion) {
     reportes: 'Reportes/Auditoria',
     razonsocial: 'Razón social',
     reporte_almacen: 'Reportes/Historial',
+    micuenta: 'Mi cuenta',
   };
   // Título para la nueva opción
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados';

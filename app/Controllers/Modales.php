@@ -249,7 +249,8 @@ class Modales extends BaseController
                 $data['historial'] = $historialModel->orderBy('created_at', 'DESC')->findAll();
 
                 return view('modales/reporte_almacen', $data);
-
+            case 'micuenta':
+                return view('modales/micuenta');
 
             default:
                 return 'Opción no válida';

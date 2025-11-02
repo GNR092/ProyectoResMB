@@ -62,4 +62,12 @@ $iconUrl = "/icons/icons.svg?v=$version";
     </button>
     <?php endif; ?>
 
+    <button onclick="abrirModal('micuenta')"
+        class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
+        <svg class="size-6" fill="none" stroke-width="1.5">
+            <use xlink:href="<?= $iconUrl ?>#settings"></use>
+        </svg>
+        <span>Mi cuenta</span>
+    </button>
+
 </div>
