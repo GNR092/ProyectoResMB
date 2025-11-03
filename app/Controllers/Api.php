@@ -1070,6 +1070,13 @@ class Api extends ResourceController
                 );
             }
         }
+        if (empty($data['username']))
+        {
+            return $this->respond(
+                    ['success' => false, 'message' => 'El nombre no puede estar vacío.'],
+                    HttpStatus::OK
+                );
+        }
 
         if (isset($data['username'])) {
             $data['Nombre'] = $data['username'];
@@ -1086,7 +1093,7 @@ class Api extends ResourceController
         $result = $this->api->updateUserByEmail($email, $data);
 
         if ($result) {
-            return $this->respondUpdated(['success' => true, 'message' => 'Usuario actualizado correctamente.']);
+            return $this->respondUpdated(['success' => true, 'message' => "Usuario actualizado correctamente. Recargar página para ver los cambios."]);
         } else {
             return $this->fail('No se pudo actualizar el usuario. Verifique los datos proporcionados.', HttpStatus::BAD_REQUEST);
         }

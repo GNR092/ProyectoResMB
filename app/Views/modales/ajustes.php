@@ -4,6 +4,7 @@ $ajustes = session('ajustes');
 $iconPath = FCPATH . 'icons/icons.svg';
 $version = file_exists($iconPath) ? filemtime($iconPath) : time();
 $iconUrl = "/icons/icons.svg?v=$version";
+$login_type = session('login_type');
 ?>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
@@ -62,6 +63,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
     </button>
     <?php endif; ?>
 
+    <?php if ($login_type === 'boss'): ?>
     <button onclick="abrirModal('micuenta')"
         class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
         <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -69,5 +71,6 @@ $iconUrl = "/icons/icons.svg?v=$version";
         </svg>
         <span>Mi cuenta</span>
     </button>
+    <?php endif; ?>
 
 </div>

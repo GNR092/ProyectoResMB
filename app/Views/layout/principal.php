@@ -36,13 +36,12 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             <?php endif; ?>
 
             <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
-               onclick="abrirModal('ajustes')">
+                onclick="abrirModal('ajustes')">
                 <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
                     <use xlink:href="/icons/icons.svg#settings"></use>
                 </svg>
                 <span>Ajustes</span>
             </a>
-
 
             <a href="<?= base_url(
                 'auth/logout',
@@ -59,8 +58,16 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
         <header
             class="h-12 bg-white border-b border-gray-300 flex items-center justify-end px-6 text-sm text-gray-600 shadow-sm">
             <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc(
-     $modo_login." " . $departamento_usuario ?? 'Departamento',
+     $modo_login . ' ' . $departamento_usuario ?? 'Departamento',
  ) ?>
+            <?php if ($login_type === 'boss'): ?>
+            <button onclick="abrirModal('micuenta')"
+                class="p-4 bg-white border-b border-gray-300 hover:bg-gray-200 transition flex items-center">
+                <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <use xlink:href="/icons/icons.svg#settings"></use>
+                </svg>
+            </button>
+            <?php endif; ?>
         </header>
 
         <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
@@ -100,7 +107,9 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     const ICON_SVG_VERSION = "<?= $iconVersion ?>";
     </script>
     <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
-    <script src="<?= base_url(file_exists(FCPATH . 'js/mbscript.js') ? 'js/mbscript.js' : 'js/mbscript.min.js') ?>" defer></script>
+    <script src="<?= base_url(
+        file_exists(FCPATH . 'js/mbscript.js') ? 'js/mbscript.js' : 'js/mbscript.min.js',
+    ) ?>" defer></script>
 </body>
 
 </html>
