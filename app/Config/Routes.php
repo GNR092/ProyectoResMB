@@ -104,6 +104,8 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/razonsocial/editar/(:num)', 'Modales::editarRazonSocial/$1');
         $routes->post('modales/razonsocial/eliminar/(:num)', 'Modales::eliminarRazonSocial/$1');
 
+        // User
+        $routes->post('api/user/update', 'Api::updateUser');
 
         // Auth
         $routes->get('auth/logout', 'Auth::logout');

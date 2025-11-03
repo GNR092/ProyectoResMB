@@ -860,6 +860,23 @@ class Rest
         $usuariosModel = new UsuariosModel();
         return $usuariosModel->update($id, $data);
     }
+
+    /**
+     * Actualiza un usuario existente por su correo electrónico.
+     *
+     * @param string $email El correo electrónico del usuario a actualizar.
+     * @param array $data Los nuevos datos para el usuario.
+     * @return bool True si el usuario se actualizó correctamente, false en caso contrario.
+     */
+    public function updateUserByEmail(string $email, array $data): bool
+    {
+        $usuariosModel = new UsuariosModel();
+        $user = $this->getUserByEmail($email);
+        if (!$user) {
+            return false;
+        }
+        return $usuariosModel->update($user['ID_Usuario'], $data);
+    }
     /**
      * Elimina un usuario por su ID.
      *

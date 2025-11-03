@@ -1,5 +1,7 @@
 <?php
 $session = session(); 
+$stylessPath = FCPATH . 'css/styless.css';
+$version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 ?>
 
 <!DOCTYPE html>
@@ -8,7 +10,7 @@ $session = session();
 <head>
     <meta charset="UTF-8">
     <title>Pantalla principal</title>
-    <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>?v=<?= $version ?>">
 </head>
 
 <body class="h-screen flex">

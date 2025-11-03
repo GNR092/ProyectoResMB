@@ -17,6 +17,7 @@ use App\Libraries\MetodoPago;
 use App\Controllers\GenerarPDF;
 use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
+use App\Models\UsuariosModel;
 
 class Api extends ResourceController
 {
@@ -1033,4 +1034,61 @@ class Api extends ResourceController
 
     //endregion
 
+    /**
+     * Actualiza los datos de un usuario utilizando su correo electrónico como identificador.
+     * Espera un JSON con "email" y "data".
+     *
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function updateUser()
+    {
+        $json = $this->request->getJSON();
+
+        if (!isset($json->email) || !is_string($json->email)) {
+            return $this->failValidationErrors('Se requiere un correo electrónico válido.');
+        }
+
+        if (!isset($json->data) || !is_object($json->data)) {
+            return $this->failValidationErrors('Se requiere un objeto "data" con los campos a actualizar.');
+        }
+
+        $email = $json->email;
+        $data = (array) $json->data;
+
+        $userModel = new UsuariosModel();
+        $user = $userModel->where('Correo', $email)->first();
+
+        if (!$user) {
+            return $this->fail('No se pudo actualizar el usuario. Usuario no encontrado.', HttpStatus::BAD_REQUEST);
+        }
+
+        if (isset($data['username']) && $data['username'] === $user['Nombre']) {
+            if (count($data) === 1) {
+                return $this->respond(
+                    ['success' => false, 'message' => 'El nombre es el mismo, no se realizaron cambios.'],
+                    HttpStatus::OK
+                );
+            }
+        }
+
+        if (isset($data['username'])) {
+            $data['Nombre'] = $data['username'];
+            unset($data['username']);
+        }
+
+        if (empty($data)) {
+            return $this->respond(
+                ['success' => false, 'message' => 'No hay cambios para realizar.'],
+                HttpStatus::OK
+            );
+        }
+
+        $result = $this->api->updateUserByEmail($email, $data);
+
+        if ($result) {
+            return $this->respondUpdated(['success' => true, 'message' => 'Usuario actualizado correctamente.']);
+        } else {
+            return $this->fail('No se pudo actualizar el usuario. Verifique los datos proporcionados.', HttpStatus::BAD_REQUEST);
+        }
+    }
 }
