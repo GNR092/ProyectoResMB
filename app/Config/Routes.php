@@ -106,6 +106,7 @@ if (!file_exists($installerLockFile)) {
 
         // User
         $routes->post('api/user/update', 'Api::updateUser');
+        $routes->post('api/user/upload_signature', 'Api::upload_signature');
 
         // Auth
         $routes->get('auth/logout', 'Auth::logout');

@@ -1,8 +1,7 @@
 <?php
-$nombreUsuario = session('nombre_usuario') ?? 'Nombre Apellido';
+$id = session('id');
+$nombreUsuario = session('nombre_usuario') ?? 'Nombre';
 $emailUsuario = session('email') ?? 'correo@example.com';
-$firmaUrl = session('firma_url') ?? null;
-$nombreFirma = session('nombre_firma') ?? 'preview';
 ?>
 
 <div x-data="Account()" id="micuenta" class="p-6 bg-white rounded-xl shadow-md">
@@ -38,13 +37,14 @@ $nombreFirma = session('nombre_firma') ?? 'preview';
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <div>
                 <label for="old-password" class="block text-sm font-medium text-gray-700">Contraseña anterior</label>
-                <input type="password" id="old-password" name="old_password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <input type="password" id="old-password" name="old_password" placeholder="••••••••••" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
             <div>
                 <label for="new-password" class="block text-sm font-medium text-gray-700">Nueva Contraseña</label>
-                <input type="password" id="new-password" name="new_password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <input type="password" id="new-password" name="new_password" placeholder="••••••••••" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
         </div>
+        <div class="my-2" x-ref="form-message-pass"></div>
         <div class="mt-6 text-right">
             <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Guardar Contraseña</button>
         </div>
@@ -56,22 +56,24 @@ $nombreFirma = session('nombre_firma') ?? 'preview';
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <div>
                 <label for="old-Gpassword" class="block text-sm font-medium text-gray-700">Contraseña anterior</label>
-                <input type="password" id="old-Gpassword" name="old_Gpassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <input type="password" id="old-Gpassword" name="old_Gpassword" placeholder="••••••••••" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
             <div>
                 <label for="new-Gpassword" class="block text-sm font-medium text-gray-700">Nueva Contraseña</label>
-                <input type="password" id="new-Gpassword" name="new_Gpassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <input type="password" id="new-Gpassword" name="new_Gpassword" placeholder="••••••••••" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
         </div>
+        <div class="my-2" x-ref="form-message-gpass"></div>
         <div class="mt-6 text-right">
             <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon hover:bg-gray600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Guardar Contraseña</button>
         </div>
     </form>
 
     <!-- Sección de Firma Electrónica -->
-    <form id="form-upload-signature" enctype="multipart/form-data" x-ref="xSignForm" class="p-6 border border-gray-200 rounded-lg shadow-sm">
+    <form id="form-upload-signature" @submit.prevent="uploadSignature" x-ref="xSignForm" class="p-6 border border-gray-200 rounded-lg shadow-sm">
         <?= csrf_field() ?>
         <h3 class="text-xl font-medium mb-4">Firma electrónica</h3>
+        <p class="text-sm text-gray-400 mb-2">Tamaño recomendado para la firma 300px x 150px</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Previsualización</label>
@@ -79,18 +81,19 @@ $nombreFirma = session('nombre_firma') ?? 'preview';
                     <?php if ($firmaUrl): ?>
                         <img src="<?= esc($firmaUrl) ?>" alt="Firma" class="h-full w-full object-contain">
                     <?php else: ?>
-                        <span class="text-gray-400"><?= esc($nombreFirma) ?></span>
+                        <span class="text-gray-400">preview</span>
                     <?php endif; ?>
                 </div>
             </div>
             <div>
                 <label for="signature-file" class="block text-sm font-medium text-gray-700">Archivo de Firma</label>
                 <div class="mt-1">
-                    <input type="file" id="signature-file" name="signature_file" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                    <input type="file" id="signature-file" name="signature" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
                 </div>
                  <div class="mt-6 text-right">
                     <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Subir y/o Guardar</button>
                 </div>
+                <div class="my-2" x-ref="form-message-sign"></div>
             </div>
         </div>
     </form>

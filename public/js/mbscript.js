@@ -660,7 +660,6 @@ async function initSolicitarServicio() {
 
       if (!valido) {
         e.preventDefault()
-        // No usamos alert(), el mensaje se muestra debajo de los inputs
       } else {
         SendData(e)
       }
@@ -1212,14 +1211,15 @@ async function mostrarCotizar(idSolicitud) {
     const idSolicitud = document.getElementById('cotizar_id_solicitud').value
 
     if (selectedProviderIds.size === 0) {
-      alert('Por favor, seleccione al menos un proveedor.')
+      mostrarNotificacion('Por favor, seleccione al menos un proveedor.','alert')
       return
     }
 
     if (
-      !confirm(
+      !(await Confirmar(
+        'Generar solicitud de cotización',
         `¿Está seguro de que desea generar la solicitud de cotización para los ${selectedProviderIds.size} proveedor(es) seleccionado(s)?`,
-      )
+      ))
     ) {
       return
     }
@@ -1299,7 +1299,7 @@ function initRegistrarMaterial() {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          alert('Producto registrado correctamente')
+          mostrarNotificacion('Producto registrado correctamente')
           form.reset()
         } else {
           const errorMsg = data.errors
@@ -1630,9 +1630,10 @@ function RevisionX() {
           }
 
           if (
-            !confirm(
+            !(await Confirmar(
+              'Enviar a revisión',
               '¿Está seguro de que desea enviar la solicitud a revisión? Esta acción es irreversible y las cotizaciones no seleccionadas serán eliminadas.',
-            )
+            ))
           ) {
             return
           }
@@ -1778,7 +1779,6 @@ function RevisionX() {
             if (selectedCotizacion) {
               idprov = selectedCotizacion.ID_Proveedor
               console.log(`provedor seleccionado ${idprov}`)
-              //actualizarProductos(selectedCotizacion.productos);
             }
 
             this.validarOpcionCredito(data)
@@ -1863,9 +1863,12 @@ function RevisionX() {
             const montoCredito = parseFloat(proveedor.Monto_Credito)
             if (nuevoTotal > montoCredito) {
               if (
-                !confirm(`ALERTA: El monto total (${nuevoTotal.toFixed(2)}) excede el límite de crédito del proveedor ${proveedor.RazonSocial} (${montoCredito.toFixed(2)}).
+                !(await Confirmar(
+                  'Monto Excedido',
+                  `ALERTA: El monto total (${nuevoTotal.toFixed(2)}) excede el límite de crédito del proveedor ${proveedor.RazonSocial} (${montoCredito.toFixed(2)}).
 
-¿Desea continuar?`)
+¿Desea continuar?`,
+                ))
               ) {
                 return
               }
@@ -2108,7 +2111,7 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
     }
   } else {
     // Para 'Aprobada'
-    if (!confirm(`¿Está seguro de que desea ${accion} esta solicitud?`)) {
+    if (!(await Confirmar('Aviso', `¿Está seguro de que desea ${accion} esta solicitud?`))) {
       return
     }
   }
@@ -2170,8 +2173,11 @@ function initCrudProductos() {
   })
 }
 
-function eliminarProducto(idProducto) {
-  if (!confirm('¿Estás seguro de que deseas eliminar este producto?')) return
+async function eliminarProducto(idProducto) {
+  if (
+    !(await Confirmar('Eliminar Producto', '¿Estás seguro de que deseas eliminar este producto?'))
+  )
+    return
 
   fetch(`${BASE_URL}modales/eliminarProducto/${idProducto}`, {
     method: 'POST',
@@ -2185,7 +2191,7 @@ function eliminarProducto(idProducto) {
       if (data.success) {
         const fila = document.querySelector(`#tablaCrudProductos tr[data-id='${idProducto}']`)
         if (fila) fila.remove()
-        alert(data.message)
+        mostrarNotificacion(data.message)
         initCrudProductos() // Re-renderizar la tabla
       } else {
         alert(data.message)
@@ -2278,10 +2284,10 @@ function guardarEdicion() {
           .then((res) => res.json())
           .then((histData) => {
             if (histData.success) {
-              alert('Producto actualizado y registrado en historial correctamente.')
+              mostrarNotificacion('Producto actualizado y registrado en historial correctamente.')
               location.reload() // o refrescar tabla dinámicamente
             } else {
-              alert('Producto actualizado, pero no se pudo registrar en historial.')
+              mostrarNotificacion('Producto actualizado, pero no se pudo registrar en historial.','alert')
             }
           })
       } else {
@@ -2422,7 +2428,7 @@ function regresarTablaOrdenCompra() {
 }
 
 async function enviarOrdenCompra(idSolicitud, boton) {
-  if (!confirm('¿Deseas enviar esta orden de compra a Tesorería?')) return
+  if (!(await Confirmar('Aviso', '¿Deseas enviar esta orden de compra a Tesorería?'))) return
 
   const originalHtml = boton.innerHTML
 
@@ -2602,14 +2608,15 @@ function initProveedorEditarForm() {
 function initProveedorActions(tabla) {
   if (!tabla) return
 
-  tabla.addEventListener('click', (e) => {
+  tabla.addEventListener('click', async (e) => {
     const svgEliminar = e.target.closest('svg')
     if (svgEliminar) {
       const btnEliminar = svgEliminar.closest("[id^='btn-eliminar-proveedor-']")
       if (btnEliminar) {
         e.preventDefault()
         const id = btnEliminar.dataset.id
-        if (!confirm('¿Seguro que deseas eliminar este proveedor?')) return
+        if (!(await Confirmar('Eliminar Proveedor', '¿Seguro que deseas eliminar este proveedor?')))
+          return
 
         fetch(`/proveedores/eliminarProveedor/${id}`, {
           method: 'POST',
@@ -3002,9 +3009,10 @@ function crudUsuarios() {
 
     async eliminarUsuario(id) {
       if (
-        !confirm(
+        !(await Confirmar(
+          'Eliminar Usuario',
           '¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.',
-        )
+        ))
       ) {
         return
       }
@@ -4328,14 +4336,20 @@ function initRazonSocialEditarForm() {
 function initRazonSocialActions(tabla) {
   if (!tabla) return
 
-  tabla.addEventListener('click', (e) => {
+  tabla.addEventListener('click', async (e) => {
     // --- ELIMINAR ---
     const btnEliminar = e.target.closest("[id^='btn-eliminar-razonsocial-']")
     if (btnEliminar) {
       e.preventDefault()
       const id = btnEliminar.dataset.id
 
-      if (!confirm('¿Seguro que deseas eliminar esta razón social?')) return
+      if (
+        !(await Confirmar(
+          'Eliminar Razón Social?',
+          '¿Seguro que deseas eliminar esta razón social?',
+        ))
+      )
+        return
 
       fetch(`/modales/razonsocial/eliminar/${id}`, {
         method: 'POST',
@@ -4448,7 +4462,9 @@ function mostrarNotificacion(mensaje, tipo = 'success', duracion = 3000) {
     toast.style.backgroundColor = '#16a34a' // verde
   } else if (tipo === 'error') {
     toast.style.backgroundColor = '#dc2626' // rojo
-  } else {
+  } else if (tipo === 'alert') {
+    toast.style.backgroundColor = '#FFAB00' // naranja
+  }else {
     toast.style.backgroundColor = '#0369a1' // azul/info
   }
 
@@ -4708,7 +4724,12 @@ function mostrarOrdenPdf(id) {
 }
 
 async function GenerarOrden(id, button) {
-  if (!confirm('¿Está seguro de que desea generar y enviar la orden de compra al proveedor?')) {
+  if (
+    !(await Confirmar(
+      'Generar Orden de Compra',
+      '¿Está seguro de que desea generar y enviar la orden de compra al proveedor?',
+    ))
+  ) {
     return
   }
 
@@ -4749,6 +4770,15 @@ async function GenerarOrden(id, button) {
 function Account() {
   return {
     async CambiarNombre() {
+      const confirmed = await Confirmar(
+        'Confirmar Cambio',
+        '¿Estás seguro de que deseas cambiar tu nombre de usuario?',
+      )
+
+      if (!confirmed) {
+        return
+      }
+
       const formnombre = this.$refs.xUserForm
       const formmessage = this.$refs['form-message-user']
       formmessage.innerHTML = ''
@@ -4766,8 +4796,8 @@ function Account() {
         body: JSON.stringify({
           email: correo,
           data: {
-            username: username
-          }
+            username: username,
+          },
         }),
       }
 
@@ -4793,10 +4823,115 @@ function Account() {
     async CambiarContrasenaG() {
       console.log('CambiarContrasenaG')
     },
+    async uploadSignature() {
+      const confirmed = await Confirmar(
+        'Confirmar Cambio',
+        '¿Estás seguro de subir la imagen de tu firma?',
+      )
+
+      if (!confirmed) {
+        return
+      }
+
+      const form = this.$refs.xSignForm
+      const messageContainer = this.$refs['form-message-sign']
+      messageContainer.innerHTML = ''
+
+      const fileInput = form.querySelector('#signature-file')
+      const file = fileInput.files[0]
+
+      if (!file) {
+        messageContainer.innerHTML = `<p class="text-red-500">Por favor, seleccione un archivo.</p>`
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('signature', file)
+
+      const submitButton = form.querySelector('button[type="submit"]')
+      submitButton.disabled = true
+      submitButton.textContent = 'Subiendo...'
+
+      try {
+        const response = await fetch(`${BASE_URL}api/user/upload_signature`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            Accept: 'application/json',
+          },
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          messageContainer.innerHTML = `<p class="text-green-600">${result.message}</p>`
+          // Update preview
+          const preview = document.getElementById('signature-preview')
+          const reader = new FileReader()
+          reader.onload = function (e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Firma" class="h-full w-full object-contain">`
+          }
+          reader.readAsDataURL(file)
+        } else {
+          const errorMessage = result.messages
+            ? result.messages.error
+            : result.message || 'Ocurrió un error desconocido.'
+          messageContainer.innerHTML = `<p class="text-red-500">${errorMessage}</p>`
+        }
+      } catch (error) {
+        console.error('Error al subir la firma:', error)
+        messageContainer.innerHTML = `<p class="text-red-500">Error de conexión: ${error.message}</p>`
+      } finally {
+        submitButton.disabled = false
+        submitButton.textContent = 'Subir y/o Guardar'
+      }
+    },
     async SendData(endpoint, data) {
       const url = `${BASE_URL}${endpoint}`
       const response = await fetch(url, data)
       return await response.json()
     },
   }
+}
+
+/**
+ * Muestra un modal de confirmación personalizado y devuelve una promesa que se resuelve a true si se confirma, o false si se cancela.
+ * @param {string} title - El título del modal de confirmación.
+ * @param {string} message - El mensaje a mostrar en el modal de confirmación.
+ * @returns {Promise<boolean>} - Una promesa que se resuelve a true si el usuario confirma, o false si cancela.
+ */
+function Confirmar(title, message) {
+  return new Promise((resolve) => {
+    const modalOverlay = document.createElement('div')
+    modalOverlay.className = 'fixed inset-0 bg-gray-200/25 flex items-center justify-center z-50'
+    modalOverlay.style.zIndex = '2147483647'
+
+    let modalHtml = `
+    <div class="bg-gray-400 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold mb-4">${title}</h3>
+      <p class="mb-4">${message}</p>
+      <div class="mt-6 flex justify-end space-x-4">
+        <button id="cancelarBtn" class="px-4 py-2 bg-red-500 border border-gray-300 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+        <button id="confirmarBtn" class="px-4 py-2 text-white rounded-md bg-green-600 hover:bg-green-700">Confirmar</button>
+      </div>
+    </div>
+  `
+    modalOverlay.innerHTML = modalHtml
+    document.body.appendChild(modalOverlay)
+
+    const closeModal = (result) => {
+      modalOverlay.remove()
+      resolve(result)
+    }
+
+    document.getElementById('cancelarBtn').addEventListener('click', () => closeModal(false))
+    document.getElementById('confirmarBtn').addEventListener('click', () => closeModal(true))
+
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal(false)
+      }
+    })
+  })
 }

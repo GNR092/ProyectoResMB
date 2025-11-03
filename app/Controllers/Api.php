@@ -1091,4 +1091,26 @@ class Api extends ResourceController
             return $this->fail('No se pudo actualizar el usuario. Verifique los datos proporcionados.', HttpStatus::BAD_REQUEST);
         }
     }
+
+    public function upload_signature()
+    {
+        $userId = session('id');
+        if (!$userId) {
+            return $this->failUnauthorized('Usuario no autenticado.');
+        }
+
+        $file = $this->request->getFile('signature');
+
+        if (!$file || !$file->isValid()) {
+            return $this->failValidationErrors('No se ha subido ningún archivo o el archivo no es válido.');
+        }
+
+        $result = $this->api->save_signature($userId, $file);
+
+        if ($result['success']) {
+            return $this->respond(['success' => true, 'message' => $result['message']]);
+        } else {
+            return $this->fail($result['message'], HttpStatus::BAD_REQUEST);
+        }
+    }
 }

@@ -250,7 +250,10 @@ class Modales extends BaseController
 
                 return view('modales/reporte_almacen', $data);
             case 'micuenta':
-                return view('modales/micuenta');
+                $id = session('id');
+                $sign = $this->api->getSignByUserID($id);
+                $data['firmaUrl'] = $sign;
+                return view('modales/micuenta',$data);
 
             default:
                 return 'Opción no válida';

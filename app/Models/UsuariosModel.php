@@ -12,7 +12,7 @@ class UsuariosModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_Dpto', 'ID_RazonSocial', 'Nombre', 'Correo', 'ContrasenaP', 'ContrasenaG', 'Numero'];
+    protected $allowedFields    = ['ID_Dpto', 'ID_RazonSocial', 'Nombre', 'Correo', 'ContrasenaP', 'ContrasenaG', 'Numero', 'Firma_digital'];
 
     // Dates
     protected $useTimestamps = false;

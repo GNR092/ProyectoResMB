@@ -221,18 +221,14 @@ class Rest
 
         // Get all relevant cotizacion and orden_compra in fewer queries
         $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
-        
-        $cotizaciones = $cotizacionModel
-            ->whereIn('ID_Solicitud', $solicitudIds)
-            ->findAll();
-        
+
+        $cotizaciones = $cotizacionModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
+
         $cotizacionIds = array_column($cotizaciones, 'ID_Cotizacion');
-        
+
         $ordenes = [];
         if (!empty($cotizacionIds)) {
-            $ordenes = $ordenCompraModel
-                ->whereIn('ID_Cotizacion', $cotizacionIds)
-                ->findAll();
+            $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
         }
 
         // Map for quick lookups
@@ -249,7 +245,8 @@ class Rest
             $ordenesMap[$orden['ID_Cotizacion']] = $orden;
         }
 
-        foreach ($solicitudes as &$solicitud) { // Use reference to modify in place
+        foreach ($solicitudes as &$solicitud) {
+            // Use reference to modify in place
             if ($solicitud['Estado'] === 'Aprobada') {
                 if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
                     $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
@@ -290,18 +287,14 @@ class Rest
 
         // Get all relevant cotizacion and orden_compra in fewer queries
         $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
-        
-        $cotizaciones = $cotizacionModel
-            ->whereIn('ID_Solicitud', $solicitudIds)
-            ->findAll();
-        
+
+        $cotizaciones = $cotizacionModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
+
         $cotizacionIds = array_column($cotizaciones, 'ID_Cotizacion');
-        
+
         $ordenes = [];
         if (!empty($cotizacionIds)) {
-            $ordenes = $ordenCompraModel
-                ->whereIn('ID_Cotizacion', $cotizacionIds)
-                ->findAll();
+            $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
         }
 
         // Map for quick lookups
@@ -318,7 +311,8 @@ class Rest
             $ordenesMap[$orden['ID_Cotizacion']] = $orden;
         }
 
-        foreach ($solicitudes as &$solicitud) { // Use reference to modify in place
+        foreach ($solicitudes as &$solicitud) {
+            // Use reference to modify in place
             if ($solicitud['Estado'] === 'Aprobada') {
                 if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
                     $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
@@ -427,7 +421,9 @@ class Rest
             $solicitud['cotizacion'] = $cotizaciones[0]; // Mantener la primera para compatibilidad
 
             $ordenCompraModel = new OrdenCompraModel();
-            $orden = $ordenCompraModel->where('ID_Cotizacion', $cotizaciones[0]['ID_Cotizacion'])->first();
+            $orden = $ordenCompraModel
+                ->where('ID_Cotizacion', $cotizaciones[0]['ID_Cotizacion'])
+                ->first();
             if ($orden) {
                 $solicitud['EstadoOrden'] = $orden['Estado'];
             }
@@ -783,6 +779,26 @@ class Rest
             return $usuariosModel->find($id) ?: [];
         }
     }
+    public function getSignByUserID(int $id): ?string
+    {
+        $usuariosModel = new UsuariosModel();
+        $user = $usuariosModel->find($id);
+        $SignaturePath = null;
+        $userFolder = FPath::FUSER . $id;
+        
+        if (!$user) {
+            return null;
+        }
+        if (!empty($user['Firma_digital'])) {
+            $SignaturePath = $userFolder . DIRECTORY_SEPARATOR . $user['Firma_digital'];
+            $signdata = file_get_contents($SignaturePath);
+            $sign64 = base64_encode($signdata);
+            $signtype = pathinfo($SignaturePath, PATHINFO_EXTENSION);
+            $signb64 = 'data:image/' . $signtype . ';base64,' . $sign64;
+            return $signb64;
+        }
+        return null;
+    }
     /**
      * Obtiene un usuario por su nombre.
      *
@@ -887,6 +903,54 @@ class Rest
     {
         $usuariosModel = new UsuariosModel();
         return $usuariosModel->delete($id);
+    }
+
+    /**
+     * Guarda la firma digital de un usuario.
+     *
+     * @param int $userId El ID del usuario.
+     * @param object $file El archivo de la firma a guardar.
+     * @return array Un array con el resultado de la operación.
+     */
+    public function save_signature(int $userId, object $file): array
+    {
+        $usuariosModel = new UsuariosModel();
+        $user = $usuariosModel->find($userId);
+
+        if (!$user) {
+            return ['success' => false, 'message' => 'Usuario no encontrado.'];
+        }
+
+        $userFolder = FPath::FUSER . $userId;
+
+        // Verifica si ya existe una firma y la elimina.
+        if (!empty($user['Firma_digital'])) {
+            $oldSignaturePath = $userFolder . DIRECTORY_SEPARATOR . $user['Firma_digital'];
+            if (file_exists($oldSignaturePath)) {
+                unlink($oldSignaturePath);
+            }
+        }
+
+        if (!is_dir($userFolder)) {
+            if (!$this->CreateFolder($userFolder)) {
+                return [
+                    'success' => false,
+                    'message' => 'No se pudo crear la carpeta del usuario.',
+                ];
+            }
+        }
+
+        $fileName = $file->getRandomName();
+        if (!$file->move($userFolder, $fileName)) {
+            return ['success' => false, 'message' => 'No se pudo guardar la firma.'];
+        }
+
+        $data = ['Firma_digital' => $fileName];
+        if ($usuariosModel->update($userId, $data)) {
+            return ['success' => true, 'message' => 'Firma guardada correctamente.'];
+        } else {
+            return ['success' => false, 'message' => 'No se pudo actualizar la base de datos.'];
+        }
     }
     //endregion
 
@@ -1268,7 +1332,7 @@ class Rest
         );
 
         log_message('debug', 'Finalizando getSolicitudPago con éxito.');
-         log_message('debug',print_r($solicitud,true));
+        log_message('debug', print_r($solicitud, true));
         return $solicitud ?: [];
     }
     //endregion

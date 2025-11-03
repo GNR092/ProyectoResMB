@@ -6,4 +6,5 @@ class FPath{
     public const FORDEN = WRITEPATH . 'uploads/ordenes/';
     public const FPDF = WRITEPATH . 'uploads/pdf_solicitudes/';
     public const FSOLICITUD = WRITEPATH . 'uploads/solicitud/';
+    public const FUSER = WRITEPATH . 'user/';
 }
