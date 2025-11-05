@@ -3674,6 +3674,44 @@ async function initFichasPago() {
   tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`
   tbodyCredito.innerHTML = tbodyContado.innerHTML
 
+  function calcularFechaVencimiento(fechaStr, diasStr) {
+    if (!fechaStr) {
+      return new Date('2999-12-31');
+    }
+    const fechaSimple = fechaStr.split(" ")[0];
+    const partes = fechaSimple.split("-");
+    if (partes.length !== 3) return new Date('2999-12-31');
+    const anio = parseInt(partes[0]);
+    const mes = parseInt(partes[1]) - 1;
+    const dia = parseInt(partes[2]);
+    const fechaAprobacion = new Date(anio, mes, dia);
+    const diasCredito = parseInt(diasStr) || 0;
+    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito);
+    return fechaAprobacion;
+  }
+
+  function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
+    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime();
+
+    // Convertimos a días
+    const diasDiferencia = Math.floor(diffMs / 86400000);
+
+    //  Vencido (Negro)
+    if (diasDiferencia < 0) {
+      return 'bg-gray-900 text-white hover:bg-gray-800';
+    }
+    //  Vence hoy o en menos de 5 días (Rojo)
+    if (diasDiferencia < 5) {
+      return 'bg-red-100 text-red-800 hover:bg-red-200';
+    }
+    //  Vence en menos de 15 días (Amarillo)
+    if (diasDiferencia < 15) {
+      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+    }
+    //  Más de 15 días (Blanco/Default)
+    return 'hover:bg-gray-50';
+  }
+
   try {
     const res = await fetch(`${BASE_URL}api/orden-compra/alldata`)
     const ordenes = await res.json()
@@ -3684,42 +3722,92 @@ async function initFichasPago() {
       return
     }
 
-    // Obtener detalles de todas las órdenes
     const detallesPromises = ordenes.map((o) =>
-      fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
+        fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
     )
     const detalles = await Promise.all(detallesPromises)
 
-    tbodyContado.innerHTML = ''
-    tbodyCredito.innerHTML = ''
 
+    let ordenesContado = [];
+    let ordenesCredito = [];
+
+    // Filtrar y separar
     detalles.forEach((det) => {
-      // Filtrar solo Estado "En Proceso de Pago"
-      if (det.Estado !== 'En Proceso de Pago') return
-
-      const fila = `
-        <tr class="hover:bg-gray-50 transition">
-          <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
-          <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
-          <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
-          <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
-          <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
-          <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
-          <td class="px-4 py-2 border-b text-center">
-            <button onclick="mostrarDetalleFicha(${det.ID_Solicitud}, '${det.MetodoPago}')" 
-                    class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
-              VER
-            </button>
-          </td>
-        </tr>
-      `
+      if (det.Estado !== 'En Proceso de Pago') return;
 
       if (det.MetodoPago == '0') {
-        tbodyContado.insertAdjacentHTML('beforeend', fila)
+        ordenesContado.push(det);
       } else if (det.MetodoPago == '1') {
-        tbodyCredito.insertAdjacentHTML('beforeend', fila)
+        ordenesCredito.push(det);
       }
-    })
+    });
+
+    // Ordenar el array de crédito
+    ordenesCredito.sort((a, b) => {
+      const fechaVencimientoA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.proveedor?.Dias_Credito);
+      const fechaVencimientoB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.proveedor?.Dias_Credito);
+      return fechaVencimientoA - fechaVencimientoB;
+    });
+
+    tbodyContado.innerHTML = '';
+    tbodyCredito.innerHTML = '';
+
+    // Renderizar tabla de Contado
+    if (ordenesContado.length === 0) {
+      tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`;
+    } else {
+      ordenesContado.forEach((det) => {
+        const fila = `
+          <tr class="hover:bg-gray-50 transition">
+            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
+            <td class="px-4 py-2 border-b text-center">
+              <button onclick="mostrarDetalleFicha(${det.ID_Solicitud}, '${det.MetodoPago}')" 
+                      class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                VER
+              </button>
+            </td>
+          </tr>
+        `;
+        tbodyContado.insertAdjacentHTML('beforeend', fila);
+      });
+    }
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    if (ordenesCredito.length === 0) {
+      tbodyCredito.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`;
+    } else {
+      ordenesCredito.forEach((det) => {
+
+        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.proveedor?.Dias_Credito);
+        const claseFila = getClaseSemaforo(fechaVencimiento, hoy);
+
+        const fila = `
+          <tr class="${claseFila} transition">
+            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
+            <td class="px-4 py-2 border-b text-center">
+              <button onclick="mostrarDetalleFicha(${det.ID_Solicitud}, '${det.MetodoPago}')" 
+                      class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                VER
+              </button>
+            </td>
+          </tr>
+        `;
+        tbodyCredito.insertAdjacentHTML('beforeend', fila);
+      });
+    }
+
   } catch (error) {
     console.error('Error al cargar las fichas:', error)
     tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`

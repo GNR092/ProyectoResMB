@@ -1,3 +1,12 @@
+<?php
+// Clases del semáforo para el "Purge" de TailwindCSS:
+//
+// bg-gray-900 text-white hover:bg-gray-800
+// bg-red-100 text-red-800 hover:bg-red-200
+// bg-yellow-100 text-yellow-800 hover:bg-yellow-200
+// hover:bg-gray-50
+?>
+
 <!-- Pantalla principal -->
 <div id="ficha-menu" class="p-6">
     <h2 class="text-lg font-semibold mb-4">Fichas de Pago</h2>
