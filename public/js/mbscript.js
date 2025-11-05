@@ -3332,35 +3332,49 @@ async function initPagosPendientes() {
   tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`;
   tbodyCredito.innerHTML = tbodyContado.innerHTML;
 
-  // --- INICIO: Función helper de fecha ---
-  // (Definida aquí dentro para no afectar otras funciones)
   function calcularFechaVencimiento(fechaStr, diasStr) {
-    // Si no hay fecha de aprobación, no se puede calcular.
-    // Se envía al final de la lista.
     if (!fechaStr) {
       return new Date('2999-12-31');
     }
-
-    // 1. Tomar solo la parte de la fecha (ignora la hora)
-    const fechaSimple = fechaStr.split(" ")[0]; // "2025-11-04"
-    const partes = fechaSimple.split("-"); // ["2025", "11", "04"]
-
-    if (partes.length !== 3) return new Date('2999-12-31'); // Fecha inválida
-
+    const fechaSimple = fechaStr.split(" ")[0];
+    const partes = fechaSimple.split("-");
+    if (partes.length !== 3) return new Date('2999-12-31');
     const anio = parseInt(partes[0]);
-    const mes = parseInt(partes[1]) - 1; // Meses en JS son 0 (Ene) a 11 (Dic)
+    const mes = parseInt(partes[1]) - 1;
     const dia = parseInt(partes[2]);
-
-    // 2. Crear la fecha base como hora local (medianoche)
     const fechaAprobacion = new Date(anio, mes, dia);
-
-    // 3. Sumar los días de crédito
     const diasCredito = parseInt(diasStr) || 0;
     fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito);
-
     return fechaAprobacion;
   }
-  // --- FIN: Función helper de fecha ---
+
+  /**
+   * Determina la clase CSS para la fila de la tabla según la fecha de vencimiento.
+   * @param {Date} fechaVencimiento - La fecha de vencimiento calculada.
+   * @param {Date} hoyNormalizado - La fecha de hoy (normalizada a medianoche).
+   * @returns {string} - Las clases de Tailwind CSS correspondientes.
+   */
+  function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
+    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime();
+
+    const diasDiferencia = Math.floor(diffMs / 86400000);
+
+    if (diasDiferencia < 0) {
+      // Usamos gris oscuro (Tailwind) para "negro", y texto blanco
+      return 'bg-gray-900 text-white hover:bg-gray-800';
+    }
+
+    if (diasDiferencia < 5) {
+      return 'bg-red-100 text-red-800 hover:bg-red-200';
+    }
+
+    if (diasDiferencia < 15) {
+      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+    }
+
+    return 'hover:bg-gray-50';
+  }
+
 
   try {
     const res = await fetch(`${BASE_URL}api/orden-compra/alldata`);
@@ -3377,17 +3391,11 @@ async function initPagosPendientes() {
     );
     const detalles = await Promise.all(detallesPromises);
 
-    // --- INICIO DE CAMBIOS EN LA LÓGICA ---
-
-    // 1. Crear arrays para separar las órdenes
     let ordenesContado = [];
     let ordenesCredito = [];
 
     detalles.forEach((det) => {
-      // Filtro de estado (como ya lo tenías)
       if (det.Estado !== 'Por Pagar') return;
-
-      // Separar por método de pago
       if (det.MetodoPago == '0') {
         ordenesContado.push(det);
       } else if (det.MetodoPago == '1') {
@@ -3395,21 +3403,15 @@ async function initPagosPendientes() {
       }
     });
 
-    // 2. Ordenar el array de crédito por fecha de vencimiento (ascendente)
     ordenesCredito.sort((a, b) => {
-      // (CORREGIDO) Usamos la 'Fecha_Aprobacion' y los días de crédito
       const fechaVencimientoA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.proveedor?.Dias_Credito);
       const fechaVencimientoB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.proveedor?.Dias_Credito);
-
-      // Orden ascendente: las fechas más cercanas (menores) van primero
       return fechaVencimientoA - fechaVencimientoB;
     });
 
-    // 3. Limpiar tablas
     tbodyContado.innerHTML = '';
     tbodyCredito.innerHTML = '';
 
-    // 4. Renderizar tabla de Contado
     if (ordenesContado.length === 0) {
       tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`;
     } else {
@@ -3434,13 +3436,22 @@ async function initPagosPendientes() {
       });
     }
 
-    // 5. Renderizar tabla de Crédito (ahora ordenada)
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
     if (ordenesCredito.length === 0) {
       tbodyCredito.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`;
     } else {
+
       ordenesCredito.forEach((det) => {
+
+        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.proveedor?.Dias_Credito);
+
+        const claseFila = getClaseSemaforo(fechaVencimiento, hoy);
+
+
         const fila = `
-              <tr class="hover:bg-gray-50 transition">
+              <tr class="${claseFila} transition">
                <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
                <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
                <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
@@ -3458,8 +3469,6 @@ async function initPagosPendientes() {
         tbodyCredito.insertAdjacentHTML('beforeend', fila);
       });
     }
-
-    // --- FIN DE CAMBIOS EN LA LÓGICA ---
 
   } catch (error) {
     console.error('Error al cargar las órdenes:', error);
