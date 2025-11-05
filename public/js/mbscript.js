@@ -3397,10 +3397,9 @@ async function initPagosPendientes() {
 
     // 2. Ordenar el array de crédito por fecha de vencimiento (ascendente)
     ordenesCredito.sort((a, b) => {
-      // Usamos la fecha de la solicitud ('Fecha') y los días de crédito del proveedor
-      // (Asumiendo que 'Fecha' es la fecha de aprobación)
-      const fechaVencimientoA = calcularFechaVencimiento(a.Fecha, a.proveedor?.Dias_Credito);
-      const fechaVencimientoB = calcularFechaVencimiento(b.Fecha, b.proveedor?.Dias_Credito);
+      // (CORREGIDO) Usamos la 'Fecha_Aprobacion' y los días de crédito
+      const fechaVencimientoA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.proveedor?.Dias_Credito);
+      const fechaVencimientoB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.proveedor?.Dias_Credito);
 
       // Orden ascendente: las fechas más cercanas (menores) van primero
       return fechaVencimientoA - fechaVencimientoB;
