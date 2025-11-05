@@ -3324,62 +3324,148 @@ function regresarBuscarMateriales() {
  * Lógica para pagos pendientes (facturas)
  */
 async function initPagosPendientes() {
-  const tbodyContado = document.getElementById('body-contado')
-  const tbodyCredito = document.getElementById('body-credito')
-  const detalleContado = document.getElementById('detalle-contado')
-  const detalleCredito = document.getElementById('detalle-credito')
+  const tbodyContado = document.getElementById('body-contado');
+  const tbodyCredito = document.getElementById('body-credito');
+  const detalleContado = document.getElementById('detalle-contado');
+  const detalleCredito = document.getElementById('detalle-credito');
 
-  tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`
-  tbodyCredito.innerHTML = tbodyContado.innerHTML
+  tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`;
+  tbodyCredito.innerHTML = tbodyContado.innerHTML;
+
+  // --- INICIO: Función helper de fecha ---
+  // (Definida aquí dentro para no afectar otras funciones)
+  function calcularFechaVencimiento(fechaStr, diasStr) {
+    // Si no hay fecha de aprobación, no se puede calcular.
+    // Se envía al final de la lista.
+    if (!fechaStr) {
+      return new Date('2999-12-31');
+    }
+
+    // 1. Tomar solo la parte de la fecha (ignora la hora)
+    const fechaSimple = fechaStr.split(" ")[0]; // "2025-11-04"
+    const partes = fechaSimple.split("-"); // ["2025", "11", "04"]
+
+    if (partes.length !== 3) return new Date('2999-12-31'); // Fecha inválida
+
+    const anio = parseInt(partes[0]);
+    const mes = parseInt(partes[1]) - 1; // Meses en JS son 0 (Ene) a 11 (Dic)
+    const dia = parseInt(partes[2]);
+
+    // 2. Crear la fecha base como hora local (medianoche)
+    const fechaAprobacion = new Date(anio, mes, dia);
+
+    // 3. Sumar los días de crédito
+    const diasCredito = parseInt(diasStr) || 0;
+    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito);
+
+    return fechaAprobacion;
+  }
+  // --- FIN: Función helper de fecha ---
 
   try {
-    const res = await fetch(`${BASE_URL}api/orden-compra/alldata`)
-    const ordenes = await res.json()
+    const res = await fetch(`${BASE_URL}api/orden-compra/alldata`);
+    const ordenes = await res.json();
 
     if (!ordenes || ordenes.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`
-      tbodyCredito.innerHTML = tbodyContado.innerHTML
-      return
+      tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`;
+      tbodyCredito.innerHTML = tbodyContado.innerHTML;
+      return;
     }
 
     const detallesPromises = ordenes.map((o) =>
-      fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
-    )
-    const detalles = await Promise.all(detallesPromises)
+        fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
+    );
+    const detalles = await Promise.all(detallesPromises);
 
-    tbodyContado.innerHTML = ''
-    tbodyCredito.innerHTML = ''
+    // --- INICIO DE CAMBIOS EN LA LÓGICA ---
+
+    // 1. Crear arrays para separar las órdenes
+    let ordenesContado = [];
+    let ordenesCredito = [];
 
     detalles.forEach((det) => {
-      if (det.Estado !== 'Por Pagar') return
+      // Filtro de estado (como ya lo tenías)
+      if (det.Estado !== 'Por Pagar') return;
 
-      const fila = `
-          <tr class="hover:bg-gray-50 transition">
-           <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
-           <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
-           <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td> <!-- Nuevo valor -->
-           <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
-           <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
-           <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
-           <td class="px-4 py-2 border-b text-center">
-      <button onclick="mostrarDetalleOrden(${det.ID_Solicitud}, '${det.MetodoPago}')" 
-              class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
-        VER
-      </button>
-    </td>
-  </tr>
-`
-
+      // Separar por método de pago
       if (det.MetodoPago == '0') {
-        tbodyContado.insertAdjacentHTML('beforeend', fila)
+        ordenesContado.push(det);
       } else if (det.MetodoPago == '1') {
-        tbodyCredito.insertAdjacentHTML('beforeend', fila)
+        ordenesCredito.push(det);
       }
-    })
+    });
+
+    // 2. Ordenar el array de crédito por fecha de vencimiento (ascendente)
+    ordenesCredito.sort((a, b) => {
+      // Usamos la fecha de la solicitud ('Fecha') y los días de crédito del proveedor
+      // (Asumiendo que 'Fecha' es la fecha de aprobación)
+      const fechaVencimientoA = calcularFechaVencimiento(a.Fecha, a.proveedor?.Dias_Credito);
+      const fechaVencimientoB = calcularFechaVencimiento(b.Fecha, b.proveedor?.Dias_Credito);
+
+      // Orden ascendente: las fechas más cercanas (menores) van primero
+      return fechaVencimientoA - fechaVencimientoB;
+    });
+
+    // 3. Limpiar tablas
+    tbodyContado.innerHTML = '';
+    tbodyCredito.innerHTML = '';
+
+    // 4. Renderizar tabla de Contado
+    if (ordenesContado.length === 0) {
+      tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`;
+    } else {
+      ordenesContado.forEach((det) => {
+        const fila = `
+              <tr class="hover:bg-gray-50 transition">
+               <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
+               <td class="px-4 py-2 border-b text-center">
+                  <button onclick="mostrarDetalleOrden(${det.ID_Solicitud}, '${det.MetodoPago}')" 
+                          class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                    VER
+                  </button>
+                </td>
+              </tr>
+            `;
+        tbodyContado.insertAdjacentHTML('beforeend', fila);
+      });
+    }
+
+    // 5. Renderizar tabla de Crédito (ahora ordenada)
+    if (ordenesCredito.length === 0) {
+      tbodyCredito.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`;
+    } else {
+      ordenesCredito.forEach((det) => {
+        const fila = `
+              <tr class="hover:bg-gray-50 transition">
+               <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
+               <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
+               <td class="px-4 py-2 border-b text-center">
+                  <button onclick="mostrarDetalleOrden(${det.ID_Solicitud}, '${det.MetodoPago}')" 
+                          class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                    VER
+                  </button>
+                </td>
+              </tr>
+            `;
+        tbodyCredito.insertAdjacentHTML('beforeend', fila);
+      });
+    }
+
+    // --- FIN DE CAMBIOS EN LA LÓGICA ---
+
   } catch (error) {
-    console.error('Error al cargar las órdenes:', error)
-    tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`
-    tbodyCredito.innerHTML = tbodyContado.innerHTML
+    console.error('Error al cargar las órdenes:', error);
+    tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`;
+    tbodyCredito.innerHTML = tbodyContado.innerHTML;
   }
 }
 // --- Función de navegación para VER detalles ---
