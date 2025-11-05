@@ -1392,40 +1392,49 @@ function RevisionX() {
         mostrarNotificacion('Error al cargar solicitudes para revisión.', 'error')
       })
     },
+
     /**
-     * (NUEVA FUNCIÓN INTERNA)
      * Obtiene los días de crédito.
-     * Si hay múltiples proveedores (idprov está seteado), consulta la API.
-     * Si hay un solo proveedor, lee los datos de la solicitud.
+     * Siempre consulta la API del proveedor para obtener los días de crédito.
      * @param {object} data - El objeto de detalles de la solicitud
      * @returns {Promise<number>} - Promesa que resuelve a los días de crédito
      */
     async _getDiasDeCredito(data) {
-      let diasCredito = 0
+      let diasCredito = 0;
+      let providerIdToQuery = null;
 
       // Caso 1: Múltiples proveedores
       if (idprov) {
-        try {
-          // Consultar la API específica del proveedor
-          const response = await fetch(`${BASE_URL}api/provider/${idprov}`)
-          if (!response.ok) throw new Error('Proveedor no encontrado')
-          const proveedorData = await response.json()
-          diasCredito = parseInt(proveedorData.Dias_Credito) || 0
-        } catch (error) {
-          console.error(`Error al buscar proveedor ${idprov}:`, error)
-          diasCredito = 0 //Si falla se toma el valor 0
-        }
+        providerIdToQuery = idprov;
       }
-      // Caso 2: Un solo proveedor (usar los datos ya cargados en 'data')
-      else if (data.cotizacion && data.cotizacion.Dias_Credito !== undefined) {
-        diasCredito = parseInt(data.cotizacion.Dias_Credito) || 0
-      } else if (data.Dias_Credito !== undefined) {
-        diasCredito = parseInt(data.Dias_Credito) || 0
-      } else {
-        console.warn('No se pudo determinar los Días de Crédito (caso único).')
+          // Caso 2: Un solo proveedor (idprov es null)
+      // Obtenemos el ID del proveedor
+      else if (data && data.ID_Proveedor) {
+        providerIdToQuery = data.ID_Proveedor;
+      }
+      else if (data && data.cotizacion && data.cotizacion.ID_Proveedor) {
+        providerIdToQuery = data.cotizacion.ID_Proveedor;
       }
 
-      return diasCredito
+      if (!providerIdToQuery) {
+        console.warn('No se pudo determinar un ID de Proveedor para consultar los días de crédito.');
+        return 0;
+      }
+
+      try {
+        const response = await fetch(`${BASE_URL}api/provider/${providerIdToQuery}`);
+        if (!response.ok) {
+          throw new Error(`Proveedor no encontrado (ID: ${providerIdToQuery})`);
+        }
+        const proveedorData = await response.json();
+        diasCredito = parseInt(proveedorData.Dias_Credito) || 0;
+
+      } catch (error) {
+        console.error(`Error al buscar proveedor ${providerIdToQuery}:`, error);
+        diasCredito = 0; // Si falla la API, se toma el valor 0.
+      }
+
+      return diasCredito;
     },
 
     /**
@@ -1477,6 +1486,7 @@ function RevisionX() {
         const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
         if (!response.ok) throw new Error('No se pudieron cargar los detalles.')
         const data = await response.json()
+        console.log('Datos de la solicitud (Un proveedor):', data)
 
         let estadoClass = getStatus(data.Estado)
         const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
