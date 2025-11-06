@@ -834,7 +834,9 @@ class Api extends ResourceController
 
     public function cambiarEstadoOrden($idSolicitud)
     {
-        $solicitudModel = new SolicitudModel();
+        $cotizacionModel = new CotizacionModel();
+        $ordenCompraModel = new OrdenCompraModel();
+
         $json = $this->request->getJSON(true);
         $nuevoEstado = $json['nuevoEstado'] ?? null;
 
@@ -842,18 +844,19 @@ class Api extends ResourceController
             return $this->failValidationErrors('No se especificó el nuevo estado.');
         }
 
-        $solicitud = $solicitudModel->find($idSolicitud);
+        $cot = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
+        $orden = $ordenCompraModel->where('ID_Cotizacion', $cot['ID_Cotizacion'])->first();
 
-        if (!$solicitud) {
-            return $this->failNotFound('Solicitud no encontrada.');
+        if (!$orden) {
+            return $this->failNotFound('Orden no encontrada.');
         }
 
         try {
             // Lógica simple: solo actualizar el estado
-            $updateResult = $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
+            $updateResult = $ordenCompraModel->update($cot['ID_Cotizacion'], ['Estado' => $nuevoEstado]);
 
             if ($updateResult === false) {
-                $errors = $solicitudModel->errors();
+                $errors = $ordenCompraModel->errors();
                 $errorMessage = $errors ? implode(', ', $errors) : 'La actualización del estado falló.';
                 throw new \Exception($errorMessage);
             }

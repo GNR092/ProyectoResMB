@@ -12,7 +12,7 @@ class OrdenCompraModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_Cotizacion', 'ID_Proveedor', 'Estado', 'Fecha'];
+    protected $allowedFields    = ['ID_Cotizacion', 'ID_Proveedor', 'Estado', 'Fecha', 'File_Factura', 'File_Comprobante', 'File_ReqPag'];
 
     // Dates
     protected $useTimestamps = false;

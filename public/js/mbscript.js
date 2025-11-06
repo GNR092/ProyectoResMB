@@ -3554,7 +3554,7 @@ async function mostrarDetalleOrden(id, metodoPago) {
 
       <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
       
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto mb-6">
         <table class="min-w-full border border-gray-300">
             <thead class="bg-gray-100">
                 <tr>
@@ -3591,10 +3591,10 @@ async function mostrarDetalleOrden(id, metodoPago) {
       </div>
       
       
-<div >
-     <label for="archivos-revision" class="block text-sm font-medium text-black-500 ">Adjuntar Cotización (Imágenes o PDF)</label>
+<div class="block mb-6 p-4 border rounded-lg">
+     <label for="archivos-factura" class="block text-sm font-medium text-black-500 ">Adjuntar factura (Imágene o PDF)</label>
      
-     <input type="file" id="archivos-revision" name="archivos" accept="image/*,.pdf" class="mt-1 block w-full text-sm text-black-300 border-gray-700 rounded-lg cursor-pointer bg-gray-100 focus:outline-none border-2">
+     <input type="file" id="archivos-factura" name="archivos" accept="image/*,.pdf" class="mt-1 p-1 block w-full text-sm text-black-300 border-gray-700 rounded cursor-pointer bg-gray-200 focus:outline-none border-2">
      
      <p class="mt-1 text-sm text-gray-500">Solo se permite un archivo.</p>
 </div>
@@ -3931,10 +3931,10 @@ async function mostrarDetalleFicha(id, metodoPago) {
       </div>
       
       
-<div >
-     <label for="archivos-revision" class="block text-sm font-medium text-black-500 ">Adjuntar Cotización (Imágenes o PDF)</label>
+<div class="block mb-6 p-4 border rounded-lg">
+     <label for="archivo-ficha" class="block text-sm font-medium text-black-500 ">Adjuntar Ficha (Imágene o PDF)</label>
      
-     <input type="file" id="archivos-revision" name="archivos" accept="image/*,.pdf" class="mt-1 block w-full text-sm text-black-300 border-gray-700 rounded-lg cursor-pointer bg-gray-100 focus:outline-none border-2">
+     <input type="file" id="archivo-ficha" name="archivos" accept="image/*,.pdf" class="mt-1 p-1 block w-full text-sm text-black-300 border-gray-700 rounded cursor-pointer bg-gray-200 focus:outline-none border-2">
      
      <p class="mt-1 text-sm text-gray-500">Solo se permite un archivo.</p>
 </div>
