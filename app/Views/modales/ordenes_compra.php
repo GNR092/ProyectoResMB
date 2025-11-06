@@ -1,3 +1,6 @@
+<?php
+$sessionid = session('id');
+?>
 <div class="p-4">
     <h2 class="text-lg font-bold mb-4">Generar órdenes de compra</h2>
 
@@ -28,7 +31,7 @@
                         <td class="py-3 px-6 text-left"><?= esc($solicitud['Estado']) ?></td>
                         <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerOrdenCompra(<?= $solicitud[
                             'ID_Solicitud'
-                        ] ?>)">VER</td>
+                        ] ?>,<?= $sessionid ?>)">VER</td>
                     </tr>
                     <?php endforeach; ?>
                     <?php else: ?>

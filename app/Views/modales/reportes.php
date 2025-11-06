@@ -8,10 +8,10 @@
 
     <div class="flex flex-wrap items-center gap-3 mb-6">
 
-        <div class="w-full sm:w-auto flex-shrink-0">
+        <div class="w-full sm:w-auto shrink-0">
             <label class="flex items-center gap-2 border p-2 rounded cursor-pointer min-w-[190px]" onclick="document.getElementById('filtro-fecha-reportes').showPicker()">
                 <span class="text-gray-500 text-sm">Fecha:</span>
-                <input type="date" id="filtro-fecha-reportes" class="border-none p-0 focus:ring-0 bg-transparent flex-grow min-w-0">
+                <input type="date" id="filtro-fecha-reportes" class="border-none p-0 focus:ring-0 bg-transparent grow min-w-0">
                 <label class="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap" onclick="event.stopPropagation();">
                     <input type="checkbox" id="filtrar-por-mes-reportes" class="accent-blue-600 h-4 w-4">
                     Mes
@@ -19,7 +19,7 @@
             </label>
         </div>
 
-        <div class="w-full sm:w-auto flex-shrink-0">
+        <div class="w-full sm:w-auto shrink-0">
             <select id="filtro-estado-reportes" class="border p-2 rounded w-full min-w-[150px]">
                 <option value="">Estado</option>
                 <option value="Por Pagar">🟠 Por Pagar</option>
@@ -29,7 +29,7 @@
             </select>
         </div>
 
-        <div class="w-full sm:w-auto flex-shrink-0">
+        <div class="w-full sm:w-auto shrink-0">
             <select id="filtroDepartamento-reportes" class="border p-2 rounded w-full min-w-[150px]">
                 <option value="">Departamento</option>
                 <?php if (!empty($departamentos)): ?>
@@ -40,7 +40,7 @@
             </select>
         </div>
 
-        <div class="w-full sm:w-auto flex-shrink-0">
+        <div class="w-full sm:w-auto shrink-0">
             <select id="filtroRazonSocial-reportes" class="border p-2 rounded w-full min-w-[150px]">
                 <option value="">Razón Social</option>
                 <?php if (!empty($razones_sociales)): ?>
@@ -51,7 +51,7 @@
             </select>
         </div>
 
-        <div class="w-full sm:w-auto flex-shrink-0">
+        <div class="w-full sm:w-auto shrink-0">
             <select id="filtroProveedor-reportes" class="border p-2 rounded w-full min-w-[150px]">
                 <option value="">Proveedor</option>
             </select>

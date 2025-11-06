@@ -247,7 +247,7 @@ class Rest
 
         foreach ($solicitudes as &$solicitud) {
             // Use reference to modify in place
-            if ($solicitud['Estado'] === 'Aprobada') {
+            if ($solicitud['Estado'] === Status::Aprobada) {
                 if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
                     $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
                     if (isset($ordenesMap[$cotizacion['ID_Cotizacion']])) {
@@ -313,7 +313,7 @@ class Rest
 
         foreach ($solicitudes as &$solicitud) {
             // Use reference to modify in place
-            if ($solicitud['Estado'] === 'Aprobada') {
+            if ($solicitud['Estado'] === Status::Aprobada) {
                 if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
                     $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
                     if (isset($ordenesMap[$cotizacion['ID_Cotizacion']])) {
@@ -501,7 +501,7 @@ class Rest
      * Obtiene una orden de compra específica con todos sus detalles asociados.
      *
      * @param int $id El ID de la solicitud para la que se genera la orden de compra.
-     * @return array|null Un array con los datos de la orden de compra,
+     * @return array|null Un array con los datos de la orden de compra, incluyendo el EstadoOrden,
      *                    o null si la solicitud no se encuentra.
      */
     public function getOrdenCompra(int $id): ?array
@@ -509,16 +509,21 @@ class Rest
         $solicitudModel = new SolicitudModel();
         $placesModel = new PlacesModel();
         $razonSocialModel = new RazonSocialModel();
+        $ordeCompraModel = new OrdenCompraModel();
+        $proveedorModel = new ProveedorModel();
         $solicitud = $solicitudModel
             ->select([
                 'Solicitud.*',
                 'Usuarios.Nombre as UsuarioNombre',
                 'Departamentos.Nombre as DepartamentoNombre',
                 'Razon_Social.Nombre as Complejo',
+                'OrdenCompra.Estado as EstadoOrden',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
+            ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
             ->find($id);
 
         if (!$solicitud) {
@@ -666,11 +671,11 @@ class Rest
 
             if (
                 !$solicitud ||
-                ($solicitud['Estado'] ?? '') === 'En revision' ||
-                ($solicitud['Estado'] ?? '') === 'Aprobada' ||
-                ($solicitud['Estado'] ?? '') === 'Rechazada' ||
-                ($solicitud['Estado'] ?? '') === 'En Proceso de Pago' ||
-                ($solicitud['Estado'] ?? '') === 'Por Pagar'
+                ($solicitud['Estado'] ?? '') === Status::En_Revision ||
+                ($solicitud['Estado'] ?? '') === Status::Aprobada ||
+                ($solicitud['Estado'] ?? '') === Status::Rechazada ||
+                ($solicitud['Estado'] ?? '') === Status::En_Proceso_Pago ||
+                ($solicitud['Estado'] ?? '') === Status::Por_Pagar
             ) {
                 continue;
             }
@@ -751,6 +756,31 @@ class Rest
         return $results ?: [];
     }
 
+    /**
+     * Obtiene las solicitudes aprobadas que no tienen una orden de compra asociada.
+     *
+     * @return array Un array de solicitudes.
+     */
+    public function getSolicitudesSinOrdenPago(): array
+    {
+        $solicitudModel = new SolicitudModel();
+
+        $results = $solicitudModel
+            ->select(
+                'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+            )
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
+            ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
+            ->where('Solicitud.Estado', 'Aprobada')
+            ->where('OrdenCompra.ID_OrdenCompra IS NULL')
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->findAll();
+
+        return $results ?: [];
+    }
+
     //endregion
 
     //region Usuarios
@@ -779,10 +809,9 @@ class Rest
             return $usuariosModel->find($id) ?: [];
         }
     }
-    public function getSignByUserID(int $id): ?string
+    public function getSignB64ByUserID(int $id): ?string
     {
-        $usuariosModel = new UsuariosModel();
-        $user = $usuariosModel->find($id);
+        $user = $this->getUserById($id);
         $SignaturePath = null;
         $userFolder = FPath::FUSER . $id;
         
@@ -796,6 +825,22 @@ class Rest
             $signtype = pathinfo($SignaturePath, PATHINFO_EXTENSION);
             $signb64 = 'data:image/' . $signtype . ';base64,' . $sign64;
             return $signb64;
+        }
+        return null;
+    }
+    public function getSignByUserID(int $id)
+    {
+        $user = $this->getUserById($id);
+        $SignaturePath = null;
+        $userFolder = FPath::FUSER . $id;
+        
+        if (!$user) {
+            return null;
+        }
+        if (!empty($user['Firma_digital'])) {
+            $SignaturePath = $userFolder . DIRECTORY_SEPARATOR . $user['Firma_digital'];
+            $signdata = file_get_contents($SignaturePath);
+            return $signdata;
         }
         return null;
     }

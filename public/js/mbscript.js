@@ -1211,7 +1211,7 @@ async function mostrarCotizar(idSolicitud) {
     const idSolicitud = document.getElementById('cotizar_id_solicitud').value
 
     if (selectedProviderIds.size === 0) {
-      mostrarNotificacion('Por favor, seleccione al menos un proveedor.','alert')
+      mostrarNotificacion('Por favor, seleccione al menos un proveedor.', 'alert')
       return
     }
 
@@ -2297,7 +2297,10 @@ function guardarEdicion() {
               mostrarNotificacion('Producto actualizado y registrado en historial correctamente.')
               location.reload() // o refrescar tabla dinámicamente
             } else {
-              mostrarNotificacion('Producto actualizado, pero no se pudo registrar en historial.','alert')
+              mostrarNotificacion(
+                'Producto actualizado, pero no se pudo registrar en historial.',
+                'alert',
+              )
             }
           })
       } else {
@@ -2321,10 +2324,12 @@ function initOrdenesCompra() {
   })
 }
 
-async function mostrarVerOrdenCompra(idOrden) {
+async function mostrarVerOrdenCompra(idOrden, $idsession) {
   document.getElementById('div-tabla-ordenes').classList.add('hidden')
   document.getElementById('div-ver-orden').classList.remove('hidden')
   const detallesContainer = document.getElementById('detallesOrdenCompra')
+  const iduser = $idsession
+
   detallesContainer.innerHTML = `<p>Cargando detalles de la orden ${idOrden}...</p>`
   try {
     const response = await fetch(`${BASE_URL}api/cotizacion/details/${idOrden}`)
@@ -2419,7 +2424,7 @@ async function mostrarVerOrdenCompra(idOrden) {
                     </button>
                     
                     <!-- Aqui se necesitaria que el boton envie la orden por pdf al proveedor y que cambie de estado a "Por Pagar" -->
-                    <button onclick="enviarOrdenCompra(${idOrden}, this)" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+                    <button onclick="enviarOrdenCompra(${idOrden}, ${iduser}, this)" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
                         Enviar orden de compra
                     </button>
 
@@ -2437,7 +2442,7 @@ function regresarTablaOrdenCompra() {
   document.getElementById('div-tabla-ordenes').classList.remove('hidden')
 }
 
-async function enviarOrdenCompra(idSolicitud, boton) {
+async function enviarOrdenCompra(idSolicitud, iduser, boton) {
   if (!(await Confirmar('Aviso', '¿Deseas enviar esta orden de compra a Tesorería?'))) return
 
   const originalHtml = boton.innerHTML
@@ -2447,7 +2452,7 @@ async function enviarOrdenCompra(idSolicitud, boton) {
     Enviando...
   `
   try {
-    const response = await fetch(`${BASE_URL}api/orden/enviar-proveedor/${idSolicitud}`, {
+    const response = await fetch(`${BASE_URL}api/orden/enviar-proveedor/${idSolicitud}/${iduser}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -3395,7 +3400,7 @@ async function initPagosPendientes() {
     let ordenesCredito = [];
 
     detalles.forEach((det) => {
-      if (det.Estado !== 'Por Pagar') return;
+      if (det.EstadoOrden !== 'Por Pagar') return;
       if (det.MetodoPago == '0') {
         ordenesContado.push(det);
       } else if (det.MetodoPago == '1') {
@@ -3733,7 +3738,7 @@ async function initFichasPago() {
 
     // Filtrar y separar
     detalles.forEach((det) => {
-      if (det.Estado !== 'En Proceso de Pago') return;
+      if (det.EstadoOrden !== 'En Proceso de Pago') return;
 
       if (det.MetodoPago == '0') {
         ordenesContado.push(det);
@@ -4111,7 +4116,7 @@ function initPaginacionReportes() {
     } catch (error) {
       console.error('Error al cargar reportes:', error)
       tbody.innerHTML =
-        '<tr><td colspan="7" class="text-center text-red-500">Error al cargar los registros.</td></tr>' // Colspan 7
+        '<tr><td colspan="7" class="text-center text-gray-500">No se encontraron datos</td></tr>' // Colspan 7
     }
   }
 
@@ -4656,7 +4661,7 @@ function mostrarNotificacion(mensaje, tipo = 'success', duracion = 3000) {
     toast.style.backgroundColor = '#dc2626' // rojo
   } else if (tipo === 'alert') {
     toast.style.backgroundColor = '#FFAB00' // naranja
-  }else {
+  } else {
     toast.style.backgroundColor = '#0369a1' // azul/info
   }
 

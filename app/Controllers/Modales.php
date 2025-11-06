@@ -77,19 +77,7 @@ class Modales extends BaseController
                 return view('modales/revisar_solicitudes', $data);
 
             case 'ordenes_compra':
-                $solicitudModel = new SolicitudModel();
-
-                $data['solicitudes'] = $solicitudModel
-                    ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
-                    )
-                    ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
-                    ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                    ->where('Solicitud.Estado', 'Aprobada')
-                    ->orderBy('Solicitud.ID_Solicitud', 'DESC')
-                    ->findAll();
-               // $data['solicitudes'] = $this->api->getSolicitudesSinOrdenPago();
-
+                $data['solicitudes'] = $this->api->getSolicitudesSinOrdenPago();
                 return view('modales/ordenes_compra', $data);
 
             case 'enviar_revision':
@@ -251,7 +239,7 @@ class Modales extends BaseController
                 return view('modales/reporte_almacen', $data);
             case 'micuenta':
                 $id = session('id');
-                $sign = $this->api->getSignByUserID($id);
+                $sign = $this->api->getSignB64ByUserID($id);
                 $data['firmaUrl'] = $sign;
                 return view('modales/micuenta',$data);
 

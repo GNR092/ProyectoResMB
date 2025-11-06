@@ -405,7 +405,7 @@ class Api extends ResourceController
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
-        if ($solicitud['Estado'] !== 'En espera') {
+        if ($solicitud['Estado'] !== Status::En_espera) {
             return $this->fail(
                 'La solicitud ya no está en estado "En espera". Estado actual: ' . $solicitud['Estado'],
                 HttpStatus::BAD_REQUEST,
@@ -451,6 +451,7 @@ class Api extends ResourceController
                     'Total' => $total,
                 ];
                 $cotizacionModel->insert($cotizacionData);
+                $solicitudModel->update($idSolicitud, ['ID_Proveedor' => $idProveedor]);
 
                 $to = getenv('EMAIL_TO_TEST');
                 if (empty($to)) {
@@ -501,7 +502,7 @@ class Api extends ResourceController
                 $mail->send_email($to, $subject, $message, $option);
             }
 
-            $solicitudModel->update($idSolicitud, ['Estado' => 'Cotizando']);
+            $solicitudModel->update($idSolicitud, ['Estado' => Status::Cotizando]);
 
             $db->transComplete();
 
@@ -542,7 +543,7 @@ class Api extends ResourceController
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
-        if ($solicitud['Estado'] !== 'Cotizando') {
+        if ($solicitud['Estado'] !== Status::Cotizando) {
             return $this->fail(
                 'La solicitud no está en estado "Cotizado".',
                 HttpStatus::BAD_REQUEST,
@@ -628,7 +629,7 @@ class Api extends ResourceController
         if (!in_array($nuevoEstado, ['Aprobada', 'Rechazada'])) {
             return $this->fail('El estado proporcionado no es válido.', HttpStatus::BAD_REQUEST);
         }
-        if ($nuevoEstado === 'Rechazada' && empty(trim((string) $comentarios))) {
+        if ($nuevoEstado === Status::Rechazada && empty(trim((string) $comentarios))) {
             return $this->fail(
                 'Para rechazar una solicitud, los comentarios son obligatorios.',
                 HttpStatus::BAD_REQUEST,
@@ -641,7 +642,7 @@ class Api extends ResourceController
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
-        if ($solicitud['Estado'] !== 'En revision') {
+        if ($solicitud['Estado'] !== Status::En_Revision) {
             return $this->fail(
                 'La solicitud no está en estado "En revision".',
                 HttpStatus::BAD_REQUEST,
@@ -650,7 +651,7 @@ class Api extends ResourceController
 
         try {
             $dataToUpdate = ['Estado' => $nuevoEstado, 'ComentariosAdmin' => $comentarios];
-            if ($nuevoEstado === 'Aprobada') {
+            if ($nuevoEstado === Status::Aprobada) {
                 $dataToUpdate['Fecha_Aprobacion'] = date('Y-m-d H:i:s');
             }
             $solicitudModel->update($idSolicitud, $dataToUpdate);
@@ -715,7 +716,7 @@ class Api extends ResourceController
             return $this->failNotFound('La solicitud no existe.');
         }
 
-        if ($solicitud['Estado'] !== 'Aprobada') {
+        if ($solicitud['Estado'] !== Status::Aprobada) {
             return $this->fail(
                 'Solo se puede generar una orden de compra para solicitudes aprobadas. Estado actual: ' .
                     $solicitud['Estado'],
@@ -738,7 +739,7 @@ class Api extends ResourceController
             $ordenData = [
                 'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
                 'ID_Proveedor' => $cotizacion['ID_Proveedor'],
-                'Estado' => Status::En_Proceso_Pago, // Estado inicial de la orden
+                'Estado' => Status::Por_Pagar, // Estado inicial de la orden
                 'Fecha' => date('Y-m-d'), // Fecha de creación
             ];
 
@@ -873,10 +874,13 @@ class Api extends ResourceController
      * Función específica para generar la OC, enviarla por correo y cambiar su estado.
      * Llamada solo desde la vista de 'ordenes_compra'.
      */
-    public function enviarOrdenAProveedor($idSolicitud = null)
+    public function enviarOrdenAProveedor($idSolicitud = null,$userid = null)
     {
         if ($idSolicitud === null) {
             return $this->failValidationErrors('Se requiere un ID de solicitud.');
+        }
+         if ($userid === null) {
+            return $this->failValidationErrors('Se requiere un ID.');
         }
 
         $solicitudModel = new SolicitudModel();
@@ -884,10 +888,6 @@ class Api extends ResourceController
         $cotizacionModel = new CotizacionModel();
         $proveedorModel = new ProveedorModel();
         $razonSocialModel = new RazonSocialModel();
-
-
-
-        $nuevoEstadoSolicitud = 'Por Pagar';
 
         $db = \Config\Database::connect();
         $db->transStart();
@@ -898,7 +898,7 @@ class Api extends ResourceController
                 throw new \Exception('Solicitud no encontrada.');
             }
 
-            if ($solicitud['Estado'] !== 'Aprobada') {
+            if ($solicitud['Estado'] !== Status::Aprobada) {
                 throw new \Exception('Solo se puede enviar una orden desde el estado "Aprobada".');
             }
 
@@ -961,7 +961,7 @@ class Api extends ResourceController
             $message .= '</div></body></html>';
 
             $pdf = new GenerarPDF();
-            $pdfPath = $pdf->generarYGuardarOrden($idSolicitud);
+            $pdfPath = $pdf->generarYGuardarOrden($idSolicitud, $userid);
             if (empty($pdfPath)) {
                 throw new \Exception('No se pudo generar o guardar el PDF de la Orden de Compra.');
             }
@@ -970,14 +970,6 @@ class Api extends ResourceController
                 'attachments' => [$pdfPath],
                 'fromName' => $razonNombre
             ];
-
-            $updateResult = $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstadoSolicitud]);
-
-            if ($updateResult === false) {
-                $errors = $solicitudModel->errors();
-                $errorMessage = $errors ? implode(', ', $errors) : 'La actualización del estado de la solicitud falló.';
-                throw new \Exception($errorMessage);
-            }
 
             $mail = new MBSMail();
             $mail->send_email($to, $subject, $message, $option);
@@ -991,7 +983,7 @@ class Api extends ResourceController
             return $this->respondUpdated([
                 'success' => true,
                 'message' => 'Orden Creada, estado actualizado y correo enviado.',
-                'nuevoEstado' => $nuevoEstadoSolicitud,
+                'nuevoEstado' => Status::En_Proceso_Pago,
             ]);
 
         } catch (\Exception $e) {

@@ -97,7 +97,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/orden-compra/data/(:num)', 'Api::getOrdenCompraData/$1');
         $routes->post('api/solicitudes/cambiarEstado/(:num)', 'Api::cambiarEstadoOrden/$1');
         $routes->post('api/solicitud/enviarATesoreria', 'Api::enviarATesoreria');
-        $routes->post('api/orden/enviar-proveedor/(:num)', 'Api::enviarOrdenAProveedor/$1');
+        $routes->post('api/orden/enviar-proveedor/(:num)/(:segment)', 'Api::enviarOrdenAProveedor/$1/$2');
 
         //razon social
         $routes->post('modales/razonsocial/insertar', 'Modales::insertarRazonSocial');

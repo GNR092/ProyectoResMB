@@ -324,11 +324,36 @@ class GenerarPDF extends BaseController
                             if ($mime == 'image/png') {
                                 imagealphablending($resizedImage, false);
                                 imagesavealpha($resizedImage, true);
-                                $transparent = imagecolorallocatealpha($resizedImage, 255, 255, 255, 127);
-                                imagefilledrectangle($resizedImage, 0, 0, $newWidth, $newHeight, $transparent);
+                                $transparent = imagecolorallocatealpha(
+                                    $resizedImage,
+                                    255,
+                                    255,
+                                    255,
+                                    127,
+                                );
+                                imagefilledrectangle(
+                                    $resizedImage,
+                                    0,
+                                    0,
+                                    $newWidth,
+                                    $newHeight,
+                                    $transparent,
+                                );
                             }
-                            imagecopyresampled($resizedImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
-                            $tempImagePath = tempnam(sys_get_temp_dir(), 'pdf_img_') . '.' . $fileExtension;
+                            imagecopyresampled(
+                                $resizedImage,
+                                $sourceImage,
+                                0,
+                                0,
+                                0,
+                                0,
+                                $newWidth,
+                                $newHeight,
+                                $originalWidth,
+                                $originalHeight,
+                            );
+                            $tempImagePath =
+                                tempnam(sys_get_temp_dir(), 'pdf_img_') . '.' . $fileExtension;
                             switch ($mime) {
                                 case 'image/jpeg':
                                     imagejpeg($resizedImage, $tempImagePath, 85);
@@ -368,7 +393,6 @@ class GenerarPDF extends BaseController
                 if ($tempImagePath && file_exists($tempImagePath)) {
                     unlink($tempImagePath);
                 }
-
             } elseif ($fileExtension === 'pdf') {
                 $fileSize = filesize($filePath);
                 if ($fileSize > $maxFileSize) {
@@ -376,7 +400,21 @@ class GenerarPDF extends BaseController
                     $pdf->Title($title, 0, 0, 0, 0, 'C');
                     $pdf->Ln(10);
                     $pdf->SetFont('Arial', 'B', 12);
-                    $pdf->MultiCell(190, 10, mb_convert_encoding('El archivo adjunto (PDF) "' . $fileName . '" es demasiado grande (' . round($fileSize / 1024 / 1024, 2) . ' MB) para ser incluido.', 'ISO-8859-1', 'UTF-8'), 0, 'C');
+                    $pdf->MultiCell(
+                        190,
+                        10,
+                        mb_convert_encoding(
+                            'El archivo adjunto (PDF) "' .
+                                $fileName .
+                                '" es demasiado grande (' .
+                                round($fileSize / 1024 / 1024, 2) .
+                                ' MB) para ser incluido.',
+                            'ISO-8859-1',
+                            'UTF-8',
+                        ),
+                        0,
+                        'C',
+                    );
                     return;
                 }
 
@@ -394,9 +432,18 @@ class GenerarPDF extends BaseController
                     $pdf->Title($title, 0, 0, 0, 0, 'C');
                     $pdf->Ln(10);
                     $pdf->SetFont('Arial', 'B', 12);
-                    $pdf->MultiCell(190, 10, mb_convert_encoding('Error al procesar el archivo PDF adjunto: "' . $fileName . '".', 'ISO-8859-1', 'UTF-8'), 0, 'C');
+                    $pdf->MultiCell(
+                        190,
+                        10,
+                        mb_convert_encoding(
+                            'Error al procesar el archivo PDF adjunto: "' . $fileName . '".',
+                            'ISO-8859-1',
+                            'UTF-8',
+                        ),
+                        0,
+                        'C',
+                    );
                 }
-
             } else {
                 $pdf->AddPage();
                 $pdf->Title($title, 0, 0, 0, 0, 'C');
@@ -415,8 +462,12 @@ class GenerarPDF extends BaseController
 
     public function GenerarOrden(int $id)
     {
+        $userid = $this->session->get('id');
         try {
             $orden = $this->api->getOrdenCompra($id);
+            $user = $this->api->getUserById($userid);
+            $orden['UsuarioSession'] = $user;
+            //log_message('info', print_r($orden, true));
         } catch (\Exception $e) {
             log_message('error', 'Error al conectar con el API: ' . $e->getMessage());
             return 'Error al generar el PDF: No se pudo conectar al API.';
@@ -453,18 +504,27 @@ class GenerarPDF extends BaseController
      * @param int $id El ID de la solicitud (para obtener los datos de la OC).
      * @return string|null La ruta del archivo PDF generado o null si hubo un error.
      */
-    public function generarYGuardarOrden(int $id): ?string
+    public function generarYGuardarOrden(int $id, int $userid): ?string
     {
         try {
             // Usamos la misma API que ya tienes para obtener los datos de la OC
             $orden = $this->api->getOrdenCompra($id);
+            $user = $this->api->getUserById($userid);
+            $orden['UsuarioSession'] = $user;
         } catch (\Exception $e) {
-            log_message('error', '[generarYGuardarOrden] Error al conectar con el API: ' . $e->getMessage());
+            log_message(
+                'error',
+                '[generarYGuardarOrden] Error al conectar con el API: ' . $e->getMessage(),
+            );
             return null;
         }
 
         if (empty($orden)) {
-            log_message('error', '[generarYGuardarOrden] Respuesta de API inválida para la orden con ID de solicitud: ' . $id);
+            log_message(
+                'error',
+                '[generarYGuardarOrden] Respuesta de API inválida para la orden con ID de solicitud: ' .
+                    $id,
+            );
             return null;
         }
 
@@ -487,7 +547,10 @@ class GenerarPDF extends BaseController
         $folderPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_ordenes';
         if (!is_dir($folderPath)) {
             if (!mkdir($folderPath, 0777, true)) {
-                log_message('error', 'No se pudo crear el directorio para los PDFs de órdenes de compra.');
+                log_message(
+                    'error',
+                    'No se pudo crear el directorio para los PDFs de órdenes de compra.',
+                );
                 return null;
             }
         }
@@ -755,15 +818,42 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell(110, 7, 'compras@campusmerida.com', 'LR', 1, 'C');
         $pdf->Cell(110, 7, 'gfreyre@campusmerida.com', 'LRB', 1, 'C');
-
         $pdf->SetY($y);
-        $pdf->Ln(10);
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(100, 5, 'FIRMA', 'T', 0, 'C');
-        $pdf->Ln(5);
-        $pdf->Cell(100, 5, $orden['UsuarioNombre'] ?? '', 0, 0, 'C');
+        if (
+            isset($orden['UsuarioSession']['Firma_digital']) &&
+            !empty($orden['UsuarioSession']['Firma_digital'])
+        ) {
+            $signatureX = $pdf->GetX();
+            $signatureY = $pdf->GetY();
+            $signatureWidth = 50;
+            $firmaPath =
+                FPath::FUSER .
+                $orden['UsuarioSession']['ID_Usuario'] .
+                DIRECTORY_SEPARATOR .
+                $orden['UsuarioSession']['Firma_digital'];
+            log_message('info', 'Firma ' . $firmaPath);
+            if (file_exists($firmaPath)) {
+                $imageWidth = 70;
+                $imageHeight = 35;
+                $x = $signatureX + ($signatureWidth - $imageWidth) / 2;
+                $pdf->Image($firmaPath, $x, $signatureY, $imageWidth, $imageHeight);
+                $pdf->SetY($signatureY + $imageHeight);
+            }
+
+            $pdf->SetX($signatureX);
+            $pdf->SetFont('Arial', 'B', 8);
+            $pdf->Cell($signatureWidth, 5, 'FIRMA', 'T', 0, 'C');
+            $pdf->Ln(5);
+            $pdf->SetX($signatureX);
+            $pdf->Cell($signatureWidth, 5, $orden['UsuarioSession']['Nombre'] ?? '', 0, 0, 'C');
+        } else {
+            $pdf->SetFont('Arial', 'B', 8);
+            $pdf->Cell(50, 5, 'FIRMA', 'T', 0, 'C');
+            $pdf->Ln(5);
+            $pdf->Cell(50, 5, $orden['UsuarioSession']['Nombre'] ?? '', 0, 0, 'C');
+        }
     }
-    
+
     //endregion
 
     /**
@@ -784,14 +874,23 @@ class GenerarPDF extends BaseController
             $solicitud = $this->api->getSolicitudPago($id);
 
             if (empty($solicitud)) {
-                log_message('error', 'API devolvió datos vacíos para la requisición de pago ID: ' . $id);
+                log_message(
+                    'error',
+                    'API devolvió datos vacíos para la requisición de pago ID: ' . $id,
+                );
                 return 'Error al generar el PDF: No se recibieron datos válidos de la requisición de pago.';
             }
         } catch (\Exception $e) {
-            log_message('error', 'Excepción al conectar con el API para requisición de pago ID ' . $id . ': ' . $e->getMessage());
+            log_message(
+                'error',
+                'Excepción al conectar con el API para requisición de pago ID ' .
+                    $id .
+                    ': ' .
+                    $e->getMessage(),
+            );
             return 'Error al generar el PDF: No se pudo conectar al API.';
         }
-        
+
         $pdf = new PDF('P', 'mm', 'Letter');
         $pdf->AliasNbPages();
         $pdf->AddPage();
@@ -814,7 +913,14 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(0, 3, 'MBSP RENTAS SA DE CV', 0, 1, 'C');
         $pdf->SetFont('Arial', 'B', 14);
-        $pdf->Cell(0, 7, mb_convert_encoding('REQUISICIÓN DE PAGO', 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+        $pdf->Cell(
+            0,
+            7,
+            mb_convert_encoding('REQUISICIÓN DE PAGO', 'ISO-8859-1', 'UTF-8'),
+            0,
+            1,
+            'C',
+        );
         $pdf->Ln(10);
 
         // Tipo de Pago
@@ -865,12 +971,26 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Proyecto', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(50, 7, mb_convert_encoding($data['DepartamentoNombre'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+        $pdf->Cell(
+            50,
+            7,
+            mb_convert_encoding($data['DepartamentoNombre'], 'ISO-8859-1', 'UTF-8'),
+            1,
+            1,
+            'L',
+        );
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Proveedor', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(50, 7, mb_convert_encoding($data['ProveedorNombre'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+        $pdf->Cell(
+            50,
+            7,
+            mb_convert_encoding($data['ProveedorNombre'], 'ISO-8859-1', 'UTF-8'),
+            1,
+            1,
+            'L',
+        );
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Fecha de Pago', 1, 0, 'L');
@@ -895,7 +1015,14 @@ class GenerarPDF extends BaseController
         $pdf->Cell(15, 7, '1', 1, 0, 'C');
         $pdf->Cell(40, 7, '', 1, 0, 'C');
         $pdf->Cell(30, 7, '$' . number_format($data['ImporteTotal'], 2), 1, 0, 'R');
-        $pdf->Cell(110, 7, mb_convert_encoding($data['DescripcionPago'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+        $pdf->Cell(
+            110,
+            7,
+            mb_convert_encoding($data['DescripcionPago'], 'ISO-8859-1', 'UTF-8'),
+            1,
+            1,
+            'L',
+        );
 
         // Filas vacías (2 a 10)
         for ($i = 2; $i <= 10; $i++) {
@@ -936,7 +1063,14 @@ class GenerarPDF extends BaseController
         $pdf->Cell($ancho_firma, $alto_firma, '', 'B', 1, 'C');
         $pdf->SetX(15);
         $pdf->SetFont('Arial', 'B', 10);
-        $pdf->Cell($ancho_firma, 5, mb_convert_encoding($data['Solicita'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+        $pdf->Cell(
+            $ancho_firma,
+            5,
+            mb_convert_encoding($data['Solicita'], 'ISO-8859-1', 'UTF-8'),
+            0,
+            1,
+            'C',
+        );
 
         // Vo. Bo
         $pdf->SetXY(75, $y_firmas);
@@ -946,7 +1080,14 @@ class GenerarPDF extends BaseController
         $pdf->Cell($ancho_firma, $alto_firma, '', 'B', 1, 'C');
         $pdf->SetX(75);
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell($ancho_firma, 5, mb_convert_encoding($data['VoBo'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+        $pdf->Cell(
+            $ancho_firma,
+            5,
+            mb_convert_encoding($data['VoBo'], 'ISO-8859-1', 'UTF-8'),
+            0,
+            1,
+            'C',
+        );
 
         // Autoriza
         $pdf->SetXY(135, $y_firmas);
@@ -956,13 +1097,27 @@ class GenerarPDF extends BaseController
         $pdf->Cell($ancho_firma, $alto_firma, '', 'B', 1, 'C');
         $pdf->SetX(135);
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell($ancho_firma, 5, mb_convert_encoding($data['Autoriza'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+        $pdf->Cell(
+            $ancho_firma,
+            5,
+            mb_convert_encoding($data['Autoriza'], 'ISO-8859-1', 'UTF-8'),
+            0,
+            1,
+            'C',
+        );
         $pdf->Ln(10);
 
         // Notificar a:
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(0, 7, 'Notificar a:', 0, 1, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(0, 10, mb_convert_encoding($data['NotificarA'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+        $pdf->Cell(
+            0,
+            10,
+            mb_convert_encoding($data['NotificarA'], 'ISO-8859-1', 'UTF-8'),
+            1,
+            1,
+            'L',
+        );
     }
 }

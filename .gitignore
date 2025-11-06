@@ -60,8 +60,8 @@ writable/session/*
 writable/uploads/*
 !writable/uploads/index.html
 
-writable/user/*
-!writable/user/index.html
+writable/users/*
+!writable/users/index.html
 
 writable/debugbar/*
 !writable/debugbar/.gitkeep
