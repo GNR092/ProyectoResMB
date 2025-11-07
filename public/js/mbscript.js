@@ -3603,7 +3603,7 @@ async function mostrarDetalleOrden(id, metodoPago) {
 
     html += `
       <div class="flex justify-between mt-6 pt-4 border-t gap-4">
-        <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+        <button onclick="CerrarOrden(${id}, '${metodoPago}', volverATabla, initPagosPendientes)" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
           Cerrar requisición
         </button>
         <button onclick="enviarATesoreria(${id}, '${metodoPago}')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
@@ -3943,7 +3943,7 @@ async function mostrarDetalleFicha(id, metodoPago) {
 
     html += `
       <div class="flex justify-between mt-6 pt-4 border-t gap-4">
-        <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+        <button onclick="CerrarOrden(${id}, '${metodoPago}', volverAFichas, initFichasPago)" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
           Cerrar requisición
         </button>
         <button onclick="regresarACompras(${id}, '${metodoPago}')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
@@ -4011,6 +4011,57 @@ async function regresarACompras(idSolicitud, metodoPago) {
 }
 
 /**
+ * Cierra una orden de compra, actualizando su estado a "Pagada".
+ * Utiliza confirm() y alert() para mantener la coherencia del UI.
+ *
+ * @param {number} idSolicitud - El ID de la solicitud a cerrar.
+ * @param {string} metodoPago - '0' o '1', para pasarlo a la función de 'volver'.
+ * @param {function} volverCallback - La función para regresar a la tabla (ej. volverATabla).
+ * @param {function} refreshCallback - La función para refrescar la lista (ej. initPagosPendientes).
+ */
+async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallback) {
+
+  // 1. Añadimos una confirmación (similar a tu 'Confirmar')
+  const estaSeguro = confirm(
+      "¿Está seguro de marcar esta orden como 'Pagada'?\n\nEsta acción es final y cerrará la requisición."
+  );
+
+  if (!estaSeguro) {
+    return; // El usuario canceló
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nuevoEstado: 'Pagada' })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      // 2. Usamos alert() para el éxito
+      alert("Orden actualizada a 'Pagada' correctamente.");
+
+      // Llama a las funciones de callback para regresar y refrescar
+      if (typeof volverCallback === 'function') {
+        volverCallback(metodoPago);
+      }
+      if (typeof refreshCallback === 'function') {
+        refreshCallback();
+      }
+
+    } else {
+      // 3. Usamos alert() para el error
+      alert('No se pudo actualizar el estado. Intente de nuevo.');
+    }
+  } catch (error) {
+    console.error('Error al cerrar la orden:', error); // Mantenemos el console.error para depuración
+    // 4. Usamos alert() para el error de red/excepción
+    alert('Ocurrió un error de red al cerrar la orden.');
+  }
+}
+
+/**
  * Lógica para reportes
  */
 
@@ -4025,7 +4076,7 @@ async function cargarFiltroProveedores() {
     const proveedores = await response.json()
 
     if (proveedores && proveedores.length > 0) {
-      // Limpiar opciones existentes (excepto la primera)
+      // Limpiar opciones existentes
       selectProveedor.length = 1
 
       proveedores.forEach((prov) => {
@@ -4038,7 +4089,6 @@ async function cargarFiltroProveedores() {
     }
   } catch (error) {
     console.error('Error al cargar filtro de proveedores:', error)
-    // Podrías deshabilitar el filtro o mostrar un mensaje
   }
 }
 
@@ -4046,12 +4096,9 @@ function initPaginacionReportes() {
   const tabla = document.getElementById('tabla-reportes')
   if (!tabla) return
 
-  // Si ya está inicializado (por si se llama múltiples veces), salimos.
   if (tabla.dataset.initialized === 'true') {
-    // console.log("initPaginacionReportes ya inicializado.");
     return
   }
-  tabla.dataset.initialized = 'true' // Marcar como inicializado
 
   const rowsPerPage = 10
   let currentPage = 1
@@ -4070,7 +4117,9 @@ function initPaginacionReportes() {
 
     const statusMap = {
       'en proceso de pago': { class: 'text-yellow-500', icon: 'en_espera' },
-      completada: { class: 'text-green-600', icon: 'aceptado' },
+      // --- CORREGIDO ---
+      pagada: { class: 'text-green-600', icon: 'aceptado' },
+      // --- FIN CORRECCIÓN ---
       cancelada: { class: 'text-red-500', icon: 'rechazado' },
       'por pagar': { class: 'text-yellow-500', icon: 'en_espera' },
     }
@@ -4098,15 +4147,15 @@ function initPaginacionReportes() {
       }
 
       const detallesPromises = ordenesBasicas.map((orden) =>
-        fetch(`${BASE_URL}api/orden-compra/details/${orden.ID_Solicitud}`)
-          .then((res) => {
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
-            return res.json()
-          })
-          .catch((err) => {
-            console.error(`Error fetching details for Solicitud ID ${orden.ID_Solicitud}:`, err)
-            return null
-          }),
+          fetch(`${BASE_URL}api/orden-compra/details/${orden.ID_Solicitud}`)
+              .then((res) => {
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+                return res.json()
+              })
+              .catch((err) => {
+                console.error(`Error fetching details for Solicitud ID ${orden.ID_Solicitud}:`, err)
+                return null
+              }),
       )
 
       const detallesCompletos = await Promise.all(detallesPromises)
@@ -4116,7 +4165,7 @@ function initPaginacionReportes() {
     } catch (error) {
       console.error('Error al cargar reportes:', error)
       tbody.innerHTML =
-        '<tr><td colspan="7" class="text-center text-gray-500">No se encontraron datos</td></tr>' // Colspan 7
+          '<tr><td colspan="7" class="text-center text-gray-500">No se encontraron datos</td></tr>' // Colspan 7
     }
   }
 
@@ -4131,10 +4180,10 @@ function initPaginacionReportes() {
     const proveedorFiltro = document.getElementById('filtroProveedor-reportes').value
 
     filteredData = allData.filter((item) => {
-      // --- LÓGICA DE FILTRADO ACTUALIZADA ---
-      const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
+      const coincideEstado = !estadoFiltro || item.EstadoOrden === estadoFiltro;
+
       const coincideDepto = !deptoFiltro || item.DepartamentoNombre === deptoFiltro
-      const coincideRazonSocial = !razonSocialFiltro || item.Complejo === razonSocialFiltro // Asumiendo que 'Complejo' es la Razón Social
+      const coincideRazonSocial = !razonSocialFiltro || item.Complejo === razonSocialFiltro
       const coincideProveedor = !proveedorFiltro || item.proveedor?.RazonSocial === proveedorFiltro
 
       let coincideFecha = true
@@ -4146,13 +4195,13 @@ function initPaginacionReportes() {
         }
       }
       return (
-        coincideEstado &&
-        coincideDepto &&
-        coincideRazonSocial && // Añadido
-        coincideProveedor && // Añadido
-        coincideFecha
+          coincideEstado &&
+          coincideDepto &&
+          coincideRazonSocial &&
+          coincideProveedor &&
+          coincideFecha
       )
-      // --- FIN LÓGICA ---
+
     })
 
     currentPage = 1
@@ -4170,12 +4219,12 @@ function initPaginacionReportes() {
 
     if (pageData.length === 0) {
       tbody.innerHTML =
-        '<tr><td colspan="7" class="text-center py-4">No hay registros que coincidan con los filtros.</td></tr>' // Colspan 7
+          '<tr><td colspan="7" class="text-center py-4">No hay registros que coincidan con los filtros.</td></tr>' // Colspan 7
       return
     }
 
     pageData.forEach((item) => {
-      const svg = getStatusSVG(item.Estado)
+      const svg = getStatusSVG(item.EstadoOrden);
       tbody.innerHTML += `
         <tr class="text-center hover:bg-gray-50 text-sm">
           <td class="border px-3 py-2 text-left">${item.No_Folio || 'N/A'}</td>
@@ -4183,14 +4232,14 @@ function initPaginacionReportes() {
           <td class="border px-3 py-2 text-left">${item.Complejo || 'N/A'}</td>
           <td class="border px-3 py-2 text-left">${item.proveedor?.RazonSocial || 'N/A'}</td>
           <td class="border px-3 py-2 text-left">${item.Fecha ? new Date(item.Fecha).toLocaleDateString() : 'N/A'}</td>
-          <td class="border px-3 py-2 col-estado" data-estado="${item.Estado}" title="${item.Estado}">
+          <td class="border px-3 py-2 col-estado" data-estado="${item.EstadoOrden}" title="${item.EstadoOrden}">
               ${svg}
           </td>
           <td class="border px-3 py-2">
               <button class="text-blue-600 hover:underline" onclick="mostrarVerReporte(${item.ID_Solicitud}); return false;">Ver</button>
           </td>
         </tr>
-      `
+      `;
     })
   }
 
@@ -4207,7 +4256,6 @@ function initPaginacionReportes() {
     if (currentPage <= 3) endPage = Math.min(totalPages, 5)
     if (currentPage > totalPages - 3) startPage = Math.max(1, totalPages - 4)
 
-    // Botón Anterior (si no estamos en la primera página)
     if (currentPage > 1) {
       const prevBtn = document.createElement('button')
       prevBtn.innerHTML = '&laquo;' // O 'Anterior'
@@ -4237,8 +4285,8 @@ function initPaginacionReportes() {
       const btn = document.createElement('button')
       btn.textContent = i
       btn.className =
-        'px-3 py-1 border rounded hover:bg-gray-200 ' +
-        (i === currentPage ? 'bg-gray-300 font-bold' : 'bg-white')
+          'px-3 py-1 border rounded hover:bg-gray-200 ' +
+          (i === currentPage ? 'bg-gray-300 font-bold' : 'bg-white')
       btn.addEventListener('click', () => {
         currentPage = i
         renderTable()
@@ -4260,11 +4308,10 @@ function initPaginacionReportes() {
       paginacion.appendChild(lastBtn)
     }
 
-    // Botón Siguiente (si no estamos en la última página)
     if (currentPage < totalPages) {
       const nextBtn = document.createElement('button')
-      nextBtn.innerHTML = '&raquo;' // O 'Siguiente'
-      nextBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-200'
+      nextBtn.innerHTML = '&raquo;'
+      nextBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-20OS'
       nextBtn.addEventListener('click', () => {
         currentPage++
         renderTable()
@@ -4274,35 +4321,34 @@ function initPaginacionReportes() {
     }
   }
 
-  // Asegurarse de que los listeners se añadan solo una vez
+  // los teners se añaden solo una vez
   const listenerIds = [
     'filtro-fecha-reportes',
     'filtrar-por-mes-reportes',
     'filtro-estado-reportes',
     'filtroDepartamento-reportes',
-    'filtroRazonSocial-reportes', // Añadido
-    'filtroProveedor-reportes', // Añadido
+    'filtroRazonSocial-reportes',
+    'filtroProveedor-reportes',
   ]
 
   listenerIds.forEach((id) => {
     const el = document.getElementById(id)
-    // Verificar si el listener ya fue añadido antes de agregarlo
     if (el && !el.dataset.listenerAttached) {
       el.addEventListener('change', window.applyFiltersAndRender)
-      el.dataset.listenerAttached = 'true' // Marcar como añadido
+      el.dataset.listenerAttached = 'true'
     } else if (!el) {
       console.warn(`Elemento de filtro con ID '${id}' no encontrado.`)
     }
   })
 
-  fetchData() // Carga inicial
+  fetchData()
 }
 
 async function mostrarVerReporte(idSolicitud) {
   document.getElementById('div-reportes').classList.add('hidden')
   document.getElementById('div-ver-reporte').classList.remove('hidden')
 
-  const detallesContainer = document.getElementById('detalles-reporte')
+  const detallesContainer = document.getElementById('div-ver-reporte')
   detallesContainer.innerHTML = `<p class="text-gray-500 text-center py-4">Cargando detalles de la orden...</p>`
 
   try {
@@ -4319,15 +4365,24 @@ async function mostrarVerReporte(idSolicitud) {
     })
 
     const metodoPagoTexto =
-      data.MetodoPago == 0
-        ? 'Efectivo'
-        : data.MetodoPago == 1
-          ? 'Crédito'
-          : data.MetodoPago == 9
-            ? 'En Espera'
-            : 'N/A'
+        data.MetodoPago == 0
+            ? 'Efectivo'
+            : data.MetodoPago == 1
+                ? 'Crédito'
+                : data.MetodoPago == 9
+                    ? 'En Espera'
+                    : 'N/A'
 
     let html = `
+      <div class="flex justify-between items-center mb-4">
+        <button onclick="regresarReportes()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+        <h2 class="text-lg font-semibold">Detalle Orden #${data.No_Folio || idSolicitud}</h2>
+        <div></div>
+      </div>
+    `
+    // --- FIN CORRECCIÓN 2 ---
+
+    html += `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
         <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
         <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
@@ -4344,13 +4399,13 @@ async function mostrarVerReporte(idSolicitud) {
         <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
         <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
         <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
-          prov.Monto_Credito
+        prov.Monto_Credito
             ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
-                style: 'currency',
-                currency: 'MXN',
-              })
+              style: 'currency',
+              currency: 'MXN',
+            })
             : 'N/A'
-        }</div>
+    }</div>
       </div>
       <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
       <div class="overflow-x-auto shadow rounded-lg mb-6">
@@ -4375,8 +4430,8 @@ async function mostrarVerReporte(idSolicitud) {
                 <td class="py-2 px-4 border-t text-sm">${p.Nombre}</td>
                 <td class="py-2 px-4 border-t text-right text-sm">${p.Cantidad}</td>
                 <td class="py-2 px-4 border-t text-right text-sm">$${parseFloat(p.Importe).toFixed(
-                  2,
-                )}</td>
+            2,
+        )}</td>
                 <td class="py-2 px-4 border-t text-right text-sm">$${costoTotal}</td>
             </tr>
         `

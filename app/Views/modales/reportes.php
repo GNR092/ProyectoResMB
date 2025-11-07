@@ -24,7 +24,9 @@
                 <option value="">Estado</option>
                 <option value="Por Pagar">🟠 Por Pagar</option>
                 <option value="En Proceso de Pago">🟡 En Proceso</option>
-                <option value="Completada">🟢 Completada</option>
+                <!-- --- CORREGIDO --- -->
+                <option value="Pagada">🟢 Pagada</option>
+                <!-- --- FIN CORRECCIÓN --- -->
                 <option value="Cancelada">🔴 Cancelada</option>
             </select>
         </div>
@@ -81,4 +83,8 @@
             Generar Reporte
         </button>
     </div>
+</div>
+
+<div id="div-ver-reporte" >
+
 </div>
