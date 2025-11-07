@@ -853,7 +853,7 @@ class Api extends ResourceController
 
         try {
             // Lógica simple: solo actualizar el estado
-            $updateResult = $ordenCompraModel->update($cot['ID_Cotizacion'], ['Estado' => $nuevoEstado]);
+            $updateResult = $ordenCompraModel->update($orden['ID_OrdenCompra'], ['Estado' => $nuevoEstado]);
 
             if ($updateResult === false) {
                 $errors = $ordenCompraModel->errors();
@@ -917,7 +917,7 @@ class Api extends ResourceController
             $ordenData = [
                 'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
                 'ID_Proveedor'  => $cotizacion['ID_Proveedor'],
-                'Estado'        => Status::En_Proceso_Pago,
+                'Estado'        => Status::Por_Pagar,
                 'Fecha'         => date('Y-m-d')
             ];
 
