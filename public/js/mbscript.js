@@ -66,7 +66,7 @@ function abrirModal(opcion) {
         ordenes_compra: initOrdenesCompra,
         crud_proveedores: initCrudProveedores,
         entrega_productos: initEntregaMaterial,
-        reportes: initPaginacionReportes,
+        //reportes: initPaginacionReportes,
         pagos_pendientes: initPagosPendientes,
         ficha_pago: initFichasPago,
         razonsocial: initCrudRazonSocial,
@@ -720,6 +720,7 @@ function initPaginacionHistorial() {
 
     switch (statususLower) {
       case 'aprobada':
+      case 'pagada':
         svgClass = 'text-green-600'
         iconId = 'aceptado'
         break
@@ -728,6 +729,7 @@ function initPaginacionHistorial() {
         iconId = 'en_espera'
         break
       case 'rechazada':
+      case 'cancelada':
         svgClass = 'text-red-500'
         iconId = 'rechazado'
         break
@@ -1400,41 +1402,39 @@ function RevisionX() {
      * @returns {Promise<number>} - Promesa que resuelve a los días de crédito
      */
     async _getDiasDeCredito(data) {
-      let diasCredito = 0;
-      let providerIdToQuery = null;
+      let diasCredito = 0
+      let providerIdToQuery = null
 
       // Caso 1: Múltiples proveedores
       if (idprov) {
-        providerIdToQuery = idprov;
+        providerIdToQuery = idprov
       }
-          // Caso 2: Un solo proveedor (idprov es null)
+      // Caso 2: Un solo proveedor (idprov es null)
       // Obtenemos el ID del proveedor
       else if (data && data.ID_Proveedor) {
-        providerIdToQuery = data.ID_Proveedor;
-      }
-      else if (data && data.cotizacion && data.cotizacion.ID_Proveedor) {
-        providerIdToQuery = data.cotizacion.ID_Proveedor;
+        providerIdToQuery = data.ID_Proveedor
+      } else if (data && data.cotizacion && data.cotizacion.ID_Proveedor) {
+        providerIdToQuery = data.cotizacion.ID_Proveedor
       }
 
       if (!providerIdToQuery) {
-        console.warn('No se pudo determinar un ID de Proveedor para consultar los días de crédito.');
-        return 0;
+        console.warn('No se pudo determinar un ID de Proveedor para consultar los días de crédito.')
+        return 0
       }
 
       try {
-        const response = await fetch(`${BASE_URL}api/provider/${providerIdToQuery}`);
+        const response = await fetch(`${BASE_URL}api/provider/${providerIdToQuery}`)
         if (!response.ok) {
-          throw new Error(`Proveedor no encontrado (ID: ${providerIdToQuery})`);
+          throw new Error(`Proveedor no encontrado (ID: ${providerIdToQuery})`)
         }
-        const proveedorData = await response.json();
-        diasCredito = parseInt(proveedorData.Dias_Credito) || 0;
-
+        const proveedorData = await response.json()
+        diasCredito = parseInt(proveedorData.Dias_Credito) || 0
       } catch (error) {
-        console.error(`Error al buscar proveedor ${providerIdToQuery}:`, error);
-        diasCredito = 0; // Si falla la API, se toma el valor 0.
+        console.error(`Error al buscar proveedor ${providerIdToQuery}:`, error)
+        diasCredito = 0 // Si falla la API, se toma el valor 0.
       }
 
-      return diasCredito;
+      return diasCredito
     },
 
     /**
@@ -3329,28 +3329,28 @@ function regresarBuscarMateriales() {
  * Lógica para pagos pendientes (facturas)
  */
 async function initPagosPendientes() {
-  const tbodyContado = document.getElementById('body-contado');
-  const tbodyCredito = document.getElementById('body-credito');
-  const detalleContado = document.getElementById('detalle-contado');
-  const detalleCredito = document.getElementById('detalle-credito');
+  const tbodyContado = document.getElementById('body-contado')
+  const tbodyCredito = document.getElementById('body-credito')
+  const detalleContado = document.getElementById('detalle-contado')
+  const detalleCredito = document.getElementById('detalle-credito')
 
-  tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`;
-  tbodyCredito.innerHTML = tbodyContado.innerHTML;
+  tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`
+  tbodyCredito.innerHTML = tbodyContado.innerHTML
 
   function calcularFechaVencimiento(fechaStr, diasStr) {
     if (!fechaStr) {
-      return new Date('2999-12-31');
+      return new Date('2999-12-31')
     }
-    const fechaSimple = fechaStr.split(" ")[0];
-    const partes = fechaSimple.split("-");
-    if (partes.length !== 3) return new Date('2999-12-31');
-    const anio = parseInt(partes[0]);
-    const mes = parseInt(partes[1]) - 1;
-    const dia = parseInt(partes[2]);
-    const fechaAprobacion = new Date(anio, mes, dia);
-    const diasCredito = parseInt(diasStr) || 0;
-    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito);
-    return fechaAprobacion;
+    const fechaSimple = fechaStr.split(' ')[0]
+    const partes = fechaSimple.split('-')
+    if (partes.length !== 3) return new Date('2999-12-31')
+    const anio = parseInt(partes[0])
+    const mes = parseInt(partes[1]) - 1
+    const dia = parseInt(partes[2])
+    const fechaAprobacion = new Date(anio, mes, dia)
+    const diasCredito = parseInt(diasStr) || 0
+    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito)
+    return fechaAprobacion
   }
 
   /**
@@ -3360,65 +3360,70 @@ async function initPagosPendientes() {
    * @returns {string} - Las clases de Tailwind CSS correspondientes.
    */
   function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
-    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime();
+    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime()
 
-    const diasDiferencia = Math.floor(diffMs / 86400000);
+    const diasDiferencia = Math.floor(diffMs / 86400000)
 
     if (diasDiferencia < 0) {
       // Usamos gris oscuro (Tailwind) para "negro", y texto blanco
-      return 'bg-gray-900 text-white hover:bg-gray-800';
+      return 'bg-gray-900 text-white hover:bg-gray-800'
     }
 
     if (diasDiferencia < 5) {
-      return 'bg-red-100 text-red-800 hover:bg-red-200';
+      return 'bg-red-100 text-red-800 hover:bg-red-200'
     }
 
     if (diasDiferencia < 15) {
-      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
     }
 
-    return 'hover:bg-gray-50';
+    return 'hover:bg-gray-50'
   }
 
-
   try {
-    const res = await fetch(`${BASE_URL}api/orden-compra/alldata`);
-    const ordenes = await res.json();
+    const res = await fetch(`${BASE_URL}api/orden-compra/alldata`)
+    const ordenes = await res.json()
 
     if (!ordenes || ordenes.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`;
-      tbodyCredito.innerHTML = tbodyContado.innerHTML;
-      return;
+      tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`
+      tbodyCredito.innerHTML = tbodyContado.innerHTML
+      return
     }
 
     const detallesPromises = ordenes.map((o) =>
-        fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
-    );
-    const detalles = await Promise.all(detallesPromises);
+      fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
+    )
+    const detalles = await Promise.all(detallesPromises)
 
-    let ordenesContado = [];
-    let ordenesCredito = [];
+    let ordenesContado = []
+    let ordenesCredito = []
 
     detalles.forEach((det) => {
-      if (det.EstadoOrden !== 'Por Pagar') return;
+      if (det.EstadoOrden !== 'Por Pagar') return
       if (det.MetodoPago == '0') {
-        ordenesContado.push(det);
+        ordenesContado.push(det)
       } else if (det.MetodoPago == '1') {
-        ordenesCredito.push(det);
+        ordenesCredito.push(det)
       }
-    });
+    })
 
     ordenesCredito.sort((a, b) => {
-      const fechaVencimientoA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.proveedor?.Dias_Credito);
-      const fechaVencimientoB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.proveedor?.Dias_Credito);
-      return fechaVencimientoA - fechaVencimientoB;
-    });
+      const fechaVencimientoA = calcularFechaVencimiento(
+        a.Fecha_Aprobacion,
+        a.proveedor?.Dias_Credito,
+      )
+      const fechaVencimientoB = calcularFechaVencimiento(
+        b.Fecha_Aprobacion,
+        b.proveedor?.Dias_Credito,
+      )
+      return fechaVencimientoA - fechaVencimientoB
+    })
 
-    tbodyContado.innerHTML = '';
-    tbodyCredito.innerHTML = '';
+    tbodyContado.innerHTML = ''
+    tbodyCredito.innerHTML = ''
 
     if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`;
+      tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`
     } else {
       ordenesContado.forEach((det) => {
         const fila = `
@@ -3436,24 +3441,24 @@ async function initPagosPendientes() {
                   </button>
                 </td>
               </tr>
-            `;
-        tbodyContado.insertAdjacentHTML('beforeend', fila);
-      });
+            `
+        tbodyContado.insertAdjacentHTML('beforeend', fila)
+      })
     }
 
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
 
     if (ordenesCredito.length === 0) {
-      tbodyCredito.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`;
+      tbodyCredito.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`
     } else {
-
       ordenesCredito.forEach((det) => {
+        const fechaVencimiento = calcularFechaVencimiento(
+          det.Fecha_Aprobacion,
+          det.proveedor?.Dias_Credito,
+        )
 
-        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.proveedor?.Dias_Credito);
-
-        const claseFila = getClaseSemaforo(fechaVencimiento, hoy);
-
+        const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
 
         const fila = `
               <tr class="${claseFila} transition">
@@ -3470,15 +3475,14 @@ async function initPagosPendientes() {
                   </button>
                 </td>
               </tr>
-            `;
-        tbodyCredito.insertAdjacentHTML('beforeend', fila);
-      });
+            `
+        tbodyCredito.insertAdjacentHTML('beforeend', fila)
+      })
     }
-
   } catch (error) {
-    console.error('Error al cargar las órdenes:', error);
-    tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`;
-    tbodyCredito.innerHTML = tbodyContado.innerHTML;
+    console.error('Error al cargar las órdenes:', error)
+    tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`
+    tbodyCredito.innerHTML = tbodyContado.innerHTML
   }
 }
 // --- Función de navegación para VER detalles ---
@@ -3590,11 +3594,10 @@ async function mostrarDetalleOrden(id, metodoPago) {
         </table>
       </div>
       
-      
 <div class="block mb-6 p-4 border rounded-lg">
-     <label for="archivos-factura" class="block text-sm font-medium text-black-500 ">Adjuntar factura (Imágene o PDF)</label>
+     <label for="archivo-factura" class="block text-sm font-medium text-black-500 ">Adjuntar factura (Imágene o PDF)</label>
      
-     <input type="file" id="archivos-factura" name="archivos" accept="image/*,.pdf" class="mt-1 p-1 block w-full text-sm text-black-300 border-gray-700 rounded cursor-pointer bg-gray-200 focus:outline-none border-2">
+     <input type="file" id="archivo-factura" name="factura" accept="image/*,.pdf" class="mt-1 p-1 block w-full text-sm text-black-300 border-gray-700 rounded cursor-pointer bg-gray-200 focus:outline-none border-2">
      
      <p class="mt-1 text-sm text-gray-500">Solo se permite un archivo.</p>
 </div>
@@ -3648,11 +3651,20 @@ function regresarPagosMenu() {
 }
 //Funcion para cambio de estado
 async function enviarATesoreria(idSolicitud, metodoPago) {
+  const facturaElement = document.getElementById('archivo-factura')
+  const facturaFile = facturaElement.files[0]
+
   try {
+    if (!facturaFile) {
+      mostrarNotificacion('Por favor, selecciona un archivo primero.', 'error', 5000)
+      return
+    }
+    const formData = new FormData()
+    formData.append('factura', facturaFile)
+    formData.append('nuevoEstado', 'En Proceso de Pago')
     const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoEstado: 'En Proceso de Pago' }),
+      body: formData,
     })
     const data = await res.json()
 
@@ -3681,40 +3693,40 @@ async function initFichasPago() {
 
   function calcularFechaVencimiento(fechaStr, diasStr) {
     if (!fechaStr) {
-      return new Date('2999-12-31');
+      return new Date('2999-12-31')
     }
-    const fechaSimple = fechaStr.split(" ")[0];
-    const partes = fechaSimple.split("-");
-    if (partes.length !== 3) return new Date('2999-12-31');
-    const anio = parseInt(partes[0]);
-    const mes = parseInt(partes[1]) - 1;
-    const dia = parseInt(partes[2]);
-    const fechaAprobacion = new Date(anio, mes, dia);
-    const diasCredito = parseInt(diasStr) || 0;
-    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito);
-    return fechaAprobacion;
+    const fechaSimple = fechaStr.split(' ')[0]
+    const partes = fechaSimple.split('-')
+    if (partes.length !== 3) return new Date('2999-12-31')
+    const anio = parseInt(partes[0])
+    const mes = parseInt(partes[1]) - 1
+    const dia = parseInt(partes[2])
+    const fechaAprobacion = new Date(anio, mes, dia)
+    const diasCredito = parseInt(diasStr) || 0
+    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito)
+    return fechaAprobacion
   }
 
   function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
-    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime();
+    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime()
 
     // Convertimos a días
-    const diasDiferencia = Math.floor(diffMs / 86400000);
+    const diasDiferencia = Math.floor(diffMs / 86400000)
 
     //  Vencido (Negro)
     if (diasDiferencia < 0) {
-      return 'bg-gray-900 text-white hover:bg-gray-800';
+      return 'bg-gray-900 text-white hover:bg-gray-800'
     }
     //  Vence hoy o en menos de 5 días (Rojo)
     if (diasDiferencia < 5) {
-      return 'bg-red-100 text-red-800 hover:bg-red-200';
+      return 'bg-red-100 text-red-800 hover:bg-red-200'
     }
     //  Vence en menos de 15 días (Amarillo)
     if (diasDiferencia < 15) {
-      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
     }
     //  Más de 15 días (Blanco/Default)
-    return 'hover:bg-gray-50';
+    return 'hover:bg-gray-50'
   }
 
   try {
@@ -3728,38 +3740,43 @@ async function initFichasPago() {
     }
 
     const detallesPromises = ordenes.map((o) =>
-        fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
+      fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
     )
     const detalles = await Promise.all(detallesPromises)
 
-
-    let ordenesContado = [];
-    let ordenesCredito = [];
+    let ordenesContado = []
+    let ordenesCredito = []
 
     // Filtrar y separar
     detalles.forEach((det) => {
-      if (det.EstadoOrden !== 'En Proceso de Pago') return;
+      if (det.EstadoOrden !== 'En Proceso de Pago') return
 
       if (det.MetodoPago == '0') {
-        ordenesContado.push(det);
+        ordenesContado.push(det)
       } else if (det.MetodoPago == '1') {
-        ordenesCredito.push(det);
+        ordenesCredito.push(det)
       }
-    });
+    })
 
     // Ordenar el array de crédito
     ordenesCredito.sort((a, b) => {
-      const fechaVencimientoA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.proveedor?.Dias_Credito);
-      const fechaVencimientoB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.proveedor?.Dias_Credito);
-      return fechaVencimientoA - fechaVencimientoB;
-    });
+      const fechaVencimientoA = calcularFechaVencimiento(
+        a.Fecha_Aprobacion,
+        a.proveedor?.Dias_Credito,
+      )
+      const fechaVencimientoB = calcularFechaVencimiento(
+        b.Fecha_Aprobacion,
+        b.proveedor?.Dias_Credito,
+      )
+      return fechaVencimientoA - fechaVencimientoB
+    })
 
-    tbodyContado.innerHTML = '';
-    tbodyCredito.innerHTML = '';
+    tbodyContado.innerHTML = ''
+    tbodyCredito.innerHTML = ''
 
     // Renderizar tabla de Contado
     if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`;
+      tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`
     } else {
       ordenesContado.forEach((det) => {
         const fila = `
@@ -3777,21 +3794,23 @@ async function initFichasPago() {
               </button>
             </td>
           </tr>
-        `;
-        tbodyContado.insertAdjacentHTML('beforeend', fila);
-      });
+        `
+        tbodyContado.insertAdjacentHTML('beforeend', fila)
+      })
     }
 
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
 
     if (ordenesCredito.length === 0) {
-      tbodyCredito.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`;
+      tbodyCredito.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`
     } else {
       ordenesCredito.forEach((det) => {
-
-        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.proveedor?.Dias_Credito);
-        const claseFila = getClaseSemaforo(fechaVencimiento, hoy);
+        const fechaVencimiento = calcularFechaVencimiento(
+          det.Fecha_Aprobacion,
+          det.proveedor?.Dias_Credito,
+        )
+        const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
 
         const fila = `
           <tr class="${claseFila} transition">
@@ -3808,11 +3827,10 @@ async function initFichasPago() {
               </button>
             </td>
           </tr>
-        `;
-        tbodyCredito.insertAdjacentHTML('beforeend', fila);
-      });
+        `
+        tbodyCredito.insertAdjacentHTML('beforeend', fila)
+      })
     }
-
   } catch (error) {
     console.error('Error al cargar las fichas:', error)
     tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`
@@ -3894,7 +3912,7 @@ async function mostrarDetalleFicha(id, metodoPago) {
 
       <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
       
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto mb-6">
         <table class="min-w-full border border-gray-300">
             <thead class="bg-gray-100">
                 <tr>
@@ -3929,7 +3947,10 @@ async function mostrarDetalleFicha(id, metodoPago) {
             </tbody>
         </table>
       </div>
-      
+
+      <div class="block mb-6 p-4 border rounded-lg">
+        <p> factura </p>
+      </div>
       
 <div class="block mb-6 p-4 border rounded-lg">
      <label for="archivo-ficha" class="block text-sm font-medium text-black-500 ">Adjuntar Ficha (Imágene o PDF)</label>
@@ -4020,440 +4041,43 @@ async function regresarACompras(idSolicitud, metodoPago) {
  * @param {function} refreshCallback - La función para refrescar la lista (ej. initPagosPendientes).
  */
 async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallback) {
-
   // 1. Añadimos una confirmación (similar a tu 'Confirmar')
   const estaSeguro = confirm(
-      "¿Está seguro de marcar esta orden como 'Pagada'?\n\nEsta acción es final y cerrará la requisición."
-  );
+    "¿Está seguro de marcar esta orden como 'Pagada'?\n\nEsta acción es final y cerrará la requisición.",
+  )
 
   if (!estaSeguro) {
-    return; // El usuario canceló
+    return // El usuario canceló
   }
 
   try {
     const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoEstado: 'Pagada' })
-    });
-    const data = await res.json();
+      body: JSON.stringify({ nuevoEstado: 'Pagada' }),
+    })
+    const data = await res.json()
 
     if (data.success) {
       // 2. Usamos alert() para el éxito
-      alert("Orden actualizada a 'Pagada' correctamente.");
+      alert("Orden actualizada a 'Pagada' correctamente.")
 
       // Llama a las funciones de callback para regresar y refrescar
       if (typeof volverCallback === 'function') {
-        volverCallback(metodoPago);
+        volverCallback(metodoPago)
       }
       if (typeof refreshCallback === 'function') {
-        refreshCallback();
+        refreshCallback()
       }
-
     } else {
       // 3. Usamos alert() para el error
-      alert('No se pudo actualizar el estado. Intente de nuevo.');
+      alert('No se pudo actualizar el estado. Intente de nuevo.')
     }
   } catch (error) {
-    console.error('Error al cerrar la orden:', error); // Mantenemos el console.error para depuración
+    console.error('Error al cerrar la orden:', error) // Mantenemos el console.error para depuración
     // 4. Usamos alert() para el error de red/excepción
-    alert('Ocurrió un error de red al cerrar la orden.');
+    alert('Ocurrió un error de red al cerrar la orden.')
   }
-}
-
-/**
- * Lógica para reportes
- */
-
-document.addEventListener('DOMContentLoaded', () => {})
-
-async function cargarFiltroProveedores() {
-  const selectProveedor = document.getElementById('filtroProveedor-reportes')
-  if (!selectProveedor) return
-
-  try {
-    const response = await fetch(`${BASE_URL}api/providers/all`)
-    const proveedores = await response.json()
-
-    if (proveedores && proveedores.length > 0) {
-      // Limpiar opciones existentes
-      selectProveedor.length = 1
-
-      proveedores.forEach((prov) => {
-        const option = document.createElement('option')
-        // Usamos RazonSocial como valor y texto
-        option.value = prov.RazonSocial
-        option.textContent = prov.RazonSocial
-        selectProveedor.appendChild(option)
-      })
-    }
-  } catch (error) {
-    console.error('Error al cargar filtro de proveedores:', error)
-  }
-}
-
-function initPaginacionReportes() {
-  const tabla = document.getElementById('tabla-reportes')
-  if (!tabla) return
-
-  if (tabla.dataset.initialized === 'true') {
-    return
-  }
-
-  const rowsPerPage = 10
-  let currentPage = 1
-  let allData = []
-  let filteredData = []
-
-  // Llamar para cargar el desplegable de proveedores
-  cargarFiltroProveedores()
-
-  function getStatusSVG(status) {
-    if (!status) return ''
-    const statusClean = status.trim().toLowerCase()
-    const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`
-    let svgClass = 'text-gray-500'
-    let iconId = 'pregunta'
-
-    const statusMap = {
-      'en proceso de pago': { class: 'text-yellow-500', icon: 'en_espera' },
-      // --- CORREGIDO ---
-      pagada: { class: 'text-green-600', icon: 'aceptado' },
-      // --- FIN CORRECCIÓN ---
-      cancelada: { class: 'text-red-500', icon: 'rechazado' },
-      'por pagar': { class: 'text-yellow-500', icon: 'en_espera' },
-    }
-
-    if (statusMap[statusClean]) {
-      svgClass = statusMap[statusClean].class
-      iconId = statusMap[statusClean].icon
-    } else {
-      console.warn(`Estado desconocido: "${status}" (Limpiado: "${statusClean}"). Icono defecto.`)
-    }
-    return `<svg class="${svgClass} mx-auto size-6" title="${status}" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
-  }
-
-  async function fetchData() {
-    const tbody = tabla.querySelector('tbody')
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Cargando reportes...</td></tr>' // Colspan 7 ahora
-    try {
-      const resOrdenes = await fetch(`${BASE_URL}api/orden-compra/alldata`)
-      const ordenesBasicas = await resOrdenes.json()
-
-      if (!ordenesBasicas || ordenesBasicas.length === 0) {
-        allData = []
-        applyFiltersAndRender()
-        return
-      }
-
-      const detallesPromises = ordenesBasicas.map((orden) =>
-          fetch(`${BASE_URL}api/orden-compra/details/${orden.ID_Solicitud}`)
-              .then((res) => {
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
-                return res.json()
-              })
-              .catch((err) => {
-                console.error(`Error fetching details for Solicitud ID ${orden.ID_Solicitud}:`, err)
-                return null
-              }),
-      )
-
-      const detallesCompletos = await Promise.all(detallesPromises)
-      allData = detallesCompletos.filter((d) => d && typeof d === 'object') // Asegurar que sean objetos válidos
-
-      applyFiltersAndRender()
-    } catch (error) {
-      console.error('Error al cargar reportes:', error)
-      tbody.innerHTML =
-          '<tr><td colspan="7" class="text-center text-gray-500">No se encontraron datos</td></tr>' // Colspan 7
-    }
-  }
-
-  // Hacer global o asegurar que los listeners la puedan llamar
-  window.applyFiltersAndRender = function () {
-    const fechaFiltro = document.getElementById('filtro-fecha-reportes').value
-    const filtrarPorMes = document.getElementById('filtrar-por-mes-reportes').checked
-    const estadoFiltro = document.getElementById('filtro-estado-reportes').value
-    const deptoFiltro = document.getElementById('filtroDepartamento-reportes').value
-    // --- LEER NUEVOS FILTROS ---
-    const razonSocialFiltro = document.getElementById('filtroRazonSocial-reportes').value
-    const proveedorFiltro = document.getElementById('filtroProveedor-reportes').value
-
-    filteredData = allData.filter((item) => {
-      const coincideEstado = !estadoFiltro || item.EstadoOrden === estadoFiltro;
-
-      const coincideDepto = !deptoFiltro || item.DepartamentoNombre === deptoFiltro
-      const coincideRazonSocial = !razonSocialFiltro || item.Complejo === razonSocialFiltro
-      const coincideProveedor = !proveedorFiltro || item.proveedor?.RazonSocial === proveedorFiltro
-
-      let coincideFecha = true
-      if (fechaFiltro) {
-        if (filtrarPorMes) {
-          coincideFecha = item.Fecha?.slice(0, 7) === fechaFiltro.slice(0, 7)
-        } else {
-          coincideFecha = item.Fecha?.slice(0, 10) === fechaFiltro
-        }
-      }
-      return (
-          coincideEstado &&
-          coincideDepto &&
-          coincideRazonSocial &&
-          coincideProveedor &&
-          coincideFecha
-      )
-
-    })
-
-    currentPage = 1
-    renderTable()
-    renderPagination()
-  }
-
-  function renderTable() {
-    const tbody = tabla.querySelector('tbody')
-    tbody.innerHTML = ''
-
-    const start = (currentPage - 1) * rowsPerPage
-    const end = start + rowsPerPage
-    const pageData = filteredData.slice(start, end)
-
-    if (pageData.length === 0) {
-      tbody.innerHTML =
-          '<tr><td colspan="7" class="text-center py-4">No hay registros que coincidan con los filtros.</td></tr>' // Colspan 7
-      return
-    }
-
-    pageData.forEach((item) => {
-      const svg = getStatusSVG(item.EstadoOrden);
-      tbody.innerHTML += `
-        <tr class="text-center hover:bg-gray-50 text-sm">
-          <td class="border px-3 py-2 text-left">${item.No_Folio || 'N/A'}</td>
-          <td class="border px-3 py-2 text-left">${item.DepartamentoNombre || 'N/A'}</td>
-          <td class="border px-3 py-2 text-left">${item.Complejo || 'N/A'}</td>
-          <td class="border px-3 py-2 text-left">${item.proveedor?.RazonSocial || 'N/A'}</td>
-          <td class="border px-3 py-2 text-left">${item.Fecha ? new Date(item.Fecha).toLocaleDateString() : 'N/A'}</td>
-          <td class="border px-3 py-2 col-estado" data-estado="${item.EstadoOrden}" title="${item.EstadoOrden}">
-              ${svg}
-          </td>
-          <td class="border px-3 py-2">
-              <button class="text-blue-600 hover:underline" onclick="mostrarVerReporte(${item.ID_Solicitud}); return false;">Ver</button>
-          </td>
-        </tr>
-      `;
-    })
-  }
-
-  function renderPagination() {
-    const paginacion = document.getElementById('paginacion-reportes')
-    paginacion.innerHTML = ''
-
-    const totalPages = Math.ceil(filteredData.length / rowsPerPage)
-    if (totalPages <= 1) return
-
-    let startPage = Math.max(1, currentPage - 2)
-    let endPage = Math.min(totalPages, currentPage + 2)
-
-    if (currentPage <= 3) endPage = Math.min(totalPages, 5)
-    if (currentPage > totalPages - 3) startPage = Math.max(1, totalPages - 4)
-
-    if (currentPage > 1) {
-      const prevBtn = document.createElement('button')
-      prevBtn.innerHTML = '&laquo;' // O 'Anterior'
-      prevBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-200'
-      prevBtn.addEventListener('click', () => {
-        currentPage--
-        renderTable()
-        renderPagination()
-      })
-      paginacion.appendChild(prevBtn)
-    }
-
-    if (startPage > 1) {
-      const firstBtn = document.createElement('button')
-      firstBtn.textContent = '1'
-      firstBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-200'
-      firstBtn.addEventListener('click', () => {
-        currentPage = 1
-        renderTable()
-        renderPagination()
-      })
-      paginacion.appendChild(firstBtn)
-      if (startPage > 2) paginacion.appendChild(document.createTextNode('...'))
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      const btn = document.createElement('button')
-      btn.textContent = i
-      btn.className =
-          'px-3 py-1 border rounded hover:bg-gray-200 ' +
-          (i === currentPage ? 'bg-gray-300 font-bold' : 'bg-white')
-      btn.addEventListener('click', () => {
-        currentPage = i
-        renderTable()
-        renderPagination()
-      })
-      paginacion.appendChild(btn)
-    }
-
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) paginacion.appendChild(document.createTextNode('...'))
-      const lastBtn = document.createElement('button')
-      lastBtn.textContent = totalPages
-      lastBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-200'
-      lastBtn.addEventListener('click', () => {
-        currentPage = totalPages
-        renderTable()
-        renderPagination()
-      })
-      paginacion.appendChild(lastBtn)
-    }
-
-    if (currentPage < totalPages) {
-      const nextBtn = document.createElement('button')
-      nextBtn.innerHTML = '&raquo;'
-      nextBtn.className = 'px-3 py-1 border rounded bg-white hover:bg-gray-20OS'
-      nextBtn.addEventListener('click', () => {
-        currentPage++
-        renderTable()
-        renderPagination()
-      })
-      paginacion.appendChild(nextBtn)
-    }
-  }
-
-  // los teners se añaden solo una vez
-  const listenerIds = [
-    'filtro-fecha-reportes',
-    'filtrar-por-mes-reportes',
-    'filtro-estado-reportes',
-    'filtroDepartamento-reportes',
-    'filtroRazonSocial-reportes',
-    'filtroProveedor-reportes',
-  ]
-
-  listenerIds.forEach((id) => {
-    const el = document.getElementById(id)
-    if (el && !el.dataset.listenerAttached) {
-      el.addEventListener('change', window.applyFiltersAndRender)
-      el.dataset.listenerAttached = 'true'
-    } else if (!el) {
-      console.warn(`Elemento de filtro con ID '${id}' no encontrado.`)
-    }
-  })
-
-  fetchData()
-}
-
-async function mostrarVerReporte(idSolicitud) {
-  document.getElementById('div-reportes').classList.add('hidden')
-  document.getElementById('div-ver-reporte').classList.remove('hidden')
-
-  const detallesContainer = document.getElementById('div-ver-reporte')
-  detallesContainer.innerHTML = `<p class="text-gray-500 text-center py-4">Cargando detalles de la orden...</p>`
-
-  try {
-    const response = await fetch(`${BASE_URL}api/orden-compra/details/${idSolicitud}`)
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
-    }
-    const data = await response.json()
-
-    const prov = data.proveedor || {}
-    const totalFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    })
-
-    const metodoPagoTexto =
-        data.MetodoPago == 0
-            ? 'Efectivo'
-            : data.MetodoPago == 1
-                ? 'Crédito'
-                : data.MetodoPago == 9
-                    ? 'En Espera'
-                    : 'N/A'
-
-    let html = `
-      <div class="flex justify-between items-center mb-4">
-        <button onclick="regresarReportes()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-        <h2 class="text-lg font-semibold">Detalle Orden #${data.No_Folio || idSolicitud}</h2>
-        <div></div>
-      </div>
-    `
-    // --- FIN CORRECCIÓN 2 ---
-
-    html += `
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-        <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
-        <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
-        <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
-        <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
-        <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
-      </div>
-      <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-        <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
-        <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
-        <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
-        <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
-        <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
-        <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
-        prov.Monto_Credito
-            ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
-              style: 'currency',
-              currency: 'MXN',
-            })
-            : 'N/A'
-    }</div>
-      </div>
-      <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
-      <div class="overflow-x-auto shadow rounded-lg mb-6">
-        <table class="min-w-full border border-gray-300">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="py-2 px-4 text-left text-sm">Código</th>
-                    <th class="py-2 px-4 text-left text-sm">Producto</th>
-                    <th class="py-2 px-4 text-right text-sm">Cantidad</th>
-                    <th class="py-2 px-4 text-right text-sm">Importe Unit.</th>
-                    <th class="py-2 px-4 text-right text-sm">Costo Total</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white">
-    `
-    if (data.productos && data.productos.length > 0) {
-      data.productos.forEach((p) => {
-        const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
-        html += `
-            <tr class="hover:bg-gray-50">
-                <td class="py-2 px-4 border-t text-sm">${p.Codigo || 'N/A'}</td>
-                <td class="py-2 px-4 border-t text-sm">${p.Nombre}</td>
-                <td class="py-2 px-4 border-t text-right text-sm">${p.Cantidad}</td>
-                <td class="py-2 px-4 border-t text-right text-sm">$${parseFloat(p.Importe).toFixed(
-            2,
-        )}</td>
-                <td class="py-2 px-4 border-t text-right text-sm">$${costoTotal}</td>
-            </tr>
-        `
-      })
-    } else {
-      html += `<tr><td colspan="5" class="text-center py-3 text-sm">No hay productos en esta orden.</td></tr>`
-    }
-    html += `
-            </tbody>
-        </table>
-      </div>
-    `
-    detallesContainer.innerHTML = html
-  } catch (err) {
-    console.error('Error al cargar detalles del reporte:', err)
-    detallesContainer.innerHTML = `<p class="text-red-500 text-center py-4">Error al cargar detalles: ${err.message}</p>`
-  }
-}
-
-function regresarReportes() {
-  document.getElementById('div-reportes').classList.remove('hidden')
-  document.getElementById('div-ver-reporte').classList.add('hidden')
 }
 
 /**
@@ -5070,10 +4694,124 @@ function Account() {
       }
     },
     async CambiarContrasena() {
-      console.log('CambiarContrasena')
+      const confirmed = await Confirmar(
+        'Confirmar Cambio',
+        '¿Estás seguro de que deseas cambiar tu contraseña?',
+      )
+
+      if (!confirmed) {
+        return
+      }
+
+      const form = this.$refs.xPassForm
+      const messageContainer = this.$refs['form-message-pass']
+      messageContainer.innerHTML = ''
+
+      const formData = new FormData(form)
+      const oldPassword = formData.get('old_password')
+      const newPassword = formData.get('new_password')
+      const correo = document.getElementById('email').value
+
+      if (!oldPassword || !newPassword) {
+        messageContainer.innerHTML = `<p class="text-red-500">Todos los campos son requeridos.</p>`
+        return
+      }
+      if (newPassword.length < 8) {
+        messageContainer.innerHTML = `<p class="text-red-500">La nueva contraseña debe tener al menos 8 caracteres.</p>`
+        return
+      }
+
+      const data = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({
+          email: correo,
+          data: {
+            old_password: oldPassword,
+            password: newPassword,
+          },
+        }),
+      }
+
+      try {
+        const result = await this.SendData('api/user/update', data)
+
+        if (result.success) {
+          messageContainer.innerHTML = `<p class="text-green-600">${result.message}</p>`
+          form.reset()
+        } else {
+          const errorMessage = result.messages
+            ? result.messages.error
+            : result.message || 'Ocurrió un error desconocido.'
+          messageContainer.innerHTML = `<p class="text-red-500">${errorMessage}</p>`
+        }
+      } catch (error) {
+        console.error('Error al cambiar contraseña:', error)
+        messageContainer.innerHTML = `<p class="text-red-500">Error de conexión: ${error.message}</p>`
+      }
     },
     async CambiarContrasenaG() {
-      console.log('CambiarContrasenaG')
+      const confirmed = await Confirmar(
+        'Confirmar Cambio',
+        '¿Estás seguro de que deseas cambiar tu contraseña auxiliar?',
+      )
+
+      if (!confirmed) {
+        return
+      }
+
+      const form = this.$refs.xPassGForm
+      const messageContainer = this.$refs['form-message-gpass']
+      messageContainer.innerHTML = ''
+
+      const formData = new FormData(form)
+      const userPassword = formData.get('user_password')
+      const newGPassword = formData.get('new_Gpassword')
+      const correo = document.getElementById('email').value
+
+      if (!userPassword || !newGPassword) {
+        messageContainer.innerHTML = `<p class="text-red-500">Todos los campos son requeridos.</p>`
+        return
+      }
+      if (newGPassword.length < 8) {
+        messageContainer.innerHTML = `<p class="text-red-500">La nueva contraseña debe tener al menos 8 caracteres.</p>`
+        return
+      }
+
+      const data = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({
+          email: correo,
+          data: {
+            user_password: userPassword,
+            password_g: newGPassword,
+          },
+        }),
+      }
+
+      try {
+        const result = await this.SendData('api/user/update', data)
+
+        if (result.success) {
+          messageContainer.innerHTML = `<p class="text-green-600">${result.message}</p>`
+          form.reset()
+        } else {
+          const errorMessage = result.messages
+            ? result.messages.error
+            : result.message || 'Ocurrió un error desconocido.'
+          messageContainer.innerHTML = `<p class="text-red-500">${errorMessage}</p>`
+        }
+      } catch (error) {
+        console.error('Error al cambiar contraseña auxiliar:', error)
+        messageContainer.innerHTML = `<p class="text-red-500">Error de conexión: ${error.message}</p>`
+      }
     },
     async uploadSignature() {
       const confirmed = await Confirmar(

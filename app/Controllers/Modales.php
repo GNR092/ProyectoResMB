@@ -20,7 +20,6 @@ class Modales extends BaseController
     }
     public function mostrar($opcion)
     {
-
         $session = session();
         $data = [
             'departamentos' => $session->get('departamentos'),
@@ -128,9 +127,8 @@ class Modales extends BaseController
                 return view('modales/limpiar_almacenamiento');
 
             case 'pagos_pendientes':
-
                 return view('modales/pagos_pendientes');
-                
+
             case 'registrar_productos':
                 $productoModel = new ProductoModel();
                 $data['productos'] = $productoModel->findAll();
@@ -176,7 +174,7 @@ class Modales extends BaseController
                 // Solicitudes de contado (MetodoPago = 0)
                 $data['solicitudes_contado'] = $solicitudModel
                     ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
                     )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -188,7 +186,7 @@ class Modales extends BaseController
                 // Solicitudes a crédito (MetodoPago = 1)
                 $data['solicitudes_credito'] = $solicitudModel
                     ->select(
-                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre'
+                        'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
                     )
                     ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
                     ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -215,14 +213,31 @@ class Modales extends BaseController
 
             case 'reportes':
                 $razonSocialModel = new RazonSocialModel();
-                $data['razones_sociales'] = $razonSocialModel->select('ID_RazonSocial, Nombre')
+                $data['razones_sociales'] = $razonSocialModel
+                    ->select('ID_RazonSocial, Nombre')
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
-
                 $departamentoModel = new DepartamentosModel();
-                $data['departamentos'] = $departamentoModel->select('ID_Dpto, Nombre')
-                ->orderBy('Nombre', 'ASC')
+                $data['departamentos'] = $departamentoModel
+                    ->select('ID_Dpto, Nombre')
+                    ->orderBy('Nombre', 'ASC')
                     ->findAll();
+                $provedores = $this->api->getProveedorIdAndRazonSocial();
+                $data['proveedores'] = $provedores;
+
+                $id_solicitud = $this->request->getGet('id_solicitud');
+
+                if ($id_solicitud) {
+                    $data['reporte_detalles'] = $this->api->getOrdenCompra($id_solicitud);
+                } else {
+                    $ocs = $this->api->getAllOrdenCompraData();
+                    $tabledata = [];
+                    foreach ($ocs as $oc) {
+                        $o = $this->api->getOrdenCompra($oc['ID_Solicitud']);
+                        $tabledata[] = $o;
+                    }
+                    $data['tabledata'] = $tabledata;
+                }
 
                 // 4. Pasar los datos a la vista
                 return view('modales/reportes', $data);
@@ -241,7 +256,7 @@ class Modales extends BaseController
                 $id = session('id');
                 $sign = $this->api->getSignB64ByUserID($id);
                 $data['firmaUrl'] = $sign;
-                return view('modales/micuenta',$data);
+                return view('modales/micuenta', $data);
 
             default:
                 return 'Opción no válida';
@@ -293,8 +308,8 @@ class Modales extends BaseController
         } else {
             $data['ContrasenaG'] = null; // Opcional: asegúrate de que se guarde como nulo si está vacío
         }
-
-        $newUserId = (new UsuariosModel())->insert($data, true);
+        $usuarioModel = new UsuariosModel();
+        $newUserId = $usuarioModel->insert($data, true);
 
         if ($newUserId) {
             $newUser = $this->api->getUserById($newUserId);
@@ -376,12 +391,10 @@ class Modales extends BaseController
             ->first();
 
         if ($userToDelete && $userToDelete['Nombre'] === 'Administración') {
-            return $this->response
-                ->setStatusCode(403)
-                ->setJSON([
-                    'success' => false,
-                    'message' => 'No se puede eliminar a un usuario administrador.',
-                ]);
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'No se puede eliminar a un usuario administrador.',
+            ]);
         }
 
         if ($this->api->deleteUser((int) $id)) {
@@ -584,17 +597,16 @@ class Modales extends BaseController
         $request = $this->request;
 
         $data = [
-            'RazonSocial'     => $request->getPost('RazonSocial'),
-            'RFC'             => $request->getPost('RFC'),
-            'Banco'           => $request->getPost('Banco'),
-            'Cuenta'          => $request->getPost('Cuenta'),
-            'Clabe'           => $request->getPost('Clabe'),
-            'Tel_Contacto'    => $request->getPost('Tel_Contacto'),
+            'RazonSocial' => $request->getPost('RazonSocial'),
+            'RFC' => $request->getPost('RFC'),
+            'Banco' => $request->getPost('Banco'),
+            'Cuenta' => $request->getPost('Cuenta'),
+            'Clabe' => $request->getPost('Clabe'),
+            'Tel_Contacto' => $request->getPost('Tel_Contacto'),
             'Nombre_Contacto' => $request->getPost('Nombre_Contacto'),
-            'Servicio'        => $request->getPost('Servicio'),
-            'Correo'          => $request->getPost('correo')
+            'Servicio' => $request->getPost('Servicio'),
+            'Correo' => $request->getPost('correo'),
         ];
-
 
         $tiene_credito = $request->getPost('tiene_credito');
 
@@ -613,7 +625,7 @@ class Modales extends BaseController
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'No se pudo insertar el proveedor. Verifique los datos.',
-                    'errors' => $proveedorModel->errors() // Opcional: enviar errores de validación
+                    'errors' => $proveedorModel->errors(), // Opcional: enviar errores de validación
                 ]);
             }
         } catch (\Exception $e) {
@@ -719,9 +731,4 @@ class Modales extends BaseController
             ]);
         }
     }
-
-
-
-
-
 }

@@ -233,8 +233,14 @@ class Api extends ResourceController
     {
         $json = $this->request->getJSON();
 
-        if (!isset($json->id_solicitud) || !isset($json->productos) || !is_array($json->productos)) {
-            return $this->failValidationErrors('Se requiere ID de solicitud y un array de productos.');
+        if (
+            !isset($json->id_solicitud) ||
+            !isset($json->productos) ||
+            !is_array($json->productos)
+        ) {
+            return $this->failValidationErrors(
+                'Se requiere ID de solicitud y un array de productos.',
+            );
         }
 
         $idSolicitud = (int) $json->id_solicitud;
@@ -259,19 +265,32 @@ class Api extends ResourceController
             if ($idCotizacionSeleccionada) {
                 $cotizacionSeleccionada = $cotizacionModel->find($idCotizacionSeleccionada);
                 if ($cotizacionSeleccionada) {
-                    $solicitudModel->update($idSolicitud, ['ID_Proveedor' => $cotizacionSeleccionada['ID_Proveedor']]);
+                    $solicitudModel->update($idSolicitud, [
+                        'ID_Proveedor' => $cotizacionSeleccionada['ID_Proveedor'],
+                    ]);
                 }
             }
 
-            $solicitudProductsDB = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
+            $solicitudProductsDB = $solicitudProductModel
+                ->where('ID_Solicitud', $idSolicitud)
+                ->findAll();
 
             if (count($productosPayload) !== count($solicitudProductsDB)) {
-                throw new \Exception('El número de productos en el payload no coincide con el número de productos existentes en la solicitud.');
+                throw new \Exception(
+                    'El número de productos en el payload no coincide con el número de productos existentes en la solicitud.',
+                );
             }
 
             foreach ($productosPayload as $index => $p) {
-                if (!isset($p->codigo) || !isset($p->nombre) || !isset($p->cantidad) || !isset($p->importe)) {
-                    throw new \Exception('Cada producto debe tener código, nombre, cantidad e importe.');
+                if (
+                    !isset($p->codigo) ||
+                    !isset($p->nombre) ||
+                    !isset($p->cantidad) ||
+                    !isset($p->importe)
+                ) {
+                    throw new \Exception(
+                        'Cada producto debe tener código, nombre, cantidad e importe.',
+                    );
                 }
 
                 $idSolicitudProd = $solicitudProductsDB[$index]['ID_SolicitudProd'];
@@ -308,7 +327,9 @@ class Api extends ResourceController
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                throw new \Exception('Falla en la transacción de base de datos al actualizar montos.');
+                throw new \Exception(
+                    'Falla en la transacción de base de datos al actualizar montos.',
+                );
             }
 
             return $this->respondUpdated([
@@ -318,7 +339,9 @@ class Api extends ResourceController
         } catch (\Exception $e) {
             $db->transRollback();
             log_message('error', '[actualizarMontos] ' . $e->getMessage());
-            return $this->failServerError('Ocurrió un error inesperado al actualizar los montos: ' . $e->getMessage());
+            return $this->failServerError(
+                'Ocurrió un error inesperado al actualizar los montos: ' . $e->getMessage(),
+            );
         }
     }
 
@@ -393,8 +416,15 @@ class Api extends ResourceController
             return $this->fail('Invalid JSON.', HttpStatus::BAD_REQUEST);
         }
 
-        if (!isset($json->ID_Solicitud) || !isset($json->ID_Proveedores) || !is_array($json->ID_Proveedores) || empty($json->ID_Proveedores)) {
-            return $this->failValidationErrors('Se requiere ID de solicitud y un array de IDs de proveedor.');
+        if (
+            !isset($json->ID_Solicitud) ||
+            !isset($json->ID_Proveedores) ||
+            !is_array($json->ID_Proveedores) ||
+            empty($json->ID_Proveedores)
+        ) {
+            return $this->failValidationErrors(
+                'Se requiere ID de solicitud y un array de IDs de proveedor.',
+            );
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
@@ -407,7 +437,8 @@ class Api extends ResourceController
         }
         if ($solicitud['Estado'] !== Status::En_espera) {
             return $this->fail(
-                'La solicitud ya no está en estado "En espera". Estado actual: ' . $solicitud['Estado'],
+                'La solicitud ya no está en estado "En espera". Estado actual: ' .
+                    $solicitud['Estado'],
                 HttpStatus::BAD_REQUEST,
             );
         }
@@ -456,7 +487,9 @@ class Api extends ResourceController
                 $to = getenv('EMAIL_TO_TEST');
                 if (empty($to)) {
                     if (!$proveedor || empty($proveedor['Correo'])) {
-                        throw new \Exception("No se pudo encontrar un correo electrónico para el proveedor con ID: {$idProveedor}.");
+                        throw new \Exception(
+                            "No se pudo encontrar un correo electrónico para el proveedor con ID: {$idProveedor}.",
+                        );
                     }
                     $to = $proveedor['Correo'];
                 }
@@ -469,17 +502,23 @@ class Api extends ResourceController
                 $subject = "Solicitud de Cotización - Folio {$folio} - {$razonSocialEsc}";
 
                 $message = '';
-                $message .= '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Solicitud de Cotización</title>';
+                $message .=
+                    '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Solicitud de Cotización</title>';
                 $message .= '<style>';
-                $message .= 'body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }';
-                $message .= '.container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }';
-                $message .= '.header { padding: 15px 20px; background-color: #004a99; color: #ffffff; text-align: center; border-radius: 8px 8px 0 0; }';
+                $message .=
+                    'body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }';
+                $message .=
+                    '.container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }';
+                $message .=
+                    '.header { padding: 15px 20px; background-color: #004a99; color: #ffffff; text-align: center; border-radius: 8px 8px 0 0; }';
                 $message .= '.header h2 { margin: 0; font-size: 24px; }';
                 $message .= '.content { padding: 25px 20px; }';
                 $message .= '.content p { margin: 0 0 15px; }';
-                $message .= '.content ul { list-style: none; padding: 0; margin: 15px 0; border-left: 3px solid #004a99; padding-left: 15px; }';
+                $message .=
+                    '.content ul { list-style: none; padding: 0; margin: 15px 0; border-left: 3px solid #004a99; padding-left: 15px; }';
                 $message .= '.content li { margin-bottom: 8px; }';
-                $message .= '.footer { margin-top: 20px; padding: 15px 20px; font-size: 0.85em; color: #6c757d; text-align: center; background-color: #f4f4f4; border-radius: 0 0 8px 8px; }';
+                $message .=
+                    '.footer { margin-top: 20px; padding: 15px 20px; font-size: 0.85em; color: #6c757d; text-align: center; background-color: #f4f4f4; border-radius: 0 0 8px 8px; }';
                 $message .= '</style></head><body>';
                 $message .= '<div class="container">';
                 $message .= '<div class="header"><h2>Solicitud de Cotización</h2></div>';
@@ -488,7 +527,8 @@ class Api extends ResourceController
                 $message .= "<p>Por medio de la presente, <strong>{$razonSocialEsc}</strong> le solicita amablemente la cotización de los productos/servicios descritos en el documento PDF adjunto.</p>";
                 $message .= '<p><strong>Detalles de la Requisición:</strong></p>';
                 $message .= "<ul><li><strong>Folio:</strong> {$folio}</li><li><strong>Fecha de Solicitud:</strong> {$fecha}</li></ul>";
-                $message .= '<p>Agradeceríamos enormemente que nos hiciera llegar su propuesta a la brevedad posible. Si tiene alguna duda o requiere información adicional, no dude en contactarnos por los medios habituales.</p>';
+                $message .=
+                    '<p>Agradeceríamos enormemente que nos hiciera llegar su propuesta a la brevedad posible. Si tiene alguna duda o requiere información adicional, no dude en contactarnos por los medios habituales.</p>';
                 $message .= '<p>Quedamos a su disposición.</p>';
                 $message .= '</div>';
                 $message .= "<div class=\"footer\"><p><strong>{$razonSocialEsc}</strong></p></div>";
@@ -507,7 +547,9 @@ class Api extends ResourceController
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                return $this->failServerError('Ocurrió un error en la transacción de la base de datos.');
+                return $this->failServerError(
+                    'Ocurrió un error en la transacción de la base de datos.',
+                );
             }
 
             return $this->respondCreated([
@@ -517,7 +559,9 @@ class Api extends ResourceController
         } catch (\Exception $e) {
             $db->transRollback();
             log_message('error', '[crearCotizacion] ' . $e->getMessage());
-            return $this->failServerError('Ocurrió un error inesperado al crear las cotizaciones: ' . $e->getMessage());
+            return $this->failServerError(
+                'Ocurrió un error inesperado al crear las cotizaciones: ' . $e->getMessage(),
+            );
         }
     }
 
@@ -561,9 +605,10 @@ class Api extends ResourceController
 
         try {
             if ($idCotizacionSeleccionada) {
-                $cotizacionModel->where('ID_Solicitud', $idSolicitud)
-                                ->where('ID_Cotizacion !=', $idCotizacionSeleccionada)
-                                ->delete();
+                $cotizacionModel
+                    ->where('ID_Solicitud', $idSolicitud)
+                    ->where('ID_Cotizacion !=', $idCotizacionSeleccionada)
+                    ->delete();
             }
 
             $this->api->updateSolicitudById($idSolicitud, [
@@ -704,7 +749,6 @@ class Api extends ResourceController
             return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
         }
 
-
         $solicitudModel = new SolicitudModel();
         $ordenCompraModel = new OrdenCompraModel();
         $cotizacionModel = new CotizacionModel();
@@ -795,6 +839,29 @@ class Api extends ResourceController
     }
 
     /**
+     * Obtiene una orden de compra por el ID de la solicitud.
+     *
+     * @param int|null $id El ID de la solicitud.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getOrdenBySolicitudID($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+        }
+
+        $data = $this->api->getOrdenByIDSolicitud((int) $id);
+
+        if (empty($data)) {
+            return $this->failNotFound(
+                'No se encontraron datos para la orden de compra con ID de solicitud: ' . $id,
+            );
+        }
+
+        return $this->respond($data);
+    }
+
+    /**
      * Obtiene todas las órdenes de compra con su información asociada.
      *
      * @return \CodeIgniter\HTTP\Response
@@ -837,13 +904,23 @@ class Api extends ResourceController
         $cotizacionModel = new CotizacionModel();
         $ordenCompraModel = new OrdenCompraModel();
 
-        $json = $this->request->getJSON(true);
-        $nuevoEstado = $json['nuevoEstado'] ?? null;
+        $nuevoEstado = $this->request->getPost('nuevoEstado');
 
         if (!$nuevoEstado) {
             return $this->failValidationErrors('No se especificó el nuevo estado.');
         }
 
+        $facturaFile = $this->request->getFile('factura');
+
+        if (!$facturaFile || !$facturaFile->isValid()) {
+            $errorString = 'No se subió un archivo de factura válido.';
+            if ($facturaFile && $facturaFile->getErrorString()) {
+                $errorString = $facturaFile->getErrorString();
+            }
+            return $this->failValidationErrors($errorString);
+        }
+
+        $newName = $facturaFile->getRandomName();
         $cot = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
         $orden = $ordenCompraModel->where('ID_Cotizacion', $cot['ID_Cotizacion'])->first();
 
@@ -851,13 +928,22 @@ class Api extends ResourceController
             return $this->failNotFound('Orden no encontrada.');
         }
 
+        if (!$facturaFile->move(FPath::FFACTURAS, $newName)) {
+            return $this->failServerError('No se pudo guardar el archivo de la factura.');
+        }
+
         try {
+            $ordenCompraModel->update($orden['ID_OrdenCompra'], ['File_Factura' => $newName]);
             // Lógica simple: solo actualizar el estado
-            $updateResult = $ordenCompraModel->update($orden['ID_OrdenCompra'], ['Estado' => $nuevoEstado]);
+            $updateResult = $ordenCompraModel->update($orden['ID_OrdenCompra'], [
+                'Estado' => $nuevoEstado,
+            ]);
 
             if ($updateResult === false) {
                 $errors = $ordenCompraModel->errors();
-                $errorMessage = $errors ? implode(', ', $errors) : 'La actualización del estado falló.';
+                $errorMessage = $errors
+                    ? implode(', ', $errors)
+                    : 'La actualización del estado falló.';
                 throw new \Exception($errorMessage);
             }
 
@@ -866,7 +952,6 @@ class Api extends ResourceController
                 'message' => 'Estado actualizado correctamente.',
                 'nuevoEstado' => $nuevoEstado,
             ]);
-
         } catch (\Exception $e) {
             log_message('error', '[cambiarEstadoOrden - Simple] ' . $e->getMessage());
             return $this->failServerError($e->getMessage());
@@ -877,12 +962,12 @@ class Api extends ResourceController
      * Función específica para generar la OC, enviarla por correo y cambiar su estado.
      * Llamada solo desde la vista de 'ordenes_compra'.
      */
-    public function enviarOrdenAProveedor($idSolicitud = null,$userid = null)
+    public function enviarOrdenAProveedor($idSolicitud = null, $userid = null)
     {
         if ($idSolicitud === null) {
             return $this->failValidationErrors('Se requiere un ID de solicitud.');
         }
-         if ($userid === null) {
+        if ($userid === null) {
             return $this->failValidationErrors('Se requiere un ID.');
         }
 
@@ -916,9 +1001,9 @@ class Api extends ResourceController
 
             $ordenData = [
                 'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
-                'ID_Proveedor'  => $cotizacion['ID_Proveedor'],
-                'Estado'        => Status::Por_Pagar,
-                'Fecha'         => date('Y-m-d')
+                'ID_Proveedor' => $cotizacion['ID_Proveedor'],
+                'Estado' => Status::Por_Pagar,
+                'Fecha' => date('Y-m-d'),
             ];
 
             $ordenCompraModel->insert($ordenData);
@@ -927,7 +1012,9 @@ class Api extends ResourceController
             $to = getenv('EMAIL_TO_TEST');
             if (empty($to)) {
                 if (!$proveedor || empty($proveedor['Correo'])) {
-                    throw new \Exception("No se pudo encontrar un correo electrónico para el proveedor con ID: {$cotizacion['ID_Proveedor']}.");
+                    throw new \Exception(
+                        "No se pudo encontrar un correo electrónico para el proveedor con ID: {$cotizacion['ID_Proveedor']}.",
+                    );
                 }
                 $to = $proveedor['Correo'];
             }
@@ -937,17 +1024,23 @@ class Api extends ResourceController
             $subject = "Nueva Orden de Compra - {$razonNombre} - Folio {$folio}";
 
             $message = '';
-            $message .= '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Nueva Orden de Compra</title>';
+            $message .=
+                '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Nueva Orden de Compra</title>';
             $message .= '<style>';
-            $message .= 'body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }';
-            $message .= '.container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }';
-            $message .= '.header { padding: 15px 20px; background-color: #004a99; color: #ffffff; text-align: center; border-radius: 8px 8px 0 0; }';
+            $message .=
+                'body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }';
+            $message .=
+                '.container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }';
+            $message .=
+                '.header { padding: 15px 20px; background-color: #004a99; color: #ffffff; text-align: center; border-radius: 8px 8px 0 0; }';
             $message .= '.header h2 { margin: 0; font-size: 24px; }';
             $message .= '.content { padding: 25px 20px; }';
             $message .= '.content p { margin: 0 0 15px; }';
-            $message .= '.content ul { list-style: none; padding: 0; margin: 15px 0; border-left: 3px solid #004a99; padding-left: 15px; }';
+            $message .=
+                '.content ul { list-style: none; padding: 0; margin: 15px 0; border-left: 3px solid #004a99; padding-left: 15px; }';
             $message .= '.content li { margin-bottom: 8px; }';
-            $message .= '.footer { margin-top: 20px; padding: 15px 20px; font-size: 0.85em; color: #6c757d; text-align: center; background-color: #f4f4f4; border-radius: 0 0 8px 8px; }';
+            $message .=
+                '.footer { margin-top: 20px; padding: 15px 20px; font-size: 0.85em; color: #6c757d; text-align: center; background-color: #f4f4f4; border-radius: 0 0 8px 8px; }';
             $message .= '</style></head><body>';
             $message .= '<div class="container">';
             $message .= '<div class="header"><h2>Nueva Orden de Compra</h2></div>';
@@ -955,9 +1048,14 @@ class Api extends ResourceController
             $message .= "<p>Estimado proveedor <strong>{$proveedorNombre}</strong>,</p>";
             $message .= "<p>Por medio de la presente, <strong>{$razonNombre}</strong> se complace en enviarle la Orden de Compra correspondiente a su cotización.</p>";
             $message .= '<p><strong>Detalles de la Orden:</strong></p>';
-            $message .= "<ul><li><strong>Folio de Requisición:</strong> {$folio}</li><li><strong>Fecha de Orden:</strong> " . date('d/m/Y') . "</li></ul>";
-            $message .= '<p>En el documento PDF adjunto encontrará todos los detalles de los productos/servicios solicitados, así como los términos y condiciones aplicables.</p>';
-            $message .= '<p>Agradecemos su colaboración y quedamos a la espera de la confirmación de recibido. Para cualquier consulta, no dude en contactar a nuestro departamento de compras.</p>';
+            $message .=
+                "<ul><li><strong>Folio de Requisición:</strong> {$folio}</li><li><strong>Fecha de Orden:</strong> " .
+                date('d/m/Y') .
+                '</li></ul>';
+            $message .=
+                '<p>En el documento PDF adjunto encontrará todos los detalles de los productos/servicios solicitados, así como los términos y condiciones aplicables.</p>';
+            $message .=
+                '<p>Agradecemos su colaboración y quedamos a la espera de la confirmación de recibido. Para cualquier consulta, no dude en contactar a nuestro departamento de compras.</p>';
             $message .= '<p>Saludos cordiales,</p>';
             $message .= '</div>';
             $message .= "<div class=\"footer\"><p><strong>Departamento de Compras</strong><br>{$razonNombre}</p></div>";
@@ -971,7 +1069,7 @@ class Api extends ResourceController
 
             $option = [
                 'attachments' => [$pdfPath],
-                'fromName' => $razonNombre
+                'fromName' => $razonNombre,
             ];
 
             $mail = new MBSMail();
@@ -988,7 +1086,6 @@ class Api extends ResourceController
                 'message' => 'Orden Creada, estado actualizado y correo enviado.',
                 'nuevoEstado' => Status::En_Proceso_Pago,
             ]);
-
         } catch (\Exception $e) {
             log_message('error', '[enviarOrdenAProveedor] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado: ' . $e->getMessage());
@@ -1044,7 +1141,9 @@ class Api extends ResourceController
         }
 
         if (!isset($json->data) || !is_object($json->data)) {
-            return $this->failValidationErrors('Se requiere un objeto "data" con los campos a actualizar.');
+            return $this->failValidationErrors(
+                'Se requiere un objeto "data" con los campos a actualizar.',
+            );
         }
 
         $email = $json->email;
@@ -1054,43 +1153,90 @@ class Api extends ResourceController
         $user = $userModel->where('Correo', $email)->first();
 
         if (!$user) {
-            return $this->fail('No se pudo actualizar el usuario. Usuario no encontrado.', HttpStatus::BAD_REQUEST);
-        }
-
-        if (isset($data['username']) && $data['username'] === $user['Nombre']) {
-            if (count($data) === 1) {
-                return $this->respond(
-                    ['success' => false, 'message' => 'El nombre es el mismo, no se realizaron cambios.'],
-                    HttpStatus::OK
-                );
-            }
-        }
-        if (empty($data['username']))
-        {
-            return $this->respond(
-                    ['success' => false, 'message' => 'El nombre no puede estar vacío.'],
-                    HttpStatus::OK
-                );
-        }
-
-        if (isset($data['username'])) {
-            $data['Nombre'] = $data['username'];
-            unset($data['username']);
-        }
-
-        if (empty($data)) {
-            return $this->respond(
-                ['success' => false, 'message' => 'No hay cambios para realizar.'],
-                HttpStatus::OK
+            return $this->fail(
+                'No se pudo actualizar el usuario. Usuario no encontrado.',
+                HttpStatus::BAD_REQUEST,
             );
         }
 
-        $result = $this->api->updateUserByEmail($email, $data);
+        $dataToUpdate = [];
+
+        // Actualizar nombre de usuario
+        if (isset($data['username'])) {
+            if (empty($data['username'])) {
+                return $this->failValidationErrors('El nombre de usuario no puede estar vacío.');
+            }
+            if ($data['username'] !== $user['Nombre']) {
+                $dataToUpdate['Nombre'] = $data['username'];
+            }
+        }
+
+        // Actualizar contraseña principal
+        if (isset($data['password'])) {
+            if (empty($data['password'])) {
+                return $this->failValidationErrors('La nueva contraseña no puede estar vacía.');
+            }
+            if (strlen($data['password']) < 8) {
+                return $this->failValidationErrors(
+                    'La contraseña debe tener al menos 8 caracteres.',
+                );
+            }
+            if (
+                !isset($data['old_password']) ||
+                !password_verify($data['old_password'], $user['ContrasenaP'])
+            ) {
+                return $this->fail(
+                    'La contraseña anterior es incorrecta.',
+                    HttpStatus::BAD_REQUEST,
+                );
+            }
+            $dataToUpdate['ContrasenaP'] = password_hash($data['password'], PASSWORD_DEFAULT);
+        }
+
+        // Actualizar contraseña auxiliar
+        if (isset($data['password_g'])) {
+            if (empty($data['password_g'])) {
+                return $this->failValidationErrors(
+                    'La nueva contraseña auxiliar no puede estar vacía.',
+                );
+            }
+            if (strlen($data['password_g']) < 8) {
+                return $this->failValidationErrors(
+                    'La contraseña auxiliar debe tener al menos 8 caracteres.',
+                );
+            }
+            if (
+                !isset($data['user_password']) ||
+                !password_verify($data['user_password'], $user['ContrasenaP'])
+            ) {
+                return $this->fail(
+                    'La contraseña de usuario principal es incorrecta.',
+                    HttpStatus::BAD_REQUEST,
+                );
+            }
+            $dataToUpdate['ContrasenaG'] = password_hash($data['password_g'], PASSWORD_DEFAULT);
+        }
+
+        if (empty($dataToUpdate)) {
+            return $this->respond(
+                ['success' => false, 'message' => 'No hay cambios para realizar.'],
+                HttpStatus::OK,
+            );
+        }
+
+        $result = $this->api->updateUserByEmail($email, $dataToUpdate);
 
         if ($result) {
-            return $this->respondUpdated(['success' => true, 'message' => "Usuario actualizado correctamente. Recargar página para ver los cambios."]);
+            return $this->respondUpdated([
+                'success' => true,
+                'message' =>
+                    'Usuario actualizado correctamente. Recargar página para ver los cambios.',
+            ]);
         } else {
-            return $this->fail('No se pudo actualizar el usuario. Verifique los datos proporcionados.', HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'No se pudo actualizar el usuario. Verifique los datos proporcionados.',
+                HttpStatus::BAD_REQUEST,
+            );
         }
     }
 
@@ -1104,7 +1250,9 @@ class Api extends ResourceController
         $file = $this->request->getFile('signature');
 
         if (!$file || !$file->isValid()) {
-            return $this->failValidationErrors('No se ha subido ningún archivo o el archivo no es válido.');
+            return $this->failValidationErrors(
+                'No se ha subido ningún archivo o el archivo no es válido.',
+            );
         }
 
         $result = $this->api->save_signature($userId, $file);
@@ -1114,5 +1262,50 @@ class Api extends ResourceController
         } else {
             return $this->fail($result['message'], HttpStatus::BAD_REQUEST);
         }
+    }
+
+    private function _handleFileUpload(int $id, string $fileType)
+    {
+        $ordenCompraModel = new OrdenCompraModel();
+        $orden = $ordenCompraModel->find($id);
+
+        if (!$orden) {
+            return $this->failNotFound('No se encontró la orden de compra con ID: ' . $id);
+        }
+
+        $file = $this->request->getFile($fileType === 'factura' ? 'factura_file' : 'pago_file');
+
+        if (!$file || !$file->isValid()) {
+            return $this->failValidationErrors(
+                'No se ha subido ningún archivo o el archivo no es válido.',
+            );
+        }
+
+        $folder = $fileType === 'factura' ? FPath::FFACTURAS : FPath::FCOMPROBANTES;
+        $this->api->CreateFolder($folder);
+
+        $newName = $file->getRandomName();
+        $file->move($folder, $newName);
+
+        $fieldName = $fileType === 'factura' ? 'File_Factura' : 'File_Comprobante';
+        $ordenCompraModel->update($id, [$fieldName => $newName]);
+
+        return $this->respond(['success' => true, 'message' => 'Archivo subido correctamente.']);
+    }
+
+    public function uploadFactura($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de orden de compra numérico.');
+        }
+        return $this->_handleFileUpload((int) $id, 'factura');
+    }
+
+    public function uploadPago($id = null)
+    {
+        if ($id === null || !is_numeric($id)) {
+            return $this->failValidationErrors('Se requiere un ID de orden de compra numérico.');
+        }
+        return $this->_handleFileUpload((int) $id, 'pago');
     }
 }

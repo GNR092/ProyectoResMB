@@ -1,5 +1,5 @@
 <?php
-$session = session(); 
+$session = session();
 $stylessPath = FCPATH . 'css/styless.css';
 $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 ?>
@@ -109,6 +109,9 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
     <script src="<?= base_url(
         file_exists(FCPATH . 'js/mbscript.js') ? 'js/mbscript.js' : 'js/mbscript.min.js',
+    ) ?>" defer></script>
+    <script src="<?= base_url(
+        file_exists(FCPATH . 'js/reportesScript.js') ? 'js/reportesScript.js' : 'js/reportesScript.min.js',
     ) ?>" defer></script>
 </body>
 

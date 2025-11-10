@@ -18,6 +18,8 @@ use App\Libraries\HttpStatus;
 use App\Libraries\SolicitudTipo;
 
 use CodeIgniter\Database\BaseBuilder;
+use CodeIgniter\Model;
+
 /**
  * Clase Rest
  *
@@ -571,6 +573,17 @@ class Rest
         if ($cotizacion) {
             $solicitud['cotizacion'] = $cotizacion;
         }
+        $ordenCompraModel = new OrdenCompraModel();
+        $orden = $ordenCompraModel
+            ->select(
+                'OrdenCompra.File_Factura, OrdenCompra.File_Comprobante, OrdenCompra.File_ReqPag',
+            )
+            ->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])
+            ->first();
+
+        if ($orden) {
+            $solicitud['OrdenCompra'] = $orden;
+        }
 
         return $solicitud ? $solicitud : [];
     }
@@ -595,6 +608,27 @@ class Rest
             ->first();
 
         return $result ?: null;
+    }
+
+    /**
+     * Obtiene una orden de compra por el ID de la solicitud.
+     *
+     * @param int $solicitudId El ID de la solicitud.
+     * @return array|null La orden de compra encontrada o null si no existe.
+     */
+    public function getOrdenByIDSolicitud(int $solicitudId): ?array
+    {
+        $cotizacionModel = new CotizacionModel();
+        $cotizacion = $cotizacionModel->where('ID_Solicitud', $solicitudId)->first();
+
+        if (!$cotizacion) {
+            return null;
+        }
+
+        $ordenCompraModel = new OrdenCompraModel();
+        $orden = $ordenCompraModel->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])->first();
+
+        return $orden ?: null;
     }
 
     /**
@@ -814,7 +848,7 @@ class Rest
         $user = $this->getUserById($id);
         $SignaturePath = null;
         $userFolder = FPath::FUSER . $id;
-        
+
         if (!$user) {
             return null;
         }
@@ -833,7 +867,7 @@ class Rest
         $user = $this->getUserById($id);
         $SignaturePath = null;
         $userFolder = FPath::FUSER . $id;
-        
+
         if (!$user) {
             return null;
         }

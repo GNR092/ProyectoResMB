@@ -164,3 +164,4 @@ app/Commands/SendTestEmail.php
 agent.bat
 .gemini/settings.json
 public/js/mbscript.min.js
+public/js/reportesScript.min.js

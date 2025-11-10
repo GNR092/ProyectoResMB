@@ -11,7 +11,7 @@
     "check-format": "prettier --check .",
     "build:product": "postcss input.css -o public/css/styless.css --minify",
     "watch": "postcss input.css -o public/css/styless.css --watch",
-    "obfuscate": "javascript-obfuscator public/js/mbscript.js --output public/js/mbscript.min.js --compact true --self-defending true --string-array true --string-array-rotate true --string-array-shuffle true --string-array-threshold 0.75"
+    "obfuscate": "javascript-obfuscator public/js/mbscript.js --output public/js/mbscript.min.js --compact true --self-defending true --string-array true --string-array-rotate true --string-array-shuffle true --string-array-threshold 0.75 && javascript-obfuscator public/js/reportesScript.js --output public/js/reportesScript.min.js --compact true --self-defending true --string-array true --string-array-rotate true --string-array-shuffle true --string-array-threshold 0.75"
   },
   "repository": {
     "type": "git",
