@@ -5,7 +5,7 @@
     <div class="flex justify-between items-center mb-4">
         <button onclick="abrirModal('almacen')"
                 class="text-sm text-gray-600 hover:text-gray-900 transition">
-            &larr; Regresar
+            &larr; Regresar a Almacen
         </button>
         <h2 class="text-2xl font-bold">CRUD Productos</h2>
         <div></div>

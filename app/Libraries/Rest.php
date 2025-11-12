@@ -1275,6 +1275,81 @@ class Rest
     }
     //endregion
 
+    //region Limpiar Almacenamiento
+    /**
+     * Obtiene el contenido de un directorio dentro de 'writable/uploads'.
+     *
+     * @param string $relativePath La ruta relativa dentro de uploads.
+     * @return array Lista de archivos y carpetas.
+     * @throws \Exception Si el directorio no es válido o no se puede leer.
+     */
+    public function getStorageContent(string $relativePath = ''): array
+    {
+        $basePath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR;
+
+        $cleanPath = str_replace(['../', '..\\'], '', $relativePath);
+        $cleanPath = trim($cleanPath, '/\\');
+
+        $targetPath = realpath($basePath . $cleanPath);
+
+        // Verificación
+        if ($targetPath === false || strpos($targetPath, realpath($basePath)) !== 0) {
+            $targetPath = realpath($basePath);
+            $cleanPath = '';
+        }
+
+        if (!is_dir($targetPath)) {
+            throw new \Exception("El directorio no existe: " . $cleanPath);
+        }
+
+        $items = [];
+        try {
+            $iterator = new \DirectoryIterator($targetPath);
+            foreach ($iterator as $fileinfo) {
+                if ($fileinfo->isDot()) continue;
+
+                $isDir = $fileinfo->isDir();
+                $itemRelativePath = $cleanPath ? $cleanPath . '/' . $fileinfo->getFilename() : $fileinfo->getFilename();
+
+                $items[] = [
+                    'name' => $fileinfo->getFilename(),
+                    'type' => $isDir ? 'folder' : 'file',
+                    'path' => $itemRelativePath,
+                    'size' => $isDir ? '-' : $this->formatBytes($fileinfo->getSize())
+                ];
+            }
+
+            // Ordenar carpetas
+            usort($items, function ($a, $b) {
+                if ($a['type'] === $b['type']) {
+                    return strcasecmp($a['name'], $b['name']);
+                }
+                return ($a['type'] === 'folder') ? -1 : 1;
+            });
+
+        } catch (\Exception $e) {
+            throw new \Exception("Error al leer el directorio: " . $e->getMessage());
+        }
+
+        return $items;
+    }
+
+    /**
+     * Formatea bytes a una cadena legible por humanos (KB, MB, GB).
+     * @param int $bytes
+     * @param int $precision
+     * @return string
+     */
+    private function formatBytes($bytes, $precision = 2) {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= pow(1024, $pow);
+        return round($bytes, $precision) . ' ' . $units[$pow];
+    }
+//endregion
+
     //region misceláneos
     public static function ShowDebug($data, $json = false)
     {

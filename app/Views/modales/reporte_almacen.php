@@ -1,28 +1,23 @@
-<div class="p-4"> <!-- Contenedor principal del modal -->
+<div class="p-4">
 
-    <!-- Encabezado con botón de regresar -->
     <div class="flex justify-between items-center mb-6">
         <button onclick="abrirModal('almacen')"
                 class="text-sm text-gray-600 hover:text-gray-900 transition flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 mr-1">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
-            Regresar
+            Regresar  a Almacen
         </button>
         <h2 class="text-xl font-semibold text-center">Reporte Historial de Cambios en Productos</h2>
         <div></div> <!-- Espaciador para centrar el título -->
     </div>
 
-    <!-- Div de la Tabla -->
     <div id="div-tabla-reporte-almacen">
-        <!-- Puedes añadir filtros aquí si lo necesitas más adelante -->
-        <!-- <div class="mb-4"> ... Filtros ... </div> -->
 
         <div class="overflow-x-auto shadow rounded-lg">
             <table class="min-w-full border-collapse border border-gray-300">
                 <thead class="bg-gray-100">
                 <tr>
-                    <!-- Ajusta las cabeceras según los campos que quieras mostrar -->
                     <th class="py-2 px-3 text-left text-sm font-medium text-gray-600 border-b border-gray-300">Fecha</th>
                     <th class="py-2 px-3 text-left text-sm font-medium text-gray-600 border-b border-gray-300">ID Producto</th>
                     <th class="py-2 px-3 text-left text-sm font-medium text-gray-600 border-b border-gray-300">Cambio</th>
@@ -35,14 +30,12 @@
                 <tbody id="tablaReporteAlmacen" class="bg-white">
                 <?php if (!empty($historial)): ?>
                     <?php foreach ($historial as $registro): ?>
-                        <!-- Añadimos una clase 'historial-row' para el selector JS -->
                         <tr class="hover:bg-gray-50 historial-row">
                             <td class="py-2 px-3 text-sm text-gray-700 border-b border-gray-200">
                                 <?= esc(date('d/m/Y H:i', strtotime($registro['created_at']))) ?>
                             </td>
                             <td class="py-2 px-3 text-sm text-gray-700 border-b border-gray-200">
                                 <?= esc($registro['ID_Producto']) ?>
-                                <!-- Si haces JOIN, aquí podrías poner el nombre del producto -->
                             </td>
                             <td class="py-2 px-3 text-sm text-gray-700 border-b border-gray-200">
                                 <?php
@@ -74,7 +67,6 @@
                             </td>
                             <td class="py-2 px-3 text-sm text-gray-700 border-b border-gray-200">
                                 <?= esc($registro['ID_Usuario']) ?>
-                                <!-- Si haces JOIN, aquí podrías poner el nombre del usuario -->
                             </td>
                         </tr>
                     <?php endforeach; ?>

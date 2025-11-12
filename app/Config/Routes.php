@@ -110,6 +110,10 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/razonsocial/editar/(:num)', 'Modales::editarRazonSocial/$1');
         $routes->post('modales/razonsocial/eliminar/(:num)', 'Modales::eliminarRazonSocial/$1');
 
+        //Limpiar almacenamiento
+        $routes->get('api/storage/list', 'Api::getStorageList');
+        $routes->get('api/storage/serve', 'Api::serveFile');
+
         // User
         $routes->post('api/user/update', 'Api::updateUser');
         $routes->post('api/user/upload_signature', 'Api::upload_signature');

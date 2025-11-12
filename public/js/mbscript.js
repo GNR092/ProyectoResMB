@@ -71,6 +71,7 @@ function abrirModal(opcion) {
         ficha_pago: initFichasPago,
         razonsocial: initCrudRazonSocial,
         reporte_almacen: initReporteAlmacen,
+        limpiar_almacenamiento: initLimpiarAlmacenamiento,
         //micuenta: initMiCuenta,
       }
 
@@ -4264,7 +4265,6 @@ function initRazonSocialActions(tabla) {
 /**
  * Lógica para reportes de almacen
  */
-// Función de inicialización para el modal de reporte de almacén
 function initReporteAlmacen() {
   // Asegurarse de que la tabla exista antes de continuar
   if (!document.getElementById('tablaReporteAlmacen')) {
@@ -4282,6 +4282,215 @@ function initReporteAlmacen() {
     // filterFunction: (row, form) => { /* ... lógica de filtro ... */ }
   })
 }
+
+
+/**
+ * Lógica para limpiar almacenamiento--------------------------------------------------
+ */
+
+window.initLimpiarAlmacenamiento = function() {
+
+  let currentPath = '';
+  let selectedItems = new Set();
+
+  window.navegarA = async function(path) {
+    currentPath = path;
+
+    // Boton de regresar
+    const backBtnContainer = document.getElementById('back-button-container');
+    if (backBtnContainer) {
+      if (path === '') {
+        backBtnContainer.classList.add('hidden');
+      } else {
+        backBtnContainer.classList.remove('hidden');
+      }
+    }
+
+    actualizarToolbar();
+    actualizarSelectAllCheck(false);
+    renderBreadcrumbs(path);
+
+    const tbody = document.getElementById('file-list');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Cargando...</td></tr>';
+
+    const files = await fetchFiles(path);
+    renderFiles(files);
+  };
+
+  window.navegarArriba = function() {
+    if (currentPath === '') return;
+
+    const parts = currentPath.split('/');
+    parts.pop();
+    const parentPath = parts.join('/');
+    window.navegarA(parentPath);
+  };
+
+  window.toggleSelection = function(path) {
+    if (selectedItems.has(path)) { selectedItems.delete(path); }
+    else { selectedItems.add(path); }
+    actualizarToolbar();
+  };
+
+  window.toggleSelectAll = function() {
+    const mainCheckbox = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    const isChecked = mainCheckbox.checked;
+    checkboxes.forEach(cb => {
+      cb.checked = isChecked;
+      if (isChecked) { selectedItems.add(cb.value); }
+      else { selectedItems.delete(cb.value); }
+    });
+    actualizarToolbar();
+  };
+
+  // limpiar selección
+  window.limpiarSeleccion = function() {
+    selectedItems.clear();
+    actualizarToolbar();
+    document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = false);
+    actualizarSelectAllCheck(false);
+    document.querySelectorAll('#file-list tr.bg-blue-50').forEach(row => row.classList.remove('bg-blue-50'));
+  };
+
+  window.ejecutarAccion = function(tipo) {
+    const listaParaEnviar = Array.from(selectedItems);
+    if (listaParaEnviar.length === 0) return;
+
+    const mensaje = tipo === 'eliminar'
+        ? `¿Estás seguro de ELIMINAR ${listaParaEnviar.length} elementos?\nEsta acción no se puede deshacer.`
+        : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`;
+
+    if (confirm(mensaje)) {
+      console.group("🚀 EJECUTANDO ACCIÓN: " + tipo.toUpperCase());
+      console.log("Rutas a procesar:", listaParaEnviar);
+      console.groupEnd();
+      alert(`Acción "${tipo}" simulada. Revisa la consola.`);
+    }
+  };
+
+  async function fetchFiles(path) {
+    try {
+      const response = await fetch(`${BASE_URL}api/storage/list?path=${encodeURIComponent(path)}`);
+      if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error al obtener archivos:', error);
+      const tbody = document.getElementById('file-list');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Error: ${error.message}</td></tr>`;
+      return [];
+    }
+  }
+
+  function renderFiles(files) {
+    const tbody = document.getElementById('file-list');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!files || files.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Carpeta vacía</td></tr>';
+      return;
+    }
+
+    const iconFolder = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`;
+    const iconFileGeneric = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>`;
+
+    files.sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name);
+      return a.type === 'folder' ? -1 : 1;
+    });
+
+    files.forEach(file => {
+      const isFolder = file.type === 'folder';
+      const isPdf = file.name.toLowerCase().endsWith('.pdf');
+      const isImg = file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+
+      let currentIcon = iconFileGeneric;
+      if (isFolder) {
+        currentIcon = iconFolder;
+      } else if (isPdf) {
+        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9h6v6H9z" /></svg>`;
+      } else if (isImg) {
+        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`;
+      }
+
+      const isChecked = selectedItems.has(file.path) ? 'checked' : '';
+
+      const row = document.createElement('tr');
+      row.className = `transition cursor-pointer ${isChecked ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`;
+
+      row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
+                    <input type="checkbox" value="${file.path}" ${isChecked} onchange="toggleSelection('${file.path}'); this.closest('tr').classList.toggle('bg-blue-50', this.checked);" class="file-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4">
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap flex items-center">
+                    ${currentIcon}
+                    <span class="${isFolder ? 'font-medium text-gray-900' : 'text-gray-700'}">${file.name}</span>
+                </td>
+                `;
+
+      row.addEventListener('click', (e) => {
+        if (e.target.type === 'checkbox') return;
+
+        if (isFolder) {
+          window.navegarA(file.path);
+        } else {
+          const url = `${BASE_URL}api/storage/serve?path=${encodeURIComponent(file.path)}`;
+          window.open(url, '_blank');
+        }
+      });
+
+      tbody.appendChild(row);
+    });
+  }
+
+  function renderBreadcrumbs(path) {
+    const container = document.getElementById('breadcrumbs');
+    if (!container) return;
+
+    let html = `<button onclick="navegarA('')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>uploads</button>`;
+
+    if (path) {
+      const parts = path.split('/');
+      let accumulatedPath = '';
+      parts.forEach((part, index) => {
+        accumulatedPath += (index > 0 ? '/' : '') + part;
+        const pathForClick = accumulatedPath;
+        html += `<span class="text-gray-400 mx-1">/</span>`;
+        if (index === parts.length - 1) {
+          html += `<span class="font-medium text-gray-800 px-2">${part}</span>`;
+        } else {
+          html += `<button onclick="navegarA('${pathForClick}')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded">${part}</button>`;
+        }
+      });
+    }
+    container.innerHTML = html;
+  }
+
+  function actualizarToolbar() {
+    const toolbar = document.getElementById('toolbar');
+    const countSpan = document.getElementById('selected-count');
+    if (!toolbar || !countSpan) return;
+
+    const count = selectedItems.size;
+    countSpan.textContent = count;
+    if (count > 0) {
+      toolbar.classList.remove('hidden');
+      toolbar.classList.add('flex');
+    } else {
+      toolbar.classList.add('hidden');
+      toolbar.classList.remove('flex');
+    }
+  }
+
+  function actualizarSelectAllCheck(checked) {
+    const cb = document.getElementById('select-all');
+    if (cb) cb.checked = checked;
+  }
+
+  window.navegarA('');
+};
 
 //==================================================================================================================
 /**

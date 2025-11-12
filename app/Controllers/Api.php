@@ -1126,6 +1126,80 @@ class Api extends ResourceController
 
     //endregion
 
+
+    //region Limpiar Almacenamiento
+
+    /**
+     * Obtiene el contenido de una carpeta en el almacenamiento.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getStorageList()
+    {
+        $path = $this->request->getGet('path') ?? '';
+
+        try {
+            $results = $this->api->getStorageContent($path);
+            return $this->respond($results, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage(), HttpStatus::BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Sirve un archivo desde el almacenamiento para previsualización.
+     * Versión ultra-robusta: funciona incluso si 'fileinfo' está desactivado en PHP.
+     * @return \CodeIgniter\HTTP\Response|\CodeIgniter\HTTP\DownloadResponse
+     */
+    public function serveFile()
+    {
+        $relativePath = urldecode($this->request->getGet('path') ?? '');
+        $basePath = realpath(WRITEPATH . 'uploads');
+
+        $potentialPath = $basePath . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
+        $fullPath = realpath($potentialPath);
+
+        if (!$fullPath || !is_file($fullPath) || strpos($fullPath, $basePath) !== 0) {
+            return $this->failNotFound('Archivo no encontrado o acceso denegado.');
+        }
+
+        $mime = false;
+        // Opción nativa
+        if (function_exists('mime_content_type')) {
+            $mime = @\mime_content_type($fullPath);
+        }
+
+        // Opción manual
+        if (!$mime) {
+            $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+            $mimeMap = [
+                'pdf'  => 'application/pdf',
+                'png'  => 'image/png',
+                'jpg'  => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'gif'  => 'image/gif',
+                'webp' => 'image/webp',
+                'svg'  => 'image/svg+xml',
+                'txt'  => 'text/plain',
+                'html' => 'text/html',
+                'htm'  => 'text/html',
+                'css'  => 'text/css',
+                'js'   => 'application/javascript',
+                'json' => 'application/json',
+                'xml'  => 'application/xml',
+                'zip'  => 'application/zip',
+                'rar'  => 'application/x-rar-compressed',
+            ];
+            $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+        }
+
+        return $this->response
+            ->setHeader('Content-Type', $mime)
+            ->setHeader('Content-Disposition', 'inline; filename="' . basename($fullPath) . '"')
+            ->setHeader('Content-Length', (string)filesize($fullPath))
+            ->setBody(file_get_contents($fullPath));
+    }
+//endregion
+
     /**
      * Actualiza los datos de un usuario utilizando su correo electrónico como identificador.
      * Espera un JSON con "email" y "data".
