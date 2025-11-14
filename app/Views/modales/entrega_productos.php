@@ -5,6 +5,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
 ?>
 
 <!-- Pantalla: Entrega de Material -->
+
 <div id="entrega-material-content" class="p-6">
 
     <div class="flex justify-between items-center mb-4">
@@ -46,6 +47,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
                        value="<?= esc($departamento_usuario) ?>"
                        readonly>
             </div>
+        </div>
+
+        <div class="mb-6">
+            <label for="entrega-nombre-emisor" class="text-sm text-gray-700 font-medium">Nombre de la persona que entrega</label>
+            <input id="entrega-nombre-emisor" type="text" class="w-full px-3 py-2 border rounded" placeholder="Nombre completo">
         </div>
 
 
