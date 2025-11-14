@@ -25,12 +25,13 @@ class Home extends BaseController
             
             // Rol Compras
             'Compras' => [
+                'solicitar_material',
                 'revisar_solicitudes',
                 'enviar_revision',
                 'crud_proveedores',
                 'ver_historial',
                 'crud_usuarios',
-                'limpiar_almacenamiento', // Almacenamiento
+                'limpiar_almacenamiento',
                 'ficha_pago',
                 'ordenes_compra',
                 'pagos_pendientes',
@@ -46,6 +47,7 @@ class Home extends BaseController
 
             // Rol Tesorería
             'Tesoreria' => [
+                'solicitar_material',
                 'ordenes_compra',
                 'ficha_pago',
                 'pagos_pendientes',
