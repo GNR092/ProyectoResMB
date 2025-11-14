@@ -1305,8 +1305,16 @@ class Rest
         $items = [];
         try {
             $iterator = new \DirectoryIterator($targetPath);
+            $disallowedExtensions = ['html', 'htm', 'js', 'css', 'json'];
+
             foreach ($iterator as $fileinfo) {
-                if ($fileinfo->isDot()) continue;
+                if ($fileinfo->isDot()) {
+                    continue;
+                }
+
+                if ($fileinfo->isFile() && in_array(strtolower($fileinfo->getExtension()), $disallowedExtensions, true)) {
+                    continue;
+                }
 
                 $isDir = $fileinfo->isDir();
                 $itemRelativePath = $cleanPath ? $cleanPath . '/' . $fileinfo->getFilename() : $fileinfo->getFilename();

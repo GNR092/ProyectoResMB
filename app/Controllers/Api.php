@@ -1162,6 +1162,13 @@ class Api extends ResourceController
             return $this->failNotFound('Archivo no encontrado o acceso denegado.');
         }
 
+        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+        $disallowedExtensions = ['html', 'htm', 'js', 'css'];
+
+        if (in_array($ext, $disallowedExtensions)) {
+            return $this->failForbidden('Acceso denegado a este tipo de archivo.');
+        }
+
         $mime = false;
         // Opción nativa
         if (function_exists('mime_content_type')) {
@@ -1170,7 +1177,6 @@ class Api extends ResourceController
 
         // Opción manual
         if (!$mime) {
-            $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
             $mimeMap = [
                 'pdf'  => 'application/pdf',
                 'png'  => 'image/png',
@@ -1180,11 +1186,6 @@ class Api extends ResourceController
                 'webp' => 'image/webp',
                 'svg'  => 'image/svg+xml',
                 'txt'  => 'text/plain',
-                'html' => 'text/html',
-                'htm'  => 'text/html',
-                'css'  => 'text/css',
-                'js'   => 'application/javascript',
-                'json' => 'application/json',
                 'xml'  => 'application/xml',
                 'zip'  => 'application/zip',
                 'rar'  => 'application/x-rar-compressed',
