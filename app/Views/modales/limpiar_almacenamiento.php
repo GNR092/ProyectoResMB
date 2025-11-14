@@ -10,7 +10,7 @@
     <div class="mb-6 flex justify-between items-center">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Gestor de Almacenamiento</h1>
-            <p class="text-gray-500 text-sm">Administra los archivos en <code class="bg-gray-200 px-1 rounded">writable/uploads</code></p>
+            <p class="text-gray-500 text-sm">Administrador de archivos</p>
         </div>
     </div>
 

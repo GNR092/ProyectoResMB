@@ -86,6 +86,12 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
                 <option value="1">Crédito</option>
             </select>
         </div>
+
+        <!-- Botón Limpiar Filtros -->
+        <button @click="clearFilters()"
+            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold px-4 py-2 rounded-md transition">
+            Limpiar Filtros
+        </button>
     </div>
 
     <!-- Tabla -->
@@ -114,7 +120,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
                         <td class="border px-3 py-2 text-left" x-text="item.No_Folio"></td>
                         <td class="border px-3 py-2 text-left" x-text="item.DepartamentoNombre"></td>
                         <td class="border px-3 py-2 text-left" x-text="item.Complejo"></td>
-                        <td class="border px-3 py-2 text-left" x-text="item.Proveedor"></td>
+                        <td class="border px-3 py-2 text-left" x-text="item.proveedor.RazonSocial"></td>
                         <td class="border px-3 py-2 text-left" x-text="item.Fecha"></td>
                         <td class="border px-3 py-2 col-estado" :data-estado="item.EstadoOrden"
                             :title="item.EstadoOrden" x-text="item.EstadoOrden"></td>

@@ -102,8 +102,6 @@ if (!file_exists($installerLockFile)) {
             'api/orden/enviar-proveedor/(:num)/(:segment)',
             'Api::enviarOrdenAProveedor/$1/$2',
         );
-        $routes->post('api/orden/upload/factura/(:num)', 'Api::uploadFactura/$1');
-        $routes->post('api/orden/upload/pago/(:num)', 'Api::uploadPago/$1');
 
         //razon social
         $routes->post('modales/razonsocial/insertar', 'Modales::insertarRazonSocial');

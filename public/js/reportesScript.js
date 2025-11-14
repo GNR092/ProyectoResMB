@@ -27,7 +27,12 @@ function Reportes(initialData = []) {
       this.applyFiltersAndPaginate()
 
       this.$watch('fecha', () => this.applyFiltersAndPaginate())
-      this.$watch('porMes', () => this.applyFiltersAndPaginate())
+      this.$watch('porMes', (value) => {
+        if (!value) {
+          this.fecha = ''
+        }
+        this.applyFiltersAndPaginate()
+      })
       this.$watch('estado', () => this.applyFiltersAndPaginate())
       this.$watch('departamento', () => this.applyFiltersAndPaginate())
       this.$watch('razonSocial', () => this.applyFiltersAndPaginate())
@@ -194,71 +199,16 @@ function Reportes(initialData = []) {
       detallesContainer.innerHTML = html
     },
 
-    generarReporteCSV() {
-      if (this.filteredData.length === 0) {
-        alert('No hay datos filtrados para generar el reporte.')
-        return
-      }
-
-      const headers = [
-        'Folio',
-        'Fecha',
-        'Departamento',
-        'Razon Social',
-        'Proveedor',
-        'Estado',
-        'Metodo de Pago',
-        'Importe Total',
-      ]
-
-      const escapeCSV = (value) => {
-        if (value === null || value === undefined) return ''
-        let str = String(value)
-        if (str.includes(',') || str.includes('\n') || str.includes('"')) {
-          str = str.replace(/"/g, '""')
-          return `"${str}"`
-        }
-        return str
-      }
-
-      const rows = this.filteredData.map((item) => {
-        const metodoPagoTexto =
-          item.MetodoPago == 0 ? 'Efectivo' : item.MetodoPago == 1 ? 'Crédito' : 'En Espera'
-        const total = item.cotizacion?.Total || '0.00'
-
-        return [
-          escapeCSV(item.No_Folio),
-          escapeCSV(item.Fecha),
-          escapeCSV(item.DepartamentoNombre),
-          escapeCSV(item.Complejo),
-          escapeCSV(item.ProveedorFiltro),
-          escapeCSV(item.EstadoOrden),
-          escapeCSV(metodoPagoTexto),
-          total,
-        ].join(',')
-      })
-
-      const granTotal = this.filteredData.reduce((sum, item) => {
-        return sum + parseFloat(item.cotizacion?.Total || 0)
-      }, 0)
-
-      const totalRow = ['', '', '', '', '', '', 'TOTAL', granTotal.toFixed(2)].join(',')
-
-      const csvContent = [headers.join(','), ...rows, '', totalRow].join('\n')
-      const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
-      const link = document.createElement('a')
-
-      if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob)
-        link.setAttribute('href', url)
-        link.setAttribute('download', 'reporte_de_gastos.csv')
-        link.style.visibility = 'hidden'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-      }
-    },
+    clearFilters() {
+      this.fecha = ''
+      this.porMes = false
+      this.estado = ''
+      this.departamento = ''
+      this.razonSocial = ''
+      this.proveedor = ''
+      this.metodoPago = ''
+      this.applyFiltersAndPaginate()
+    }
   }
 }
 

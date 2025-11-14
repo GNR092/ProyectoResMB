@@ -3594,6 +3594,10 @@ async function mostrarDetalleOrden(id, metodoPago) {
             </tbody>
         </table>
       </div>
+      `
+    html += GetFiles(data)
+    
+    html += `
       
 <div class="block mb-6 p-4 border rounded-lg">
      <label for="archivo-factura" class="block text-sm font-medium text-black-500 ">Adjuntar factura (Imágene o PDF)</label>
@@ -3656,10 +3660,10 @@ async function enviarATesoreria(idSolicitud, metodoPago) {
   const facturaFile = facturaElement.files[0]
 
   try {
-    if (!facturaFile) {
-      mostrarNotificacion('Por favor, selecciona un archivo primero.', 'error', 5000)
-      return
-    }
+    // if (!facturaFile) {
+    //   mostrarNotificacion('Por favor, selecciona un archivo primero.', 'error', 5000)
+    //   return
+    // }
     const formData = new FormData()
     formData.append('factura', facturaFile)
     formData.append('nuevoEstado', 'En Proceso de Pago')
@@ -3670,11 +3674,11 @@ async function enviarATesoreria(idSolicitud, metodoPago) {
     const data = await res.json()
 
     if (data.success) {
-      alert('Estado actualizado correctamente')
+      alert('Enviado a tesoreria')
       volverATabla(metodoPago)
       initPagosPendientes() // refrescar tabla
     } else {
-      alert('No se pudo actualizar el estado')
+      alert(data.messages['error'])
     }
   } catch (error) {
     console.error('Error al actualizar estado:', error)
@@ -3948,11 +3952,10 @@ async function mostrarDetalleFicha(id, metodoPago) {
             </tbody>
         </table>
       </div>
+      `
+    html += GetFiles(data)
 
-      <div class="block mb-6 p-4 border rounded-lg">
-        <p> factura </p>
-      </div>
-      
+    html += `
 <div class="block mb-6 p-4 border rounded-lg">
      <label for="archivo-ficha" class="block text-sm font-medium text-black-500 ">Adjuntar Ficha (Imágene o PDF)</label>
      
@@ -3980,6 +3983,30 @@ async function mostrarDetalleFicha(id, metodoPago) {
     detalleDiv.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
   }
 }
+
+function GetFiles(data) {
+  let html = ''
+  if (data.OrdenCompra['File_Factura']) {
+    html += `
+      <div class="block mb-6 p-4 border rounded-lg">
+        <p class="font-medium text-gray-800 mb-1">Factura Adjunta</p>
+        <a href="${BASE_URL}api/storage/serve?path=facturas/${data.OrdenCompra['File_Factura']}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.OrdenCompra['File_Factura']}</a>
+      </div>
+    `
+  }
+
+  if (data.OrdenCompra['File_Comprobante']) {
+    html += `
+      <div class="block mb-6 p-4 border rounded-lg">
+        <p class="font-medium text-gray-800 mb-1">Ficha Adjunta</p>
+        <a href="${BASE_URL}api/storage/serve?path=comprobantes/${data.OrdenCompra['File_Comprobante']}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.OrdenCompra['File_Comprobante']}</a>
+      </div>
+    `
+  }
+
+  return html
+}
+
 function volverAFichas(metodoPago) {
   const detalleDiv =
     metodoPago == '0'
@@ -4011,16 +4038,21 @@ function regresarFichaMenu() {
 }
 
 async function regresarACompras(idSolicitud, metodoPago) {
+  const fichaElement = document.getElementById('archivo-ficha')
+  const fichaFile = fichaElement.files[0]
   try {
+    const formData = new FormData()
+    formData.append('ficha', fichaFile)
+    formData.append('nuevoEstado', 'Por Pagar')
+
     const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoEstado: 'Por Pagar' }),
+      body: formData,
     })
     const data = await res.json()
 
     if (data.success) {
-      alert("Estado actualizado a 'Por Pagar'")
+      alert('Enviado a compras')
       volverAFichas(metodoPago) // regresar a la tabla de fichas
       initFichasPago() // refrescar tabla
     } else {
@@ -4052,16 +4084,18 @@ async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallb
   }
 
   try {
+    const formData = new FormData()
+    formData.append('nuevoEstado', 'Pagada')
     const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevoEstado: 'Pagada' }),
+      body: formData,
     })
+
     const data = await res.json()
 
     if (data.success) {
       // 2. Usamos alert() para el éxito
-      alert("Orden actualizada a 'Pagada' correctamente.")
+      alert("Orden finalizada correctamente.")
 
       // Llama a las funciones de callback para regresar y refrescar
       if (typeof volverCallback === 'function') {
@@ -4072,7 +4106,7 @@ async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallb
       }
     } else {
       // 3. Usamos alert() para el error
-      alert('No se pudo actualizar el estado. Intente de nuevo.')
+      alert(data.messages['error'])
     }
   } catch (error) {
     console.error('Error al cerrar la orden:', error) // Mantenemos el console.error para depuración
@@ -4283,142 +4317,152 @@ function initReporteAlmacen() {
   })
 }
 
-
 /**
  * Lógica para limpiar almacenamiento--------------------------------------------------
  */
 
-window.initLimpiarAlmacenamiento = function() {
+window.initLimpiarAlmacenamiento = function () {
+  let currentPath = ''
+  let selectedItems = new Set()
 
-  let currentPath = '';
-  let selectedItems = new Set();
-
-  window.navegarA = async function(path) {
-    currentPath = path;
+  window.navegarA = async function (path) {
+    currentPath = path
 
     // Boton de regresar
-    const backBtnContainer = document.getElementById('back-button-container');
+    const backBtnContainer = document.getElementById('back-button-container')
     if (backBtnContainer) {
       if (path === '') {
-        backBtnContainer.classList.add('hidden');
+        backBtnContainer.classList.add('hidden')
       } else {
-        backBtnContainer.classList.remove('hidden');
+        backBtnContainer.classList.remove('hidden')
       }
     }
 
-    actualizarToolbar();
-    actualizarSelectAllCheck(false);
-    renderBreadcrumbs(path);
+    actualizarToolbar()
+    actualizarSelectAllCheck(false)
+    renderBreadcrumbs(path)
 
-    const tbody = document.getElementById('file-list');
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Cargando...</td></tr>';
+    const tbody = document.getElementById('file-list')
+    if (!tbody) return
+    tbody.innerHTML =
+      '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Cargando...</td></tr>'
 
-    const files = await fetchFiles(path);
-    renderFiles(files);
-  };
+    const files = await fetchFiles(path)
+    renderFiles(files)
+  }
 
-  window.navegarArriba = function() {
-    if (currentPath === '') return;
+  window.navegarArriba = function () {
+    if (currentPath === '') return
 
-    const parts = currentPath.split('/');
-    parts.pop();
-    const parentPath = parts.join('/');
-    window.navegarA(parentPath);
-  };
+    const parts = currentPath.split('/')
+    parts.pop()
+    const parentPath = parts.join('/')
+    window.navegarA(parentPath)
+  }
 
-  window.toggleSelection = function(path) {
-    if (selectedItems.has(path)) { selectedItems.delete(path); }
-    else { selectedItems.add(path); }
-    actualizarToolbar();
-  };
+  window.toggleSelection = function (path) {
+    if (selectedItems.has(path)) {
+      selectedItems.delete(path)
+    } else {
+      selectedItems.add(path)
+    }
+    actualizarToolbar()
+  }
 
-  window.toggleSelectAll = function() {
-    const mainCheckbox = document.getElementById('select-all');
-    const checkboxes = document.querySelectorAll('.file-checkbox');
-    const isChecked = mainCheckbox.checked;
-    checkboxes.forEach(cb => {
-      cb.checked = isChecked;
-      if (isChecked) { selectedItems.add(cb.value); }
-      else { selectedItems.delete(cb.value); }
-    });
-    actualizarToolbar();
-  };
+  window.toggleSelectAll = function () {
+    const mainCheckbox = document.getElementById('select-all')
+    const checkboxes = document.querySelectorAll('.file-checkbox')
+    const isChecked = mainCheckbox.checked
+    checkboxes.forEach((cb) => {
+      cb.checked = isChecked
+      if (isChecked) {
+        selectedItems.add(cb.value)
+      } else {
+        selectedItems.delete(cb.value)
+      }
+    })
+    actualizarToolbar()
+  }
 
   // limpiar selección
-  window.limpiarSeleccion = function() {
-    selectedItems.clear();
-    actualizarToolbar();
-    document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = false);
-    actualizarSelectAllCheck(false);
-    document.querySelectorAll('#file-list tr.bg-blue-50').forEach(row => row.classList.remove('bg-blue-50'));
-  };
+  window.limpiarSeleccion = function () {
+    selectedItems.clear()
+    actualizarToolbar()
+    document.querySelectorAll('.file-checkbox').forEach((cb) => (cb.checked = false))
+    actualizarSelectAllCheck(false)
+    document
+      .querySelectorAll('#file-list tr.bg-blue-50')
+      .forEach((row) => row.classList.remove('bg-blue-50'))
+  }
 
-  window.ejecutarAccion = function(tipo) {
-    const listaParaEnviar = Array.from(selectedItems);
-    if (listaParaEnviar.length === 0) return;
+  window.ejecutarAccion = function (tipo) {
+    const listaParaEnviar = Array.from(selectedItems)
+    if (listaParaEnviar.length === 0) return
 
-    const mensaje = tipo === 'eliminar'
+    const mensaje =
+      tipo === 'eliminar'
         ? `¿Estás seguro de ELIMINAR ${listaParaEnviar.length} elementos?\nEsta acción no se puede deshacer.`
-        : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`;
+        : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`
 
     if (confirm(mensaje)) {
-      console.group("🚀 EJECUTANDO ACCIÓN: " + tipo.toUpperCase());
-      console.log("Rutas a procesar:", listaParaEnviar);
-      console.groupEnd();
-      alert(`Acción "${tipo}" simulada. Revisa la consola.`);
+      console.group('🚀 EJECUTANDO ACCIÓN: ' + tipo.toUpperCase())
+      console.log('Rutas a procesar:', listaParaEnviar)
+      console.groupEnd()
+      alert(`Acción "${tipo}" simulada. Revisa la consola.`)
     }
-  };
+  }
 
   async function fetchFiles(path) {
     try {
-      const response = await fetch(`${BASE_URL}api/storage/list?path=${encodeURIComponent(path)}`);
-      if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-      return await response.json();
+      const response = await fetch(`${BASE_URL}api/storage/list?path=${encodeURIComponent(path)}`)
+      if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
+      return await response.json()
     } catch (error) {
-      console.error('Error al obtener archivos:', error);
-      const tbody = document.getElementById('file-list');
-      if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Error: ${error.message}</td></tr>`;
-      return [];
+      console.error('Error al obtener archivos:', error)
+      const tbody = document.getElementById('file-list')
+      if (tbody)
+        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Error: ${error.message}</td></tr>`
+      return []
     }
   }
 
   function renderFiles(files) {
-    const tbody = document.getElementById('file-list');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+    const tbody = document.getElementById('file-list')
+    if (!tbody) return
+    tbody.innerHTML = ''
 
     if (!files || files.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Carpeta vacía</td></tr>';
-      return;
+      tbody.innerHTML =
+        '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Carpeta vacía</td></tr>'
+      return
     }
 
-    const iconFolder = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`;
-    const iconFileGeneric = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>`;
+    const iconFolder = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`
+    const iconFileGeneric = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>`
 
     files.sort((a, b) => {
-      if (a.type === b.type) return a.name.localeCompare(b.name);
-      return a.type === 'folder' ? -1 : 1;
-    });
+      if (a.type === b.type) return a.name.localeCompare(b.name)
+      return a.type === 'folder' ? -1 : 1
+    })
 
-    files.forEach(file => {
-      const isFolder = file.type === 'folder';
-      const isPdf = file.name.toLowerCase().endsWith('.pdf');
-      const isImg = file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+    files.forEach((file) => {
+      const isFolder = file.type === 'folder'
+      const isPdf = file.name.toLowerCase().endsWith('.pdf')
+      const isImg = file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i)
 
-      let currentIcon = iconFileGeneric;
+      let currentIcon = iconFileGeneric
       if (isFolder) {
-        currentIcon = iconFolder;
+        currentIcon = iconFolder
       } else if (isPdf) {
-        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9h6v6H9z" /></svg>`;
+        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9h6v6H9z" /></svg>`
       } else if (isImg) {
-        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`;
+        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
       }
 
-      const isChecked = selectedItems.has(file.path) ? 'checked' : '';
+      const isChecked = selectedItems.has(file.path) ? 'checked' : ''
 
-      const row = document.createElement('tr');
-      row.className = `transition cursor-pointer ${isChecked ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`;
+      const row = document.createElement('tr')
+      row.className = `transition cursor-pointer ${isChecked ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`
 
       row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
@@ -4428,69 +4472,69 @@ window.initLimpiarAlmacenamiento = function() {
                     ${currentIcon}
                     <span class="${isFolder ? 'font-medium text-gray-900' : 'text-gray-700'}">${file.name}</span>
                 </td>
-                `;
+                `
 
       row.addEventListener('click', (e) => {
-        if (e.target.type === 'checkbox') return;
+        if (e.target.type === 'checkbox') return
 
         if (isFolder) {
-          window.navegarA(file.path);
+          window.navegarA(file.path)
         } else {
-          const url = `${BASE_URL}api/storage/serve?path=${encodeURIComponent(file.path)}`;
-          window.open(url, '_blank');
+          const url = `${BASE_URL}api/storage/serve?path=${encodeURIComponent(file.path)}`
+          window.open(url, '_blank')
         }
-      });
+      })
 
-      tbody.appendChild(row);
-    });
+      tbody.appendChild(row)
+    })
   }
 
   function renderBreadcrumbs(path) {
-    const container = document.getElementById('breadcrumbs');
-    if (!container) return;
+    const container = document.getElementById('breadcrumbs')
+    if (!container) return
 
-    let html = `<button onclick="navegarA('')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>uploads</button>`;
+    let html = `<button onclick="navegarA('')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>uploads</button>`
 
     if (path) {
-      const parts = path.split('/');
-      let accumulatedPath = '';
+      const parts = path.split('/')
+      let accumulatedPath = ''
       parts.forEach((part, index) => {
-        accumulatedPath += (index > 0 ? '/' : '') + part;
-        const pathForClick = accumulatedPath;
-        html += `<span class="text-gray-400 mx-1">/</span>`;
+        accumulatedPath += (index > 0 ? '/' : '') + part
+        const pathForClick = accumulatedPath
+        html += `<span class="text-gray-400 mx-1">/</span>`
         if (index === parts.length - 1) {
-          html += `<span class="font-medium text-gray-800 px-2">${part}</span>`;
+          html += `<span class="font-medium text-gray-800 px-2">${part}</span>`
         } else {
-          html += `<button onclick="navegarA('${pathForClick}')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded">${part}</button>`;
+          html += `<button onclick="navegarA('${pathForClick}')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded">${part}</button>`
         }
-      });
+      })
     }
-    container.innerHTML = html;
+    container.innerHTML = html
   }
 
   function actualizarToolbar() {
-    const toolbar = document.getElementById('toolbar');
-    const countSpan = document.getElementById('selected-count');
-    if (!toolbar || !countSpan) return;
+    const toolbar = document.getElementById('toolbar')
+    const countSpan = document.getElementById('selected-count')
+    if (!toolbar || !countSpan) return
 
-    const count = selectedItems.size;
-    countSpan.textContent = count;
+    const count = selectedItems.size
+    countSpan.textContent = count
     if (count > 0) {
-      toolbar.classList.remove('hidden');
-      toolbar.classList.add('flex');
+      toolbar.classList.remove('hidden')
+      toolbar.classList.add('flex')
     } else {
-      toolbar.classList.add('hidden');
-      toolbar.classList.remove('flex');
+      toolbar.classList.add('hidden')
+      toolbar.classList.remove('flex')
     }
   }
 
   function actualizarSelectAllCheck(checked) {
-    const cb = document.getElementById('select-all');
-    if (cb) cb.checked = checked;
+    const cb = document.getElementById('select-all')
+    if (cb) cb.checked = checked
   }
 
-  window.navegarA('');
-};
+  window.navegarA('')
+}
 
 //==================================================================================================================
 /**

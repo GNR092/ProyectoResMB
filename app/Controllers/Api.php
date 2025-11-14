@@ -899,6 +899,12 @@ class Api extends ResourceController
         return $this->respond($details);
     }
 
+    /**
+     * Cambia el estado de una orden de compra y opcionalmente sube un archivo de factura y/o un comprobante.
+     *
+     * @param int $idSolicitud El ID de la solicitud asociada a la orden de compra.
+     * @return \CodeIgniter\HTTP\Response
+     */
     public function cambiarEstadoOrden($idSolicitud)
     {
         $cotizacionModel = new CotizacionModel();
@@ -910,17 +916,6 @@ class Api extends ResourceController
             return $this->failValidationErrors('No se especificó el nuevo estado.');
         }
 
-        $facturaFile = $this->request->getFile('factura');
-
-        if (!$facturaFile || !$facturaFile->isValid()) {
-            $errorString = 'No se subió un archivo de factura válido.';
-            if ($facturaFile && $facturaFile->getErrorString()) {
-                $errorString = $facturaFile->getErrorString();
-            }
-            return $this->failValidationErrors($errorString);
-        }
-
-        $newName = $facturaFile->getRandomName();
         $cot = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
         $orden = $ordenCompraModel->where('ID_Cotizacion', $cot['ID_Cotizacion'])->first();
 
@@ -928,14 +923,54 @@ class Api extends ResourceController
             return $this->failNotFound('Orden no encontrada.');
         }
 
-        if (!$facturaFile->move(FPath::FFACTURAS, $newName)) {
-            return $this->failServerError('No se pudo guardar el archivo de la factura.');
-        }
-
         try {
-            $ordenCompraModel->update($orden['ID_OrdenCompra'], ['File_Factura' => $newName]);
-            // Lógica simple: solo actualizar el estado
-            $updateResult = $ordenCompraModel->update($orden['ID_OrdenCompra'], [
+            $idCotizacion = $cot['ID_Cotizacion'];
+            $idOrdenCompra = $orden['ID_OrdenCompra'];
+            $idProveedor = $cot['ID_Proveedor'];
+            $randomString = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 5);
+
+            $facturaFile = $this->request->getFile('factura');
+            if ($facturaFile && $facturaFile->isValid() && !$facturaFile->hasMoved()) {
+                $extension = $facturaFile->getExtension();
+                $newName = "Factura-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}.{$extension}";
+                if (!$facturaFile->move(FPath::FFACTURAS, $newName)) {
+                    return $this->failServerError('No se pudo guardar el archivo de la factura.');
+                }
+                $ordenCompraModel->update($idOrdenCompra, ['File_Factura' => $newName]);
+            }
+
+            $comprobanteFile = $this->request->getFile('ficha');
+            if ($comprobanteFile && $comprobanteFile->isValid() && !$comprobanteFile->hasMoved()) {
+                $extensionComprobante = $comprobanteFile->getExtension();
+                $newNameComprobante = "Ficha-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}.{$extensionComprobante}";
+                if (!$comprobanteFile->move(FPath::FCOMPROBANTES, $newNameComprobante)) {
+                    return $this->failServerError('No se pudo guardar el archivo del comprobante.');
+                }
+                $ordenCompraModel->update($idOrdenCompra, ['File_Comprobante' => $newNameComprobante]);
+            }
+
+            // Lógica para actualizar el estado
+            // Validar si el nuevo estado es 'Pagada' y si los archivos requeridos existen
+            if ($nuevoEstado === 'Pagada') {
+                // Recargar la orden para obtener los nombres de archivo actualizados
+                $ordenActualizada = $ordenCompraModel->find($idOrdenCompra);
+
+                $missingFiles = [];
+                if (empty($ordenActualizada['File_Factura'])) {
+                    $missingFiles[] = 'Factura';
+                }
+                if (empty($ordenActualizada['File_Comprobante'])) {
+                    $missingFiles[] = 'Ficha de pago';
+                }
+
+                if (!empty($missingFiles)) {
+                    return $this->failValidationErrors(
+                        'No se puede cerrar la orden de compra. Faltan los siguientes archivos: ' . implode(' y ', $missingFiles) . '.'
+                    );
+                }
+            }
+
+            $updateResult = $ordenCompraModel->update($idOrdenCompra, [
                 'Estado' => $nuevoEstado,
             ]);
 
@@ -1339,48 +1374,4 @@ class Api extends ResourceController
         }
     }
 
-    private function _handleFileUpload(int $id, string $fileType)
-    {
-        $ordenCompraModel = new OrdenCompraModel();
-        $orden = $ordenCompraModel->find($id);
-
-        if (!$orden) {
-            return $this->failNotFound('No se encontró la orden de compra con ID: ' . $id);
-        }
-
-        $file = $this->request->getFile($fileType === 'factura' ? 'factura_file' : 'pago_file');
-
-        if (!$file || !$file->isValid()) {
-            return $this->failValidationErrors(
-                'No se ha subido ningún archivo o el archivo no es válido.',
-            );
-        }
-
-        $folder = $fileType === 'factura' ? FPath::FFACTURAS : FPath::FCOMPROBANTES;
-        $this->api->CreateFolder($folder);
-
-        $newName = $file->getRandomName();
-        $file->move($folder, $newName);
-
-        $fieldName = $fileType === 'factura' ? 'File_Factura' : 'File_Comprobante';
-        $ordenCompraModel->update($id, [$fieldName => $newName]);
-
-        return $this->respond(['success' => true, 'message' => 'Archivo subido correctamente.']);
-    }
-
-    public function uploadFactura($id = null)
-    {
-        if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de orden de compra numérico.');
-        }
-        return $this->_handleFileUpload((int) $id, 'factura');
-    }
-
-    public function uploadPago($id = null)
-    {
-        if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de orden de compra numérico.');
-        }
-        return $this->_handleFileUpload((int) $id, 'pago');
-    }
 }
