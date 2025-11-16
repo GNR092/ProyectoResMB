@@ -16,6 +16,10 @@
                     <!-- Productos/Servicios cargados dinámicamente por JS -->
                 </div>
                 <div class="mt-4">
+                    <label for="modificar_iva" class="block text-sm font-medium text-gray-700">Agregar IVA:</label>
+                   <input type="checkbox" name="iva" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                </div>
+                <div class="mt-4">
                     <label for="modificar_comentarios" class="block text-sm font-medium text-gray-700">Comentarios (opcional)</label>
                     <textarea id="modificar_comentarios" name="comentarios" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
                 </div>

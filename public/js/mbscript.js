@@ -1845,6 +1845,7 @@ function RevisionX() {
           let nuevoTotal = 0
 
           const commnt = formData.get('comentarios')
+          const IVA = formData.get('iva')
           data.productos.forEach((p, index) => {
             const c = formData.get(`productos[${index}][codigo]`)
             const cantidad = formData.get(`productos[${index}][cantidad]`)
@@ -1891,6 +1892,7 @@ function RevisionX() {
             id_cotizacion_seleccionada: selectedCotizacionId,
             productos: productosModificados,
             comentarios: commnt === '' ? null : commnt,
+            iva: IVA === '' ? null : IVA,
           }
 
           try {
