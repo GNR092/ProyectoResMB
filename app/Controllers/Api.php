@@ -37,15 +37,15 @@ class Api extends ResourceController
     }
 
     //region Productos
-    // =================================================================================================================
+
     /**
      * Busca productos por consulta y tipo.
      * @return \CodeIgniter\HTTP\Response
      */
     public function search()
     {
-        $query = $this->request->getVar('query'); // LA busqueda
-        $type = $this->request->getVar('type'); // El tipo de busqueda, puede ser 'Código' o 'Producto'
+        $query = $this->request->getVar('query');
+        $type = $this->request->getVar('type');
 
         if (empty($query)) {
             return $this->fail('La consulta no puede estar vacía.', HttpStatus::BAD_REQUEST);
@@ -80,7 +80,7 @@ class Api extends ResourceController
     //endregion
 
     //region Proveedores
-    // =================================================================================================================
+
     /**
      * Obtiene todos los proveedores con solo ID y Nombre.
      * @return \CodeIgniter\HTTP\Response
@@ -107,7 +107,7 @@ class Api extends ResourceController
     //endregion
 
     //region Departamentos
-    // =================================================================================================================
+
     /**
      * Obtiene todos los departamentos.
      * @return \CodeIgniter\HTTP\Response
@@ -120,7 +120,7 @@ class Api extends ResourceController
     //endregion
 
     //region Solicitudes (Consultas)
-    // =================================================================================================================
+
     /**
      * Obtiene todo el historial de solicitudes.
      * @return \CodeIgniter\HTTP\Response
@@ -224,7 +224,6 @@ class Api extends ResourceController
     //endregion
 
     //region Solicitudes (Acciones)
-    // =================================================================================================================
 
     /**
      * Actualiza los montos y comentarios de una solicitud.
@@ -378,7 +377,7 @@ class Api extends ResourceController
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
-        $accion = $json->accion; // 'aprobar' o 'rechazar'
+        $accion = $json->accion;
         $comentarios = $json->comentarios ?? null;
 
         $solicitudModel = new SolicitudModel();
@@ -726,7 +725,7 @@ class Api extends ResourceController
     //endregion
 
     //region Cotizaciones
-    // =================================================================================================================
+
     /**
      * Obtiene los detalles de una cotizacion específica.
      * @param int|null $id El ID de la cotizacion.
@@ -751,7 +750,7 @@ class Api extends ResourceController
     //endregion
 
     //region Ordenes de Compra
-    // =================================================================================================================
+
     /**
      * Genera una nueva Orden de Compra a partir de una solicitud aprobada.
      * @param int $id El ID de la solicitud.
@@ -769,7 +768,6 @@ class Api extends ResourceController
 
         $solicitud = $solicitudModel->find($id);
 
-        // 2. Verificar estado de la solicitud
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
@@ -793,19 +791,15 @@ class Api extends ResourceController
         $db->transStart();
 
         try {
-            // 3. Crear la Orden de Compra
             $ordenData = [
                 'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
                 'ID_Proveedor' => $cotizacion['ID_Proveedor'],
-                'Estado' => Status::Por_Pagar, // Estado inicial de la orden
-                'Fecha' => date('Y-m-d'), // Fecha de creación
+                'Estado' => Status::Por_Pagar,
+                'Fecha' => date('Y-m-d'),
             ];
 
             $ordenCompraModel->insert($ordenData);
             $idOrdenCompra = $ordenCompraModel->getInsertID();
-
-            // $pdfGenerator = new \App\Controllers\GenerarPDF();
-            // $pdfGenerator->ordenDeCompra($idOrdenCompra);
 
             $db->transComplete();
 
@@ -969,10 +963,7 @@ class Api extends ResourceController
                 ]);
             }
 
-            // Lógica para actualizar el estado
-            // Validar si el nuevo estado es 'Pagada' y si los archivos requeridos existen
             if ($nuevoEstado === 'Pagada') {
-                // Recargar la orden para obtener los nombres de archivo actualizados
                 $ordenActualizada = $ordenCompraModel->find($idOrdenCompra);
 
                 $missingFiles = [];
@@ -1065,7 +1056,6 @@ class Api extends ResourceController
 
             $ordenCompraModel->insert($ordenData);
 
-            // Logica para correos de proveedor
             $to = getenv('EMAIL_TO_TEST');
             if (empty($to)) {
                 if (!$proveedor || empty($proveedor['Correo'])) {
@@ -1172,7 +1162,6 @@ class Api extends ResourceController
             ]);
         }
 
-        // Actualiza el estado
         $solicitudModel->update($id, ['Estado' => 'En Proceso de Pago']);
 
         return $this->response->setJSON([
@@ -1229,12 +1218,11 @@ class Api extends ResourceController
         }
 
         $mime = false;
-        // Opción nativa
+
         if (function_exists('mime_content_type')) {
             $mime = @\mime_content_type($fullPath);
         }
 
-        // Opción manual
         if (!$mime) {
             $mimeMap = [
                 'pdf' => 'application/pdf',
@@ -1295,7 +1283,6 @@ class Api extends ResourceController
 
         $dataToUpdate = [];
 
-        // Actualizar nombre de usuario
         if (isset($data['username'])) {
             if (empty($data['username'])) {
                 return $this->failValidationErrors('El nombre de usuario no puede estar vacío.');
@@ -1305,7 +1292,6 @@ class Api extends ResourceController
             }
         }
 
-        // Actualizar contraseña principal
         if (isset($data['password'])) {
             if (empty($data['password'])) {
                 return $this->failValidationErrors('La nueva contraseña no puede estar vacía.');
@@ -1327,7 +1313,6 @@ class Api extends ResourceController
             $dataToUpdate['ContrasenaP'] = password_hash($data['password'], PASSWORD_DEFAULT);
         }
 
-        // Actualizar contraseña auxiliar
         if (isset($data['password_g'])) {
             if (empty($data['password_g'])) {
                 return $this->failValidationErrors(
@@ -1405,7 +1390,6 @@ class Api extends ResourceController
             return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
         }
 
-        // 1. Obtener todos los datos necesarios usando un método específico
         $solicitudData = $this->api->getOrdenCompra((int) $idSolicitud);
 
         if (empty($solicitudData)) {
@@ -1417,8 +1401,6 @@ class Api extends ResourceController
         $filePaths = [];
         $basePath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR;
 
-        // 2. Recopilar las rutas de los archivos
-        // Requisicion
         if (!empty($solicitudData['No_Folio'])) {
             $requisicionPath =
                 'pdf_solicitudes' .
@@ -1432,8 +1414,10 @@ class Api extends ResourceController
             }
         }
 
-        // Cotizacion
-        if (!empty($solicitudData['cotizacion']['Cotizacion_Files']) && !empty($solicitudData['Fecha'])) {
+        if (
+            !empty($solicitudData['cotizacion']['Cotizacion_Files']) &&
+            !empty($solicitudData['Fecha'])
+        ) {
             $cotFiles = explode(',', $solicitudData['cotizacion']['Cotizacion_Files']);
             foreach ($cotFiles as $file) {
                 $trimmedFile = trim($file);
@@ -1452,7 +1436,6 @@ class Api extends ResourceController
             }
         }
 
-        // Orden de Compra PDF
         if (!empty($solicitudData['No_Folio'])) {
             $ordenCompraPath =
                 'pdf_ordenes' .
@@ -1466,7 +1449,6 @@ class Api extends ResourceController
             }
         }
 
-        // Ficha de pago (Comprobante)
         if (!empty($solicitudData['OrdenCompra']['File_Comprobante'])) {
             $comprobantePath =
                 'comprobantes' .
@@ -1478,7 +1460,6 @@ class Api extends ResourceController
             }
         }
 
-        // Factura
         if (!empty($solicitudData['OrdenCompra']['File_Factura'])) {
             $facturaPath =
                 'facturas' . DIRECTORY_SEPARATOR . $solicitudData['OrdenCompra']['File_Factura'];
@@ -1492,7 +1473,6 @@ class Api extends ResourceController
             return $this->failNotFound('No se encontraron archivos adjuntos para descargar.');
         }
 
-        // 3. Crear el archivo ZIP
         $zip = new \ZipArchive();
         $zipFileName = ($solicitudData['No_Folio'] ?? $idSolicitud) . '.zip';
         $tempDir = WRITEPATH . 'temp';
@@ -1510,9 +1490,8 @@ class Api extends ResourceController
         }
         $zip->close();
 
-        // 4. Leer, eliminar y enviar el archivo para descarga
         $zipContent = @file_get_contents($zipTempPath);
-        @unlink($zipTempPath); // Eliminar el archivo temporal
+        @unlink($zipTempPath);
 
         if ($zipContent === false) {
             return $this->failServerError('No se pudo leer el archivo ZIP temporal para enviarlo.');
@@ -1521,10 +1500,7 @@ class Api extends ResourceController
         return $this->response
             ->setBody($zipContent)
             ->setHeader('Content-Type', 'application/zip')
-            ->setHeader(
-                'Content-Disposition',
-                'attachment; filename="' . $zipFileName . '"',
-            )
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $zipFileName . '"')
             ->setHeader('Content-Length', (string) strlen($zipContent));
     }
 }

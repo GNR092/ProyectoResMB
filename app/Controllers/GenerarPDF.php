@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Libraries\PDF;
 use App\Libraries\Rest;
 use App\Libraries\FPath;
+use CodeIgniter\I18n\Time;
 
 class GenerarPDF extends BaseController
 {
@@ -120,7 +121,6 @@ class GenerarPDF extends BaseController
             }
         }
 
-        // Define la ruta para guardar el PDF
         $folderPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_solicitudes';
         if (!is_dir($folderPath)) {
             if (!mkdir($folderPath, 0777, true)) {
@@ -132,7 +132,6 @@ class GenerarPDF extends BaseController
         $fileName = 'Requisicion-' . $solicitud['No_Folio'] . '.pdf';
         $filePath = $folderPath . DIRECTORY_SEPARATOR . $fileName;
 
-        // Guarda el PDF en el servidor
         $pdf->Output('F', $filePath);
 
         return $filePath;
@@ -287,10 +286,10 @@ class GenerarPDF extends BaseController
         if (file_exists($filePath)) {
             $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
             $imageExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-            $maxFileSize = 10 * 1024 * 1024; // 10 MB
+            $maxFileSize = 10 * 1024 * 1024;
 
             if (in_array($fileExtension, $imageExtensions)) {
-                $maxFileSizeForResize = 500 * 1024; // 500KB
+                $maxFileSizeForResize = 500 * 1024;
                 $fileSize = filesize($filePath);
                 $tempImagePath = null;
 
@@ -467,7 +466,8 @@ class GenerarPDF extends BaseController
             $orden = $this->api->getOrdenCompra($id);
             $user = $this->api->getUserById($userid);
             $orden['UsuarioSession'] = $user;
-            //log_message('info', print_r($orden, true));
+            $rzs = $this->api->getRazonSocialByUserID($userid);
+            $orden['UsuarioRazon'] = $rzs;
         } catch (\Exception $e) {
             log_message('error', 'Error al conectar con el API: ' . $e->getMessage());
             return 'Error al generar el PDF: No se pudo conectar al API.';
@@ -507,10 +507,11 @@ class GenerarPDF extends BaseController
     public function generarYGuardarOrden(int $id, int $userid): ?string
     {
         try {
-            // Usamos la misma API que ya tienes para obtener los datos de la OC
             $orden = $this->api->getOrdenCompra($id);
             $user = $this->api->getUserById($userid);
             $orden['UsuarioSession'] = $user;
+            $rzs = $this->api->getRazonSocialByUserID($userid);
+            $orden['UsuarioRazon'] = $rzs;
         } catch (\Exception $e) {
             log_message(
                 'error',
@@ -532,7 +533,6 @@ class GenerarPDF extends BaseController
         $pdf->AliasNbPages();
         $pdf->AddPage();
 
-        // Reutilizamos las mismas funciones privadas que ya tenías
         $this->_generarCabeceraOrden($pdf, $orden);
         $this->_generarInfoProveedorOrden($pdf, $orden);
         $this->_generarInfoFacturacionOrden($pdf, $orden);
@@ -541,9 +541,6 @@ class GenerarPDF extends BaseController
         $this->_generarTotalesOrden($pdf, $orden, $subtotal);
         $this->_generarPieOrden($pdf, $orden);
 
-        // --- INICIO DE LA LÓGICA DE GUARDADO ---
-
-        // Define la ruta para guardar los PDFs de Órdenes de Compra
         $folderPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_ordenes';
         if (!is_dir($folderPath)) {
             if (!mkdir($folderPath, 0777, true)) {
@@ -555,21 +552,16 @@ class GenerarPDF extends BaseController
             }
         }
 
-        // Usamos el No_Folio de la solicitud para el nombre
         $fileName = 'OrdenCompra-' . $orden['No_Folio'] . '.pdf';
         $filePath = $folderPath . DIRECTORY_SEPARATOR . $fileName;
 
-        // Guarda el PDF en el servidor
         $pdf->Output('F', $filePath);
 
-        // Devuelve la ruta completa del archivo
         return $filePath;
-        // --- FIN DE LA LÓGICA DE GUARDADO ---
     }
 
     private function _generarCabeceraOrden(PDF $pdf, array $orden)
     {
-        // This is based on the image, might need adjustments
         //$pdf->Title()
         $pdf->SetFont('Arial', 'B', 16);
         $pdf->Cell(0, 10, $orden['Complejo'], 0, 1, 'C');
@@ -582,7 +574,7 @@ class GenerarPDF extends BaseController
             1,
             'C',
         );
-        $pdf->Cell(0, 5, '+', 0, 1, 'C'); // Assuming '+' is just a separator
+        $pdf->Cell(0, 5, '+', 0, 1, 'C');
         $pdf->Ln(5);
 
         $pdf->SetFont('Arial', 'B', 12);
@@ -609,13 +601,26 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(35, 5, 'FECHA DE ENTREGA:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(60, 5, '', 1, 1, 'L'); // Fecha de entrega is empty in the image
+        $pdf->Cell(60, 5, '---------', 1, 1, 'L');
 
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(30, 5, 'CONDICIONES:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        // Establecer obtener el credito
-        $pdf->Cell(70, 5, $orden['MetodoPago'] == 0 ? 'EFECTIVO' : 'CREDITO', 1, 0, 'L'); // Hardcoded from image
+
+        $pdf->Cell(
+            70,
+            5,
+            mb_convert_encoding(
+                $orden['MetodoPago'] == 0
+                    ? 'EFECTIVO'
+                    : 'CREDITO - ' . $orden['proveedor']['Dias_Credito'] . ' días',
+                'ISO-8859-1',
+                'UTF-8',
+            ),
+            1,
+            0,
+            'L',
+        );
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(35, 5, 'NO. COTIZACION:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
@@ -628,7 +633,7 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(35, 5, 'NO. ALMACEN:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(60, 5, '---------', 1, 1, 'L'); // No. Almacen is empty in the image
+        $pdf->Cell(60, 5, '---------', 1, 1, 'L');
         $pdf->Ln(5);
     }
 
@@ -642,30 +647,24 @@ class GenerarPDF extends BaseController
         $pdf->Cell(40, 5, 'FACTURAR A NOMBRE DE:', 0, 0, 'L');
         $pdf->Ln(5);
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(0, 5, $orden['Complejo'], 0, 1, 'L'); // Hardcoded from image
+        $pdf->Cell(0, 5, $orden['Complejo'], 0, 1, 'L');
         $pdf->Ln(1);
         $pdf->SetFont('Arial', 'B', 8);
-        $pdf->MultiCell(
-            0,
-            7,
-            'ANDRES GARCIA LAVIN NUMERO INTERIOR PA-13 NUMERO EXTERIOR 298 COLONIA MONTEBELLO MERIDA YUCATAN',
-            0,
-            0,
-        ); // Hardcoded from image
+        $pdf->MultiCell(0, 7, $orden['UsuarioRazon']['Ubicacion'] ?? '', 0, 0);
 
         $current_y = $pdf->GetY();
         $pdf->SetXY(130, $current_y - 13);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(15, 5, 'RFC:', 0, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(0, 5, $orden['ComplejoRFC'], 0, 1, 'L'); // Hardcoded from image
+        $pdf->Cell(0, 5, $orden['ComplejoRFC'], 0, 1, 'L');
 
         $pdf->SetY($current_y + 5);
 
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(50, 5, 'COTIZACION:', 0, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(0, 5, '', 0, 1, 'L'); // Cotizacion is empty in the image
+        $pdf->Cell(0, 5, '', 0, 1, 'L');
         $pdf->Ln(5);
     }
 
@@ -683,7 +682,7 @@ class GenerarPDF extends BaseController
 
         $pdf->SetFont('Arial', '', 8);
         $subtotal = 0;
-        $lineHeight = 5; // Height for one line
+        $lineHeight = 5;
 
         $pdf->SetWidths($wds);
 
@@ -695,11 +694,10 @@ class GenerarPDF extends BaseController
                 $nombre = mb_convert_encoding($item['Nombre'], 'ISO-8859-1', 'UTF-8');
                 $sku = $isService ? 'N/A' : $item['Codigo'];
                 $cantidad = $isService ? 1 : $item['Cantidad'];
-                $precio = $item['Importe']; // In solicitud_producto, Importe is the unit price
+                $precio = $item['Importe'];
                 $importe = $isService ? $precio : $cantidad * $precio;
                 $subtotal += $importe;
 
-                // Calculate row height
                 $nb = $pdf->NbLines($wds[2], $nombre);
                 $rowHeight = $nb * $lineHeight;
 
@@ -760,13 +758,13 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'ANTICIPO 50%', 1, 0, 'R');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R'); // Empty in image
+        $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R');
 
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'DESCUENTO', 1, 0, 'R');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R'); // Empty in image
+        $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R');
 
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
@@ -790,13 +788,13 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'Retencion ISR', 1, 0, 'R');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R'); // Empty in image
+        $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R');
 
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'Retencion IVA', 1, 0, 'R');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R'); // Empty in image
+        $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R');
 
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
@@ -808,7 +806,7 @@ class GenerarPDF extends BaseController
     private function _generarPieOrden(PDF $pdf, array $orden)
     {
         $y = $pdf->GetY();
-        $pdf->SetY($y - 40); // Adjust position to be side-by-side with totals
+        $pdf->SetY($y - 40);
 
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->SetFillColor(230, 230, 230);
@@ -923,7 +921,6 @@ class GenerarPDF extends BaseController
         );
         $pdf->Ln(10);
 
-        // Tipo de Pago
         $pdf->SetFont('Arial', '', 10);
         $x = 15;
         $y = $pdf->GetY();
@@ -931,7 +928,7 @@ class GenerarPDF extends BaseController
         $pdf->Rect($x, $y, 5, 5);
         if ($data['Tipo'] == 0) {
             $pdf->SetFont('ZapfDingbats', '', 10);
-            $pdf->Text($x + 1, $y + 4, '4'); // Marca de verificación
+            $pdf->Text($x + 1, $y + 4, '4');
             $pdf->SetFont('Arial', '', 10);
         }
         $pdf->Text($x + 7, $y + 4, 'Efectivo');
@@ -946,7 +943,6 @@ class GenerarPDF extends BaseController
         $pdf->Text($x + 7, $y + 4, 'Credito');
         $pdf->SetY($y + 10);
 
-        // Datos de la Solicitud
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Fecha de Solicitud', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
@@ -995,7 +991,7 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Fecha de Pago', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(50, 7, '', 1, 1, 'L'); // Fecha de Pago está vacío en la imagen
+        $pdf->Cell(50, 7, '', 1, 1, 'L');
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Importe Total', 1, 0, 'L');
@@ -1003,7 +999,6 @@ class GenerarPDF extends BaseController
         $pdf->Cell(50, 7, '$' . number_format($data['ImporteTotal'], 2), 1, 1, 'L');
         $pdf->Ln(5);
 
-        // Tabla de Detalles
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(15, 7, 'NO.', 1, 0, 'C');
         $pdf->Cell(40, 7, 'NO. FACTURA', 1, 0, 'C');
@@ -1011,7 +1006,7 @@ class GenerarPDF extends BaseController
         $pdf->Cell(110, 7, 'DESCRIPCION DE PAGO', 1, 1, 'C');
 
         $pdf->SetFont('Arial', '', 10);
-        // Fila 1 (ejemplo con datos)
+
         $pdf->Cell(15, 7, '1', 1, 0, 'C');
         $pdf->Cell(40, 7, '', 1, 0, 'C');
         $pdf->Cell(30, 7, '$' . number_format($data['ImporteTotal'], 2), 1, 0, 'R');
@@ -1024,7 +1019,6 @@ class GenerarPDF extends BaseController
             'L',
         );
 
-        // Filas vacías (2 a 10)
         for ($i = 2; $i <= 10; $i++) {
             $pdf->Cell(15, 7, $i, 1, 0, 'C');
             $pdf->Cell(40, 7, '', 1, 0, 'C');
@@ -1033,7 +1027,6 @@ class GenerarPDF extends BaseController
         }
         $pdf->Ln(5);
 
-        // Datos Bancarios
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(30, 7, 'BANCO:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
@@ -1051,12 +1044,10 @@ class GenerarPDF extends BaseController
 
         $pdf->Ln(10);
 
-        // Firmas
         $y_firmas = $pdf->GetY();
         $ancho_firma = 60;
         $alto_firma = 20;
 
-        // Solicita
         $pdf->SetXY(15, $y_firmas);
         $pdf->Cell($ancho_firma, 5, 'Solicita', 0, 1, 'C');
         $pdf->SetX(15);
@@ -1072,7 +1063,6 @@ class GenerarPDF extends BaseController
             'C',
         );
 
-        // Vo. Bo
         $pdf->SetXY(75, $y_firmas);
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell($ancho_firma, 5, 'Vo. Bo', 0, 1, 'C');
@@ -1089,7 +1079,6 @@ class GenerarPDF extends BaseController
             'C',
         );
 
-        // Autoriza
         $pdf->SetXY(135, $y_firmas);
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell($ancho_firma, 5, 'Autoriza', 0, 1, 'C');
@@ -1107,7 +1096,6 @@ class GenerarPDF extends BaseController
         );
         $pdf->Ln(10);
 
-        // Notificar a:
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(0, 7, 'Notificar a:', 0, 1, 'L');
         $pdf->SetFont('Arial', '', 10);

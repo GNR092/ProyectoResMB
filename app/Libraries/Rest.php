@@ -221,7 +221,7 @@ class Rest
             return [];
         }
 
-        // Get all relevant cotizacion and orden_compra in fewer queries
+        
         $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
 
         $cotizaciones = $cotizacionModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
@@ -233,10 +233,10 @@ class Rest
             $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
         }
 
-        // Map for quick lookups
+        
         $cotizacionesMap = [];
         foreach ($cotizaciones as $cot) {
-            // This assumes one cotizacion per solicitud for this logic path
+            
             if (!isset($cotizacionesMap[$cot['ID_Solicitud']])) {
                 $cotizacionesMap[$cot['ID_Solicitud']] = $cot;
             }
@@ -248,7 +248,7 @@ class Rest
         }
 
         foreach ($solicitudes as &$solicitud) {
-            // Use reference to modify in place
+            
             if ($solicitud['Estado'] === Status::Aprobada) {
                 if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
                     $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
@@ -287,7 +287,7 @@ class Rest
             return [];
         }
 
-        // Get all relevant cotizacion and orden_compra in fewer queries
+        
         $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
 
         $cotizaciones = $cotizacionModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
@@ -299,10 +299,10 @@ class Rest
             $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
         }
 
-        // Map for quick lookups
+        
         $cotizacionesMap = [];
         foreach ($cotizaciones as $cot) {
-            // This assumes one cotizacion per solicitud for this logic path
+            
             if (!isset($cotizacionesMap[$cot['ID_Solicitud']])) {
                 $cotizacionesMap[$cot['ID_Solicitud']] = $cot;
             }
@@ -314,7 +314,7 @@ class Rest
         }
 
         foreach ($solicitudes as &$solicitud) {
-            // Use reference to modify in place
+            
             if ($solicitud['Estado'] === Status::Aprobada) {
                 if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
                     $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
@@ -410,7 +410,7 @@ class Rest
 
         $solicitud['productos'] = $productos;
 
-        // También obtiene datos de cotización si existen
+        
         $cotizacionModel = new CotizacionModel();
         $cotizaciones = $cotizacionModel
             ->select('Cotizacion.*, Proveedor.RazonSocial as ProveedorNombre')
@@ -420,7 +420,7 @@ class Rest
 
         if (!empty($cotizaciones)) {
             $solicitud['cotizaciones'] = $cotizaciones;
-            $solicitud['cotizacion'] = $cotizaciones[0]; // Mantener la primera para compatibilidad
+            $solicitud['cotizacion'] = $cotizaciones[0]; 
 
             $ordenCompraModel = new OrdenCompraModel();
             $orden = $ordenCompraModel
@@ -482,7 +482,7 @@ class Rest
 
         $solicitud['productos'] = $productos;
 
-        // También obtiene datos de cotización si existen
+        
         $cotizacionModel = new CotizacionModel();
         $cotizacion = $cotizacionModel
             ->select(
@@ -532,12 +532,12 @@ class Rest
             return null;
         }
 
-        // Obtener todos los datos del proveedor
+        
         if (!empty($solicitud['ID_Proveedor'])) {
             $proveedorModel = new ProveedorModel();
             $proveedor = $proveedorModel->find($solicitud['ID_Proveedor']);
 
-            // Eliminar datos sensibles
+            
             if ($proveedor) {
                 unset($proveedor['Correo']);
                 unset($proveedor['Tel_Contacto']);
@@ -562,7 +562,7 @@ class Rest
         }
         $solicitud['productos'] = $productos;
 
-        // También obtiene datos de cotización si existen
+        
         $cotizacionModel = new CotizacionModel();
         $cotizacion = $cotizacionModel
             ->select('Cotizacion.*, Proveedor.RazonSocial as ProveedorNombre')
@@ -696,11 +696,11 @@ class Rest
         $dptoModel = new DepartamentosModel();
         $proveedorModel = new ProveedorModel();
 
-        // Obtenemos todas las cotizaciones
+        
         $cotizaciones = $cotizacionModel->findAll();
 
         foreach ($cotizaciones as $cotizacion) {
-            // Buscar solicitud ligada
+            
             $solicitud = $solicitudModel->find($cotizacion['ID_Solicitud']);
 
             if (
@@ -714,14 +714,14 @@ class Rest
                 continue;
             }
 
-            // Buscar usuario y departamento ligados a la solicitud
+            
             $usuario = $usuarioModel->find($solicitud['ID_Usuario']);
             $departamento = $dptoModel->find($solicitud['ID_Dpto']);
 
-            // Buscar proveedor ligado a la cotización
+            
             $proveedor = $proveedorModel->find($cotizacion['ID_Proveedor']);
 
-            // Armar el resultado con el mismo formato que necesitas
+            
             $result[] = [
                 'ID' => $cotizacion['ID_Cotizacion'],
                 'ID_Solicitud' => $solicitud['ID_Solicitud'],
@@ -752,7 +752,7 @@ class Rest
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario')
             ->where('Solicitud.ID_Dpto', $departmentId)
             ->where('Solicitud.Estado', Status::Aprobacion_pendiente)
-            // esto nos asegura de no mostrar las solicitudes del propio jefe
+            
             //->where('Solicitud.ID_Usuario !=', session('id'))
             ->orderBy('Solicitud.Fecha', 'DESC')
             ->findAll();
@@ -1002,7 +1002,7 @@ class Rest
 
         $userFolder = FPath::FUSER . $userId;
 
-        // Verifica si ya existe una firma y la elimina.
+        
         if (!empty($user['Firma_digital'])) {
             $oldSignaturePath = $userFolder . DIRECTORY_SEPARATOR . $user['Firma_digital'];
             if (file_exists($oldSignaturePath)) {
@@ -1273,6 +1273,25 @@ class Rest
         $razonSocialModel = new RazonSocialModel();
         return $razonSocialModel->find($id) ?: null;
     }
+
+    /**
+     * Obtiene la razón social asociada a un usuario.
+     *
+     * @param int $userid El ID del usuario.
+     * @return array|null La razón social encontrada o null si no se encuentra.
+     */
+    public function getRazonSocialByUserID(int $userid): ?array
+    {
+        $usuariosModel = new UsuariosModel();
+        $user = $usuariosModel->find($userid);
+
+        if (!$user || !isset($user['ID_RazonSocial'])) {
+            return null;
+        }
+
+        $razonSocialModel = new RazonSocialModel();
+        return $razonSocialModel->find($user['ID_RazonSocial']) ?: null;
+    }
     //endregion
 
     //region Limpiar Almacenamiento
@@ -1292,7 +1311,7 @@ class Rest
 
         $targetPath = realpath($basePath . $cleanPath);
 
-        // Verificación
+        
         if ($targetPath === false || strpos($targetPath, realpath($basePath)) !== 0) {
             $targetPath = realpath($basePath);
             $cleanPath = '';
@@ -1327,7 +1346,7 @@ class Rest
                 ];
             }
 
-            // Ordenar carpetas
+            
             usort($items, function ($a, $b) {
                 if ($a['type'] === $b['type']) {
                     return strcasecmp($a['name'], $b['name']);
@@ -1410,7 +1429,7 @@ class Rest
             ->select('Proveedor.Banco as ProveedorBanco')
             ->select('Proveedor.Cuenta as ProveedorCuenta')
             ->select('Proveedor.Clabe as ProveedorClabe')
-            // ->select('Proveedor.Sucursal as ProveedorSucursal')
+            
             ->select('Razon_Social.Nombre as Complejo')
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -1461,18 +1480,18 @@ class Rest
             'ImporteTotal: ' . $importeTotal . ', DescripcionPago: ' . $descripcionPago,
         );
 
-        // Mapear el valor numérico (la constante) al texto deseado
+        
         $tipoPagoMap = [
             MetodoPago::Efectivo => 'Efectivo',
             MetodoPago::Credito => 'Crédito',
         ];
 
-        // Esta línea ahora funcionará
-        // Asumiendo que $solicitud['Tipo'] contiene el valor (ej: 0 o 1)
+        
+        
         $solicitud['TipoPagoTexto'] = $tipoPagoMap[$solicitud['Tipo']] ?? 'Desconocido';
         log_message('debug', 'TipoPagoTexto: ' . $solicitud['TipoPagoTexto']);
 
-        // Datos bancarios del proveedor
+        
         $solicitud['Banco'] = $solicitud['ProveedorBanco'] ?? '';
         $solicitud['Cuenta'] = $solicitud['ProveedorCuenta'] ?? '';
         $solicitud['Clabe'] = $solicitud['ProveedorClabe'] ?? '';
@@ -1482,11 +1501,11 @@ class Rest
                 json_encode(['Banco' => $solicitud['Banco'], 'Cuenta' => $solicitud['Cuenta']]),
         );
 
-        // Campos de firma (asumiendo que vienen de la solicitud o son estáticos por ahora)
-        $solicitud['Solicita'] = $solicitud['UsuarioNombre'] ?? ''; // Asumiendo que el solicitante es el usuario
-        $solicitud['VoBo'] = 'Administracion'; // Valor estático por ahora
-        $solicitud['Autoriza'] = 'Direccion General'; // Valor estático por ahora
-        $solicitud['NotificarA'] = ''; // Vacío por ahora
+        
+        $solicitud['Solicita'] = $solicitud['UsuarioNombre'] ?? ''; 
+        $solicitud['VoBo'] = 'Administracion'; 
+        $solicitud['Autoriza'] = 'Direccion General'; 
+        $solicitud['NotificarA'] = ''; 
         log_message(
             'debug',
             'Campos de firma: ' .
