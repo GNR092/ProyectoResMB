@@ -91,7 +91,7 @@
         <!-- Botón para generar cotización -->
         <div class="flex justify-end mt-4">
             <input type="hidden" id="cotizar_id_solicitud">
-            <button id="btn-generar-cotizacion" class="bg-carbon text-white px-4 py-2 rounded hover:bg-gray-900 disabled:bg-gray-400" disabled>
+            <button id="btn-generar-cotizacion" class="bg-carbon-700 text-white px-4 py-2 rounded hover:bg-carbon-900 disabled:bg-gray-400" disabled>
                 Generar requisicion de Cotización
             </button>
         </div>

@@ -8,7 +8,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
             &larr; Regresar a Ajustes
         </button>
     </div>
-
+    <!-- <pre><?= print_r($tabledata[0]) ?></pre> -->
     <!-- Controles de Filtro -->
     <div class="flex flex-wrap items-center gap-3 mb-6">
         <!-- Filtro Fecha -->
@@ -89,7 +89,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
 
         <!-- Botón Limpiar Filtros -->
         <button @click="clearFilters()"
-            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold px-4 py-2 rounded-md transition">
+            class="bg-carbon-700 hover:bg-carbon-800 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
             Limpiar Filtros
         </button>
     </div>
@@ -125,7 +125,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
                         <td class="border px-3 py-2 col-estado" :data-estado="item.EstadoOrden"
                             :title="item.EstadoOrden" x-text="item.EstadoOrden"></td>
                         <td class="border px-3 py-2">
-                            <button class="text-blue-600 hover:underline" @click="mostrarVerReporte(index)">Ver</button>
+                            <button class="bg-carbon-700 hover:bg-carbon-800 text-white font-semibold px-4 py-2 rounded-md transition text-sm" @click="mostrarVerReporte(index)">Ver</button>
                         </td>
                     </tr>
                 </template>
@@ -160,7 +160,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
     <!-- Botón Generar Reporte -->
     <div class="mt-6 flex justify-end">
         <button @click="generarReporteCSV" type="button"
-            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md transition">
+            class="bg-carbon-700 hover:bg-carbon-800 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
             Generar Reporte
         </button>
     </div>

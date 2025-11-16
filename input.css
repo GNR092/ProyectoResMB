@@ -28,5 +28,15 @@
     --font-montserrat: 'Montserrat', sans-serif;
     --font-montserrat-italic: 'Montserrat Italic', sans-serif;
     /*Colores*/
-    --color-carbon: #3c3c3c
+    --color-carbon-50: #f6f6f6;
+    --color-carbon-100: #e7e7e7;
+    --color-carbon-200: #c4c4c4;
+    --color-carbon-300: #a0a0a0;
+    --color-carbon-400: #7d7d7d;
+    --color-carbon-500: #595959;
+    --color-carbon-600: #474747;
+    --color-carbon-700: #3c3c3c;
+    --color-carbon-800: #282828;
+    --color-carbon-900: #141414;
+    --color-carbon-950: #0a0a0a
 }

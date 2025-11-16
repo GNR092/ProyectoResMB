@@ -15,7 +15,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 
 <body class="h-screen flex">
     <!-- Barra lateral -->
-    <aside class="font-montserrat w-64 bg-carbon text-white flex flex-col overflow-auto">
+    <aside class="font-montserrat w-64 bg-carbon-700 text-white flex flex-col overflow-auto">
         <div class="p-4 border-b border-gray-600">
             <img src="<?= base_url(
                 'images/logo.png',

@@ -111,6 +111,7 @@ if (!file_exists($installerLockFile)) {
         //Limpiar almacenamiento
         $routes->get('api/storage/list', 'Api::getStorageList');
         $routes->get('api/storage/serve', 'Api::serveFile');
+        $routes->get('api/download-attachments/(:num)', 'Api::downloadAttachmentsAsZip/$1');
 
         // User
         $routes->post('api/user/update', 'Api::updateUser');

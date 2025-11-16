@@ -91,8 +91,9 @@
     --default-mono-font-family: var(--font-mono);
     --font-doulos: 'Doulos SIL', serif;
     --font-montserrat: 'Montserrat', sans-serif;
-    --color-carbon: #3c3c3c
-;
+    --color-carbon-700: #3c3c3c;
+    --color-carbon-800: #282828;
+    --color-carbon-900: #141414;
   }
 }
 @layer base {
@@ -569,6 +570,9 @@
   .justify-end {
     justify-content: flex-end;
   }
+  .justify-start {
+    justify-content: flex-start;
+  }
   .gap-1 {
     gap: calc(var(--spacing) * 1);
   }
@@ -756,8 +760,8 @@
   .bg-blue-600 {
     background-color: var(--color-blue-600);
   }
-  .bg-carbon {
-    background-color: var(--color-carbon);
+  .bg-carbon-700 {
+    background-color: var(--color-carbon-700);
   }
   .bg-gray-50 {
     background-color: var(--color-gray-50);
@@ -1202,6 +1206,20 @@
     &:hover {
       @media (hover: hover) {
         background-color: var(--color-blue-700);
+      }
+    }
+  }
+  .hover\:bg-carbon-800 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-carbon-800);
+      }
+    }
+  }
+  .hover\:bg-carbon-900 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-carbon-900);
       }
     }
   }

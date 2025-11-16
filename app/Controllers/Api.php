@@ -18,6 +18,8 @@ use App\Controllers\GenerarPDF;
 use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
 use App\Models\UsuariosModel;
+use CodeIgniter\Log\Logger;
+use PHPUnit\TextUI\XmlConfiguration\Logging\Logging;
 
 class Api extends ResourceController
 {
@@ -246,6 +248,7 @@ class Api extends ResourceController
         $idSolicitud = (int) $json->id_solicitud;
         $productosPayload = $json->productos;
         $comentarios = $json->comentarios ?? null;
+        $iva = isset($json->iva) ?? null;
 
         $idCotizacionSeleccionada = $json->id_cotizacion_seleccionada ?? null;
 
@@ -262,11 +265,23 @@ class Api extends ResourceController
         $db->transStart();
 
         try {
+            if ($iva) {
+                $solicitudModel->update($idSolicitud, [
+                    'IVA' => $iva,
+                ]);
+            } else {
+                $solicitudModel->update($idSolicitud, [
+                    'IVA' => false,
+                ]);
+            }
+
             if ($idCotizacionSeleccionada) {
                 $cotizacionSeleccionada = $cotizacionModel->find($idCotizacionSeleccionada);
                 if ($cotizacionSeleccionada) {
+                    log_message('info', 'iva: ' . $iva);
                     $solicitudModel->update($idSolicitud, [
                         'ID_Proveedor' => $cotizacionSeleccionada['ID_Proveedor'],
+                        'IVA' => $iva,
                     ]);
                 }
             }
@@ -626,13 +641,12 @@ class Api extends ResourceController
                 $count = 0;
                 foreach ($files['cotizacion_files'] as $file) {
                     if ($file->isValid() && !$file->hasMoved()) {
-                        $timestamp = date('Y-m-d_H-i-s');
                         $extension = $file->getExtension();
                         $nuevoNombre =
                             'cotizacion_' .
                             $idCotizacion .
                             '_' .
-                            $timestamp .
+                            $solicitud['Fecha'] .
                             '_' .
                             $count++ .
                             '.' .
@@ -927,7 +941,11 @@ class Api extends ResourceController
             $idCotizacion = $cot['ID_Cotizacion'];
             $idOrdenCompra = $orden['ID_OrdenCompra'];
             $idProveedor = $cot['ID_Proveedor'];
-            $randomString = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 5);
+            $randomString = substr(
+                str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+                0,
+                5,
+            );
 
             $facturaFile = $this->request->getFile('factura');
             if ($facturaFile && $facturaFile->isValid() && !$facturaFile->hasMoved()) {
@@ -946,7 +964,9 @@ class Api extends ResourceController
                 if (!$comprobanteFile->move(FPath::FCOMPROBANTES, $newNameComprobante)) {
                     return $this->failServerError('No se pudo guardar el archivo del comprobante.');
                 }
-                $ordenCompraModel->update($idOrdenCompra, ['File_Comprobante' => $newNameComprobante]);
+                $ordenCompraModel->update($idOrdenCompra, [
+                    'File_Comprobante' => $newNameComprobante,
+                ]);
             }
 
             // Lógica para actualizar el estado
@@ -965,7 +985,9 @@ class Api extends ResourceController
 
                 if (!empty($missingFiles)) {
                     return $this->failValidationErrors(
-                        'No se puede cerrar la orden de compra. Faltan los siguientes archivos: ' . implode(' y ', $missingFiles) . '.'
+                        'No se puede cerrar la orden de compra. Faltan los siguientes archivos: ' .
+                            implode(' y ', $missingFiles) .
+                            '.',
                     );
                 }
             }
@@ -1161,7 +1183,6 @@ class Api extends ResourceController
 
     //endregion
 
-
     //region Limpiar Almacenamiento
 
     /**
@@ -1190,7 +1211,10 @@ class Api extends ResourceController
         $relativePath = urldecode($this->request->getGet('path') ?? '');
         $basePath = realpath(WRITEPATH . 'uploads');
 
-        $potentialPath = $basePath . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
+        $potentialPath =
+            $basePath .
+            DIRECTORY_SEPARATOR .
+            str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
         $fullPath = realpath($potentialPath);
 
         if (!$fullPath || !is_file($fullPath) || strpos($fullPath, $basePath) !== 0) {
@@ -1213,17 +1237,17 @@ class Api extends ResourceController
         // Opción manual
         if (!$mime) {
             $mimeMap = [
-                'pdf'  => 'application/pdf',
-                'png'  => 'image/png',
-                'jpg'  => 'image/jpeg',
+                'pdf' => 'application/pdf',
+                'png' => 'image/png',
+                'jpg' => 'image/jpeg',
                 'jpeg' => 'image/jpeg',
-                'gif'  => 'image/gif',
+                'gif' => 'image/gif',
                 'webp' => 'image/webp',
-                'svg'  => 'image/svg+xml',
-                'txt'  => 'text/plain',
-                'xml'  => 'application/xml',
-                'zip'  => 'application/zip',
-                'rar'  => 'application/x-rar-compressed',
+                'svg' => 'image/svg+xml',
+                'txt' => 'text/plain',
+                'xml' => 'application/xml',
+                'zip' => 'application/zip',
+                'rar' => 'application/x-rar-compressed',
             ];
             $mime = $mimeMap[$ext] ?? 'application/octet-stream';
         }
@@ -1231,10 +1255,10 @@ class Api extends ResourceController
         return $this->response
             ->setHeader('Content-Type', $mime)
             ->setHeader('Content-Disposition', 'inline; filename="' . basename($fullPath) . '"')
-            ->setHeader('Content-Length', (string)filesize($fullPath))
+            ->setHeader('Content-Length', (string) filesize($fullPath))
             ->setBody(file_get_contents($fullPath));
     }
-//endregion
+    //endregion
 
     /**
      * Actualiza los datos de un usuario utilizando su correo electrónico como identificador.
@@ -1353,6 +1377,7 @@ class Api extends ResourceController
     public function upload_signature()
     {
         $userId = session('id');
+
         if (!$userId) {
             return $this->failUnauthorized('Usuario no autenticado.');
         }
@@ -1374,4 +1399,132 @@ class Api extends ResourceController
         }
     }
 
+    public function downloadAttachmentsAsZip($idSolicitud = null)
+    {
+        if ($idSolicitud === null || !is_numeric($idSolicitud)) {
+            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+        }
+
+        // 1. Obtener todos los datos necesarios usando un método específico
+        $solicitudData = $this->api->getOrdenCompra((int) $idSolicitud);
+
+        if (empty($solicitudData)) {
+            return $this->failNotFound(
+                'No se encontraron datos de la orden para la solicitud con ID: ' . $idSolicitud,
+            );
+        }
+
+        $filePaths = [];
+        $basePath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR;
+
+        // 2. Recopilar las rutas de los archivos
+        // Requisicion
+        if (!empty($solicitudData['No_Folio'])) {
+            $requisicionPath =
+                'pdf_solicitudes' .
+                DIRECTORY_SEPARATOR .
+                'Requisicion-' .
+                $solicitudData['No_Folio'] .
+                '.pdf';
+            if (file_exists($basePath . $requisicionPath)) {
+                $filePaths['Requisicion-' . $solicitudData['No_Folio'] . '.pdf'] =
+                    $basePath . $requisicionPath;
+            }
+        }
+
+        // Cotizacion
+        if (!empty($solicitudData['cotizacion']['Cotizacion_Files']) && !empty($solicitudData['Fecha'])) {
+            $cotFiles = explode(',', $solicitudData['cotizacion']['Cotizacion_Files']);
+            foreach ($cotFiles as $file) {
+                $trimmedFile = trim($file);
+                if (empty($trimmedFile)) {
+                    continue;
+                }
+                $cotizacionPath =
+                    'cotizaciones' .
+                    DIRECTORY_SEPARATOR .
+                    $solicitudData['Fecha'] .
+                    DIRECTORY_SEPARATOR .
+                    $trimmedFile;
+                if (file_exists($basePath . $cotizacionPath)) {
+                    $filePaths[$trimmedFile] = $basePath . $cotizacionPath;
+                }
+            }
+        }
+
+        // Orden de Compra PDF
+        if (!empty($solicitudData['No_Folio'])) {
+            $ordenCompraPath =
+                'pdf_ordenes' .
+                DIRECTORY_SEPARATOR .
+                'OrdenCompra-' .
+                $solicitudData['No_Folio'] .
+                '.pdf';
+            if (file_exists($basePath . $ordenCompraPath)) {
+                $filePaths['OrdenCompra-' . $solicitudData['No_Folio'] . '.pdf'] =
+                    $basePath . $ordenCompraPath;
+            }
+        }
+
+        // Ficha de pago (Comprobante)
+        if (!empty($solicitudData['OrdenCompra']['File_Comprobante'])) {
+            $comprobantePath =
+                'comprobantes' .
+                DIRECTORY_SEPARATOR .
+                $solicitudData['OrdenCompra']['File_Comprobante'];
+            if (file_exists($basePath . $comprobantePath)) {
+                $filePaths[$solicitudData['OrdenCompra']['File_Comprobante']] =
+                    $basePath . $comprobantePath;
+            }
+        }
+
+        // Factura
+        if (!empty($solicitudData['OrdenCompra']['File_Factura'])) {
+            $facturaPath =
+                'facturas' . DIRECTORY_SEPARATOR . $solicitudData['OrdenCompra']['File_Factura'];
+            if (file_exists($basePath . $facturaPath)) {
+                $filePaths[$solicitudData['OrdenCompra']['File_Factura']] =
+                    $basePath . $facturaPath;
+            }
+        }
+
+        if (empty($filePaths)) {
+            return $this->failNotFound('No se encontraron archivos adjuntos para descargar.');
+        }
+
+        // 3. Crear el archivo ZIP
+        $zip = new \ZipArchive();
+        $zipFileName = ($solicitudData['No_Folio'] ?? $idSolicitud) . '.zip';
+        $tempDir = WRITEPATH . 'temp';
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0775, true);
+        }
+        $zipTempPath = $tempDir . DIRECTORY_SEPARATOR . $zipFileName;
+
+        if ($zip->open($zipTempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return $this->failServerError('No se pudo crear el archivo ZIP.');
+        }
+
+        foreach ($filePaths as $displayName => $realPath) {
+            $zip->addFile($realPath, $displayName);
+        }
+        $zip->close();
+
+        // 4. Leer, eliminar y enviar el archivo para descarga
+        $zipContent = @file_get_contents($zipTempPath);
+        @unlink($zipTempPath); // Eliminar el archivo temporal
+
+        if ($zipContent === false) {
+            return $this->failServerError('No se pudo leer el archivo ZIP temporal para enviarlo.');
+        }
+
+        return $this->response
+            ->setBody($zipContent)
+            ->setHeader('Content-Type', 'application/zip')
+            ->setHeader(
+                'Content-Disposition',
+                'attachment; filename="' . $zipFileName . '"',
+            )
+            ->setHeader('Content-Length', (string) strlen($zipContent));
+    }
 }

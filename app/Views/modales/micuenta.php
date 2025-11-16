@@ -33,7 +33,7 @@ $emailUsuario = session('email') ?? 'correo@example.com';
         <div class="my-2" x-ref="form-message-user"></div>
         <div class="mt-6 text-right">
             <button type="submit"
-                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Guardar
+                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon-700 hover:bg-carbon-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Guardar
                 Cambios</button>
         </div>
     </form>
@@ -58,7 +58,7 @@ $emailUsuario = session('email') ?? 'correo@example.com';
         <div class="my-2" x-ref="form-message-pass"></div>
         <div class="mt-6 text-right">
             <button type="submit"
-                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Guardar
+                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon-700 hover:bg-carbon-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Guardar
                 Contraseña</button>
         </div>
     </form>
@@ -83,7 +83,7 @@ $emailUsuario = session('email') ?? 'correo@example.com';
         <div class="my-2" x-ref="form-message-gpass"></div>
         <div class="mt-6 text-right">
             <button type="submit"
-                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon hover:bg-gray600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Guardar
+                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon-700 hover:bg-carbon-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Guardar
                 Contraseña</button>
         </div>
     </form>
@@ -116,7 +116,7 @@ $emailUsuario = session('email') ?? 'correo@example.com';
                 </div>
                 <div class="mt-6 text-right">
                     <button type="submit"
-                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Subir
+                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-carbon-700 hover:bg-carbon-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Subir
                         y/o Guardar</button>
                 </div>
                 <div class="my-2" x-ref="form-message-sign"></div>
