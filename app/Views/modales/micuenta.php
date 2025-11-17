@@ -19,14 +19,14 @@ $emailUsuario = session('email') ?? 'correo@example.com';
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             <div>
                 <label for="username" class="block text-sm font-medium text-gray-700">Usuario</label>
-                <input type="text" id="username" name="username" value="<?= esc($nombreUsuario) ?>"
+                <input type="text" id="username" name="username" value="<?= esc($nombreUsuario) ?>" autocomplete="name"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
             <div>
                 <label for="email" class="block text-sm font-medium text-gray-700">Correo</label>
                 <input type="email" id="email" name="email" value="<?= esc(
                     $emailUsuario,
-                ) ?>" readonly
+                ) ?>" readonly autocomplete="email"
                     class="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
         </div>
@@ -44,14 +44,14 @@ $emailUsuario = session('email') ?? 'correo@example.com';
         <h3 class="text-xl font-medium mb-4">Cambiar contraseña</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <div>
-                <label for="old-Gpassword" class="block text-sm font-medium text-gray-700">Contraseña de usuario
+                <label for="old-password" class="block text-sm font-medium text-gray-700">Contraseña de usuario
                     (principal)</label>
-                <input type="password" id="old-password" name="old_password" placeholder="••••••••••"
+                <input type="password" id="old-password" name="old_password" placeholder="••••••••••" autocomplete="current-password"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
             <div>
                 <label for="new-password" class="block text-sm font-medium text-gray-700">Nueva Contraseña</label>
-                <input type="password" id="new-password" name="new_password" placeholder="••••••••••"
+                <input type="password" id="new-password" name="new_password" placeholder="••••••••••" autocomplete="new-password"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
         </div>
@@ -71,12 +71,12 @@ $emailUsuario = session('email') ?? 'correo@example.com';
             <div>
                 <label for="user-password" class="block text-sm font-medium text-gray-700">Contraseña de usuario
                     (principal)</label>
-                <input type="password" id="user-password" name="user_password" placeholder="••••••••••"
+                <input type="password" id="user-password" name="user_password" placeholder="••••••••••" autocomplete="current-password"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
             <div>
                 <label for="new-Gpassword" class="block text-sm font-medium text-gray-700">Nueva Contraseña</label>
-                <input type="password" id="new-Gpassword" name="new_Gpassword" placeholder="••••••••••"
+                <input type="password" id="new-Gpassword" name="new_Gpassword" placeholder="••••••••••" autocomplete="new-password"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
             </div>
         </div>
@@ -96,7 +96,7 @@ $emailUsuario = session('email') ?? 'correo@example.com';
         <p class="text-sm text-gray-400 mb-2">Tamaño recomendado para la firma 300px x 150px</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Previsualización</label>
+                <p class="block text-sm font-medium text-gray-700">Previsualización</p>
                 <div id="signature-preview"
                     class="mt-1 flex justify-center items-center h-32 w-full border-2 border-gray-300 border-dashed rounded-md bg-gray-50">
                     <?php if ($firmaUrl): ?>

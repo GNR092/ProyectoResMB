@@ -221,7 +221,6 @@ class Rest
             return [];
         }
 
-        
         $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
 
         $cotizaciones = $cotizacionModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
@@ -233,10 +232,8 @@ class Rest
             $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
         }
 
-        
         $cotizacionesMap = [];
         foreach ($cotizaciones as $cot) {
-            
             if (!isset($cotizacionesMap[$cot['ID_Solicitud']])) {
                 $cotizacionesMap[$cot['ID_Solicitud']] = $cot;
             }
@@ -248,7 +245,6 @@ class Rest
         }
 
         foreach ($solicitudes as &$solicitud) {
-            
             if ($solicitud['Estado'] === Status::Aprobada) {
                 if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
                     $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
@@ -287,7 +283,6 @@ class Rest
             return [];
         }
 
-        
         $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
 
         $cotizaciones = $cotizacionModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
@@ -299,10 +294,8 @@ class Rest
             $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
         }
 
-        
         $cotizacionesMap = [];
         foreach ($cotizaciones as $cot) {
-            
             if (!isset($cotizacionesMap[$cot['ID_Solicitud']])) {
                 $cotizacionesMap[$cot['ID_Solicitud']] = $cot;
             }
@@ -314,7 +307,6 @@ class Rest
         }
 
         foreach ($solicitudes as &$solicitud) {
-            
             if ($solicitud['Estado'] === Status::Aprobada) {
                 if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
                     $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
@@ -410,7 +402,6 @@ class Rest
 
         $solicitud['productos'] = $productos;
 
-        
         $cotizacionModel = new CotizacionModel();
         $cotizaciones = $cotizacionModel
             ->select('Cotizacion.*, Proveedor.RazonSocial as ProveedorNombre')
@@ -420,7 +411,7 @@ class Rest
 
         if (!empty($cotizaciones)) {
             $solicitud['cotizaciones'] = $cotizaciones;
-            $solicitud['cotizacion'] = $cotizaciones[0]; 
+            $solicitud['cotizacion'] = $cotizaciones[0];
 
             $ordenCompraModel = new OrdenCompraModel();
             $orden = $ordenCompraModel
@@ -482,7 +473,6 @@ class Rest
 
         $solicitud['productos'] = $productos;
 
-        
         $cotizacionModel = new CotizacionModel();
         $cotizacion = $cotizacionModel
             ->select(
@@ -532,12 +522,10 @@ class Rest
             return null;
         }
 
-        
         if (!empty($solicitud['ID_Proveedor'])) {
             $proveedorModel = new ProveedorModel();
             $proveedor = $proveedorModel->find($solicitud['ID_Proveedor']);
 
-            
             if ($proveedor) {
                 unset($proveedor['Correo']);
                 unset($proveedor['Tel_Contacto']);
@@ -562,7 +550,6 @@ class Rest
         }
         $solicitud['productos'] = $productos;
 
-        
         $cotizacionModel = new CotizacionModel();
         $cotizacion = $cotizacionModel
             ->select('Cotizacion.*, Proveedor.RazonSocial as ProveedorNombre')
@@ -696,11 +683,9 @@ class Rest
         $dptoModel = new DepartamentosModel();
         $proveedorModel = new ProveedorModel();
 
-        
         $cotizaciones = $cotizacionModel->findAll();
 
         foreach ($cotizaciones as $cotizacion) {
-            
             $solicitud = $solicitudModel->find($cotizacion['ID_Solicitud']);
 
             if (
@@ -714,14 +699,11 @@ class Rest
                 continue;
             }
 
-            
             $usuario = $usuarioModel->find($solicitud['ID_Usuario']);
             $departamento = $dptoModel->find($solicitud['ID_Dpto']);
 
-            
             $proveedor = $proveedorModel->find($cotizacion['ID_Proveedor']);
 
-            
             $result[] = [
                 'ID' => $cotizacion['ID_Cotizacion'],
                 'ID_Solicitud' => $solicitud['ID_Solicitud'],
@@ -752,7 +734,7 @@ class Rest
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario')
             ->where('Solicitud.ID_Dpto', $departmentId)
             ->where('Solicitud.Estado', Status::Aprobacion_pendiente)
-            
+
             //->where('Solicitud.ID_Usuario !=', session('id'))
             ->orderBy('Solicitud.Fecha', 'DESC')
             ->findAll();
@@ -854,11 +836,13 @@ class Rest
         }
         if (!empty($user['Firma_digital'])) {
             $SignaturePath = $userFolder . DIRECTORY_SEPARATOR . $user['Firma_digital'];
-            $signdata = file_get_contents($SignaturePath);
-            $sign64 = base64_encode($signdata);
-            $signtype = pathinfo($SignaturePath, PATHINFO_EXTENSION);
-            $signb64 = 'data:image/' . $signtype . ';base64,' . $sign64;
-            return $signb64;
+            if (is_readable($SignaturePath)) {
+                $signdata = file_get_contents($SignaturePath);
+                $sign64 = base64_encode($signdata);
+                $signtype = pathinfo($SignaturePath, PATHINFO_EXTENSION);
+                $signb64 = 'data:image/' . $signtype . ';base64,' . $sign64;
+                return $signb64;
+            }
         }
         return null;
     }
@@ -1002,7 +986,6 @@ class Rest
 
         $userFolder = FPath::FUSER . $userId;
 
-        
         if (!empty($user['Firma_digital'])) {
             $oldSignaturePath = $userFolder . DIRECTORY_SEPARATOR . $user['Firma_digital'];
             if (file_exists($oldSignaturePath)) {
@@ -1311,14 +1294,13 @@ class Rest
 
         $targetPath = realpath($basePath . $cleanPath);
 
-        
         if ($targetPath === false || strpos($targetPath, realpath($basePath)) !== 0) {
             $targetPath = realpath($basePath);
             $cleanPath = '';
         }
 
         if (!is_dir($targetPath)) {
-            throw new \Exception("El directorio no existe: " . $cleanPath);
+            throw new \Exception('El directorio no existe: ' . $cleanPath);
         }
 
         $items = [];
@@ -1331,31 +1313,34 @@ class Rest
                     continue;
                 }
 
-                if ($fileinfo->isFile() && in_array(strtolower($fileinfo->getExtension()), $disallowedExtensions, true)) {
+                if (
+                    $fileinfo->isFile() &&
+                    in_array(strtolower($fileinfo->getExtension()), $disallowedExtensions, true)
+                ) {
                     continue;
                 }
 
                 $isDir = $fileinfo->isDir();
-                $itemRelativePath = $cleanPath ? $cleanPath . '/' . $fileinfo->getFilename() : $fileinfo->getFilename();
+                $itemRelativePath = $cleanPath
+                    ? $cleanPath . '/' . $fileinfo->getFilename()
+                    : $fileinfo->getFilename();
 
                 $items[] = [
                     'name' => $fileinfo->getFilename(),
                     'type' => $isDir ? 'folder' : 'file',
                     'path' => $itemRelativePath,
-                    'size' => $isDir ? '-' : $this->formatBytes($fileinfo->getSize())
+                    'size' => $isDir ? '-' : $this->formatBytes($fileinfo->getSize()),
                 ];
             }
 
-            
             usort($items, function ($a, $b) {
                 if ($a['type'] === $b['type']) {
                     return strcasecmp($a['name'], $b['name']);
                 }
-                return ($a['type'] === 'folder') ? -1 : 1;
+                return $a['type'] === 'folder' ? -1 : 1;
             });
-
         } catch (\Exception $e) {
-            throw new \Exception("Error al leer el directorio: " . $e->getMessage());
+            throw new \Exception('Error al leer el directorio: ' . $e->getMessage());
         }
 
         return $items;
@@ -1367,7 +1352,8 @@ class Rest
      * @param int $precision
      * @return string
      */
-    private function formatBytes($bytes, $precision = 2) {
+    private function formatBytes($bytes, $precision = 2)
+    {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         $bytes = max($bytes, 0);
         $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
@@ -1375,7 +1361,7 @@ class Rest
         $bytes /= pow(1024, $pow);
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
-//endregion
+    //endregion
 
     //region misceláneos
     public static function ShowDebug($data, $json = false)
@@ -1429,7 +1415,7 @@ class Rest
             ->select('Proveedor.Banco as ProveedorBanco')
             ->select('Proveedor.Cuenta as ProveedorCuenta')
             ->select('Proveedor.Clabe as ProveedorClabe')
-            
+
             ->select('Razon_Social.Nombre as Complejo')
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -1480,18 +1466,14 @@ class Rest
             'ImporteTotal: ' . $importeTotal . ', DescripcionPago: ' . $descripcionPago,
         );
 
-        
         $tipoPagoMap = [
             MetodoPago::Efectivo => 'Efectivo',
             MetodoPago::Credito => 'Crédito',
         ];
 
-        
-        
         $solicitud['TipoPagoTexto'] = $tipoPagoMap[$solicitud['Tipo']] ?? 'Desconocido';
         log_message('debug', 'TipoPagoTexto: ' . $solicitud['TipoPagoTexto']);
 
-        
         $solicitud['Banco'] = $solicitud['ProveedorBanco'] ?? '';
         $solicitud['Cuenta'] = $solicitud['ProveedorCuenta'] ?? '';
         $solicitud['Clabe'] = $solicitud['ProveedorClabe'] ?? '';
@@ -1501,11 +1483,10 @@ class Rest
                 json_encode(['Banco' => $solicitud['Banco'], 'Cuenta' => $solicitud['Cuenta']]),
         );
 
-        
-        $solicitud['Solicita'] = $solicitud['UsuarioNombre'] ?? ''; 
-        $solicitud['VoBo'] = 'Administracion'; 
-        $solicitud['Autoriza'] = 'Direccion General'; 
-        $solicitud['NotificarA'] = ''; 
+        $solicitud['Solicita'] = $solicitud['UsuarioNombre'] ?? '';
+        $solicitud['VoBo'] = 'Administracion';
+        $solicitud['Autoriza'] = 'Direccion General';
+        $solicitud['NotificarA'] = '';
         log_message(
             'debug',
             'Campos de firma: ' .

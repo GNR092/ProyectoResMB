@@ -10,6 +10,8 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 <head>
     <meta charset="UTF-8">
     <title>Pantalla principal</title>
+    <meta name="csrf-token-name" content="<?= csrf_token() ?>">
+    <meta name="csrf-token-hash" content="<?= csrf_hash() ?>">
     <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>?v=<?= $version ?>">
 </head>
 
@@ -22,10 +24,10 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             ) ?>" alt="Logo" class="mx-auto h-20 object-contain">
         </div>
 
-        <nav class="flex-1 mt-4 px-4 space-y-2">
+        <nav id="sidebar-nav" class="flex-1 mt-4 px-4 space-y-2">
             <?php if (!empty($opcionesDinamicas)): ?>
             <?php foreach ($opcionesDinamicas as $key => $opcion): ?>
-            <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
+            <a href="#" data-opcion="<?= $key ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
                 onclick="abrirModal('<?= $key ?>', '<?= esc($opcion['label'], 'js') ?>')">
                 <?= $opcion['icon'] ?>
                 <span><?= esc($opcion['label']) ?></span>
@@ -35,7 +37,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             <p class="text-gray-400 text-sm">Sin opciones disponibles</p>
             <?php endif; ?>
 
-            <a href="#" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
+            <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
                 onclick="abrirModal('ajustes')">
                 <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
                     <use xlink:href="/icons/icons.svg#settings"></use>
@@ -61,7 +63,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
      $modo_login . ' ' . $departamento_usuario ?? 'Departamento',
  ) ?>
             <?php if ($login_type === 'boss'): ?>
-            <button onclick="abrirModal('micuenta')"
+            <button id="btn-abrir-micuenta" onclick="abrirModal('micuenta')"
                 class="p-4 bg-white border-b border-gray-300 hover:bg-gray-200 transition flex items-center">
                 <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.5">
                     <use xlink:href="/icons/icons.svg#settings"></use>
@@ -107,12 +109,18 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     const ICON_SVG_VERSION = "<?= $iconVersion ?>";
     </script>
     <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
+    <script src="<?= base_url() ?>js/utils.js" defer></script>
     <script src="<?= base_url(
         file_exists(FCPATH . 'js/mbscript.js') ? 'js/mbscript.js' : 'js/mbscript.min.js',
     ) ?>" defer></script>
     <script src="<?= base_url(
-        file_exists(FCPATH . 'js/reportesScript.js') ? 'js/reportesScript.js' : 'js/reportesScript.min.js',
+        file_exists(FCPATH . 'js/reportesScript.js')
+            ? 'js/reportesScript.js'
+            : 'js/reportesScript.min.js',
     ) ?>" defer></script>
+    <script src="<?= base_url() ?>js/revision.js" defer></script>
+    <script src="<?= base_url() ?>js/almacen.js" defer></script>
+    <script src="<?= base_url() ?>js/user.js" defer></script>
 </body>
 
 </html>

@@ -1108,4 +1108,183 @@ class GenerarPDF extends BaseController
             'L',
         );
     }
+
+    public function GenerarEntregaMateriales()
+    {
+        if ($this->request->getMethod() !== 'POST') {
+            return $this->response->setStatusCode(405, 'Method Not Allowed');
+        }
+        $payload = $this->request->getJSON(true);
+
+        $validation = \Config\Services::validation();
+
+        $validation->setRules([
+            'fecha' => 'required|valid_date[Y-m-d]',
+            'nombreUsuarioEntrega' => 'required|string|max_length[100]',
+            'idDepartamentoRecibe' => 'required|integer',
+            'nombreUsuarioRecibe' => 'required|string|max_length[100]',
+            'materiales' => 'required',
+            'materiales.*.id' => 'required|integer',
+            'materiales.*.codigo' => 'required|string',
+            'materiales.*.nombre' => 'required|string',
+            'materiales.*.cantidad' => 'required|integer|greater_than[0]',
+            'materiales.*.existencia' => 'required|integer',
+        ]);
+
+        if (!$validation->run($payload)) {
+            return $this->response
+                ->setStatusCode(400)
+                ->setJSON(['errors' => $validation->getErrors()]);
+        }
+
+        $departamentosModel = new \App\Models\DepartamentosModel();
+
+        $departamentoEntrega = $this->session->get('departamento_usuario') ?? 'No disponible';
+        $departamentoRecibeInfo = $departamentosModel->find($payload['idDepartamentoRecibe']);
+        $departamentoRecibe = $departamentoRecibeInfo
+            ? $departamentoRecibeInfo['Nombre']
+            : 'Desconocido';
+
+        // Estructurar los datos para el PDF
+        $data = [
+            'fecha' => Time::createFromFormat('Y-m-d', $payload['fecha'])->toLocalizedString(
+                'dd MMMM, yyyy',
+            ),
+            'departamento_entrega' => $departamentoEntrega,
+            'nombre_entrega' => $payload['nombreUsuarioEntrega'],
+            'departamento_recibe' => $departamentoRecibe,
+            'nombre_recibe' => $payload['nombreUsuarioRecibe'],
+            'productos' => $payload['materiales'],
+        ];
+
+        $pdf = new PDF('P', 'mm', 'Letter');
+        $pdf->AliasNbPages();
+        $pdf->AddPage();
+
+        $this->_generarCabeceraEntrega($pdf);
+        $this->_generarInfoEntrega($pdf, $data);
+        $this->_generarTablaProductosEntrega($pdf, $data['productos']);
+        $this->_generarFirmasEntrega($pdf);
+
+        $this->response->setHeader('Content-Type', 'application/pdf');
+        $pdf->Output('I', 'Entrega-Materiales.pdf');
+    }
+
+    private function _generarCabeceraEntrega(PDF $pdf)
+    {
+        $pdf->SetFont('Arial', 'B', 16);
+        $pdf->Cell(0, 10, 'Entrega de productos/materiales', 0, 1, 'C');
+        $pdf->Ln(10);
+    }
+
+    private function _generarInfoEntrega(PDF $pdf, array $data)
+    {
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->Cell(0, 10, 'Entrega', 0, 1, 'L');
+
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(95, 7, 'Fecha: ' . $data['fecha'], 1);
+        $pdf->Cell(
+            95,
+            7,
+            'Departamento: ' .
+                mb_convert_encoding($data['departamento_entrega'], 'ISO-8859-1', 'UTF-8'),
+            1,
+            1,
+        );
+        $pdf->Cell(
+            190,
+            7,
+            'Nombre de la persona que entrega: ' .
+                mb_convert_encoding($data['nombre_entrega'], 'ISO-8859-1', 'UTF-8'),
+            1,
+            1,
+        );
+        $pdf->Ln(5);
+
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->Cell(0, 10, 'Recibe', 0, 1, 'L');
+
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(
+            190,
+            7,
+            'Departamento: ' .
+                mb_convert_encoding($data['departamento_recibe'], 'ISO-8859-1', 'UTF-8'),
+            1,
+            1,
+        );
+        $pdf->Cell(
+            190,
+            7,
+            'Nombre de la persona que recibe: ' .
+                mb_convert_encoding($data['nombre_recibe'], 'ISO-8859-1', 'UTF-8'),
+            1,
+            1,
+        );
+        $pdf->Ln(10);
+    }
+
+    private function _generarTablaProductosEntrega(PDF $pdf, array $productos)
+    {
+        $wds = [30, 80, 40, 40];
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->SetFillColor(230, 230, 230);
+        $pdf->Cell(
+            $wds[0],
+            10,
+            mb_convert_encoding('Código', 'ISO-8859-1', 'UTF-8'),
+            1,
+            0,
+            'C',
+            true,
+        );
+        $pdf->Cell($wds[1], 10, 'Nombre', 1, 0, 'C', true);
+        $pdf->Cell($wds[2], 10, 'Cantidad a entregar', 1, 0, 'C', true);
+        $pdf->Cell($wds[3], 10, 'Existencia actual', 1, 1, 'C', true);
+
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->SetWidths($wds);
+        $lineHeight = 7;
+
+        foreach ($productos as $producto) {
+            $nombre = mb_convert_encoding($producto['nombre'], 'ISO-8859-1', 'UTF-8');
+
+            $nb = $pdf->NbLines($wds[1], $nombre);
+            $rowHeight = $nb * $lineHeight;
+
+            if ($pdf->GetY() + $rowHeight > $pdf->getPageBreakTrigger()) {
+                $pdf->AddPage($pdf->getCurOrientation());
+            }
+
+            $x0 = $pdf->GetX();
+            $y0 = $pdf->GetY();
+
+            $pdf->MultiCell($wds[0], $rowHeight, $producto['codigo'], 1, 'C', false);
+            $pdf->SetXY($x0 + $wds[0], $y0);
+            $pdf->MultiCell($wds[1], $lineHeight, $nombre, 1, 'L', false);
+            $pdf->SetXY($x0 + $wds[0] + $wds[1], $y0);
+            $pdf->MultiCell($wds[2], $rowHeight, $producto['cantidad'], 1, 'C', false);
+            $pdf->SetXY($x0 + $wds[0] + $wds[1] + $wds[2], $y0);
+            $pdf->MultiCell($wds[3], $rowHeight, $producto['existencia'], 1, 'C', false);
+        }
+    }
+
+    private function _generarFirmasEntrega(PDF $pdf)
+    {
+        $pdf->Ln(20);
+        $y_firmas = $pdf->GetY();
+        $ancho_firma = 80;
+        $alto_firma = 20;
+
+        $pdf->SetXY(25, $y_firmas);
+        $pdf->Cell($ancho_firma, 5, 'Firma de quien entrega', 0, 1, 'C');
+        $pdf->SetX(25);
+        $pdf->Cell($ancho_firma, $alto_firma, '', 'B', 1, 'C');
+
+        $pdf->SetXY(115, $y_firmas);
+        $pdf->Cell($ancho_firma, 5, 'Firma de quien recibe', 0, 1, 'C');
+        $pdf->SetX(115);
+        $pdf->Cell($ancho_firma, $alto_firma, '', 'B', 1, 'C');
+    }
 }

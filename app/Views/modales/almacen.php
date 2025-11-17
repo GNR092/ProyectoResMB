@@ -29,7 +29,7 @@
     <button onclick="abrirModal('reporte_almacen')"
             class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
         <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
-            <use xlink:href="/icons/icons.svg#reporte"></use>
+            <use xlink:href="/icons/icons.svg#reportes"></use>
         </svg>
         <span>Reporte/Historial de Almacen</span>
     </button>

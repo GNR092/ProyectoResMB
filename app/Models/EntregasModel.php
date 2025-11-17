@@ -14,8 +14,9 @@ class EntregasModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'ID_Usuario',
-        'Departamento',
-        'Receptor',
+        'NombreEntrega',
+        'DepartamentoRecibe',
+        'NombreRecibe',
         'Fecha',
     ];
 
