@@ -35,10 +35,16 @@
             <tbody id="tabla-razonsocial">
             <?php if (!empty($razones)): ?>
                 <?php foreach ($razones as $index => $razon): ?>
-                    <tr data-id="<?= $razon['ID_RazonSocial'] ?>" class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
+                    <tr data-id="<?= $razon['ID_RazonSocial'] ?>"
+                        data-rfc="<?= esc($razon['RFC']) ?>"
+                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
+
                         <td class="px-3 py-2 border-b nombre"><?= esc($razon['Nombre']) ?></td>
-                        <td class="px-3 py-2 border-b"><?= esc($razon['RFC']) ?></td>
+
+                        <td class="px-3 py-2 border-b rfc"><?= esc($razon['RFC']) ?></td>
+
                         <td class="px-2 py-2 border-b align-top text-center acciones">
+
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <!-- Editar -->
                                 <a href="#"

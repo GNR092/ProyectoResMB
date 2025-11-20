@@ -109,7 +109,17 @@ function abrirModal(opcion) {
     })
 }
 function cerrarModal() {
-  document.getElementById('modal-general').classList.add('hidden')
+  //  Ocultar el modal
+  document.getElementById('modal-general').classList.add('hidden');
+
+  // Limpiar la selección de la barra lateral
+  const activeClasses = ['bg-indigo-600', 'text-white'];
+  const inactiveClasses = ['text-gray-300', 'hover:bg-gray-700'];
+
+  document.querySelectorAll('#sidebar-nav a[data-opcion]').forEach((link) => {
+    link.classList.remove(...activeClasses);
+    link.classList.add(...inactiveClasses);
+  });
 }
 
 /**
@@ -1729,7 +1739,7 @@ function initProveedorForm() {
       if (result.success) {
         mostrarNotificacion('Proveedor agregado correctamente ✅', 'success')
         formProveedor.reset()
-        location.reload()
+        abrirModal('crud_proveedores')
       } else {
         mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
       }
@@ -3216,7 +3226,7 @@ function initRazonSocialForm() {
         pantallaAgregar?.classList.add('hidden')
         pantallaLista?.classList.remove('hidden')
         formAgregar.reset()
-        location.reload()
+        abrirModal('razonsocial')
       } else {
         mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
       }
@@ -3251,8 +3261,12 @@ function initRazonSocialEditarForm() {
         const fila = tabla.querySelector(`tr[data-id='${id}']`)
         if (fila) {
           fila.querySelector('.nombre').textContent = formData.get('Nombre')
+
+          // Actualizar datos
+          fila.querySelector('.rfc').textContent = formData.get('RFC')
           fila.dataset.rfc = formData.get('RFC')
         }
+
         pantallaEditar?.classList.add('hidden')
         pantallaLista?.classList.remove('hidden')
       } else {
