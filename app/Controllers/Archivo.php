@@ -144,7 +144,7 @@ class Archivo extends BaseController
             }
             return $this->response->setStatusCode(HttpStatus::OK)->setJSON([
                 'success' => true,
-                'message' => 'Solicitud registrada correctamente ✔',
+                'message' => 'Solicitud registrada correctamente',
             ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([

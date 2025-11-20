@@ -881,20 +881,7 @@ async function mostrarVerHistorial(idSolicitud) {
       throw new Error(data.error)
     }
 
-    let estadoClass = getStatus(data.EstadoOrden ?? data.Estado)
-
-    let html = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
-                <div><strong>Fecha:</strong> ${data.Fecha}</div>
-                <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
-                <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
-                <div><strong>Departamento:</strong> ${data.DepartamentoNombre + ' ' + data.ID_Place}</div>
-                <div><strong>Complejo:</strong> ${data.Complejo}</div>
-                <div><strong>Proveedor (Cotización):</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
-                ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
-            </div>
-        `
+    let html = generarDetallesSolicitudHTML(data)
 
     if (data.ComentariosAdmin) {
       html += `
@@ -903,39 +890,8 @@ async function mostrarVerHistorial(idSolicitud) {
                 <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
             </div>`
     }
-    html += `
-            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
-            <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-300">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="py-2 px-4 text-left">Código</th>
-                            <th class="py-2 px-4 text-left">Producto</th>
-                            <th class="py-2 px-4 text-right">Cantidad</th>
-                            <th class="py-2 px-4 text-right">Importe</th>
-                            <th class="py-2 px-4 text-right">Costo Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `
-    data.productos.forEach((p) => {
-      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
-      html += `
-                <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
-                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
-                    <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(2)}</td>
-                    <td class="py-2 px-4 border-t text-right">${costoTotal}</td>
-                </tr>
-            `
-    })
+    html += generarProductosServiciosHTML(data)
 
-    html += `
-                    </tbody>
-                </table>   
-            </div>
-        `
     if (data.ComentariosUser) {
       html += `
             <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
@@ -1006,53 +962,9 @@ async function mostrarVer(idSolicitud) {
       throw new Error(data.error)
     }
 
-    const iva = data.IVA === 't'
+    let html = generarDetallesSolicitudHTML(data)
+    html += generarProductosServiciosHTML(data)
 
-    let html = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
-                <div><strong>Fecha:</strong> ${data.Fecha}</div>
-                <div><strong>Estado:</strong> <span class="font-semibold ${getStatus(data.Estado)}">${data.Estado || 'N/A'}</span></div>
-                <div><strong>Solicitante:</strong> ${data.UsuarioNombre}</div>
-                <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
-                <div><strong>Complejo:</strong> ${data.Complejo}</div>
-                <div><strong>Proveedor:</strong> ${data.RazonSocialNombre || 'N/A'}</div>
-            </div>
-            ${data.Tipo == 2 ? '<h4 class="text-md font-bold mb-2">Servicios Solicitados</h4>' : '<h4 class="text-md font-bold mb-2">Productos Solicitados</h4>'}
-            <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-300">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="py-2 px-4 text-left">Código/SKU</th>
-                             ${data.Tipo == 2 ? '<th class="py-2 px-4 text-left">Servicio</th>' : '<th class="py-2 px-4 text-left">Producto</th>'}
-                            ${data.Tipo == 2 ? '' : '<th class="py-2 px-4 text-right">Cantidad</th>'}
-                            <th class="py-2 px-4 text-right">Importe</th>
-                            ${iva ? '<th class="py-2 px-4 text-right">IVA</th>' : ''}
-                            ${data.Tipo == 2 ? '' : '<th class="py-2 px-4 text-right">Costo Total</th>'}
-                        </tr>
-                    </thead>
-                    <tbody>
-        `
-
-    data.productos.forEach((p) => {
-      const costoTotal = iva ? 1.16 * (p.Cantidad * p.Importe) : p.Cantidad * p.Importe
-      html += `
-                <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'} </td>
-                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                    ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>`}
-                    <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                    ${iva ? `<td class="py-2 px-4 border-t text-right">$${parseFloat(0.16 * p.Importe).toFixed(2)}</td>` : ''}
-                    ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">$${parseFloat(costoTotal).toFixed(2)}</td>`}
-                </tr>
-            `
-    })
-
-    html += `
-                    </tbody>
-                </table>
-            </div>
-        `
     if (data.ComentariosUser) {
       html += `
             <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
@@ -1077,7 +989,6 @@ async function mostrarVer(idSolicitud) {
                 <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
             </div>
             `
-
     detallesContainer.innerHTML = html
   } catch (error) {
     console.error('Error al cargar detalles de la solicitud:', error)
@@ -1339,40 +1250,7 @@ async function mostrarVerDictamen(idSolicitud) {
             </div>`
     }
 
-    html += `
-            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
-            <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-300">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="py-2 px-4 text-left">Código</th>
-                            <th class="py-2 px-4 text-left">Producto</th>
-                            <th class="py-2 px-4 text-right">Cantidad</th>
-                            <th class="py-2 px-4 text-right">Importe</th>
-                            <th class="py-2 px-4 text-right">Costo Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `
-
-    data.productos.forEach((p) => {
-      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
-      html += `
-                <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
-                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
-                    <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                    <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
-                </tr>
-            `
-    })
-
-    html += `
-                    </tbody>
-                </table>
-            </div>
-        `
+    html += generarProductosServiciosHTML(data)
 
     if (data.Archivo) {
       const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
@@ -1449,9 +1327,8 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
     }
   } else {
     // Para 'Aprobada'
-    if (!(await Confirmar('Aviso', `¿Está seguro de que desea ${accion} esta solicitud?`))) {
+    if (!(await Confirmar('Aviso', `¿Está seguro de que desea ${accion} esta solicitud?`)))
       return
-    }
   }
 
   const payload = {
@@ -1524,40 +1401,7 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
             </div>`
     }
 
-    html += `
-            <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
-            <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-300">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="py-2 px-4 text-left">Código</th>
-                            <th class="py-2 px-4 text-left">Producto</th>
-                            <th class="py-2 px-4 text-right">Cantidad</th>
-                            <th class="py-2 px-4 text-right">Importe</th>
-                            <th class="py-2 px-4 text-right">Costo Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `
-
-    data.productos.forEach((p) => {
-      const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
-      html += `
-                <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-t">${p.Codigo}</td>
-                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                    <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
-                    <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                    <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
-                </tr>
-            `
-    })
-
-    html += `
-                    </tbody>
-                </table>
-            </div>
-        `
+    html += generarProductosServiciosHTML(data)
 
     if (data.Archivo) {
       const archivoUrl = `${BASE_URL}solicitudes/archivo/${idOrden}`
@@ -2600,7 +2444,7 @@ async function mostrarDetalleOrden(id, metodoPago) {
         <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
         <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
         <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
+        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${ 
           prov.Monto_Credito
             ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
                 style: 'currency',
@@ -2958,7 +2802,7 @@ async function mostrarDetalleFicha(id, metodoPago) {
         <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
         <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
         <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
+        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${ 
           prov.Monto_Credito
             ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
                 style: 'currency',

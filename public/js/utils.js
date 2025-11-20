@@ -234,6 +234,10 @@ function GetFiles(data) {
 
   return html
 }
+async function getProviderDetails(id) {
+  const result = await SendDataEnd(`api/provider/${id}`, { method: 'GET' })
+  return result
+}
 function getStatus(status) {
   switch (status?.toLowerCase()) {
     case 'aprobada':
@@ -256,33 +260,92 @@ function getStatus(status) {
       return 'text-gray-600'
   }
 }
+function GetMetodoPago(metodo) {
+  let metodoPago = ''
+  switch (metodo) {
+    case '0':
+      metodoPago = `<div><strong>Metodo de Pago:</strong> Effectivo</div>`
+      return metodoPago
+    case '1':
+      metodoPago = `<div><strong>Metodo de Pago:</strong> Crédito</div>`
+      return metodoPago
+    default:
+      return ''
+  }
+}
 /**
  * Genera el HTML para mostrar los detalles de una solicitud.
  * @param {object} data - Objeto con los datos de la solicitud.
  * @returns {string} - Cadena de texto con el HTML.
  */
 function generarDetallesSolicitudHTML(data) {
-  const montoFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
+  const iva = data.IVA === 't'
+  const montoFormateado = parseFloat(
+    (iva ? 1.16 * data.cotizacion?.Total : data.cotizacion?.Total) || 0,
+  ).toLocaleString('es-MX', {
     style: 'currency',
     currency: 'MXN',
   })
-  const metodoPago = data.MetodoPago == 0 ? 'Efectivo' : 'Crédito'
+  const metodoPago = GetMetodoPago(data.MetodoPago)
   const fechaAprobacionHTML = data.Fecha_Aprobacion
     ? `<div><strong>Fecha de Aprobación:</strong> ${new Date(data.Fecha_Aprobacion).toLocaleString('es-MX')}</div>`
     : ''
+  const estadoClass = getStatus(data.EstadoOrden ?? data.Estado)
+  const providerName = data.cotizacion?.ProveedorNombre || data.RazonSocialNombre || 'N/A'
 
   return `
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
             <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
             <div><strong>Fecha:</strong> ${data.Fecha}</div>
-            <div><strong>Estado:</strong> <span class="font-semibold text-blue-600">${data.Estado}</span></div>
+            <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
             ${fechaAprobacionHTML}
-            <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
+            <div><strong>Solicitante:</strong> ${data.UsuarioNombre}</div>
             <div><strong>Departamento:</strong> ${data.DepartamentoNombre + ' - ' + data.ID_Place}</div>
             <div><strong>Complejo:</strong> ${data.Complejo}</div>
-            <div><strong>Proveedor:</strong> ${data.cotizacion?.ProveedorNombre || 'N/A'}</div>
-            <div><strong>Metodo de Pago:</strong> ${metodoPago}</div>
+            <div><strong>Proveedor:</strong> ${providerName}</div>
+            ${metodoPago}
             <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${montoFormateado}</span></div>
         </div>
     `
+}
+
+function generarProductosServiciosHTML(data) {
+  const iva = data.IVA === 't'
+  let html = `
+            ${data.Tipo == 2 ? '<h4 class="text-md font-bold mb-2">Servicios Solicitados</h4>' : '<h4 class="text-md font-bold mb-2">Productos Solicitados</h4>'}
+            <div class="overflow-x-auto">
+                <table class="min-w-full border border-gray-300">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Código/SKU</th>
+                             ${data.Tipo == 2 ? '<th class="py-2 px-4 text-left">Servicio</th>' : '<th class="py-2 px-4 text-left">Producto</th>'}
+                            ${data.Tipo == 2 ? '' : '<th class="py-2 px-4 text-right">Cantidad</th>'}
+                            <th class="py-2 px-4 text-right">Importe</th>
+                            ${iva ? '<th class="py-2 px-4 text-right">IVA</th>' : ''}
+                            ${data.Tipo == 2 ? '' : '<th class="py-2 px-4 text-right">Costo Total</th>'}
+                        </tr>
+                    </thead>
+                    <tbody>
+        `
+
+  data.productos.forEach((p) => {
+    const costoTotal = iva ? 1.16 * (p.Cantidad * p.Importe) : p.Cantidad * p.Importe
+    html += `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'} </td>
+                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>`}
+                    <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
+                    ${iva ? `<td class="py-2 px-4 border-t text-right">$${parseFloat(0.16 * p.Importe).toFixed(2)}</td>` : ''}
+                    ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">$${parseFloat(costoTotal).toFixed(2)}</td>`}
+                </tr>
+            `
+  })
+
+  html += `
+                    </tbody>
+                </table>
+            </div>
+        `
+  return html
 }
