@@ -147,6 +147,11 @@ function Almacen(productosIniciales = []) {
         }
       }
 
+      const actualizacionExitosa = await this.actualizarInventarioBD();
+      if (!actualizacionExitosa) {
+        return;
+      }
+
       const dataParaEnviar = {
         fecha: fecha,
         nombreUsuarioEntrega: usuarioEntregaNombre,
@@ -171,6 +176,14 @@ function Almacen(productosIniciales = []) {
         window.open(url, '_blank')
 
         mostrarNotificacion('PDF generado correctamente.', 'success')
+
+        //Limpieza del formulario
+        this.$refs['a-user-t'].value = '';
+        this.$refs['a-departament-r'].value = '';
+        this.$refs['a-user-r'].value = '';
+        this.productosParaEntregar = [];
+        this.productosSeleccionados.clear();
+
       } catch (error) {
         console.error('Error al generar PDF de entrega:', error)
 
@@ -195,6 +208,41 @@ function Almacen(productosIniciales = []) {
             'error',
           )
         }
+      }
+    },
+
+    //Actualizar en BD
+    async actualizarInventarioBD() {
+      const payload = {
+        materiales: this.productosParaEntregar.map(p => ({
+          id: p.ID_Producto,
+          cantidad: p.cantidadAEntregar
+        }))
+      };
+
+      try {
+        const result = await SendDataEnd('modales/descontarStock', {
+          method: 'POST',
+          body: payload
+        });
+
+        if (result.success) {
+          // Actualizar visualmente la existencia
+          this.productosParaEntregar.forEach(entregado => {
+            const prodEnLista = this.productos.find(p => p.ID_Producto === entregado.ID_Producto);
+            if (prodEnLista) {
+              prodEnLista.Existencia = parseInt(prodEnLista.Existencia) - parseInt(entregado.cantidadAEntregar);
+            }
+          });
+          return true;
+        } else {
+          mostrarNotificacion(result.message || 'Error al actualizar el inventario.', 'error');
+          return false;
+        }
+      } catch (error) {
+        console.error('Error en actualización de BD:', error);
+        mostrarNotificacion('Error de conexión al intentar actualizar el inventario.', 'error');
+        return false;
       }
     },
   }

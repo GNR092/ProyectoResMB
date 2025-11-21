@@ -153,7 +153,7 @@ class Modales extends BaseController
 
             case 'entrega_productos':
                 $productoModel = new ProductoModel();
-                $departamentosModel = new DepartamentosModel(); // <- para cargar los departamentos
+                $departamentosModel = new DepartamentosModel();
                 $session = session();
 
                 $data = [
@@ -546,6 +546,49 @@ class Modales extends BaseController
         }
     }
 
+    public function descontarStockEntrega()
+    {
+        $productoModel = new ProductoModel();
+        // Recibimos el JSON desde el JS
+        $data = $this->request->getJSON(true);
+
+        if (empty($data['materiales'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se recibieron materiales.']);
+        }
+
+        try {
+            // Iteramos sobre los materiales para restarlos
+            foreach ($data['materiales'] as $item) {
+                $id = $item['id'];
+                $cantidad = $item['cantidad'];
+
+                // Obtenemos el producto actual para asegurar la existencia real
+                $productoActual = $productoModel->find($id);
+
+                if ($productoActual) {
+                    $nuevaExistencia = (float)$productoActual['Existencia'] - (float)$cantidad;
+
+                    // Evitar negativos
+                    if ($nuevaExistencia < 0) $nuevaExistencia = 0;
+
+                    // Actualizamos solo la existencia
+                    $productoModel->update($id, ['Existencia' => $nuevaExistencia]);
+
+                    // Opcional: Aquí podrías agregar un registro en HistorialProductosModel si lo deseas
+                }
+            }
+
+            return $this->response->setJSON(['success' => true, 'message' => 'Inventario actualizado.']);
+
+        } catch (\Exception $e) {
+            log_message('error', '[Descontar Stock] ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Error al actualizar inventario: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function insertarHistorialProducto()
     {
         $historialModel = new HistorialProductosModel();
@@ -731,4 +774,6 @@ class Modales extends BaseController
             ]);
         }
     }
+
 }
+

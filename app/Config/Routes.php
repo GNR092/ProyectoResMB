@@ -47,6 +47,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/editarProducto/(:num)', 'Modales::editarProducto/$1');
         $routes->post('modales/actualizarProducto/(:num)', 'Modales::actualizarProducto/$1');
         $routes->post('modales/insertarHistorialProducto', 'Modales::insertarHistorialProducto');
+        $routes->post('modales/descontarStock', 'Modales::descontarStockEntrega');
 
         // Proveedores
         $routes->post('proveedores/insertar', 'Modales::insertarProveedor');

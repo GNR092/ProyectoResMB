@@ -2,10 +2,6 @@
  * Funciones para manejar la apertura y cierre de modales,
  * y la inicialización de su contenido dinámico.
  */
-/**
- * Funciones para manejar la apertura y cierre de modales,
- * y la inicialización de su contenido dinámico.
- */
 function abrirModal(opcion) {
   const parentModals = {
     registrar_productos: 'almacen',
