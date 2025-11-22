@@ -74,8 +74,7 @@ function abrirModal(opcion) {
 
   titulo.innerText = titulos[opcion] ?? 'Opción'
 
-  fetch(`${BASE_URL}modales/${opcion}`)
-    .then((response) => response.text())
+  SendDataEnd(`modales/${opcion}`, { responseType: 'text' })
     .then((html) => {
       contenido.innerHTML = html
       modal.classList.remove('hidden')
@@ -163,7 +162,7 @@ async function createPaginatedTable(config) {
   async function fetchData() {
     tbody.innerHTML = `<tr><td colspan="100%" class="text-center p-4">${loadingMessage}</td></tr>`
     try {
-      const rawData = await getData(endpoint, {}, false)
+      const rawData = await SendDataEnd(endpoint, {})
       allData = processData(rawData)
       updateTable()
       if (onDataLoaded) {
@@ -336,9 +335,8 @@ async function initSolicitarMaterial() {
   async function getProductRowHtml() {
     if (productRowHtml === null) {
       try {
-        const response = await fetch(`${BASE_URL}modales/vistas/product_row`)
-        if (!response.ok) throw new Error('Falló la carga de la fila de producto')
-        productRowHtml = await response.text()
+        const productRowHtmlContent = await SendDataEnd('modales/vistas/product_row', { responseType: 'text' })
+        productRowHtml = productRowHtmlContent
       } catch (error) {
         console.error(error)
         productRowHtml =
@@ -568,9 +566,8 @@ async function initSolicitarServicio() {
   async function getServiceRowHtml() {
     if (serviceRowHtml === null) {
       try {
-        const response = await fetch(`${BASE_URL}modales/vistas/service_row`)
-        if (!response.ok) throw new Error('Falló la carga de la fila de servicio')
-        serviceRowHtml = await response.text()
+        const serviceRowHtmlContent = await SendDataEnd('modales/vistas/service_row', { responseType: 'text' })
+        serviceRowHtml = serviceRowHtmlContent
       } catch (error) {
         console.error(error)
         serviceRowHtml =
@@ -867,11 +864,7 @@ async function mostrarVerHistorial(idSolicitud) {
   detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>'
 
   try {
-    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
-    if (!response.ok) {
-      throw new Error(`Error ${response.statusus}: ${response.statususText}`)
-    }
-    const data = await response.json()
+    const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
 
     if (data.error) {
       throw new Error(data.error)
@@ -948,11 +941,7 @@ async function mostrarVer(idSolicitud) {
   detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>'
 
   try {
-    const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
-    }
-    const data = await response.json()
+    const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
 
     if (data.error) {
       throw new Error(data.error)
@@ -1015,8 +1004,8 @@ async function mostrarCotizar(idSolicitud) {
     '<tr><td colspan="4" class="text-center text-gray-500">Cargando proveedores...</td></tr>'
 
   try {
-    const response = await getData('providers/all')
-    const response2 = await getData(`solicitud/details/${idSolicitud}`)
+    const response = await SendDataEnd('api/providers/all')
+    const response2 = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
 
     let todosLosProveedores = response
 
@@ -1150,19 +1139,13 @@ async function mostrarCotizar(idSolicitud) {
     const providerIds = Array.from(selectedProviderIds)
 
     try {
-      const response = await fetch(`${BASE_URL}api/cotizacion/crear`, {
+      const result = await SendDataEnd('api/cotizacion/crear', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: JSON.stringify({
+        body: {
           ID_Solicitud: idSolicitud,
           ID_Proveedores: providerIds,
-        }),
+        },
       })
-
-      const result = await response.json()
 
       if (result.success) {
         alert(
@@ -1229,10 +1212,7 @@ async function mostrarVerDictamen(idSolicitud) {
   detallesContainer.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la solicitud ${idSolicitud}...</p>`
 
   try {
-    const response = await fetch(`${BASE_URL}api/cotizacion/details/${idSolicitud}`)
-    if (!response.ok) throw new Error(`Error ${response.statusus}: ${response.statususText}`)
-
-    const data = await response.json()
+    const data = await SendDataEnd(`api/cotizacion/details/${idSolicitud}`)
     if (data.error) throw new Error(data.error)
 
     let html = generarDetallesSolicitudHTML(data)
@@ -1334,16 +1314,10 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
   }
 
   try {
-    const response = await fetch(`${BASE_URL}api/solicitud/dictaminar`, {
+    const result = await SendDataEnd('api/solicitud/dictaminar', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: JSON.stringify(payload),
+      body: payload,
     })
-
-    const result = await response.json()
 
     if (response.ok && result.success) {
       mostrarNotificacion(
@@ -1380,10 +1354,7 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
 
   detallesContainer.innerHTML = `<p>Cargando detalles de la orden ${idOrden}...</p>`
   try {
-    const response = await fetch(`${BASE_URL}api/cotizacion/details/${idOrden}`)
-    if (!response.ok) throw new Error(`Error ${response.statusus}: ${response.statususText}`)
-
-    const data = await response.json()
+    const data = await SendDataEnd(`api/cotizacion/details/${idOrden}`)
     if (data.error) throw new Error(data.error)
 
     let html = generarDetallesSolicitudHTML(data)
@@ -1467,12 +1438,9 @@ async function enviarOrdenCompra(idSolicitud, iduser, boton) {
     Enviando...
   `
   try {
-    const response = await fetch(`${BASE_URL}api/orden/enviar-proveedor/${idSolicitud}/${iduser}`, {
+    const data = await SendDataEnd(`api/orden/enviar-proveedor/${idSolicitud}/${iduser}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
     })
-
-    const data = await response.json()
 
     if (!response.ok || !data.success) {
       mostrarNotificacion(data.message || 'Error desconocido al enviar la orden.', 'error')
@@ -1570,11 +1538,10 @@ function initProveedorForm() {
     const formData = new FormData(formProveedor)
 
     try {
-      const response = await fetch('/proveedores/insertar', {
+      const result = await SendDataEnd('proveedores/insertar', {
         method: 'POST',
         body: formData,
       })
-      const result = await response.json()
 
       if (result.success) {
         mostrarNotificacion('Proveedor agregado correctamente ✅', 'success')
@@ -1603,11 +1570,10 @@ function initProveedorEditarForm() {
 
     try {
       const id = formData.get('ID_Proveedor')
-      const response = await fetch(`/proveedores/editar/${id}`, {
+      const result = await SendDataEnd(`proveedores/editar/${id}`, {
         method: 'POST',
         body: formData,
       })
-      const result = await response.json()
 
       if (result.success) {
         mostrarNotificacion('Proveedor actualizado ✅', 'success')
@@ -1648,11 +1614,9 @@ function initProveedorActions(tabla) {
         if (!(await Confirmar('Eliminar Proveedor', '¿Seguro que deseas eliminar este proveedor?')))
           return
 
-        fetch(`/proveedores/eliminarProveedor/${id}`, {
+        SendDataEnd(`proveedores/eliminarProveedor/${id}`, {
           method: 'POST',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
         })
-          .then((res) => res.json())
           .then((result) => {
             if (result.success) {
               mostrarNotificacion('Proveedor eliminado ✅', 'success')
@@ -1792,16 +1756,10 @@ function crudUsuarios() {
       }
 
       try {
-        const response = await fetch(`${BASE_URL}modales/actualizarUsuario/${id}`, {
+        const result = await SendDataEnd(`modales/actualizarUsuario/${id}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-          },
-          body: JSON.stringify(data),
+          body: data,
         })
-
-        const result = await response.json()
 
         if (result.success) {
           mostrarNotificacion(result.message, 'success')
@@ -1874,16 +1832,10 @@ function crudUsuarios() {
       }
 
       try {
-        const response = await fetch(`${BASE_URL}modales/registrarUsuario`, {
+        const result = await SendDataEnd('modales/registrarUsuario', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-          },
-          body: JSON.stringify(data),
+          body: data,
         })
-
-        const result = await response.json()
 
         if (result.success) {
           mostrarNotificacion(result.message, 'success')
@@ -1932,11 +1884,9 @@ function crudUsuarios() {
       }
 
       try {
-        const response = await fetch(`${BASE_URL}modales/eliminarUsuario/${id}`, {
+        const result = await SendDataEnd(`modales/eliminarUsuario/${id}`, {
           method: 'POST',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
         })
-        const result = await response.json()
         if (result.success) {
           mostrarNotificacion(result.message, 'success')
           document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)?.remove()
@@ -1985,16 +1935,13 @@ function initUsuarios() {
 
     try {
       const formData = new FormData(form)
-      const resp = await fetch(form.action, {
+      const endpoint = form.action.replace(BASE_URL, '');
+      const text = await SendDataEnd(endpoint, {
         method: 'POST',
         body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          Accept: 'application/json',
-        },
+        responseType: 'text'
       })
-
-      const text = await resp.text()
+      
       let data
       try {
         data = JSON.parse(text)
@@ -2052,7 +1999,7 @@ function aprobarSolicitudes() {
       detallesContainer.innerHTML = '<p class="text-center text-gray-500">Cargando detalles...</p>'
 
       try {
-        const data = await getData(`solicitud/details/${idSolicitud}`, {}, true)
+        const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`, {})
         if (data.error) throw new Error(data.error)
 
         let html = `
@@ -2183,16 +2130,10 @@ function aprobarSolicitudes() {
         btnConfirmar.textContent = 'Procesando...'
 
         try {
-          const response = await fetch(`${BASE_URL}api/solicitud/dictaminar-jefe`, {
+          const result = await SendDataEnd('api/solicitud/dictaminar-jefe', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: JSON.stringify(payload),
+            body: payload,
           })
-
-          const result = await response.json()
 
           if (response.ok && result.success) {
             mostrarNotificacion(result.message, 'success')
@@ -2275,8 +2216,7 @@ async function initPagosPendientes() {
   }
 
   try {
-    const res = await fetch(`${BASE_URL}api/orden-compra/alldata`)
-    const ordenes = await res.json()
+    const ordenes = await SendDataEnd('api/orden-compra/alldata')
 
     if (!ordenes || ordenes.length === 0) {
       tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`
@@ -2285,7 +2225,7 @@ async function initPagosPendientes() {
     }
 
     const detallesPromises = ordenes.map((o) =>
-      fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
+      SendDataEnd(`api/orden-compra/details/${o.ID_Solicitud}`),
     )
     const detalles = await Promise.all(detallesPromises)
 
@@ -2396,11 +2336,7 @@ async function mostrarDetalleOrden(id, metodoPago) {
   detalleDiv.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la orden #${id}...</p>`
 
   try {
-    const response = await fetch(`${BASE_URL}api/orden-compra/details/${id}`)
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
-    }
-    const data = await response.json()
+    const data = await SendDataEnd(`api/orden-compra/details/${id}`)
 
     const prov = data.proveedor || {}
     const totalFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
@@ -2560,11 +2496,10 @@ async function enviarATesoreria(idSolicitud, metodoPago) {
     const formData = new FormData()
     formData.append('factura', facturaFile)
     formData.append('nuevoEstado', 'En Proceso de Pago')
-    const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
-      method: 'POST',
-      body: formData,
+    const data = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
+        method: 'POST',
+        body: formData,
     })
-    const data = await res.json()
 
     if (data.success) {
       alert('Enviado a tesoreria')
@@ -2628,8 +2563,7 @@ async function initFichasPago() {
   }
 
   try {
-    const res = await fetch(`${BASE_URL}api/orden-compra/alldata`)
-    const ordenes = await res.json()
+    const ordenes = await SendDataEnd('api/orden-compra/alldata')
 
     if (!ordenes || ordenes.length === 0) {
       tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`
@@ -2638,7 +2572,7 @@ async function initFichasPago() {
     }
 
     const detallesPromises = ordenes.map((o) =>
-      fetch(`${BASE_URL}api/orden-compra/details/${o.ID_Solicitud}`).then((r) => r.json()),
+      SendDataEnd(`api/orden-compra/details/${o.ID_Solicitud}`),
     )
     const detalles = await Promise.all(detallesPromises)
 
@@ -2753,11 +2687,7 @@ async function mostrarDetalleFicha(id, metodoPago) {
   detalleDiv.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la orden #${id}...</p>`
 
   try {
-    const response = await fetch(`${BASE_URL}api/orden-compra/details/${id}`)
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
-    }
-    const data = await response.json()
+    const data = await SendDataEnd(`api/orden-compra/details/${id}`)
 
     const prov = data.proveedor || {}
     const totalFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
@@ -2915,11 +2845,10 @@ async function regresarACompras(idSolicitud, metodoPago) {
     formData.append('ficha', fichaFile)
     formData.append('nuevoEstado', 'Por Pagar')
 
-    const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
-      method: 'POST',
-      body: formData,
+    const data = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
+        method: 'POST',
+        body: formData,
     })
-    const data = await res.json()
 
     if (data.success) {
       alert('Enviado a compras')
@@ -2956,12 +2885,10 @@ async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallb
   try {
     const formData = new FormData()
     formData.append('nuevoEstado', 'Pagada')
-    const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
-      method: 'POST',
-      body: formData,
+    const data = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
+        method: 'POST',
+        body: formData,
     })
-
-    const data = await res.json()
 
     if (data.success) {
       // 2. Usamos alert() para el éxito
@@ -3055,11 +2982,10 @@ function initRazonSocialForm() {
     const formData = new FormData(formAgregar)
 
     try {
-      const response = await fetch('/modales/razonsocial/insertar', {
+      const result = await SendDataEnd('modales/razonsocial/insertar', {
         method: 'POST',
         body: formData,
       })
-      const result = await response.json()
 
       if (result.success) {
         mostrarNotificacion('Razón social agregada ✅', 'success')
@@ -3089,11 +3015,10 @@ function initRazonSocialEditarForm() {
     const id = formData.get('ID_RazonSocial')
 
     try {
-      const response = await fetch(`/modales/razonsocial/editar/${id}`, {
+      const result = await SendDataEnd(`modales/razonsocial/editar/${id}`, {
         method: 'POST',
         body: formData,
       })
-      const result = await response.json()
 
       if (result.success) {
         mostrarNotificacion('Razón social actualizada ✅', 'success')
@@ -3136,11 +3061,9 @@ function initRazonSocialActions(tabla) {
       )
         return
 
-      fetch(`/modales/razonsocial/eliminar/${id}`, {
+      SendDataEnd(`modales/razonsocial/eliminar/${id}`, {
         method: 'POST',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
       })
-        .then((res) => res.json())
         .then((result) => {
           if (result.success) {
             mostrarNotificacion('Razón social eliminada ✅', 'success')
@@ -3267,9 +3190,7 @@ window.initLimpiarAlmacenamiento = function () {
 
   async function fetchFiles(path) {
     try {
-      const response = await fetch(`${BASE_URL}api/storage/list?path=${encodeURIComponent(path)}`)
-      if (!response.ok) throw new Error(`Error HTTP: ${response.status}`)
-      return await response.json()
+      return await SendDataEnd(`api/storage/list?path=${encodeURIComponent(path)}`)
     } catch (error) {
       console.error('Error al obtener archivos:', error)
       const tbody = document.getElementById('file-list')
@@ -3396,36 +3317,7 @@ window.initLimpiarAlmacenamiento = function () {
 // Inicializar
 document.addEventListener('DOMContentLoaded', initCrudProveedores)
 
-/**
- * getData: Función para obtener datos de una API RESTful
- * Utiliza fetch para hacer solicitudes HTTP y maneja errores.
- * @param { * } endpoint - La ruta del endpoint (sin la parte base de la URL)
- * @param {*} option  - Opciones para la solicitud fetch (método, headers, body, etc.)
- * @param {*} api   - Indica si se debe usar la ruta de la API o no
- * @returns  - Los datos obtenidos de la API o un array vacío en caso de error
- */
-async function getData(endpoint, option = {}, api = true) {
-  let apiUrl = api ? `${BASE_URL}api/${endpoint}` : `${BASE_URL}${endpoint}`
-  let response
-  try {
-    response = option ? await fetch(apiUrl, option) : await fetch(apiUrl)
 
-    if (!response.ok) {
-      const errorBody = await response.text() // Try to read response body for more details
-      throw new Error(
-        `Error HTTP: ${response.status} - ${response.statusText}. URL: ${apiUrl}. Response: ${errorBody}`,
-      )
-    }
-
-    const data = await response.json()
-
-    return data
-  } catch (error) {
-    console.error('Hubo un error al obtener los datos:', error)
-    // Return an empty array or re-throw a more specific error if needed by callers
-    return []
-  }
-}
 /**
  * loadRazonSocialProv: Función para cargar las opciones de razón social desde la API
  * y agregarlas a un elemento <select> en el DOM.
@@ -3435,7 +3327,7 @@ async function loadRazonSocialProv(selectId) {
   if (!ProvSelect) return
 
   try {
-    const data = await getData('providers/all')
+    const data = await SendDataEnd('api/providers/all')
     if (Array.isArray(data) && data.length > 0) {
       ProvSelect.innerHTML = '<option value="">Seleccione una opción</option>'
       data.forEach((provider) => {
@@ -3455,7 +3347,7 @@ async function loadRazonSocialProv(selectId) {
 async function loadDepartamentos() {
   const departamentosSelect = document.getElementById('departamento')
   try {
-    const data = await getData('departments/all')
+    const data = await SendDataEnd('api/departments/all')
     console.log('Departamentos cargados: ', data)
     if (data.length > 0) {
       departamentosSelect.innerHTML = '<option value="">Seleccione un departamento</option>'
@@ -3501,14 +3393,13 @@ async function SendData(event) {
   }
 
   try {
-    const data = await getData(
+    const data = await SendDataEnd(
       'solicitudes/registrar',
       {
         method: 'POST',
         body: formData,
         headers: { Accept: 'application/json' },
       },
-      false,
     )
 
     if (data.success) {
@@ -3606,7 +3497,7 @@ async function GenerarOrden(id, button) {
 
   try {
     // Usamos 'POST' porque es una acción que modifica el estado en el servidor
-    const result = await getData(`orden/generar/${id}`, {
+    const result = await SendDataEnd(`api/orden/generar/${id}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

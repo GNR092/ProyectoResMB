@@ -54,6 +54,14 @@ async function SendDataEnd(endpoint, options = {}) {
       return null
     }
 
+    // Check if a specific responseType is requested
+    if (options.responseType === 'text') {
+        return await response.text();
+    }
+    if (options.responseType === 'blob') {
+        return await response.blob();
+    }
+
     const contentType = response.headers.get('content-type')
     if (contentType && contentType.includes('application/json')) {
       return await response.json()

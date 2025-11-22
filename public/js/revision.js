@@ -18,7 +18,6 @@ function RevisionX() {
         paginationSelector: 'paginacion-enviar-revision',
         endpoint: 'api/solicitudes/cotizadas',
         processData: (data) => {
-          // ... (tu lógica de 'processData' existente) ...
           const agrupado = data.reduce((acc, s) => {
             if (s.Estado === 'En revision') return acc
             if (!acc[s.ID_Solicitud]) {
@@ -101,11 +100,7 @@ function RevisionX() {
       }
 
       try {
-        const response = await fetch(`${BASE_URL}api/provider/${providerIdToQuery}`)
-        if (!response.ok) {
-          throw new Error(`Proveedor no encontrado (ID: ${providerIdToQuery})`)
-        }
-        const proveedorData = await response.json()
+        const proveedorData = await SendDataEnd(`api/provider/${providerIdToQuery}`)
         diasCredito = parseInt(proveedorData.Dias_Credito) || 0
       } catch (error) {
         console.error(`Error al buscar proveedor ${providerIdToQuery}:`, error)
@@ -161,9 +156,7 @@ function RevisionX() {
       detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>'
 
       try {
-        const response = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`)
-        if (!response.ok) throw new Error('No se pudieron cargar los detalles.')
-        const data = await response.json()
+        const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
         console.log('Datos de la solicitud (Un proveedor):', data)
 
         let estadoClass = getStatus(data.Estado)
@@ -365,13 +358,10 @@ function RevisionX() {
           btnConfirmar.textContent = 'Enviando...'
 
           try {
-            const response = await fetch(`${BASE_URL}api/solicitud/enviar-revision`, {
+            const result = await SendDataEnd('api/solicitud/enviar-revision', {
               method: 'POST',
               body: formData,
-              headers: { 'X-Requested-With': 'XMLHttpRequest' },
             })
-
-            const result = await response.json()
 
             if (result.success) {
               mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success')
@@ -438,9 +428,7 @@ function RevisionX() {
       modalModificar.classList.remove('hidden')
 
       try {
-        const data = await fetch(`${BASE_URL}api/solicitud/details/${idSolicitud}`).then((res) =>
-          res.json(),
-        )
+        const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
 
         if (data.error) throw new Error(data.error)
 
@@ -573,15 +561,10 @@ function RevisionX() {
           }
 
           try {
-            const updateResponse = await fetch(`${BASE_URL}api/solicitud/update`, {
+            const updateResult = await SendDataEnd('api/solicitud/update', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-              },
-              body: JSON.stringify(payload),
+              body: payload,
             })
-            const updateResult = await updateResponse.json()
 
             if (updateResult.success) {
               mostrarNotificacion(
