@@ -82,13 +82,9 @@ function RevisionX() {
       let diasCredito = 0
       let providerIdToQuery = null
 
-      // Caso 1: Múltiples proveedores
       if (idprov) {
         providerIdToQuery = idprov
-      }
-      // Caso 2: Un solo proveedor (idprov es null)
-      // Obtenemos el ID del proveedor
-      else if (data && data.ID_Proveedor) {
+      } else if (data && data.ID_Proveedor) {
         providerIdToQuery = data.ID_Proveedor
       } else if (data && data.cotizacion && data.cotizacion.ID_Proveedor) {
         providerIdToQuery = data.cotizacion.ID_Proveedor
@@ -104,7 +100,7 @@ function RevisionX() {
         diasCredito = parseInt(proveedorData.Dias_Credito) || 0
       } catch (error) {
         console.error(`Error al buscar proveedor ${providerIdToQuery}:`, error)
-        diasCredito = 0 // Si falla la API, se toma el valor 0.
+        diasCredito = 0
       }
 
       return diasCredito
@@ -124,20 +120,17 @@ function RevisionX() {
       )
       if (!radioCredito || !radioContado) return
 
-      // Deshabilitar mientras se consulta
       radioCredito.disabled = true
       radioCredito.closest('label').classList.add('text-gray-400', 'cursor-not-allowed')
 
       const diasCredito = await this._getDiasDeCredito(data)
 
       if (diasCredito <= 0) {
-        // Si NO tiene crédito: Deshabilitar y seleccionar "Contado"
         radioCredito.disabled = true
         radioCredito.checked = false
         radioContado.checked = true
         radioCredito.closest('label').classList.add('text-gray-400', 'cursor-not-allowed')
       } else {
-        // Si SÍ tiene crédito: Habilitar
         radioCredito.disabled = false
         radioCredito.closest('label').classList.remove('text-gray-400', 'cursor-not-allowed')
       }
@@ -252,7 +245,7 @@ function RevisionX() {
           checkboxInput.checked = false
           checkboxInput.disabled = false
           inputArchivos.disabled = false
-          inputArchivos.value = '' // Limpiar selección de archivos anterior
+          inputArchivos.value = ''
           inputArchivos.classList.remove('bg-gray-100', 'cursor-not-allowed')
           checkboxLabel.textContent = 'Adjuntar solo la cotización del solicitante'
           checkboxLabel.classList.remove('text-gray-500', 'cursor-not-allowed')
@@ -301,12 +294,11 @@ function RevisionX() {
             const diasCredito = await this._getDiasDeCredito(data)
 
             if (diasCredito <= 0) {
-              // Si no tiene crédito, mostrar error y DETENER el envío
               mostrarNotificacion(
                 'No se puede enviar: El proveedor no tiene crédito aprobado.',
                 'error',
               )
-              return // Detiene el submit
+              return
             }
           }
 
@@ -410,12 +402,19 @@ function RevisionX() {
       const idSolicitudInput = document.getElementById('modificar_id_solicitud')
       const proveedorSelectContainer = document.getElementById('proveedor-select-container')
 
+      const subtotalEl = document.getElementById('subtotal-modificar')
+      const ivaEl = document.getElementById('iva-modificar')
+      const totalEl = document.getElementById('total-modificar')
+
       if (
         !modalModificar ||
         !productosContainer ||
         !formModificar ||
         !idSolicitudInput ||
-        !proveedorSelectContainer
+        !proveedorSelectContainer ||
+        !subtotalEl ||
+        !ivaEl ||
+        !totalEl
       ) {
         console.error('Elementos del modal de modificación no encontrados.')
         return
@@ -433,6 +432,44 @@ function RevisionX() {
         if (data.error) throw new Error(data.error)
 
         const cotizacionesData = data.cotizaciones || []
+
+        const ivaCheckbox = formModificar.querySelector('input[name="iva"]')
+        if (ivaCheckbox) {
+          ivaCheckbox.checked = data.IVA === 't'
+        }
+
+        function actualizarTotalesModificar() {
+          let subtotal = 0
+          const inputsImporte = formModificar.querySelectorAll(
+            'input[name^="productos["][name$="[importe]"]',
+          )
+          const inputsCantidad = formModificar.querySelectorAll(
+            'input[name^="productos["][name$="[cantidad]"]',
+          )
+
+          inputsImporte.forEach((importeInput, index) => {
+            const importe = parseFloat(importeInput.value) || 0
+            const cantidad = parseFloat(inputsCantidad[index].value) || 0
+            subtotal += importe * cantidad
+          })
+
+          const aplicaIVA = ivaCheckbox.checked
+          const montoIVA = aplicaIVA ? subtotal * 0.16 : 0
+          const total = subtotal + montoIVA
+
+          subtotalEl.textContent = subtotal.toLocaleString('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+          })
+          ivaEl.textContent = montoIVA.toLocaleString('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+          })
+          totalEl.textContent = total.toLocaleString('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+          })
+        }
 
         if (cotizacionesData.length > 1) {
           let selectHtml =
@@ -485,10 +522,10 @@ function RevisionX() {
                           <input type="text" name="productos[${index}][nombre]" value="${p.Nombre}" class="w-full px-2 py-1 border rounded text-left">
                       </td>
                       <td class="py-2 px-4 border-t text-right">
-                          <input type="number" name="productos[${index}][cantidad]" value="${p.Cantidad}" min="1" class="w-full px-2 py-1 border rounded text-right">
+                          <input type="number" name="productos[${index}][cantidad]" value="${p.Cantidad}" min="1" class="w-full px-2 py-1 border rounded text-right producto-cantidad">
                       </td>
                       <td class="py-2 px-4 border-t text-right">
-                          <input type="number" name="productos[${index}][importe]" value="${parseFloat(p.Importe).toFixed(2)}" step="0.01" min="0" class="w-full px-2 py-1 border rounded text-right">
+                          <input type="number" name="productos[${index}][importe]" value="${parseFloat(p.Importe).toFixed(2)}" step="0.01" min="0" class="w-full px-2 py-1 border rounded text-right producto-importe">
                       </td>
                   </tr>
             `
@@ -499,23 +536,34 @@ function RevisionX() {
             </div>
           `
           productosContainer.innerHTML = productosHtml
+
+          const inputs = productosContainer.querySelectorAll(
+            '.producto-cantidad, .producto-importe',
+          )
+          inputs.forEach((input) => input.addEventListener('input', actualizarTotalesModificar))
         }
 
         actualizarProductos(data.productos)
+        actualizarTotalesModificar()
+
+        if (ivaCheckbox) {
+          ivaCheckbox.addEventListener('change', actualizarTotalesModificar)
+        }
 
         formModificar.onsubmit = async (e) => {
           e.preventDefault()
           const formData = new FormData(formModificar)
           const productosModificados = []
-          let nuevoTotal = 0
+          let nuevoSubtotal = 0
 
           const commnt = formData.get('comentarios')
-          const IVA = formData.get('iva')
+          const IVA = formData.get('iva') ? 'on' : null
+
           data.productos.forEach((p, index) => {
             const c = formData.get(`productos[${index}][codigo]`)
             const cantidad = formData.get(`productos[${index}][cantidad]`)
             const importe = formData.get(`productos[${index}][importe]`)
-            nuevoTotal += (parseFloat(cantidad) || 0) * (parseFloat(importe) || 0)
+            nuevoSubtotal += (parseFloat(cantidad) || 0) * (parseFloat(importe) || 0)
             productosModificados.push({
               codigo: c === '' ? null : c,
               nombre: formData.get(`productos[${index}][nombre]`),
@@ -523,6 +571,8 @@ function RevisionX() {
               importe: importe,
             })
           })
+
+          const nuevoTotalConIVA = IVA === 'on' ? nuevoSubtotal * 1.16 : nuevoSubtotal
 
           const selectedCotizacionId = document.getElementById('proveedor-select')?.value
 
@@ -538,11 +588,11 @@ function RevisionX() {
 
           if (proveedor && proveedor.Monto_Credito && parseFloat(proveedor.Monto_Credito) > 0) {
             const montoCredito = parseFloat(proveedor.Monto_Credito)
-            if (nuevoTotal > montoCredito) {
+            if (nuevoTotalConIVA > montoCredito) {
               if (
                 !(await Confirmar(
                   'Monto Excedido',
-                  `ALERTA: El monto total (${nuevoTotal.toFixed(2)}) excede el límite de crédito del proveedor ${proveedor.RazonSocial} (${montoCredito.toFixed(2)}).
+                  `ALERTA: El monto total (${nuevoTotalConIVA.toFixed(2)}) excede el límite de crédito del proveedor ${proveedor.RazonSocial} (${montoCredito.toFixed(2)}).
 
 ¿Desea continuar?`,
                 ))
@@ -557,7 +607,7 @@ function RevisionX() {
             id_cotizacion_seleccionada: selectedCotizacionId,
             productos: productosModificados,
             comentarios: commnt === '' ? null : commnt,
-            iva: IVA === '' ? null : IVA,
+            iva: IVA,
           }
 
           try {

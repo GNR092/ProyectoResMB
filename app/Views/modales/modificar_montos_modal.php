@@ -23,6 +23,22 @@
                     <label for="modificar_comentarios" class="block text-sm font-medium text-gray-700">Comentarios (opcional)</label>
                     <textarea id="modificar_comentarios" name="comentarios" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
                 </div>
+
+                <div id="calculos-modificar" class="mt-6 p-4 border-t border-gray-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 font-medium">Subtotal:</span>
+                        <span id="subtotal-modificar" class="text-gray-900 font-semibold">$0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 font-medium">IVA (16%):</span>
+                        <span id="iva-modificar" class="text-gray-900 font-semibold">$0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-lg">
+                        <span class="text-gray-800 font-bold">Total:</span>
+                        <span id="total-modificar" class="text-blue-600 font-bold">$0.00</span>
+                    </div>
+                </div>
+
                 <div class="mt-6 flex justify-end space-x-4">
                     <button type="button" @click="RevisionX().cerrarModalModificarMontos(document.getElementById('modificar_id_solicitud').value)" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">Guardar Cambios</button>
