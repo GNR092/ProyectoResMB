@@ -264,7 +264,7 @@ function GetMetodoPago(metodo) {
   let metodoPago = ''
   switch (metodo) {
     case '0':
-      metodoPago = `<div><strong>Metodo de Pago:</strong> Effectivo</div>`
+      metodoPago = `<div><strong>Metodo de Pago:</strong> Contado</div>`
       return metodoPago
     case '1':
       metodoPago = `<div><strong>Metodo de Pago:</strong> Crédito</div>`

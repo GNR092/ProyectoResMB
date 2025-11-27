@@ -189,7 +189,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                         <use xlink:href="<?= $iconUrl ?>#btn-enviar"></use>
                     </svg>
-                    <span>Enviar</span>
+                    <span>Solicitar</span>
                 </button>
             </div>
         </form>
@@ -326,7 +326,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                         <use xlink:href="<?= $iconUrl ?>#btn-enviar"></use>
                     </svg>
-                    <span>Enviar</span>
+                    <span>Solicitar</span>
                 </button>
             </div>
         </form>
@@ -501,7 +501,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                         <use xlink:href="<?= $iconUrl ?>#btn-enviar"></use>
                     </svg>
-                    <span>Enviar</span>
+                    <span>Solicitar</span>
                 </button>
             </div>
         </form>
