@@ -2047,7 +2047,7 @@ function aprobarSolicitudes() {
         html += `
           <div class="mt-8 flex justify-end space-x-4">
               <button @click="dictaminar(${idSolicitud}, 'rechazar')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Rechazar</button>
-              <button @click="dictaminar(${idSolicitud}, 'aprobar')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">Aprobar y Enviar a Compras</button>
+              <button @click="dictaminar(${idSolicitud}, 'aprobar')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">Aprobar y Enviar a Revision</button>
           </div>`
 
         detallesContainer.innerHTML = html
@@ -2439,12 +2439,20 @@ async function mostrarDetalleOrden(id, metodoPago) {
     `
 
     html += `
-      <div class="flex justify-between mt-6 pt-4 border-t gap-4">
-        <button onclick="CerrarOrden(${id}, '${metodoPago}', volverATabla, initPagosPendientes)" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+      <div class="flex justify-between mt-6 pt-4  gap-4">
+        <button onclick="CerrarOrden(${id}, '${metodoPago}', volverATabla, initPagosPendientes)" class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
           Cerrar requisición
         </button>
-        <button onclick="enviarATesoreria(${id}, '${metodoPago}')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+        
+        <button onclick="enviarATesoreria(${id}, '${metodoPago}')" class="bg-green-500 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
           Enviar a tesorería para ficha
+        </button>
+        
+      </div>
+      
+      <div class="flex flex-col gap-4 mt-4">
+      <button onclick="CancelarOrdenFactura(${id}, '${metodoPago}', volverATabla, initPagosPendientes)" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg ">
+          Cancelar requisición
         </button>
       </div>
     `
@@ -2791,11 +2799,17 @@ async function mostrarDetalleFicha(id, metodoPago) {
 
     html += `
       <div class="flex justify-between mt-6 pt-4 border-t gap-4">
-        <button onclick="CerrarOrden(${id}, '${metodoPago}', volverAFichas, initFichasPago)" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+        <button onclick="CerrarOrden(${id}, '${metodoPago}', volverAFichas, initFichasPago)" class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
           Cerrar requisición
         </button>
-        <button onclick="regresarACompras(${id}, '${metodoPago}')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
+        <button onclick="regresarACompras(${id}, '${metodoPago}')" class="bg-green-500 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
           Regresar a Compras
+        </button>
+      </div>
+      
+       <div class="flex flex-col gap-4 mt-4">
+      <button onclick="CancelarOrdenFicha(${id}, '${metodoPago}', volverATabla, initPagosPendientes)" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg ">
+          Cancelar requisición
         </button>
       </div>
     `
@@ -2909,6 +2923,63 @@ async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallb
     console.error('Error al cerrar la orden:', error) // Mantenemos el console.error para depuración
     // 4. Usamos alert() para el error de red/excepción
     alert('Ocurrió un error de red al cerrar la orden.')
+  }
+}
+
+
+/**
+ * Cancela una orden de compra, actualizando su estado a "Cancelada".
+ * Utiliza confirm() y alert() para mantener la coherencia del UI.
+ *
+ * @param {number} idSolicitud - El ID de la solicitud a cerrar.
+ * @param {string} metodoPago - '0' o '1', para pasarlo a la función de 'volver'.
+ * @param {function} volverCallback - La función para regresar a la tabla (ej. volverATabla).
+ * @param {function} refreshCallback - La función para refrescar la lista (ej. initPagosPendientes).
+ */
+async function CancelarOrdenFactura (idSolicitud, metodoPago){
+  try {
+    const formData = new FormData()
+    formData.append('nuevoEstado', 'Cancelada')
+    const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
+      method: 'POST',
+      body: formData,
+    })
+    const data = await res.json()
+
+    if (data.success) {
+      alert('Cancelando Orden')
+      volverATabla(metodoPago)
+      initPagosPendientes() // refrescar tabla
+    } else {
+      alert(data.messages['error'])
+    }
+  } catch (error) {
+    console.error('Error al actualizar estado:', error)
+    alert('Ocurrió un error al actualizar el estado')
+  }
+}
+
+
+async function CancelarOrdenFicha (idSolicitud, metodoPago){
+  try {
+    const formData = new FormData()
+    formData.append('nuevoEstado', 'Cancelada')
+    const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
+      method: 'POST',
+      body: formData,
+    })
+    const data = await res.json()
+
+    if (data.success) {
+      alert('Cancelando Orden')
+      volverAFichas(metodoPago)
+      initFichasPago() // refrescar tabla
+    } else {
+      alert(data.messages['error'])
+    }
+  } catch (error) {
+    console.error('Error al actualizar estado:', error)
+    alert('Ocurrió un error al actualizar el estado')
   }
 }
 
@@ -3094,7 +3165,7 @@ function initRazonSocialActions(tabla) {
 }
 
 /**
- * Lógica para limpiar almacenamiento--------------------------------------------------
+ * Lógica para limpiar almacenamiento
  */
 
 window.initLimpiarAlmacenamiento = function () {

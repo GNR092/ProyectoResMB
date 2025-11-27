@@ -42,7 +42,8 @@ class Home extends BaseController
             'Direccion' => [
                 'dictamen_solicitudes',
                 'crud_proveedores',
-                'usuarios'
+                'usuarios',
+                'ver_historial',
             ],
 
             // Rol Tesorería
