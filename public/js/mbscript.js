@@ -3165,6 +3165,26 @@ function initRazonSocialActions(tabla) {
   })
 }
 
+
+/**
+ * Lógica para Pagos Pendientes
+ */
+function mostrarAprobarPagoContado() {
+  document.getElementById('pago-menu').classList.add('hidden')
+  document.getElementById('pago-contado').classList.remove('hidden')
+}
+
+function mostrarAprobarPagoCredito() {
+  document.getElementById('pago-menu').classList.add('hidden')
+  document.getElementById('pago-credito').classList.remove('hidden')
+}
+
+function regresarAprobarPagoMenu() {
+  document.getElementById('pago-contado').classList.add('hidden')
+  document.getElementById('pago-credito').classList.add('hidden')
+  document.getElementById('pago-menu').classList.remove('hidden')
+}
+
 /**
  * Lógica para limpiar almacenamiento
  */
