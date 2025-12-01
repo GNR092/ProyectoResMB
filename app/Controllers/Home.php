@@ -44,6 +44,7 @@ class Home extends BaseController
                 'crud_proveedores',
                 'usuarios',
                 'ver_historial',
+                'aprobar_pagos',
             ],
 
             // Rol Tesorería

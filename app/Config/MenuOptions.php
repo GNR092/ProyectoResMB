@@ -68,6 +68,11 @@ class MenuOptions extends BaseConfig
                 'label' => 'Almacén',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#almacen"></use></svg>',
             ],
+
+            'aprobar_pagos' => [
+                'label' => 'Aprobar Pagos',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar_pagos"></use></svg>',
+            ],
         ];
     }
 }

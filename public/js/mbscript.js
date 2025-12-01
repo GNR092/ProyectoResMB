@@ -8,13 +8,13 @@ function abrirModal(opcion) {
     crud_productos: 'almacen',
     entrega_productos: 'almacen',
     reporte_almacen: 'almacen',
-
     crud_usuarios: 'ajustes',
     limpiar_almacenamiento: 'ajustes',
     crud_proveedores: 'ajustes',
     reportes: 'ajustes',
     razonsocial: 'ajustes',
     micuenta: 'ajustes',
+    aprobar_pagos: 'aprobar_pagos',
   }
 
   const highlightOpcion = parentModals[opcion] || opcion
@@ -69,6 +69,7 @@ function abrirModal(opcion) {
     razonsocial: 'Razón social',
     reporte_almacen: 'Reportes/Historial',
     micuenta: 'Mi cuenta',
+    aprobar_pagos: 'Aprobar Pagos',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 

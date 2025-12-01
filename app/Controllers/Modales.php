@@ -252,11 +252,15 @@ class Modales extends BaseController
                 $data['historial'] = $historialModel->orderBy('created_at', 'DESC')->findAll();
 
                 return view('modales/reporte_almacen', $data);
+
             case 'micuenta':
                 $id = session('id');
                 $sign = $this->api->getSignB64ByUserID($id);
                 $data['firmaUrl'] = $sign;
                 return view('modales/micuenta', $data);
+
+            case 'aprobar_pagos':
+                return view('modales/aprobar_pagos');
 
             default:
                 return 'Opción no válida';
