@@ -63,17 +63,14 @@ class CreateTableSolicitudProd extends Migration
                 'type' => 'VARCHAR',
                 'constraint' => '255',
                 'null' => true,
-                'after' => 'No_Folio',
             ],
             'ComentariosAdmin' => [
                 'type' => 'TEXT',
                 'null' => true,
-                'after' => 'Archivo',
             ],
             'ComentariosUser' => [
                 'type' => 'TEXT',
                 'null' => true,
-                'after' => 'ComentariosAdmin',
             ],
             'Tipo' => [
                 'type' => 'INT',

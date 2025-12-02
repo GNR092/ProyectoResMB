@@ -1,5 +1,10 @@
 <div class="p-4">
-    <h2 class="text-lg font-bold mb-4">Requisiciones Pendientes</h2>
+    <div class="flex justify-between items-center mb-4">
+    <h2 class="text-lg font-bold">Requisiciones Pendientes</h2>
+    <button id="btn-exportar-requisiciones" onclick="exportarRequisicionesExcel()" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+        Exportar a Excel
+    </button>
+</div>
 
     <!-- Div Tabla Principal -->
     <div id="div-tabla">
@@ -26,7 +31,7 @@
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['Fecha']) ?></td>
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['Estado']) ?></td>
                             <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVer(<?= $solicitud['ID_Solicitud'] ?>)">VER</td>
-                            <td class="py-3 px-6 text-left text-green-600 cursor-pointer" onclick="mostrarCotizar(<?= $solicitud['ID_Solicitud'] ?>)">COTIZAR</td>
+                            <td class="py-3 px-6 text-left text-green-600 cursor-pointer" onclick="mostrarCotizar(<?= $solicitud['ID_Solicitud'] ?>)">Solicitar cotización</td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -116,13 +121,13 @@
         <form id="form-enviar-revision" class="mt-4">
             <input type="hidden" id="revision_id_solicitud">
             <div>
-                <label for="archivos-revision" class="block text-sm font-medium text-gray-700">Adjuntar Archivos (Imágenes o PDF)</label>
-                <input type="file" id="archivos-revision" name="archivos[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
+                <label for="archivos-revision" class="block text-sm font-medium text-gray-700">Adjuntar Cotización (Imágenes o PDF)</label>
+                <input type="file" id="archivos-revision" name="cotizacion_files[]" multiple accept="image/*,.pdf" class="mt-1 block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none">
                 <p class="mt-1 text-sm text-gray-500">Puede seleccionar múltiples archivos.</p>
             </div>
             <div class="mt-6 flex justify-end space-x-4 border-t pt-4">
                 <button type="button" onclick="regresarTabla()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
-                <button type="submit" id="btn-confirmar-revision" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Confirmar y Enviar</button>
+                <button type="submit" id="btn-confirmar-revision" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Solicitar Autorización</button>
             </div>
         </form>
     </div>

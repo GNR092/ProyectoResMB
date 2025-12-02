@@ -13,6 +13,12 @@ class FPath
     public const FUSER = WRITEPATH . 'users' . DIRECTORY_SEPARATOR;
     public const FFACTURAS =
         WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'facturas' . DIRECTORY_SEPARATOR;
+    public const FREMISIONES =
+        WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'remisiones' . DIRECTORY_SEPARATOR;
+    public const FENTRADAS_FACTURAS =
+        WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'entradas_facturas' . DIRECTORY_SEPARATOR;
+    public const FFACTURAS_SERVICIOS =
+        WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'facturas_servicios' . DIRECTORY_SEPARATOR;
     public const FCOMPROBANTES =
         WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'comprobantes' . DIRECTORY_SEPARATOR;
 }

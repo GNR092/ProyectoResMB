@@ -21,7 +21,6 @@ class CreateDepartamentosTable extends Migration
                 'constraint' => 20,
                 'unsigned'   => true,
                 'null'       => true, 
-                'after'      => 'ID_Dpto',
             ],
             'Nombre' => [
                 'type' => 'VARCHAR',

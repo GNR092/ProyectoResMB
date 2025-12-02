@@ -18,6 +18,9 @@ class Status
     public const En_Revision = 'En revision';
 
     // --- Estados de Tesorería/Pagos ---
+    public const Espera_Programacion = 'Espera_Programacion';
+    public const Programada = 'Programada';
+    public const Pago_Autorizado = "Pago autorizado";
     public const Por_Pagar = 'Por Pagar';
     public const En_Proceso_Pago = 'En Proceso de Pago';
     public const Pagada = 'Pagada';

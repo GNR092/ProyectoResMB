@@ -403,7 +403,6 @@ function RevisionX() {
       const proveedorSelectContainer = document.getElementById('proveedor-select-container')
 
       const subtotalEl = document.getElementById('subtotal-modificar')
-      const ivaEl = document.getElementById('iva-modificar')
       const totalEl = document.getElementById('total-modificar')
 
       if (
@@ -413,7 +412,6 @@ function RevisionX() {
         !idSolicitudInput ||
         !proveedorSelectContainer ||
         !subtotalEl ||
-        !ivaEl ||
         !totalEl
       ) {
         console.error('Elementos del modal de modificación no encontrados.')
@@ -433,11 +431,6 @@ function RevisionX() {
 
         const cotizacionesData = data.cotizaciones || []
 
-        const ivaCheckbox = formModificar.querySelector('input[name="iva"]')
-        if (ivaCheckbox) {
-          ivaCheckbox.checked = data.IVA === 't'
-        }
-
         function actualizarTotalesModificar() {
           let subtotal = 0
           const inputsImporte = formModificar.querySelectorAll(
@@ -453,15 +446,9 @@ function RevisionX() {
             subtotal += importe * cantidad
           })
 
-          const aplicaIVA = ivaCheckbox.checked
-          const montoIVA = aplicaIVA ? subtotal * 0.16 : 0
-          const total = subtotal + montoIVA
+          const total = subtotal
 
           subtotalEl.textContent = subtotal.toLocaleString('es-MX', {
-            style: 'currency',
-            currency: 'MXN',
-          })
-          ivaEl.textContent = montoIVA.toLocaleString('es-MX', {
             style: 'currency',
             currency: 'MXN',
           })
@@ -546,10 +533,6 @@ function RevisionX() {
         actualizarProductos(data.productos)
         actualizarTotalesModificar()
 
-        if (ivaCheckbox) {
-          ivaCheckbox.addEventListener('change', actualizarTotalesModificar)
-        }
-
         formModificar.onsubmit = async (e) => {
           e.preventDefault()
           const formData = new FormData(formModificar)
@@ -557,7 +540,6 @@ function RevisionX() {
           let nuevoSubtotal = 0
 
           const commnt = formData.get('comentarios')
-          const IVA = formData.get('iva') ? 'on' : null
 
           data.productos.forEach((p, index) => {
             const c = formData.get(`productos[${index}][codigo]`)
@@ -572,7 +554,7 @@ function RevisionX() {
             })
           })
 
-          const nuevoTotalConIVA = IVA === 'on' ? nuevoSubtotal * 1.16 : nuevoSubtotal
+          const nuevoTotal = nuevoSubtotal
 
           const selectedCotizacionId = document.getElementById('proveedor-select')?.value
 
@@ -588,11 +570,11 @@ function RevisionX() {
 
           if (proveedor && proveedor.Monto_Credito && parseFloat(proveedor.Monto_Credito) > 0) {
             const montoCredito = parseFloat(proveedor.Monto_Credito)
-            if (nuevoTotalConIVA > montoCredito) {
+            if (nuevoTotal > montoCredito) {
               if (
                 !(await Confirmar(
                   'Monto Excedido',
-                  `ALERTA: El monto total (${nuevoTotalConIVA.toFixed(2)}) excede el límite de crédito del proveedor ${proveedor.RazonSocial} (${montoCredito.toFixed(2)}).
+                  `ALERTA: El monto total (${nuevoTotal.toFixed(2)}) excede el límite de crédito del proveedor ${proveedor.RazonSocial} (${montoCredito.toFixed(2)}).
 
 ¿Desea continuar?`,
                 ))
@@ -607,7 +589,6 @@ function RevisionX() {
             id_cotizacion_seleccionada: selectedCotizacionId,
             productos: productosModificados,
             comentarios: commnt === '' ? null : commnt,
-            iva: IVA,
           }
 
           try {

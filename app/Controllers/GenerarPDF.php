@@ -816,40 +816,50 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell(110, 7, 'compras@campusmerida.com', 'LR', 1, 'C');
         $pdf->Cell(110, 7, 'gfreyre@campusmerida.com', 'LRB', 1, 'C');
+        
         $pdf->SetY($y);
-        if (
-            isset($orden['UsuarioSession']['Firma_digital']) &&
-            !empty($orden['UsuarioSession']['Firma_digital'])
-        ) {
-            $signatureX = $pdf->GetX();
-            $signatureY = $pdf->GetY();
-            $signatureWidth = 50;
-            $firmaPath =
-                FPath::FUSER .
-                $orden['UsuarioSession']['ID_Usuario'] .
-                DIRECTORY_SEPARATOR .
-                $orden['UsuarioSession']['Firma_digital'];
-            log_message('info', 'Firma ' . $firmaPath);
+        
+        $signatureWidth = 60;
+        $x_start = $pdf->GetX();
+        
+        // FIRMA DE QUIEN ELABORA (Usuario de la sesión)
+        $pdf->SetX($x_start);
+        if (isset($orden['UsuarioSession']['Firma_digital']) && !empty($orden['UsuarioSession']['Firma_digital'])) {
+            $firmaPath = FPath::FUSER . $orden['UsuarioSession']['ID_Usuario'] . DIRECTORY_SEPARATOR . $orden['UsuarioSession']['Firma_digital'];
             if (file_exists($firmaPath)) {
-                $imageWidth = 70;
-                $imageHeight = 35;
-                $x = $signatureX + ($signatureWidth - $imageWidth) / 2;
-                $pdf->Image($firmaPath, $x, $signatureY, $imageWidth, $imageHeight);
-                $pdf->SetY($signatureY + $imageHeight);
+                $imageWidth = 50; 
+                $imageHeight = 25;
+                $x_img = $x_start + ($signatureWidth - $imageWidth) / 2;
+                $pdf->Image($firmaPath, $x_img, $y, $imageWidth, $imageHeight);
+                $pdf->SetY($y + $imageHeight);
             }
-
-            $pdf->SetX($signatureX);
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->Cell($signatureWidth, 5, 'FIRMA', 'T', 0, 'C');
-            $pdf->Ln(5);
-            $pdf->SetX($signatureX);
-            $pdf->Cell($signatureWidth, 5, $orden['UsuarioSession']['Nombre'] ?? '', 0, 0, 'C');
-        } else {
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->Cell(50, 5, 'FIRMA', 'T', 0, 'C');
-            $pdf->Ln(5);
-            $pdf->Cell(50, 5, $orden['UsuarioSession']['Nombre'] ?? '', 0, 0, 'C');
         }
+        $pdf->SetX($x_start);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell($signatureWidth, 5, 'ELABORADO POR', 'T', 2, 'C');
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioSession']['Nombre'] ?? '', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+
+        
+        // FIRMA DE QUIEN COTIZA
+        $pdf->SetY($y);
+        $x_cotiza = $x_start + $signatureWidth + 5;
+        $pdf->SetX($x_cotiza);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell($signatureWidth, 5, 'COTIZADO POR', 'T', 2, 'C');
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->SetX($x_cotiza);
+        $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioCotizaNombre'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+
+        // FIRMA DE QUIEN AUTORIZA
+        $pdf->SetY($y);
+        $x_autoriza = $x_cotiza + $signatureWidth + 5;
+        $pdf->SetX($x_autoriza);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell($signatureWidth, 5, 'AUTORIZADO POR', 'T', 2, 'C');
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->SetX($x_autoriza);
+        $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioAutorizaNombre'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
     }
 
     //endregion
@@ -1286,5 +1296,98 @@ class GenerarPDF extends BaseController
         $pdf->Cell($ancho_firma, 5, 'Firma de quien recibe', 0, 1, 'C');
         $pdf->SetX(115);
         $pdf->Cell($ancho_firma, $alto_firma, '', 'B', 1, 'C');
+    }
+
+    /**
+     * Genera una factura en PDF para una solicitud de servicio.
+     *
+     * @param int $idSolicitud El ID de la solicitud de servicio.
+     * @return string|null La ruta del archivo PDF generado o null si hubo un error.
+     */
+    public function GenerarFacturaServicioPDF(int $idSolicitud): ?string
+    {
+        try {
+            $solicitud = $this->api->getSolicitudWithServiceDetails($idSolicitud);
+
+            if (empty($solicitud) || $solicitud['Tipo'] != SolicitudTipo::Servicios) {
+                log_message('error', 'Solicitud no encontrada o no es de tipo servicio para ID: ' . $idSolicitud);
+                return null;
+            }
+
+            $pdf = new PDF('P', 'mm', 'Letter');
+            $pdf->AliasNbPages();
+            $pdf->AddPage();
+
+            $pdf->SetFont('Arial', 'B', 16);
+            $pdf->Cell(0, 10, mb_convert_encoding($solicitud['Complejo'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+            $pdf->SetFont('Arial', '', 10);
+            $pdf->Cell(0, 5, mb_convert_encoding($solicitud['UsuarioRazon']['Ubicacion'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+            $pdf->Cell(0, 5, mb_convert_encoding('RFC: ' . $solicitud['ComplejoRFC'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+            $pdf->Ln(10);
+
+            $pdf->SetFont('Arial', 'B', 14);
+            $pdf->Cell(0, 10, mb_convert_encoding('FACTURA DE SERVICIO', 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+            $pdf->Ln(5);
+
+            // Información de la factura
+            $pdf->SetFont('Arial', '', 10);
+            $pdf->Cell(95, 7, mb_convert_encoding('Factura No: ' . $solicitud['No_Folio'] . '-SER', 'ISO-8859-1', 'UTF-8'), 0, 0, 'L');
+            $pdf->Cell(95, 7, mb_convert_encoding('Fecha: ' . date('d/m/Y', strtotime($solicitud['Fecha_Aprobacion'] ?? $solicitud['Fecha'])), 'ISO-8859-1', 'UTF-8'), 0, 1, 'R');
+            $pdf->Cell(95, 7, mb_convert_encoding('Solicitud No: ' . $solicitud['No_Folio'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
+            $pdf->Ln(5);
+
+            // Detalles del Proveedor
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->Cell(0, 7, mb_convert_encoding('Proveedor:', 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
+            $pdf->SetFont('Arial', '', 10);
+            $pdf->Cell(0, 7, mb_convert_encoding($solicitud['Proveedor']['RazonSocial'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
+            $pdf->Cell(0, 7, mb_convert_encoding('RFC: ' . ($solicitud['Proveedor']['RFC'] ?? 'N/A'), 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
+            $pdf->Ln(5);
+
+            // Tabla de servicios
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->SetFillColor(230, 230, 230);
+            $pdf->Cell(150, 7, mb_convert_encoding('Descripción', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C', true);
+            $pdf->Cell(40, 7, mb_convert_encoding('Importe', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C', true);
+
+            $pdf->SetFont('Arial', '', 10);
+            $totalServicios = 0;
+            foreach ($solicitud['servicios'] as $servicio) {
+                $pdf->Cell(150, 7, mb_convert_encoding($servicio['Nombre'], 'ISO-8859-1', 'UTF-8'), 1, 0, 'L');
+                $pdf->Cell(40, 7, '$' . number_format($servicio['Importe'], 2), 1, 1, 'R');
+                $totalServicios += $servicio['Importe'];
+            }
+            
+            // Totales
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->Cell(150, 7, 'Subtotal', 1, 0, 'R');
+            $pdf->Cell(40, 7, '$' . number_format($totalServicios, 2), 1, 1, 'R');
+
+            $ivaMonto = $solicitud['IVA'] === 't' ? $totalServicios * 0.16 : 0;
+            $granTotal = $totalServicios + $ivaMonto;
+
+            if ($solicitud['IVA'] === 't') {
+                $pdf->Cell(150, 7, 'IVA (16%)', 1, 0, 'R');
+                $pdf->Cell(40, 7, '$' . number_format($ivaMonto, 2), 1, 1, 'R');
+            }
+            $pdf->Cell(150, 7, 'Total', 1, 0, 'R');
+            $pdf->Cell(40, 7, '$' . number_format($granTotal, 2), 1, 1, 'R');
+            $pdf->Ln(10);
+
+            // Guardar PDF
+            $folderPath = FPath::FFACTURAS_SERVICIOS;
+            if (!is_dir($folderPath)) {
+                mkdir($folderPath, 0777, true);
+            }
+            $fileName = 'FacturaServicio-' . $solicitud['No_Folio'] . '.pdf';
+            $filePath = $folderPath . $fileName;
+            $pdf->Output('F', $filePath);
+
+            return $filePath;
+
+        } catch (\Exception $e) {
+            log_message('error', '[GenerarFacturaServicioPDF] Error al generar factura de servicio: ' . $e->getMessage());
+            return null;
+        }
     }
 }

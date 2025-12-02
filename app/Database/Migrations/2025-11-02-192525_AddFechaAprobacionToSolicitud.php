@@ -12,7 +12,6 @@ class AddFechaAprobacionToSolicitud extends Migration
             'Fecha_Aprobacion' => [
                 'type' => 'DATETIME',
                 'null' => true,
-                'after' => 'Status',
             ],
         ]);
     }

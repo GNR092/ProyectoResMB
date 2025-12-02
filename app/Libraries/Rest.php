@@ -15,6 +15,7 @@ use App\Models\SolicitudServiciosModel;
 use App\Models\TokenModel;
 use App\Models\UsuariosModel;
 use App\Libraries\HttpStatus;
+use App\Libraries\ImageProcessor;
 use App\Libraries\SolicitudTipo;
 
 use CodeIgniter\Database\BaseBuilder;
@@ -424,6 +425,61 @@ class Rest
 
         return $solicitud ? $solicitud : [];
     }
+
+    /**
+     * Obtiene una solicitud específica con todos sus servicios y detalles asociados.
+     * Es similar a getSolicitudWithProducts, pero enfocado en servicios.
+     *
+     * @param int      $id         El ID de la solicitud a obtener.
+     * @return array|null Un array con los datos de la solicitud y sus servicios,
+     *                    o null si la solicitud no se encuentra.
+     */
+    public function getSolicitudWithServiceDetails(int $id): ?array
+    {
+        $solicitudModel = new SolicitudModel();
+        $placesModel = new PlacesModel();
+        $razonSocialModel = new RazonSocialModel();
+        $proveedorModel = new ProveedorModel();
+
+        $solicitud = $solicitudModel
+            ->select([
+                'Solicitud.*',
+                'Usuarios.Nombre as UsuarioNombre',
+                'Departamentos.Nombre as DepartamentoNombre',
+                'Proveedor.RazonSocial as ProveedorRazonSocial',
+                'Proveedor.RFC as ProveedorRFC',
+                'Proveedor.Direccion as ProveedorDireccion',
+                'Proveedor.MetodoPago as ProveedorMetodoPago', // Para forma de pago
+                'Razon_Social.Nombre as Complejo',
+                'Solicitud.Fecha_Aprobacion', // Necesario para la fecha de la factura
+            ])
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->find($id);
+
+        if (!$solicitud) {
+            return null;
+        }
+
+        $solicitud['ID_Place'] = $placesModel->find(
+            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
+        )['Nombre_Corto'];
+        $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
+        $solicitud['UsuarioRazon'] = $razonSocialModel->find($solicitud['ID_RazonSocial']); // Detalles completos de la razón social del complejo
+
+        $solicitudServicioModel = new SolicitudServiciosModel();
+        $servicios = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
+        $solicitud['servicios'] = $servicios;
+
+        // Si hay un proveedor asignado a la solicitud (para el servicio)
+        if (!empty($solicitud['ID_Proveedor'])) {
+            $solicitud['Proveedor'] = $proveedorModel->find($solicitud['ID_Proveedor']);
+        }
+
+        return $solicitud ? $solicitud : [];
+    }
     /**
      * Obtiene una solicitud específica con su cotización y detalles asociados.
      *
@@ -509,13 +565,26 @@ class Rest
                 'Usuarios.Nombre as UsuarioNombre',
                 'Departamentos.Nombre as DepartamentoNombre',
                 'Razon_Social.Nombre as Complejo',
+                'Solicitud.TipoComentarioAdmin',
                 'OrdenCompra.Estado as EstadoOrden',
+                'UsuarioCotiza.Nombre as UsuarioCotizaNombre',
+                'UsuarioAutoriza.Nombre as UsuarioAutorizaNombre',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
             ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
+            ->join(
+                'Usuarios as UsuarioCotiza',
+                'UsuarioCotiza.ID_Usuario = Cotizacion.ID_Usuario_Cotiza',
+                'left',
+            )
+            ->join(
+                'Usuarios as UsuarioAutoriza',
+                'UsuarioAutoriza.ID_Usuario = Solicitud.ID_Usuario_Autoriza',
+                'left',
+            )
             ->find($id);
 
         if (!$solicitud) {
@@ -993,17 +1062,10 @@ class Rest
             }
         }
 
-        if (!is_dir($userFolder)) {
-            if (!$this->CreateFolder($userFolder)) {
-                return [
-                    'success' => false,
-                    'message' => 'No se pudo crear la carpeta del usuario.',
-                ];
-            }
-        }
+        $baseFileName = 'signature_' . $userId . '_' . uniqid();
+        $fileName = ImageProcessor::processAndSave($file, $userFolder, $baseFileName);
 
-        $fileName = $file->getRandomName();
-        if (!$file->move($userFolder, $fileName)) {
+        if (!$fileName) {
             return ['success' => false, 'message' => 'No se pudo guardar la firma.'];
         }
 
@@ -1068,14 +1130,14 @@ class Rest
      */
     public function getProductsByName(string $name, int $limit = 0): array
     {
-        $sql = 'SELECT * FROM "Producto" WHERE "Nombre" ILIKE ?' . ($limit > 0 ? ' LIMIT ?' : '');
-        $params = [$name . '%'];
+        $builder = $this->db->table('Producto');
+        $builder->like('Nombre', $name, 'after', null, true); // true for case-insensitive
+
         if ($limit > 0) {
-            $params[] = $limit;
-            $query = $this->db->query($sql, $params);
-            return $query->getResultArray();
+            $builder->limit($limit);
         }
-        return [];
+
+        return $builder->get()->getResultArray();
     }
     /**
      * Registra un nuevo producto a partir de un array de datos.

@@ -6,6 +6,8 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
+$routes->get('installer/rollback', 'Installer::rollback');
+
 $installerLockFile = WRITEPATH . 'installer.lock';
 
 // --- Rutas del Instalador ---
@@ -60,6 +62,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/solicitud/dictaminar', 'Api::dictaminarSolicitud');
         $routes->get('api/solicitudes/pendientes-jefe', 'Api::getPendientesAprobacionJefe');
         $routes->post('api/solicitud/dictaminar-jefe', 'Api::dictaminarSolicitudJefe');
+        $routes->post('api/solicitud/aprobar-y-cotizar', 'Api::aprobarYCotizar');
         $routes->post('api/orden/generar/(:num)', 'Api::GenerarOrden/$1');
         $routes->post('solicitudes/registrar', 'Archivo::subir');
         $routes->get('solicitudes/archivo/(:num)', 'Archivo::descargar/$1');
@@ -91,11 +94,17 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/solicitudes/cotizadas', 'Api::getSolicitudesCotizadas');
         $routes->get('api/solicitudes/getsoluser/(:num)', 'Api::getSolicitudesUsers/$1');
         $routes->get('api/solicitudes/en-revision', 'Api::getSolicitudesEnRevision');
+        $routes->get('api/pagos/all', 'Api::getAllPagos');
+        $routes->get('api/pagos/programados', 'Api::getPagosProgramados');
+        $routes->get('api/exportar-requisiciones', 'Api::exportarRequisiciones');
 
         //Orden de compra
         $routes->get('api/orden-compra/details/(:num)', 'Api::getOrdenCompra/$1');
         $routes->get('api/orden-compra/alldata', 'Api::getAllOrdenCompraData');
         $routes->get('api/orden-compra/data/(:num)', 'Api::getOrdenCompraData/$1');
+        $routes->get('api/ordenes-compra/pendientes-recepcion', 'Api::getOrdenesCompraPendientesRecepcion');
+        $routes->post('api/recepcion/confirmar', 'Api::confirmarRecepcion');
+        $routes->post('api/bajas/destruccion/registrar', 'Api::registrarBajaDestruccion');
         $routes->get('api/orden/solicitud/(:num)', 'Api::getOrdenBySolicitudID/$1');
         $routes->post('api/solicitudes/cambiarEstado/(:num)', 'Api::cambiarEstadoOrden/$1');
         $routes->post('api/solicitud/enviarATesoreria', 'Api::enviarATesoreria');
@@ -103,6 +112,7 @@ if (!file_exists($installerLockFile)) {
             'api/orden/enviar-proveedor/(:num)/(:segment)',
             'Api::enviarOrdenAProveedor/$1/$2',
         );
+        $routes->post('api/orden/programar-pagos', 'Api::programarPagos');
 
         //razon social
         $routes->post('modales/razonsocial/insertar', 'Modales::insertarRazonSocial');

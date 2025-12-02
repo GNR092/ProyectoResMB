@@ -3,6 +3,7 @@
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
+use CodeIgniter\Database\RawSql;
 
 class CreateTableApiToken extends Migration
 {
@@ -34,12 +35,14 @@ class CreateTableApiToken extends Migration
                 'null' => true,
             ],
             'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => false,
+                'type'    => 'TIMESTAMP',
+                'null'    => false,
+                'default' => new RawSql('CURRENT_TIMESTAMP'),
             ],
             'updated_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => false,
+                'type'    => 'TIMESTAMP',
+                'null'    => false,
+                'default' => new RawSql('CURRENT_TIMESTAMP'),
             ],
             'deleted_at' => [
                 'type' => 'TIMESTAMP',

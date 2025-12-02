@@ -1,0 +1,22 @@
+[
+  {
+    "description": "Modificar la vista `app/Views/installer/db_config.php` para incluir un selector de tipo de base de datos (PostgreSQL o MySQL/MariaDB).",
+    "status": "completed"
+  },
+  {
+    "description": "Modificar el método `testConnection` en `app/Controllers/Installer.php` para que funcione con ambos drivers de base de datos.",
+    "status": "completed"
+  },
+  {
+    "description": "Modificar el método `process` en `app/Controllers/Installer.php` para manejar la creación de usuarios y bases de datos para PostgreSQL y MySQL/MariaDB.",
+    "status": "completed"
+  },
+  {
+    "description": "Modificar el método `updateEnvFile` en `app/Controllers/Installer.php` para escribir la configuración correcta en el archivo .env según el driver seleccionado.",
+    "status": "completed"
+  },
+  {
+    "description": "Verificar que el método `migrate` funciona correctamente con ambos tipos de bases de datos.",
+    "status": "completed"
+  }
+]

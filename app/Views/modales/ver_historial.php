@@ -26,6 +26,7 @@
         </select>
 
         <!-- Filtro por Departamento -->
+         <?php if (session('login_type') === 'boss'): ?>
         <select id="filtroDepartamento" class="border p-2 rounded w-full md:w-auto">
             <option value="">Todos los departamentos</option>
             <?php if (isset($departamentos) && !empty($departamentos)): ?>
@@ -36,6 +37,7 @@
                 <?php endforeach; ?>
             <?php endif; ?>
         </select>
+        <?php endif; ?>
 
     </div>
 

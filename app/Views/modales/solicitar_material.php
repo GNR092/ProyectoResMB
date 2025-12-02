@@ -134,21 +134,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                                     $0.00
                                 </td>
                             </tr>
-                            <!-- Total con IVA opcional -->
-                            <tr class="bg-gray-100 text-gray-700 font-semibold">
-                                <td class="px-3 py-2 border text-left">
-                                    <div class="flex items-center gap-2">
-                                        Total:
-                                        <label class="flex items-center gap-1 text-sm font-normal">
-                                            <input type="checkbox" id="agregar-iva" class="accent-blue-600" name="iva">
-                                            Agregar IVA
-                                        </label>
-                                    </div>
-                                </td>
-                                <td id="total-costo" class="px-3 py-2 border text-right">
-                                    $0.00
-                                </td>
-                            </tr>
+
                         </tbody>
                     </table>
                 </div>
@@ -447,21 +433,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                                 $0.00
                             </td>
                         </tr>
-                        <tr class="bg-gray-100 text-gray-700 font-semibold">
-                            <td class="px-3 py-2 border text-left">
-                                <div class="flex items-center gap-2">
-                                    Total:
-                                    <label class="flex items-center gap-1 text-sm font-normal">
-                                        <input type="checkbox" id="agregar-iva-servicio" class="accent-blue-600"
-                                               name="iva">
-                                        Agregar IVA
-                                    </label>
-                                </div>
-                            </td>
-                            <td id="total-servicio" class="px-3 py-2 border text-right">
-                                $0.00
-                            </td>
-                        </tr>
+
                         </tbody>
                     </table>
                 </div>
@@ -487,7 +459,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 <h2 class="text-lg font-semibold text-gray-800 mb-2">Factura</h2>
                 <input type="file" name="archivo"
                        class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
-                       accept="image/jpg,image/jpeg,image/png,application/pdf">
+                       accept="image/jpg,image/jpeg,image/png,application/pdf,text/xml">
             </div>
 
             <!-- Contenedor para mensajes -->

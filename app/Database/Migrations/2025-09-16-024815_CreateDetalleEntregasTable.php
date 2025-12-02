@@ -3,6 +3,7 @@
 namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
+use CodeIgniter\Database\RawSql;
 
 class CreateDetalleEntregasTable extends Migration
 {
@@ -33,12 +34,14 @@ class CreateDetalleEntregasTable extends Migration
                 'null'       => false,
             ],
             'created_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => false,
+                'type'    => 'TIMESTAMP',
+                'null'    => false,
+                'default' => new RawSql('CURRENT_TIMESTAMP'),
             ],
             'updated_at' => [
-                'type' => 'TIMESTAMP',
-                'null' => false,
+                'type'    => 'TIMESTAMP',
+                'null'    => false,
+                'default' => new RawSql('CURRENT_TIMESTAMP'),
             ],
         ]);
 

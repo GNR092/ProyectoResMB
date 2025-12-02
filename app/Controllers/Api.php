@@ -7,9 +7,13 @@ use App\Models\CotizacionModel;
 use App\Models\SolicitudModel;
 use App\Models\SolicitudProductModel;
 use App\Models\OrdenCompraModel;
+use App\Models\PagoModel;
+use App\Models\ProductoModel;
+use App\Models\HistorialProductosModel;
 use CodeIgniter\RESTful\ResourceController;
 use App\Libraries\Rest;
 use App\Libraries\HttpStatus;
+use App\Libraries\ImageProcessor;
 use App\Libraries\SolicitudTipo;
 use App\Libraries\Status;
 use App\Libraries\MBSMail;
@@ -18,8 +22,8 @@ use App\Controllers\GenerarPDF;
 use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
 use App\Models\UsuariosModel;
-use CodeIgniter\Log\Logger;
-use PHPUnit\TextUI\XmlConfiguration\Logging\Logging;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class Api extends ResourceController
 {
@@ -247,7 +251,6 @@ class Api extends ResourceController
         $idSolicitud = (int) $json->id_solicitud;
         $productosPayload = $json->productos;
         $comentarios = $json->comentarios ?? null;
-        $iva = isset($json->iva) ?? null;
 
         $idCotizacionSeleccionada = $json->id_cotizacion_seleccionada ?? null;
 
@@ -264,23 +267,11 @@ class Api extends ResourceController
         $db->transStart();
 
         try {
-            if ($iva) {
-                $solicitudModel->update($idSolicitud, [
-                    'IVA' => $iva,
-                ]);
-            } else {
-                $solicitudModel->update($idSolicitud, [
-                    'IVA' => false,
-                ]);
-            }
-
             if ($idCotizacionSeleccionada) {
                 $cotizacionSeleccionada = $cotizacionModel->find($idCotizacionSeleccionada);
                 if ($cotizacionSeleccionada) {
-                    log_message('info', 'iva: ' . $iva);
                     $solicitudModel->update($idSolicitud, [
                         'ID_Proveedor' => $cotizacionSeleccionada['ID_Proveedor'],
-                        'IVA' => $iva,
                     ]);
                 }
             }
@@ -414,6 +405,55 @@ class Api extends ResourceController
         }
     }
 
+    public function aprobarYCotizar()
+    {
+        if (session('login_type') !== 'boss') {
+            return $this->failForbidden('Acceso denegado. Solo para jefes de departamento.');
+        }
+
+        $json = $this->request->getJSON();
+        if (!isset($json->ID_Solicitud)) {
+            return $this->failValidationErrors('Se requiere ID de solicitud.');
+        }
+
+        $idSolicitud = (int) $json->ID_Solicitud;
+
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) {
+            return $this->failNotFound('La solicitud no existe.');
+        }
+        if ($solicitud['ID_Dpto'] != session('id_departamento_usuario')) {
+            return $this->failForbidden('Esta solicitud no pertenece a su departamento.');
+        }
+        if ($solicitud['Estado'] !== Status::Aprobacion_pendiente) {
+            return $this->fail('La solicitud ya ha sido procesada.', HttpStatus::BAD_REQUEST);
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            $solicitudModel->update($idSolicitud, ['Estado' => Status::En_espera]);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Falla en la transacción de base de datos.');
+            }
+
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'Solicitud aprobada y enviada a Compras para su cotización.',
+            ]);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', '[aprobarYCotizar] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Crea una nueva cotización para una solicitud.
      * @return \CodeIgniter\HTTP\Response
@@ -494,6 +534,7 @@ class Api extends ResourceController
                     'ID_Solicitud' => $idSolicitud,
                     'ID_Proveedor' => $idProveedor,
                     'Total' => $total,
+                    'ID_Usuario_Cotiza' => session('id'),
                 ];
                 $cotizacionModel->insert($cotizacionData);
                 $solicitudModel->update($idSolicitud, ['ID_Proveedor' => $idProveedor]);
@@ -631,7 +672,6 @@ class Api extends ResourceController
             ]);
             $files = $this->request->getFiles();
             $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
-            $this->api->CreateFolder($folder);
 
             if ($files) {
                 $cotizacion = $this->api->getCotizacionBySolicitudID($idSolicitud);
@@ -639,23 +679,17 @@ class Api extends ResourceController
                 $tmp = [];
                 $count = 0;
                 foreach ($files['cotizacion_files'] as $file) {
-                    if ($file->isValid() && !$file->hasMoved()) {
-                        $extension = $file->getExtension();
-                        $nuevoNombre =
-                            'cotizacion_' .
-                            $idCotizacion .
-                            '_' .
-                            $solicitud['Fecha'] .
-                            '_' .
-                            $count++ .
-                            '.' .
-                            $extension;
-                        $tmp[] = $nuevoNombre;
-                        $file->move($folder, $nuevoNombre);
+                    $baseFileName =
+                        'cotizacion_' . $idCotizacion . '_' . $solicitud['Fecha'] . '_' . $count++;
+                    $savedFileName = ImageProcessor::processAndSave($file, $folder, $baseFileName);
+                    if ($savedFileName) {
+                        $tmp[] = $savedFileName;
                     }
                 }
-                $cfls['Cotizacion_Files'] = implode(',', $tmp);
-                $this->api->updateCotizacionById($idCotizacion, $cfls);
+                if (!empty($tmp)) {
+                    $cfls['Cotizacion_Files'] = implode(',', $tmp);
+                    $this->api->updateCotizacionById($idCotizacion, $cfls);
+                }
             }
 
             return $this->respondUpdated([
@@ -709,8 +743,15 @@ class Api extends ResourceController
 
         try {
             $dataToUpdate = ['Estado' => $nuevoEstado, 'ComentariosAdmin' => $comentarios];
+            if ($nuevoEstado === Status::Rechazada) {
+                $dataToUpdate['TipoComentarioAdmin'] = 'Rechazo';
+            } elseif ($nuevoEstado === Status::Aprobada && !empty(trim((string) $comentarios))) {
+                $dataToUpdate['TipoComentarioAdmin'] = 'Observacion';
+            }
+
             if ($nuevoEstado === Status::Aprobada) {
                 $dataToUpdate['Fecha_Aprobacion'] = date('Y-m-d H:i:s');
+                $dataToUpdate['ID_Usuario_Autoriza'] = session('id');
             }
             $solicitudModel->update($idSolicitud, $dataToUpdate);
             return $this->respondUpdated([
@@ -722,6 +763,7 @@ class Api extends ResourceController
             return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen.');
         }
     }
+
     //endregion
 
     //region Cotizaciones
@@ -907,6 +949,44 @@ class Api extends ResourceController
         return $this->respond($details);
     }
 
+    public function getOrdenesCompraPendientesRecepcion()
+    {
+        $ordenCompraModel = new OrdenCompraModel();
+        $cotizacionModel = new CotizacionModel();
+        $solicitudModel = new SolicitudModel();
+        $proveedorModel = new ProveedorModel();
+
+        $ordenesPendientes = $ordenCompraModel
+            ->whereIn('Estado', [Status::Por_Pagar, Status::En_Proceso_Pago])
+            ->findAll();
+
+        $formattedOrdenes = [];
+        foreach ($ordenesPendientes as $orden) {
+            $cotizacion = $cotizacionModel->find($orden['ID_Cotizacion']);
+            if (!$cotizacion) {
+                continue;
+            }
+
+            $solicitud = $solicitudModel->find($cotizacion['ID_Solicitud']);
+            if (!$solicitud) {
+                continue;
+            }
+
+            $proveedor = $proveedorModel->find($orden['ID_Proveedor']);
+
+            $formattedOrdenes[] = [
+                'ID_OrdenCompra' => $orden['ID_OrdenCompra'],
+                'ID_Solicitud' => $cotizacion['ID_Solicitud'],
+                'No_Folio' => $solicitud['No_Folio'],
+                'ProveedorNombre' => $proveedor['RazonSocial'] ?? 'N/A',
+                'Total' => $cotizacion['Total'],
+                'MetodoPago' => $solicitud['MetodoPago'],
+            ];
+        }
+
+        return $this->respond($formattedOrdenes, HttpStatus::OK);
+    }
+
     /**
      * Cambia el estado de una orden de compra y opcionalmente sube un archivo de factura y/o un comprobante.
      *
@@ -917,6 +997,7 @@ class Api extends ResourceController
     {
         $cotizacionModel = new CotizacionModel();
         $ordenCompraModel = new OrdenCompraModel();
+        $solicitudModel = new SolicitudModel();
 
         $nuevoEstado = $this->request->getPost('nuevoEstado');
 
@@ -925,42 +1006,54 @@ class Api extends ResourceController
         }
 
         $cot = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
-        $orden = $ordenCompraModel->where('ID_Cotizacion', $cot['ID_Cotizacion'])->first();
+        if (!$cot) {
+            return $this->failNotFound('Cotización no encontrada para la solicitud.');
+        }
 
+        $orden = $ordenCompraModel->where('ID_Cotizacion', $cot['ID_Cotizacion'])->first();
         if (!$orden) {
             return $this->failNotFound('Orden no encontrada.');
+        }
+
+        $solicitud = $solicitudModel->find($cot['ID_Solicitud']);
+        if (!$solicitud) {
+            return $this->failNotFound('Solicitud no encontrada.');
         }
 
         try {
             $idCotizacion = $cot['ID_Cotizacion'];
             $idOrdenCompra = $orden['ID_OrdenCompra'];
             $idProveedor = $cot['ID_Proveedor'];
-            $randomString = substr(
-                str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'),
-                0,
-                5,
-            );
+            $randomString = uniqid();
 
             $facturaFile = $this->request->getFile('factura');
-            if ($facturaFile && $facturaFile->isValid() && !$facturaFile->hasMoved()) {
-                $extension = $facturaFile->getExtension();
-                $newName = "Factura-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}.{$extension}";
-                if (!$facturaFile->move(FPath::FFACTURAS, $newName)) {
+            if ($facturaFile) {
+                $baseFileName = "Factura-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}";
+                $savedFile = ImageProcessor::processAndSave(
+                    $facturaFile,
+                    FPath::FFACTURAS,
+                    $baseFileName,
+                );
+                if ($savedFile) {
+                    $ordenCompraModel->update($idOrdenCompra, ['File_Factura' => $savedFile]);
+                } else {
                     return $this->failServerError('No se pudo guardar el archivo de la factura.');
                 }
-                $ordenCompraModel->update($idOrdenCompra, ['File_Factura' => $newName]);
             }
 
             $comprobanteFile = $this->request->getFile('ficha');
-            if ($comprobanteFile && $comprobanteFile->isValid() && !$comprobanteFile->hasMoved()) {
-                $extensionComprobante = $comprobanteFile->getExtension();
-                $newNameComprobante = "Ficha-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}.{$extensionComprobante}";
-                if (!$comprobanteFile->move(FPath::FCOMPROBANTES, $newNameComprobante)) {
+            if ($comprobanteFile) {
+                $baseFileName = "Ficha-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}";
+                $savedFile = ImageProcessor::processAndSave(
+                    $comprobanteFile,
+                    FPath::FCOMPROBANTES,
+                    $baseFileName,
+                );
+                if ($savedFile) {
+                    $ordenCompraModel->update($idOrdenCompra, ['File_Comprobante' => $savedFile]);
+                } else {
                     return $this->failServerError('No se pudo guardar el archivo del comprobante.');
                 }
-                $ordenCompraModel->update($idOrdenCompra, [
-                    'File_Comprobante' => $newNameComprobante,
-                ]);
             }
 
             if ($nuevoEstado === 'Pagada') {
@@ -980,6 +1073,124 @@ class Api extends ResourceController
                             implode(' y ', $missingFiles) .
                             '.',
                     );
+                }
+
+                try {
+                    $solicitudModel = new SolicitudModel();
+                    $proveedorModel = new ProveedorModel();
+                    $razonSocialModel = new RazonSocialModel();
+
+                    $solicitud = $solicitudModel->find($idSolicitud);
+                    $proveedor = $proveedorModel->find($ordenActualizada['ID_Proveedor']);
+                    $razon = $razonSocialModel->find($solicitud['ID_RazonSocial']);
+
+                    if (!$solicitud || !$proveedor || !$razon) {
+                        throw new \Exception('Datos insuficientes para enviar la ficha de pago.');
+                    }
+
+                    $attachmentPath = FPath::FCOMPROBANTES . $ordenActualizada['File_Comprobante'];
+
+                    if (!file_exists($attachmentPath)) {
+                        throw new \Exception(
+                            'El archivo de la ficha de pago no se encontró en la ruta esperada: ' .
+                                $attachmentPath,
+                        );
+                    }
+
+                    $mail = new MBSMail();
+
+                    $subject = "Ficha de Pago - Solicitud Folio {$solicitud['No_Folio']}";
+
+                    $totalAPagar = '$' . number_format($cot['Total'], 2);
+                    $proveedorNombre = esc($proveedor['RazonSocial'] ?? 'Proveedor');
+                    $folio = esc($solicitud['No_Folio']);
+                    $razonNombre = esc($razon['Nombre']);
+
+                    $toProveedor = getenv('EMAIL_TO_TEST') ?: $proveedor['Correo'] ?? null;
+                    if ($toProveedor) {
+                        $messageProveedor = view('emails/ficha_pago', [
+                            'recipientName' => $proveedorNombre,
+                            'folio' => $folio,
+                            'totalAPagar' => $totalAPagar,
+                            'proveedorNombre' => $proveedorNombre,
+                            'razonNombre' => $razonNombre,
+                        ]);
+                        $mail->send_email($toProveedor, $subject, $messageProveedor, [
+                            'attachments' => [$attachmentPath],
+                            'fromName' => $razonNombre,
+                        ]);
+                    } else {
+                        log_message(
+                            'warning',
+                            'No se pudo enviar ficha de pago al proveedor (correo no disponible).',
+                        );
+                    }
+
+                    $ccCompras = getenv('EMAIL_TO_COMPRAS');
+                    if ($ccCompras) {
+                        $messageCompras = view('emails/ficha_pago', [
+                            'recipientName' => 'Departamento de Compras',
+                            'folio' => $folio,
+                            'totalAPagar' => $totalAPagar,
+                            'proveedorNombre' => $proveedorNombre,
+                            'razonNombre' => $razonNombre,
+                        ]);
+                        $mail->send_email($ccCompras, $subject, $messageCompras, [
+                            'attachments' => [$attachmentPath],
+                            'fromName' => $razonNombre,
+                            'isHtml' => true,
+                        ]);
+                    } else {
+                        log_message(
+                            'warning',
+                            'No se pudo enviar ficha de pago a Compras (correo no configurado).',
+                        );
+                    }
+
+                    $ccTesoreria = getenv('EMAIL_TO_TESORERIA');
+                    if ($ccTesoreria) {
+                        $messageTesoreria = view('emails/ficha_pago', [
+                            'recipientName' => 'Departamento de Tesorería',
+                            'folio' => $folio,
+                            'totalAPagar' => $totalAPagar,
+                            'proveedorNombre' => $proveedorNombre,
+                            'razonNombre' => $razonNombre,
+                        ]);
+                        $mail->send_email($ccTesoreria, $subject, $messageTesoreria, [
+                            'attachments' => [$attachmentPath],
+                            'fromName' => $razonNombre,
+                            'isHtml' => true,
+                        ]);
+                    } else {
+                        log_message(
+                            'warning',
+                            'No se pudo enviar ficha de pago a Tesorería (correo no configurado).',
+                        );
+                    }
+                } catch (\Exception $e) {
+                    log_message(
+                        'error',
+                        '[cambiarEstadoOrden] Error al enviar email de ficha de pago: ' .
+                            $e->getMessage(),
+                    );
+                }
+
+                if ($solicitud['Tipo'] == SolicitudTipo::Servicios) {
+                    $facturaResult = $this->GenerarFacturaServicio(
+                        $solicitud['ID_Solicitud'],
+                        $ordenActualizada,
+                    );
+                    if ($facturaResult['error']) {
+                        log_message(
+                            'error',
+                            'Error al generar factura de servicio: ' . $facturaResult['error'],
+                        );
+                    } else {
+                        $ordenCompraModel->update($idOrdenCompra, [
+                            'File_FacturaServicioPDF' => basename($facturaResult['pdf_path']),
+                            'File_FacturaServicioXML' => basename($facturaResult['xml_path']),
+                        ]);
+                    }
                 }
             }
 
@@ -1050,7 +1261,7 @@ class Api extends ResourceController
             $ordenData = [
                 'ID_Cotizacion' => $cotizacion['ID_Cotizacion'],
                 'ID_Proveedor' => $cotizacion['ID_Proveedor'],
-                'Estado' => Status::Por_Pagar,
+                'Estado' => Status::Espera_Programacion,
                 'Fecha' => date('Y-m-d'),
             ];
 
@@ -1131,7 +1342,7 @@ class Api extends ResourceController
             return $this->respondUpdated([
                 'success' => true,
                 'message' => 'Orden Creada, estado actualizado y correo enviado.',
-                'nuevoEstado' => Status::En_Proceso_Pago,
+                'nuevoEstado' => Status::Espera_Programacion,
             ]);
         } catch (\Exception $e) {
             log_message('error', '[enviarOrdenAProveedor] ' . $e->getMessage());
@@ -1502,5 +1713,460 @@ class Api extends ResourceController
             ->setHeader('Content-Type', 'application/zip')
             ->setHeader('Content-Disposition', 'attachment; filename="' . $zipFileName . '"')
             ->setHeader('Content-Length', (string) strlen($zipContent));
+        log_message('debug', print_r($solicitud, true));
+        return $solicitud ?: [];
     }
+
+    public function exportarRequisiciones()
+    {
+        $solicitudModel = new SolicitudModel();
+        $solicitudes = $solicitudModel
+            ->select(
+                'Solicitud.*, Usuarios.Nombre AS UsuarioNombre, Departamentos.Nombre AS DepartamentoNombre',
+            )
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->where('Solicitud.Estado', 'En espera')
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->findAll();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->setCellValue('A1', 'No. Folio');
+        $sheet->setCellValue('B1', 'Usuario');
+        $sheet->setCellValue('C1', 'Departamento');
+        $sheet->setCellValue('D1', 'Fecha');
+        $sheet->setCellValue('E1', 'Estado');
+
+        $row = 2;
+        foreach ($solicitudes as $solicitud) {
+            $sheet->setCellValue('A' . $row, $solicitud['No_Folio']);
+            $sheet->setCellValue('B' . $row, $solicitud['UsuarioNombre']);
+            $sheet->setCellValue('C' . $row, $solicitud['DepartamentoNombre']);
+            $sheet->setCellValue('D' . $row, $solicitud['Fecha']);
+            $sheet->setCellValue('E' . $row, $solicitud['Estado']);
+            $row++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+
+        $filename = 'requisiciones_pendientes.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit();
+    }
+
+    public function getAllPagos()
+    {
+        $pagoModel = new PagoModel();
+        $ordenCompraModel = new OrdenCompraModel();
+        $cotizacionModel = new CotizacionModel();
+        $solicitudModel = new SolicitudModel();
+        $proveedorModel = new ProveedorModel();
+
+        $pagos = $pagoModel->findAll();
+
+        $formattedPagos = [];
+        foreach ($pagos as $pago) {
+            $ordenCompra = $ordenCompraModel->find($pago['ID_OrdenCompra']);
+            if (!$ordenCompra) {
+                continue;
+            }
+
+            $cotizacion = $cotizacionModel->find($ordenCompra['ID_Cotizacion']);
+            if (!$cotizacion) {
+                continue;
+            }
+
+            $solicitud = $solicitudModel->find($cotizacion['ID_Solicitud']);
+            if (!$solicitud) {
+                continue;
+            }
+
+            $proveedor = $proveedorModel->find($ordenCompra['ID_Proveedor']);
+
+            $formattedPagos[] = [
+                'ID_Pago' => $pago['ID_Pago'],
+                'Folio' => $solicitud['No_Folio'],
+                'Proveedor' => $proveedor['RazonSocial'] ?? 'N/A',
+                'Total' => $cotizacion['Total'],
+                'Estado' => $ordenCompra['Estado'],
+            ];
+        }
+
+        return $this->respond($formattedPagos, HttpStatus::OK);
+    }
+
+    public function confirmarRecepcion()
+    {
+        $ordenCompraModel = new OrdenCompraModel();
+        $productoModel = new ProductoModel();
+        $solicitudProductModel = new SolicitudProductModel();
+
+        $idOrdenCompra = $this->request->getPost('id_orden_compra');
+        $productosRecibidosJson = $this->request->getPost('productos_recibidos');
+        $remisionFile = $this->request->getFile('remision_file');
+
+        if (!$idOrdenCompra || !$productosRecibidosJson) {
+            return $this->failValidationErrors(
+                'Faltan datos de la orden de compra o productos recibidos.',
+            );
+        }
+
+        $productosRecibidos = json_decode($productosRecibidosJson, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $this->failValidationErrors('Formato de productos recibidos inválido.');
+        }
+
+        $ordenCompra = $ordenCompraModel->find($idOrdenCompra);
+        if (!$ordenCompra) {
+            return $this->failNotFound('Orden de compra no encontrada.');
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            if ($remisionFile) {
+                $baseFileName = 'remision_' . $ordenCompra['ID_OrdenCompra'] . '_' . uniqid();
+                $savedFile = ImageProcessor::processAndSave(
+                    $remisionFile,
+                    FPath::FREMISIONES,
+                    $baseFileName,
+                );
+                if ($savedFile) {
+                    $ordenCompraModel->update($idOrdenCompra, ['File_Remision' => $savedFile]);
+                } else {
+                    throw new \Exception('No se pudo guardar el archivo de remisión.');
+                }
+            }
+
+            $facturaEntradaFile = $this->request->getFile('factura_entrada_file');
+            if ($facturaEntradaFile) {
+                $baseFileName =
+                    'factura_entrada_' . $ordenCompra['ID_OrdenCompra'] . '_' . uniqid();
+                $savedFile = ImageProcessor::processAndSave(
+                    $facturaEntradaFile,
+                    FPath::FENTRADAS_FACTURAS,
+                    $baseFileName,
+                );
+                if ($savedFile) {
+                    $ordenCompraModel->update($idOrdenCompra, [
+                        'File_FacturaEntrada' => $savedFile,
+                    ]);
+                } else {
+                    throw new \Exception('No se pudo guardar el archivo de factura de entrada.');
+                }
+            }
+
+            $totalProductosOrden = 0;
+            $totalRecibidoOrden = 0;
+            $todosProductosRecibidosCompletamente = true;
+
+            $productosOriginales = $solicitudProductModel
+                ->where(
+                    'ID_Solicitud',
+                    $this->api->getCotizacionById($ordenCompra['ID_Cotizacion'])['ID_Solicitud'],
+                )
+                ->findAll();
+            $productosOriginalesMap = [];
+            foreach ($productosOriginales as $po) {
+                $productosOriginalesMap[$po['ID_SolicitudProd']] = $po;
+            }
+
+            foreach ($productosRecibidos as $prodRecibido) {
+                $idSolicitudProd = $prodRecibido['id_solicitud_prod'];
+                $cantidadRecibida = (int) $prodRecibido['cantidad_recibida'];
+                $idProducto = $prodRecibido['id_producto'];
+
+                $productoOriginal = $productosOriginalesMap[$idSolicitudProd] ?? null;
+
+                if (!$productoOriginal) {
+                    throw new \Exception(
+                        "Producto solicitado ID {$idSolicitudProd} no encontrado.",
+                    );
+                }
+
+                $cantidadPedida = (int) $productoOriginal['Cantidad'];
+                $totalProductosOrden += $cantidadPedida;
+
+                if ($idProducto) {
+                    $producto = $productoModel->find($idProducto);
+                    if ($producto) {
+                        $productoModel->update($idProducto, [
+                            'Existencia' => $producto['Existencia'] + $cantidadRecibida,
+                        ]);
+                    }
+                }
+
+                $solicitudProduct = $solicitudProductModel->find($idSolicitudProd);
+                if ($solicitudProduct) {
+                    $nuevaCantidadRecibida =
+                        ($solicitudProduct['Cantidad_Recibida'] ?? 0) + $cantidadRecibida;
+                    $estadoRecepcion = Status::RECEPCION_PARCIAL;
+                    if ($nuevaCantidadRecibida >= $cantidadPedida) {
+                        $estadoRecepcion = Status::RECEPCION_TOTAL;
+                        $nuevaCantidadRecibida = $cantidadPedida;
+                    } else {
+                        $todosProductosRecibidosCompletamente = false;
+                    }
+                    $solicitudProductModel->update($idSolicitudProd, [
+                        'Cantidad_Recibida' => $nuevaCantidadRecibida,
+                        'Estado_Recepcion' => $estadoRecepcion,
+                    ]);
+                    $totalRecibidoOrden += $nuevaCantidadRecibida;
+                } else {
+                    $todosProductosRecibidosCompletamente = false;
+                }
+            }
+
+            $nuevoEstadoOrden = Status::POR_PAGAR;
+            if ($totalRecibidoOrden > 0) {
+                $nuevoEstadoOrden = Status::RECEPCION_PARCIAL;
+                if (
+                    $todosProductosRecibidosCompletamente &&
+                    $totalRecibidoOrden >= $totalProductosOrden
+                ) {
+                    $nuevoEstadoOrden = Status::RECIBIDA_TOTALMENTE;
+                }
+            }
+            $ordenCompraModel->update($idOrdenCompra, ['Estado' => $nuevoEstadoOrden]);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception(
+                    'Falla en la transacción de base de datos al confirmar recepción.',
+                );
+            }
+
+            return $this->respondCreated([
+                'success' => true,
+                'message' => 'Recepción confirmada correctamente.',
+            ]);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', '[confirmarRecepcion] ' . $e->getMessage());
+            return $this->failServerError('Error al confirmar la recepción: ' . $e->getMessage());
+        }
+    }
+
+    public function registrarBajaDestruccion()
+    {
+        $productoModel = new ProductoModel();
+        $historialProductosModel = new HistorialProductosModel();
+
+        $idProducto = $this->request->getPost('id_producto');
+        $cantidadBaja = (int) $this->request->getPost('cantidad_baja');
+        $motivoBaja = $this->request->getPost('motivo_baja');
+        $fechaBaja = $this->request->getPost('fecha_baja');
+        $idUsuario = session('id');
+
+        if (!$idProducto || $cantidadBaja <= 0 || !$motivoBaja || !$fechaBaja || !$idUsuario) {
+            return $this->failValidationErrors('Faltan datos obligatorios o son inválidos.');
+        }
+
+        $producto = $productoModel->find($idProducto);
+        if (!$producto) {
+            return $this->failNotFound('Producto no encontrado.');
+        }
+
+        if ($cantidadBaja > $producto['Existencia']) {
+            return $this->failValidationErrors(
+                'La cantidad a dar de baja excede la existencia actual del producto.',
+            );
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            $existenciaAnt = $producto['Existencia'];
+            $nuevaExistencia = $existenciaAnt - $cantidadBaja;
+
+            $productoModel->update($idProducto, ['Existencia' => $nuevaExistencia]);
+
+            $historialData = [
+                'ID_Producto' => $idProducto,
+                'ID_Usuario' => $idUsuario,
+                'CodigoAnt' => $producto['Codigo'],
+                'NombreAnt' => $producto['Nombre'],
+                'ExistenciaAnt' => $existenciaAnt,
+                'CodigoNew' => $producto['Codigo'],
+                'NombreNew' => $producto['Nombre'],
+                'ExistenciaNew' => $nuevaExistencia,
+                'Razon' => 'Baja por Destrucción: ' . $motivoBaja,
+                'created_at' => $fechaBaja . ' ' . date('H:i:s'),
+            ];
+            $historialProductosModel->insert($historialData);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Falla en la transacción de base de datos al registrar baja.');
+            }
+
+            return $this->respondCreated([
+                'success' => true,
+                'message' => 'Baja por destrucción registrada correctamente.',
+            ]);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', '[registrarBajaDestruccion] ' . $e->getMessage());
+            return $this->failServerError(
+                'Error al registrar la baja por destrucción: ' . $e->getMessage(),
+            );
+        }
+    }
+
+    /**
+     * Genera un archivo XML básico para una factura de servicio.
+     *
+     * @param array $solicitud Los datos de la solicitud.
+     * @param array $ordenCompra Los datos de la orden de compra.
+     * @return string|null La ruta al archivo XML generado, o null en caso de error.
+     */
+    private function GenerarFacturaServicioXML(array $solicitud, array $ordenCompra): ?string
+    {
+        try {
+            if (!is_dir(FPath::FFACTURAS_SERVICIOS)) {
+                mkdir(FPath::FFACTURAS_SERVICIOS, 0777, true);
+            }
+
+            $folioFactura = $solicitud['No_Folio'] . '-SER';
+            $fechaEmision = date('Y-m-d H:i:s');
+            $rfcEmisor = $solicitud['ComplejoRFC'];
+            $nombreEmisor = $solicitud['Complejo'];
+            $rfcReceptor = $solicitud['Proveedor']['RFC'] ?? 'XAXX010101000';
+            $nombreReceptor = $solicitud['Proveedor']['RazonSocial'] ?? 'Público en General';
+
+            $importeTotal = 0;
+            $serviciosXml = '';
+            foreach ($solicitud['servicios'] as $servicio) {
+                $importeTotal += (float) $servicio['Importe'];
+                $serviciosXml .= "<Concepto>\n";
+                $serviciosXml .= '  <Descripcion>' . esc($servicio['Nombre']) . "</Descripcion>\n";
+                $serviciosXml .= "  <Cantidad>1</Cantidad>\n";
+                $serviciosXml .= "  <Unidad>Servicio</Unidad>\n";
+                $serviciosXml .=
+                    '  <ValorUnitario>' .
+                    number_format($servicio['Importe'], 2, '.', '') .
+                    "</ValorUnitario>\n";
+                $serviciosXml .=
+                    '  <Importe>' .
+                    number_format($servicio['Importe'], 2, '.', '') .
+                    "</Importe>\n";
+                $serviciosXml .= "</Concepto>\n";
+            }
+
+            $ivaMonto = $solicitud['IVA'] === 't' ? $importeTotal * 0.16 : 0;
+            $granTotal = $importeTotal + $ivaMonto;
+
+            $xmlContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+$xmlContent .= "<FacturaServicio>\n";
+    $xmlContent .= " <Encabezado>\n";
+        $xmlContent .= ' <FolioFactura>' . esc($folioFactura) . "</FolioFactura>\n";
+        $xmlContent .= ' <FechaEmision>' . esc($fechaEmision) . "</FechaEmision>\n";
+        $xmlContent .=
+        ' <MetodoPago>' .
+            esc(MetodoPago::getText($solicitud['MetodoPago'])) .
+            "</MetodoPago>\n";
+        $xmlContent .= " </Encabezado>\n";
+    $xmlContent .= " <Emisor>\n";
+        $xmlContent .= ' <RFC>' . esc($rfcEmisor) . "</RFC>\n";
+        $xmlContent .= ' <Nombre>' . esc($nombreEmisor) . "</Nombre>\n";
+        $xmlContent .= " </Emisor>\n";
+    $xmlContent .= " <Receptor>\n";
+        $xmlContent .= ' <RFC>' . esc($rfcReceptor) . "</RFC>\n";
+        $xmlContent .= ' <Nombre>' . esc($nombreReceptor) . "</Nombre>\n";
+        $xmlContent .= " </Receptor>\n";
+    $xmlContent .= " <Conceptos>\n";
+        $xmlContent .= $serviciosXml;
+        $xmlContent .= " </Conceptos>\n";
+    $xmlContent .= " <Totales>\n";
+        $xmlContent .=
+        ' <SubTotal>' . number_format($importeTotal, 2, '.', '') . "</SubTotal>\n";
+        if ($solicitud['IVA'] === 't') {
+        $xmlContent .= ' <IVA>' . number_format($ivaMonto, 2, '.', '') . "</IVA>\n";
+        }
+        $xmlContent .= ' <Total>' . number_format($granTotal, 2, '.', '') . "</Total>\n";
+        $xmlContent .= " </Totales>\n";
+    $xmlContent .= "</FacturaServicio>\n";
+
+$fileName = 'FacturaServicio-' . $solicitud['No_Folio'] . '.xml';
+$filePath = FPath::FFACTURAS_SERVICIOS . $fileName;
+
+file_put_contents($filePath, $xmlContent);
+return $filePath;
+} catch (\Exception $e) {
+log_message(
+'error',
+'[GenerarFacturaServicioXML] Error al generar XML de factura de servicio: ' .
+$e->getMessage(),
+);
+return null;
 }
+}
+//endregion
+    public function programarPagos()
+    {
+        $json = $this->request->getJSON();
+        if (!isset($json->ids) || !is_array($json->ids)) {
+            return $this->failValidationErrors('Se requiere un array de IDs de solicitud.');
+        }
+
+        $ids = $json->ids;
+        $ordenCompraModel = new OrdenCompraModel();
+        $cotizacionModel = new CotizacionModel();
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            foreach ($ids as $idSolicitud) {
+                $cotizacion = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
+                if ($cotizacion) {
+                    $ordenCompraModel
+                        ->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])
+                        ->set(['Estado' => Status::Programada])
+                        ->update();
+                }
+            }
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->failServerError('Error en la transacción de la base de datos.');
+            }
+
+            return $this->respondUpdated(['success' => true, 'message' => 'Pagos programados correctamente.']);
+        } catch (\Exception $e) {
+            log_message('error', '[programarPagos] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado al programar los pagos.');
+        }
+    }
+    public function getPagosProgramados()
+    {
+        $ordenCompraModel = new \App\Models\OrdenCompraModel();
+
+        $data = $ordenCompraModel
+            ->select([
+                'Solicitud.ID_Solicitud',
+                'Solicitud.No_Folio',
+                'Proveedor.RazonSocial as Proveedor',
+                'Cotizacion.Total',
+                'OrdenCompra.Estado'
+            ])
+            ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
+            ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = OrdenCompra.ID_Proveedor', 'left')
+            ->where('OrdenCompra.Estado', \App\Libraries\Status::Programada)
+            ->orderBy('Solicitud.Fecha', 'DESC')
+            ->findAll();
+
+        return $this->respond($data);
+    }
+} //endregion

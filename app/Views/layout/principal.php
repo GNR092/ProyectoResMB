@@ -37,6 +37,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             <p class="text-gray-400 text-sm">Sin opciones disponibles</p>
             <?php endif; ?>
 
+            <?php if ($login_type === 'boss'): ?>
             <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
                 onclick="abrirModal('ajustes')">
                 <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
@@ -44,6 +45,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
                 </svg>
                 <span>Ajustes</span>
             </a>
+            <?php endif; ?>
 
             <a href="<?= base_url(
                 'auth/logout',
@@ -62,14 +64,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc(
      $modo_login . ' ' . $departamento_usuario ?? 'Departamento',
  ) ?>
-            <?php if ($login_type === 'boss'): ?>
-            <button id="btn-abrir-micuenta" onclick="abrirModal('micuenta')"
-                class="p-4 bg-white border-b border-gray-300 hover:bg-gray-200 transition flex items-center">
-                <svg class="size-6" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <use xlink:href="/icons/icons.svg#settings"></use>
-                </svg>
-            </button>
-            <?php endif; ?>
+
         </header>
 
         <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
@@ -121,6 +116,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     <script src="<?= base_url() ?>js/revision.js" defer></script>
     <script src="<?= base_url() ?>js/almacen.js" defer></script>
     <script src="<?= base_url() ?>js/user.js" defer></script>
+    <script src="<?= base_url() ?>js/pago.js" defer></script>
 </body>
 
 </html>

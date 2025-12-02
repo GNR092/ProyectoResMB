@@ -13,7 +13,6 @@ class RenameDeliveryColumns extends Migration
                 'type'       => 'VARCHAR',
                 'constraint' => '255',
                 'null'       => false,
-                'after' => 'ID_Usuario'
             ],
         ]);
         // Rename 'Departamento' to 'DepartamentoRecibe'

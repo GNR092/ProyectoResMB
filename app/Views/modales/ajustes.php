@@ -19,16 +19,7 @@ $login_type = session('login_type');
     </button>
     <?php endif; ?>
 
-    <?php if (in_array('limpiar_almacenamiento', $ajustes)): ?>
-    <!-- Limpiar Almacenamiento -->
-    <button onclick="abrirModal('limpiar_almacenamiento')"
-        class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
-        <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
-            <use xlink:href="<?= $iconUrl ?>#limpiar_almacenamiento"></use>
-        </svg>
-        <span>Limpiar Almacenamiento</span>
-    </button>
-    <?php endif; ?>
+
 
     <?php if (in_array('crud_proveedores', $ajustes)): ?>
     <!-- CRUD Proveedores -->

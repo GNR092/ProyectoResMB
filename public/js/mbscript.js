@@ -14,7 +14,7 @@ function abrirModal(opcion) {
     reportes: 'ajustes',
     razonsocial: 'ajustes',
     micuenta: 'ajustes',
-    aprobar_pagos: 'aprobar_pagos',
+    programar_pagos: 'programar_pagos',
   }
 
   const highlightOpcion = parentModals[opcion] || opcion
@@ -69,7 +69,7 @@ function abrirModal(opcion) {
     razonsocial: 'Razón social',
     reporte_almacen: 'Reportes/Historial',
     micuenta: 'Mi cuenta',
-    aprobar_pagos: 'Aprobar Pagos',
+    programar_pagos: 'Programar pagos',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -91,6 +91,9 @@ function abrirModal(opcion) {
         ficha_pago: initFichasPago,
         razonsocial: initCrudRazonSocial,
         limpiar_almacenamiento: initLimpiarAlmacenamiento,
+        lista_pagos: initListaPagos,
+        recepcion_material: initRecepcionMaterial,
+        bajas_destruccion: initBajasDestruccion,
       }
 
       const inicializador = inicializadores[opcion]
@@ -116,208 +119,6 @@ function cerrarModal() {
     link.classList.remove(...activeClasses);
     link.classList.add(...inactiveClasses);
   });
-}
-
-/**
- * Crea una tabla paginada y con filtros a partir de datos de una API.
- * @param {object} config
- * @param {string} config.tableSelector - Selector del tbody de la tabla.
- * @param {string} config.paginationSelector - Selector del contenedor de la paginación.
- * @param {string} config.endpoint - URL de la API para obtener los datos.
- * @param {function} config.renderRow - Función que recibe un item y devuelve el HTML de la fila (tr).
- * @param {number} [config.rowsPerPage=10] - Filas por página.
- * @param {string} [config.filterFormSelector] - Selector del formulario de filtros.
- * @param {function} [config.filterFunction] - Función que recibe (datos, formulario) y devuelve los datos filtrados.
- * @param {string} [config.loadingMessage='Cargando...'] - Mensaje de carga.
- * @param {string} [config.noResultsMessage='No se encontraron resultados.'] - Mensaje sin resultados.
- * @param {function} [config.onDataLoaded] - Callback que se ejecuta después de cargar y renderizar los datos.
- * @param {function} [config.processData] - Función para procesar los datos crudos de la API antes de usarlos.
- */
-async function createPaginatedTable(config) {
-  const {
-    tableSelector,
-    paginationSelector,
-    endpoint,
-    renderRow,
-    rowsPerPage = 10,
-    filterFormSelector,
-    filterFunction,
-    loadingMessage = 'Cargando...',
-    noResultsMessage = 'No se encontraron resultados.',
-    onDataLoaded,
-    processData = (data) => data,
-  } = config
-
-  const tbody = document.querySelector(tableSelector)
-  const paginacion = document.getElementById(paginationSelector)
-  const filterForm = filterFormSelector ? document.querySelector(filterFormSelector) : null
-
-  if (!tbody) {
-    console.error(`Elemento no encontrado: ${tableSelector}`)
-    return
-  }
-
-  let allData = []
-  let currentPage = 1
-
-  async function fetchData() {
-    tbody.innerHTML = `<tr><td colspan="100%" class="text-center p-4">${loadingMessage}</td></tr>`
-    try {
-      const rawData = await SendDataEnd(endpoint, {})
-      allData = processData(rawData)
-      updateTable()
-      if (onDataLoaded) {
-        onDataLoaded(allData)
-      }
-    } catch (error) {
-      console.error(error)
-      tbody.innerHTML = `<tr><td colspan="100%" class="text-center text-red-500 p-4">${error.message}</td></tr>`
-    }
-  }
-
-  function renderTable(data) {
-    tbody.innerHTML = ''
-    if (data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="100%" class="text-center p-4 text-gray-500">${noResultsMessage}</td></tr>`
-      return
-    }
-    data.forEach((item) => {
-      tbody.insertAdjacentHTML('beforeend', renderRow(item))
-    })
-  }
-
-  function renderPagination(totalRows) {
-    if (!paginacion) return
-    paginacion.innerHTML = ''
-    const totalPages = Math.ceil(totalRows / rowsPerPage)
-    if (totalPages <= 1) return
-
-    for (let i = 1; i <= totalPages; i++) {
-      const button = document.createElement('button')
-      button.textContent = i
-      button.className = `px-3 py-1 border rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      button.addEventListener('click', () => {
-        showPage(i, getFilteredData())
-      })
-      paginacion.appendChild(button)
-    }
-  }
-
-  function showPage(page, filteredData) {
-    currentPage = page
-    const start = (page - 1) * rowsPerPage
-    const end = start + rowsPerPage
-    const pageData = filteredData.slice(start, end)
-    renderTable(pageData)
-    renderPagination(filteredData.length)
-  }
-
-  function getFilteredData() {
-    if (filterFunction && filterForm) {
-      return filterFunction(allData, filterForm)
-    }
-    return allData
-  }
-
-  function updateTable() {
-    const filteredData = getFilteredData()
-    showPage(1, filteredData)
-  }
-
-  if (filterForm) {
-    filterForm.addEventListener('input', updateTable)
-    filterForm.addEventListener('change', updateTable)
-  }
-
-  await fetchData()
-}
-
-/**
- * Configura paginación y filtros del lado del cliente para una tabla HTML estática.
- * @param {object} config
- * @param {string} config.rowsSelector - Selector para las filas a paginar/filtrar (ej. '#miTabla tbody tr').
- * @param {string} config.paginationSelector - Selector del contenedor para los botones de paginación.
- * @param {string} [config.filterFormSelector] - Selector del formulario o contenedor de los inputs de filtro.
- * @param {function} config.filterFunction - (row, form) => boolean. Devuelve true si la fila debe mostrarse.
- * @param {number} [config.rowsPerPage=10] - Filas por página.
- */
-function setupClientSideTable(config) {
-  const {
-    rowsSelector,
-    paginationSelector,
-    filterFormSelector,
-    filterFunction,
-    rowsPerPage = 10,
-  } = config
-
-  const allRows = Array.from(document.querySelectorAll(rowsSelector))
-  const pagination = document.getElementById(paginationSelector)
-  const filterForm = filterFormSelector ? document.querySelector(filterFormSelector) : null
-
-  if (!allRows.length) {
-    if (pagination) pagination.innerHTML = ''
-    return
-  }
-
-  let currentPage = 1
-  let filteredRows = [...allRows]
-
-  function applyFilters() {
-    if (filterFunction && filterForm) {
-      filteredRows = allRows.filter((row) => filterFunction(row, filterForm))
-    } else {
-      filteredRows = [...allRows]
-    }
-    showPage(1)
-  }
-
-  function showPage(page) {
-    currentPage = page
-    const start = (page - 1) * rowsPerPage
-    const end = start + rowsPerPage
-
-    allRows.forEach((row) => (row.style.display = 'none'))
-    filteredRows.slice(start, end).forEach((row) => {
-      row.style.display = ''
-    })
-
-    renderPagination()
-  }
-
-  function renderPagination() {
-    if (!pagination) return
-    pagination.innerHTML = ''
-    const totalPages = Math.ceil(filteredRows.length / rowsPerPage)
-    if (totalPages <= 1) {
-      pagination.style.display = 'none'
-      return
-    }
-
-    pagination.style.display = 'flex'
-
-    for (let i = 1; i <= totalPages; i++) {
-      const button = document.createElement('button')
-      button.textContent = i
-      button.className = `px-3 py-1 border rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      button.addEventListener('click', (e) => {
-        e.preventDefault()
-        showPage(i)
-      })
-      pagination.appendChild(button)
-    }
-  }
-
-  if (filterForm) {
-    filterForm.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
-        e.preventDefault()
-      }
-    })
-    filterForm.addEventListener('input', applyFilters)
-    filterForm.addEventListener('change', applyFilters)
-  }
-
-  applyFilters()
 }
 
 /**
@@ -803,8 +604,8 @@ function initPaginacionHistorial() {
     endpoint: url,
     filterFormSelector: '#modal-contenido', // Container for filters, used to attach events
     renderRow: (item) => {
-      const status = item.Estado == 'Dept_Rechazada' ? 'Rechazada' : item.Estado
-      const svg = getStatususSVG(status)
+      const status = getStatusText(item.Estado)
+      const svg = getStatusSVG(item.Estado)
       return `
         <tr class="text-center">
             <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
@@ -874,11 +675,25 @@ async function mostrarVerHistorial(idSolicitud) {
     let html = generarDetallesSolicitudHTML(data)
 
     if (data.ComentariosAdmin) {
-      html += `
-            <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
-                <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
-                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-            </div>`
+        if (data.TipoComentarioAdmin === 'Rechazo') {
+            html += `
+                <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                    <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`;
+        } else if (data.TipoComentarioAdmin === 'Observacion') {
+            html += `
+                <div class="mb-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                    <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`;
+        } else {
+            html += `
+                <div class="mb-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
+                    <h4 class="text-md font-bold text-gray-700 mb-2">Comentario del Administrador</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`;
+        }
     }
     html += generarProductosServiciosHTML(data)
 
@@ -927,7 +742,285 @@ function initRevisarSolicitud() {
   })
 }
 
+async function initListaPagos() {
+  createPaginatedTable({
+    tableSelector: '#tablaListaPagos',
+    paginationSelector: 'paginacion-lista-pagos',
+    endpoint: 'api/pagos/all',
+    renderRow: (p) => `
+      <tr class="hover:bg-gray-50">
+          <td class="py-3 px-6 text-left">${p.Folio || 'N/A'}</td>
+          <td class="py-3 px-6 text-left">${p.Proveedor || 'N/A'}</td>
+          <td class="py-3 px-6 text-right">$${parseFloat(p.Total).toFixed(2)}</td>
+          <td class="py-3 px-6 text-left">${p.Estado || 'N/A'}</td>
+          <td class="py-3 px-6 text-center">
+              <button onclick="verDetallePago(${p.ID_Pago})" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">Ver</button>
+          </td>
+      </tr>
+    `,
+    noResultsMessage: 'No hay pagos registrados.',
+  })
+}
+
+async function initRecepcionMaterial() {
+    const ordenCompraSelect = document.getElementById('ordenCompraSelect');
+    const solicitudFolioInput = document.getElementById('solicitudFolio');
+    const proveedorNombreInput = document.getElementById('proveedorNombre');
+    const productosRecepcionTable = document.getElementById('productosRecepcionTable');
+    const formRecepcionMaterial = document.getElementById('form-recepcion-material');
+
+    if (!ordenCompraSelect || !formRecepcionMaterial) return;
+
+    let allOrdenesCompra = [];
+
+    // Cargar órdenes de compra pendientes
+    const loadOrdenesCompra = async () => {
+        try {
+            const ordenes = await SendDataEnd('api/ordenes-compra/pendientes-recepcion');
+            allOrdenesCompra = ordenes; // Guardar todas las órdenes para referencia
+            ordenCompraSelect.innerHTML = '<option value="">-- Seleccionar Orden de Compra --</option>';
+            if (ordenes.length > 0) {
+                ordenes.forEach(orden => {
+                    const option = document.createElement('option');
+                    option.value = orden.ID_Solicitud; // Usar ID_Solicitud para obtener detalles
+                    option.textContent = `${orden.No_Folio} - ${orden.ProveedorNombre} (Total: $${parseFloat(orden.Total).toFixed(2)})`;
+                    ordenCompraSelect.appendChild(option);
+                });
+            } else {
+                ordenCompraSelect.innerHTML = '<option value="">No hay órdenes pendientes de recepción</option>';
+            }
+        } catch (error) {
+            console.error('Error cargando órdenes de compra:', error);
+            ordenCompraSelect.innerHTML = '<option value="">Error al cargar órdenes de compra</option>';
+        }
+    };
+
+    // Manejar selección de Orden de Compra
+    ordenCompraSelect.addEventListener('change', async () => {
+        const idSolicitud = ordenCompraSelect.value;
+        if (!idSolicitud) {
+            solicitudFolioInput.value = '';
+            proveedorNombreInput.value = '';
+            productosRecepcionTable.innerHTML = '<tr><td colspan="3" class="text-center py-2">Seleccione una Orden de Compra para ver los productos.</td></tr>';
+            return;
+        }
+
+        try {
+            const data = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`);
+            
+            // Llenar campos de solo lectura
+            solicitudFolioInput.value = data.No_Folio || '';
+            proveedorNombreInput.value = data.proveedor?.RazonSocial || '';
+
+            // Llenar tabla de productos
+            productosRecepcionTable.innerHTML = '';
+            if (data.productos && data.productos.length > 0) {
+                data.productos.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="py-2 px-4 border-b">${p.Nombre}</td>
+                        <td class="py-2 px-4 border-b text-right">${p.Cantidad}</td>
+                        <td class="py-2 px-4 border-b">
+                            <input type="number" name="productos[${p.ID_SolicitudProd}][cantidad_recibida]" 
+                                class="w-full border-gray-300 rounded-md shadow-sm text-right cantidad-recibida" 
+                                value="${p.Cantidad}" min="0" max="${p.Cantidad}">
+                            <input type="hidden" name="productos[${p.ID_SolicitudProd}][id_producto]" value="${p.ID_Producto}">
+                            <input type="hidden" name="productos[${p.ID_SolicitudProd}][id_solicitud_prod]" value="${p.ID_SolicitudProd}">
+                        </td>
+                    `;
+                    productosRecepcionTable.appendChild(tr);
+                });
+            } else {
+                productosRecepcionTable.innerHTML = '<tr><td colspan="3" class="text-center py-2">No hay productos en esta Orden de Compra.</td></tr>';
+            }
+        } catch (error) {
+            console.error('Error cargando detalles de la orden de compra:', error);
+            solicitudFolioInput.value = '';
+            proveedorNombreInput.value = '';
+            productosRecepcionTable.innerHTML = '<tr><td colspan="3" class="text-center py-2 text-red-500">Error al cargar detalles de la orden.</td></tr>';
+        }
+    });
+
+    // Manejar envío del formulario
+    formRecepcionMaterial.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const idOrdenCompra = ordenCompraSelect.value;
+        if (!idOrdenCompra) {
+            mostrarNotificacion('Debe seleccionar una Orden de Compra.', 'error');
+            return;
+        }
+
+        const formData = new FormData(formRecepcionMaterial);
+        const productosRecibidos = [];
+        productosRecepcionTable.querySelectorAll('tr').forEach(row => {
+            const cantidadInput = row.querySelector('.cantidad-recibida');
+            if (cantidadInput) {
+                const idSolicitudProd = cantidadInput.name.match(/\[(\d+)\]/)[1]; // Extraer el ID
+                const idProductoInput = row.querySelector(`input[name="productos[${idSolicitudProd}][id_producto]"]`);
+                
+                productosRecibidos.push({
+                    id_solicitud_prod: idSolicitudProd,
+                    id_producto: idProductoInput ? idProductoInput.value : null,
+                    cantidad_recibida: parseInt(cantidadInput.value),
+                    cantidad_pedida: parseInt(cantidadInput.max),
+                });
+            }
+        });
+        
+        // Obtener archivo de remisión
+        const remisionFile = document.getElementById('remisionArchivo').files[0];
+        if(remisionFile) {
+            formData.append('remision_file', remisionFile);
+        }
+
+        // Obtener archivo de factura de entrada
+        const facturaEntradaFile = document.getElementById('facturaEntradaArchivo').files[0];
+        if(facturaEntradaFile) {
+            formData.append('factura_entrada_file', facturaEntradaFile);
+        }
+
+        formData.append('id_orden_compra', idOrdenCompra);
+        formData.append('productos_recibidos', JSON.stringify(productosRecibidos)); // Enviar como JSON string
+
+        const procesandoNotif = mostrarNotificacion('Confirmando recepción...', 'info', 999999);
+
+        try {
+            const result = await SendDataEnd('api/recepcion/confirmar', {
+                method: 'POST',
+                body: formData, // FormData con el archivo y otros campos
+            });
+
+            procesandoNotif.click();
+
+            if (result.success) {
+                mostrarNotificacion(result.message, 'success');
+                formRecepcionMaterial.reset();
+                productosRecepcionTable.innerHTML = '<tr><td colspan="3" class="text-center py-2">Seleccione una Orden de Compra para ver los productos.</td></tr>';
+                loadOrdenesCompra(); // Recargar la lista de órdenes pendientes
+            } else {
+                mostrarNotificacion(result.message || 'Error al confirmar la recepción.', 'error');
+            }
+        } catch (error) {
+            procesandoNotif.click();
+            console.error('Error en la recepción de material:', error);
+            mostrarNotificacion('Error de red al confirmar la recepción.', 'error');
+        }
+    });
+
+    loadOrdenesCompra(); // Cargar órdenes al inicializar el modal
+}
+
+async function initBajasDestruccion() {
+    const productoSelect = document.getElementById('productoSelect');
+    const existenciaActualInput = document.getElementById('existenciaActual');
+    const cantidadBajaInput = document.getElementById('cantidadBaja');
+    const formBajasDestruccion = document.getElementById('form-bajas-destruccion');
+
+    if (!productoSelect || !formBajasDestruccion) return;
+
+    let allProducts = []; // Para almacenar todos los productos cargados
+
+    // Cargar productos
+    const loadProducts = async () => {
+        try {
+            const products = await SendDataEnd('api/product/all', { method: 'GET' });
+            allProducts = products;
+            productoSelect.innerHTML = '<option value="">-- Seleccionar Producto --</option>';
+            if (products.length > 0) {
+                products.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.ID_Producto;
+                    option.textContent = `${p.Nombre} (Código: ${p.Codigo})`;
+                    productoSelect.appendChild(option);
+                });
+            } else {
+                productoSelect.innerHTML = '<option value="">No hay productos disponibles</option>';
+            }
+        } catch (error) {
+            console.error('Error cargando productos:', error);
+            productoSelect.innerHTML = '<option value="">Error al cargar productos</option>';
+        }
+    };
+
+    // Manejar selección de producto
+    productoSelect.addEventListener('change', () => {
+        const idProducto = productoSelect.value;
+        if (idProducto) {
+            const selectedProduct = allProducts.find(p => String(p.ID_Producto) === idProducto);
+            if (selectedProduct) {
+                existenciaActualInput.value = selectedProduct.Existencia;
+                cantidadBajaInput.max = selectedProduct.Existencia; // Establecer máximo para la cantidad a dar de baja
+                cantidadBajaInput.value = ''; // Limpiar campo de cantidad
+            }
+        } else {
+            existenciaActualInput.value = '';
+            cantidadBajaInput.max = '';
+            cantidadBajaInput.value = '';
+        }
+    });
+
+    // Manejar envío del formulario
+    formBajasDestruccion.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const idProducto = productoSelect.value;
+        const cantidadBaja = parseInt(cantidadBajaInput.value);
+        const existenciaActual = parseInt(existenciaActualInput.value);
+        const motivoBaja = document.getElementById('motivoBaja').value;
+        const fechaBaja = document.getElementById('fechaBaja').value;
+
+        if (!idProducto || !cantidadBaja || !motivoBaja || !fechaBaja) {
+            mostrarNotificacion('Por favor, complete todos los campos.', 'error');
+            return;
+        }
+
+        if (cantidadBaja <= 0 || cantidadBaja > existenciaActual) {
+            mostrarNotificacion('La cantidad a dar de baja debe ser mayor a 0 y no puede exceder la existencia actual.', 'error');
+            return;
+        }
+
+        const payload = {
+            id_producto: idProducto,
+            cantidad_baja: cantidadBaja,
+            motivo_baja: motivoBaja,
+            fecha_baja: fechaBaja,
+        };
+
+        const procesandoNotif = mostrarNotificacion('Confirmando baja...', 'info', 999999);
+
+        try {
+            const result = await SendDataEnd('api/bajas/destruccion/registrar', {
+                method: 'POST',
+                body: payload,
+            });
+
+            procesandoNotif.click();
+
+            if (result.success) {
+                mostrarNotificacion(result.message, 'success');
+                formBajasDestruccion.reset();
+                loadProducts(); // Recargar productos para actualizar existencias
+            } else {
+                mostrarNotificacion(result.message || 'Error al confirmar la baja.', 'error');
+            }
+        } catch (error) {
+            procesandoNotif.click();
+            console.error('Error en baja por destrucción:', error);
+            mostrarNotificacion('Error de red al confirmar la baja.', 'error');
+        }
+    });
+
+    loadProducts(); // Cargar productos al inicializar el modal
+}
+
+function exportarRequisicionesExcel() {
+    window.location.href = `${BASE_URL}api/exportar-requisiciones`;
+}
+
+
 async function mostrarVer(idSolicitud) {
+  document.getElementById('btn-exportar-requisiciones').classList.add('hidden') // Ocultar el botón de exportar
   const divTabla = document.getElementById('div-tabla')
   const divVer = document.getElementById('div-ver')
   const detallesContainer = document.getElementById('detalles-solicitud')
@@ -1178,6 +1271,7 @@ function regresarTabla() {
   document.getElementById('div-ver').classList.add('hidden')
   document.getElementById('div-cotizar').classList.add('hidden')
   document.getElementById('div-tabla').classList.remove('hidden')
+  document.getElementById('btn-exportar-requisiciones').classList.remove('hidden') // Mostrar el botón de exportar
 }
 
 /**
@@ -1220,11 +1314,25 @@ async function mostrarVerDictamen(idSolicitud) {
 
     // Mostrar comentarios si existen (especialmente para rechazos)
     if (data.ComentariosAdmin) {
-      html += `
-            <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
-                <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
-                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-            </div>`
+        if (data.TipoComentarioAdmin === 'Rechazo') {
+            html += `
+                <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                    <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`;
+        } else if (data.TipoComentarioAdmin === 'Observacion') {
+            html += `
+                <div class="mt-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                    <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`;
+        } else { 
+            html += `
+                <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
+                    <h4 class="text-md font-bold text-gray-700 mb-2">Comentario del Administrador</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`;
+        }
     }
 
     html += generarProductosServiciosHTML(data)
@@ -1290,51 +1398,49 @@ function regresarTablaDictamen() {
 }
 
 async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
-  let comentarios = null
-  const accion = nuevoEstado === 'Aprobada' ? 'aprobar' : 'rechazar'
+    const esAprobacion = nuevoEstado === 'Aprobada';
+    const title = esAprobacion ? 'Aprobar Solicitud' : 'Rechazar Solicitud';
+    const message = esAprobacion 
+        ? 'Puede agregar observaciones (opcional):' 
+        : 'Por favor, ingrese el motivo del rechazo (obligatorio):';
+    const isRequired = !esAprobacion; // El comentario es obligatorio solo para rechazos
 
-  if (nuevoEstado === 'Rechazada') {
-    comentarios = prompt('Por favor, ingrese el motivo del rechazo:')
+    const comentarios = await InputPrompt(title, message, isRequired);
+
+    // Si el usuario cancela el modal, comentarios será null.
     if (comentarios === null) {
-      return
+        return; 
     }
-    if (!comentarios.trim()) {
-      mostrarNotificacion('El motivo del rechazo es obligatorio.', 'error')
-      return
+
+    const payload = {
+        ID_Solicitud: idSolicitud,
+        Estado: nuevoEstado,
+        ComentariosAdmin: comentarios,
+    };
+
+    const procesandoNotif = mostrarNotificacion('Procesando dictamen...', 'info', 999999);
+
+    try {
+        const result = await SendDataEnd('api/solicitud/dictaminar', {
+            method: 'POST',
+            body: payload,
+        });
+
+        procesandoNotif.click();
+
+        if (result.success) {
+            mostrarNotificacion(result.message, 'success');
+            abrirModal('dictamen_solicitudes'); 
+        } else {
+            mostrarNotificacion(result.message || 'Error al procesar el dictamen.', 'error');
+        }
+    } catch (error) {
+        procesandoNotif.click();
+        mostrarNotificacion('Error de red al procesar el dictamen.', 'error');
     }
-  } else {
-    // Para 'Aprobada'
-    if (!(await Confirmar('Aviso', `¿Está seguro de que desea ${accion} esta solicitud?`)))
-      return
-  }
-
-  const payload = {
-    ID_Solicitud: idSolicitud,
-    Estado: nuevoEstado,
-    ComentariosAdmin: comentarios,
-  }
-
-  try {
-    const result = await SendDataEnd('api/solicitud/dictaminar', {
-      method: 'POST',
-      body: payload,
-    })
-
-    if (response.ok && result.success) {
-      mostrarNotificacion(
-        result.message || `Solicitud ${nuevoEstado.toLowerCase()} con éxito.`,
-        'success',
-      )
-      regresarTablaDictamen()
-      initDictamenSolicitudes()
-    } else {
-      mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error')
-    }
-  } catch (error) {
-    console.error(`Error al ${accion} la solicitud:`, error)
-    mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error')
-  }
 }
+
+
 
 /**
  * Lógica para el modal "Órdenes de Compra"
@@ -1362,11 +1468,25 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
 
     // Mostrar comentarios si existen (especialmente para rechazos)
     if (data.ComentariosAdmin) {
-      html += `
-            <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
-                <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
-                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-            </div>`
+      if (data.TipoComentarioAdmin === 'Rechazo') {
+        html += `
+              <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                  <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
+                  <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+              </div>`;
+      } else if (data.TipoComentarioAdmin === 'Observacion') {
+        html += `
+              <div class="mt-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                  <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
+                  <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+              </div>`;
+      } else { 
+        html += `
+              <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
+                  <h4 class="text-md font-bold text-gray-700 mb-2">Comentario del Administrador</h4>
+                  <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+              </div>`;
+      }
     }
 
     html += generarProductosServiciosHTML(data)
@@ -1430,7 +1550,7 @@ function regresarTablaOrdenCompra() {
 }
 
 async function enviarOrdenCompra(idSolicitud, iduser, boton) {
-  if (!(await Confirmar('Aviso', '¿Deseas enviar esta orden de compra a Tesorería?'))) return
+  if (!(await Confirmar('Aviso', '¿Deseas enviar esta orden de compra a programación?'))) return
 
   const originalHtml = boton.innerHTML
 
@@ -1451,7 +1571,7 @@ async function enviarOrdenCompra(idSolicitud, iduser, boton) {
       return
     }
 
-    mostrarNotificacion('✅ La orden fue enviada al proveedor y a tesorería.', 'success')
+    mostrarNotificacion('✅ La orden fue enviada al proveedor y en espera de programación', 'success')
 
     // Si la operación es exitosa, recargamos el modal.
     abrirModal('ordenes_compra')
@@ -1669,239 +1789,6 @@ function initProveedorActions(tabla) {
 /**
  * Lógica para el CRUD de usuarios con Alpine.js
  */
-function crudUsuarios() {
-  return {
-    init() {
-      setupClientSideTable({
-        rowsSelector: '#tablaCrudUsuarios tr.usuario-row',
-        paginationSelector: 'paginacion-crud-usuarios',
-        filterFormSelector: '#div-lista-usuarios',
-        filterFunction: (row, form) => {
-          const termino = (form.querySelector('#buscarUsuario')?.value || '').toLowerCase()
-
-          const nombre = row.querySelector('.nombre')?.textContent.toLowerCase() || ''
-          const correo = row.querySelector('.correo')?.textContent.toLowerCase() || ''
-
-          return nombre.includes(termino) || correo.includes(termino)
-        },
-        rowsPerPage: 10,
-      })
-    },
-
-    editarUsuario(id) {
-      const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)
-      if (!fila) return
-
-      document.getElementById('editar-ID_Usuario').value = id
-      document.getElementById('editar-Nombre').value = fila.querySelector('.nombre').textContent
-      document.getElementById('editar-Correo').value = fila.querySelector('.correo').textContent
-      document.getElementById('editar-ID_Dpto').value =
-        fila.querySelector('.departamento').dataset.idDpto
-      document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonsocial
-      document.getElementById('editar-Numero').value = fila.dataset.numero || ''
-      document.getElementById('editar-ContrasenaP').value = '' // Limpiar campo de contraseña
-      document.getElementById('editar-ContrasenaG').value = '' // Limpiar campo de contraseña
-      document.getElementById('editar-ContrasenaP_confirm').value = ''
-      document.getElementById('editar-ContrasenaG_confirm').value = ''
-
-      document.getElementById('div-lista-usuarios').classList.add('hidden')
-      document.getElementById('div-editar-usuario').classList.remove('hidden')
-    },
-
-    mostrarFormularioCrear() {
-      document.getElementById('form-crear-usuario').reset()
-      document.getElementById('div-lista-usuarios').classList.add('hidden')
-      document.getElementById('div-crear-usuario').classList.remove('hidden')
-    },
-
-    regresarALista() {
-      document.getElementById('div-editar-usuario').classList.add('hidden')
-      document.getElementById('div-crear-usuario').classList.add('hidden')
-      document.getElementById('div-lista-usuarios').classList.remove('hidden')
-    },
-
-    async guardarCambiosUsuario() {
-      const id = document.getElementById('editar-ID_Usuario').value
-      const nombre = document.getElementById('editar-Nombre').value
-      const correo = document.getElementById('editar-Correo').value
-      const idDpto = document.getElementById('editar-ID_Dpto').value
-      const idRazonSocial = document.getElementById('editar-ID_RazonSocial').value
-      const numero = document.getElementById('editar-Numero').value
-      const contrasena = document.getElementById('editar-ContrasenaP').value
-      const contrasenaG = document.getElementById('editar-ContrasenaG').value
-      const contrasenaConfirm = document.getElementById('editar-ContrasenaP_confirm').value
-      const contrasenaGConfirm = document.getElementById('editar-ContrasenaG_confirm').value
-
-      const data = {
-        Nombre: nombre,
-        Correo: correo,
-        ID_Dpto: idDpto,
-        Numero: numero,
-        ID_RazonSocial: idRazonSocial,
-      }
-
-      if (contrasena) {
-        if (contrasena !== contrasenaConfirm) {
-          mostrarNotificacion('Las contraseñas de Jefe no coinciden.', 'error')
-          return
-        }
-        data.ContrasenaP = contrasena
-      }
-
-      if (contrasenaG) {
-        if (contrasenaG !== contrasenaGConfirm) {
-          mostrarNotificacion('Las contraseñas de Empleado no coinciden.', 'error')
-          return
-        }
-        data.ContrasenaG = contrasenaG
-      }
-
-      try {
-        const result = await SendDataEnd(`modales/actualizarUsuario/${id}`, {
-          method: 'POST',
-          body: data,
-        })
-
-        if (result.success) {
-          mostrarNotificacion(result.message, 'success')
-          // Actualizar la fila en la tabla
-          const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)
-          if (fila) {
-            fila.querySelector('.nombre').textContent = nombre
-            fila.querySelector('.correo').textContent = correo
-            const select = document.getElementById('editar-ID_Dpto') // Aquí se obtiene el texto completo (Depto + Lugar)
-            const deptoText = select.options[select.selectedIndex].text
-            fila.querySelector('.departamento').textContent = deptoText
-            fila.dataset.numero = numero
-            fila.querySelector('.departamento').dataset.idDpto = idDpto
-          }
-          this.regresarALista()
-        } else {
-          const errorMsg = result.errors ? Object.values(result.errors).join('\n') : result.message
-          mostrarNotificacion(errorMsg, 'error')
-        }
-      } catch (error) {
-        console.error('Error al actualizar usuario:', error)
-        mostrarNotificacion('Error de conexión al actualizar.', 'error')
-      }
-    },
-
-    async guardarNuevoUsuario() {
-      const nombre = document.getElementById('crear-Nombre').value
-      const correo = document.getElementById('crear-Correo').value
-      const idDpto = document.getElementById('crear-ID_Dpto').value
-      const idRazonSocial = document.getElementById('crear-ID_RazonSocial').value
-      const numero = document.getElementById('crear-Numero').value
-      const contrasena = document.getElementById('crear-ContrasenaP').value
-      const contrasenaG = document.getElementById('crear-ContrasenaG').value
-      const contrasenaConfirm = document.getElementById('crear-ContrasenaP_confirm').value
-      const contrasenaGConfirm = document.getElementById('crear-ContrasenaG_confirm').value
-
-      if (contrasena.length < 8) {
-        mostrarNotificacion('La contraseña de Jefe debe tener al menos 8 caracteres.', 'error')
-        return
-      }
-
-      if (contrasena !== contrasenaConfirm) {
-        mostrarNotificacion('Las contraseñas de Jefe no coinciden.', 'error')
-        return
-      }
-
-      // Validar ContraseñaG solo si se ha introducido
-      if (contrasenaG) {
-        if (contrasenaG.length < 8) {
-          mostrarNotificacion(
-            'La contraseña de Empleado debe tener al menos 8 caracteres.',
-            'error',
-          )
-          return
-        }
-        if (contrasenaG !== contrasenaGConfirm) {
-          mostrarNotificacion('Las contraseñas de Empleado no coinciden.', 'error')
-          return
-        }
-      }
-
-      const data = {
-        Nombre: nombre,
-        Correo: correo,
-        ID_Dpto: idDpto,
-        Numero: numero,
-        ID_RazonSocial: idRazonSocial,
-        ContrasenaP: contrasena,
-        ContrasenaG: contrasenaG,
-      }
-
-      try {
-        const result = await SendDataEnd('modales/registrarUsuario', {
-          method: 'POST',
-          body: data,
-        })
-
-        if (result.success) {
-          mostrarNotificacion(result.message, 'success')
-
-          // Añadir dinámicamente la nueva fila a la tabla
-          const tablaBody = document.getElementById('tablaCrudUsuarios')
-          const selectDepto = document.getElementById('crear-ID_Dpto') // Aquí se obtiene el texto completo (Depto + Lugar)
-          const deptoText = selectDepto.options[selectDepto.selectedIndex].text
-          const iconUrl = `/icons/icons.svg?v=${window.ICON_SVG_VERSION || new Date().getTime()}`
-
-          const nuevaFila = `
-            <tr data-id="${result.user.ID_Usuario}" class="usuario-row" data-numero="${numero}" data-id-razonsocial="${idRazonSocial}">
-              <td class="py-2 px-4 border-b nombre">${result.user.Nombre}</td>
-              <td class="py-2 px-4 border-b correo">${result.user.Correo}</td>
-              <td class="py-2 px-4 border-b departamento" data-id-dpto="${result.user.ID_Dpto}">${deptoText}</td>
-              <td class="py-2 px-4 border-b text-center">
-                <button @click="editarUsuario(${result.user.ID_Usuario})" class="text-blue-600 hover:text-blue-800" title="Editar">
-                  <svg class="h-5 w-5 inline" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#editar"></use></svg>
-                </button>
-                <button @click="eliminarUsuario(${result.user.ID_Usuario})" class="text-red-600 hover:text-red-800 ml-2" title="Eliminar">
-                  <svg class="h-5 w-5 inline" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#eliminar-fila"></use></svg>
-                </button>
-              </td>
-            </tr>`
-
-          tablaBody.insertAdjacentHTML('beforeend', nuevaFila)
-          this.regresarALista()
-        } else {
-          const errorMsg = result.errors ? Object.values(result.errors).join('\n') : result.message
-          mostrarNotificacion(errorMsg, 'error')
-        }
-      } catch (error) {
-        console.error('Error al registrar usuario:', error)
-        mostrarNotificacion('Error de conexión al registrar.', 'error')
-      }
-    },
-
-    async eliminarUsuario(id) {
-      if (
-        !(await Confirmar(
-          'Eliminar Usuario',
-          '¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.',
-        ))
-      ) {
-        return
-      }
-
-      try {
-        const result = await SendDataEnd(`modales/eliminarUsuario/${id}`, {
-          method: 'POST',
-        })
-        if (result.success) {
-          mostrarNotificacion(result.message, 'success')
-          document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)?.remove()
-        } else {
-          mostrarNotificacion(result.message, 'error')
-        }
-      } catch (error) {
-        console.error('Error al eliminar usuario:', error)
-        mostrarNotificacion('Error de conexión al eliminar.', 'error')
-      }
-    },
-  }
-}
-
 function initUsuarios() {
   const modalContenido = document.getElementById('modal-contenido')
   if (!modalContenido) return
@@ -1983,11 +1870,12 @@ function initUsuarios() {
  */
 function aprobarSolicitudes() {
   return {
+    providers: [],
     init() {
       setupClientSideTable({
         rowsSelector: '#tablaAprobarSolicitudes tr.solicitud-row',
         paginationSelector: 'paginacion-aprobar-solicitudes',
-        rowsPerPage: 10, // Puedes ajustar esto
+        rowsPerPage: 10,
       })
     },
 
@@ -2002,6 +1890,9 @@ function aprobarSolicitudes() {
       try {
         const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`, {})
         if (data.error) throw new Error(data.error)
+        
+        // Cargar proveedores
+        this.providers = await SendDataEnd('api/providers/all');
 
         let html = `
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
@@ -2044,12 +1935,56 @@ function aprobarSolicitudes() {
                      <a href="${BASE_URL}solicitudes/archivo/${idSolicitud}" target="_blank" class="text-blue-600 hover:underline">${data.Archivo}</a></div>`
         }
 
+        if (data.ComentariosUser) {
+            html += `
+                <div class="mt-6">
+                    <h4 class="text-md font-bold mb-2">Comentarios del Solicitante</h4>
+                    <p class="p-4 border rounded-lg bg-gray-50 whitespace-pre-wrap">${data.ComentariosUser}</p>
+                </div>
+            `
+        }
+        
         // Botones de acción
+        // html += `
+        //   <div id="botones-accion-aprobar" class="mt-8 flex justify-end space-x-4">
+        //       <button @click="dictaminar(${idSolicitud}, 'rechazar')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Rechazar</button>
+        //       <button @click="mostrarSeleccionProveedores()" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">Aprobar y Cotizar</button>
+        //       <button @click="dictaminar(${idSolicitud}, 'aprobar')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">Aprobar y Enviar a Compras</button>
+        //   </div>`
+          
+        // Sección oculta para seleccionar proveedores
+        // html += `
+        //     <div id="seccion-cotizar" class="hidden mt-8 border-t pt-6">
+        //         <h3 class="text-lg font-bold mb-4">Selecciona Proveedores para Cotizar</h3>
+        //         <div class="overflow-y-auto max-h-64 border rounded-md mb-4">
+        //             <table class="min-w-full">
+        //                 <thead class="bg-gray-100 sticky top-0">
+        //                     <tr>
+        //                         <th class="py-2 px-4 text-center"><input type="checkbox" @click="seleccionarTodosProveedores($event)"></th>
+        //                         <th class="py-2 px-4 text-left">Proveedor</th>
+        //                     </tr>
+        //                 </thead>
+        //                 <tbody id="tabla-proveedores-aprobar">
+        // `
+        // this.providers.forEach(provider => {
+        //     html += `
+        //         <tr>
+        //             <td class="py-2 px-4 text-center border-t">
+        //                 <input type="checkbox" class="proveedor-checkbox" value="${provider.ID_Proveedor}">
+        //             </td>
+        //             <td class="py-2 px-4 border-t">${provider.RazonSocial}</td>
+        //         </tr>
+        //     `
+        // });
         html += `
-          <div class="mt-8 flex justify-end space-x-4">
-              <button @click="dictaminar(${idSolicitud}, 'rechazar')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Rechazar</button>
-              <button @click="dictaminar(${idSolicitud}, 'aprobar')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">Aprobar y Enviar a Revision</button>
-          </div>`
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button @click="enviarAprobacionYCotizacion(${idSolicitud})" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">Confirmar y Enviar a Cotización</button>
+                </div>
+            </div>
+        `
 
         detallesContainer.innerHTML = html
       } catch (error) {
@@ -2061,102 +1996,106 @@ function aprobarSolicitudes() {
       document.getElementById('div-ver-aprobacion').classList.add('hidden')
       document.getElementById('div-tabla-aprobacion').classList.remove('hidden')
     },
+    
+    mostrarSeleccionProveedores: function() {
+        document.getElementById('botones-accion-aprobar').classList.add('hidden');
+        document.getElementById('seccion-cotizar').classList.remove('hidden');
+    },
+
+    ocultarSeleccionProveedores: function() {
+        document.getElementById('seccion-cotizar').classList.add('hidden');
+        document.getElementById('botones-accion-aprobar').classList.remove('hidden');
+    },
+
+    seleccionarTodosProveedores: function(event) {
+        document.querySelectorAll('#tabla-proveedores-aprobar .proveedor-checkbox').forEach(checkbox => {
+            checkbox.checked = event.target.checked;
+        });
+    },
+
+    enviarAprobacionYCotizacion: async function(idSolicitud) {
+        const payload = {
+            ID_Solicitud: idSolicitud,
+        };
+
+        const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999);
+
+        try {
+            const result = await SendDataEnd('api/solicitud/aprobar-y-cotizar', {
+                method: 'POST',
+                body: payload
+            });
+            
+            procesandoNotif.click();
+
+            if (result.success) {
+                mostrarNotificacion(result.message, 'success');
+                abrirModal('aprobar_solicitudes');
+            } else {
+                mostrarNotificacion(result.message || 'Error al procesar la solicitud.', 'error');
+            }
+        } catch (error) {
+            procesandoNotif.click();
+            mostrarNotificacion('Error de red al procesar la solicitud.', 'error');
+        }
+    },
 
     dictaminar: async function (idSolicitud, accion) {
-      const esRechazo = accion === 'rechazar'
-      const titulo = esRechazo ? 'Rechazar Solicitud' : 'Aprobar Solicitud'
-      const mensaje = `¿Está seguro de que desea ${accion} esta solicitud?`
-      const botonTexto = esRechazo ? 'Sí, Rechazar' : 'Sí, Aprobar'
-      const botonClase = esRechazo
-        ? 'bg-red-600 hover:bg-red-700'
-        : 'bg-green-600 hover:bg-green-700'
+        const esRechazo = accion === 'rechazar';
+        let comentarios = null;
 
-      // Crear el modal de confirmación
-      const modalOverlay = document.createElement('div')
-      modalOverlay.className = 'fixed inset-0 flex items-center justify-center z-50'
-      modalOverlay.style.zIndex = '2147483647'
-
-      let modalHtml = `
-        <div class="bg-gray-300 rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-          <h3 class="text-lg font-bold mb-4">${titulo}</h3>
-          <p class="mb-4">${mensaje}</p>
-      `
-
-      if (esRechazo) {
-        modalHtml += `
-          <label for="motivoRechazo" class="block text-sm font-medium text-gray-700 mb-1">Motivo del rechazo (obligatorio):</label>
-          <textarea id="motivoRechazo" rows="3" class="w-full border-gray-300 border-2 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-        `
-      }
-
-      modalHtml += `
-          <div class="mt-6 flex justify-end space-x-4">
-            <button id="cancelarBtn" class="px-4 py-2 bg-gray-200 border-2 border-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancelar</button>
-            <button id="confirmarBtn" class="px-4 py-2 text-white rounded-md ${botonClase}">${botonTexto}</button>
-          </div>
-        </div>
-      `
-
-      modalOverlay.innerHTML = modalHtml
-      document.body.appendChild(modalOverlay)
-
-      const cerrarModal = () => modalOverlay.remove()
-
-      document.getElementById('cancelarBtn').addEventListener('click', cerrarModal)
-
-      document.getElementById('confirmarBtn').addEventListener('click', async () => {
-        let comentarios = null
         if (esRechazo) {
-          const motivoInput = document.getElementById('motivoRechazo')
-          comentarios = motivoInput.value.trim()
-          if (!comentarios) {
-            mostrarNotificacion('El motivo del rechazo es obligatorio.', 'error')
-            motivoInput.focus()
-            motivoInput.classList.add('border-red-500')
-            return
-          }
+            comentarios = await InputPrompt(
+                'Rechazar Solicitud',
+                'Por favor, ingrese el motivo del rechazo (obligatorio):',
+                true
+            );
+            if (comentarios === null) {
+                return; // El usuario canceló el modal
+            }
+        } else {
+            const confirmado = await Confirmar(
+                'Aprobar Solicitud',
+                '¿Está seguro de que desea aprobar esta solicitud y enviarla a Revisión de Compras?'
+            );
+            if (!confirmado) {
+                return; // El usuario canceló
+            }
         }
 
         const payload = {
-          ID_Solicitud: idSolicitud,
-          accion: accion,
-        }
+            ID_Solicitud: idSolicitud,
+            accion: accion,
+        };
 
         if (comentarios) {
-          payload.comentarios = comentarios
+            payload.comentarios = comentarios;
         }
 
-        const btnConfirmar = document.getElementById('confirmarBtn')
-        btnConfirmar.disabled = true
-        btnConfirmar.textContent = 'Procesando...'
+        // Muestra una notificación de "procesando" que no se cierra automáticamente
+        const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999);
 
         try {
-          const result = await SendDataEnd('api/solicitud/dictaminar-jefe', {
-            method: 'POST',
-            body: payload,
-          })
+            const result = await SendDataEnd('api/solicitud/dictaminar-jefe', {
+                method: 'POST',
+                body: payload,
+            });
 
-          if (response.ok && result.success) {
-            mostrarNotificacion(result.message, 'success')
-            cerrarModal()
-            abrirModal('aprobar_solicitudes')
-          } else {
-            cerrarModal()
-            abrirModal('aprobar_solicitudes')
-            mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error')
-            btnConfirmar.disabled = false
-            btnConfirmar.textContent = botonTexto
-          }
+            // Cierra la notificación de "procesando"
+            procesandoNotif.click();
+
+            if (result.success) {
+                mostrarNotificacion(result.message, 'success');
+                // Recargar el modal principal para refrescar la lista
+                abrirModal('aprobar_solicitudes');
+            } else {
+                mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error');
+            }
         } catch (error) {
-          mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error')
-          btnConfirmar.disabled = false
-          btnConfirmar.textContent = botonTexto
+            // Cierra la notificación de "procesando" en caso de error
+            procesandoNotif.click();
+            mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error');
         }
-      })
-
-      if (esRechazo) {
-        document.getElementById('motivoRechazo').focus()
-      }
     },
   }
 }
@@ -2269,6 +2208,7 @@ async function initPagosPendientes() {
                <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
                <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
                <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
+               <td class="px-4 py-2 border-b"></td>
                <td class="px-4 py-2 border-b text-center">
                   <button onclick="mostrarDetalleOrden(${det.ID_Solicitud}, '${det.MetodoPago}')" 
                           class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
@@ -2294,6 +2234,20 @@ async function initPagosPendientes() {
         )
 
         const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
+        
+        const diffTime = fechaVencimiento - hoy;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        let diasRestantesHtml = ``;
+
+        if (!det.proveedor?.Dias_Credito) {
+            diasRestantesHtml = 'N/A';
+        } else if (diffDays < 0) {
+            diasRestantesHtml = `<span class="font-semibold text-red-600">Vencido por ${Math.abs(diffDays)} día(s)</span>`;
+        } else if (diffDays === 0) {
+            diasRestantesHtml = '<span class="font-semibold text-yellow-600">Vence hoy</span>';
+        } else {
+            diasRestantesHtml = `${diffDays} día(s) restante(s)`;
+        }
 
         const fila = `
               <tr class="${claseFila} transition">
@@ -2303,6 +2257,7 @@ async function initPagosPendientes() {
                <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
                <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
                <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
+               <td class="px-4 py-2 border-b text-center">${diasRestantesHtml}</td>
                <td class="px-4 py-2 border-b text-center">
                   <button onclick="mostrarDetalleOrden(${det.ID_Solicitud}, '${det.MetodoPago}')" 
                           class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
@@ -2479,19 +2434,7 @@ function volverATabla(metodoPago) {
   tablaDiv.classList.remove('hidden')
 }
 // --- Funciones de navegación principales ---
-function mostrarPagoContado() {
-  document.getElementById('pagos-menu').classList.add('hidden')
-  document.getElementById('pago-contado').classList.remove('hidden')
-}
-function mostrarPagoCredito() {
-  document.getElementById('pagos-menu').classList.add('hidden')
-  document.getElementById('pago-credito').classList.remove('hidden')
-}
-function regresarPagosMenu() {
-  document.getElementById('pago-contado').classList.add('hidden')
-  document.getElementById('pago-credito').classList.add('hidden')
-  document.getElementById('pagos-menu').classList.remove('hidden')
-}
+
 //Funcion para cambio de estado
 async function enviarATesoreria(idSolicitud, metodoPago) {
   const facturaElement = document.getElementById('archivo-factura')
@@ -3167,25 +3110,6 @@ function initRazonSocialActions(tabla) {
 
 
 /**
- * Lógica para Pagos Pendientes
- */
-function mostrarAprobarPagoContado() {
-  document.getElementById('pago-menu').classList.add('hidden')
-  document.getElementById('pago-contado').classList.remove('hidden')
-}
-
-function mostrarAprobarPagoCredito() {
-  document.getElementById('pago-menu').classList.add('hidden')
-  document.getElementById('pago-credito').classList.remove('hidden')
-}
-
-function regresarAprobarPagoMenu() {
-  document.getElementById('pago-contado').classList.add('hidden')
-  document.getElementById('pago-credito').classList.add('hidden')
-  document.getElementById('pago-menu').classList.remove('hidden')
-}
-
-/**
  * Lógica para limpiar almacenamiento
  */
 
@@ -3408,170 +3332,6 @@ window.initLimpiarAlmacenamiento = function () {
  */
 // Inicializar
 document.addEventListener('DOMContentLoaded', initCrudProveedores)
-
-
-/**
- * loadRazonSocialProv: Función para cargar las opciones de razón social desde la API
- * y agregarlas a un elemento <select> en el DOM.
- */
-async function loadRazonSocialProv(selectId) {
-  const ProvSelect = document.getElementById(selectId)
-  if (!ProvSelect) return
-
-  try {
-    const data = await SendDataEnd('api/providers/all')
-    if (Array.isArray(data) && data.length > 0) {
-      ProvSelect.innerHTML = '<option value="">Seleccione una opción</option>'
-      data.forEach((provider) => {
-        let option = document.createElement('option')
-        option.value = provider.ID_Proveedor
-        option.textContent = provider.RazonSocial
-        ProvSelect.appendChild(option)
-      })
-    } else {
-      console.error('Los datos recibidos no son un array válido:', data)
-    }
-  } catch (error) {
-    console.error('Hubo un error al obtener los proveedores:', error)
-  }
-}
-
-async function loadDepartamentos() {
-  const departamentosSelect = document.getElementById('departamento')
-  try {
-    const data = await SendDataEnd('api/departments/all')
-    console.log('Departamentos cargados: ', data)
-    if (data.length > 0) {
-      departamentosSelect.innerHTML = '<option value="">Seleccione un departamento</option>'
-      data.forEach((departaments) => {
-        let option = document.createElement('option')
-        option.value = departaments.ID_Dpto
-        option.textContent = departaments.Nombre + ' ' + departaments.Place
-        departamentosSelect.appendChild(option)
-      })
-    } else {
-      console.error('Los datos recibidos no son array: ', data)
-    }
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-/**
- * SendData: Función para manejar el envío del formulario de manera asíncrona
- * @param {*} event - El evento de envío del formulario
- */
-async function SendData(event) {
-  event.preventDefault()
-
-  const formulario = event.target
-  const formData = new FormData(formulario)
-
-  const messageContainer = formulario.querySelector('.form-message-container')
-  const submitButton = formulario.querySelector('button[type="submit"]')
-
-  if (submitButton) {
-    submitButton.disabled = true
-    const buttonTextSpan = submitButton.querySelector('span')
-    if (buttonTextSpan) {
-      buttonTextSpan.textContent = 'Enviando...'
-    } else {
-      submitButton.textContent = 'Enviando...'
-    }
-  }
-
-  if (messageContainer) {
-    messageContainer.innerHTML = ''
-  }
-
-  try {
-    const data = await SendDataEnd(
-      'solicitudes/registrar',
-      {
-        method: 'POST',
-        body: formData,
-        headers: { Accept: 'application/json' },
-      },
-    )
-
-    if (data.success) {
-      if (messageContainer) {
-        messageContainer.innerHTML = `<p class="text-green-600">${data.message}</p>`
-        mostrarNotificacion(data.message, 'success')
-      }
-
-      // Reiniciar subtotal y total
-      const subtotalTd = formulario.querySelector('#subtotal-costo, #subtotal-servicio')
-      const totalTd = formulario.querySelector('#total-costo, #total-servicio')
-      if (subtotalTd) subtotalTd.textContent = '$0.00'
-      if (totalTd) totalTd.textContent = '$0.00'
-
-      // Resetear formulario
-      formulario.reset()
-
-      // Reiniciar filas de la tabla dejando la primera fila limpia
-      const tabla = formulario.querySelector('tbody')
-      if (tabla) {
-        const filas = Array.from(tabla.querySelectorAll('tr'))
-        filas.forEach((fila, i) => {
-          if (i > 0) {
-            fila.remove()
-          } else {
-            // Limpiar valores de la primera fila
-            const cantidad = fila.querySelector('.cantidad')
-            const importe = fila.querySelector('.importe')
-            const costo = fila.querySelector('.costo')
-            const costoServicio = fila.querySelector('.costo-servicio')
-            if (cantidad) cantidad.value = 1
-            if (importe) importe.value = ''
-            if (costo) costo.textContent = '$0.00'
-            if (costoServicio) costoServicio.value = ''
-          }
-        })
-      }
-    } else {
-      let erroresHtml = ''
-      if (data.errors) {
-        for (const key in data.errors) {
-          erroresHtml += `<li>${data.errors[key]}</li>`
-        }
-      } else {
-        erroresHtml = `<li>${data.message || 'Ocurrió un error desconocido.'}</li>`
-      }
-      if (messageContainer) {
-        messageContainer.innerHTML = `<ul class="list-disc list-inside text-red-600">${erroresHtml}</ul>`
-      }
-    }
-  } catch (error) {
-    console.error('Error en el envío del formulario:', error)
-    if (messageContainer) {
-      messageContainer.innerHTML = `<p class="text-red-600">Ocurrió un error de red. Por favor, intente de nuevo.</p>`
-    }
-  } finally {
-    if (submitButton) {
-      submitButton.disabled = false
-      const buttonTextSpan = submitButton.querySelector('span')
-      if (buttonTextSpan) {
-        buttonTextSpan.textContent = 'Enviar'
-      } else {
-        submitButton.textContent = 'Enviar'
-      }
-    }
-  }
-}
-
-function mostrarVerPdf(idSolicitud, tipo = 0) {
-  const url =
-    tipo === 1
-      ? `${BASE_URL}api/solicitud/pdf/${idSolicitud}/${tipo}`
-      : `${BASE_URL}api/solicitud/pdf/${idSolicitud}`
-  window.open(url, '_blank')
-}
-
-function mostrarOrdenPdf(id) {
-  const url = `${BASE_URL}api/orden/pdf/${id}`
-  window.open(url, '_blank')
-}
 
 async function GenerarOrden(id, button) {
   if (

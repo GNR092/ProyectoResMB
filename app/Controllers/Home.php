@@ -40,11 +40,16 @@ class Home extends BaseController
 
             // Rol Dirección
             'Direccion' => [
-                'dictamen_solicitudes',
+                'revisar_solicitudes',
+                'enviar_revision',
                 'crud_proveedores',
-                'usuarios',
                 'ver_historial',
-                'aprobar_pagos',
+                'crud_usuarios',
+                'limpiar_almacenamiento',
+                'ficha_pago',
+                'ordenes_compra',
+                'pagos_pendientes',
+                'almacen'
             ],
 
             // Rol Tesorería
@@ -53,7 +58,7 @@ class Home extends BaseController
                 'ordenes_compra',
                 'ficha_pago',
                 'pagos_pendientes',
-
+                'lista_pagos',
             ],
 
             // Rol Almacén
@@ -61,6 +66,8 @@ class Home extends BaseController
                 'registrar_productos',
                 'crud_productos', // Existencias
                 'entrega_productos',
+                'recepcion_material',
+                'bajas_destruccion',
                 'almacen'
             ],
 

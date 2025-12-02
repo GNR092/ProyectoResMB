@@ -259,8 +259,19 @@ class Modales extends BaseController
                 $data['firmaUrl'] = $sign;
                 return view('modales/micuenta', $data);
 
-            case 'aprobar_pagos':
-                return view('modales/aprobar_pagos');
+            case 'programar_pagos':
+                return view('modales/programar_pagos');
+
+            case 'lista_pagos':
+                return view('modales/lista_pagos', $data);
+
+            case 'recepcion_material':
+                $data['ordenes_compra_pendientes'] = $this->api->getOrdenesCompraPendientesRecepcion();
+                return view('modales/recepcion_material', $data);
+
+            case 'bajas_destruccion':
+                $data['productos'] = $this->api->getAllProducts();
+                return view('modales/bajas_destruccion', $data);
 
             default:
                 return 'Opción no válida';

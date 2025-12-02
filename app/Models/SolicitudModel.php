@@ -6,13 +6,13 @@ use CodeIgniter\Model;
 
 class SolicitudModel extends Model
 {
-    protected $table            = 'Solicitud';
-    protected $primaryKey       = 'ID_Solicitud';
+    protected $table = 'Solicitud';
+    protected $primaryKey = 'ID_Solicitud';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
-    protected $protectFields    = true;
-    protected $allowedFields    = [
+    protected $returnType = 'array';
+    protected $useSoftDeletes = false;
+    protected $protectFields = true;
+    protected $allowedFields = [
         'ID_Usuario',
         'ID_Dpto',
         'ID_Proveedor',
@@ -23,6 +23,7 @@ class SolicitudModel extends Model
         'No_Folio',
         'Archivo',
         'ComentariosAdmin',
+        'TipoComentarioAdmin',
         'ComentariosUser',
         'Tipo',
         'MetodoPago',
@@ -31,14 +32,14 @@ class SolicitudModel extends Model
 
     // Dates
     protected $useTimestamps = false;
-    protected $dateFormat    = 'datetime';
-    protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
-    protected $deletedField  = 'deleted_at';
+    protected $dateFormat = 'datetime';
+    protected $createdField = 'created_at';
+    protected $updatedField = 'updated_at';
+    protected $deletedField = 'deleted_at';
 
     // Validation
-    protected $validationRules      = [];
-    protected $validationMessages   = [];
-    protected $skipValidation       = false;
+    protected $validationRules = [];
+    protected $validationMessages = [];
+    protected $skipValidation = false;
     protected $cleanValidationRules = true;
 }

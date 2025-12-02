@@ -220,6 +220,63 @@ function Confirmar(title, message) {
     })
   })
 }
+
+/**
+ * Muestra un modal con un campo de texto y devuelve una promesa que se resuelve con el texto introducido.
+ * @param {string} title - El título del modal.
+ * @param {string} message - Un mensaje o etiqueta para el campo de texto.
+ * @param {boolean} isRequired - Si el campo de texto es obligatorio.
+ * @returns {Promise<string|null>} - Una promesa que se resuelve con el texto introducido, o null si se cancela.
+ */
+function InputPrompt(title, message, isRequired = true) {
+    return new Promise((resolve) => {
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50';
+        modalOverlay.style.zIndex = '2147483647';
+
+        let modalHtml = `
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+                <h3 class="text-lg font-bold mb-4">${title}</h3>
+                <label for="promptInput" class="block text-sm font-medium text-gray-700 mb-2">${message}</label>
+                <textarea id="promptInput" rows="4" class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button id="cancelarBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+                    <button id="confirmarBtn" class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700">Aceptar</button>
+                </div>
+            </div>
+        `;
+        modalOverlay.innerHTML = modalHtml;
+        document.body.appendChild(modalOverlay);
+
+        const input = document.getElementById('promptInput');
+        input.focus();
+
+        const closeModal = (value) => {
+            modalOverlay.remove();
+            resolve(value);
+        };
+
+        document.getElementById('cancelarBtn').addEventListener('click', () => closeModal(null));
+
+        document.getElementById('confirmarBtn').addEventListener('click', () => {
+            const value = input.value.trim();
+            if (isRequired && !value) {
+                mostrarNotificacion('Este campo es obligatorio.', 'error');
+                input.focus();
+                input.classList.add('border-red-500');
+                return;
+            }
+            closeModal(value);
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                closeModal(null);
+            }
+        });
+    });
+}
+
 function GetFiles(data) {
   let html = ''
   if (data.OrdenCompra['File_Factura']) {
@@ -258,6 +315,7 @@ function getStatus(status) {
       break
     case 'cotizando':
       return 'text-purple-600'
+    case 'espera_programacion':
     case 'aprobacion pendiente':
     case 'en espera':
       return 'text-yellow-600'
@@ -266,6 +324,16 @@ function getStatus(status) {
       return 'text-yellow-500'
     default:
       return 'text-gray-600'
+  }
+}
+function getStatusText(status){
+  switch(status){
+    case 'Dept_Rechazada':
+      return
+    case 'Espera_Programacion':
+      return 'En espera de programación de pago'
+    default:
+      return status
   }
 }
 function GetMetodoPago(metodo) {
@@ -298,6 +366,7 @@ function generarDetallesSolicitudHTML(data) {
   const fechaAprobacionHTML = data.Fecha_Aprobacion
     ? `<div><strong>Fecha de Aprobación:</strong> ${new Date(data.Fecha_Aprobacion).toLocaleString('es-MX')}</div>`
     : ''
+  const estadoText = getStatusText(data.EstadoOrden ?? data.Estado)
   const estadoClass = getStatus(data.EstadoOrden ?? data.Estado)
   const providerName = data.cotizacion?.ProveedorNombre || data.RazonSocialNombre || 'N/A'
 
@@ -305,7 +374,7 @@ function generarDetallesSolicitudHTML(data) {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
             <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
             <div><strong>Fecha:</strong> ${data.Fecha}</div>
-            <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
+            <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${estadoText || 'N/A'}</span></div>
             ${fechaAprobacionHTML}
             <div><strong>Solicitante:</strong> ${data.UsuarioNombre}</div>
             <div><strong>Departamento:</strong> ${data.DepartamentoNombre + ' - ' + data.ID_Place}</div>
@@ -357,3 +426,417 @@ function generarProductosServiciosHTML(data) {
         `
   return html
 }
+
+/**
+ * Crea una tabla paginada y con filtros a partir de datos de una API.
+ * @param {object} config
+ * @param {string} config.tableSelector - Selector del tbody de la tabla.
+ * @param {string} config.paginationSelector - Selector del contenedor de la paginación.
+ * @param {string} config.endpoint - URL de la API para obtener los datos.
+ * @param {function} config.renderRow - Función que recibe un item y devuelve el HTML de la fila (tr).
+ * @param {number} [config.rowsPerPage=10] - Filas por página.
+ * @param {string} [config.filterFormSelector] - Selector del formulario de filtros.
+ * @param {function} [config.filterFunction] - Función que recibe (datos, formulario) y devuelve los datos filtrados.
+ * @param {string} [config.loadingMessage='Cargando...'] - Mensaje de carga.
+ * @param {string} [config.noResultsMessage='No se encontraron resultados.'] - Mensaje sin resultados.
+ * @param {function} [config.onDataLoaded] - Callback que se ejecuta después de cargar y renderizar los datos.
+ * @param {function} [config.processData] - Función para procesar los datos crudos de la API antes de usarlos.
+ */
+async function createPaginatedTable(config) {
+  const {
+    tableSelector,
+    paginationSelector,
+    endpoint,
+    renderRow,
+    rowsPerPage = 10,
+    filterFormSelector,
+    filterFunction,
+    loadingMessage = 'Cargando...',
+    noResultsMessage = 'No se encontraron resultados.',
+    onDataLoaded,
+    processData = (data) => data,
+  } = config
+
+  const tbody = document.querySelector(tableSelector)
+  const paginacion = document.getElementById(paginationSelector)
+  const filterForm = filterFormSelector ? document.querySelector(filterFormSelector) : null
+
+  if (!tbody) {
+    console.error(`Elemento no encontrado: ${tableSelector}`)
+    return
+  }
+
+  let allData = []
+  let currentPage = 1
+
+  async function fetchData() {
+    tbody.innerHTML = `<tr><td colspan="100%" class="text-center p-4">${loadingMessage}</td></tr>`
+    try {
+      const rawData = await SendDataEnd(endpoint, {})
+      allData = processData(rawData)
+      updateTable()
+      if (onDataLoaded) {
+        onDataLoaded(allData)
+      }
+    } catch (error) {
+      console.error(error)
+      tbody.innerHTML = `<tr><td colspan="100%" class="text-center text-red-500 p-4">${error.message}</td></tr>`
+    }
+  }
+
+  function renderTable(data) {
+    tbody.innerHTML = ''
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="100%" class="text-center p-4 text-gray-500">${noResultsMessage}</td></tr>`
+      return
+    }
+    data.forEach((item) => {
+      tbody.insertAdjacentHTML('beforeend', renderRow(item))
+    })
+  }
+
+  function renderPagination(totalRows) {
+    if (!paginacion) return
+    paginacion.innerHTML = ''
+    const totalPages = Math.ceil(totalRows / rowsPerPage)
+    if (totalPages <= 1) return
+
+    for (let i = 1; i <= totalPages; i++) {
+      const button = document.createElement('button')
+      button.textContent = i
+      button.className = `px-3 py-1 border rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+      button.addEventListener('click', () => {
+        showPage(i, getFilteredData())
+      })
+      paginacion.appendChild(button)
+    }
+  }
+
+  function showPage(page, filteredData) {
+    currentPage = page
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    const pageData = filteredData.slice(start, end)
+    renderTable(pageData)
+    renderPagination(filteredData.length)
+  }
+
+  function getFilteredData() {
+    if (filterFunction && filterForm) {
+      return filterFunction(allData, filterForm)
+    }
+    return allData
+  }
+
+  function updateTable() {
+    const filteredData = getFilteredData()
+    showPage(1, filteredData)
+  }
+
+  if (filterForm) {
+    filterForm.addEventListener('input', updateTable)
+    filterForm.addEventListener('change', updateTable)
+  }
+
+  await fetchData()
+}
+
+/**
+ * Configura paginación y filtros del lado del cliente para una tabla HTML estática.
+ * @param {object} config
+ * @param {string} config.rowsSelector - Selector para las filas a paginar/filtrar (ej. '#miTabla tbody tr').
+ * @param {string} config.paginationSelector - Selector del contenedor para los botones de paginación.
+ * @param {string} [config.filterFormSelector] - Selector del formulario o contenedor de los inputs de filtro.
+ * @param {function} config.filterFunction - (row, form) => boolean. Devuelve true si la fila debe mostrarse.
+ * @param {number} [config.rowsPerPage=10] - Filas por página.
+ */
+function setupClientSideTable(config) {
+  const {
+    rowsSelector,
+    paginationSelector,
+    filterFormSelector,
+    filterFunction,
+    rowsPerPage = 10,
+  } = config
+
+  const allRows = Array.from(document.querySelectorAll(rowsSelector))
+  const pagination = document.getElementById(paginationSelector)
+  const filterForm = filterFormSelector ? document.querySelector(filterFormSelector) : null
+
+  if (!allRows.length) {
+    if (pagination) pagination.innerHTML = ''
+    return
+  }
+
+  let currentPage = 1
+  let filteredRows = [...allRows]
+
+  function applyFilters() {
+    if (filterFunction && filterForm) {
+      filteredRows = allRows.filter((row) => filterFunction(row, filterForm))
+    } else {
+      filteredRows = [...allRows]
+    }
+    showPage(1)
+  }
+
+  function showPage(page) {
+    currentPage = page
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+
+    allRows.forEach((row) => (row.style.display = 'none'))
+    filteredRows.slice(start, end).forEach((row) => {
+      row.style.display = ''
+    })
+
+    renderPagination()
+  }
+
+  function renderPagination() {
+    if (!pagination) return
+    pagination.innerHTML = ''
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage)
+    if (totalPages <= 1) {
+      pagination.style.display = 'none'
+      return
+    }
+
+    pagination.style.display = 'flex'
+
+    for (let i = 1; i <= totalPages; i++) {
+      const button = document.createElement('button')
+      button.textContent = i
+      button.className = `px-3 py-1 border rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
+      button.addEventListener('click', (e) => {
+        e.preventDefault()
+        showPage(i)
+      })
+      pagination.appendChild(button)
+    }
+  }
+
+  if (filterForm) {
+    filterForm.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault()
+      }
+    })
+    filterForm.addEventListener('input', applyFilters)
+    filterForm.addEventListener('change', applyFilters)
+  }
+
+  applyFilters()
+}
+
+/**
+ * loadRazonSocialProv: Función para cargar las opciones de razón social desde la API
+ * y agregarlas a un elemento <select> en el DOM.
+ */
+async function loadRazonSocialProv(selectId) {
+  const ProvSelect = document.getElementById(selectId)
+  if (!ProvSelect) return
+
+  try {
+    const data = await SendDataEnd('api/providers/all')
+    if (Array.isArray(data) && data.length > 0) {
+      ProvSelect.innerHTML = '<option value="">Seleccione una opción</option>'
+      data.forEach((provider) => {
+        let option = document.createElement('option')
+        option.value = provider.ID_Proveedor
+        option.textContent = provider.RazonSocial
+        ProvSelect.appendChild(option)
+      })
+    } else {
+      console.error('Los datos recibidos no son un array válido:', data)
+    }
+  } catch (error) {
+    console.error('Hubo un error al obtener los proveedores:', error)
+  }
+}
+
+async function loadDepartamentos() {
+  const departamentosSelect = document.getElementById('departamento')
+  try {
+    const data = await SendDataEnd('api/departments/all')
+    console.log('Departamentos cargados: ', data)
+    if (data.length > 0) {
+      departamentosSelect.innerHTML = '<option value="">Seleccione un departamento</option>'
+      data.forEach((departaments) => {
+        let option = document.createElement('option')
+        option.value = departaments.ID_Dpto
+        option.textContent = departaments.Nombre + ' ' + departaments.Place
+        departamentosSelect.appendChild(option)
+      })
+    } else {
+      console.error('Los datos recibidos no son array: ', data)
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+/**
+ * SendData: Función para manejar el envío del formulario de manera asíncrona
+ * @param {*} event - El evento de envío del formulario
+ */
+async function SendData(event) {
+  event.preventDefault()
+
+  const formulario = event.target
+  const formData = new FormData(formulario)
+
+  const messageContainer = formulario.querySelector('.form-message-container')
+  const submitButton = formulario.querySelector('button[type="submit"]')
+
+  if (submitButton) {
+    submitButton.disabled = true
+    const buttonTextSpan = submitButton.querySelector('span')
+    if (buttonTextSpan) {
+      buttonTextSpan.textContent = 'Enviando...'
+    } else {
+      submitButton.textContent = 'Enviando...'
+    }
+  }
+
+  if (messageContainer) {
+    messageContainer.innerHTML = ''
+  }
+
+  try {
+    const data = await SendDataEnd(
+      'solicitudes/registrar',
+      {
+        method: 'POST',
+        body: formData,
+        headers: { Accept: 'application/json' },
+      },
+    )
+
+    if (data.success) {
+      if (messageContainer) {
+        messageContainer.innerHTML = `<p class="text-green-600">${data.message}</p>`
+        mostrarNotificacion(data.message, 'success')
+      }
+
+      // Reiniciar subtotal y total
+      const subtotalTd = formulario.querySelector('#subtotal-costo, #subtotal-servicio')
+      const totalTd = formulario.querySelector('#total-costo, #total-servicio')
+      if (subtotalTd) subtotalTd.textContent = '$0.00'
+      if (totalTd) totalTd.textContent = '$0.00'
+
+      // Resetear formulario
+      formulario.reset()
+
+      // Reiniciar filas de la tabla dejando la primera fila limpia
+      const tabla = formulario.querySelector('tbody')
+      if (tabla) {
+        const filas = Array.from(tabla.querySelectorAll('tr'))
+        filas.forEach((fila, i) => {
+          if (i > 0) {
+            fila.remove()
+          } else {
+            // Limpiar valores de la primera fila
+            const cantidad = fila.querySelector('.cantidad')
+            const importe = fila.querySelector('.importe')
+            const costo = fila.querySelector('.costo')
+            const costoServicio = fila.querySelector('.costo-servicio')
+            if (cantidad) cantidad.value = 1
+            if (importe) importe.value = ''
+            if (costo) costo.textContent = '$0.00'
+            if (costoServicio) costoServicio.value = ''
+          }
+        })
+      }
+    } else {
+      let erroresHtml = ''
+      if (data.errors) {
+        for (const key in data.errors) {
+          erroresHtml += `<li>${data.errors[key]}</li>`
+        }
+      } else {
+        erroresHtml = `<li>${data.message || 'Ocurrió un error desconocido.'}</li>`
+      }
+      if (messageContainer) {
+        messageContainer.innerHTML = `<ul class="list-disc list-inside text-red-600">${erroresHtml}</ul>`
+      }
+    }
+  } catch (error) {
+    console.error('Error en el envío del formulario:', error)
+    if (messageContainer) {
+      messageContainer.innerHTML = `<p class="text-red-600">Ocurrió un error de red. Por favor, intente de nuevo.</p>`
+    }
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false
+      const buttonTextSpan = submitButton.querySelector('span')
+      if (buttonTextSpan) {
+        buttonTextSpan.textContent = 'Enviar'
+      } else {
+        submitButton.textContent = 'Enviar'
+      }
+    }
+  }
+}
+
+function mostrarVerPdf(idSolicitud, tipo = 0) {
+  const url =
+    tipo === 1
+      ? `${BASE_URL}api/solicitud/pdf/${idSolicitud}/${tipo}`
+      : `${BASE_URL}api/solicitud/pdf/${idSolicitud}`
+  window.open(url, '_blank')
+}
+
+function mostrarOrdenPdf(id) {
+  const url = `${BASE_URL}api/orden/pdf/${id}`
+  window.open(url, '_blank')
+}
+
+function getStatusSVG(status) {
+    if (!status) return ''
+    const statusLower = status.toLowerCase()
+    const iconUrl = `icons/icons.svg?v=${window.ICON_SVG_VERSION || '1.0'}`
+    let svgClass = ''
+    let iconId = ''
+
+    switch (statusLower) {
+      case 'aprobada':
+      case 'pagada':
+        svgClass = 'text-green-600'
+        iconId = 'aceptado'
+        break
+      case 'en espera':
+        svgClass = 'text-yellow-500'
+        iconId = 'en_espera'
+        break
+      case 'rechazada':
+      case 'cancelada':
+        svgClass = 'text-red-500'
+        iconId = 'rechazado'
+        break
+      case 'cotizando':
+        svgClass = 'text-blue-500'
+        iconId = 'cotizacion'
+        break
+      case 'en revision':
+        svgClass = 'text-blue-500'
+        iconId = 'revision'
+        break
+      case 'espera_programacion':
+      case 'aprobacion pendiente':
+        svgClass = 'text-orange-500'
+        iconId = 'pendiente'
+        break
+      case 'en proceso de pago':
+        svgClass = 'text-yellow-500'
+        iconId = 'procesopago'
+        break
+      case 'por pagar':
+        svgClass = 'text-yellow-500'
+        iconId = 'porpagar'
+        break
+      default:
+        return ''
+    }
+    return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
+  }

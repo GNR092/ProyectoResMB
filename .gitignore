@@ -53,6 +53,7 @@ writable/cache/*
 
 writable/logs/*
 !writable/logs/index.html
+*.log
 
 writable/session/*
 !writable/session/index.html
@@ -82,6 +83,7 @@ user_guide_src/cilexer/pycilexer.egg-info/*
 # Test Files
 #-------------------------
 tests/coverage*
+testlog.log
 
 # Don't save phpunit under version control.
 phpunit
