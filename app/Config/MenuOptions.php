@@ -64,22 +64,25 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ficha_pago"></use></svg>',
             ],
 
-            'crud_productos' => [
-                'label' => 'Inventario',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#crud_productos"></use></svg>',
-            ],
-            'recepcion_material' => [
-                'label' => 'Recepción de Material',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
-            ],
-            'entrega_productos' => [
-                'label' => 'Salidas de Almacén',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
-            ],
-            'bajas_destruccion' => [
-                'label' => 'Bajas por Destrucción',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
-            ],
+//            'crud_productos' => [
+//                'label' => 'Inventario',
+//                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#crud_productos"></use></svg>',
+//            ],
+
+//            'recepcion_material' => [
+//                'label' => 'Recepción de Material',
+//                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#registrar_productos"></use></svg>', // Placeholder icon
+//            ],
+
+//            'entrega_productos' => [
+//                'label' => 'Salidas de Almacén',
+//                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#entrega_productos"></use></svg>', // Placeholder icon
+//            ],
+//
+//            'bajas_destruccion' => [
+//                'label' => 'Bajas por Destrucción',
+//                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#bajas"></use></svg>', // Placeholder icon
+//            ],
 
             'programar_pagos' => [
                 'label' => 'Programación de pagos',
@@ -88,6 +91,11 @@ class MenuOptions extends BaseConfig
             'lista_pagos' => [
                 'label' => 'Lista de Pagos',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
+            ],
+
+            'almacen' => [
+                'label' => 'Almacén',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#almacen"></use></svg>',
             ],
         ];
     }

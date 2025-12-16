@@ -1,4 +1,9 @@
 <div id="recepcion-material-modal" class="p-4">
+
+    <button onclick="abrirModal('almacen')" class="text-sm text-gray-600 hover:text-gray-900 transition">
+        &larr; Regresar a Almacen
+    </button>
+
     <h2 class="text-lg font-bold mb-4">Recepción de Material</h2>
 
     <form id="form-recepcion-material" class="space-y-4">

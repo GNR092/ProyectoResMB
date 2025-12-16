@@ -70,6 +70,8 @@ function abrirModal(opcion) {
     reporte_almacen: 'Reportes/Historial',
     micuenta: 'Mi cuenta',
     programar_pagos: 'Programar pagos',
+    recepcion_material: 'Recepción de Material',
+    bajas_destruccion: 'Bajas por Destrucción',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 

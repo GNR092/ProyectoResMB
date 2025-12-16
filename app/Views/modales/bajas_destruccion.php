@@ -1,5 +1,10 @@
 <div id="bajas-destruccion-modal" class="p-4">
-    <h2 class="text-lg font-bold mb-4">Bajas de Material por Destrucción</h2>
+    
+    <button onclick="abrirModal('almacen')" class="text-sm text-gray-600 hover:text-gray-900 transition">
+        &larr; Regresar a Almacen
+    </button>
+
+    <h2 class="text-lg font-bold mb-4 cent">Bajas de Material por Destrucción</h2>
 
     <form id="form-bajas-destruccion" class="space-y-4">
         <!-- Campo para seleccionar Producto -->

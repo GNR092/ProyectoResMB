@@ -4,13 +4,8 @@ $historial_json = empty($historial) ? '[]' : htmlspecialchars(json_encode($histo
 <div class="p-4" x-data="ReporteAlmacen(<?= $historial_json ?>)" x-init="init()">
 
     <div class="flex justify-between items-center mb-6">
-        <button onclick="abrirModal('almacen')"
-            class="text-sm text-gray-600 hover:text-gray-900 transition flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor" class="w-4 h-4 mr-1">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-            Regresar a Almacen
+        <button onclick="abrirModal('almacen')" class="text-sm text-gray-600 hover:text-gray-900 transition">
+            &larr; Regresar a Almacen
         </button>
         <h2 class="text-xl font-semibold text-center">Reporte Historial de Cambios en Productos</h2>
         <div></div> <!-- Espaciador para centrar el título -->
