@@ -40,8 +40,10 @@ class Home extends BaseController
 
             // Rol Dirección
             'Direccion' => [
-                'revisar_solicitudes',
-                'enviar_revision',
+                //Estos no se si deberia tenerlos dirección, no tendria logica
+//                'revisar_solicitudes',
+//                'enviar_revision',
+                'dictamen_solicitudes',
                 'crud_proveedores',
                 'ver_historial',
                 'crud_usuarios',
@@ -108,7 +110,8 @@ class Home extends BaseController
         $permisosUsuario = $permisosPorDepto[$nombreDepartamento] ?? $permisosPorDepto['default'];
 
         // --- Lógica de permisos por tipo de login (Jefe vs Empleado) ---
-        if ($loginType === 'boss' && $nombreDepartamento !== 'Administración' && $nombreDepartamento !== 'Compras') {
+            //Aqui Cambie Administración por Dirección, creo que asi deberia ir
+        if ($loginType === 'boss' && $nombreDepartamento !== 'Direccion' && $nombreDepartamento !== 'Compras') {
             // Si es Jefe, añadimos el permiso para aprobar solicitudes.
             $permisosUsuario[] = 'aprobar_solicitudes';
         }

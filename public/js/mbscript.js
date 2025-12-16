@@ -533,6 +533,25 @@ function initPaginacionHistorial() {
   const tabla = document.getElementById('tabla-historial')
   if (!tabla) return
 
+  //Filtro para la casilla de departamentos
+  function validarFiltroDepartamento() {
+    const filtro = document.getElementById('filtroDepartamento')
+    if (!filtro) return
+    const deptosPermitidos = ['Administración', 'Compras', 'Dirección', 'Tesorería']
+
+    const miDepto = (typeof USER_DEPT_NAME !== 'undefined') ? USER_DEPT_NAME : ''
+
+    if (!deptosPermitidos.includes(miDepto)) {
+      filtro.classList.add('hidden') // Clase de Tailwind para ocultar
+      filtro.disabled = true // Deshabilitar para evitar envíos accidentales
+    } else {
+      filtro.classList.remove('hidden')
+    }
+  }
+
+  // Ejecutar la validación inmediatamente
+  validarFiltroDepartamento()
+
   // Mostrar la opción de filtro "Aprobacion Pendiente" solo si es un jefe
   const opcionPendiente = document.getElementById('filtro-pendiente-aprobacion')
   if (opcionPendiente && typeof USER_LOGIN_TYPE !== 'undefined' && USER_LOGIN_TYPE === 'boss') {
@@ -1017,7 +1036,6 @@ async function initBajasDestruccion() {
 function exportarRequisicionesExcel() {
     window.location.href = `${BASE_URL}api/exportar-requisiciones`;
 }
-
 
 async function mostrarVer(idSolicitud) {
   document.getElementById('btn-exportar-requisiciones').classList.add('hidden') // Ocultar el botón de exportar
@@ -1981,7 +1999,7 @@ function aprobarSolicitudes() {
                     </table>
                 </div>
                 <div class="flex justify-end space-x-4">
-                    <button @click="enviarAprobacionYCotizacion(${idSolicitud})" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">Confirmar y Enviar a Cotización</button>
+                    <button @click="enviarAprobacionYCotizacion(${idSolicitud})" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700"> Aprobar y Enviar a Cotizar</button>
                 </div>
             </div>
         `
