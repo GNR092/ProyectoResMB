@@ -88,6 +88,7 @@ if (!file_exists($installerLockFile)) {
         // Historial
         $routes->get('api/historic', 'Api::getHistorial');
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
+        $routes->get('api/historial/exportar', 'Api::exportarHistorial');
         // Solicitudes
         $routes->get('api/solicitud/details/(:num)', 'Api::getSolicitudDetails/$1');
         $routes->get('api/cotizacion/details/(:num)', 'Api::getCotizacionDetails/$1');
@@ -96,6 +97,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/solicitudes/en-revision', 'Api::getSolicitudesEnRevision');
         $routes->get('api/pagos/all', 'Api::getAllPagos');
         $routes->get('api/pagos/programados', 'Api::getPagosProgramados');
+        $routes->get('api/pagos/exportar', 'Api::exportarPagosProgramados'); // Nueva ruta para exportar pagos
         $routes->get('api/exportar-requisiciones', 'Api::exportarRequisiciones');
 
         //Orden de compra

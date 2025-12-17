@@ -93,10 +93,10 @@ class Home extends BaseController
             'Administración' => array_values($opcionesAjustes),
             'Compras' => array_values($opcionesAjustes),
             'Direccion' => array_values($opcionesAjustes),   
-            'Tesoreria' => array_values($opcionesAjustes),
+            //'Tesoreria' => array_values($opcionesAjustes),
             // Rol por defecto (Jefes de Departamento)
             'default' => [
-                'limpiar_almacenamiento'
+                null
             ]
         ];
 

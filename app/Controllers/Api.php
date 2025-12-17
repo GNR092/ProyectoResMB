@@ -1761,6 +1761,59 @@ class Api extends ResourceController
         exit();
     }
 
+    public function exportarHistorial()
+    {
+        $fecha = $this->request->getGet('fecha');
+        $porMes = $this->request->getGet('por_mes');
+        $estado = $this->request->getGet('estado');
+        $dpto = $this->request->getGet('dpto');
+
+        $solicitudModel = new SolicitudModel();
+        $builder = $solicitudModel
+            ->select('Solicitud.No_Folio, Solicitud.Fecha, Departamentos.Nombre as DepartamentoNombre, Solicitud.Estado')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left');
+
+        if ($fecha) {
+            if ($porMes) {
+                $builder->where("to_char(Solicitud.Fecha, 'YYYY-MM')", $fecha);
+            } else {
+                $builder->where('Solicitud.Fecha', $fecha);
+            }
+        }
+        if ($estado) {
+            $builder->where('Solicitud.Estado', $estado);
+        }
+        if ($dpto) {
+            $builder->where('Departamentos.Nombre', $dpto);
+        }
+
+        $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')->findAll();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('A1', 'Folio');
+        $sheet->setCellValue('B1', 'Fecha');
+        $sheet->setCellValue('C1', 'Departamento');
+        $sheet->setCellValue('D1', 'Estado');
+
+        $row = 2;
+        foreach ($solicitudes as $solicitud) {
+            $sheet->setCellValue('A' . $row, $solicitud['No_Folio']);
+            $sheet->setCellValue('B' . $row, $solicitud['Fecha']);
+            $sheet->setCellValue('C' . $row, $solicitud['DepartamentoNombre']);
+            $sheet->setCellValue('D' . $row, $solicitud['Estado']);
+            $row++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'historial_requisiciones.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit();
+    }
+
     public function getAllPagos()
     {
         $pagoModel = new PagoModel();
@@ -2150,7 +2203,7 @@ return null;
     }
     public function getPagosProgramados()
     {
-        $ordenCompraModel = new \App\Models\OrdenCompraModel();
+        $ordenCompraModel = new OrdenCompraModel();
 
         $data = $ordenCompraModel
             ->select([
@@ -2158,15 +2211,86 @@ return null;
                 'Solicitud.No_Folio',
                 'Proveedor.RazonSocial as Proveedor',
                 'Cotizacion.Total',
-                'OrdenCompra.Estado'
+                'OrdenCompra.Estado',
+                'Solicitud.MetodoPago'
             ])
             ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = OrdenCompra.ID_Proveedor', 'left')
-            ->where('OrdenCompra.Estado', \App\Libraries\Status::Programada)
+            ->where('OrdenCompra.Estado', Status::Programada)
             ->orderBy('Solicitud.Fecha', 'DESC')
             ->findAll();
 
         return $this->respond($data);
+    }
+
+    public function exportarPagosProgramados()
+    {
+        $metodoPagoFiltro = $this->request->getGet('metodo_pago');
+
+        $ordenCompraModel = new OrdenCompraModel();
+
+        $builder = $ordenCompraModel
+            ->select([
+                'Solicitud.No_Folio',
+                'Proveedor.RazonSocial as Proveedor',
+                'Cotizacion.Total',
+                'Solicitud.MetodoPago',
+                'OrdenCompra.Estado',
+                'Solicitud.Fecha as FechaSolicitud',
+            ])
+            ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
+            ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = OrdenCompra.ID_Proveedor', 'left')
+            ->where('OrdenCompra.Estado', Status::Programada)
+            ->orderBy('Solicitud.Fecha', 'DESC');
+
+        if ($metodoPagoFiltro !== null && $metodoPagoFiltro !== 'todos') {
+            $builder->where('Solicitud.MetodoPago', $metodoPagoFiltro);
+        }
+
+        $pagos = $builder->findAll();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->setCellValue('A1', 'No. Folio');
+        $sheet->setCellValue('B1', 'Proveedor');
+        $sheet->setCellValue('C1', 'Total a Pagar');
+        $sheet->setCellValue('D1', 'Método de Pago');
+        $sheet->setCellValue('E1', 'Estado');
+        $sheet->setCellValue('F1', 'Fecha de Solicitud');
+
+
+        $row = 2;
+        foreach ($pagos as $pago) {
+            $metodoPagoTexto = '';
+            if ($pago['MetodoPago'] == '0') {
+                $metodoPagoTexto = 'Contado';
+            } elseif ($pago['MetodoPago'] == '1') {
+                $metodoPagoTexto = 'Crédito';
+            } else {
+                $metodoPagoTexto = 'Desconocido';
+            }
+
+            $sheet->setCellValue('A' . $row, $pago['No_Folio']);
+            $sheet->setCellValue('B' . $row, $pago['Proveedor']);
+            $sheet->setCellValue('C' . $row, $pago['Total']);
+            $sheet->setCellValue('D' . $row, $metodoPagoTexto);
+            $sheet->setCellValue('E' . $row, $pago['Estado']);
+            $sheet->setCellValue('F' . $row, $pago['FechaSolicitud']);
+            $row++;
+        }
+
+        $writer = new Xlsx($spreadsheet);
+
+        $filename = 'pagos_programados.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit();
     }
 } //endregion

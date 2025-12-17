@@ -93,7 +93,6 @@ function abrirModal(opcion) {
         ficha_pago: initFichasPago,
         razonsocial: initCrudRazonSocial,
         limpiar_almacenamiento: initLimpiarAlmacenamiento,
-        lista_pagos: initListaPagos,
         recepcion_material: initRecepcionMaterial,
         bajas_destruccion: initBajasDestruccion,
       }
@@ -1037,6 +1036,30 @@ async function initBajasDestruccion() {
 
 function exportarRequisicionesExcel() {
     window.location.href = `${BASE_URL}api/exportar-requisiciones`;
+}
+
+function exportarHistorialExcel() {
+    const fecha = document.getElementById('filtro-fecha').value;
+    const porMes = document.getElementById('filtrar-por-mes').checked;
+    const estado = document.getElementById('filtro-estado').value;
+    const dpto = document.getElementById('filtroDepartamento')?.value || '';
+
+    const params = new URLSearchParams();
+    if (fecha) {
+        params.append('fecha', fecha);
+    }
+    if (porMes) {
+        params.append('por_mes', '1');
+    }
+    if (estado) {
+        params.append('estado', estado);
+    }
+    if (dpto) {
+        params.append('dpto', dpto);
+    }
+
+    const queryString = params.toString();
+    window.location.href = `${BASE_URL}api/historial/exportar${queryString ? '?' + queryString : ''}`;
 }
 
 async function mostrarVer(idSolicitud) {

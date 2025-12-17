@@ -39,6 +39,10 @@
         </select>
         <?php endif; ?>
 
+        <!-- Botón de Exportar -->
+        <button onclick="exportarHistorialExcel()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition self-start md:self-auto">
+            Exportar a Excel
+        </button>
     </div>
 
 

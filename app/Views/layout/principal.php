@@ -27,7 +27,8 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
         <nav id="sidebar-nav" class="flex-1 mt-4 px-4 space-y-2">
             <?php if (!empty($opcionesDinamicas)): ?>
             <?php foreach ($opcionesDinamicas as $key => $opcion): ?>
-            <a href="#" data-opcion="<?= $key ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
+            <a href="#" data-opcion="<?= $key ?>"
+                class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
                 onclick="abrirModal('<?= $key ?>', '<?= esc($opcion['label'], 'js') ?>')">
                 <?= $opcion['icon'] ?>
                 <span><?= esc($opcion['label']) ?></span>
@@ -38,6 +39,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             <?php endif; ?>
 
             <?php if ($login_type === 'boss'): ?>
+            <?php if (count($ajustes) > 0): // para mostrar los ajustes?>
             <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2"
                 onclick="abrirModal('ajustes')">
                 <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
@@ -45,6 +47,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
                 </svg>
                 <span>Ajustes</span>
             </a>
+            <?php endif; ?>
             <?php endif; ?>
 
             <a href="<?= base_url(
