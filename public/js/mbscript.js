@@ -1606,7 +1606,7 @@ async function enviarOrdenCompra(idSolicitud, iduser, boton) {
       method: 'POST',
     })
 
-    if (!response.ok || !data.success) {
+    if (!data.success) {
       mostrarNotificacion(data.message || 'Error desconocido al enviar la orden.', 'error')
 
       boton.disabled = false

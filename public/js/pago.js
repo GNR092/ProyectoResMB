@@ -19,8 +19,11 @@ function Pagos() {
           this.ordenesCredito = []
           return
         }
-        const detallesPromises = ordenes.map((o) =>
-          SendDataEnd(`api/orden-compra/details/${o.ID_Solicitud}`),
+
+        const uniqueIds = [...new Set(ordenes.map(o => o.ID_Solicitud))];
+
+        const detallesPromises = uniqueIds.map((id) =>
+          SendDataEnd(`api/orden-compra/details/${id}`),
         )
         const detalles = await Promise.all(detallesPromises)
 
