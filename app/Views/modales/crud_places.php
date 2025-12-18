@@ -1,5 +1,5 @@
-<!-- Pantalla 1: lista de razones sociales -->
-<div id="pantalla-lista-razonsocial" class="p-6 bg-white rounded-xl shadow-md">
+<!-- Pantalla 1: lista de places -->
+<div id="pantalla-lista-places" class="p-6 bg-white rounded-xl shadow-md">
 
     <div class="flex items-center mb-4">
         <button onclick="abrirModal('ajustes')" class="text-sm text-gray-600 hover:text-gray-900 transition">
@@ -7,16 +7,19 @@
         </button>
     </div>
 
-    <h2 class="text-2xl font-semibold mb-4 text-center">Lista de Razón Social</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Lista de Lugares</h2>
 
     <!-- Buscador y botón AGREGAR -->
-    <div id="form-filtros-razonsocial" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+    <div id="form-filtros-places" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
         <div class="flex flex-1 gap-4">
-            <label for="buscar-nombre" class="sr-only">Buscar por nombre</label>
-            <input type="text" id="buscar-nombre" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+            <label for="buscar-nombre-corto" class="sr-only">Buscar por nombre corto</label>
+            <input type="text" id="buscar-nombre-corto" placeholder="Buscar por nombre corto..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+
+            <label for="buscar-nombre-completo" class="sr-only">Buscar por nombre completo</label>
+            <input type="text" id="buscar-nombre-completo" placeholder="Buscar por nombre completo..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
         </div>
         <div>
-            <a href="#" id="btn-agregar-razonsocial" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
+            <a href="#" id="btn-agregar-places" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
                 AGREGAR
             </a>
         </div>
@@ -27,30 +30,29 @@
         <table class="min-w-full border border-gray-300 rounded-lg table-fixed">
             <thead class="bg-gray-100">
             <tr>
-                <th class="w-3/6 px-3 py-2 border-b text-left">Nombre</th>
-                <th class="w-2/6 px-3 py-2 border-b text-left">RFC</th>
-                <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
+                <th class="w-1/3 px-3 py-2 border-b text-left">Nombre Corto</th>
+                <th class="w-1/3 px-3 py-2 border-b text-left">Nombre Completo</th>
+                <th class="w-1/3 px-3 py-2 border-b text-center">Acciones</th>
             </tr>
             </thead>
-            <tbody id="tabla-razonsocial">
-            <?php if (!empty($razones)): ?>
-                <?php foreach ($razones as $index => $razon): ?>
-                    <tr data-id="<?= $razon['ID_RazonSocial'] ?>"
-                        data-rfc="<?= esc($razon['RFC']) ?>"
+            <tbody id="tabla-places">
+            <?php if (!empty($places)): ?>
+                <?php foreach ($places as $index => $place): ?>
+                    <tr data-id="<?= $place['ID_Place'] ?>"
+                        data-nombre-corto="<?= esc($place['Nombre_Corto']) ?>"
+                        data-nombre-completo="<?= esc($place['Nombre_Completo']) ?>"
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
 
-                        <td class="px-3 py-2 border-b nombre"><?= esc($razon['Nombre']) ?></td>
-
-                        <td class="px-3 py-2 border-b rfc"><?= esc($razon['RFC']) ?></td>
+                        <td class="px-3 py-2 border-b nombre-corto"><?= esc($place['Nombre_Corto']) ?></td>
+                        <td class="px-3 py-2 border-b nombre-completo"><?= esc($place['Nombre_Completo']) ?></td>
 
                         <td class="px-2 py-2 border-b align-top text-center acciones">
-
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <!-- Editar -->
                                 <a href="#"
-                                   id="btn-editar-razonsocial-<?= $razon['ID_RazonSocial'] ?>"
+                                   id="btn-editar-places-<?= $place['ID_Place'] ?>"
                                    class="btn-editar text-green-600 hover:text-green-800"
-                                   data-id="<?= $razon['ID_RazonSocial'] ?>">
+                                   data-id="<?= $place['ID_Place'] ?>">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                          stroke-width="1.5" stroke="currentColor" class="size-6">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -59,9 +61,9 @@
                                 </a>
                                 <!-- Eliminar -->
                                 <a href="#"
-                                   id="btn-eliminar-razonsocial-<?= $razon['ID_RazonSocial'] ?>"
+                                   id="btn-eliminar-places-<?= $place['ID_Place'] ?>"
                                    class="btn-eliminar text-red-600 hover:text-red-800"
-                                   data-id="<?= $razon['ID_RazonSocial'] ?>">
+                                   data-id="<?= $place['ID_Place'] ?>">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                          stroke-width="1.5" stroke="currentColor" class="size-6">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -74,7 +76,7 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="3" class="px-3 py-4 text-center text-gray-500">No hay registros</td>
+                    <td colspan="3" class="px-3 py-4 text-center text-gray-500">No hay lugares registrados</td>
                 </tr>
             <?php endif; ?>
             </tbody>
@@ -82,48 +84,48 @@
     </div>
 
     <!-- Paginación -->
-    <div id="paginacion-razonsocial" class="flex justify-center mt-4 space-x-2"></div>
+    <div id="paginacion-places" class="flex justify-center mt-4 space-x-2"></div>
 </div>
 
-<!-- Pantalla 2: agregar razón social -->
-<div id="pantalla-agregar-razonsocial" class="hidden p-6 bg-white rounded-xl shadow-md">
+<!-- Pantalla 2: agregar places -->
+<div id="pantalla-agregar-places" class="hidden p-6 bg-white rounded-xl shadow-md">
     <button id="btn-regresar-lista" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">← Regresar</button>
-    <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Razón Social</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Lugar</h2>
 
-    <form id="form-agregar-razonsocial" class="space-y-4">
+    <form id="form-agregar-places" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="flex flex-col">
-                <label for="Nombre" class="mb-1 font-medium">Nombre</label>
-                <input type="text" name="Nombre" id="Nombre" placeholder="Nombre" required class="w-full px-3 py-2 border rounded-lg">
+                <label for="Nombre_Corto" class="mb-1 font-medium">Nombre Corto</label>
+                <input type="text" name="Nombre_Corto" id="Nombre_Corto" placeholder="Ej. QRO" required class="w-full px-3 py-2 border rounded-lg">
             </div>
             <div class="flex flex-col">
-                <label for="RFC" class="mb-1 font-medium">RFC</label>
-                <input type="text" name="RFC" id="RFC" placeholder="RFC" required class="w-full px-3 py-2 border rounded-lg">
+                <label for="Nombre_Completo" class="mb-1 font-medium">Nombre Completo</label>
+                <input type="text" name="Nombre_Completo" id="Nombre_Completo" placeholder="Ej. Querétaro" required class="w-full px-3 py-2 border rounded-lg">
             </div>
         </div>
         <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">Guardar</button>
     </form>
-    <div id="msg-agregar-razonsocial" class="mt-4 text-center"></div>
+    <div id="msg-agregar-places" class="mt-4 text-center"></div>
 </div>
 
-<!-- Pantalla 3: editar razón social -->
-<div id="pantalla-editar-razonsocial" class="hidden p-6 bg-white rounded-xl shadow-md">
+<!-- Pantalla 3: editar places -->
+<div id="pantalla-editar-places" class="hidden p-6 bg-white rounded-xl shadow-md">
     <button id="btn-regresar-lista-editar" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">← Regresar</button>
-    <h2 class="text-2xl font-semibold mb-4 text-center">Editar Razón Social</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Editar Lugar</h2>
 
-    <form id="form-editar-razonsocial" class="space-y-4">
-        <input type="hidden" name="ID_RazonSocial" id="editar-ID_RazonSocial">
+    <form id="form-editar-places" class="space-y-4">
+        <input type="hidden" name="ID_Place" id="editar-ID_Place">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="flex flex-col">
-                <label for="editar-Nombre" class="mb-1 font-medium">Nombre</label>
-                <input type="text" name="Nombre" id="editar-Nombre" required class="w-full px-3 py-2 border rounded-lg">
+                <label for="editar-Nombre_Corto" class="mb-1 font-medium">Nombre Corto</label>
+                <input type="text" name="Nombre_Corto" id="editar-Nombre_Corto" required class="w-full px-3 py-2 border rounded-lg">
             </div>
             <div class="flex flex-col">
-                <label for="editar-RFC" class="mb-1 font-medium">RFC</label>
-                <input type="text" name="RFC" id="editar-RFC" required class="w-full px-3 py-2 border rounded-lg">
+                <label for="editar-Nombre_Completo" class="mb-1 font-medium">Nombre Completo</label>
+                <input type="text" name="Nombre_Completo" id="editar-Nombre_Completo" required class="w-full px-3 py-2 border rounded-lg">
             </div>
         </div>
         <button type="submit" class="px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg shadow hover:bg-yellow-600 transition">Guardar Cambios</button>
     </form>
-    <div id="msg-editar-razonsocial" class="mt-4 text-center"></div>
+    <div id="msg-editar-places" class="mt-4 text-center"></div>
 </div>

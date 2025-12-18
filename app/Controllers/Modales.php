@@ -273,6 +273,11 @@ class Modales extends BaseController
                 $data['productos'] = $this->api->getAllProducts();
                 return view('modales/bajas_destruccion', $data);
 
+            case 'crud_places':
+                $placesModel = new \App\Models\PlacesModel();
+                $data['places'] = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
+                return view('modales/crud_places', $data);
+
             default:
                 return 'Opción no válida';
         }
@@ -786,6 +791,54 @@ class Modales extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'No se pudo eliminar la razón social',
+            ]);
+        }
+    }
+
+    //Funcion crud para places
+// --- CRUD PLACES ---
+    public function insertarPlace()
+    {
+        $model = new \App\Models\PlacesModel();
+        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo']);
+
+        if ($model->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo insertar el lugar',
+                'errors' => $model->errors()
+            ]);
+        }
+    }
+
+    public function editarPlace($id)
+    {
+        $model = new \App\Models\PlacesModel();
+        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo']);
+
+        try {
+            $model->update($id, $data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function eliminarPlace($id)
+    {
+        $model = new \App\Models\PlacesModel();
+
+        if ($model->delete($id)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo eliminar el lugar',
             ]);
         }
     }

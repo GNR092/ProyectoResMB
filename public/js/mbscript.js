@@ -72,6 +72,7 @@ function abrirModal(opcion) {
     programar_pagos: 'Programar pagos',
     recepcion_material: 'Recepción de Material',
     bajas_destruccion: 'Bajas por Destrucción',
+    crud_places: 'Complejos',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -95,6 +96,7 @@ function abrirModal(opcion) {
         limpiar_almacenamiento: initLimpiarAlmacenamiento,
         recepcion_material: initRecepcionMaterial,
         bajas_destruccion: initBajasDestruccion,
+        crud_places: initCrudPlaces,
       }
 
       const inicializador = inicializadores[opcion]
@@ -1493,7 +1495,193 @@ function regresarListaPagos() {
   divLista.classList.remove('hidden');
 }
 
+/**
+ * Lógica para el modal CRUD Places
+ */
 
+function initCrudPlaces() {
+  const tabla = document.getElementById('tabla-places')
+  if (!tabla) return
+
+  initPlacesTabla()
+  initPlacesPantallas()
+  initPlacesForm()
+  initPlacesEditarForm()
+  initPlacesActions(tabla)
+}
+
+function initPlacesTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-places tr[data-id]',
+    paginationSelector: 'paginacion-places',
+    filterFormSelector: '#form-filtros-places',
+    filterFunction: (row, form) => {
+      const cortoFiltro = (document.getElementById('buscar-nombre-corto')?.value || '').toLowerCase()
+      const completoFiltro = (document.getElementById('buscar-nombre-completo')?.value || '').toLowerCase()
+
+      const nombreCorto = row.querySelector('.nombre-corto')?.textContent.toLowerCase() || ''
+      const nombreCompleto = row.querySelector('.nombre-completo')?.textContent.toLowerCase() || ''
+
+      return nombreCorto.includes(cortoFiltro) && nombreCompleto.includes(completoFiltro)
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initPlacesPantallas() {
+  const pantallaAgregar = document.getElementById('pantalla-agregar-places')
+  const pantallaEditar = document.getElementById('pantalla-editar-places')
+  const pantallaLista = document.getElementById('pantalla-lista-places')
+
+  const btnAgregar = document.getElementById('btn-agregar-places')
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar')
+
+  if (btnAgregar)
+    btnAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaLista?.classList.add('hidden')
+      pantallaAgregar?.classList.remove('hidden')
+    }
+
+  if (btnRegresarAgregar)
+    btnRegresarAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaAgregar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+
+  if (btnRegresarEditar)
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+}
+
+function initPlacesForm() {
+  const formAgregar = document.getElementById('form-agregar-places')
+  const pantallaAgregar = document.getElementById('pantalla-agregar-places')
+  const pantallaLista = document.getElementById('pantalla-lista-places')
+  if (!formAgregar) return
+
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formAgregar)
+
+    try {
+      // --- CAMBIO: Ruta actualizada a crud_places ---
+      const result = await SendDataEnd('modales/crud_places/insertar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Lugar agregado correctamente ✅', 'success')
+        pantallaAgregar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+        formAgregar.reset()
+        // --- CAMBIO: Nombre del modal actualizado ---
+        abrirModal('crud_places')
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initPlacesEditarForm() {
+  const formEditar = document.getElementById('form-editar-places')
+  const pantallaEditar = document.getElementById('pantalla-editar-places')
+  const pantallaLista = document.getElementById('pantalla-lista-places')
+  const tabla = document.getElementById('tabla-places')
+  if (!formEditar) return
+
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
+    const id = formData.get('ID_Place')
+
+    try {
+      // --- CAMBIO: Ruta actualizada a crud_places ---
+      const result = await SendDataEnd(`modales/crud_places/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Lugar actualizado correctamente ✅', 'success')
+
+        const fila = tabla.querySelector(`tr[data-id='${id}']`)
+        if (fila) {
+          fila.querySelector('.nombre-corto').textContent = formData.get('Nombre_Corto')
+          fila.querySelector('.nombre-completo').textContent = formData.get('Nombre_Completo')
+
+          fila.dataset.nombreCorto = formData.get('Nombre_Corto')
+          fila.dataset.nombreCompleto = formData.get('Nombre_Completo')
+        }
+
+        pantallaEditar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initPlacesActions(tabla) {
+  if (!tabla) return
+
+  tabla.addEventListener('click', async (e) => {
+    const btnEliminar = e.target.closest("[id^='btn-eliminar-places-']")
+    if (btnEliminar) {
+      e.preventDefault()
+      const id = btnEliminar.dataset.id
+
+      if (
+          !(await Confirmar(
+              'Eliminar Lugar?',
+              '¿Seguro que deseas eliminar este lugar?',
+          ))
+      )
+        return
+
+      // --- CAMBIO: Ruta actualizada a crud_places ---
+      SendDataEnd(`modales/crud_places/eliminar/${id}`, {
+        method: 'POST',
+      })
+          .then((result) => {
+            if (result.success) {
+              mostrarNotificacion('Lugar eliminado ✅', 'success')
+              btnEliminar.closest('tr')?.remove()
+            } else {
+              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+            }
+          })
+          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+      return
+    }
+
+    const btnEditar = e.target.closest("[id^='btn-editar-places-']")
+    if (!btnEditar) return
+    e.preventDefault()
+
+    const fila = btnEditar.closest('tr')
+    if (!fila) return
+
+    document.getElementById('editar-ID_Place').value = fila.dataset.id
+    document.getElementById('editar-Nombre_Corto').value = fila.dataset.nombreCorto
+    document.getElementById('editar-Nombre_Completo').value = fila.dataset.nombreCompleto
+
+    document.getElementById('pantalla-lista-places').classList.add('hidden')
+    document.getElementById('pantalla-editar-places').classList.remove('hidden')
+  })
+}
 
 /**
  * Lógica para el modal "Dictamen de Solicitudes"

@@ -130,6 +130,11 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/storage/serve', 'Api::serveFile');
         $routes->get('api/download-attachments/(:num)', 'Api::downloadAttachmentsAsZip/$1');
 
+        //crud places
+        $routes->post('modales/crud_places/insertar', 'Modales::insertarPlace');
+        $routes->post('modales/crud_places/editar/(:num)', 'Modales::editarPlace/$1');
+        $routes->post('modales/crud_places/eliminar/(:num)', 'Modales::eliminarPlace/$1');
+
         // User
         $routes->post('api/user/update', 'Api::updateUser');
         $routes->post('api/user/upload_signature', 'Api::upload_signature');
