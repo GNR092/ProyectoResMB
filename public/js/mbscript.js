@@ -766,26 +766,6 @@ function initRevisarSolicitud() {
   })
 }
 
-async function initListaPagos() {
-  createPaginatedTable({
-    tableSelector: '#tablaListaPagos',
-    paginationSelector: 'paginacion-lista-pagos',
-    endpoint: 'api/pagos/all',
-    renderRow: (p) => `
-      <tr class="hover:bg-gray-50">
-          <td class="py-3 px-6 text-left">${p.Folio || 'N/A'}</td>
-          <td class="py-3 px-6 text-left">${p.Proveedor || 'N/A'}</td>
-          <td class="py-3 px-6 text-right">$${parseFloat(p.Total).toFixed(2)}</td>
-          <td class="py-3 px-6 text-left">${p.Estado || 'N/A'}</td>
-          <td class="py-3 px-6 text-center">
-              <button onclick="verDetallePago(${p.ID_Pago})" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">Ver</button>
-          </td>
-      </tr>
-    `,
-    noResultsMessage: 'No hay pagos registrados.',
-  })
-}
-
 async function initRecepcionMaterial() {
   const ordenCompraSelect = document.getElementById('ordenCompraSelect')
   const solicitudFolioInput = document.getElementById('solicitudFolio')
@@ -1330,6 +1310,190 @@ function regresarTabla() {
   document.getElementById('div-tabla').classList.remove('hidden')
   document.getElementById('btn-exportar-requisiciones').classList.remove('hidden') // Mostrar el botón de exportar
 }
+
+/**
+ * Lógica para el modal "Lista de pagos pendientes"
+ */
+
+async function initListaPagos() {
+  createPaginatedTable({
+    tableSelector: '#tablaListaPagos',
+    paginationSelector: 'paginacion-lista-pagos',
+    endpoint: 'api/pagos/all',
+    renderRow: (p) => `
+      <tr class="hover:bg-gray-50">
+          <td class="py-3 px-6 text-left">${p.Folio || 'N/A'}</td>
+          <td class="py-3 px-6 text-left">${p.Proveedor || 'N/A'}</td>
+          <td class="py-3 px-6 text-right">$${parseFloat(p.Total).toFixed(2)}</td>
+          <td class="py-3 px-6 text-left">${p.Estado || 'N/A'}</td>
+          <td class="py-3 px-6 text-center">
+              <!-- MODIFICADO: Llamada a la nueva función -->
+              <button onclick="mostrarDetallePago(${p.ID_Pago || p.ID_Solicitud})" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">Ver</button>
+          </td>
+      </tr>
+    `,
+    noResultsMessage: 'No hay pagos registrados.',
+  })
+}
+
+async function mostrarDetallePago(id) {
+  const divLista = document.getElementById('div-lista-pagos');
+  const divDetalle = document.getElementById('div-detalle-pago');
+  const contenedorDetalle = document.getElementById('contenido-detalle-pago');
+
+  divLista.classList.add('hidden');
+  divDetalle.classList.remove('hidden');
+
+  contenedorDetalle.innerHTML = `<p class="text-center text-gray-500 py-8">Cargando detalles...</p>`;
+
+  try {
+    // Peticion a la API
+    const data = await SendDataEnd(`api/orden-compra/details/${id}`);
+
+    if (!data) {
+      throw new Error("No se recibieron datos del servidor.");
+    }
+
+    // Preparar datos
+    const prov = data.proveedor || {};
+    const totalFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+    });
+
+    const metodoPagoTexto =
+        data.MetodoPago == 0 ? 'Efectivo' :
+            data.MetodoPago == 1 ? 'Crédito' :
+                data.MetodoPago == 9 ? 'En Espera' : 'N/A';
+
+    let html = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+                <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
+                <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
+                <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
+                <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
+                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+            </div>
+
+            <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+                <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
+                <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
+                <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
+                <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+                <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
+                <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
+                <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
+        prov.Monto_Credito
+            ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+            : 'N/A'
+    }</div>
+            </div>
+
+            <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
+            
+            <div class="overflow-x-auto mb-6">
+                <table class="min-w-full border border-gray-300">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 text-left">Código</th>
+                            <th class="py-2 px-4 text-left">Producto</th>
+                            <th class="py-2 px-4 text-right">Cantidad</th>
+                            <th class="py-2 px-4 text-right">Importe</th>
+                            <th class="py-2 px-4 text-right">Costo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+        `;
+
+    if (data.productos && data.productos.length > 0) {
+      data.productos.forEach((p) => {
+        const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
+        html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
+                        <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                        <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                        <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
+                        <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
+                    </tr>
+                `;
+      });
+    } else {
+      html += `<tr><td colspan="5" class="text-center py-3 text-gray-500">No hay productos en esta orden.</td></tr>`;
+    }
+
+    html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+    // Archivos Adjuntos
+    if (typeof GetFiles === 'function') {
+      html += GetFiles(data);
+    } else if (data.Archivo) {
+      const archivoUrl = `${BASE_URL}solicitudes/archivo/${id}`;
+      html += `
+                <div class="mt-6 mb-6">
+                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
+                    <a href="${archivoUrl}" target="_blank" class="text-blue-600 hover:underline">${data.Archivo}</a>
+                </div>
+            `;
+    }
+
+    // Input para subir Factura
+    html += `
+            <div class="block mb-6 p-4 border rounded-lg bg-gray-50">
+                 <label for="archivo-factura" class="block text-sm font-medium text-black-500 ">Adjuntar factura (Imagen o PDF)</label>
+                 <input type="file" id="archivo-factura" name="factura" accept="image/*,.pdf" class="mt-1 p-1 block w-full text-sm text-black-300 border-gray-700 rounded cursor-pointer bg-white focus:outline-none border">
+                 <p class="mt-1 text-sm text-gray-500">Solo se permite un archivo.</p>
+            </div>
+        `;
+
+    //Botones
+    html += `
+          <div class="flex justify-between mt-6 pt-4 gap-4 border-t">
+            <button onclick="" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition w-1/2">
+              Pendiente
+            </button>
+            
+            <button onclick="" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition w-1/2">
+              Pendiente
+            </button>
+          </div>
+          
+          <div class="flex flex-col gap-4 mt-4">
+            <button onclick="" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+              Pendiente
+            </button>
+          </div>
+        `;
+
+
+    // Inyectamos el HTML
+    contenedorDetalle.innerHTML = html;
+
+  } catch (error) {
+    console.error('Error al cargar detalle:', error);
+    contenedorDetalle.innerHTML = `<p class="text-center text-red-500 py-8">Error al cargar los detalles: ${error.message}</p>`;
+  }
+}
+
+function regresarListaPagos() {
+  const divLista = document.getElementById('div-lista-pagos');
+  const divDetalle = document.getElementById('div-detalle-pago');
+  const contenedor = document.getElementById('contenido-detalle-pago');
+
+  contenedor.innerHTML = '';
+
+  divDetalle.classList.add('hidden');
+  divLista.classList.remove('hidden');
+}
+
+
 
 /**
  * Lógica para el modal "Dictamen de Solicitudes"
