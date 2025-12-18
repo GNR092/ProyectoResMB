@@ -628,17 +628,17 @@ class Rest
 
         if ($cotizacion) {
             $solicitud['cotizacion'] = $cotizacion;
-        }
-        $ordenCompraModel = new OrdenCompraModel();
-        $orden = $ordenCompraModel
-            ->select(
-                'OrdenCompra.File_Factura, OrdenCompra.File_Comprobante, OrdenCompra.File_ReqPag',
-            )
-            ->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])
-            ->first();
+            $ordenCompraModel = new OrdenCompraModel();
+            $orden = $ordenCompraModel
+                ->select(
+                    'OrdenCompra.File_Factura, OrdenCompra.File_Comprobante, OrdenCompra.File_ReqPag',
+                )
+                ->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])
+                ->first();
 
-        if ($orden) {
-            $solicitud['OrdenCompra'] = $orden;
+            if ($orden) {
+                $solicitud['OrdenCompra'] = $orden;
+            }
         }
 
         return $solicitud ? $solicitud : [];

@@ -2218,6 +2218,15 @@ return null;
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = OrdenCompra.ID_Proveedor', 'left')
             ->where('OrdenCompra.Estado', Status::Programada)
+            ->groupBy([
+                'Solicitud.ID_Solicitud',
+                'Solicitud.No_Folio',
+                'Proveedor.RazonSocial',
+                'Cotizacion.Total',
+                'OrdenCompra.Estado',
+                'Solicitud.MetodoPago',
+                'Solicitud.Fecha'
+            ])
             ->orderBy('Solicitud.Fecha', 'DESC')
             ->findAll();
 

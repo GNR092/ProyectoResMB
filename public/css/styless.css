@@ -456,9 +456,6 @@
   .h-32 {
     height: calc(var(--spacing) * 32);
   }
-  .h-50 {
-    height: calc(var(--spacing) * 50);
-  }
   .h-full {
     height: 100%;
   }
@@ -510,9 +507,6 @@
   .w-32 {
     width: calc(var(--spacing) * 32);
   }
-  .w-50 {
-    width: calc(var(--spacing) * 50);
-  }
   .w-64 {
     width: calc(var(--spacing) * 64);
   }
@@ -554,6 +548,9 @@
   }
   .shrink-0 {
     flex-shrink: 0;
+  }
+  .flex-grow {
+    flex-grow: 1;
   }
   .grow {
     flex-grow: 1;
@@ -699,6 +696,12 @@
     :where(& > :not(:last-child)) {
       border-color: var(--color-gray-200);
     }
+  }
+  .self-end {
+    align-self: flex-end;
+  }
+  .self-start {
+    align-self: flex-start;
   }
   .overflow-auto {
     overflow: auto;
@@ -1597,6 +1600,11 @@
       align-items: center;
     }
   }
+  .sm\:self-center {
+    @media (width >= 40rem) {
+      align-self: center;
+    }
+  }
   .sm\:text-sm {
     @media (width >= 40rem) {
       font-size: var(--text-sm);
@@ -1641,6 +1649,11 @@
   .md\:items-center {
     @media (width >= 48rem) {
       align-items: center;
+    }
+  }
+  .md\:self-auto {
+    @media (width >= 48rem) {
+      align-self: auto;
     }
   }
   .md\:p-12 {

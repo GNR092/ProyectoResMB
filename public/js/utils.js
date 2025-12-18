@@ -38,7 +38,7 @@ async function SendDataEnd(endpoint, options = {}) {
     if (!response.ok) {
       let errorData
       try {
-        errorData = await response.json()
+        errorData = await response.clone().json()
       } catch (e) {
         errorData = await response.text()
       }
@@ -529,6 +529,9 @@ async function createPaginatedTable(config) {
   }
 
   function updateTable() {
+    if (!document.body.contains(tbody)) {
+        return;
+    }
     const filteredData = getFilteredData()
     showPage(1, filteredData)
   }
