@@ -110,16 +110,16 @@ function abrirModal(opcion) {
 }
 function cerrarModal() {
   //  Ocultar el modal
-  document.getElementById('modal-general').classList.add('hidden');
+  document.getElementById('modal-general').classList.add('hidden')
 
   // Limpiar la selección de la barra lateral
-  const activeClasses = ['bg-indigo-600', 'text-white'];
-  const inactiveClasses = ['text-gray-300', 'hover:bg-gray-700'];
+  const activeClasses = ['bg-indigo-600', 'text-white']
+  const inactiveClasses = ['text-gray-300', 'hover:bg-gray-700']
 
   document.querySelectorAll('#sidebar-nav a[data-opcion]').forEach((link) => {
-    link.classList.remove(...activeClasses);
-    link.classList.add(...inactiveClasses);
-  });
+    link.classList.remove(...activeClasses)
+    link.classList.add(...inactiveClasses)
+  })
 }
 
 /**
@@ -138,7 +138,9 @@ async function initSolicitarMaterial() {
   async function getProductRowHtml() {
     if (productRowHtml === null) {
       try {
-        const productRowHtmlContent = await SendDataEnd('modales/vistas/product_row', { responseType: 'text' })
+        const productRowHtmlContent = await SendDataEnd('modales/vistas/product_row', {
+          responseType: 'text',
+        })
         productRowHtml = productRowHtmlContent
       } catch (error) {
         console.error(error)
@@ -369,7 +371,9 @@ async function initSolicitarServicio() {
   async function getServiceRowHtml() {
     if (serviceRowHtml === null) {
       try {
-        const serviceRowHtmlContent = await SendDataEnd('modales/vistas/service_row', { responseType: 'text' })
+        const serviceRowHtmlContent = await SendDataEnd('modales/vistas/service_row', {
+          responseType: 'text',
+        })
         serviceRowHtml = serviceRowHtmlContent
       } catch (error) {
         console.error(error)
@@ -540,7 +544,7 @@ function initPaginacionHistorial() {
     if (!filtro) return
     const deptosPermitidos = ['Administración', 'Compras', 'Dirección', 'Tesorería']
 
-    const miDepto = (typeof USER_DEPT_NAME !== 'undefined') ? USER_DEPT_NAME : ''
+    const miDepto = typeof USER_DEPT_NAME !== 'undefined' ? USER_DEPT_NAME : ''
 
     if (!deptosPermitidos.includes(miDepto)) {
       filtro.classList.add('hidden') // Clase de Tailwind para ocultar
@@ -695,25 +699,25 @@ async function mostrarVerHistorial(idSolicitud) {
     let html = generarDetallesSolicitudHTML(data)
 
     if (data.ComentariosAdmin) {
-        if (data.TipoComentarioAdmin === 'Rechazo') {
-            html += `
+      if (data.TipoComentarioAdmin === 'Rechazo') {
+        html += `
                 <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
                     <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
                     <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`;
-        } else if (data.TipoComentarioAdmin === 'Observacion') {
-            html += `
+                </div>`
+      } else if (data.TipoComentarioAdmin === 'Observacion') {
+        html += `
                 <div class="mb-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
                     <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
                     <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`;
-        } else {
-            html += `
+                </div>`
+      } else {
+        html += `
                 <div class="mb-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
                     <h4 class="text-md font-bold text-gray-700 mb-2">Comentario del Administrador</h4>
                     <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`;
-        }
+                </div>`
+      }
     }
     html += generarProductosServiciosHTML(data)
 
@@ -783,61 +787,63 @@ async function initListaPagos() {
 }
 
 async function initRecepcionMaterial() {
-    const ordenCompraSelect = document.getElementById('ordenCompraSelect');
-    const solicitudFolioInput = document.getElementById('solicitudFolio');
-    const proveedorNombreInput = document.getElementById('proveedorNombre');
-    const productosRecepcionTable = document.getElementById('productosRecepcionTable');
-    const formRecepcionMaterial = document.getElementById('form-recepcion-material');
+  const ordenCompraSelect = document.getElementById('ordenCompraSelect')
+  const solicitudFolioInput = document.getElementById('solicitudFolio')
+  const proveedorNombreInput = document.getElementById('proveedorNombre')
+  const productosRecepcionTable = document.getElementById('productosRecepcionTable')
+  const formRecepcionMaterial = document.getElementById('form-recepcion-material')
 
-    if (!ordenCompraSelect || !formRecepcionMaterial) return;
+  if (!ordenCompraSelect || !formRecepcionMaterial) return
 
-    let allOrdenesCompra = [];
+  let allOrdenesCompra = []
 
-    // Cargar órdenes de compra pendientes
-    const loadOrdenesCompra = async () => {
-        try {
-            const ordenes = await SendDataEnd('api/ordenes-compra/pendientes-recepcion');
-            allOrdenesCompra = ordenes; // Guardar todas las órdenes para referencia
-            ordenCompraSelect.innerHTML = '<option value="">-- Seleccionar Orden de Compra --</option>';
-            if (ordenes.length > 0) {
-                ordenes.forEach(orden => {
-                    const option = document.createElement('option');
-                    option.value = orden.ID_Solicitud; // Usar ID_Solicitud para obtener detalles
-                    option.textContent = `${orden.No_Folio} - ${orden.ProveedorNombre} (Total: $${parseFloat(orden.Total).toFixed(2)})`;
-                    ordenCompraSelect.appendChild(option);
-                });
-            } else {
-                ordenCompraSelect.innerHTML = '<option value="">No hay órdenes pendientes de recepción</option>';
-            }
-        } catch (error) {
-            console.error('Error cargando órdenes de compra:', error);
-            ordenCompraSelect.innerHTML = '<option value="">Error al cargar órdenes de compra</option>';
-        }
-    };
+  // Cargar órdenes de compra pendientes
+  const loadOrdenesCompra = async () => {
+    try {
+      const ordenes = await SendDataEnd('api/ordenes-compra/pendientes-recepcion')
+      allOrdenesCompra = ordenes // Guardar todas las órdenes para referencia
+      ordenCompraSelect.innerHTML = '<option value="">-- Seleccionar Orden de Compra --</option>'
+      if (ordenes.length > 0) {
+        ordenes.forEach((orden) => {
+          const option = document.createElement('option')
+          option.value = orden.ID_Solicitud // Usar ID_Solicitud para obtener detalles
+          option.textContent = `${orden.No_Folio} - ${orden.ProveedorNombre} (Total: $${parseFloat(orden.Total).toFixed(2)})`
+          ordenCompraSelect.appendChild(option)
+        })
+      } else {
+        ordenCompraSelect.innerHTML =
+          '<option value="">No hay órdenes pendientes de recepción</option>'
+      }
+    } catch (error) {
+      console.error('Error cargando órdenes de compra:', error)
+      ordenCompraSelect.innerHTML = '<option value="">Error al cargar órdenes de compra</option>'
+    }
+  }
 
-    // Manejar selección de Orden de Compra
-    ordenCompraSelect.addEventListener('change', async () => {
-        const idSolicitud = ordenCompraSelect.value;
-        if (!idSolicitud) {
-            solicitudFolioInput.value = '';
-            proveedorNombreInput.value = '';
-            productosRecepcionTable.innerHTML = '<tr><td colspan="3" class="text-center py-2">Seleccione una Orden de Compra para ver los productos.</td></tr>';
-            return;
-        }
+  // Manejar selección de Orden de Compra
+  ordenCompraSelect.addEventListener('change', async () => {
+    const idSolicitud = ordenCompraSelect.value
+    if (!idSolicitud) {
+      solicitudFolioInput.value = ''
+      proveedorNombreInput.value = ''
+      productosRecepcionTable.innerHTML =
+        '<tr><td colspan="3" class="text-center py-2">Seleccione una Orden de Compra para ver los productos.</td></tr>'
+      return
+    }
 
-        try {
-            const data = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`);
-            
-            // Llenar campos de solo lectura
-            solicitudFolioInput.value = data.No_Folio || '';
-            proveedorNombreInput.value = data.proveedor?.RazonSocial || '';
+    try {
+      const data = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`)
 
-            // Llenar tabla de productos
-            productosRecepcionTable.innerHTML = '';
-            if (data.productos && data.productos.length > 0) {
-                data.productos.forEach(p => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
+      // Llenar campos de solo lectura
+      solicitudFolioInput.value = data.No_Folio || ''
+      proveedorNombreInput.value = data.proveedor?.RazonSocial || ''
+
+      // Llenar tabla de productos
+      productosRecepcionTable.innerHTML = ''
+      if (data.productos && data.productos.length > 0) {
+        data.productos.forEach((p) => {
+          const tr = document.createElement('tr')
+          tr.innerHTML = `
                         <td class="py-2 px-4 border-b">${p.Nombre}</td>
                         <td class="py-2 px-4 border-b text-right">${p.Cantidad}</td>
                         <td class="py-2 px-4 border-b">
@@ -847,219 +853,227 @@ async function initRecepcionMaterial() {
                             <input type="hidden" name="productos[${p.ID_SolicitudProd}][id_producto]" value="${p.ID_Producto}">
                             <input type="hidden" name="productos[${p.ID_SolicitudProd}][id_solicitud_prod]" value="${p.ID_SolicitudProd}">
                         </td>
-                    `;
-                    productosRecepcionTable.appendChild(tr);
-                });
-            } else {
-                productosRecepcionTable.innerHTML = '<tr><td colspan="3" class="text-center py-2">No hay productos en esta Orden de Compra.</td></tr>';
-            }
-        } catch (error) {
-            console.error('Error cargando detalles de la orden de compra:', error);
-            solicitudFolioInput.value = '';
-            proveedorNombreInput.value = '';
-            productosRecepcionTable.innerHTML = '<tr><td colspan="3" class="text-center py-2 text-red-500">Error al cargar detalles de la orden.</td></tr>';
-        }
-    });
+                    `
+          productosRecepcionTable.appendChild(tr)
+        })
+      } else {
+        productosRecepcionTable.innerHTML =
+          '<tr><td colspan="3" class="text-center py-2">No hay productos en esta Orden de Compra.</td></tr>'
+      }
+    } catch (error) {
+      console.error('Error cargando detalles de la orden de compra:', error)
+      solicitudFolioInput.value = ''
+      proveedorNombreInput.value = ''
+      productosRecepcionTable.innerHTML =
+        '<tr><td colspan="3" class="text-center py-2 text-red-500">Error al cargar detalles de la orden.</td></tr>'
+    }
+  })
 
-    // Manejar envío del formulario
-    formRecepcionMaterial.addEventListener('submit', async (e) => {
-        e.preventDefault();
+  // Manejar envío del formulario
+  formRecepcionMaterial.addEventListener('submit', async (e) => {
+    e.preventDefault()
 
-        const idOrdenCompra = ordenCompraSelect.value;
-        if (!idOrdenCompra) {
-            mostrarNotificacion('Debe seleccionar una Orden de Compra.', 'error');
-            return;
-        }
+    const idOrdenCompra = ordenCompraSelect.value
+    if (!idOrdenCompra) {
+      mostrarNotificacion('Debe seleccionar una Orden de Compra.', 'error')
+      return
+    }
 
-        const formData = new FormData(formRecepcionMaterial);
-        const productosRecibidos = [];
-        productosRecepcionTable.querySelectorAll('tr').forEach(row => {
-            const cantidadInput = row.querySelector('.cantidad-recibida');
-            if (cantidadInput) {
-                const idSolicitudProd = cantidadInput.name.match(/\[(\d+)\]/)[1]; // Extraer el ID
-                const idProductoInput = row.querySelector(`input[name="productos[${idSolicitudProd}][id_producto]"]`);
-                
-                productosRecibidos.push({
-                    id_solicitud_prod: idSolicitudProd,
-                    id_producto: idProductoInput ? idProductoInput.value : null,
-                    cantidad_recibida: parseInt(cantidadInput.value),
-                    cantidad_pedida: parseInt(cantidadInput.max),
-                });
-            }
-        });
-        
-        // Obtener archivo de remisión
-        const remisionFile = document.getElementById('remisionArchivo').files[0];
-        if(remisionFile) {
-            formData.append('remision_file', remisionFile);
-        }
+    const formData = new FormData(formRecepcionMaterial)
+    const productosRecibidos = []
+    productosRecepcionTable.querySelectorAll('tr').forEach((row) => {
+      const cantidadInput = row.querySelector('.cantidad-recibida')
+      if (cantidadInput) {
+        const idSolicitudProd = cantidadInput.name.match(/\[(\d+)\]/)[1] // Extraer el ID
+        const idProductoInput = row.querySelector(
+          `input[name="productos[${idSolicitudProd}][id_producto]"]`,
+        )
 
-        // Obtener archivo de factura de entrada
-        const facturaEntradaFile = document.getElementById('facturaEntradaArchivo').files[0];
-        if(facturaEntradaFile) {
-            formData.append('factura_entrada_file', facturaEntradaFile);
-        }
+        productosRecibidos.push({
+          id_solicitud_prod: idSolicitudProd,
+          id_producto: idProductoInput ? idProductoInput.value : null,
+          cantidad_recibida: parseInt(cantidadInput.value),
+          cantidad_pedida: parseInt(cantidadInput.max),
+        })
+      }
+    })
 
-        formData.append('id_orden_compra', idOrdenCompra);
-        formData.append('productos_recibidos', JSON.stringify(productosRecibidos)); // Enviar como JSON string
+    // Obtener archivo de remisión
+    const remisionFile = document.getElementById('remisionArchivo').files[0]
+    if (remisionFile) {
+      formData.append('remision_file', remisionFile)
+    }
 
-        const procesandoNotif = mostrarNotificacion('Confirmando recepción...', 'info', 999999);
+    // Obtener archivo de factura de entrada
+    const facturaEntradaFile = document.getElementById('facturaEntradaArchivo').files[0]
+    if (facturaEntradaFile) {
+      formData.append('factura_entrada_file', facturaEntradaFile)
+    }
 
-        try {
-            const result = await SendDataEnd('api/recepcion/confirmar', {
-                method: 'POST',
-                body: formData, // FormData con el archivo y otros campos
-            });
+    formData.append('id_orden_compra', idOrdenCompra)
+    formData.append('productos_recibidos', JSON.stringify(productosRecibidos)) // Enviar como JSON string
 
-            procesandoNotif.click();
+    const procesandoNotif = mostrarNotificacion('Confirmando recepción...', 'info', 999999)
 
-            if (result.success) {
-                mostrarNotificacion(result.message, 'success');
-                formRecepcionMaterial.reset();
-                productosRecepcionTable.innerHTML = '<tr><td colspan="3" class="text-center py-2">Seleccione una Orden de Compra para ver los productos.</td></tr>';
-                loadOrdenesCompra(); // Recargar la lista de órdenes pendientes
-            } else {
-                mostrarNotificacion(result.message || 'Error al confirmar la recepción.', 'error');
-            }
-        } catch (error) {
-            procesandoNotif.click();
-            console.error('Error en la recepción de material:', error);
-            mostrarNotificacion('Error de red al confirmar la recepción.', 'error');
-        }
-    });
+    try {
+      const result = await SendDataEnd('api/recepcion/confirmar', {
+        method: 'POST',
+        body: formData, // FormData con el archivo y otros campos
+      })
 
-    loadOrdenesCompra(); // Cargar órdenes al inicializar el modal
+      procesandoNotif.click()
+
+      if (result.success) {
+        mostrarNotificacion(result.message, 'success')
+        formRecepcionMaterial.reset()
+        productosRecepcionTable.innerHTML =
+          '<tr><td colspan="3" class="text-center py-2">Seleccione una Orden de Compra para ver los productos.</td></tr>'
+        loadOrdenesCompra() // Recargar la lista de órdenes pendientes
+      } else {
+        mostrarNotificacion(result.message || 'Error al confirmar la recepción.', 'error')
+      }
+    } catch (error) {
+      procesandoNotif.click()
+      console.error('Error en la recepción de material:', error)
+      mostrarNotificacion('Error de red al confirmar la recepción.', 'error')
+    }
+  })
+
+  loadOrdenesCompra() // Cargar órdenes al inicializar el modal
 }
 
 async function initBajasDestruccion() {
-    const productoSelect = document.getElementById('productoSelect');
-    const existenciaActualInput = document.getElementById('existenciaActual');
-    const cantidadBajaInput = document.getElementById('cantidadBaja');
-    const formBajasDestruccion = document.getElementById('form-bajas-destruccion');
+  const productoSelect = document.getElementById('productoSelect')
+  const existenciaActualInput = document.getElementById('existenciaActual')
+  const cantidadBajaInput = document.getElementById('cantidadBaja')
+  const formBajasDestruccion = document.getElementById('form-bajas-destruccion')
 
-    if (!productoSelect || !formBajasDestruccion) return;
+  if (!productoSelect || !formBajasDestruccion) return
 
-    let allProducts = []; // Para almacenar todos los productos cargados
+  let allProducts = [] // Para almacenar todos los productos cargados
 
-    // Cargar productos
-    const loadProducts = async () => {
-        try {
-            const products = await SendDataEnd('api/product/all', { method: 'GET' });
-            allProducts = products;
-            productoSelect.innerHTML = '<option value="">-- Seleccionar Producto --</option>';
-            if (products.length > 0) {
-                products.forEach(p => {
-                    const option = document.createElement('option');
-                    option.value = p.ID_Producto;
-                    option.textContent = `${p.Nombre} (Código: ${p.Codigo})`;
-                    productoSelect.appendChild(option);
-                });
-            } else {
-                productoSelect.innerHTML = '<option value="">No hay productos disponibles</option>';
-            }
-        } catch (error) {
-            console.error('Error cargando productos:', error);
-            productoSelect.innerHTML = '<option value="">Error al cargar productos</option>';
-        }
-    };
+  // Cargar productos
+  const loadProducts = async () => {
+    try {
+      const products = await SendDataEnd('api/product/all', { method: 'GET' })
+      allProducts = products
+      productoSelect.innerHTML = '<option value="">-- Seleccionar Producto --</option>'
+      if (products.length > 0) {
+        products.forEach((p) => {
+          const option = document.createElement('option')
+          option.value = p.ID_Producto
+          option.textContent = `${p.Nombre} (Código: ${p.Codigo})`
+          productoSelect.appendChild(option)
+        })
+      } else {
+        productoSelect.innerHTML = '<option value="">No hay productos disponibles</option>'
+      }
+    } catch (error) {
+      console.error('Error cargando productos:', error)
+      productoSelect.innerHTML = '<option value="">Error al cargar productos</option>'
+    }
+  }
 
-    // Manejar selección de producto
-    productoSelect.addEventListener('change', () => {
-        const idProducto = productoSelect.value;
-        if (idProducto) {
-            const selectedProduct = allProducts.find(p => String(p.ID_Producto) === idProducto);
-            if (selectedProduct) {
-                existenciaActualInput.value = selectedProduct.Existencia;
-                cantidadBajaInput.max = selectedProduct.Existencia; // Establecer máximo para la cantidad a dar de baja
-                cantidadBajaInput.value = ''; // Limpiar campo de cantidad
-            }
-        } else {
-            existenciaActualInput.value = '';
-            cantidadBajaInput.max = '';
-            cantidadBajaInput.value = '';
-        }
-    });
+  // Manejar selección de producto
+  productoSelect.addEventListener('change', () => {
+    const idProducto = productoSelect.value
+    if (idProducto) {
+      const selectedProduct = allProducts.find((p) => String(p.ID_Producto) === idProducto)
+      if (selectedProduct) {
+        existenciaActualInput.value = selectedProduct.Existencia
+        cantidadBajaInput.max = selectedProduct.Existencia // Establecer máximo para la cantidad a dar de baja
+        cantidadBajaInput.value = '' // Limpiar campo de cantidad
+      }
+    } else {
+      existenciaActualInput.value = ''
+      cantidadBajaInput.max = ''
+      cantidadBajaInput.value = ''
+    }
+  })
 
-    // Manejar envío del formulario
-    formBajasDestruccion.addEventListener('submit', async (e) => {
-        e.preventDefault();
+  // Manejar envío del formulario
+  formBajasDestruccion.addEventListener('submit', async (e) => {
+    e.preventDefault()
 
-        const idProducto = productoSelect.value;
-        const cantidadBaja = parseInt(cantidadBajaInput.value);
-        const existenciaActual = parseInt(existenciaActualInput.value);
-        const motivoBaja = document.getElementById('motivoBaja').value;
-        const fechaBaja = document.getElementById('fechaBaja').value;
+    const idProducto = productoSelect.value
+    const cantidadBaja = parseInt(cantidadBajaInput.value)
+    const existenciaActual = parseInt(existenciaActualInput.value)
+    const motivoBaja = document.getElementById('motivoBaja').value
+    const fechaBaja = document.getElementById('fechaBaja').value
 
-        if (!idProducto || !cantidadBaja || !motivoBaja || !fechaBaja) {
-            mostrarNotificacion('Por favor, complete todos los campos.', 'error');
-            return;
-        }
+    if (!idProducto || !cantidadBaja || !motivoBaja || !fechaBaja) {
+      mostrarNotificacion('Por favor, complete todos los campos.', 'error')
+      return
+    }
 
-        if (cantidadBaja <= 0 || cantidadBaja > existenciaActual) {
-            mostrarNotificacion('La cantidad a dar de baja debe ser mayor a 0 y no puede exceder la existencia actual.', 'error');
-            return;
-        }
+    if (cantidadBaja <= 0 || cantidadBaja > existenciaActual) {
+      mostrarNotificacion(
+        'La cantidad a dar de baja debe ser mayor a 0 y no puede exceder la existencia actual.',
+        'error',
+      )
+      return
+    }
 
-        const payload = {
-            id_producto: idProducto,
-            cantidad_baja: cantidadBaja,
-            motivo_baja: motivoBaja,
-            fecha_baja: fechaBaja,
-        };
+    const payload = {
+      id_producto: idProducto,
+      cantidad_baja: cantidadBaja,
+      motivo_baja: motivoBaja,
+      fecha_baja: fechaBaja,
+    }
 
-        const procesandoNotif = mostrarNotificacion('Confirmando baja...', 'info', 999999);
+    const procesandoNotif = mostrarNotificacion('Confirmando baja...', 'info', 999999)
 
-        try {
-            const result = await SendDataEnd('api/bajas/destruccion/registrar', {
-                method: 'POST',
-                body: payload,
-            });
+    try {
+      const result = await SendDataEnd('api/bajas/destruccion/registrar', {
+        method: 'POST',
+        body: payload,
+      })
 
-            procesandoNotif.click();
+      procesandoNotif.click()
 
-            if (result.success) {
-                mostrarNotificacion(result.message, 'success');
-                formBajasDestruccion.reset();
-                loadProducts(); // Recargar productos para actualizar existencias
-            } else {
-                mostrarNotificacion(result.message || 'Error al confirmar la baja.', 'error');
-            }
-        } catch (error) {
-            procesandoNotif.click();
-            console.error('Error en baja por destrucción:', error);
-            mostrarNotificacion('Error de red al confirmar la baja.', 'error');
-        }
-    });
+      if (result.success) {
+        mostrarNotificacion(result.message, 'success')
+        formBajasDestruccion.reset()
+        loadProducts() // Recargar productos para actualizar existencias
+      } else {
+        mostrarNotificacion(result.message || 'Error al confirmar la baja.', 'error')
+      }
+    } catch (error) {
+      procesandoNotif.click()
+      console.error('Error en baja por destrucción:', error)
+      mostrarNotificacion('Error de red al confirmar la baja.', 'error')
+    }
+  })
 
-    loadProducts(); // Cargar productos al inicializar el modal
+  loadProducts() // Cargar productos al inicializar el modal
 }
 
 function exportarRequisicionesExcel() {
-    window.location.href = `${BASE_URL}api/exportar-requisiciones`;
+  window.location.href = `${BASE_URL}api/exportar-requisiciones`
 }
 
 function exportarHistorialExcel() {
-    const fecha = document.getElementById('filtro-fecha').value;
-    const porMes = document.getElementById('filtrar-por-mes').checked;
-    const estado = document.getElementById('filtro-estado').value;
-    const dpto = document.getElementById('filtroDepartamento')?.value || '';
+  const fecha = document.getElementById('filtro-fecha').value
+  const porMes = document.getElementById('filtrar-por-mes').checked
+  const estado = document.getElementById('filtro-estado').value
+  const dpto = document.getElementById('filtroDepartamento')?.value || ''
 
-    const params = new URLSearchParams();
-    if (fecha) {
-        params.append('fecha', fecha);
-    }
-    if (porMes) {
-        params.append('por_mes', '1');
-    }
-    if (estado) {
-        params.append('estado', estado);
-    }
-    if (dpto) {
-        params.append('dpto', dpto);
-    }
+  const params = new URLSearchParams()
+  if (fecha) {
+    params.append('fecha', fecha)
+  }
+  if (porMes) {
+    params.append('por_mes', '1')
+  }
+  if (estado) {
+    params.append('estado', estado)
+  }
+  if (dpto) {
+    params.append('dpto', dpto)
+  }
 
-    const queryString = params.toString();
-    window.location.href = `${BASE_URL}api/historial/exportar${queryString ? '?' + queryString : ''}`;
+  const queryString = params.toString()
+  window.location.href = `${BASE_URL}api/historial/exportar${queryString ? '?' + queryString : ''}`
 }
 
 async function mostrarVer(idSolicitud) {
@@ -1357,25 +1371,25 @@ async function mostrarVerDictamen(idSolicitud) {
 
     // Mostrar comentarios si existen (especialmente para rechazos)
     if (data.ComentariosAdmin) {
-        if (data.TipoComentarioAdmin === 'Rechazo') {
-            html += `
+      if (data.TipoComentarioAdmin === 'Rechazo') {
+        html += `
                 <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
                     <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
                     <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`;
-        } else if (data.TipoComentarioAdmin === 'Observacion') {
-            html += `
+                </div>`
+      } else if (data.TipoComentarioAdmin === 'Observacion') {
+        html += `
                 <div class="mt-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
                     <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
                     <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`;
-        } else { 
-            html += `
+                </div>`
+      } else {
+        html += `
                 <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
                     <h4 class="text-md font-bold text-gray-700 mb-2">Comentario del Administrador</h4>
                     <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`;
-        }
+                </div>`
+      }
     }
 
     html += generarProductosServiciosHTML(data)
@@ -1441,49 +1455,47 @@ function regresarTablaDictamen() {
 }
 
 async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
-    const esAprobacion = nuevoEstado === 'Aprobada';
-    const title = esAprobacion ? 'Aprobar Solicitud' : 'Rechazar Solicitud';
-    const message = esAprobacion 
-        ? 'Puede agregar observaciones (opcional):' 
-        : 'Por favor, ingrese el motivo del rechazo (obligatorio):';
-    const isRequired = !esAprobacion; // El comentario es obligatorio solo para rechazos
+  const esAprobacion = nuevoEstado === 'Aprobada'
+  const title = esAprobacion ? 'Aprobar Solicitud' : 'Rechazar Solicitud'
+  const message = esAprobacion
+    ? 'Puede agregar observaciones (opcional):'
+    : 'Por favor, ingrese el motivo del rechazo (obligatorio):'
+  const isRequired = !esAprobacion // El comentario es obligatorio solo para rechazos
 
-    const comentarios = await InputPrompt(title, message, isRequired);
+  const comentarios = await InputPrompt(title, message, isRequired)
 
-    // Si el usuario cancela el modal, comentarios será null.
-    if (comentarios === null) {
-        return; 
+  // Si el usuario cancela el modal, comentarios será null.
+  if (comentarios === null) {
+    return
+  }
+
+  const payload = {
+    ID_Solicitud: idSolicitud,
+    Estado: nuevoEstado,
+    ComentariosAdmin: comentarios,
+  }
+
+  const procesandoNotif = mostrarNotificacion('Procesando dictamen...', 'info', 999999)
+
+  try {
+    const result = await SendDataEnd('api/solicitud/dictaminar', {
+      method: 'POST',
+      body: payload,
+    })
+
+    procesandoNotif.click()
+
+    if (result.success) {
+      mostrarNotificacion(result.message, 'success')
+      abrirModal('dictamen_solicitudes')
+    } else {
+      mostrarNotificacion(result.message || 'Error al procesar el dictamen.', 'error')
     }
-
-    const payload = {
-        ID_Solicitud: idSolicitud,
-        Estado: nuevoEstado,
-        ComentariosAdmin: comentarios,
-    };
-
-    const procesandoNotif = mostrarNotificacion('Procesando dictamen...', 'info', 999999);
-
-    try {
-        const result = await SendDataEnd('api/solicitud/dictaminar', {
-            method: 'POST',
-            body: payload,
-        });
-
-        procesandoNotif.click();
-
-        if (result.success) {
-            mostrarNotificacion(result.message, 'success');
-            abrirModal('dictamen_solicitudes'); 
-        } else {
-            mostrarNotificacion(result.message || 'Error al procesar el dictamen.', 'error');
-        }
-    } catch (error) {
-        procesandoNotif.click();
-        mostrarNotificacion('Error de red al procesar el dictamen.', 'error');
-    }
+  } catch (error) {
+    procesandoNotif.click()
+    mostrarNotificacion('Error de red al procesar el dictamen.', 'error')
+  }
 }
-
-
 
 /**
  * Lógica para el modal "Órdenes de Compra"
@@ -1516,19 +1528,19 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
               <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
                   <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
                   <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-              </div>`;
+              </div>`
       } else if (data.TipoComentarioAdmin === 'Observacion') {
         html += `
               <div class="mt-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
                   <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
                   <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-              </div>`;
-      } else { 
+              </div>`
+      } else {
         html += `
               <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
                   <h4 class="text-md font-bold text-gray-700 mb-2">Comentario del Administrador</h4>
                   <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-              </div>`;
+              </div>`
       }
     }
 
@@ -1614,7 +1626,10 @@ async function enviarOrdenCompra(idSolicitud, iduser, boton) {
       return
     }
 
-    mostrarNotificacion('✅ La orden fue enviada al proveedor y en espera de programación', 'success')
+    mostrarNotificacion(
+      '✅ La orden fue enviada al proveedor y en espera de programación',
+      'success',
+    )
 
     // Si la operación es exitosa, recargamos el modal.
     abrirModal('ordenes_compra')
@@ -1866,13 +1881,13 @@ function initUsuarios() {
 
     try {
       const formData = new FormData(form)
-      const endpoint = form.action.replace(BASE_URL, '');
+      const endpoint = form.action.replace(BASE_URL, '')
       const text = await SendDataEnd(endpoint, {
         method: 'POST',
         body: formData,
-        responseType: 'text'
+        responseType: 'text',
       })
-      
+
       let data
       try {
         data = JSON.parse(text)
@@ -1933,9 +1948,9 @@ function aprobarSolicitudes() {
       try {
         const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`, {})
         if (data.error) throw new Error(data.error)
-        
+
         // Cargar proveedores
-        this.providers = await SendDataEnd('api/providers/all');
+        this.providers = await SendDataEnd('api/providers/all')
 
         let html = `
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
@@ -1979,14 +1994,14 @@ function aprobarSolicitudes() {
         }
 
         if (data.ComentariosUser) {
-            html += `
+          html += `
                 <div class="mt-6">
                     <h4 class="text-md font-bold mb-2">Comentarios del Solicitante</h4>
                     <p class="p-4 border rounded-lg bg-gray-50 whitespace-pre-wrap">${data.ComentariosUser}</p>
                 </div>
             `
         }
-        
+
         // Botones de acción
         // html += `
         //   <div id="botones-accion-aprobar" class="mt-8 flex justify-end space-x-4">
@@ -1994,7 +2009,7 @@ function aprobarSolicitudes() {
         //       <button @click="mostrarSeleccionProveedores()" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">Aprobar y Cotizar</button>
         //       <button @click="dictaminar(${idSolicitud}, 'aprobar')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">Aprobar y Enviar a Compras</button>
         //   </div>`
-          
+
         // Sección oculta para seleccionar proveedores
         // html += `
         //     <div id="seccion-cotizar" class="hidden mt-8 border-t pt-6">
@@ -2039,106 +2054,108 @@ function aprobarSolicitudes() {
       document.getElementById('div-ver-aprobacion').classList.add('hidden')
       document.getElementById('div-tabla-aprobacion').classList.remove('hidden')
     },
-    
-    mostrarSeleccionProveedores: function() {
-        document.getElementById('botones-accion-aprobar').classList.add('hidden');
-        document.getElementById('seccion-cotizar').classList.remove('hidden');
+
+    mostrarSeleccionProveedores: function () {
+      document.getElementById('botones-accion-aprobar').classList.add('hidden')
+      document.getElementById('seccion-cotizar').classList.remove('hidden')
     },
 
-    ocultarSeleccionProveedores: function() {
-        document.getElementById('seccion-cotizar').classList.add('hidden');
-        document.getElementById('botones-accion-aprobar').classList.remove('hidden');
+    ocultarSeleccionProveedores: function () {
+      document.getElementById('seccion-cotizar').classList.add('hidden')
+      document.getElementById('botones-accion-aprobar').classList.remove('hidden')
     },
 
-    seleccionarTodosProveedores: function(event) {
-        document.querySelectorAll('#tabla-proveedores-aprobar .proveedor-checkbox').forEach(checkbox => {
-            checkbox.checked = event.target.checked;
-        });
+    seleccionarTodosProveedores: function (event) {
+      document
+        .querySelectorAll('#tabla-proveedores-aprobar .proveedor-checkbox')
+        .forEach((checkbox) => {
+          checkbox.checked = event.target.checked
+        })
     },
 
-    enviarAprobacionYCotizacion: async function(idSolicitud) {
-        const payload = {
-            ID_Solicitud: idSolicitud,
-        };
+    enviarAprobacionYCotizacion: async function (idSolicitud) {
+      const payload = {
+        ID_Solicitud: idSolicitud,
+      }
 
-        const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999);
+      const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999)
 
-        try {
-            const result = await SendDataEnd('api/solicitud/aprobar-y-cotizar', {
-                method: 'POST',
-                body: payload
-            });
-            
-            procesandoNotif.click();
+      try {
+        const result = await SendDataEnd('api/solicitud/aprobar-y-cotizar', {
+          method: 'POST',
+          body: payload,
+        })
 
-            if (result.success) {
-                mostrarNotificacion(result.message, 'success');
-                abrirModal('aprobar_solicitudes');
-            } else {
-                mostrarNotificacion(result.message || 'Error al procesar la solicitud.', 'error');
-            }
-        } catch (error) {
-            procesandoNotif.click();
-            mostrarNotificacion('Error de red al procesar la solicitud.', 'error');
+        procesandoNotif.click()
+
+        if (result.success) {
+          mostrarNotificacion(result.message, 'success')
+          abrirModal('aprobar_solicitudes')
+        } else {
+          mostrarNotificacion(result.message || 'Error al procesar la solicitud.', 'error')
         }
+      } catch (error) {
+        procesandoNotif.click()
+        mostrarNotificacion('Error de red al procesar la solicitud.', 'error')
+      }
     },
 
     dictaminar: async function (idSolicitud, accion) {
-        const esRechazo = accion === 'rechazar';
-        let comentarios = null;
+      const esRechazo = accion === 'rechazar'
+      let comentarios = null
 
-        if (esRechazo) {
-            comentarios = await InputPrompt(
-                'Rechazar Solicitud',
-                'Por favor, ingrese el motivo del rechazo (obligatorio):',
-                true
-            );
-            if (comentarios === null) {
-                return; // El usuario canceló el modal
-            }
+      if (esRechazo) {
+        comentarios = await InputPrompt(
+          'Rechazar Solicitud',
+          'Por favor, ingrese el motivo del rechazo (obligatorio):',
+          true,
+        )
+        if (comentarios === null) {
+          return // El usuario canceló el modal
+        }
+      } else {
+        const confirmado = await Confirmar(
+          'Aprobar Solicitud',
+          '¿Está seguro de que desea aprobar esta solicitud y enviarla a Revisión de Compras?',
+        )
+        if (!confirmado) {
+          return // El usuario canceló
+        }
+      }
+
+      const payload = {
+        ID_Solicitud: idSolicitud,
+        accion: accion,
+      }
+
+      if (comentarios) {
+        payload.comentarios = comentarios
+      }
+
+      // Muestra una notificación de "procesando" que no se cierra automáticamente
+      const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999)
+
+      try {
+        const result = await SendDataEnd('api/solicitud/dictaminar-jefe', {
+          method: 'POST',
+          body: payload,
+        })
+
+        // Cierra la notificación de "procesando"
+        procesandoNotif.click()
+
+        if (result.success) {
+          mostrarNotificacion(result.message, 'success')
+          // Recargar el modal principal para refrescar la lista
+          abrirModal('aprobar_solicitudes')
         } else {
-            const confirmado = await Confirmar(
-                'Aprobar Solicitud',
-                '¿Está seguro de que desea aprobar esta solicitud y enviarla a Revisión de Compras?'
-            );
-            if (!confirmado) {
-                return; // El usuario canceló
-            }
+          mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error')
         }
-
-        const payload = {
-            ID_Solicitud: idSolicitud,
-            accion: accion,
-        };
-
-        if (comentarios) {
-            payload.comentarios = comentarios;
-        }
-
-        // Muestra una notificación de "procesando" que no se cierra automáticamente
-        const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999);
-
-        try {
-            const result = await SendDataEnd('api/solicitud/dictaminar-jefe', {
-                method: 'POST',
-                body: payload,
-            });
-
-            // Cierra la notificación de "procesando"
-            procesandoNotif.click();
-
-            if (result.success) {
-                mostrarNotificacion(result.message, 'success');
-                // Recargar el modal principal para refrescar la lista
-                abrirModal('aprobar_solicitudes');
-            } else {
-                mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error');
-            }
-        } catch (error) {
-            // Cierra la notificación de "procesando" en caso de error
-            procesandoNotif.click();
-            mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error');
-        }
+      } catch (error) {
+        // Cierra la notificación de "procesando" en caso de error
+        procesandoNotif.click()
+        mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error')
+      }
     },
   }
 }
@@ -2152,7 +2169,7 @@ async function initPagosPendientes() {
   const detalleContado = document.getElementById('detalle-contado')
   const detalleCredito = document.getElementById('detalle-credito')
 
-  tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`
+  tbodyContado.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`
   tbodyCredito.innerHTML = tbodyContado.innerHTML
 
   function calcularFechaVencimiento(fechaStr, diasStr) {
@@ -2199,24 +2216,18 @@ async function initPagosPendientes() {
   }
 
   try {
-    const ordenes = await SendDataEnd('api/orden-compra/alldata')
+    const detalles = await SendDataEnd('api/pagos-pendientes')
 
-    if (!ordenes || ordenes.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`
+    if (!detalles || detalles.length === 0) {
+      tbodyContado.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`
       tbodyCredito.innerHTML = tbodyContado.innerHTML
       return
     }
-
-    const detallesPromises = ordenes.map((o) =>
-      SendDataEnd(`api/orden-compra/details/${o.ID_Solicitud}`),
-    )
-    const detalles = await Promise.all(detallesPromises)
 
     let ordenesContado = []
     let ordenesCredito = []
 
     detalles.forEach((det) => {
-      if (det.EstadoOrden !== 'Por Pagar') return
       if (det.MetodoPago == '0') {
         ordenesContado.push(det)
       } else if (det.MetodoPago == '1') {
@@ -2240,7 +2251,7 @@ async function initPagosPendientes() {
     tbodyCredito.innerHTML = ''
 
     if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`
+      tbodyContado.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`
     } else {
       ordenesContado.forEach((det) => {
         const fila = `
@@ -2268,7 +2279,7 @@ async function initPagosPendientes() {
     hoy.setHours(0, 0, 0, 0)
 
     if (ordenesCredito.length === 0) {
-      tbodyCredito.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`
+      tbodyCredito.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`
     } else {
       ordenesCredito.forEach((det) => {
         const fechaVencimiento = calcularFechaVencimiento(
@@ -2277,19 +2288,19 @@ async function initPagosPendientes() {
         )
 
         const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
-        
-        const diffTime = fechaVencimiento - hoy;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        let diasRestantesHtml = ``;
+
+        const diffTime = fechaVencimiento - hoy
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        let diasRestantesHtml = ``
 
         if (!det.proveedor?.Dias_Credito) {
-            diasRestantesHtml = 'N/A';
+          diasRestantesHtml = 'N/A'
         } else if (diffDays < 0) {
-            diasRestantesHtml = `<span class="font-semibold text-red-600">Vencido por ${Math.abs(diffDays)} día(s)</span>`;
+          diasRestantesHtml = `<span class="font-semibold text-red-600">Vencido por ${Math.abs(diffDays)} día(s)</span>`
         } else if (diffDays === 0) {
-            diasRestantesHtml = '<span class="font-semibold text-yellow-600">Vence hoy</span>';
+          diasRestantesHtml = '<span class="font-semibold text-yellow-600">Vence hoy</span>'
         } else {
-            diasRestantesHtml = `${diffDays} día(s) restante(s)`;
+          diasRestantesHtml = `${diffDays} día(s) restante(s)`
         }
 
         const fila = `
@@ -2314,7 +2325,7 @@ async function initPagosPendientes() {
     }
   } catch (error) {
     console.error('Error al cargar las órdenes:', error)
-    tbodyContado.innerHTML = `<tr><td colspan="6" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`
+    tbodyContado.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`
     tbodyCredito.innerHTML = tbodyContado.innerHTML
   }
 }
@@ -2375,7 +2386,7 @@ async function mostrarDetalleOrden(id, metodoPago) {
         <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
         <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
         <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${ 
+        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
           prov.Monto_Credito
             ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
                 style: 'currency',
@@ -2492,8 +2503,8 @@ async function enviarATesoreria(idSolicitud, metodoPago) {
     formData.append('factura', facturaFile)
     formData.append('nuevoEstado', 'En Proceso de Pago')
     const data = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
-        method: 'POST',
-        body: formData,
+      method: 'POST',
+      body: formData,
     })
 
     if (data.success) {
@@ -2723,7 +2734,7 @@ async function mostrarDetalleFicha(id, metodoPago) {
         <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
         <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
         <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${ 
+        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
           prov.Monto_Credito
             ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
                 style: 'currency',
@@ -2847,8 +2858,8 @@ async function regresarACompras(idSolicitud, metodoPago) {
     formData.append('nuevoEstado', 'Por Pagar')
 
     const data = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
-        method: 'POST',
-        body: formData,
+      method: 'POST',
+      body: formData,
     })
 
     if (data.success) {
@@ -2887,8 +2898,8 @@ async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallb
     const formData = new FormData()
     formData.append('nuevoEstado', 'Pagada')
     const data = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
-        method: 'POST',
-        body: formData,
+      method: 'POST',
+      body: formData,
     })
 
     if (data.success) {
@@ -2913,7 +2924,6 @@ async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallb
   }
 }
 
-
 /**
  * Cancela una orden de compra, actualizando su estado a "Cancelada".
  * Utiliza confirm() y alert() para mantener la coherencia del UI.
@@ -2923,7 +2933,7 @@ async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallb
  * @param {function} volverCallback - La función para regresar a la tabla (ej. volverATabla).
  * @param {function} refreshCallback - La función para refrescar la lista (ej. initPagosPendientes).
  */
-async function CancelarOrdenFactura (idSolicitud, metodoPago){
+async function CancelarOrdenFactura(idSolicitud, metodoPago) {
   try {
     const formData = new FormData()
     formData.append('nuevoEstado', 'Cancelada')
@@ -2946,8 +2956,7 @@ async function CancelarOrdenFactura (idSolicitud, metodoPago){
   }
 }
 
-
-async function CancelarOrdenFicha (idSolicitud, metodoPago){
+async function CancelarOrdenFicha(idSolicitud, metodoPago) {
   try {
     const formData = new FormData()
     formData.append('nuevoEstado', 'Cancelada')
@@ -3150,7 +3159,6 @@ function initRazonSocialActions(tabla) {
     document.getElementById('pantalla-editar-razonsocial').classList.remove('hidden')
   })
 }
-
 
 /**
  * Lógica para limpiar almacenamiento

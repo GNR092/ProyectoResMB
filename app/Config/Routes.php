@@ -103,8 +103,12 @@ if (!file_exists($installerLockFile)) {
         //Orden de compra
         $routes->get('api/orden-compra/details/(:num)', 'Api::getOrdenCompra/$1');
         $routes->get('api/orden-compra/alldata', 'Api::getAllOrdenCompraData');
+        $routes->get('api/pagos-pendientes', 'Api::getPagosPendientes');
         $routes->get('api/orden-compra/data/(:num)', 'Api::getOrdenCompraData/$1');
-        $routes->get('api/ordenes-compra/pendientes-recepcion', 'Api::getOrdenesCompraPendientesRecepcion');
+        $routes->get(
+            'api/ordenes-compra/pendientes-recepcion',
+            'Api::getOrdenesCompraPendientesRecepcion',
+        );
         $routes->post('api/recepcion/confirmar', 'Api::confirmarRecepcion');
         $routes->post('api/bajas/destruccion/registrar', 'Api::registrarBajaDestruccion');
         $routes->get('api/orden/solicitud/(:num)', 'Api::getOrdenBySolicitudID/$1');

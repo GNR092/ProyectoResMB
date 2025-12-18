@@ -20,7 +20,7 @@ function Pagos() {
           return
         }
 
-        const uniqueIds = [...new Set(ordenes.map(o => o.ID_Solicitud))];
+        const uniqueIds = [...new Set(ordenes.map((o) => o.ID_Solicitud))]
 
         const detallesPromises = uniqueIds.map((id) =>
           SendDataEnd(`api/orden-compra/details/${id}`),
@@ -191,47 +191,47 @@ function Pagos() {
   }
 }
 function ListaPagos() {
-    return {
-        pagos: [],
-        loading: true,
-        filtroMetodoPago: 'todos', // 'todos', '0' (Contado), '1' (Crédito)
+  return {
+    pagos: [],
+    loading: true,
+    filtroMetodoPago: 'todos', // 'todos', '0' (Contado), '1' (Crédito)
 
-        get pagosFiltrados() {
-            if (this.filtroMetodoPago === 'todos') {
-                return this.pagos;
-            }
-            return this.pagos.filter(p => p.MetodoPago === this.filtroMetodoPago);
-        },
-        
-        async init() {
-            this.loading = true;
-            try {
-                const listpagos = await SendDataEnd('api/pagos/programados');
-                if (!listpagos || listpagos.length === 0) {
-                    this.pagos = [];
-                    return;
-                }
-                this.pagos = listpagos;
-            } catch (error) {
-                console.error('Error al cargar pagos programados:', error);
-                this.pagos = [];
-            } finally {
-                this.loading = false;
-            }
-        },
-        formatCurrency(value) {
-            if (value === null || isNaN(value)) return 'N/A';
-            return parseFloat(value).toLocaleString('es-MX', {
-                style: 'currency',
-                currency: 'MXN'
-            });
-        },
-        exportarExcel() {
-            let url = `${BASE_URL}api/pagos/exportar`;
-            if (this.filtroMetodoPago !== 'todos') {
-                url += `?metodo_pago=${this.filtroMetodoPago}`;
-            }
-            window.location.href = url;
+    get pagosFiltrados() {
+      if (this.filtroMetodoPago === 'todos') {
+        return this.pagos
+      }
+      return this.pagos.filter((p) => p.MetodoPago === this.filtroMetodoPago)
+    },
+
+    async init() {
+      this.loading = true
+      try {
+        const listpagos = await SendDataEnd('api/pagos/programados')
+        if (!listpagos || listpagos.length === 0) {
+          this.pagos = []
+          return
         }
-    }
+        this.pagos = listpagos
+      } catch (error) {
+        console.error('Error al cargar pagos programados:', error)
+        this.pagos = []
+      } finally {
+        this.loading = false
+      }
+    },
+    formatCurrency(value) {
+      if (value === null || isNaN(value)) return 'N/A'
+      return parseFloat(value).toLocaleString('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+      })
+    },
+    exportarExcel() {
+      let url = `${BASE_URL}api/pagos/exportar`
+      if (this.filtroMetodoPago !== 'todos') {
+        url += `?metodo_pago=${this.filtroMetodoPago}`
+      }
+      window.location.href = url
+    },
+  }
 }

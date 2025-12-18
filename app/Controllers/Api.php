@@ -1770,7 +1770,9 @@ class Api extends ResourceController
 
         $solicitudModel = new SolicitudModel();
         $builder = $solicitudModel
-            ->select('Solicitud.No_Folio, Solicitud.Fecha, Departamentos.Nombre as DepartamentoNombre, Solicitud.Estado')
+            ->select(
+                'Solicitud.No_Folio, Solicitud.Fecha, Departamentos.Nombre as DepartamentoNombre, Solicitud.Estado',
+            )
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left');
 
         if ($fecha) {
@@ -2121,51 +2123,51 @@ class Api extends ResourceController
             $granTotal = $importeTotal + $ivaMonto;
 
             $xmlContent = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-$xmlContent .= "<FacturaServicio>\n";
-    $xmlContent .= " <Encabezado>\n";
-        $xmlContent .= ' <FolioFactura>' . esc($folioFactura) . "</FolioFactura>\n";
-        $xmlContent .= ' <FechaEmision>' . esc($fechaEmision) . "</FechaEmision>\n";
-        $xmlContent .=
-        ' <MetodoPago>' .
-            esc(MetodoPago::getText($solicitud['MetodoPago'])) .
-            "</MetodoPago>\n";
-        $xmlContent .= " </Encabezado>\n";
-    $xmlContent .= " <Emisor>\n";
-        $xmlContent .= ' <RFC>' . esc($rfcEmisor) . "</RFC>\n";
-        $xmlContent .= ' <Nombre>' . esc($nombreEmisor) . "</Nombre>\n";
-        $xmlContent .= " </Emisor>\n";
-    $xmlContent .= " <Receptor>\n";
-        $xmlContent .= ' <RFC>' . esc($rfcReceptor) . "</RFC>\n";
-        $xmlContent .= ' <Nombre>' . esc($nombreReceptor) . "</Nombre>\n";
-        $xmlContent .= " </Receptor>\n";
-    $xmlContent .= " <Conceptos>\n";
-        $xmlContent .= $serviciosXml;
-        $xmlContent .= " </Conceptos>\n";
-    $xmlContent .= " <Totales>\n";
-        $xmlContent .=
-        ' <SubTotal>' . number_format($importeTotal, 2, '.', '') . "</SubTotal>\n";
-        if ($solicitud['IVA'] === 't') {
-        $xmlContent .= ' <IVA>' . number_format($ivaMonto, 2, '.', '') . "</IVA>\n";
+            $xmlContent .= "<FacturaServicio>\n";
+            $xmlContent .= " <Encabezado>\n";
+            $xmlContent .= ' <FolioFactura>' . esc($folioFactura) . "</FolioFactura>\n";
+            $xmlContent .= ' <FechaEmision>' . esc($fechaEmision) . "</FechaEmision>\n";
+            $xmlContent .=
+                ' <MetodoPago>' .
+                esc(MetodoPago::getText($solicitud['MetodoPago'])) .
+                "</MetodoPago>\n";
+            $xmlContent .= " </Encabezado>\n";
+            $xmlContent .= " <Emisor>\n";
+            $xmlContent .= ' <RFC>' . esc($rfcEmisor) . "</RFC>\n";
+            $xmlContent .= ' <Nombre>' . esc($nombreEmisor) . "</Nombre>\n";
+            $xmlContent .= " </Emisor>\n";
+            $xmlContent .= " <Receptor>\n";
+            $xmlContent .= ' <RFC>' . esc($rfcReceptor) . "</RFC>\n";
+            $xmlContent .= ' <Nombre>' . esc($nombreReceptor) . "</Nombre>\n";
+            $xmlContent .= " </Receptor>\n";
+            $xmlContent .= " <Conceptos>\n";
+            $xmlContent .= $serviciosXml;
+            $xmlContent .= " </Conceptos>\n";
+            $xmlContent .= " <Totales>\n";
+            $xmlContent .=
+                ' <SubTotal>' . number_format($importeTotal, 2, '.', '') . "</SubTotal>\n";
+            if ($solicitud['IVA'] === 't') {
+                $xmlContent .= ' <IVA>' . number_format($ivaMonto, 2, '.', '') . "</IVA>\n";
+            }
+            $xmlContent .= ' <Total>' . number_format($granTotal, 2, '.', '') . "</Total>\n";
+            $xmlContent .= " </Totales>\n";
+            $xmlContent .= "</FacturaServicio>\n";
+
+            $fileName = 'FacturaServicio-' . $solicitud['No_Folio'] . '.xml';
+            $filePath = FPath::FFACTURAS_SERVICIOS . $fileName;
+
+            file_put_contents($filePath, $xmlContent);
+            return $filePath;
+        } catch (\Exception $e) {
+            log_message(
+                'error',
+                '[GenerarFacturaServicioXML] Error al generar XML de factura de servicio: ' .
+                    $e->getMessage(),
+            );
+            return null;
         }
-        $xmlContent .= ' <Total>' . number_format($granTotal, 2, '.', '') . "</Total>\n";
-        $xmlContent .= " </Totales>\n";
-    $xmlContent .= "</FacturaServicio>\n";
-
-$fileName = 'FacturaServicio-' . $solicitud['No_Folio'] . '.xml';
-$filePath = FPath::FFACTURAS_SERVICIOS . $fileName;
-
-file_put_contents($filePath, $xmlContent);
-return $filePath;
-} catch (\Exception $e) {
-log_message(
-'error',
-'[GenerarFacturaServicioXML] Error al generar XML de factura de servicio: ' .
-$e->getMessage(),
-);
-return null;
-}
-}
-//endregion
+    }
+    //endregion
     public function programarPagos()
     {
         $json = $this->request->getJSON();
@@ -2195,7 +2197,10 @@ return null;
                 return $this->failServerError('Error en la transacción de la base de datos.');
             }
 
-            return $this->respondUpdated(['success' => true, 'message' => 'Pagos programados correctamente.']);
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'Pagos programados correctamente.',
+            ]);
         } catch (\Exception $e) {
             log_message('error', '[programarPagos] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado al programar los pagos.');
@@ -2212,7 +2217,7 @@ return null;
                 'Proveedor.RazonSocial as Proveedor',
                 'Cotizacion.Total',
                 'OrdenCompra.Estado',
-                'Solicitud.MetodoPago'
+                'Solicitud.MetodoPago',
             ])
             ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
@@ -2225,7 +2230,7 @@ return null;
                 'Cotizacion.Total',
                 'OrdenCompra.Estado',
                 'Solicitud.MetodoPago',
-                'Solicitud.Fecha'
+                'Solicitud.Fecha',
             ])
             ->orderBy('Solicitud.Fecha', 'DESC')
             ->findAll();
@@ -2270,7 +2275,6 @@ return null;
         $sheet->setCellValue('E1', 'Estado');
         $sheet->setCellValue('F1', 'Fecha de Solicitud');
 
-
         $row = 2;
         foreach ($pagos as $pago) {
             $metodoPagoTexto = '';
@@ -2301,5 +2305,16 @@ return null;
 
         $writer->save('php://output');
         exit();
+    }
+
+    public function getPagosPendientes()
+    {
+        $data = $this->api->getPagosPendientes();
+
+        if (empty($data)) {
+            return $this->failNotFound('No se encontraron pagos pendientes.');
+        }
+
+        return $this->respond($data);
     }
 } //endregion

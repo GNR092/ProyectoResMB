@@ -56,10 +56,10 @@ async function SendDataEnd(endpoint, options = {}) {
 
     // Check if a specific responseType is requested
     if (options.responseType === 'text') {
-        return await response.text();
+      return await response.text()
     }
     if (options.responseType === 'blob') {
-        return await response.blob();
+      return await response.blob()
     }
 
     const contentType = response.headers.get('content-type')
@@ -229,12 +229,13 @@ function Confirmar(title, message) {
  * @returns {Promise<string|null>} - Una promesa que se resuelve con el texto introducido, o null si se cancela.
  */
 function InputPrompt(title, message, isRequired = true) {
-    return new Promise((resolve) => {
-        const modalOverlay = document.createElement('div');
-        modalOverlay.className = 'fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50';
-        modalOverlay.style.zIndex = '2147483647';
+  return new Promise((resolve) => {
+    const modalOverlay = document.createElement('div')
+    modalOverlay.className =
+      'fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50'
+    modalOverlay.style.zIndex = '2147483647'
 
-        let modalHtml = `
+    let modalHtml = `
             <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
                 <h3 class="text-lg font-bold mb-4">${title}</h3>
                 <label for="promptInput" class="block text-sm font-medium text-gray-700 mb-2">${message}</label>
@@ -244,37 +245,37 @@ function InputPrompt(title, message, isRequired = true) {
                     <button id="confirmarBtn" class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700">Aceptar</button>
                 </div>
             </div>
-        `;
-        modalOverlay.innerHTML = modalHtml;
-        document.body.appendChild(modalOverlay);
+        `
+    modalOverlay.innerHTML = modalHtml
+    document.body.appendChild(modalOverlay)
 
-        const input = document.getElementById('promptInput');
-        input.focus();
+    const input = document.getElementById('promptInput')
+    input.focus()
 
-        const closeModal = (value) => {
-            modalOverlay.remove();
-            resolve(value);
-        };
+    const closeModal = (value) => {
+      modalOverlay.remove()
+      resolve(value)
+    }
 
-        document.getElementById('cancelarBtn').addEventListener('click', () => closeModal(null));
+    document.getElementById('cancelarBtn').addEventListener('click', () => closeModal(null))
 
-        document.getElementById('confirmarBtn').addEventListener('click', () => {
-            const value = input.value.trim();
-            if (isRequired && !value) {
-                mostrarNotificacion('Este campo es obligatorio.', 'error');
-                input.focus();
-                input.classList.add('border-red-500');
-                return;
-            }
-            closeModal(value);
-        });
+    document.getElementById('confirmarBtn').addEventListener('click', () => {
+      const value = input.value.trim()
+      if (isRequired && !value) {
+        mostrarNotificacion('Este campo es obligatorio.', 'error')
+        input.focus()
+        input.classList.add('border-red-500')
+        return
+      }
+      closeModal(value)
+    })
 
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                closeModal(null);
-            }
-        });
-    });
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal(null)
+      }
+    })
+  })
 }
 
 function GetFiles(data) {
@@ -326,8 +327,8 @@ function getStatus(status) {
       return 'text-gray-600'
   }
 }
-function getStatusText(status){
-  switch(status){
+function getStatusText(status) {
+  switch (status) {
     case 'Dept_Rechazada':
       return
     case 'Espera_Programacion':
@@ -530,7 +531,7 @@ async function createPaginatedTable(config) {
 
   function updateTable() {
     if (!document.body.contains(tbody)) {
-        return;
+      return
     }
     const filteredData = getFilteredData()
     showPage(1, filteredData)
@@ -707,14 +708,11 @@ async function SendData(event) {
   }
 
   try {
-    const data = await SendDataEnd(
-      'solicitudes/registrar',
-      {
-        method: 'POST',
-        body: formData,
-        headers: { Accept: 'application/json' },
-      },
-    )
+    const data = await SendDataEnd('solicitudes/registrar', {
+      method: 'POST',
+      body: formData,
+      headers: { Accept: 'application/json' },
+    })
 
     if (data.success) {
       if (messageContainer) {
@@ -796,50 +794,50 @@ function mostrarOrdenPdf(id) {
 }
 
 function getStatusSVG(status) {
-    if (!status) return ''
-    const statusLower = status.toLowerCase()
-    const iconUrl = `icons/icons.svg?v=${window.ICON_SVG_VERSION || '1.0'}`
-    let svgClass = ''
-    let iconId = ''
+  if (!status) return ''
+  const statusLower = status.toLowerCase()
+  const iconUrl = `icons/icons.svg?v=${window.ICON_SVG_VERSION || '1.0'}`
+  let svgClass = ''
+  let iconId = ''
 
-    switch (statusLower) {
-      case 'aprobada':
-      case 'pagada':
-        svgClass = 'text-green-600'
-        iconId = 'aceptado'
-        break
-      case 'en espera':
-        svgClass = 'text-yellow-500'
-        iconId = 'en_espera'
-        break
-      case 'rechazada':
-      case 'cancelada':
-        svgClass = 'text-red-500'
-        iconId = 'rechazado'
-        break
-      case 'cotizando':
-        svgClass = 'text-blue-500'
-        iconId = 'cotizacion'
-        break
-      case 'en revision':
-        svgClass = 'text-blue-500'
-        iconId = 'revision'
-        break
-      case 'espera_programacion':
-      case 'aprobacion pendiente':
-        svgClass = 'text-orange-500'
-        iconId = 'pendiente'
-        break
-      case 'en proceso de pago':
-        svgClass = 'text-yellow-500'
-        iconId = 'procesopago'
-        break
-      case 'por pagar':
-        svgClass = 'text-yellow-500'
-        iconId = 'porpagar'
-        break
-      default:
-        return ''
-    }
-    return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
+  switch (statusLower) {
+    case 'aprobada':
+    case 'pagada':
+      svgClass = 'text-green-600'
+      iconId = 'aceptado'
+      break
+    case 'en espera':
+      svgClass = 'text-yellow-500'
+      iconId = 'en_espera'
+      break
+    case 'rechazada':
+    case 'cancelada':
+      svgClass = 'text-red-500'
+      iconId = 'rechazado'
+      break
+    case 'cotizando':
+      svgClass = 'text-blue-500'
+      iconId = 'cotizacion'
+      break
+    case 'en revision':
+      svgClass = 'text-blue-500'
+      iconId = 'revision'
+      break
+    case 'espera_programacion':
+    case 'aprobacion pendiente':
+      svgClass = 'text-orange-500'
+      iconId = 'pendiente'
+      break
+    case 'en proceso de pago':
+      svgClass = 'text-yellow-500'
+      iconId = 'procesopago'
+      break
+    case 'por pagar':
+      svgClass = 'text-yellow-500'
+      iconId = 'porpagar'
+      break
+    default:
+      return ''
   }
+  return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
+}
