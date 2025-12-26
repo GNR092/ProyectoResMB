@@ -102,6 +102,11 @@ class MenuOptions extends BaseConfig
                 'label' => 'Complejos',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#razonsocial"></use></svg>',
             ],
+
+            'crud_departamento' => [
+                'label' => 'Departamentos',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#departamentos"></use></svg>',
+            ],
         ];
     }
 }

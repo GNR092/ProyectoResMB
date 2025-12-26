@@ -15,6 +15,7 @@ function abrirModal(opcion) {
     razonsocial: 'ajustes',
     micuenta: 'ajustes',
     programar_pagos: 'programar_pagos',
+    crud_departamento :'crud_departamento',
   }
 
   const highlightOpcion = parentModals[opcion] || opcion
@@ -73,6 +74,7 @@ function abrirModal(opcion) {
     recepcion_material: 'Recepción de Material',
     bajas_destruccion: 'Bajas por Destrucción',
     crud_places: 'Complejos',
+    crud_departamento:"Departametos",
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -97,6 +99,7 @@ function abrirModal(opcion) {
         recepcion_material: initRecepcionMaterial,
         bajas_destruccion: initBajasDestruccion,
         crud_places: initCrudPlaces,
+        crud_departamento: initCrudDepartamentos,
       }
 
       const inicializador = inicializadores[opcion]
@@ -3727,6 +3730,199 @@ window.initLimpiarAlmacenamiento = function () {
   }
 
   window.navegarA('')
+}
+
+/**
+ * Lógica para CRUD_Departamento
+ */
+function initCrudDepartamentos() {
+  const tabla = document.getElementById('tabla-departamentos')
+  if (!tabla) return
+
+  initDepartamentosTabla()
+  initDepartamentosPantallas()
+  initDepartamentosForm()
+  initDepartamentosEditarForm()
+  initDepartamentosActions(tabla)
+}
+
+function initDepartamentosTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-departamentos tr[data-id]',
+    paginationSelector: 'paginacion-departamentos',
+    filterFormSelector: '#form-filtros-departamentos',
+    filterFunction: (row, form) => {
+      const nombreFiltro = (document.getElementById('buscar-nombre-depto')?.value || '').toLowerCase()
+      const lugarFiltro = (document.getElementById('buscar-lugar-depto')?.value || '').toLowerCase()
+
+      const nombre = row.querySelector('.nombre-depto')?.textContent.toLowerCase() || ''
+      const lugar = row.querySelector('.lugar-depto')?.textContent.toLowerCase() || ''
+
+      return nombre.includes(nombreFiltro) && lugar.includes(lugarFiltro)
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initDepartamentosPantallas() {
+  const pantallaAgregar = document.getElementById('pantalla-agregar-departamento')
+  const pantallaEditar = document.getElementById('pantalla-editar-departamento')
+  const pantallaLista = document.getElementById('pantalla-lista-departamentos')
+
+  const btnAgregar = document.getElementById('btn-agregar-departamento')
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar')
+
+  if (btnAgregar)
+    btnAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaLista?.classList.add('hidden')
+      pantallaAgregar?.classList.remove('hidden')
+    }
+
+  if (btnRegresarAgregar)
+    btnRegresarAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaAgregar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+
+  if (btnRegresarEditar)
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+}
+
+function initDepartamentosForm() {
+  const formAgregar = document.getElementById('form-agregar-departamento')
+  const pantallaAgregar = document.getElementById('pantalla-agregar-departamento')
+  const pantallaLista = document.getElementById('pantalla-lista-departamentos')
+  if (!formAgregar) return
+
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formAgregar)
+
+    try {
+      const result = await SendDataEnd('modales/crud_departamentos/insertar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Departamento agregado correctamente ✅', 'success')
+        pantallaAgregar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+        formAgregar.reset()
+        // Recargar el modal para actualizar la lista
+        abrirModal('crud_departamento')
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initDepartamentosEditarForm() {
+  const formEditar = document.getElementById('form-editar-departamento')
+  const pantallaEditar = document.getElementById('pantalla-editar-departamento')
+  const pantallaLista = document.getElementById('pantalla-lista-departamentos')
+  const tabla = document.getElementById('tabla-departamentos')
+  if (!formEditar) return
+
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
+    const id = formData.get('ID_Dpto')
+
+    try {
+      const result = await SendDataEnd(`modales/crud_departamentos/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Departamento actualizado correctamente ✅', 'success')
+
+        // Actualizar fila
+        const fila = tabla.querySelector(`tr[data-id='${id}']`)
+        if (fila) {
+          fila.querySelector('.nombre-depto').textContent = formData.get('Nombre')
+
+          // Places
+          const selectLugar = document.getElementById('editar-ID_Place');
+          const lugarTexto = selectLugar.options[selectLugar.selectedIndex].text;
+          fila.querySelector('.lugar-depto').textContent = lugarTexto;
+
+          fila.dataset.nombre = formData.get('Nombre')
+          fila.dataset.idPlace = formData.get('ID_Place')
+          fila.dataset.nombrePlace = lugarTexto
+        }
+
+        pantallaEditar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initDepartamentosActions(tabla) {
+  if (!tabla) return
+
+  tabla.addEventListener('click', async (e) => {
+    // --- ELIMINAR ---
+    const btnEliminar = e.target.closest("[id^='btn-eliminar-departamento-']")
+    if (btnEliminar) {
+      e.preventDefault()
+      const id = btnEliminar.dataset.id
+
+      if (
+          !(await Confirmar(
+              'Eliminar Departamento?',
+              '¿Seguro que deseas eliminar este departamento?',
+          ))
+      )
+        return
+
+      SendDataEnd(`modales/crud_departamentos/eliminar/${id}`, {
+        method: 'POST',
+      })
+          .then((result) => {
+            if (result.success) {
+              mostrarNotificacion('Departamento eliminado ✅', 'success')
+              btnEliminar.closest('tr')?.remove()
+            } else {
+              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+            }
+          })
+          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+      return
+    }
+
+    // --- EDITAR ---
+    const btnEditar = e.target.closest("[id^='btn-editar-departamento-']")
+    if (!btnEditar) return
+    e.preventDefault()
+
+    const fila = btnEditar.closest('tr')
+    if (!fila) return
+
+    // Cargar datos al formulario desde el dataset
+    document.getElementById('editar-ID_Dpto').value = fila.dataset.id
+    document.getElementById('editar-Nombre').value = fila.dataset.nombre
+    document.getElementById('editar-ID_Place').value = fila.dataset.idPlace
+
+    document.getElementById('pantalla-lista-departamentos').classList.add('hidden')
+    document.getElementById('pantalla-editar-departamento').classList.remove('hidden')
+  })
 }
 
 //==================================================================================================================

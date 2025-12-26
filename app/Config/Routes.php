@@ -135,6 +135,11 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/crud_places/editar/(:num)', 'Modales::editarPlace/$1');
         $routes->post('modales/crud_places/eliminar/(:num)', 'Modales::eliminarPlace/$1');
 
+        //crud departamentos
+        $routes->post('modales/crud_departamentos/insertar', 'Modales::insertarDepartamento');
+        $routes->post('modales/crud_departamentos/editar/(:num)', 'Modales::editarDepartamento/$1');
+        $routes->post('modales/crud_departamentos/eliminar/(:num)', 'Modales::eliminarDepartamento/$1');
+
         // User
         $routes->post('api/user/update', 'Api::updateUser');
         $routes->post('api/user/upload_signature', 'Api::upload_signature');

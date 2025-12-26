@@ -278,6 +278,22 @@ class Modales extends BaseController
                 $data['places'] = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
                 return view('modales/crud_places', $data);
 
+            case 'crud_departamento':
+                $deptosModel = new \App\Models\DepartamentosModel();
+                $placesModel = new \App\Models\PlacesModel();
+
+                // Obtenemos los departamentos junto con el nombre del lugar
+                $data['departamentos'] = $deptosModel
+                    ->select('Departamentos.*, Places.Nombre_Completo as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->orderBy('Departamentos.Nombre', 'ASC')
+                    ->findAll();
+
+                // Obtenemos los lugares para llenar el select
+                $data['places'] = $placesModel->orderBy('Nombre_Completo', 'ASC')->findAll();
+
+                return view('modales/crud_departamento', $data);
+
             default:
                 return 'Opción no válida';
         }
@@ -795,8 +811,7 @@ class Modales extends BaseController
         }
     }
 
-    //Funcion crud para places
-// --- CRUD PLACES ---
+    // --- CRUD PLACES ---
     public function insertarPlace()
     {
         $model = new \App\Models\PlacesModel();
@@ -839,6 +854,53 @@ class Modales extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'No se pudo eliminar el lugar',
+            ]);
+        }
+    }
+
+    // --- CRUD DEPARTAMENTOS ---
+    public function insertarDepartamento()
+    {
+        $model = new \App\Models\DepartamentosModel();
+        $data = $this->request->getPost(['Nombre', 'ID_Place']);
+
+        if ($model->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo insertar el departamento',
+                'errors' => $model->errors()
+            ]);
+        }
+    }
+
+    public function editarDepartamento($id)
+    {
+        $model = new \App\Models\DepartamentosModel();
+        $data = $this->request->getPost(['Nombre', 'ID_Place']);
+
+        try {
+            $model->update($id, $data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function eliminarDepartamento($id)
+    {
+        $model = new \App\Models\DepartamentosModel();
+
+        if ($model->delete($id)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo eliminar el departamento',
             ]);
         }
     }
