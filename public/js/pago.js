@@ -620,6 +620,126 @@ async function initListaPagos() {
   })
 }
 
+function renderFacturaUploader(idSolicitud) {
+    const container = document.getElementById('factura-uploader-container');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div id="file-preview-factura" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div>
+        <input type="file" id="archivo-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFacturaFileSelect(this, ${idSolicitud})">
+        <button id="btn-upload-factura" onclick="document.getElementById('archivo-factura').click()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+            Subir Factura
+        </button>
+    `;
+}
+
+function handleFacturaFileSelect(input, idSolicitud) {
+    const file = input.files[0];
+    if (!file) {
+        removeFacturaFile(idSolicitud); // Reset if selection is cancelled
+        return;
+    }
+
+    const previewContainer = document.getElementById('file-preview-factura');
+    const uploadButton = document.getElementById('btn-upload-factura');
+    
+    // Simple file type icon logic
+    let icon = '📄'; // default icon
+    if (file.type.startsWith('image/')) {
+        icon = '🖼️';
+    } else if (file.type === 'application/pdf') {
+        icon = '📕';
+    } else if (file.type === 'text/xml' || file.type === 'application/xml') {
+        icon = '🔗';
+    }
+    
+    const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+
+    previewContainer.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">${icon}</span>
+                <div>
+                    <p class="text-sm font-medium text-gray-800 truncate">${file.name}</p>
+                    <p class="text-xs text-gray-500">${fileSize}</p>
+                </div>
+            </div>
+            <button onclick="removeFacturaFile(${idSolicitud})" class="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button>
+        </div>
+    `;
+    previewContainer.classList.remove('hidden');
+
+    uploadButton.innerText = 'Confirmar y Subir Factura';
+    uploadButton.onclick = () => uploadFactura(idSolicitud);
+}
+
+function removeFacturaFile(idSolicitud) {
+    const fileInput = document.getElementById('archivo-factura');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+
+    const previewContainer = document.getElementById('file-preview-factura');
+    if (previewContainer) {
+        previewContainer.innerHTML = '';
+        previewContainer.classList.add('hidden');
+    }
+    
+    const uploadButton = document.getElementById('btn-upload-factura');
+    if(uploadButton) {
+        uploadButton.innerText = 'Subir Factura';
+        uploadButton.onclick = () => document.getElementById('archivo-factura').click();
+    }
+}
+
+async function uploadFactura(idSolicitud) {
+    const fileInput = document.getElementById('archivo-factura');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        mostrarNotificacion('No se ha seleccionado ningún archivo.', 'warning');
+        return;
+    }
+
+    const previewContainer = document.getElementById('file-preview-factura');
+    const uploadButton = document.getElementById('btn-upload-factura');
+
+    // Show upload animation
+    previewContainer.innerHTML = `
+        <div class="flex items-center justify-center gap-2">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm text-gray-600">Subiendo factura...</span>
+        </div>
+    `;
+    uploadButton.disabled = true;
+
+    const formData = new FormData();
+    formData.append('factura', file);
+
+    try {
+        const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (result.success) {
+            mostrarNotificacion('Factura subida con éxito.', 'success');
+            removeFacturaFile(idSolicitud); 
+        } else {
+            throw new Error(result.message || 'Error desconocido del servidor.');
+        }
+    } catch (error) {
+        console.error('Error al subir factura:', error);
+        mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error');
+        handleFacturaFileSelect(fileInput, idSolicitud);
+    } finally {
+        uploadButton.disabled = false;
+    }
+}
+
 async function mostrarDetallePago(id) {
   const divLista = document.getElementById('div-lista-pagos');
   const divDetalle = document.getElementById('div-detalle-pago');
@@ -730,28 +850,26 @@ async function mostrarDetallePago(id) {
 
     //Botones
     html += `
-          <div class="flex justify-between mt-6 pt-4 gap-4 border-t">
-            <button onclick="verRequisicionPago(${id})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition w-1/2">
-              Ver Requisición de pago
-            </button>
-            
-            
-            <button onclick="document.getElementById('archivo-factura').click()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition w-1/2">
-              Subir factura
-            </button>
-            <input type="file" id="archivo-factura" class="hidden" accept="image/*,.pdf">
+          <div class="mt-6 pt-4 border-t">
+              <h3 class="text-md font-semibold mb-3 text-gray-700">ACCIONES</h3>
+              <div id="factura-uploader-container"></div>
+              <div class="grid grid-cols-2 gap-4 mt-4">
+                  <button onclick="verRequisicionPago(${id})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition w-full">
+                      Ver Requisición de pago
+                  </button>
+                  <button disabled class="bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition w-full cursor-not-allowed">
+                      Pendiente
+                  </button>
+              </div>
           </div>
-          
-          <div class="flex flex-col gap-4 mt-4">
-            <button onclick="" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition">
-              Pendiente
-            </button>
-          </div>
-        `;
+      `;
 
 
     // Inyectamos el HTML
     contenedorDetalle.innerHTML = html;
+
+    // Render the uploader component
+    renderFacturaUploader(id);
 
   } catch (error) {
     console.error('Error al cargar detalle:', error);
