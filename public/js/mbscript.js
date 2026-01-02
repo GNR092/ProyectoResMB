@@ -2123,9 +2123,6 @@ function aprobarSolicitudes() {
         const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`, {})
         if (data.error) throw new Error(data.error)
 
-        // Cargar proveedores
-        this.providers = await SendDataEnd('api/providers/all')
-
         let html = `
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
               <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
@@ -2176,47 +2173,21 @@ function aprobarSolicitudes() {
             `
         }
 
-        // Botones de acción
-        // html += `
-        //   <div id="botones-accion-aprobar" class="mt-8 flex justify-end space-x-4">
-        //       <button @click="dictaminar(${idSolicitud}, 'rechazar')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Rechazar</button>
-        //       <button @click="mostrarSeleccionProveedores()" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700">Aprobar y Cotizar</button>
-        //       <button @click="dictaminar(${idSolicitud}, 'aprobar')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700">Aprobar y Enviar a Compras</button>
-        //   </div>`
 
-        // Sección oculta para seleccionar proveedores
-        // html += `
-        //     <div id="seccion-cotizar" class="hidden mt-8 border-t pt-6">
-        //         <h3 class="text-lg font-bold mb-4">Selecciona Proveedores para Cotizar</h3>
-        //         <div class="overflow-y-auto max-h-64 border rounded-md mb-4">
-        //             <table class="min-w-full">
-        //                 <thead class="bg-gray-100 sticky top-0">
-        //                     <tr>
-        //                         <th class="py-2 px-4 text-center"><input type="checkbox" @click="seleccionarTodosProveedores($event)"></th>
-        //                         <th class="py-2 px-4 text-left">Proveedor</th>
-        //                     </tr>
-        //                 </thead>
-        //                 <tbody id="tabla-proveedores-aprobar">
-        // `
-        // this.providers.forEach(provider => {
-        //     html += `
-        //         <tr>
-        //             <td class="py-2 px-4 text-center border-t">
-        //                 <input type="checkbox" class="proveedor-checkbox" value="${provider.ID_Proveedor}">
-        //             </td>
-        //             <td class="py-2 px-4 border-t">${provider.RazonSocial}</td>
-        //         </tr>
-        //     `
-        // });
         html += `
-                        </tbody>
-                    </table>
-                </div>
-                <div class="flex justify-end space-x-4">
-                    <button @click="enviarAprobacionYCotizacion(${idSolicitud})" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700"> Aprobar y Enviar a Cotizar</button>
-                </div>
+            <div class="mt-8 flex justify-end space-x-4 border-t pt-6">
+                <!-- Botón Rechazar -->
+                <button onclick="dictaminarSolicitud(${idSolicitud}, 'rechazar')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition">
+                    Rechazar
+                </button>
+                
+                <!-- Botón Aprobar -->
+                <button onclick="enviarAprobacionYCotizacionGlobal(${idSolicitud})" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+                    Aprobar y Enviar a Cotizar
+                </button>
             </div>
         `
+        // ------------------------------------------------
 
         detallesContainer.innerHTML = html
       } catch (error) {
@@ -2227,110 +2198,89 @@ function aprobarSolicitudes() {
     regresarATabla: function () {
       document.getElementById('div-ver-aprobacion').classList.add('hidden')
       document.getElementById('div-tabla-aprobacion').classList.remove('hidden')
-    },
+    }
+  }
+}
 
-    mostrarSeleccionProveedores: function () {
-      document.getElementById('botones-accion-aprobar').classList.add('hidden')
-      document.getElementById('seccion-cotizar').classList.remove('hidden')
-    },
+async function enviarAprobacionYCotizacionGlobal(idSolicitud) {
+  const payload = {
+    ID_Solicitud: idSolicitud,
+  }
 
-    ocultarSeleccionProveedores: function () {
-      document.getElementById('seccion-cotizar').classList.add('hidden')
-      document.getElementById('botones-accion-aprobar').classList.remove('hidden')
-    },
+  const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999)
 
-    seleccionarTodosProveedores: function (event) {
-      document
-        .querySelectorAll('#tabla-proveedores-aprobar .proveedor-checkbox')
-        .forEach((checkbox) => {
-          checkbox.checked = event.target.checked
-        })
-    },
+  try {
+    const result = await SendDataEnd('api/solicitud/aprobar-y-cotizar', {
+      method: 'POST',
+      body: payload,
+    })
 
-    enviarAprobacionYCotizacion: async function (idSolicitud) {
-      const payload = {
-        ID_Solicitud: idSolicitud,
-      }
+    procesandoNotif.click()
 
-      const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999)
+    if (result.success) {
+      mostrarNotificacion(result.message, 'success')
+      abrirModal('aprobar_solicitudes') // Recargar vista
+    } else {
+      mostrarNotificacion(result.message || 'Error al procesar la solicitud.', 'error')
+    }
+  } catch (error) {
+    procesandoNotif.click()
+    mostrarNotificacion('Error de red al procesar la solicitud.', 'error')
+  }
+}
 
-      try {
-        const result = await SendDataEnd('api/solicitud/aprobar-y-cotizar', {
-          method: 'POST',
-          body: payload,
-        })
+async function dictaminarSolicitud(idSolicitud, accion) {
+  const esRechazo = accion === 'rechazar'
+  let comentarios = null
 
-        procesandoNotif.click()
+  if (esRechazo) {
+    comentarios = await InputPrompt(
+        'Rechazar Solicitud',
+        'Por favor, ingrese el motivo del rechazo (obligatorio):',
+        true,
+    )
+    if (comentarios === null) {
+      return // El usuario canceló el modal
+    }
+  } else {
+    // Caso de aprobación directa
+    const confirmado = await Confirmar(
+        'Aprobar Solicitud',
+        '¿Está seguro de que desea aprobar esta solicitud?',
+    )
+    if (!confirmado) {
+      return
+    }
+  }
 
-        if (result.success) {
-          mostrarNotificacion(result.message, 'success')
-          abrirModal('aprobar_solicitudes')
-        } else {
-          mostrarNotificacion(result.message || 'Error al procesar la solicitud.', 'error')
-        }
-      } catch (error) {
-        procesandoNotif.click()
-        mostrarNotificacion('Error de red al procesar la solicitud.', 'error')
-      }
-    },
+  const payload = {
+    ID_Solicitud: idSolicitud,
+    accion: accion, // Se envía 'rechazar' o 'aprobar'
+  }
 
-    dictaminar: async function (idSolicitud, accion) {
-      const esRechazo = accion === 'rechazar'
-      let comentarios = null
+  if (comentarios) {
+    payload.comentarios = comentarios
+  }
 
-      if (esRechazo) {
-        comentarios = await InputPrompt(
-          'Rechazar Solicitud',
-          'Por favor, ingrese el motivo del rechazo (obligatorio):',
-          true,
-        )
-        if (comentarios === null) {
-          return // El usuario canceló el modal
-        }
-      } else {
-        const confirmado = await Confirmar(
-          'Aprobar Solicitud',
-          '¿Está seguro de que desea aprobar esta solicitud y enviarla a Revisión de Compras?',
-        )
-        if (!confirmado) {
-          return // El usuario canceló
-        }
-      }
+  const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999)
 
-      const payload = {
-        ID_Solicitud: idSolicitud,
-        accion: accion,
-      }
+  try {
+    const result = await SendDataEnd('api/solicitud/dictaminar-jefe', {
+      method: 'POST',
+      body: payload,
+    })
 
-      if (comentarios) {
-        payload.comentarios = comentarios
-      }
+    procesandoNotif.click()
 
-      // Muestra una notificación de "procesando" que no se cierra automáticamente
-      const procesandoNotif = mostrarNotificacion('Procesando...', 'info', 999999)
-
-      try {
-        const result = await SendDataEnd('api/solicitud/dictaminar-jefe', {
-          method: 'POST',
-          body: payload,
-        })
-
-        // Cierra la notificación de "procesando"
-        procesandoNotif.click()
-
-        if (result.success) {
-          mostrarNotificacion(result.message, 'success')
-          // Recargar el modal principal para refrescar la lista
-          abrirModal('aprobar_solicitudes')
-        } else {
-          mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error')
-        }
-      } catch (error) {
-        // Cierra la notificación de "procesando" en caso de error
-        procesandoNotif.click()
-        mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error')
-      }
-    },
+    if (result.success) {
+      mostrarNotificacion(result.message, 'success')
+      abrirModal('aprobar_solicitudes') // Recargar vista
+    } else {
+      mostrarNotificacion(result.message || `Error al ${accion} la solicitud.`, 'error')
+    }
+  } catch (error) {
+    procesandoNotif.click()
+    mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error')
   }
 }
 

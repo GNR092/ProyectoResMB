@@ -361,6 +361,7 @@ class Api extends ResourceController
         }
 
         $json = $this->request->getJSON();
+        // Validamos que exista ID y acción
         if (!isset($json->ID_Solicitud) || !isset($json->accion)) {
             return $this->failValidationErrors(
                 'Se requiere ID de solicitud y una acción (aprobar/rechazar).',
@@ -377,31 +378,38 @@ class Api extends ResourceController
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
+
+        // Verificaciones de seguridad
         if ($solicitud['ID_Dpto'] != session('id_departamento_usuario')) {
             return $this->failForbidden('Esta solicitud no pertenece a su departamento.');
         }
-        if ($solicitud['Estado'] !== Status::Aprobacion_pendiente) {
-            return $this->fail('La solicitud ya ha sido procesada.', HttpStatus::BAD_REQUEST);
+
+        // Verificar estado actual
+        if ($solicitud['Estado'] !== 'Aprobacion pendiente' && $solicitud['Estado'] !== Status::Aprobacion_pendiente) {
+            return $this->fail('La solicitud ya ha sido procesada o no está pendiente de aprobación.', HttpStatus::BAD_REQUEST);
         }
 
         try {
-            $nuevoEstado = $accion === Status::Aprobar ? Status::En_espera : Status::Dept_Rechazada;
+            // Si la acción es aprobar, pasa a 'En espera'.
+            // Si es rechazar, pasa explícitamente a 'Rechazada'.
+            $nuevoEstado = ($accion === 'aprobar' || $accion === Status::Aprobar)
+                ? Status::En_espera
+                : 'Rechazada';
+
             $solicitudModel->update($idSolicitud, [
                 'Estado' => $nuevoEstado,
                 'ComentariosAdmin' => $comentarios,
             ]);
 
             return $this->respondUpdated([
-                'success' => $accion === Status::Aprobar,
-                'message' =>
-                    'La solicitud ha sido ' .
-                    ($accion === Status::Aprobar
-                        ? 'aprobada y enviada a Compras.'
-                        : Status::Rechazada . '.'),
+                'success' => true,
+                'message' => 'La solicitud ha sido ' .
+                    ($nuevoEstado === 'Rechazada' ? 'rechazada.' : 'aprobada y enviada a Compras.'),
             ]);
+
         } catch (\Exception $e) {
             log_message('error', '[dictaminarSolicitudJefe] ' . $e->getMessage());
-            return $this->failServerError('Ocurrió un error inesperado.');
+            return $this->failServerError('Ocurrió un error inesperado al actualizar la solicitud.');
         }
     }
 
