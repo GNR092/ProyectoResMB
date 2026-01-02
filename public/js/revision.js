@@ -379,7 +379,7 @@ function RevisionX() {
             mostrarNotificacion('Error de red al enviar a revisión.', 'error')
           } finally {
             btnConfirmar.disabled = false
-            btnConfirmar.textContent = 'Solicigtar Autorización'
+            btnConfirmar.textContent = 'Solicitar Autorización'
           }
         }
       } catch (error) {

@@ -51,7 +51,8 @@ class Home extends BaseController
                 'ficha_pago',
                 'ordenes_compra',
                 'pagos_pendientes',
-                'almacen'
+                'almacen',
+                'programar_pagos',
             ],
 
             // Rol Tesorería

@@ -518,7 +518,7 @@ async function mostrarDetalleFicha(id, metodoPago) {
 
     detalleDiv.innerHTML = html
     renderComprobanteUploader(id);
-    renderFacturaUploader(id); // Llamada para renderizar el uploader de factura
+  //  renderFacturaUploader(id); // Llamada para renderizar el uploader de factura
 
   } catch (error) {
     console.error('Error al cargar detalle:', error);
@@ -879,7 +879,7 @@ async function mostrarDetallePago(id) {
 
     // Render the uploader components
     renderComprobanteUploader(id);
-    renderFacturaUploader(id); // Llamada para renderizar el uploader de factura
+  //  renderFacturaUploader(id); // Llamada para renderizar el uploader de factura
 
   } catch (error) {
     console.error('Error al cargar detalle:', error);
@@ -951,18 +951,7 @@ function verRequisicionPago(id) {
 
 // --- Lógica para el uploader de Factura (similar al Comprobante) ---
 
-function renderFacturaUploader(idSolicitud) { 
-    const container = document.getElementById('factura-uploader-container'); 
-    if (!container) return;
 
-    container.innerHTML = `
-        <div id="file-preview-factura" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div> 
-        <input type="file" id="archivo-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFacturaFileSelect(this, ${idSolicitud})"> 
-        <button id="btn-upload-factura" onclick="document.getElementById('archivo-factura').click()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition"> 
-            Subir Factura
-        </button>
-    `;
-}
 
 function handleFacturaFileSelect(input, idSolicitud) { 
     const file = input.files[0];
