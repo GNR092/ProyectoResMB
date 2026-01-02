@@ -500,7 +500,7 @@ async function mostrarDetalleFicha(id, metodoPago) {
         </table>
       </div>
       `
-    html += GetFiles(data)!
+    html += GetFiles(data)
 
     html += `
       <div class="flex justify-between mt-6 pt-4 border-t gap-4">
