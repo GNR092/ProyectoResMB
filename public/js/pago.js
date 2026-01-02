@@ -739,6 +739,7 @@ async function mostrarDetallePago(id) {
             <button onclick="document.getElementById('archivo-factura').click()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition w-1/2">
               Subir factura
             </button>
+            <input type="file" id="archivo-factura" class="hidden" accept="image/*,.pdf">
           </div>
           
           <div class="flex flex-col gap-4 mt-4">

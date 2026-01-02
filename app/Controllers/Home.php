@@ -86,7 +86,8 @@ class Home extends BaseController
             'crud_proveedores',
             'reportes',
             'razonsocial',
-            'crud_places'
+            'crud_places',
+            'crud_departamento'
 
         ];
 
