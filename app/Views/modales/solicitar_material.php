@@ -236,7 +236,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             </div>
 
             <!-- Proveedores -->
-            <div>
+            <div class="hidden">
                 <label class="text-sm text-gray-700 font-medium">Proveedor:</label>
                 <select id="ProvSelectSinCotizar" class="w-full px-3 py-2 border rounded" name="ID_Proveedor">
                     <option value="">Seleccione una opción</option>

@@ -75,7 +75,7 @@ async function SendDataEnd(endpoint, options = {}) {
   }
 }
 
-function mostrarNotificacion(mensaje, tipo = 'success', duracion = 3000) {
+function mostrarNotificacion(mensaje, tipo = 'success', duracion = 5000) {
   const CT_ID = '__app_toast_container'
   let container = document.getElementById(CT_ID)
 

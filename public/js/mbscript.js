@@ -90,7 +90,6 @@ function abrirModal(opcion) {
         dictamen_solicitudes: initDictamenSolicitudes,
         ordenes_compra: initOrdenesCompra,
         crud_proveedores: initCrudProveedores,
-        pagos_pendientes: initPagosPendientes,
         ficha_pago: initFichasPago,
         razonsocial: initCrudRazonSocial,
         limpiar_almacenamiento: initLimpiarAlmacenamiento,
@@ -1114,7 +1113,7 @@ async function mostrarVer(idSolicitud) {
   }
 }
 
-async function mostrarCotizar(idSolicitud) {
+async function mostrarCotizar(idSolicitud, idUsuario) {
   document.getElementById('div-tabla').classList.add('hidden')
   const divCotizar = document.getElementById('div-cotizar')
   divCotizar.classList.remove('hidden')
@@ -1248,7 +1247,7 @@ async function mostrarCotizar(idSolicitud) {
     tbody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">Error al cargar proveedores</td></tr>`
   }
 
-  async function handleGenerarCotizacion() {
+  async function handleGenerarCotizacion(idUsuario) {
     const idSolicitud = document.getElementById('cotizar_id_solicitud').value
 
     if (selectedProviderIds.size === 0) {
@@ -1277,6 +1276,7 @@ async function mostrarCotizar(idSolicitud) {
         body: {
           ID_Solicitud: idSolicitud,
           ID_Proveedores: providerIds,
+          ID_Usuario: idUsuario,
         },
       })
 
@@ -1301,7 +1301,7 @@ async function mostrarCotizar(idSolicitud) {
   }
 
   if (btnGenerar && !btnGenerar.dataset.listenerAttached) {
-    btnGenerar.addEventListener('click', handleGenerarCotizacion)
+    btnGenerar.addEventListener('click', () => handleGenerarCotizacion(idUsuario))
     btnGenerar.dataset.listenerAttached = 'true'
   }
 }
@@ -1313,187 +1313,6 @@ function regresarTabla() {
   document.getElementById('btn-exportar-requisiciones').classList.remove('hidden') // Mostrar el botón de exportar
 }
 
-/**
- * Lógica para el modal "Lista de pagos pendientes"
- */
-
-async function initListaPagos() {
-  createPaginatedTable({
-    tableSelector: '#tablaListaPagos',
-    paginationSelector: 'paginacion-lista-pagos',
-    endpoint: 'api/pagos/all',
-    renderRow: (p) => `
-      <tr class="hover:bg-gray-50">
-          <td class="py-3 px-6 text-left">${p.Folio || 'N/A'}</td>
-          <td class="py-3 px-6 text-left">${p.Proveedor || 'N/A'}</td>
-          <td class="py-3 px-6 text-right">$${parseFloat(p.Total).toFixed(2)}</td>
-          <td class="py-3 px-6 text-left">${p.Estado || 'N/A'}</td>
-          <td class="py-3 px-6 text-center">
-              <!-- MODIFICADO: Llamada a la nueva función -->
-              <button onclick="mostrarDetallePago(${p.ID_Pago || p.ID_Solicitud})" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">Ver</button>
-          </td>
-      </tr>
-    `,
-    noResultsMessage: 'No hay pagos registrados.',
-  })
-}
-
-async function mostrarDetallePago(id) {
-  const divLista = document.getElementById('div-lista-pagos');
-  const divDetalle = document.getElementById('div-detalle-pago');
-  const contenedorDetalle = document.getElementById('contenido-detalle-pago');
-
-  divLista.classList.add('hidden');
-  divDetalle.classList.remove('hidden');
-
-  contenedorDetalle.innerHTML = `<p class="text-center text-gray-500 py-8">Cargando detalles...</p>`;
-
-  try {
-    // Peticion a la API
-    const data = await SendDataEnd(`api/orden-compra/details/${id}`);
-
-    if (!data) {
-      throw new Error("No se recibieron datos del servidor.");
-    }
-
-    // Preparar datos
-    const prov = data.proveedor || {};
-    const totalFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    });
-
-    const metodoPagoTexto =
-        data.MetodoPago == 0 ? 'Efectivo' :
-            data.MetodoPago == 1 ? 'Crédito' :
-                data.MetodoPago == 9 ? 'En Espera' : 'N/A';
-
-    let html = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-                <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
-                <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
-                <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
-                <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
-                <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
-                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
-            </div>
-
-            <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-                <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
-                <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
-                <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
-                <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
-                <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
-                <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-                <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
-        prov.Monto_Credito
-            ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-            : 'N/A'
-    }</div>
-            </div>
-
-            <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
-            
-            <div class="overflow-x-auto mb-6">
-                <table class="min-w-full border border-gray-300">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="py-2 px-4 text-left">Código</th>
-                            <th class="py-2 px-4 text-left">Producto</th>
-                            <th class="py-2 px-4 text-right">Cantidad</th>
-                            <th class="py-2 px-4 text-right">Importe</th>
-                            <th class="py-2 px-4 text-right">Costo Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white">
-        `;
-
-    if (data.productos && data.productos.length > 0) {
-      data.productos.forEach((p) => {
-        const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
-        html += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
-                        <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                        <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
-                        <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                        <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
-                    </tr>
-                `;
-      });
-    } else {
-      html += `<tr><td colspan="5" class="text-center py-3 text-gray-500">No hay productos en esta orden.</td></tr>`;
-    }
-
-    html += `
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-    // Archivos Adjuntos
-    if (typeof GetFiles === 'function') {
-      html += GetFiles(data);
-    } else if (data.Archivo) {
-      const archivoUrl = `${BASE_URL}solicitudes/archivo/${id}`;
-      html += `
-                <div class="mt-6 mb-6">
-                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
-                    <a href="${archivoUrl}" target="_blank" class="text-blue-600 hover:underline">${data.Archivo}</a>
-                </div>
-            `;
-    }
-
-    // Input para subir Factura
-    html += `
-            <div class="block mb-6 p-4 border rounded-lg bg-gray-50">
-                 <label for="archivo-factura" class="block text-sm font-medium text-black-500 ">Adjuntar factura (Imagen o PDF)</label>
-                 <input type="file" id="archivo-factura" name="factura" accept="image/*,.pdf" class="mt-1 p-1 block w-full text-sm text-black-300 border-gray-700 rounded cursor-pointer bg-white focus:outline-none border">
-                 <p class="mt-1 text-sm text-gray-500">Solo se permite un archivo.</p>
-            </div>
-        `;
-
-    //Botones
-    html += `
-          <div class="flex justify-between mt-6 pt-4 gap-4 border-t">
-            <button onclick="" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition w-1/2">
-              Pendiente
-            </button>
-            
-            <button onclick="" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition w-1/2">
-              Pendiente
-            </button>
-          </div>
-          
-          <div class="flex flex-col gap-4 mt-4">
-            <button onclick="" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition">
-              Pendiente
-            </button>
-          </div>
-        `;
-
-
-    // Inyectamos el HTML
-    contenedorDetalle.innerHTML = html;
-
-  } catch (error) {
-    console.error('Error al cargar detalle:', error);
-    contenedorDetalle.innerHTML = `<p class="text-center text-red-500 py-8">Error al cargar los detalles: ${error.message}</p>`;
-  }
-}
-
-function regresarListaPagos() {
-  const divLista = document.getElementById('div-lista-pagos');
-  const divDetalle = document.getElementById('div-detalle-pago');
-  const contenedor = document.getElementById('contenido-detalle-pago');
-
-  contenedor.innerHTML = '';
-
-  divDetalle.classList.add('hidden');
-  divLista.classList.remove('hidden');
-}
 
 /**
  * Lógica para el modal CRUD Places
@@ -2512,989 +2331,17 @@ function aprobarSolicitudes() {
   }
 }
 
-/**
- * Lógica para pagos pendientes (facturas)
- */
-async function initPagosPendientes() {
-  const tbodyContado = document.getElementById('body-contado')
-  const tbodyCredito = document.getElementById('body-credito')
-  const detalleContado = document.getElementById('detalle-contado')
-  const detalleCredito = document.getElementById('detalle-credito')
-
-  tbodyContado.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`
-  tbodyCredito.innerHTML = tbodyContado.innerHTML
-
-  function calcularFechaVencimiento(fechaStr, diasStr) {
-    if (!fechaStr) {
-      return new Date('2999-12-31')
-    }
-    const fechaSimple = fechaStr.split(' ')[0]
-    const partes = fechaSimple.split('-')
-    if (partes.length !== 3) return new Date('2999-12-31')
-    const anio = parseInt(partes[0])
-    const mes = parseInt(partes[1]) - 1
-    const dia = parseInt(partes[2])
-    const fechaAprobacion = new Date(anio, mes, dia)
-    const diasCredito = parseInt(diasStr) || 0
-    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito)
-    return fechaAprobacion
-  }
-
-  /**
-   * Determina la clase CSS para la fila de la tabla según la fecha de vencimiento.
-   * @param {Date} fechaVencimiento - La fecha de vencimiento calculada.
-   * @param {Date} hoyNormalizado - La fecha de hoy (normalizada a medianoche).
-   * @returns {string} - Las clases de Tailwind CSS correspondientes.
-   */
-  function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
-    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime()
-
-    const diasDiferencia = Math.floor(diffMs / 86400000)
-
-    if (diasDiferencia < 0) {
-      // Usamos gris oscuro (Tailwind) para "negro", y texto blanco
-      return 'bg-gray-900 text-white hover:bg-gray-800'
-    }
-
-    if (diasDiferencia < 5) {
-      return 'bg-red-100 text-red-800 hover:bg-red-200'
-    }
-
-    if (diasDiferencia < 15) {
-      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-    }
-
-    return 'hover:bg-gray-50'
-  }
-
-  try {
-    const detalles = await SendDataEnd('api/pagos-pendientes')
-
-    if (!detalles || detalles.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`
-      tbodyCredito.innerHTML = tbodyContado.innerHTML
-      return
-    }
-
-    let ordenesContado = []
-    let ordenesCredito = []
-
-    detalles.forEach((det) => {
-      if (det.MetodoPago == '0') {
-        ordenesContado.push(det)
-      } else if (det.MetodoPago == '1') {
-        ordenesCredito.push(det)
-      }
-    })
-
-    ordenesCredito.sort((a, b) => {
-      const fechaVencimientoA = calcularFechaVencimiento(
-        a.Fecha_Aprobacion,
-        a.proveedor?.Dias_Credito,
-      )
-      const fechaVencimientoB = calcularFechaVencimiento(
-        b.Fecha_Aprobacion,
-        b.proveedor?.Dias_Credito,
-      )
-      return fechaVencimientoA - fechaVencimientoB
-    })
-
-    tbodyContado.innerHTML = ''
-    tbodyCredito.innerHTML = ''
-
-    if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`
-    } else {
-      ordenesContado.forEach((det) => {
-        const fila = `
-              <tr class="hover:bg-gray-50 transition">
-               <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
-               <td class="px-4 py-2 border-b"></td>
-               <td class="px-4 py-2 border-b text-center">
-                  <button onclick="mostrarDetalleOrden(${det.ID_Solicitud}, '${det.MetodoPago}')" 
-                          class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
-                    VER
-                  </button>
-                </td>
-              </tr>
-            `
-        tbodyContado.insertAdjacentHTML('beforeend', fila)
-      })
-    }
-
-    const hoy = new Date()
-    hoy.setHours(0, 0, 0, 0)
-
-    if (ordenesCredito.length === 0) {
-      tbodyCredito.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`
-    } else {
-      ordenesCredito.forEach((det) => {
-        const fechaVencimiento = calcularFechaVencimiento(
-          det.Fecha_Aprobacion,
-          det.proveedor?.Dias_Credito,
-        )
-
-        const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
-
-        const diffTime = fechaVencimiento - hoy
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        let diasRestantesHtml = ``
-
-        if (!det.proveedor?.Dias_Credito) {
-          diasRestantesHtml = 'N/A'
-        } else if (diffDays < 0) {
-          diasRestantesHtml = `<span class="font-semibold text-red-600">Vencido por ${Math.abs(diffDays)} día(s)</span>`
-        } else if (diffDays === 0) {
-          diasRestantesHtml = '<span class="font-semibold text-yellow-600">Vence hoy</span>'
-        } else {
-          diasRestantesHtml = `${diffDays} día(s) restante(s)`
-        }
-
-        const fila = `
-              <tr class="${claseFila} transition">
-               <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
-               <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
-               <td class="px-4 py-2 border-b text-center">${diasRestantesHtml}</td>
-               <td class="px-4 py-2 border-b text-center">
-                  <button onclick="mostrarDetalleOrden(${det.ID_Solicitud}, '${det.MetodoPago}')" 
-                          class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
-                    VER
-                  </button>
-                </td>
-              </tr>
-            `
-        tbodyCredito.insertAdjacentHTML('beforeend', fila)
-      })
-    }
-  } catch (error) {
-    console.error('Error al cargar las órdenes:', error)
-    tbodyContado.innerHTML = `<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`
-    tbodyCredito.innerHTML = tbodyContado.innerHTML
-  }
-}
-// --- Función de navegación para VER detalles ---
-async function mostrarDetalleOrden(id, metodoPago) {
-  const detalleDiv =
-    metodoPago == '0'
-      ? document.getElementById('detalle-contado')
-      : document.getElementById('detalle-credito')
-  const tablaDiv =
-    metodoPago == '0'
-      ? document.getElementById('tabla-contado')
-      : document.getElementById('tabla-credito')
-
-  tablaDiv.classList.add('hidden')
-  detalleDiv.classList.remove('hidden')
-
-  detalleDiv.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la orden #${id}...</p>`
-
-  try {
-    const data = await SendDataEnd(`api/orden-compra/details/${id}`)
-
-    const prov = data.proveedor || {}
-    const totalFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    })
-
-    const metodoPagoTexto =
-      data.MetodoPago == 0
-        ? 'Efectivo'
-        : data.MetodoPago == 1
-          ? 'Crédito'
-          : data.MetodoPago == 9
-            ? 'En Espera'
-            : 'N/A'
-
-    let html = `
-      <div class="flex justify-between items-center mb-4">
-        <button onclick="volverATabla('${metodoPago}')" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-        <h2 class="text-lg font-semibold">Detalle Orden #${data.No_Folio || id}</h2>
-        <div></div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-        <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
-        <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
-        <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
-        <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
-        <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div> </div>
-
-      <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-        <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
-        <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
-        <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
-        <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
-        <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
-        <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
-          prov.Monto_Credito
-            ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
-                style: 'currency',
-                currency: 'MXN',
-              })
-            : 'N/A'
-        }</div>
-      </div>
-
-      <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
-      
-      <div class="overflow-x-auto mb-6">
-        <table class="min-w-full border border-gray-300">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="py-2 px-4 text-left">Código</th>
-                    <th class="py-2 px-4 text-left">Producto</th>
-                    <th class="py-2 px-4 text-right">Cantidad</th>
-                    <th class="py-2 px-4 text-right">Importe</th>
-                    <th class="py-2 px-4 text-right">Costo Total</th>
-                </tr>
-            </thead>
-            <tbody>
-    `
-
-    if (data.productos && data.productos.length > 0) {
-      data.productos.forEach((p) => {
-        const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
-        html += `
-            <tr class="hover:bg-gray-50">
-                <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
-                <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
-                <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
-            </tr>
-        `
-      })
-    } else {
-      html += `<tr><td colspan="5" class="text-center py-3">No hay productos en esta orden.</td></tr>`
-    }
-
-    html += `
-            </tbody>
-        </table>
-      </div>
-      `
-    html += GetFiles(data)
-
-    html += `
-      
-<div class="block mb-6 p-4 border rounded-lg">
-     <label for="archivo-factura" class="block text-sm font-medium text-black-500 ">Adjuntar factura (Imágene o PDF)</label>
-     
-     <input type="file" id="archivo-factura" name="factura" accept="image/*,.pdf" class="mt-1 p-1 block w-full text-sm text-black-300 border-gray-700 rounded cursor-pointer bg-gray-200 focus:outline-none border-2">
-     
-     <p class="mt-1 text-sm text-gray-500">Solo se permite un archivo.</p>
-</div>
-      
-    `
-
-    html += `
-      <div class="flex justify-between mt-6 pt-4  gap-4">
-        <button onclick="CerrarOrden(${id}, '${metodoPago}', volverATabla, initPagosPendientes)" class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
-          Cerrar requisición
-        </button>
-        
-        <button onclick="enviarATesoreria(${id}, '${metodoPago}')" class="bg-green-500 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
-          Enviar a tesorería para ficha
-        </button>
-        
-      </div>
-      
-      <div class="flex flex-col gap-4 mt-4">
-      <button onclick="CancelarOrdenFactura(${id}, '${metodoPago}', volverATabla, initPagosPendientes)" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg ">
-          Cancelar requisición
-        </button>
-      </div>
-    `
-
-    detalleDiv.innerHTML = html
-  } catch (error) {
-    console.error('Error al cargar detalle de orden:', error)
-    detalleDiv.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
-  }
-}
-// --- Volver a la tabla desde detalle ---
-function volverATabla(metodoPago) {
-  const detalleDiv =
-    metodoPago == '0'
-      ? document.getElementById('detalle-contado')
-      : document.getElementById('detalle-credito')
-  const tablaDiv =
-    metodoPago == '0'
-      ? document.getElementById('tabla-contado')
-      : document.getElementById('tabla-credito')
-
-  detalleDiv.classList.add('hidden')
-  tablaDiv.classList.remove('hidden')
-}
-// --- Funciones de navegación principales ---
-
-//Funcion para cambio de estado
-async function enviarATesoreria(idSolicitud, metodoPago) {
-  const facturaElement = document.getElementById('archivo-factura')
-  const facturaFile = facturaElement.files[0]
-
-  try {
-    // if (!facturaFile) {
-    //   mostrarNotificacion('Por favor, selecciona un archivo primero.', 'error', 5000)
-    //   return
-    // }
-    const formData = new FormData()
-    formData.append('factura', facturaFile)
-    formData.append('nuevoEstado', 'En Proceso de Pago')
-    const data = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (data.success) {
-      alert('Enviado a tesoreria')
-      volverATabla(metodoPago)
-      initPagosPendientes() // refrescar tabla
-    } else {
-      alert(data.messages['error'])
-    }
-  } catch (error) {
-    console.error('Error al actualizar estado:', error)
-    alert('Ocurrió un error al actualizar el estado')
-  }
-}
-
-/**
- * Lógica para fichas de pago
- */
-async function initFichasPago() {
-  const tbodyContado = document.getElementById('body-contado')
-  const tbodyCredito = document.getElementById('body-credito')
-
-  tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>`
-  tbodyCredito.innerHTML = tbodyContado.innerHTML
-
-  function calcularFechaVencimiento(fechaStr, diasStr) {
-    if (!fechaStr) {
-      return new Date('2999-12-31')
-    }
-    const fechaSimple = fechaStr.split(' ')[0]
-    const partes = fechaSimple.split('-')
-    if (partes.length !== 3) return new Date('2999-12-31')
-    const anio = parseInt(partes[0])
-    const mes = parseInt(partes[1]) - 1
-    const dia = parseInt(partes[2])
-    const fechaAprobacion = new Date(anio, mes, dia)
-    const diasCredito = parseInt(diasStr) || 0
-    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito)
-    return fechaAprobacion
-  }
-
-  function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
-    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime()
-
-    // Convertimos a días
-    const diasDiferencia = Math.floor(diffMs / 86400000)
-
-    //  Vencido (Negro)
-    if (diasDiferencia < 0) {
-      return 'bg-gray-900 text-white hover:bg-gray-800'
-    }
-    //  Vence hoy o en menos de 5 días (Rojo)
-    if (diasDiferencia < 5) {
-      return 'bg-red-100 text-red-800 hover:bg-red-200'
-    }
-    //  Vence en menos de 15 días (Amarillo)
-    if (diasDiferencia < 15) {
-      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-    }
-    //  Más de 15 días (Blanco/Default)
-    return 'hover:bg-gray-50'
-  }
-
-  try {
-    const ordenes = await SendDataEnd('api/orden-compra/alldata')
-
-    if (!ordenes || ordenes.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>`
-      tbodyCredito.innerHTML = tbodyContado.innerHTML
-      return
-    }
-
-    const detallesPromises = ordenes.map((o) =>
-      SendDataEnd(`api/orden-compra/details/${o.ID_Solicitud}`),
-    )
-    const detalles = await Promise.all(detallesPromises)
-
-    let ordenesContado = []
-    let ordenesCredito = []
-
-    // Filtrar y separar
-    detalles.forEach((det) => {
-      if (det.EstadoOrden !== 'En Proceso de Pago') return
-
-      if (det.MetodoPago == '0') {
-        ordenesContado.push(det)
-      } else if (det.MetodoPago == '1') {
-        ordenesCredito.push(det)
-      }
-    })
-
-    // Ordenar el array de crédito
-    ordenesCredito.sort((a, b) => {
-      const fechaVencimientoA = calcularFechaVencimiento(
-        a.Fecha_Aprobacion,
-        a.proveedor?.Dias_Credito,
-      )
-      const fechaVencimientoB = calcularFechaVencimiento(
-        b.Fecha_Aprobacion,
-        b.proveedor?.Dias_Credito,
-      )
-      return fechaVencimientoA - fechaVencimientoB
-    })
-
-    tbodyContado.innerHTML = ''
-    tbodyCredito.innerHTML = ''
-
-    // Renderizar tabla de Contado
-    if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>`
-    } else {
-      ordenesContado.forEach((det) => {
-        const fila = `
-          <tr class="hover:bg-gray-50 transition">
-            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
-            <td class="px-4 py-2 border-b text-center">
-              <button onclick="mostrarDetalleFicha(${det.ID_Solicitud}, '${det.MetodoPago}')" 
-                      class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
-                VER
-              </button>
-            </td>
-          </tr>
-        `
-        tbodyContado.insertAdjacentHTML('beforeend', fila)
-      })
-    }
-
-    const hoy = new Date()
-    hoy.setHours(0, 0, 0, 0)
-
-    if (ordenesCredito.length === 0) {
-      tbodyCredito.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>`
-    } else {
-      ordenesCredito.forEach((det) => {
-        const fechaVencimiento = calcularFechaVencimiento(
-          det.Fecha_Aprobacion,
-          det.proveedor?.Dias_Credito,
-        )
-        const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
-
-        const fila = `
-          <tr class="${claseFila} transition">
-            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
-            <td class="px-4 py-2 border-b text-center">
-              <button onclick="mostrarDetalleFicha(${det.ID_Solicitud}, '${det.MetodoPago}')" 
-                      class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
-                VER
-              </button>
-            </td>
-          </tr>
-        `
-        tbodyCredito.insertAdjacentHTML('beforeend', fila)
-      })
-    }
-  } catch (error) {
-    console.error('Error al cargar las fichas:', error)
-    tbodyContado.innerHTML = `<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>`
-    tbodyCredito.innerHTML = tbodyContado.innerHTML
-  }
-}
-
-// --- Función de navegación para VER detalles ---
-async function mostrarDetalleFicha(id, metodoPago) {
-  const detalleDiv =
-    metodoPago == '0'
-      ? document.getElementById('detalle-contado')
-      : document.getElementById('detalle-credito')
-  const tablaDiv =
-    metodoPago == '0'
-      ? document.getElementById('tabla-contado')
-      : document.getElementById('tabla-credito')
-
-  tablaDiv.classList.add('hidden')
-  detalleDiv.classList.remove('hidden')
-
-  detalleDiv.innerHTML = `<p class="text-center text-gray-500">Cargando detalles de la orden #${id}...</p>`
-
-  try {
-    const data = await SendDataEnd(`api/orden-compra/details/${id}`)
-
-    const prov = data.proveedor || {}
-    const totalFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-    })
-
-    const metodoPagoTexto =
-      data.MetodoPago == 0
-        ? 'Efectivo'
-        : data.MetodoPago == 1
-          ? 'Crédito'
-          : data.MetodoPago == 9
-            ? 'En Espera'
-            : 'N/A'
-
-    let html = `
-      <div class="flex justify-between items-center mb-4">
-        <button onclick="volverAFichas('${metodoPago}')" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-        <h2 class="text-lg font-semibold">Detalle Orden #${data.No_Folio || id}</h2>
-        <div></div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-        <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
-        <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
-        <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
-        <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
-        <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
-      </div>
-
-      <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-        <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
-        <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
-        <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
-        <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
-        <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
-        <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
-          prov.Monto_Credito
-            ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
-                style: 'currency',
-                currency: 'MXN',
-              })
-            : 'N/A'
-        }</div>
-      </div>
-
-      <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
-      
-      <div class="overflow-x-auto mb-6">
-        <table class="min-w-full border border-gray-300">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="py-2 px-4 text-left">Código</th>
-                    <th class="py-2 px-4 text-left">Producto</th>
-                    <th class="py-2 px-4 text-right">Cantidad</th>
-                    <th class="py-2 px-4 text-right">Importe</th>
-                    <th class="py-2 px-4 text-right">Costo Total</th>
-                </tr>
-            </thead>
-            <tbody>
-    `
-
-    if (data.productos && data.productos.length > 0) {
-      data.productos.forEach((p) => {
-        const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
-        html += `
-            <tr class="hover:bg-gray-50">
-                <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
-                <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
-                <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
-                <td class="py-2 px-4 border-t text-right">$${costoTotal}</td>
-            </tr>
-        `
-      })
-    } else {
-      html += `<tr><td colspan="5" class="text-center py-3">No hay productos en esta orden.</td></tr>`
-    }
-
-    html += `
-            </tbody>
-        </table>
-      </div>
-      `
-    html += GetFiles(data)
-
-    html += `
-<div class="block mb-6 p-4 border rounded-lg">
-     <label for="archivo-ficha" class="block text-sm font-medium text-black-500 ">Adjuntar Ficha (Imágene o PDF)</label>
-     
-     <input type="file" id="archivo-ficha" name="archivos" accept="image/*,.pdf" class="mt-1 p-1 block w-full text-sm text-black-300 border-gray-700 rounded cursor-pointer bg-gray-200 focus:outline-none border-2">
-     
-     <p class="mt-1 text-sm text-gray-500">Solo se permite un archivo.</p>
-</div>
-      
-    `
-
-    html += `
-      <div class="flex justify-between mt-6 pt-4 border-t gap-4">
-        <button onclick="CerrarOrden(${id}, '${metodoPago}', volverAFichas, initFichasPago)" class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
-          Cerrar requisición
-        </button>
-        <button onclick="regresarACompras(${id}, '${metodoPago}')" class="bg-green-500 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded-lg transition w-1/2">
-          Regresar a Compras
-        </button>
-      </div>
-      
-       <div class="flex flex-col gap-4 mt-4">
-      <button onclick="CancelarOrdenFicha(${id}, '${metodoPago}', volverATabla, initPagosPendientes)" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg ">
-          Cancelar requisición
-        </button>
-      </div>
-    `
-
-    detalleDiv.innerHTML = html
-  } catch (error) {
-    console.error('Error al cargar detalle de ficha:', error)
-    detalleDiv.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
-  }
-}
-
-function volverAFichas(metodoPago) {
-  const detalleDiv =
-    metodoPago == '0'
-      ? document.getElementById('detalle-contado')
-      : document.getElementById('detalle-credito')
-  const tablaDiv =
-    metodoPago == '0'
-      ? document.getElementById('tabla-contado')
-      : document.getElementById('tabla-credito')
-
-  detalleDiv.classList.add('hidden')
-  tablaDiv.classList.remove('hidden')
-}
-
-function mostrarFichaContado() {
-  document.getElementById('ficha-menu').classList.add('hidden')
-  document.getElementById('ficha-contado').classList.remove('hidden')
-}
-
-function mostrarFichaCredito() {
-  document.getElementById('ficha-menu').classList.add('hidden')
-  document.getElementById('ficha-credito').classList.remove('hidden')
-}
-
-function regresarFichaMenu() {
-  document.getElementById('ficha-contado').classList.add('hidden')
-  document.getElementById('ficha-credito').classList.add('hidden')
-  document.getElementById('ficha-menu').classList.remove('hidden')
-}
-
-async function regresarACompras(idSolicitud, metodoPago) {
-  const fichaElement = document.getElementById('archivo-ficha')
-  const fichaFile = fichaElement.files[0]
-  try {
-    const formData = new FormData()
-    formData.append('ficha', fichaFile)
-    formData.append('nuevoEstado', 'Por Pagar')
-
-    const data = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (data.success) {
-      alert('Enviado a compras')
-      volverAFichas(metodoPago) // regresar a la tabla de fichas
-      initFichasPago() // refrescar tabla
-    } else {
-      alert('No se pudo actualizar el estado')
-    }
-  } catch (error) {
-    console.error('Error al actualizar estado:', error)
-    alert('Ocurrió un error al actualizar el estado')
-  }
-}
-
-/**
- * Cierra una orden de compra, actualizando su estado a "Pagada".
- * Utiliza confirm() y alert() para mantener la coherencia del UI.
- *
- * @param {number} idSolicitud - El ID de la solicitud a cerrar.
- * @param {string} metodoPago - '0' o '1', para pasarlo a la función de 'volver'.
- * @param {function} volverCallback - La función para regresar a la tabla (ej. volverATabla).
- * @param {function} refreshCallback - La función para refrescar la lista (ej. initPagosPendientes).
- */
-async function CerrarOrden(idSolicitud, metodoPago, volverCallback, refreshCallback) {
-  // 1. Añadimos una confirmación (similar a tu 'Confirmar')
-  const estaSeguro = confirm(
-    "¿Está seguro de marcar esta orden como 'Pagada'?\n\nEsta acción es final y cerrará la requisición.",
-  )
-
-  if (!estaSeguro) {
-    return // El usuario canceló
-  }
-
-  try {
-    const formData = new FormData()
-    formData.append('nuevoEstado', 'Pagada')
-    const data = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (data.success) {
-      // 2. Usamos alert() para el éxito
-      alert('Orden finalizada correctamente.')
-
-      // Llama a las funciones de callback para regresar y refrescar
-      if (typeof volverCallback === 'function') {
-        volverCallback(metodoPago)
-      }
-      if (typeof refreshCallback === 'function') {
-        refreshCallback()
-      }
-    } else {
-      // 3. Usamos alert() para el error
-      alert(data.messages['error'])
-    }
-  } catch (error) {
-    console.error('Error al cerrar la orden:', error) // Mantenemos el console.error para depuración
-    // 4. Usamos alert() para el error de red/excepción
-    alert('Ocurrió un error de red al cerrar la orden.')
-  }
-}
-
-/**
- * Cancela una orden de compra, actualizando su estado a "Cancelada".
- * Utiliza confirm() y alert() para mantener la coherencia del UI.
- *
- * @param {number} idSolicitud - El ID de la solicitud a cerrar.
- * @param {string} metodoPago - '0' o '1', para pasarlo a la función de 'volver'.
- * @param {function} volverCallback - La función para regresar a la tabla (ej. volverATabla).
- * @param {function} refreshCallback - La función para refrescar la lista (ej. initPagosPendientes).
- */
-async function CancelarOrdenFactura(idSolicitud, metodoPago) {
-  try {
-    const formData = new FormData()
-    formData.append('nuevoEstado', 'Cancelada')
-    const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
-      method: 'POST',
-      body: formData,
-    })
-    const data = await res.json()
-
-    if (data.success) {
-      alert('Cancelando Orden')
-      volverATabla(metodoPago)
-      initPagosPendientes() // refrescar tabla
-    } else {
-      alert(data.messages['error'])
-    }
-  } catch (error) {
-    console.error('Error al actualizar estado:', error)
-    alert('Ocurrió un error al actualizar el estado')
-  }
-}
-
-async function CancelarOrdenFicha(idSolicitud, metodoPago) {
-  try {
-    const formData = new FormData()
-    formData.append('nuevoEstado', 'Cancelada')
-    const res = await fetch(`${BASE_URL}api/solicitudes/cambiarEstado/${idSolicitud}`, {
-      method: 'POST',
-      body: formData,
-    })
-    const data = await res.json()
-
-    if (data.success) {
-      alert('Cancelando Orden')
-      volverAFichas(metodoPago)
-      initFichasPago() // refrescar tabla
-    } else {
-      alert(data.messages['error'])
-    }
-  } catch (error) {
-    console.error('Error al actualizar estado:', error)
-    alert('Ocurrió un error al actualizar el estado')
-  }
-}
-
-/**
- * Lógica para crud razon social
- */
 function initCrudRazonSocial() {
   const tabla = document.getElementById('tabla-razonsocial')
   if (!tabla) return
 
-  initRazonSocialTabla()
-  initRazonSocialPantallas()
-  initRazonSocialForm()
-  initRazonSocialEditarForm()
   initRazonSocialActions(tabla)
 }
 
-function initRazonSocialTabla() {
-  setupClientSideTable({
-    rowsSelector: '#tabla-razonsocial tr[data-id]',
-    paginationSelector: 'paginacion-razonsocial',
-    filterFormSelector: '#form-filtros-razonsocial', // Si no existe, se ignora
-    filterFunction: (row, form) => {
-      const nombreFiltro = (document.getElementById('buscar-nombre')?.value || '').toLowerCase()
-      const nombre = row.querySelector('.nombre')?.textContent.toLowerCase() || ''
-      return nombre.includes(nombreFiltro)
-    },
-    rowsPerPage: 10,
-  })
-}
-
-function initRazonSocialPantallas() {
-  const pantallaAgregar = document.getElementById('pantalla-agregar-razonsocial')
-  const pantallaEditar = document.getElementById('pantalla-editar-razonsocial')
-  const pantallaLista = document.getElementById('pantalla-lista-razonsocial')
-
-  const btnAgregar = document.getElementById('btn-agregar-razonsocial')
-  const btnRegresarAgregar = document.getElementById('btn-regresar-lista')
-  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar')
-
-  if (btnAgregar)
-    btnAgregar.onclick = (e) => {
-      e.preventDefault()
-      pantallaLista?.classList.add('hidden')
-      pantallaAgregar?.classList.remove('hidden')
-    }
-
-  if (btnRegresarAgregar)
-    btnRegresarAgregar.onclick = (e) => {
-      e.preventDefault()
-      pantallaAgregar?.classList.add('hidden')
-      pantallaLista?.classList.remove('hidden')
-    }
-
-  if (btnRegresarEditar)
-    btnRegresarEditar.onclick = (e) => {
-      e.preventDefault()
-      pantallaEditar?.classList.add('hidden')
-      pantallaLista?.classList.remove('hidden')
-    }
-}
-
-function initRazonSocialForm() {
-  const formAgregar = document.getElementById('form-agregar-razonsocial')
-  const pantallaAgregar = document.getElementById('pantalla-agregar-razonsocial')
-  const pantallaLista = document.getElementById('pantalla-lista-razonsocial')
-  if (!formAgregar) return
-
-  formAgregar.onsubmit = async (e) => {
-    e.preventDefault()
-    const formData = new FormData(formAgregar)
-
-    try {
-      const result = await SendDataEnd('modales/razonsocial/insertar', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (result.success) {
-        mostrarNotificacion('Razón social agregada ✅', 'success')
-        pantallaAgregar?.classList.add('hidden')
-        pantallaLista?.classList.remove('hidden')
-        formAgregar.reset()
-        abrirModal('razonsocial')
-      } else {
-        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
-      }
-    } catch {
-      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-    }
-  }
-}
-
-function initRazonSocialEditarForm() {
-  const formEditar = document.getElementById('form-editar-razonsocial')
-  const pantallaEditar = document.getElementById('pantalla-editar-razonsocial')
-  const pantallaLista = document.getElementById('pantalla-lista-razonsocial')
-  const tabla = document.getElementById('tabla-razonsocial')
-  if (!formEditar) return
-
-  formEditar.onsubmit = async (e) => {
-    e.preventDefault()
-    const formData = new FormData(formEditar)
-    const id = formData.get('ID_RazonSocial')
-
-    try {
-      const result = await SendDataEnd(`modales/razonsocial/editar/${id}`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (result.success) {
-        mostrarNotificacion('Razón social actualizada ✅', 'success')
-        // Actualizar fila en la tabla
-        const fila = tabla.querySelector(`tr[data-id='${id}']`)
-        if (fila) {
-          fila.querySelector('.nombre').textContent = formData.get('Nombre')
-
-          // Actualizar datos
-          fila.querySelector('.rfc').textContent = formData.get('RFC')
-          fila.dataset.rfc = formData.get('RFC')
-        }
-
-        pantallaEditar?.classList.add('hidden')
-        pantallaLista?.classList.remove('hidden')
-      } else {
-        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
-      }
-    } catch {
-      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-    }
-  }
-}
-
 function initRazonSocialActions(tabla) {
-  if (!tabla) return
+    if (!tabla) return
 
-  tabla.addEventListener('click', async (e) => {
-    // --- ELIMINAR ---
-    const btnEliminar = e.target.closest("[id^='btn-eliminar-razonsocial-']")
-    if (btnEliminar) {
-      e.preventDefault()
-      const id = btnEliminar.dataset.id
-
-      if (
-        !(await Confirmar(
-          'Eliminar Razón Social?',
-          '¿Seguro que deseas eliminar esta razón social?',
-        ))
-      )
-        return
-
-      SendDataEnd(`modales/razonsocial/eliminar/${id}`, {
-        method: 'POST',
-      })
-        .then((result) => {
-          if (result.success) {
-            mostrarNotificacion('Razón social eliminada ✅', 'success')
-            btnEliminar.closest('tr')?.remove()
-          } else {
-            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-          }
-        })
-        .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
-      return
-    }
-
+    tabla.addEventListener('click', async (e) => {
     // --- EDITAR ---
     const btnEditar = e.target.closest("[id^='btn-editar-razonsocial-']")
     if (!btnEditar) return
@@ -3511,6 +2358,275 @@ function initRazonSocialActions(tabla) {
     document.getElementById('pantalla-editar-razonsocial').classList.remove('hidden')
   })
 }
+
+/**
+ * Lógica para limpiar almacenamiento
+ */
+
+window.initLimpiarAlmacenamiento = function () {
+  let currentPath = ''
+  let selectedItems = new Set()
+
+  window.navegarA = async function (path) {
+    currentPath = path
+
+    // Boton de regresar
+    const backBtnContainer = document.getElementById('back-button-container')
+    if (backBtnContainer) {
+      if (path === '') {
+        backBtnContainer.classList.add('hidden')
+      } else {
+        backBtnContainer.classList.remove('hidden')
+      }
+    }
+
+    actualizarToolbar()
+    actualizarSelectAllCheck(false)
+    renderBreadcrumbs(path)
+
+    const tbody = document.getElementById('file-list')
+    if (!tbody) return
+    tbody.innerHTML =
+      '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Cargando...</td></tr>'
+
+    const files = await fetchFiles(path)
+    renderFiles(files)
+  }
+
+  window.navegarArriba = function () {
+    if (currentPath === '') return
+
+    const parts = currentPath.split('/')
+    parts.pop()
+    const parentPath = parts.join('/')
+    window.navegarA(parentPath)
+  }
+
+  window.toggleSelection = function (path) {
+    if (selectedItems.has(path)) {
+      selectedItems.delete(path)
+    } else {
+      selectedItems.add(path)
+    }
+    actualizarToolbar()
+  }
+
+  window.toggleSelectAll = function () {
+    const mainCheckbox = document.getElementById('select-all')
+    const checkboxes = document.querySelectorAll('.file-checkbox')
+    const isChecked = mainCheckbox.checked
+    checkboxes.forEach((cb) => {
+      cb.checked = isChecked
+      if (isChecked) {
+        selectedItems.add(cb.value)
+      } else {
+        selectedItems.delete(cb.value)
+      }
+    })
+    actualizarToolbar()
+  }
+
+  // limpiar selección
+  window.limpiarSeleccion = function () {
+    selectedItems.clear()
+    actualizarToolbar()
+    document.querySelectorAll('.file-checkbox').forEach((cb) => (cb.checked = false))
+    actualizarSelectAllCheck(false)
+    document
+      .querySelectorAll('#file-list tr.bg-blue-50')
+      .forEach((row) => row.classList.remove('bg-blue-50'))
+  }
+
+  window.ejecutarAccion = function (tipo) {
+    const listaParaEnviar = Array.from(selectedItems)
+    if (listaParaEnviar.length === 0) return
+
+    const mensaje =
+      tipo === 'eliminar'
+        ? `¿Estás seguro de ELIMINAR ${listaParaEnviar.length} elementos?\nEsta acción no se puede deshacer.`
+        : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`
+
+    if (confirm(mensaje)) {
+      console.group('🚀 EJECUTANDO ACCIÓN: ' + tipo.toUpperCase())
+      console.log('Rutas a procesar:', listaParaEnviar)
+      console.groupEnd()
+      alert(`Acción "${tipo}" simulada. Revisa la consola.`)
+    }
+  }
+
+  async function fetchFiles(path) {
+    try {
+      return await SendDataEnd(`api/storage/list?path=${encodeURIComponent(path)}`)
+    } catch (error) {
+      console.error('Error al obtener archivos:', error)
+      const tbody = document.getElementById('file-list')
+      if (tbody)
+        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Error: ${error.message}</td></tr>`
+      return []
+    }
+  }
+
+  function renderFiles(files) {
+    const tbody = document.getElementById('file-list')
+    if (!tbody) return
+    tbody.innerHTML = ''
+
+    if (!files || files.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Carpeta vacía</td></tr>'
+      return
+    }
+
+    const iconFolder = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`
+    const iconFileGeneric = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>`
+
+    files.sort((a, b) => {
+      if (a.type === b.type) return a.name.localeCompare(b.name)
+      return a.type === 'folder' ? -1 : 1
+    })
+
+    files.forEach((file) => {
+      const isFolder = file.type === 'folder'
+      const isPdf = file.name.toLowerCase().endsWith('.pdf')
+      const isImg = file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i)
+
+      let currentIcon = iconFileGeneric
+      if (isFolder) {
+        currentIcon = iconFolder
+      } else if (isPdf) {
+        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9h6v6H9z" /></svg>`
+      } else if (isImg) {
+        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
+      }
+
+      const isChecked = selectedItems.has(file.path) ? 'checked' : ''
+
+      const row = document.createElement('tr')
+      row.className = `transition cursor-pointer ${isChecked ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`
+
+      row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
+                    <input type="checkbox" value="${file.path}" ${isChecked} onchange="toggleSelection('${file.path}'); this.closest('tr').classList.toggle('bg-blue-50', this.checked);" class="file-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4">
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap flex items-center">
+                    ${currentIcon}
+                    <span class="${isFolder ? 'font-medium text-gray-900' : 'text-gray-700'}">${file.name}</span>
+                </td>
+                `
+
+      row.addEventListener('click', (e) => {
+        if (e.target.type === 'checkbox') return
+
+        if (isFolder) {
+          window.navegarA(file.path)
+        } else {
+          const url = `${BASE_URL}api/storage/serve?path=${encodeURIComponent(file.path)}`
+          window.open(url, '_blank')
+        }
+      })
+
+      tbody.appendChild(row)
+    })
+  }
+
+  function renderBreadcrumbs(path) {
+    const container = document.getElementById('breadcrumbs')
+    if (!container) return
+
+    let html = `<button onclick="navegarA('')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>uploads</button>`
+
+    if (path) {
+      const parts = path.split('/')
+      let accumulatedPath = ''
+      parts.forEach((part, index) => {
+        accumulatedPath += (index > 0 ? '/' : '') + part
+        const pathForClick = accumulatedPath
+        html += `<span class="text-gray-400 mx-1">/</span>`
+        if (index === parts.length - 1) {
+          html += `<span class="font-medium text-gray-800 px-2">${part}</span>`
+        } else {
+          html += `<button onclick="navegarA('${pathForClick}')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded">${part}</button>`
+        }
+      })
+    }
+    container.innerHTML = html
+  }
+
+  function actualizarToolbar() {
+    const toolbar = document.getElementById('toolbar')
+    const countSpan = document.getElementById('selected-count')
+    if (!toolbar || !countSpan) return
+
+    const count = selectedItems.size
+    countSpan.textContent = count
+    if (count > 0) {
+      toolbar.classList.remove('hidden')
+      toolbar.classList.add('flex')
+    } else {
+      toolbar.classList.add('hidden')
+      toolbar.classList.remove('flex')
+    }
+  }
+
+  function actualizarSelectAllCheck(checked) {
+    const cb = document.getElementById('select-all')
+    if (cb) cb.checked = checked
+  }
+
+  window.navegarA('')
+}
+
+//==================================================================================================================
+/**
+ * Varios
+ */
+// Inicializar
+document.addEventListener('DOMContentLoaded', initCrudProveedores)
+
+async function GenerarOrden(id, button) {
+  if (
+    !(await Confirmar(
+      'Generar Orden de Compra',
+      '¿Está seguro de que desea generar y enviar la orden de compra al proveedor?',
+    ))
+  ) {
+    return
+  }
+
+  const originalText = button.textContent
+  button.disabled = true
+  button.textContent = 'Enviando...'
+
+  try {
+    // Usamos 'POST' porque es una acción que modifica el estado en el servidor
+    const result = await SendDataEnd(`api/orden/generar/${id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+
+    if (result.success) {
+      mostrarNotificacion(result.message || 'Orden de compra enviada con éxito.', 'success')
+      button.textContent = 'Enviado'
+      // El botón permanece deshabilitado para evitar re-envíos
+
+      // Opcional: refrescar la vista para ver el cambio de estado
+      // abrirModal('ordenes_compra');
+    } else {
+      mostrarNotificacion(result.message || 'Error al enviar la orden de compra.', 'error')
+      button.disabled = false
+      button.textContent = originalText
+    }
+  } catch (error) {
+    console.error('Error en GenerarOrden:', error)
+    mostrarNotificacion('Ocurrió un error de red. Por favor, intente de nuevo.', 'error')
+    button.disabled = false
+    button.textContent = originalText
+  }
+}
+
 
 /**
  * Lógica para limpiar almacenamiento

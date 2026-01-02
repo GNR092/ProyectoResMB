@@ -28,6 +28,7 @@ class SolicitudModel extends Model
         'Tipo',
         'MetodoPago',
         'Fecha_Aprobacion',
+        'ID_Usuario_Autoriza',
     ];
 
     // Dates
