@@ -240,8 +240,8 @@ async function initFichasPago() {
   const tbodyContado = document.getElementById('body-contado')
   const tbodyCredito = document.getElementById('body-credito')
 
-  tbodyContado.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
-  tbodyCredito.innerHTML = tbodyContado.innerHTML
+  tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
+  tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
 
   function calcularFechaVencimiento(fechaStr, diasStr) {
     if (!fechaStr) {
@@ -261,23 +261,11 @@ async function initFichasPago() {
 
   function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
     const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime()
-
-    // Convertimos a días
     const diasDiferencia = Math.floor(diffMs / 86400000)
 
-    //  Vencido (Negro)
-    if (diasDiferencia < 0) {
-      return 'bg-gray-900 text-white hover:bg-gray-800'
-    }
-    //  Vence hoy o en menos de 5 días (Rojo)
-    if (diasDiferencia < 5) {
-      return 'bg-red-100 text-red-800 hover:bg-red-200'
-    }
-    //  Vence en menos de 15 días (Amarillo)
-    if (diasDiferencia < 15) {
-      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-    }
-    //  Más de 15 días (Blanco/Default)
+    if (diasDiferencia < 0) return 'bg-gray-900 text-white hover:bg-gray-800'
+    if (diasDiferencia < 5) return 'bg-red-100 text-red-800 hover:bg-red-200'
+    if (diasDiferencia < 15) return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
     return 'hover:bg-gray-50'
   }
 
@@ -285,27 +273,23 @@ async function initFichasPago() {
     const ordenes = await SendDataEnd('api/orden-compra/alldata')
 
     if (!ordenes || ordenes.length === 0) {
-      tbodyContado.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
-      tbodyCredito.innerHTML = tbodyContado.innerHTML
+      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
+      tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
       return
     }
 
     const detallesPromises = ordenes.map((o) =>
-      SendDataEnd(`api/orden-compra/details/${o.ID_Solicitud}`).catch((err) => {
-        return null // Retorna null para que allSettled lo marque como fulfilled con un valor null
-      }),
+        SendDataEnd(`api/orden-compra/details/${o.ID_Solicitud}`).catch((err) => null),
     )
-    // Usar Promise.allSettled para procesar todas las promesas y no detenerse si una falla
     const resultados = await Promise.allSettled(detallesPromises)
 
     let ordenesContado = []
     let ordenesCredito = []
 
-    // Filtrar y separar solo las solicitudes que se resolvieron correctamente
     resultados.forEach((resultado) => {
       if (resultado.status === 'fulfilled' && resultado.value) {
         const det = resultado.value
-        if (det.EstadoOrden !== 'Por Pagar') return 
+        if (det.EstadoOrden !== 'Por Pagar') return
 
         if (det.MetodoPago == '0') {
           ordenesContado.push(det)
@@ -315,32 +299,25 @@ async function initFichasPago() {
       }
     })
 
-    // Ordenar el array de crédito
     ordenesCredito.sort((a, b) => {
-      const fechaVencimientoA = calcularFechaVencimiento(
-        a.Fecha_Aprobacion,
-        a.proveedor?.Dias_Credito,
-      )
-      const fechaVencimientoB = calcularFechaVencimiento(
-        b.Fecha_Aprobacion,
-        b.proveedor?.Dias_Credito,
-      )
+      const fechaVencimientoA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.proveedor?.Dias_Credito)
+      const fechaVencimientoB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.proveedor?.Dias_Credito)
       return fechaVencimientoA - fechaVencimientoB
     })
 
     tbodyContado.innerHTML = ''
     tbodyCredito.innerHTML = ''
 
-    // Renderizar tabla de Contado
+    // --- TABLA CONTADO (Corregido orden y columnas) ---
     if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>'
+      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>'
     } else {
       ordenesContado.forEach((det) => {
         const fila = `
           <tr class="hover:bg-gray-50 transition">
-            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
             <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
             <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
             <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
             <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
             <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
@@ -359,24 +336,36 @@ async function initFichasPago() {
     const hoy = new Date()
     hoy.setHours(0, 0, 0, 0)
 
+    // --- TABLA CRÉDITO (Corregido orden y añadido días restantes) ---
     if (ordenesCredito.length === 0) {
       tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>'
     } else {
       ordenesCredito.forEach((det) => {
-        const fechaVencimiento = calcularFechaVencimiento(
-          det.Fecha_Aprobacion,
-          det.proveedor?.Dias_Credito,
-        )
+        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.proveedor?.Dias_Credito)
         const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
+
+        // Cálculo de días restantes para mostrar en texto
+        const diffTime = fechaVencimiento.getTime() - hoy.getTime()
+        const diffDays = Math.floor(diffTime / 86400000)
+        let diasTexto = ''
+
+        if (diffDays < 0) {
+          diasTexto = `<span class="font-bold">Vencido (${Math.abs(diffDays)} días)</span>`
+        } else if (diffDays === 0) {
+          diasTexto = `<span class="font-bold">Vence hoy</span>`
+        } else {
+          diasTexto = `${diffDays} días`
+        }
 
         const fila = `
           <tr class="${claseFila} transition">
-            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
             <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
             <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
+            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
             <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
             <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
             <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
+            <td class="px-4 py-2 border-b text-center text-sm">${diasTexto}</td>
             <td class="px-4 py-2 border-b text-center">
               <button onclick="mostrarDetalleFicha(${det.ID_Solicitud}, '${det.MetodoPago}')"
                       class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
@@ -389,7 +378,7 @@ async function initFichasPago() {
       })
     }
   } catch (error) {
-    tbodyContado.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar fichas de pago.</td></tr>'
+    tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar fichas de pago.</td></tr>'
     tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar fichas de pago.</td></tr>'
   }
 }
@@ -679,7 +668,7 @@ function handleComprobanteFileSelect(input, idSolicitud) {
     previewContainer.classList.remove('hidden');
 
     uploadButton.innerText = 'Confirmar y Subir Comprobante'; 
-    uploadButton.onclick = () => uploadComprobante(idSolicitud); 
+    uploadButton.onclick = () => uploadComprobante(idSolicitud);
 }
 
 function removeComprobanteFile(idSolicitud) { 
@@ -963,7 +952,6 @@ function renderFacturaUploader(idSolicitud) {
     `;
 }
 
-
 function handleFacturaFileSelect(input, idSolicitud) { 
     const file = input.files[0];
     if (!file) {
@@ -1057,7 +1045,8 @@ async function uploadFactura(idSolicitud) {
 
         if (result.success) {
             mostrarNotificacion('Factura subida con éxito.', 'success'); 
-            removeFacturaFile(idSolicitud); 
+            removeFacturaFile(idSolicitud);
+
         } else {
             throw new Error(result.message || 'Error desconocido del servidor.');
         }

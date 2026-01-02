@@ -1,6 +1,5 @@
 <?php
 // Clases del semáforo para el "Purge" de TailwindCSS:
-//
 // bg-gray-900 text-white hover:bg-gray-800
 // bg-red-100 text-red-800 hover:bg-red-200
 // bg-yellow-100 text-yellow-800 hover:bg-yellow-200
@@ -45,17 +44,16 @@
                     <th class="px-4 py-2 border-b">Proveedor</th>
                     <th class="px-4 py-2 border-b">Banco</th>
                     <th class="px-4 py-2 border-b">Importe</th>
-                    <th class="px-4 py-2 border-b">Días Restantes</th>
                     <th class="px-4 py-2 border-b text-center">Acciones</th>
                 </tr>
                 </thead>
                 <tbody id="body-contado">
-                <tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
+                <!-- Colspan ajustado a 7 -->
+                <tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Detalle de la orden de contado (se genera dinámicamente) -->
         <div id="detalle-contado" class="hidden p-4 border border-gray-200 rounded-lg bg-gray-50"></div>
     </div>
 
@@ -91,7 +89,6 @@
             </table>
         </div>
 
-        <!-- Detalle de la orden de crédito (se genera dinámicamente) -->
         <div id="detalle-credito" class="hidden p-4 border border-gray-200 rounded-lg bg-gray-50"></div>
     </div>
 </div>
