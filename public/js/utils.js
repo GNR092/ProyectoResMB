@@ -333,6 +333,8 @@ function getStatusText(status) {
       return
     case 'Espera_Programacion':
       return 'En espera de programación de pago'
+    case 'Por Pagar':
+      return 'En espera de factura'
     default:
       return status
   }

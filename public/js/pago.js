@@ -235,14 +235,12 @@ function ListaPagos() {
     },
   }
 }
-/**
- * Lógica para fichas de pago
- */
+
 async function initFichasPago() {
   const tbodyContado = document.getElementById('body-contado')
   const tbodyCredito = document.getElementById('body-credito')
 
-  tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
+  tbodyContado.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
   tbodyCredito.innerHTML = tbodyContado.innerHTML
 
   function calcularFechaVencimiento(fechaStr, diasStr) {
@@ -287,7 +285,7 @@ async function initFichasPago() {
     const ordenes = await SendDataEnd('api/orden-compra/alldata')
 
     if (!ordenes || ordenes.length === 0) {
-      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
+      tbodyContado.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
       tbodyCredito.innerHTML = tbodyContado.innerHTML
       return
     }
@@ -307,8 +305,7 @@ async function initFichasPago() {
     resultados.forEach((resultado) => {
       if (resultado.status === 'fulfilled' && resultado.value) {
         const det = resultado.value
-        // Asegurarse de que det.EstadoOrden exista antes de la comparación
-        if (det.EstadoOrden !== 'En Proceso de Pago') return
+        if (det.EstadoOrden !== 'Por Pagar') return 
 
         if (det.MetodoPago == '0') {
           ordenesContado.push(det)
@@ -336,7 +333,7 @@ async function initFichasPago() {
 
     // Renderizar tabla de Contado
     if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>'
+      tbodyContado.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>'
     } else {
       ordenesContado.forEach((det) => {
         const fila = `
@@ -363,7 +360,7 @@ async function initFichasPago() {
     hoy.setHours(0, 0, 0, 0)
 
     if (ordenesCredito.length === 0) {
-      tbodyCredito.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>'
+      tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>'
     } else {
       ordenesCredito.forEach((det) => {
         const fechaVencimiento = calcularFechaVencimiento(
@@ -392,8 +389,8 @@ async function initFichasPago() {
       })
     }
   } catch (error) {
-    tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar fichas de pago.</td></tr>'
-    tbodyCredito.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar fichas de pago.</td></tr>'
+    tbodyContado.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar fichas de pago.</td></tr>'
+    tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar fichas de pago.</td></tr>'
   }
 }
 
@@ -620,28 +617,28 @@ async function initListaPagos() {
   })
 }
 
-function renderFacturaUploader(idSolicitud) {
-    const container = document.getElementById('factura-uploader-container');
+function renderComprobanteUploader(idSolicitud) { 
+    const container = document.getElementById('comprobante-uploader-container'); 
     if (!container) return;
 
     container.innerHTML = `
-        <div id="file-preview-factura" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div>
-        <input type="file" id="archivo-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFacturaFileSelect(this, ${idSolicitud})">
-        <button id="btn-upload-factura" onclick="document.getElementById('archivo-factura').click()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition">
-            Subir Factura
+        <div id="file-preview-comprobante" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div> 
+        <input type="file" id="archivo-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="handleComprobanteFileSelect(this, ${idSolicitud})"> 
+        <button id="btn-upload-comprobante" onclick="document.getElementById('archivo-comprobante').click()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition"> 
+            Subir Comprobante
         </button>
     `;
 }
 
-function handleFacturaFileSelect(input, idSolicitud) {
+function handleComprobanteFileSelect(input, idSolicitud) { 
     const file = input.files[0];
     if (!file) {
-        removeFacturaFile(idSolicitud); // Reset if selection is cancelled
+        removeComprobanteFile(idSolicitud);
         return;
     }
 
-    const previewContainer = document.getElementById('file-preview-factura');
-    const uploadButton = document.getElementById('btn-upload-factura');
+    const previewContainer = document.getElementById('file-preview-comprobante'); 
+    const uploadButton = document.getElementById('btn-upload-comprobante'); 
     
     // Simple file type icon logic
     let icon = '📄'; // default icon
@@ -664,36 +661,36 @@ function handleFacturaFileSelect(input, idSolicitud) {
                     <p class="text-xs text-gray-500">${fileSize}</p>
                 </div>
             </div>
-            <button onclick="removeFacturaFile(${idSolicitud})" class="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button>
+            <button onclick="removeComprobanteFile(${idSolicitud})" class="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button> 
         </div>
     `;
     previewContainer.classList.remove('hidden');
 
-    uploadButton.innerText = 'Confirmar y Subir Factura';
-    uploadButton.onclick = () => uploadFactura(idSolicitud);
+    uploadButton.innerText = 'Confirmar y Subir Comprobante'; 
+    uploadButton.onclick = () => uploadComprobante(idSolicitud); 
 }
 
-function removeFacturaFile(idSolicitud) {
-    const fileInput = document.getElementById('archivo-factura');
+function removeComprobanteFile(idSolicitud) { 
+    const fileInput = document.getElementById('archivo-comprobante'); 
     if (fileInput) {
         fileInput.value = '';
     }
 
-    const previewContainer = document.getElementById('file-preview-factura');
+    const previewContainer = document.getElementById('file-preview-comprobante'); 
     if (previewContainer) {
         previewContainer.innerHTML = '';
         previewContainer.classList.add('hidden');
     }
     
-    const uploadButton = document.getElementById('btn-upload-factura');
+    const uploadButton = document.getElementById('btn-upload-comprobante'); 
     if(uploadButton) {
-        uploadButton.innerText = 'Subir Factura';
-        uploadButton.onclick = () => document.getElementById('archivo-factura').click();
+        uploadButton.innerText = 'Subir Comprobante'; 
+        uploadButton.onclick = () => document.getElementById('archivo-comprobante').click(); 
     }
 }
 
-async function uploadFactura(idSolicitud) {
-    const fileInput = document.getElementById('archivo-factura');
+async function uploadComprobante(idSolicitud) { 
+    const fileInput = document.getElementById('archivo-comprobante'); 
     const file = fileInput.files[0];
 
     if (!file) {
@@ -701,23 +698,22 @@ async function uploadFactura(idSolicitud) {
         return;
     }
 
-    const previewContainer = document.getElementById('file-preview-factura');
-    const uploadButton = document.getElementById('btn-upload-factura');
+    const previewContainer = document.getElementById('file-preview-comprobante'); 
+    const uploadButton = document.getElementById('btn-upload-comprobante'); 
 
-    // Show upload animation
     previewContainer.innerHTML = `
         <div class="flex items-center justify-center gap-2">
             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span class="text-sm text-gray-600">Subiendo factura...</span>
+            <span class="text-sm text-gray-600">Subiendo comprobante...</span> 
         </div>
     `;
     uploadButton.disabled = true;
 
     const formData = new FormData();
-    formData.append('factura', file);
+    formData.append('ficha', file); 
 
     try {
         const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
@@ -726,15 +722,15 @@ async function uploadFactura(idSolicitud) {
         });
 
         if (result.success) {
-            mostrarNotificacion('Factura subida con éxito.', 'success');
-            removeFacturaFile(idSolicitud); 
+            mostrarNotificacion('Comprobante subido con éxito.', 'success'); 
+            removeComprobanteFile(idSolicitud); 
         } else {
             throw new Error(result.message || 'Error desconocido del servidor.');
         }
     } catch (error) {
-        console.error('Error al subir factura:', error);
-        mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error');
-        handleFacturaFileSelect(fileInput, idSolicitud);
+        console.error('Error al subir comprobante:', error); 
+        mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error'); 
+        handleComprobanteFileSelect(fileInput, idSolicitud); 
     } finally {
         uploadButton.disabled = false;
     }
@@ -852,13 +848,13 @@ async function mostrarDetallePago(id) {
     html += `
           <div class="mt-6 pt-4 border-t">
               <h3 class="text-md font-semibold mb-3 text-gray-700">ACCIONES</h3>
-              <div id="factura-uploader-container"></div>
+              <div id="comprobante-uploader-container"></div>
               <div class="grid grid-cols-2 gap-4 mt-4">
                   <button onclick="verRequisicionPago(${id})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition w-full">
                       Ver Requisición de pago
                   </button>
-                  <button disabled class="bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition w-full cursor-not-allowed">
-                      Pendiente
+                  <button onclick="guardarEstadoPorPagar(${id})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition w-full">
+                      Guardar
                   </button>
               </div>
           </div>
@@ -869,11 +865,56 @@ async function mostrarDetallePago(id) {
     contenedorDetalle.innerHTML = html;
 
     // Render the uploader component
-    renderFacturaUploader(id);
+    renderComprobanteUploader(id);
 
   } catch (error) {
     console.error('Error al cargar detalle:', error);
     contenedorDetalle.innerHTML = `<p class="text-center text-red-500 py-8">Error al cargar los detalles: ${error.message}</p>`;
+  }
+}
+
+async function guardarEstadoPorPagar(idSolicitud) {
+  // Fetch latest details to check for comprobante
+  try {
+    const orderDetails = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`);
+    
+    // Check if File_Comprobante exists and is not empty
+    if (!orderDetails || !orderDetails.OrdenCompra || !orderDetails.OrdenCompra.File_Comprobante) {
+      mostrarNotificacion('No se puede guardar. Primero debe subir el comprobante.', 'warning');
+      return;
+    }
+  } catch (error) {
+    console.error('Error al verificar comprobante:', error);
+    mostrarNotificacion('Error al verificar el estado del comprobante. Intente de nuevo.', 'error');
+    return;
+  }
+
+  const confirmacion = await Confirmar(
+    'Guardar Estado',
+    '¿Está seguro de que desea cambiar el estado de esta solicitud a "Por Pagar"?');
+
+  if (!confirmacion) {
+    return;
+  }
+
+  try {
+    const apiResult = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
+      method: 'POST',
+      body: { nuevoEstado: 'Por Pagar' },
+    });
+
+    if (apiResult.success) {
+      mostrarNotificacion('Guardado con éxito.', 'success'); // Changed message
+      regresarListaPagos(); 
+      if (typeof initListaPagos === 'function') { 
+          initListaPagos();
+      }
+    } else {
+      mostrarNotificacion(apiResult.message || 'No se pudo guardar.', 'error');
+    }
+  } catch (error) {
+    console.error('Error al guardar estado:', error);
+    mostrarNotificacion(`Ocurrió un error al intentar guardar: ${error.message}`, 'error');
   }
 }
 

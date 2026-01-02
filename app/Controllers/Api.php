@@ -1001,7 +1001,15 @@ class Api extends ResourceController
         $ordenCompraModel = new OrdenCompraModel();
         $solicitudModel = new SolicitudModel();
 
-        $nuevoEstado = $this->request->getPost('nuevoEstado');
+        $nuevoEstado = null;
+    
+        if ($this->request->is('json')) {
+            $json = $this->request->getJSON();
+            $nuevoEstado = $json->nuevoEstado ?? null;
+        } else {
+            $nuevoEstado = $this->request->getPost('nuevoEstado');
+        }
+
         $facturaFile = $this->request->getFile('factura');
         $comprobanteFile = $this->request->getFile('ficha');
 
@@ -1081,7 +1089,97 @@ class Api extends ResourceController
                     }
 
                     try {
-                        // ... (email sending logic) ...
+                        $solicitudModel = new SolicitudModel();
+                        $proveedorModel = new ProveedorModel();
+                        $razonSocialModel = new RazonSocialModel();
+    
+                        $solicitud = $solicitudModel->find($idSolicitud);
+                        $proveedor = $proveedorModel->find($ordenActualizada['ID_Proveedor']);
+                        $razon = $razonSocialModel->find($solicitud['ID_RazonSocial']);
+    
+                        if (!$solicitud || !$proveedor || !$razon) {
+                            throw new \Exception('Datos insuficientes para enviar la ficha de pago.');
+                        }
+    
+                        $attachmentPath = FPath::FCOMPROBANTES . $ordenActualizada['File_Comprobante'];
+    
+                        if (!file_exists($attachmentPath)) {
+                            throw new \Exception(
+                                'El archivo de la ficha de pago no se encontró en la ruta esperada: ' .
+                                    $attachmentPath,
+                            );
+                        }
+    
+                        $mail = new MBSMail();
+    
+                        $subject = "Ficha de Pago - Solicitud Folio {$solicitud['No_Folio']}";
+    
+                        $totalAPagar = '$' . number_format($cot['Total'], 2);
+                        $proveedorNombre = esc($proveedor['RazonSocial'] ?? 'Proveedor');
+                        $folio = esc($solicitud['No_Folio']);
+                        $razonNombre = esc($razon['Nombre']);
+    
+                        $toProveedor = getenv('EMAIL_TO_TEST') ?: $proveedor['Correo'] ?? null;
+                        if ($toProveedor) {
+                            $messageProveedor = view('emails/ficha_pago', [
+                                'recipientName' => $proveedorNombre,
+                                'folio' => $folio,
+                                'totalAPagar' => $totalAPagar,
+                                'proveedorNombre' => $proveedorNombre,
+                                'razonNombre' => $razonNombre,
+                            ]);
+                            $mail->send_email($toProveedor, $subject, $messageProveedor, [
+                                'attachments' => [$attachmentPath],
+                                'fromName' => $razonNombre,
+                            ]);
+                        } else {
+                            log_message(
+                                'warning',
+                                'No se pudo enviar ficha de pago al proveedor (correo no disponible).',
+                            );
+                        }
+    
+                        $ccCompras = getenv('EMAIL_TO_COMPRAS');
+                        if ($ccCompras) {
+                            $messageCompras = view('emails/ficha_pago', [
+                                'recipientName' => 'Departamento de Compras',
+                                'folio' => $folio,
+                                'totalAPagar' => $totalAPagar,
+                                'proveedorNombre' => $proveedorNombre,
+                                'razonNombre' => $razonNombre,
+                            ]);
+                            $mail->send_email($ccCompras, $subject, $messageCompras, [
+                                'attachments' => [$attachmentPath],
+                                'fromName' => $razonNombre,
+                                'isHtml' => true,
+                            ]);
+                        } else {
+                            log_message(
+                                'warning',
+                                'No se pudo enviar ficha de pago a Compras (correo no configurado).',
+                            );
+                        }
+    
+                        $ccTesoreria = getenv('EMAIL_TO_TESORERIA');
+                        if ($ccTesoreria) {
+                            $messageTesoreria = view('emails/ficha_pago', [
+                                'recipientName' => 'Departamento de Tesorería',
+                                'folio' => $folio,
+                                'totalAPagar' => $totalAPagar,
+                                'proveedorNombre' => $proveedorNombre,
+                                'razonNombre' => $razonNombre,
+                            ]);
+                            $mail->send_email($ccTesoreria, $subject, $messageTesoreria, [
+                                'attachments' => [$attachmentPath],
+                                'fromName' => $razonNombre,
+                                'isHtml' => true,
+                            ]);
+                        } else {
+                            log_message(
+                                'warning',
+                                'No se pudo enviar ficha de pago a Tesorería (correo no configurado).',
+                            );
+                        }
                     } catch (\Exception $e) {
                         log_message(
                             'error',
@@ -1091,7 +1189,21 @@ class Api extends ResourceController
                     }
 
                     if ($solicitud['Tipo'] == SolicitudTipo::Servicios) {
-                        // ... (service invoice generation) ...
+                        $facturaResult = $this->GenerarFacturaServicio(
+                            $solicitud['ID_Solicitud'],
+                            $ordenActualizada,
+                        );
+                        if ($facturaResult['error']) {
+                            log_message(
+                                'error',
+                                'Error al generar factura de servicio: ' . $facturaResult['error'],
+                            );
+                        } else {
+                            $ordenCompraModel->update($idOrdenCompra, [
+                                'File_FacturaServicioPDF' => basename($facturaResult['pdf_path']),
+                                'File_FacturaServicioXML' => basename($facturaResult['xml_path']),
+                            ]);
+                        }
                     }
                 }
 

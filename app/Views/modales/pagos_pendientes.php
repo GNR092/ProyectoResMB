@@ -7,7 +7,7 @@
 // hover:bg-gray-50
 ?>
 
-<div x-data="{ screen: 'menu' }">
+<div x-data="{ screen: 'menu' }" x-init="initFichasPago()">
     <!-- Pantalla principal -->
     <div x-show="screen === 'menu'" id="pagos-menu" class="p-6">
         <h2 class="text-lg font-semibold mb-4">Facturas Pendientes</h2>
@@ -50,7 +50,7 @@
                 </tr>
                 </thead>
                 <tbody id="body-contado">
-                <tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
+                <tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -86,7 +86,7 @@
                 </tr>
                 </thead>
                 <tbody id="body-credito">
-                <tr><td colspan="6" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
+                <tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
                 </tbody>
             </table>
         </div>
