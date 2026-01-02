@@ -612,7 +612,7 @@ class GenerarPDF extends BaseController
             5,
             mb_convert_encoding(
                 $orden['MetodoPago'] == 0
-                    ? 'EFECTIVO'
+                    ? 'CONTADO'
                     : 'CREDITO - ' . $orden['proveedor']['Dias_Credito'] . ' días',
                 'ISO-8859-1',
                 'UTF-8',
@@ -694,7 +694,7 @@ class GenerarPDF extends BaseController
                 $nombre = mb_convert_encoding($item['Nombre'], 'ISO-8859-1', 'UTF-8');
                 $sku = $isService ? 'N/A' : $item['Codigo'];
                 $cantidad = $isService ? 1 : $item['Cantidad'];
-                $precio = $item['Importe'];
+                $precio = $this->RemoveIVA($item['Importe']);
                 $importe = $isService ? $precio : $cantidad * $precio;
                 $subtotal += $importe;
 
@@ -710,7 +710,7 @@ class GenerarPDF extends BaseController
 
                 $pdf->MultiCell($wds[0], $rowHeight, $cantidad, 1, 'C', false);
                 $pdf->SetXY($x0 + $wds[0], $y0);
-                $pdf->MultiCell($wds[1], $rowHeight, 'PZ', 1, 'C', false); // Hardcoded from image
+                $pdf->MultiCell($wds[1], $rowHeight, 'PZ', 1, 'C', false);
                 $pdf->SetXY($x0 + $wds[0] + $wds[1], $y0);
                 $pdf->MultiCell($wds[2], $lineHeight, $nombre, 1, 'L', false);
                 $pdf->SetXY($x0 + $wds[0] + $wds[1] + $wds[2], $y0);
@@ -737,6 +737,13 @@ class GenerarPDF extends BaseController
         }
 
         return $subtotal;
+    }
+
+    private function RemoveIVA(float $cantidadConIva): float
+    {
+        $iva = 0.16;
+        $base = $cantidadConIva / (1 + $iva);
+        return round($base, 2);
     }
 
     private function _generarTotalesOrden(PDF $pdf, array $orden, float $subtotal)
@@ -773,9 +780,8 @@ class GenerarPDF extends BaseController
         $pdf->Cell($col_width2, $line_height, '$' . number_format($subtotal, 2), 1, 1, 'R');
 
         $iva = 0;
-        if ($orden['IVA'] === 't') {
-            $iva = $subtotal * 0.16;
-        }
+        $iva = $subtotal * 0.16;
+
         $total = $subtotal + $iva;
 
         $pdf->SetX($x_start);
@@ -816,18 +822,25 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell(110, 7, 'compras@campusmerida.com', 'LR', 1, 'C');
         $pdf->Cell(110, 7, 'gfreyre@campusmerida.com', 'LRB', 1, 'C');
-        
+
         $pdf->SetY($y);
-        
+
         $signatureWidth = 60;
         $x_start = $pdf->GetX();
-        
+
         // FIRMA DE QUIEN ELABORA (Usuario de la sesión)
         $pdf->SetX($x_start);
-        if (isset($orden['UsuarioSession']['Firma_digital']) && !empty($orden['UsuarioSession']['Firma_digital'])) {
-            $firmaPath = FPath::FUSER . $orden['UsuarioSession']['ID_Usuario'] . DIRECTORY_SEPARATOR . $orden['UsuarioSession']['Firma_digital'];
+        if (
+            isset($orden['UsuarioSession']['Firma_digital']) &&
+            !empty($orden['UsuarioSession']['Firma_digital'])
+        ) {
+            $firmaPath =
+                FPath::FUSER .
+                $orden['UsuarioSession']['ID_Usuario'] .
+                DIRECTORY_SEPARATOR .
+                $orden['UsuarioSession']['Firma_digital'];
             if (file_exists($firmaPath)) {
-                $imageWidth = 50; 
+                $imageWidth = 50;
                 $imageHeight = 25;
                 $x_img = $x_start + ($signatureWidth - $imageWidth) / 2;
                 $pdf->Image($firmaPath, $x_img, $y, $imageWidth, $imageHeight);
@@ -838,9 +851,15 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($signatureWidth, 5, 'ELABORADO POR', 'T', 2, 'C');
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioSession']['Nombre'] ?? '', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+        $pdf->Cell(
+            $signatureWidth,
+            5,
+            mb_convert_encoding($orden['UsuarioSession']['Nombre'] ?? '', 'ISO-8859-1', 'UTF-8'),
+            0,
+            0,
+            'C',
+        );
 
-        
         // FIRMA DE QUIEN COTIZA
         $pdf->SetY($y);
         $x_cotiza = $x_start + $signatureWidth + 5;
@@ -849,7 +868,14 @@ class GenerarPDF extends BaseController
         $pdf->Cell($signatureWidth, 5, 'COTIZADO POR', 'T', 2, 'C');
         $pdf->SetFont('Arial', '', 8);
         $pdf->SetX($x_cotiza);
-        $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioCotizaNombre'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+        $pdf->Cell(
+            $signatureWidth,
+            5,
+            mb_convert_encoding($orden['UsuarioCotizaNombre'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'),
+            0,
+            0,
+            'C',
+        );
 
         // FIRMA DE QUIEN AUTORIZA
         $pdf->SetY($y);
@@ -859,7 +885,14 @@ class GenerarPDF extends BaseController
         $pdf->Cell($signatureWidth, 5, 'AUTORIZADO POR', 'T', 2, 'C');
         $pdf->SetFont('Arial', '', 8);
         $pdf->SetX($x_autoriza);
-        $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioAutorizaNombre'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+        $pdf->Cell(
+            $signatureWidth,
+            5,
+            mb_convert_encoding($orden['UsuarioAutorizaNombre'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'),
+            0,
+            0,
+            'C',
+        );
     }
 
     //endregion
@@ -918,8 +951,9 @@ class GenerarPDF extends BaseController
      */
     private function _generarRequisicionPago(PDF $pdf, array $data)
     {
+        $Cwd = 100;
         $pdf->SetFont('Arial', 'B', 10);
-        $pdf->Cell(0, 3, 'MBSP RENTAS SA DE CV', 0, 1, 'C');
+        $pdf->Cell(0, 3, mb_convert_encoding($data['Complejo'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
         $pdf->SetFont('Arial', 'B', 14);
         $pdf->Cell(
             0,
@@ -956,13 +990,13 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Fecha de Solicitud', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(50, 7, date('d-M-Y', strtotime($data['Fecha'])), 1, 1, 'L');
+        $pdf->Cell($Cwd, 7, Time::parse($data['Fecha'])->toLocalizedString('dd MMMM, yyyy'), 1, 1, 'L');
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Departamento', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(
-            50,
+            $Cwd,
             7,
             mb_convert_encoding(
                 $data['DepartamentoNombre'] . ' ' . $data['ID_Place'],
@@ -978,7 +1012,7 @@ class GenerarPDF extends BaseController
         $pdf->Cell(50, 7, 'Proyecto', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(
-            50,
+            $Cwd,
             7,
             mb_convert_encoding($data['DepartamentoNombre'], 'ISO-8859-1', 'UTF-8'),
             1,
@@ -990,7 +1024,7 @@ class GenerarPDF extends BaseController
         $pdf->Cell(50, 7, 'Proveedor', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
         $pdf->Cell(
-            50,
+            $Cwd,
             7,
             mb_convert_encoding($data['ProveedorNombre'], 'ISO-8859-1', 'UTF-8'),
             1,
@@ -1001,12 +1035,12 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Fecha de Pago', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(50, 7, '', 1, 1, 'L');
+        $pdf->Cell($Cwd, 7, '', 1, 1, 'L');
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Importe Total', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(50, 7, '$' . number_format($data['ImporteTotal'], 2), 1, 1, 'L');
+        $pdf->Cell($Cwd, 7, '$' . number_format($data['ImporteTotal'], 2), 1, 1, 'L');
         $pdf->Ln(5);
 
         $pdf->SetFont('Arial', 'B', 10);
@@ -1106,17 +1140,7 @@ class GenerarPDF extends BaseController
         );
         $pdf->Ln(10);
 
-        $pdf->SetFont('Arial', 'B', 10);
-        $pdf->Cell(0, 7, 'Notificar a:', 0, 1, 'L');
-        $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(
-            0,
-            10,
-            mb_convert_encoding($data['NotificarA'], 'ISO-8859-1', 'UTF-8'),
-            1,
-            1,
-            'L',
-        );
+        
     }
 
     public function GenerarEntregaMateriales()
@@ -1310,7 +1334,10 @@ class GenerarPDF extends BaseController
             $solicitud = $this->api->getSolicitudWithServiceDetails($idSolicitud);
 
             if (empty($solicitud) || $solicitud['Tipo'] != SolicitudTipo::Servicios) {
-                log_message('error', 'Solicitud no encontrada o no es de tipo servicio para ID: ' . $idSolicitud);
+                log_message(
+                    'error',
+                    'Solicitud no encontrada o no es de tipo servicio para ID: ' . $idSolicitud,
+                );
                 return null;
             }
 
@@ -1319,45 +1346,155 @@ class GenerarPDF extends BaseController
             $pdf->AddPage();
 
             $pdf->SetFont('Arial', 'B', 16);
-            $pdf->Cell(0, 10, mb_convert_encoding($solicitud['Complejo'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+            $pdf->Cell(
+                0,
+                10,
+                mb_convert_encoding($solicitud['Complejo'], 'ISO-8859-1', 'UTF-8'),
+                0,
+                1,
+                'C',
+            );
             $pdf->SetFont('Arial', '', 10);
-            $pdf->Cell(0, 5, mb_convert_encoding($solicitud['UsuarioRazon']['Ubicacion'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
-            $pdf->Cell(0, 5, mb_convert_encoding('RFC: ' . $solicitud['ComplejoRFC'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+            $pdf->Cell(
+                0,
+                5,
+                mb_convert_encoding($solicitud['UsuarioRazon']['Ubicacion'], 'ISO-8859-1', 'UTF-8'),
+                0,
+                1,
+                'C',
+            );
+            $pdf->Cell(
+                0,
+                5,
+                mb_convert_encoding('RFC: ' . $solicitud['ComplejoRFC'], 'ISO-8859-1', 'UTF-8'),
+                0,
+                1,
+                'C',
+            );
             $pdf->Ln(10);
 
             $pdf->SetFont('Arial', 'B', 14);
-            $pdf->Cell(0, 10, mb_convert_encoding('FACTURA DE SERVICIO', 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+            $pdf->Cell(
+                0,
+                10,
+                mb_convert_encoding('FACTURA DE SERVICIO', 'ISO-8859-1', 'UTF-8'),
+                0,
+                1,
+                'C',
+            );
             $pdf->Ln(5);
 
             // Información de la factura
             $pdf->SetFont('Arial', '', 10);
-            $pdf->Cell(95, 7, mb_convert_encoding('Factura No: ' . $solicitud['No_Folio'] . '-SER', 'ISO-8859-1', 'UTF-8'), 0, 0, 'L');
-            $pdf->Cell(95, 7, mb_convert_encoding('Fecha: ' . date('d/m/Y', strtotime($solicitud['Fecha_Aprobacion'] ?? $solicitud['Fecha'])), 'ISO-8859-1', 'UTF-8'), 0, 1, 'R');
-            $pdf->Cell(95, 7, mb_convert_encoding('Solicitud No: ' . $solicitud['No_Folio'], 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
+            $pdf->Cell(
+                95,
+                7,
+                mb_convert_encoding(
+                    'Factura No: ' . $solicitud['No_Folio'] . '-SER',
+                    'ISO-8859-1',
+                    'UTF-8',
+                ),
+                0,
+                0,
+                'L',
+            );
+            $pdf->Cell(
+                95,
+                7,
+                mb_convert_encoding(
+                    'Fecha: ' .
+                        date(
+                            'd/m/Y',
+                            strtotime($solicitud['Fecha_Aprobacion'] ?? $solicitud['Fecha']),
+                        ),
+                    'ISO-8859-1',
+                    'UTF-8',
+                ),
+                0,
+                1,
+                'R',
+            );
+            $pdf->Cell(
+                95,
+                7,
+                mb_convert_encoding(
+                    'Solicitud No: ' . $solicitud['No_Folio'],
+                    'ISO-8859-1',
+                    'UTF-8',
+                ),
+                0,
+                1,
+                'L',
+            );
             $pdf->Ln(5);
 
             // Detalles del Proveedor
             $pdf->SetFont('Arial', 'B', 10);
             $pdf->Cell(0, 7, mb_convert_encoding('Proveedor:', 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
             $pdf->SetFont('Arial', '', 10);
-            $pdf->Cell(0, 7, mb_convert_encoding($solicitud['Proveedor']['RazonSocial'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
-            $pdf->Cell(0, 7, mb_convert_encoding('RFC: ' . ($solicitud['Proveedor']['RFC'] ?? 'N/A'), 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
+            $pdf->Cell(
+                0,
+                7,
+                mb_convert_encoding(
+                    $solicitud['Proveedor']['RazonSocial'] ?? 'N/A',
+                    'ISO-8859-1',
+                    'UTF-8',
+                ),
+                0,
+                1,
+                'L',
+            );
+            $pdf->Cell(
+                0,
+                7,
+                mb_convert_encoding(
+                    'RFC: ' . ($solicitud['Proveedor']['RFC'] ?? 'N/A'),
+                    'ISO-8859-1',
+                    'UTF-8',
+                ),
+                0,
+                1,
+                'L',
+            );
             $pdf->Ln(5);
 
             // Tabla de servicios
             $pdf->SetFont('Arial', 'B', 10);
             $pdf->SetFillColor(230, 230, 230);
-            $pdf->Cell(150, 7, mb_convert_encoding('Descripción', 'ISO-8859-1', 'UTF-8'), 1, 0, 'C', true);
-            $pdf->Cell(40, 7, mb_convert_encoding('Importe', 'ISO-8859-1', 'UTF-8'), 1, 1, 'C', true);
+            $pdf->Cell(
+                150,
+                7,
+                mb_convert_encoding('Descripción', 'ISO-8859-1', 'UTF-8'),
+                1,
+                0,
+                'C',
+                true,
+            );
+            $pdf->Cell(
+                40,
+                7,
+                mb_convert_encoding('Importe', 'ISO-8859-1', 'UTF-8'),
+                1,
+                1,
+                'C',
+                true,
+            );
 
             $pdf->SetFont('Arial', '', 10);
             $totalServicios = 0;
             foreach ($solicitud['servicios'] as $servicio) {
-                $pdf->Cell(150, 7, mb_convert_encoding($servicio['Nombre'], 'ISO-8859-1', 'UTF-8'), 1, 0, 'L');
+                $pdf->Cell(
+                    150,
+                    7,
+                    mb_convert_encoding($servicio['Nombre'], 'ISO-8859-1', 'UTF-8'),
+                    1,
+                    0,
+                    'L',
+                );
                 $pdf->Cell(40, 7, '$' . number_format($servicio['Importe'], 2), 1, 1, 'R');
                 $totalServicios += $servicio['Importe'];
             }
-            
+
             // Totales
             $pdf->SetFont('Arial', 'B', 10);
             $pdf->Cell(150, 7, 'Subtotal', 1, 0, 'R');
@@ -1384,9 +1521,12 @@ class GenerarPDF extends BaseController
             $pdf->Output('F', $filePath);
 
             return $filePath;
-
         } catch (\Exception $e) {
-            log_message('error', '[GenerarFacturaServicioPDF] Error al generar factura de servicio: ' . $e->getMessage());
+            log_message(
+                'error',
+                '[GenerarFacturaServicioPDF] Error al generar factura de servicio: ' .
+                    $e->getMessage(),
+            );
             return null;
         }
     }

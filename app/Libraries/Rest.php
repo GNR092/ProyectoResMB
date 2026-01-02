@@ -1615,5 +1615,60 @@ class Rest
 
         return $results;
     }
+
+    /**
+     * Obtiene todas las órdenes de compra en proceso de pago con sus detalles.
+     *
+     * @return array Un array con los datos de las órdenes.
+     */
+    public function getFichasPago(): array
+    {
+        $ordenCompraModel = new OrdenCompraModel();
+
+        $ordenes = $ordenCompraModel
+            ->select([
+                'Solicitud.ID_Solicitud',
+                'Solicitud.No_Folio',
+                'Solicitud.MetodoPago',
+                'Solicitud.Fecha_Aprobacion',
+                'Departamentos.Nombre as DepartamentoNombre',
+                'Razon_Social.Nombre as Complejo',
+                'Proveedor.RazonSocial',
+                'Proveedor.Banco',
+                'Proveedor.Dias_Credito',
+                'Cotizacion.Total',
+            ])
+            ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
+            ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = OrdenCompra.ID_Proveedor', 'left')
+            ->where('OrdenCompra.Estado', Status::En_Proceso_Pago) // Changed status
+            ->orderBy('Solicitud.Fecha_Aprobacion', 'ASC')
+            ->findAll();
+
+        $results = [];
+        foreach ($ordenes as $orden) {
+            $results[] = [
+                'ID_Solicitud' => $orden['ID_Solicitud'],
+                'No_Folio' => $orden['No_Folio'],
+                'MetodoPago' => $orden['MetodoPago'],
+                'Fecha_Aprobacion' => $orden['Fecha_Aprobacion'],
+                'DepartamentoNombre' => $orden['DepartamentoNombre'],
+                'Complejo' => $orden['Complejo'],
+                'EstadoOrden' => Status::En_Proceso_Pago,
+                'proveedor' => [
+                    'RazonSocial' => $orden['RazonSocial'],
+                    'Banco' => $orden['Banco'],
+                    'Dias_Credito' => $orden['Dias_Credito'],
+                ],
+                'cotizacion' => [
+                    'Total' => $orden['Total'],
+                ],
+            ];
+        }
+
+        return $results;
+    }
     //endregion
 }

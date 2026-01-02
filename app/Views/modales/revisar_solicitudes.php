@@ -31,7 +31,7 @@
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['Fecha']) ?></td>
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['Estado']) ?></td>
                             <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVer(<?= $solicitud['ID_Solicitud'] ?>)">VER</td>
-                            <td class="py-3 px-6 text-left text-green-600 cursor-pointer" onclick="mostrarCotizar(<?= $solicitud['ID_Solicitud'] ?>)">Solicitar cotización</td>
+                            <td class="py-3 px-6 text-left text-green-600 cursor-pointer" onclick="mostrarCotizar(<?= $solicitud['ID_Solicitud'] ?>, <?= session('id') ?>)">Solicitar cotización</td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>

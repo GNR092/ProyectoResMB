@@ -54,6 +54,19 @@ $login_type = session('login_type');
     </button>
     <?php endif; ?>
 
+
+    <?php if (in_array('crud_places', $ajustes)): ?>
+    <!-- Razon social -->
+    <button onclick="abrirModal('crud_places')"
+        class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
+        <svg class="size-6" fill="none" stroke-width="1.5">
+            <use xlink:href="<?= $iconUrl ?>#razonsocial"></use>
+        </svg>
+        <span>Complejos</span>
+    </button>
+    <?php endif; ?>
+
+
     <?php if ($login_type === 'boss'): ?>
     <button onclick="abrirModal('micuenta')"
         class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">

@@ -474,15 +474,17 @@ class Api extends ResourceController
             !isset($json->ID_Solicitud) ||
             !isset($json->ID_Proveedores) ||
             !is_array($json->ID_Proveedores) ||
-            empty($json->ID_Proveedores)
+            empty($json->ID_Proveedores) ||
+            !isset($json->ID_Usuario)
         ) {
             return $this->failValidationErrors(
-                'Se requiere ID de solicitud y un array de IDs de proveedor.',
+                'Se requiere ID de solicitud, un array de IDs de proveedor y el ID de usuario.',
             );
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
         $idProveedores = $json->ID_Proveedores;
+        $idUsuarioCotiza = (int) $json->ID_Usuario;
 
         $solicitud = $solicitudModel->find($idSolicitud);
 
@@ -534,7 +536,7 @@ class Api extends ResourceController
                     'ID_Solicitud' => $idSolicitud,
                     'ID_Proveedor' => $idProveedor,
                     'Total' => $total,
-                    'ID_Usuario_Cotiza' => session('id'),
+                    'ID_Usuario_Cotiza' => $idUsuarioCotiza,
                 ];
                 $cotizacionModel->insert($cotizacionData);
                 $solicitudModel->update($idSolicitud, ['ID_Proveedor' => $idProveedor]);
@@ -2312,9 +2314,20 @@ class Api extends ResourceController
         $data = $this->api->getPagosPendientes();
 
         if (empty($data)) {
-            return $this->failNotFound('No se encontraron pagos pendientes.');
+            return $this->respond(['success' => false, 'message' => 'No se encontraron pagos pendientes.']);
         }
 
-        return $this->respond($data);
+        return $this->respond(['success' => true, 'data' => $data]);
+    }
+
+    public function getFichasPago()
+    {
+        $data = $this->api->getFichasPago();
+
+        if (empty($data)) {
+            return $this->respond(['success' => false, 'message' => 'No se encontraron fichas de pago.']);
+        }
+
+        return $this->respond(['success' => true, 'data' => $data]);
     }
 } //endregion

@@ -56,8 +56,8 @@ class Home extends BaseController
 
             // Rol Tesorería
             'Tesoreria' => [
-                'solicitar_material',
-                'ordenes_compra',
+                //'solicitar_material',
+                //'ordenes_compra',
                 'ficha_pago',
                 'pagos_pendientes',
                 'lista_pagos',
@@ -85,7 +85,8 @@ class Home extends BaseController
             'limpiar_almacenamiento',
             'crud_proveedores',
             'reportes',
-            'razonsocial'
+            'razonsocial',
+            'crud_places'
 
         ];
 
@@ -111,7 +112,7 @@ class Home extends BaseController
 
         // --- Lógica de permisos por tipo de login (Jefe vs Empleado) ---
             //Aqui Cambie Administración por Dirección, creo que asi deberia ir
-        if ($loginType === 'boss' && $nombreDepartamento !== 'Direccion' && $nombreDepartamento !== 'Compras') {
+        if ($loginType === 'boss' && $nombreDepartamento !== 'Direccion' && $nombreDepartamento !== 'Compras' && $nombreDepartamento !== 'Tesoreria') {
             // Si es Jefe, añadimos el permiso para aprobar solicitudes.
             $permisosUsuario[] = 'aprobar_solicitudes';
         }
