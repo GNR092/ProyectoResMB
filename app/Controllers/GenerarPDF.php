@@ -811,6 +811,7 @@ class GenerarPDF extends BaseController
 
     private function _generarPieOrden(PDF $pdf, array $orden)
     {
+        $pdf->Ln(5);
         $y = $pdf->GetY();
         $pdf->SetY($y - 40);
 
@@ -823,7 +824,8 @@ class GenerarPDF extends BaseController
         $pdf->Cell(110, 7, 'compras@campusmerida.com', 'LR', 1, 'C');
         $pdf->Cell(110, 7, 'gfreyre@campusmerida.com', 'LRB', 1, 'C');
 
-        $pdf->SetY($y);
+        $sigY = 25;
+        $pdf->SetY($y + $sigY);
 
         $signatureWidth = 60;
         $x_start = $pdf->GetX();
@@ -861,7 +863,7 @@ class GenerarPDF extends BaseController
         );
 
         // FIRMA DE QUIEN COTIZA
-        $pdf->SetY($y);
+        $pdf->SetY($y + $sigY);
         $x_cotiza = $x_start + $signatureWidth + 5;
         $pdf->SetX($x_cotiza);
         $pdf->SetFont('Arial', 'B', 8);
@@ -878,7 +880,7 @@ class GenerarPDF extends BaseController
         );
 
         // FIRMA DE QUIEN AUTORIZA
-        $pdf->SetY($y);
+        $pdf->SetY($y + $sigY);
         $x_autoriza = $x_cotiza + $signatureWidth + 5;
         $pdf->SetX($x_autoriza);
         $pdf->SetFont('Arial', 'B', 8);
@@ -888,7 +890,11 @@ class GenerarPDF extends BaseController
         $pdf->Cell(
             $signatureWidth,
             5,
-            mb_convert_encoding($orden['UsuarioAutorizaNombre'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'),
+            mb_convert_encoding(
+                $orden['UsuarioAutorizaNombre'] ?? 'AUTORIZADO',
+                'ISO-8859-1',
+                'UTF-8',
+            ),
             0,
             0,
             'C',
@@ -990,7 +996,14 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Fecha de Solicitud', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell($Cwd, 7, Time::parse($data['Fecha'])->toLocalizedString('dd MMMM, yyyy'), 1, 1, 'L');
+        $pdf->Cell(
+            $Cwd,
+            7,
+            Time::parse($data['Fecha'])->toLocalizedString('dd MMMM, yyyy'),
+            1,
+            1,
+            'L',
+        );
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(50, 7, 'Departamento', 1, 0, 'L');
@@ -1139,8 +1152,6 @@ class GenerarPDF extends BaseController
             'C',
         );
         $pdf->Ln(10);
-
-        
     }
 
     public function GenerarEntregaMateriales()
