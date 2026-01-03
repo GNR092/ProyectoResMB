@@ -151,6 +151,7 @@ function RevisionX() {
       try {
         const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
         console.log('Datos de la solicitud (Un proveedor):', data)
+        const isServicio = data.Tipo == 2;
 
         let estadoClass = getStatus(data.Estado)
         const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
@@ -181,29 +182,29 @@ function RevisionX() {
                 </div>`
         }
         html += `
-                <h4 class="text-md font-bold mb-2">Productos Solicitados</h4>
+                <h4 class="text-md font-bold mb-2">${isServicio ? 'Servicios' : 'Productos'} Solicitados</h4>
                 <div class="overflow-x-auto">
                     <table class="min-w-full border border-gray-300">
                         <thead class="bg-gray-100">
                             <tr>
-                                <th class="py-2 px-4 text-left">Código</th>
-                                <th class="py-2 px-4 text-left">Producto</th>
-                                <th class="py-2 px-4 text-right">Cantidad</th>
+                                ${!isServicio ? '<th class="py-2 px-4 text-left">Código</th>' : ''}
+                                <th class="py-2 px-4 text-left">${isServicio ? 'Servicio' : 'Producto'}</th>
+                                ${!isServicio ? '<th class="py-2 px-4 text-right">Cantidad</th>' : ''}
                                 <th class="py-2 px-4 text-right">Importe</th>
-                                <th class="py-2 px-4 text-right">Costo Total</th>
+                                ${!isServicio ? '<th class="py-2 px-4 text-right">Costo Total</th>' : ''}
                             </tr>
                         </thead>
                         <tbody>
             `
         data.productos.forEach((p) => {
-          const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+          const costoTotal = !isServicio ? (p.Cantidad * p.Importe).toFixed(2) : ''
           html += `
                     <tr class="hover:bg-gray-50">
-                        <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
+                        ${!isServicio ? `<td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>` : ''}
                         <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                        <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                        ${!isServicio ? `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>` : ''}
                         <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(2)}</td>
-                        <td class="py-2 px-4 border-t text-right">${costoTotal}</td>
+                        ${!isServicio ? `<td class="py-2 px-4 border-t text-right">${costoTotal}</td>` : ''}
                     </tr>
                 `
         })
@@ -395,7 +396,7 @@ function RevisionX() {
       const detalles = document.getElementById('detalles-para-revision')
       if (detalles) detalles.innerHTML = ''
     },
-    mostrarModalModificarMontos: async function (idSolicitud) {
+   mostrarModalModificarMontos: async function (idSolicitud) {
       const modalModificar = document.getElementById('modal-modificar-montos')
       const productosContainer = document.getElementById('productos-modificar-container')
       const formModificar = document.getElementById('form-modificar-montos')
@@ -428,6 +429,8 @@ function RevisionX() {
         const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
 
         if (data.error) throw new Error(data.error)
+        
+        const isServicio = data.Tipo == 2;
 
         const cotizacionesData = data.cotizaciones || []
 
@@ -436,15 +439,22 @@ function RevisionX() {
           const inputsImporte = formModificar.querySelectorAll(
             'input[name^="productos["][name$="[importe]"]',
           )
-          const inputsCantidad = formModificar.querySelectorAll(
-            'input[name^="productos["][name$="[cantidad]"]',
-          )
-
-          inputsImporte.forEach((importeInput, index) => {
-            const importe = parseFloat(importeInput.value) || 0
-            const cantidad = parseFloat(inputsCantidad[index].value) || 0
-            subtotal += importe * cantidad
-          })
+          
+          if(isServicio) {
+            inputsImporte.forEach((importeInput) => {
+              const importe = parseFloat(importeInput.value) || 0
+              subtotal += importe
+            });
+          } else {
+            const inputsCantidad = formModificar.querySelectorAll(
+              'input[name^="productos["][name$="[cantidad]"]',
+            )
+            inputsImporte.forEach((importeInput, index) => {
+              const importe = parseFloat(importeInput.value) || 0
+              const cantidad = parseFloat(inputsCantidad[index].value) || 0
+              subtotal += importe * cantidad
+            })
+          }
 
           const total = subtotal
 
@@ -491,9 +501,9 @@ function RevisionX() {
               <table class="min-w-full border border-gray-300">
                 <thead class="bg-gray-100">
                   <tr>
-                    <th class="py-2 px-4 text-left">Código</th>
-                    <th class="py-2 px-4 text-left">Producto</th>
-                    <th class="py-2 px-4 text-right">Cantidad</th>
+                    ${!isServicio ? '<th class="py-2 px-4 text-left">Código</th>' : ''}
+                    <th class="py-2 px-4 text-left">${isServicio ? 'Servicio' : 'Producto'}</th>
+                    ${!isServicio ? '<th class="py-2 px-4 text-right">Cantidad</th>' : ''}
                     <th class="py-2 px-4 text-right">Importe</th>
                   </tr>
                 </thead>
@@ -502,15 +512,15 @@ function RevisionX() {
           productos.forEach((p, index) => {
             productosHtml += `
                   <tr class="hover:bg-gray-50">
-                      <td class="py-2 px-4 border-t text-right">
+                      ${!isServicio ? `<td class="py-2 px-4 border-t text-right">
                           <input type="text" name="productos[${index}][codigo]" placeholder="N/A" value="${p.Codigo || ''}" class="w-full px-2 py-1 border rounded text-left">
-                      </td>
+                      </td>` : ''}
                       <td class="py-2 px-4 border-t">
                           <input type="text" name="productos[${index}][nombre]" value="${p.Nombre}" class="w-full px-2 py-1 border rounded text-left">
                       </td>
-                      <td class="py-2 px-4 border-t text-right">
-                          <input type="number" name="productos[${index}][cantidad]" value="${p.Cantidad}" min="1" class="w-full px-2 py-1 border rounded text-right producto-cantidad">
-                      </td>
+                      ${!isServicio ? `<td class="py-2 px-4 border-t text-right">
+                          <input type="number" name="productos[${index}][cantidad]" value="${p.Cantidad || 1}" min="1" class="w-full px-2 py-1 border rounded text-right producto-cantidad">
+                      </td>` : ''}
                       <td class="py-2 px-4 border-t text-right">
                           <input type="number" name="productos[${index}][importe]" value="${parseFloat(p.Importe).toFixed(2)}" step="0.01" min="0" class="w-full px-2 py-1 border rounded text-right producto-importe">
                       </td>
@@ -542,16 +552,25 @@ function RevisionX() {
           const commnt = formData.get('comentarios')
 
           data.productos.forEach((p, index) => {
-            const c = formData.get(`productos[${index}][codigo]`)
-            const cantidad = formData.get(`productos[${index}][cantidad]`)
-            const importe = formData.get(`productos[${index}][importe]`)
-            nuevoSubtotal += (parseFloat(cantidad) || 0) * (parseFloat(importe) || 0)
-            productosModificados.push({
-              codigo: c === '' ? null : c,
-              nombre: formData.get(`productos[${index}][nombre]`),
-              cantidad: cantidad,
-              importe: importe,
-            })
+            if(isServicio) {
+                const importe = formData.get(`productos[${index}][importe]`)
+                nuevoSubtotal += (parseFloat(importe) || 0)
+                productosModificados.push({
+                    nombre: formData.get(`productos[${index}][nombre]`),
+                    importe: importe
+                });
+            } else {
+                const c = formData.get(`productos[${index}][codigo]`)
+                const cantidad = formData.get(`productos[${index}][cantidad]`)
+                const importe = formData.get(`productos[${index}][importe]`)
+                nuevoSubtotal += (parseFloat(cantidad) || 0) * (parseFloat(importe) || 0)
+                productosModificados.push({
+                    codigo: c === '' ? null : c,
+                    nombre: formData.get(`productos[${index}][nombre]`),
+                    cantidad: cantidad,
+                    importe: importe,
+                })
+            }
           })
 
           const nuevoTotal = nuevoSubtotal
