@@ -6,6 +6,7 @@ use App\Libraries\FPath;
 use App\Models\CotizacionModel;
 use App\Models\SolicitudModel;
 use App\Models\SolicitudProductModel;
+use App\Models\SolicitudServiciosModel;
 use App\Models\OrdenCompraModel;
 use App\Models\PagoModel;
 use App\Models\ProductoModel;
@@ -244,23 +245,22 @@ class Api extends ResourceController
             !is_array($json->productos)
         ) {
             return $this->failValidationErrors(
-                'Se requiere ID de solicitud y un array de productos.',
+                'Se requiere ID de solicitud y un array de productos/servicios.',
             );
         }
 
         $idSolicitud = (int) $json->id_solicitud;
-        $productosPayload = $json->productos;
+        $itemsPayload = $json->productos;
         $comentarios = $json->comentarios ?? null;
 
         $idCotizacionSeleccionada = $json->id_cotizacion_seleccionada ?? null;
 
         $solicitudModel = new SolicitudModel();
-        $solicitudProductModel = new SolicitudProductModel();
         $cotizacionModel = new CotizacionModel();
 
         $solicitud = $solicitudModel->find($idSolicitud);
         if (!$solicitud) {
-            return $this->failNotFound('La solicitud no existe.');
+            return $this->failNotFound('La esolicitud no existe.');
         }
 
         $db = \Config\Database::connect();
@@ -275,41 +275,70 @@ class Api extends ResourceController
                     ]);
                 }
             }
+            
+            if ((int)$solicitud['Tipo'] === SolicitudTipo::Servicios) {
+                $solicitudServiciosModel = new SolicitudServiciosModel();
+                $solicitudItemsDB = $solicitudServiciosModel
+                    ->where('ID_Solicitud', $idSolicitud)
+                    ->findAll();
 
-            $solicitudProductsDB = $solicitudProductModel
-                ->where('ID_Solicitud', $idSolicitud)
-                ->findAll();
-
-            if (count($productosPayload) !== count($solicitudProductsDB)) {
-                throw new \Exception(
-                    'El número de productos en el payload no coincide con el número de productos existentes en la solicitud.',
-                );
-            }
-
-            foreach ($productosPayload as $index => $p) {
-                if (
-                    !isset($p->codigo) ||
-                    !isset($p->nombre) ||
-                    !isset($p->cantidad) ||
-                    !isset($p->importe)
-                ) {
+                if (count($itemsPayload) !== count($solicitudItemsDB)) {
                     throw new \Exception(
-                        'Cada producto debe tener código, nombre, cantidad e importe.',
+                        'El número de servicios en el payload no coincide con el número de servicios existentes en la solicitud.',
                     );
                 }
 
-                $idSolicitudProd = $solicitudProductsDB[$index]['ID_SolicitudProd'];
-                $codigo = (string) $p->codigo;
-                $nombre = (string) $p->nombre;
-                $cantidad = (int) $p->cantidad;
-                $importe = (float) $p->importe;
+                foreach ($itemsPayload as $index => $item) {
+                    if (!isset($item->nombre) || !isset($item->importe)) {
+                        throw new \Exception('Cada servicio debe tener nombre e importe.');
+                    }
 
-                $solicitudProductModel->update($idSolicitudProd, [
-                    'Codigo' => $codigo,
-                    'Nombre' => $nombre,
-                    'Cantidad' => $cantidad,
-                    'Importe' => $importe,
-                ]);
+                    $idSolicitudItem = $solicitudItemsDB[$index]['ID_SolicitudServ'];
+                    $nombre = (string) $item->nombre;
+                    $importe = (float) $item->importe;
+
+                    $solicitudServiciosModel->update($idSolicitudItem, [
+                        'Nombre' => $nombre,
+                        'Importe' => $importe,
+                    ]);
+                }
+            } else {
+                $solicitudProductModel = new SolicitudProductModel();
+                $solicitudItemsDB = $solicitudProductModel
+                    ->where('ID_Solicitud', $idSolicitud)
+                    ->findAll();
+
+                if (count($itemsPayload) !== count($solicitudItemsDB)) {
+                    throw new \Exception(
+                        'El número de productos en el payload no coincide con el número de productos existentes en la solicitud.',
+                    );
+                }
+
+                foreach ($itemsPayload as $index => $p) {
+                    if (
+                        !isset($p->codigo) ||
+                        !isset($p->nombre) ||
+                        !isset($p->cantidad) ||
+                        !isset($p->importe)
+                    ) {
+                        throw new \Exception(
+                            'Cada producto debe tener código, nombre, cantidad e importe.',
+                        );
+                    }
+
+                    $idSolicitudProd = $solicitudItemsDB[$index]['ID_SolicitudProd'];
+                    $codigo = (string) $p->codigo;
+                    $nombre = (string) $p->nombre;
+                    $cantidad = (int) $p->cantidad;
+                    $importe = (float) $p->importe;
+
+                    $solicitudProductModel->update($idSolicitudProd, [
+                        'Codigo' => $codigo,
+                        'Nombre' => $nombre,
+                        'Cantidad' => $cantidad,
+                        'Importe' => $importe,
+                    ]);
+                }
             }
 
             $solicitudModel->update($idSolicitud, ['ComentariosUser' => $comentarios]);
@@ -317,8 +346,14 @@ class Api extends ResourceController
             $details = $this->api->getSolicitudWithProducts($idSolicitud);
             $nuevoTotal = 0;
             if (!empty($details['productos'])) {
-                foreach ($details['productos'] as $p) {
-                    $nuevoTotal += (float) $p['Cantidad'] * (float) $p['Importe'];
+                if ((int)$solicitud['Tipo'] === SolicitudTipo::Servicios) {
+                    foreach ($details['productos'] as $item) {
+                        $nuevoTotal += (float) $item['Importe'];
+                    }
+                } else {
+                    foreach ($details['productos'] as $p) {
+                        $nuevoTotal += (float) $p['Cantidad'] * (float) $p['Importe'];
+                    }
                 }
             }
 
