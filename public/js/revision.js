@@ -151,27 +151,55 @@ function RevisionX() {
       try {
         const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
         console.log('Datos de la solicitud (Un proveedor):', data)
-        const isServicio = data.Tipo == 2;
+        const isServicio = data.Tipo == 2
+        const isMultiple = data.cotizaciones && data.cotizaciones.length > 1
 
         let estadoClass = getStatus(data.Estado)
-        const monto = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
-          style: 'currency',
-          currency: 'MXN',
-        })
-        const proveedorNombre =
-          data.cotizaciones && data.cotizaciones.length > 1
-            ? 'Múltiples proveedores'
-            : data.cotizacion?.ProveedorNombre || 'N/A'
+
+        let proveedorHtml = ''
+        let montoHtml = ''
+
+        if (isMultiple) {
+          let selectOptions = '<option value="">Seleccione una cotización</option>'
+          data.cotizaciones.forEach((cot) => {
+            const totalFormateado = parseFloat(cot.Total || 0).toLocaleString('es-MX', {
+              style: 'currency',
+              currency: 'MXN',
+            })
+            selectOptions += `<option value="${cot.ID_Cotizacion}">${cot.ProveedorNombre} - ${totalFormateado}</option>`
+          })
+
+          proveedorHtml = `
+            <div class="md:col-span-2">
+              <label for="proveedor-select" class="block text-sm font-medium text-gray-700"><strong>Proveedor (Múltiples cotizaciones):</strong></label>
+              <select id="proveedor-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                  ${selectOptions}
+              </select>
+            </div>
+          `
+          montoHtml = `<div class="md:col-span-1 flex items-end"><div><strong>Monto:</strong> <span id="monto-seleccionado" class="font-bold text-lg">N/A</span></div></div>`
+        } else {
+          const proveedorNombre = data.cotizacion?.ProveedorNombre || 'N/A'
+          proveedorHtml = `<div><strong>Proveedor (Cotización):</strong> ${proveedorNombre}</div>`
+          if (data.cotizacion?.Total) {
+            montoHtml = `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(
+              data.cotizacion.Total,
+            ).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>`
+          }
+        }
+
         let html = `
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
-                <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'}</span></div>
+                <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${
+                  data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'
+                }</span></div>
                 <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
                 <div><strong>Complejo:</strong> ${data.Complejo}</div>
-                <div><strong>Proveedor (Cotización):</strong> ${proveedorNombre}</div>
-                ${data.cotizacion?.Total ? `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(data.cotizacion.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>` : ''}
+                ${proveedorHtml}
+                ${montoHtml}
             </div>
         `
         if (data.ComentariosAdmin) {
@@ -182,16 +210,28 @@ function RevisionX() {
                 </div>`
         }
         html += `
-                <h4 class="text-md font-bold mb-2">${isServicio ? 'Servicios' : 'Productos'} Solicitados</h4>
+                <h4 class="text-md font-bold mb-2">${
+                  isServicio ? 'Servicios' : 'Productos'
+                } Solicitados</h4>
                 <div class="overflow-x-auto">
                     <table class="min-w-full border border-gray-300">
                         <thead class="bg-gray-100">
                             <tr>
                                 ${!isServicio ? '<th class="py-2 px-4 text-left">Código</th>' : ''}
-                                <th class="py-2 px-4 text-left">${isServicio ? 'Servicio' : 'Producto'}</th>
-                                ${!isServicio ? '<th class="py-2 px-4 text-right">Cantidad</th>' : ''}
+                                <th class="py-2 px-4 text-left">${
+                                  isServicio ? 'Servicio' : 'Producto'
+                                }</th>
+                                ${
+                                  !isServicio
+                                    ? '<th class="py-2 px-4 text-right">Cantidad</th>'
+                                    : ''
+                                }
                                 <th class="py-2 px-4 text-right">Importe</th>
-                                ${!isServicio ? '<th class="py-2 px-4 text-right">Costo Total</th>' : ''}
+                                ${
+                                  !isServicio
+                                    ? '<th class="py-2 px-4 text-right">Costo Total</th>'
+                                    : ''
+                                }
                             </tr>
                         </thead>
                         <tbody>
@@ -200,11 +240,23 @@ function RevisionX() {
           const costoTotal = !isServicio ? (p.Cantidad * p.Importe).toFixed(2) : ''
           html += `
                     <tr class="hover:bg-gray-50">
-                        ${!isServicio ? `<td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>` : ''}
+                        ${
+                          !isServicio ? `<td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>` : ''
+                        }
                         <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                        ${!isServicio ? `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>` : ''}
-                        <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(2)}</td>
-                        ${!isServicio ? `<td class="py-2 px-4 border-t text-right">${costoTotal}</td>` : ''}
+                        ${
+                          !isServicio
+                            ? `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>`
+                            : ''
+                        }
+                        <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(
+                          2,
+                        )}</td>
+                        ${
+                          !isServicio
+                            ? `<td class="py-2 px-4 border-t text-right">${costoTotal}</td>`
+                            : ''
+                        }
                     </tr>
                 `
         })
@@ -237,6 +289,41 @@ function RevisionX() {
                 </div>
                 `
         detallesContainer.innerHTML = html
+
+        if (isMultiple) {
+          const proveedorSelect = document.getElementById('proveedor-select')
+          proveedorSelect.addEventListener('change', (e) => {
+            const selectedCotizacionId = e.target.value
+            const montoSpan = document.getElementById('monto-seleccionado')
+
+            if (!selectedCotizacionId) {
+              idprov = null
+              if (montoSpan) montoSpan.textContent = 'N/A'
+              this.validarOpcionCredito({}) // Reset
+              return
+            }
+
+            const selectedCotizacion = data.cotizaciones.find(
+              (cot) => cot.ID_Cotizacion == selectedCotizacionId,
+            )
+
+            if (selectedCotizacion) {
+              idprov = selectedCotizacion.ID_Proveedor
+              if (montoSpan) {
+                montoSpan.textContent = parseFloat(selectedCotizacion.Total || 0).toLocaleString(
+                  'es-MX',
+                  { style: 'currency', currency: 'MXN' },
+                )
+              }
+              this.validarOpcionCredito({ ID_Proveedor: idprov })
+            }
+          })
+          // Initial state for multiple providers: disable credit until one is selected
+          this.validarOpcionCredito({})
+        } else {
+          // For single provider
+          this.validarOpcionCredito(data)
+        }
 
         const checkboxInput = document.getElementById('adjuntar-solicitante-check')
         const checkboxLabel = document.getElementById('adjuntar-solicitante-label')
@@ -274,11 +361,20 @@ function RevisionX() {
             }
           }
         }
-        this.validarOpcionCredito(data)
 
         const radioCredito = form.querySelector('input[name="tipo_pago"][value="credito"]')
         if (radioCredito) {
-          radioCredito.onclick = () => this.validarOpcionCredito(data)
+          radioCredito.onclick = () => {
+            if (isMultiple) {
+              const selectedCotizacion = data.cotizaciones.find(
+                (cot) => cot.ID_Cotizacion == document.getElementById('proveedor-select').value,
+              )
+              if (selectedCotizacion)
+                this.validarOpcionCredito({ ID_Proveedor: selectedCotizacion.ID_Proveedor })
+            } else {
+              this.validarOpcionCredito(data)
+            }
+          }
         }
 
         form.onsubmit = async (e) => {
@@ -318,6 +414,9 @@ function RevisionX() {
           const selectedCotizacionId = document.getElementById('proveedor-select')?.value
           if (selectedCotizacionId) {
             formData.append('id_cotizacion_seleccionada', selectedCotizacionId)
+          } else if (isMultiple) {
+            mostrarNotificacion('Por favor, seleccione una cotización de la lista.', 'error')
+            return
           }
 
           const adjuntarSoloSolicitante =
