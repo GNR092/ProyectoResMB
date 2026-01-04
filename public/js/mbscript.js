@@ -1303,9 +1303,8 @@ async function mostrarCotizar(idSolicitud, idUsuario) {
     }
   }
 
-  if (btnGenerar && !btnGenerar.dataset.listenerAttached) {
-    btnGenerar.addEventListener('click', () => handleGenerarCotizacion(idUsuario))
-    btnGenerar.dataset.listenerAttached = 'true'
+  if (btnGenerar) {
+    btnGenerar.onclick = () => handleGenerarCotizacion(idUsuario)
   }
 }
 
@@ -1314,6 +1313,25 @@ function regresarTabla() {
   document.getElementById('div-cotizar').classList.add('hidden')
   document.getElementById('div-tabla').classList.remove('hidden')
   document.getElementById('btn-exportar-requisiciones').classList.remove('hidden') // Mostrar el botón de exportar
+
+  // Reset the state of the cotizar view
+  const inputBusqueda = document.getElementById('buscar-proveedor');
+  if (inputBusqueda) {
+    inputBusqueda.value = '';
+  }
+  const tbody = document.querySelector('#div-cotizar tbody');
+  if (tbody) {
+    tbody.innerHTML = '';
+  }
+  const paginacionDiv = document.querySelector('#div-cotizar #paginacion-proveedores');
+  if (paginacionDiv) {
+    paginacionDiv.innerHTML = '';
+  }
+  const btnGenerar = document.getElementById('btn-generar-cotizacion');
+  if (btnGenerar) {
+    btnGenerar.onclick = null; // Remove listener
+    btnGenerar.disabled = true; // Disable button
+  }
 }
 
 
