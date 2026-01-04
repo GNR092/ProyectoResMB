@@ -1547,7 +1547,8 @@ async function initDictamenSolicitudes() {
   })
 }
 
-async function mostrarVerDictamen(idSolicitud) {
+
+window.mostrarVerDictamen = async function(idSolicitud) {
   document.getElementById('div-tabla').classList.add('hidden')
   const divVer = document.getElementById('div-ver-dictamen')
   divVer.classList.remove('hidden')
@@ -1561,7 +1562,7 @@ async function mostrarVerDictamen(idSolicitud) {
 
     let html = generarDetallesSolicitudHTML(data)
 
-    // Mostrar comentarios si existen (especialmente para rechazos)
+    // Mostrar comentarios si existen
     if (data.ComentariosAdmin) {
       if (data.TipoComentarioAdmin === 'Rechazo') {
         html += `
@@ -1620,14 +1621,14 @@ async function mostrarVerDictamen(idSolicitud) {
     // Solo mostrar botones de acción si la solicitud está 'En revision'
     if (data.Estado === 'En revision') {
       html += `
-                <div class="mt-8 flex justify-end space-x-4">
+                <div class="mt-8 flex justify-end space-x-4 border-t pt-6">
                     <button onclick="mostrarVerPdf(${idSolicitud}, 1)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                     Ver PDF
                     </button>
-                    <button onclick="dictaminarSolicitud(${idSolicitud}, 'Rechazada')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition">
+                    <button onclick="dictaminarDictamen(${idSolicitud}, 'Rechazada')" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition">
                         Rechazar
                     </button>
-                    <button onclick="dictaminarSolicitud(${idSolicitud}, 'Aprobada')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+                    <button onclick="dictaminarDictamen(${idSolicitud}, 'Aprobada')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
                         Aprobar
                     </button>
                 </div>
@@ -1641,24 +1642,23 @@ async function mostrarVerDictamen(idSolicitud) {
   }
 }
 
-function regresarTablaDictamen() {
+window.regresarTablaDictamen = function() {
   document.getElementById('div-ver-dictamen').classList.add('hidden')
   document.getElementById('div-tabla').classList.remove('hidden')
 }
 
-async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
+window.dictaminarDictamen = async function(idSolicitud, nuevoEstado) {
   const esAprobacion = nuevoEstado === 'Aprobada'
   const title = esAprobacion ? 'Aprobar Solicitud' : 'Rechazar Solicitud'
   const message = esAprobacion
-    ? 'Puede agregar observaciones (opcional):'
-    : 'Por favor, ingrese el motivo del rechazo (obligatorio):'
-  const isRequired = !esAprobacion // El comentario es obligatorio solo para rechazos
+      ? 'Puede agregar observaciones (opcional):'
+      : 'Por favor, ingrese el motivo del rechazo (obligatorio):'
+  const isRequired = !esAprobacion
 
   const comentarios = await InputPrompt(title, message, isRequired)
 
-  // Si el usuario cancela el modal, comentarios será null.
   if (comentarios === null) {
-    return
+    return // Usuario canceló
   }
 
   const payload = {
@@ -1670,6 +1670,7 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
   const procesandoNotif = mostrarNotificacion('Procesando dictamen...', 'info', 999999)
 
   try {
+    // Llamada a la API correcta para esta vista
     const result = await SendDataEnd('api/solicitud/dictaminar', {
       method: 'POST',
       body: payload,
@@ -1679,7 +1680,7 @@ async function dictaminarSolicitud(idSolicitud, nuevoEstado) {
 
     if (result.success) {
       mostrarNotificacion(result.message, 'success')
-      abrirModal('dictamen_solicitudes')
+      abrirModal('dictamen_solicitudes') // Recargar vista
     } else {
       mostrarNotificacion(result.message || 'Error al procesar el dictamen.', 'error')
     }
