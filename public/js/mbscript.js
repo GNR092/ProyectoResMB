@@ -546,7 +546,7 @@ function initPaginacionHistorial() {
   function validarFiltroDepartamento() {
     const filtro = document.getElementById('filtroDepartamento')
     if (!filtro) return
-    const deptosPermitidos = ['Administración', 'Compras', 'Dirección', 'Tesorería']
+    const deptosPermitidos = ['Administración', 'Compras', 'Direccion', 'Tesoreria']
 
     const miDepto = typeof USER_DEPT_NAME !== 'undefined' ? USER_DEPT_NAME : ''
 
@@ -615,7 +615,7 @@ function initPaginacionHistorial() {
     return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
   }
 
-  const exceptions = ['Compras', 'Administración']
+  const exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria']
   let url = 'api/historic'
   if (
     typeof USER_DEPT_NAME !== 'undefined' &&

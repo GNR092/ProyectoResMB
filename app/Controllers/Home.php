@@ -62,6 +62,7 @@ class Home extends BaseController
                 'ficha_pago',
                 'pagos_pendientes',
                 'lista_pagos',
+                'ver_historial',
             ],
 
             // Rol Almacén
