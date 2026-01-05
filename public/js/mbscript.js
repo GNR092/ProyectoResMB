@@ -75,6 +75,7 @@ function abrirModal(opcion) {
     bajas_destruccion: 'Bajas por Destrucción',
     crud_places: 'Complejos',
     crud_departamento:"Departametos",
+    lista_pagos: "Lista de pagos",
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 

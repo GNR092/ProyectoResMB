@@ -194,7 +194,7 @@ function ListaPagos() {
   return {
     pagos: [],
     loading: true,
-    filtroMetodoPago: 'todos', // 'todos', '0' (Contado), '1' (Crédito)
+    filtroMetodoPago: 'todos',
 
     get pagosFiltrados() {
       if (this.filtroMetodoPago === 'todos') {
@@ -205,8 +205,11 @@ function ListaPagos() {
 
     async init() {
       this.loading = true
+      this.pagos = [];
       try {
-        const listpagos = await SendDataEnd('api/pagos/programados')
+        const url = `api/pagos/programados?t=${new Date().getTime()}`;
+        const listpagos = await SendDataEnd(url);
+
         if (!listpagos || listpagos.length === 0) {
           this.pagos = []
           return
@@ -219,6 +222,7 @@ function ListaPagos() {
         this.loading = false
       }
     },
+
     formatCurrency(value) {
       if (value === null || isNaN(value)) return 'N/A'
       return parseFloat(value).toLocaleString('es-MX', {
@@ -226,6 +230,7 @@ function ListaPagos() {
         currency: 'MXN',
       })
     },
+
     exportarExcel() {
       let url = `${BASE_URL}api/pagos/exportar`
       if (this.filtroMetodoPago !== 'todos') {
@@ -870,11 +875,9 @@ async function mostrarDetallePago(id) {
 }
 
 async function guardarEstadoPorPagar(idSolicitud) {
-  // Fetch latest details to check for comprobante
+  // Verificación del comprobante
   try {
     const orderDetails = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`);
-    
-    // Check if File_Comprobante exists and is not empty
     if (!orderDetails || !orderDetails.OrdenCompra || !orderDetails.OrdenCompra.File_Comprobante) {
       mostrarNotificacion('No se puede guardar. Primero debe subir el comprobante.', 'warning');
       return;
@@ -886,12 +889,11 @@ async function guardarEstadoPorPagar(idSolicitud) {
   }
 
   const confirmacion = await Confirmar(
-    'Guardar Estado',
-    '¿Está seguro de que desea cambiar el estado de esta solicitud a "Por Pagar"?');
+      'Guardar Estado',
+      '¿Está seguro de que desea cambiar el estado de esta solicitud a "Por Pagar"?'
+  );
 
-  if (!confirmacion) {
-    return;
-  }
+  if (!confirmacion) return;
 
   try {
     const apiResult = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
@@ -900,11 +902,12 @@ async function guardarEstadoPorPagar(idSolicitud) {
     });
 
     if (apiResult.success) {
-      mostrarNotificacion('Guardado con éxito.', 'success'); // Changed message
-      regresarListaPagos(); 
-      if (typeof initListaPagos === 'function') { 
-          initListaPagos();
-      }
+      mostrarNotificacion('Guardado con éxito.', 'success');
+
+      regresarListaPagos();
+      //Disparador para recarga de vista
+      window.dispatchEvent(new CustomEvent('reload-pagos'));
+
     } else {
       mostrarNotificacion(apiResult.message || 'No se pudo guardar.', 'error');
     }

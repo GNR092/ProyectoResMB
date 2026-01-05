@@ -1,4 +1,4 @@
-<div id="lista-pagos-modal" x-data="ListaPagos()" x-init="init()" class="p-4">
+<div id="lista-pagos-modal" x-data="ListaPagos()" x-init="init()" @reload-pagos.window="init()" class="p-4">
 
     <!-- ================== CONTENEDOR 1: LISTA (Tu código original envuelto) ================== -->
     <div id="div-lista-pagos">
