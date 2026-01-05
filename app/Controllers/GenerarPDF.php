@@ -981,7 +981,7 @@ class GenerarPDF extends BaseController
             $pdf->Text($x + 1, $y + 4, '4');
             $pdf->SetFont('Arial', '', 10);
         }
-        $pdf->Text($x + 7, $y + 4, 'Efectivo');
+        $pdf->Text($x + 7, $y + 4, 'Contado');
 
         $y += 7;
         $pdf->Rect($x, $y, 5, 5);
@@ -1064,24 +1064,88 @@ class GenerarPDF extends BaseController
 
         $pdf->SetFont('Arial', '', 10);
 
-        $pdf->Cell(15, 7, '1', 1, 0, 'C');
-        $pdf->Cell(40, 7, '', 1, 0, 'C');
-        $pdf->Cell(30, 7, '$' . number_format($data['ImporteTotal'], 2), 1, 0, 'R');
-        $pdf->Cell(
-            110,
-            7,
-            mb_convert_encoding($data['DescripcionPago'], 'ISO-8859-1', 'UTF-8'),
-            1,
-            1,
-            'L',
-        );
+        // Anchos de las columnas
+        $wds_pago = [15, 40, 30, 110];
+        $lineHeight = 7;
 
-        for ($i = 2; $i <= 10; $i++) {
-            $pdf->Cell(15, 7, $i, 1, 0, 'C');
-            $pdf->Cell(40, 7, '', 1, 0, 'C');
-            $pdf->Cell(30, 7, '', 1, 0, 'C');
-            $pdf->Cell(110, 7, '', 1, 1, 'L');
+        // Fila 1 (con datos)
+        $descripcionPago = mb_convert_encoding($data['DescripcionPago'], 'ISO-8859-1', 'UTF-8');
+
+        // Calcular la altura necesaria para la MultiCell de la descripción de pago
+        $nb = $pdf->NbLines($wds_pago[3], $descripcionPago);
+        $rowHeight = $nb * $lineHeight;
+        if ($rowHeight < $lineHeight) {
+            $rowHeight = $lineHeight; // Asegurar que la altura mínima sea lineHeight
         }
+
+        // Chequear si hay que añadir una nueva página
+        if ($pdf->GetY() + $rowHeight > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage($pdf->getCurOrientation());
+        }
+
+        // Guardar la posición actual para MultiCell
+        $x0 = $pdf->GetX();
+        $y0 = $pdf->GetY();
+
+        // Celda NO.
+        $pdf->MultiCell($wds_pago[0], $rowHeight, '1', 1, 'C', false);
+        // Celda NO. FACTURA
+        $pdf->SetXY($x0 + $wds_pago[0], $y0);
+        $pdf->MultiCell($wds_pago[1], $rowHeight, '', 1, 'C', false);
+        // Celda IMPORTE
+        $pdf->SetXY($x0 + $wds_pago[0] + $wds_pago[1], $y0);
+        $pdf->MultiCell($wds_pago[2], $rowHeight, '$' . number_format($data['ImporteTotal'], 2), 1, 'R', false);
+        // Celda DESCRIPCION DE PAGO
+        $pdf->SetXY($x0 + $wds_pago[0] + $wds_pago[1] + $wds_pago[2], $y0);
+        $pdf->MultiCell($wds_pago[3], $lineHeight, $descripcionPago, 1, 'L', false);
+
+                $pdf->SetY($y0 + $rowHeight); // Actualizar la posición Y después de la fila completa
+
+        
+
+                // Filas 2 a 10 (vacías)
+
+                $rowHeightVacia = $lineHeight; // Para filas vacías, la altura es la de una línea
+
+        
+
+                for ($i = 2; $i <= 10; $i++) {
+
+                    // Chequear si hay que añadir una nueva página
+
+                    if ($pdf->GetY() + $rowHeightVacia > $pdf->getPageBreakTrigger()) {
+
+                        $pdf->AddPage($pdf->getCurOrientation());
+
+                    }
+
+        
+
+                    $x0 = $pdf->GetX();
+
+                    $y0 = $pdf->GetY();
+
+        
+
+                    $pdf->MultiCell($wds_pago[0], $rowHeightVacia, $i, 1, 'C', false);
+
+                    $pdf->SetXY($x0 + $wds_pago[0], $y0);
+
+                    $pdf->MultiCell($wds_pago[1], $rowHeightVacia, '', 1, 'C', false);
+
+                    $pdf->SetXY($x0 + $wds_pago[0] + $wds_pago[1], $y0);
+
+                    $pdf->MultiCell($wds_pago[2], $rowHeightVacia, '', 1, 'C', false);
+
+                    $pdf->SetXY($x0 + $wds_pago[0] + $wds_pago[1] + $wds_pago[2], $y0);
+
+                    $pdf->MultiCell($wds_pago[3], $rowHeightVacia, '', 1, 'L', false);
+
+        
+
+                    $pdf->SetY($y0 + $rowHeightVacia); // Actualizar la posición Y después de la fila completa
+
+                }
         $pdf->Ln(5);
 
         $pdf->SetFont('Arial', 'B', 10);
