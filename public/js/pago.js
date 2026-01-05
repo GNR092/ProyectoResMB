@@ -724,7 +724,11 @@ async function uploadComprobante(idSolicitud) {
 
         if (result.success) {
             mostrarNotificacion('Comprobante subido con éxito.', 'success'); 
-            removeComprobanteFile(idSolicitud); 
+            removeComprobanteFile(idSolicitud);
+
+          // Recargar la vista de detalles
+          await mostrarDetallePago(idSolicitud);
+
         } else {
             throw new Error(result.message || 'Error desconocido del servidor.');
         }
@@ -748,14 +752,10 @@ async function mostrarDetallePago(id) {
   contenedorDetalle.innerHTML = `<p class="text-center text-gray-500 py-8">Cargando detalles...</p>`;
 
   try {
-    // Peticion a la API
     const data = await SendDataEnd(`api/orden-compra/details/${id}`);
 
-    if (!data) {
-      throw new Error("No se recibieron datos del servidor.");
-    }
+    if (!data) throw new Error("No se recibieron datos del servidor.");
 
-    // Preparar datos
     const prov = data.proveedor || {};
     const totalFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
       style: 'currency',
@@ -769,12 +769,12 @@ async function mostrarDetallePago(id) {
 
     let html = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-                <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
+                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+                <div><strong>Fecha solicitud:</strong> ${data.Fecha || 'N/A'}</div>
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
                 <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
                 <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
                 <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
-                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
             </div>
 
             <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
@@ -826,13 +826,9 @@ async function mostrarDetallePago(id) {
       html += `<tr><td colspan="5" class="text-center py-3 text-gray-500">No hay productos en esta orden.</td></tr>`;
     }
 
-    html += `
-                    </tbody>
-                </table>
-            </div>
-        `;
+    html += `</tbody></table></div>`;
 
-    // Archivos Adjuntos
+    // Mostrar archivos
     if (typeof GetFiles === 'function') {
       html += GetFiles(data);
     } else if (data.Archivo) {
@@ -845,12 +841,12 @@ async function mostrarDetallePago(id) {
             `;
     }
 
-    //Botones
     html += `
           <div class="mt-6 pt-4 border-t">
               <h3 class="text-md font-semibold mb-3 text-gray-700">ACCIONES</h3>
+              
               <div id="comprobante-uploader-container"></div>
-              <div id="factura-uploader-container" class="mt-4"></div> <!-- Nuevo contenedor para el uploader de factura -->
+              
               <div class="grid grid-cols-1 gap-4 mt-4">
                   <button onclick="verRequisicionPago(${id})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition w-full">
                       Ver Requisición de pago
@@ -862,13 +858,10 @@ async function mostrarDetallePago(id) {
           </div>
       `;
 
-
-    // Inyectamos el HTML
     contenedorDetalle.innerHTML = html;
 
-    // Render the uploader components
+    // Renderizar uploader
     renderComprobanteUploader(id);
-  //  renderFacturaUploader(id); // Llamada para renderizar el uploader de factura
 
   } catch (error) {
     console.error('Error al cargar detalle:', error);
