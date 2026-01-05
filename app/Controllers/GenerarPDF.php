@@ -976,7 +976,7 @@ class GenerarPDF extends BaseController
         $y = $pdf->GetY();
 
         $pdf->Rect($x, $y, 5, 5);
-        if ($data['Tipo'] == 0) {
+        if (isset($data['MetodoPago']) && $data['MetodoPago'] == 0) {
             $pdf->SetFont('ZapfDingbats', '', 10);
             $pdf->Text($x + 1, $y + 4, '4');
             $pdf->SetFont('Arial', '', 10);
@@ -985,7 +985,7 @@ class GenerarPDF extends BaseController
 
         $y += 7;
         $pdf->Rect($x, $y, 5, 5);
-        if ($data['Tipo'] == 1) {
+        if (isset($data['MetodoPago']) && $data['MetodoPago'] == 1) {
             $pdf->SetFont('ZapfDingbats', '', 10);
             $pdf->Text($x + 1, $y + 4, '4');
             $pdf->SetFont('Arial', '', 10);
