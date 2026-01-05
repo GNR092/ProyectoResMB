@@ -48,9 +48,14 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ordenes_compra"></use></svg>',
             ],
 
-            'ver_historial' => [
-                'label' => 'Ver historial',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ver_historial"></use></svg>',
+            'programar_pagos' => [
+                'label' => 'Programación de pagos',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar_pagos"></use></svg>',
+            ],
+
+            'lista_pagos' => [
+                'label' => 'Lista de Pagos',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
             ],
 
             'pagos_pendientes' => [
@@ -58,6 +63,13 @@ class MenuOptions extends BaseConfig
                 'icon' =>
                     '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#pagos_pendientes"></use></svg>',
             ],
+
+            'ver_historial' => [
+                'label' => 'Ver historial',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ver_historial"></use></svg>',
+            ],
+
+
 
             // 'ficha_pago' => [
             //     'label' => 'Fichas de pago',
@@ -84,14 +96,6 @@ class MenuOptions extends BaseConfig
 //                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#bajas"></use></svg>', // Placeholder icon
 //            ],
 
-            'programar_pagos' => [
-                'label' => 'Programación de pagos',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar_pagos"></use></svg>',
-            ],
-            'lista_pagos' => [
-                'label' => 'Lista de Pagos',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
-            ],
 
             'almacen' => [
                 'label' => 'Almacén',
