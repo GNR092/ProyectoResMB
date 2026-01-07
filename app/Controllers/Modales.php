@@ -295,7 +295,11 @@ class Modales extends BaseController
                 return view('modales/crud_departamento', $data);
 
             case 'crud_cuentas':
-                return view('modales/crud_cuentas');
+                // Llenamos la tabla principal con los datos del proveedor
+                $proveedorModel = new \App\Models\ProveedorModel();
+                $data['cuentas'] = $proveedorModel->orderBy('RazonSocial', 'ASC')->findAll();
+
+                return view('modales/crud_cuentas', $data);
 
             default:
                 return 'Opción no válida';
@@ -584,7 +588,6 @@ class Modales extends BaseController
             ]);
         }
     }
-
     public function descontarStockEntrega()
     {
         $productoModel = new ProductoModel();
@@ -627,7 +630,6 @@ class Modales extends BaseController
             ]);
         }
     }
-
     public function insertarHistorialProducto()
     {
         $historialModel = new HistorialProductosModel();
@@ -908,5 +910,92 @@ class Modales extends BaseController
         }
     }
 
+    // --- CRUD CUENTAS ---
+    public function getCuentasByProveedor($idProveedor)
+    {
+        // Instanciamos el modelo directamente como en tus otros ejemplos
+        $cuentasModel = new \App\Models\CuentasModel();
+
+        // Buscamos todas las cuentas asociadas a este proveedor
+        $cuentas = $cuentasModel->where('ID_Proveedor', $idProveedor)->findAll();
+
+        // Retornamos en formato JSON
+        return $this->response->setJSON($cuentas);
+    }
+
+    // --- INSERTAR CUENTA ---
+    public function insertarCuenta()
+    {
+        $model = new \App\Models\CuentasModel();
+
+        // Obtenemos los datos enviados por FormData
+        $data = [
+            'ID_Proveedor' => $this->request->getPost('ID_Proveedor'),
+            'Cuenta'       => $this->request->getPost('Cuenta')
+        ];
+
+        // Validar que tengamos el ID del proveedor
+        if (empty($data['ID_Proveedor'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'No se identificó al proveedor.']);
+        }
+
+        if ($model->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo guardar la cuenta.',
+                'errors' => $model->errors()
+            ]);
+        }
+    }
+    // --- ACTUALIZAR CUENTA ---
+    public function actualizarCuenta($id)
+    {
+        $model = new \App\Models\CuentasModel();
+
+        // Recibimos solo el campo 'Cuenta' que es el editable
+        $data = [
+            'Cuenta' => $this->request->getPost('Cuenta')
+        ];
+
+        // Validamos que no esté vacío
+        if (empty($data['Cuenta'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'El número de cuenta es obligatorio.']);
+        }
+
+        try {
+            // CodeIgniter update: update($primaryKey, $data)
+            if ($model->update($id, $data)) {
+                return $this->response->setJSON(['success' => true]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se pudo actualizar la cuenta.',
+                    'errors' => $model->errors()
+                ]);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error del servidor: ' . $e->getMessage()
+            ]);
+        }
+    }
+    // --- ELIMINAR CUENTA ---
+    public function eliminarCuenta($id)
+    {
+        $model = new \App\Models\CuentasModel();
+
+        // CodeIgniter delete
+        if ($model->delete($id)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo eliminar la cuenta.'
+            ]);
+        }
+    }
 }
 

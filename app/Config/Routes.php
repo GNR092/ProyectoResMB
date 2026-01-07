@@ -70,6 +70,13 @@ if (!file_exists($installerLockFile)) {
             'cotizaciones/archivo/(:num)/(:segment)',
             'Archivo::descargarCotizacion/$1/$2',
         );
+
+        //crud cuentas
+        $routes->get('modales/cuentas/proveedor/(:num)', 'Modales::getCuentasByProveedor/$1');
+        $routes->post('modales/cuentas/insertar', 'Modales::insertarCuenta');
+        $routes->post('modales/cuentas/editar/(:num)', 'Modales::actualizarCuenta/$1');
+        $routes->post('modales/cuentas/eliminar/(:num)', 'Modales::eliminarCuenta/$1');
+
         // Modales
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');

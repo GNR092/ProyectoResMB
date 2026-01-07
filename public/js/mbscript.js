@@ -101,6 +101,7 @@ function abrirModal(opcion) {
         bajas_destruccion: initBajasDestruccion,
         crud_places: initCrudPlaces,
         crud_departamento: initCrudDepartamentos,
+        crud_cuentas: initCrudCuentas,
       }
 
       const inicializador = inicializadores[opcion]
@@ -2742,6 +2743,266 @@ function initDepartamentosActions(tabla) {
     document.getElementById('pantalla-editar-departamento').classList.remove('hidden')
   })
 }
+
+
+/**
+ * Lógica para el CRUD de cuentas de proveedor
+ */
+
+function initCrudCuentas() {
+  const tabla = document.getElementById('tabla-cuentas')
+  if (!tabla) return
+
+  initCuentasTabla()
+  initCuentasPantallas()
+  initSubPantallasCuentas()
+  initCuentasActions(tabla)
+}
+
+function initCuentasTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-cuentas tr[data-id]',
+    paginationSelector: 'paginacion-cuentas',
+    filterFormSelector: '#form-filtros-cuentas',
+    filterFunction: (row, form) => {
+      const razonSocialFiltro = (document.getElementById('buscar-razonsocial-cuenta')?.value || '').toLowerCase()
+      const rfcFiltro = (document.getElementById('buscar-rfc-cuenta')?.value || '').toLowerCase()
+
+      const razonSocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || ''
+      const rfc = row.querySelector('.rfc')?.textContent.toLowerCase() || ''
+
+      return razonSocial.includes(razonSocialFiltro) && rfc.includes(rfcFiltro)
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initCuentasPantallas() {
+  const pantallaLista = document.getElementById('pantalla-lista-cuentas')
+  const pantallaEditar = document.getElementById('pantalla-editar-cuenta')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar')
+
+  if (btnRegresarEditar) {
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+  }
+}
+
+function initSubPantallasCuentas() {
+  const vistaTabla = document.getElementById('vista-tabla-cuentas-detalle');
+  const vistaForm = document.getElementById('vista-form-nueva-cuenta');
+  const tablaDetalle = document.getElementById('tabla-cuentas-detalle');
+
+  const btnAgregar = document.getElementById('btn-agregar-cuenta-detalle');
+  const btnCancelar = document.getElementById('btn-cancelar-nueva-cuenta');
+  const btnConfirmar = document.getElementById('btn-confirmar-nueva-cuenta');
+
+  const inputCuenta = document.getElementById('nueva-cuenta-input');
+  const inputIdRef = document.getElementById('editar-ID_Ref');
+  const inputIdEdicion = document.getElementById('id_cuenta_edicion');
+  const tituloForm = document.getElementById('titulo-form-cuenta');
+
+  // 1. Botón "AGREGAR"
+  if (btnAgregar) {
+    btnAgregar.onclick = () => {
+      if(inputCuenta) inputCuenta.value = '';
+      if(inputIdEdicion) inputIdEdicion.value = '';
+      if(tituloForm) tituloForm.textContent = 'Nueva Cuenta';
+
+      vistaTabla.classList.add('hidden');
+      vistaForm.classList.remove('hidden');
+      if(inputCuenta) inputCuenta.focus();
+    };
+  }
+
+  // Eventos de eliminar y editar
+  if (tablaDetalle) {
+    tablaDetalle.addEventListener('click', async (e) => {
+
+      // Botón "EDITAR"
+      const btnEditar = e.target.closest('.btn-editar-detalle');
+      if (btnEditar) {
+        e.preventDefault();
+        const idCuenta = btnEditar.dataset.id;
+        const numeroCuenta = btnEditar.dataset.cuenta;
+
+        if(inputIdEdicion) inputIdEdicion.value = idCuenta;
+        if(inputCuenta) inputCuenta.value = numeroCuenta;
+        if(tituloForm) tituloForm.textContent = 'Editar Cuenta';
+
+        vistaTabla.classList.add('hidden');
+        vistaForm.classList.remove('hidden');
+        if(inputCuenta) inputCuenta.focus();
+        return;
+      }
+
+      // Botón "ELIMINAR"
+      const btnEliminar = e.target.closest('.btn-eliminar-detalle');
+      if (btnEliminar) {
+        e.preventDefault();
+        const idCuenta = btnEliminar.dataset.id;
+
+        if (!(await Confirmar('Eliminar Cuenta', '¿Seguro que deseas eliminar esta cuenta bancaria?'))) {
+          return;
+        }
+
+        try {
+          const result = await SendDataEnd(`modales/cuentas/eliminar/${idCuenta}`, {
+            method: 'POST'
+          });
+
+          if (result.success) {
+            mostrarNotificacion('Cuenta eliminada correctamente ✅', 'success');
+            // Recargar la tabla usando el ID del proveedor actual
+            cargarCuentasDeProveedor(inputIdRef.value);
+          } else {
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error');
+          }
+        } catch (error) {
+          console.error(error);
+          mostrarNotificacion('Error de conexión al eliminar.', 'error');
+        }
+      }
+    });
+  }
+
+  // Botón "Cancelar"
+  if (btnCancelar) {
+    btnCancelar.onclick = () => {
+      vistaForm.classList.add('hidden');
+      vistaTabla.classList.remove('hidden');
+    };
+  }
+
+  // Botón "Confirmar" (Guardar)
+  if (btnConfirmar) {
+    btnConfirmar.onclick = async () => {
+      const valor = inputCuenta.value.trim();
+      const idProveedor = inputIdRef.value;
+      const idCuenta = inputIdEdicion.value;
+
+      if (!valor) {
+        mostrarNotificacion("Por favor ingrese una cuenta.", "warning");
+        return;
+      }
+      if (valor.length < 16 || valor.length > 20) {
+        mostrarNotificacion("La cuenta debe tener entre 16 y 20 caracteres.", "warning");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('Cuenta', valor);
+      formData.append('ID_Proveedor', idProveedor);
+
+      const url = idCuenta
+          ? `modales/cuentas/editar/${idCuenta}`
+          : `modales/cuentas/insertar`;
+
+      try {
+        const result = await SendDataEnd(url, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (result.success) {
+          const mensaje = idCuenta ? 'Cuenta actualizada ✅' : 'Cuenta agregada ✅';
+          mostrarNotificacion(mensaje, 'success');
+
+          inputCuenta.value = '';
+          if(inputIdEdicion) inputIdEdicion.value = '';
+
+          vistaForm.classList.add('hidden');
+          vistaTabla.classList.remove('hidden');
+
+          cargarCuentasDeProveedor(idProveedor);
+        } else {
+          mostrarNotificacion(result.message || 'Error al guardar ❌', 'error');
+        }
+      } catch (error) {
+        console.error(error);
+        mostrarNotificacion('Error de conexión al guardar.', 'error');
+      }
+    };
+  }
+}
+
+function initCuentasActions(tabla) {
+  if (!tabla) return
+
+  tabla.addEventListener('click', (e) => {
+    const btnEditar = e.target.closest("[id^='btn-editar-cuenta-']")
+    if (!btnEditar) return
+    e.preventDefault()
+
+    const fila = btnEditar.closest('tr')
+    if (!fila) return
+
+    const idProveedor = fila.dataset.id;
+    document.getElementById('editar-ID_Ref').value = idProveedor
+    document.getElementById('editar-RazonSocial').value = fila.dataset.razonsocial || ''
+    document.getElementById('editar-RFC').value = fila.dataset.rfc || ''
+
+    // Resetear vistas internas: Siempre mostrar tabla primero al entrar
+    document.getElementById('vista-tabla-cuentas-detalle').classList.remove('hidden');
+    document.getElementById('vista-form-nueva-cuenta').classList.add('hidden');
+
+    cargarCuentasDeProveedor(idProveedor);
+
+    document.getElementById('pantalla-lista-cuentas').classList.add('hidden')
+    document.getElementById('pantalla-editar-cuenta').classList.remove('hidden')
+  })
+}
+
+async function cargarCuentasDeProveedor(idProveedor) {
+  const tbody = document.getElementById('tabla-cuentas-detalle');
+  tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">Cargando cuentas...</td></tr>';
+
+  try {
+    const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, { method: 'GET' });
+
+    if (cuentas && cuentas.length > 0) {
+      let html = '';
+      cuentas.forEach(c => {
+        html += `
+                    <tr class="border-t hover:bg-gray-50">
+                        <td class="px-4 py-2 text-sm text-gray-700 align-middle">${c.Cuenta}</td>
+                        <td class="px-4 py-2 text-center align-middle">
+                            <div class="flex items-center justify-center space-x-2">
+                                <!-- Botón Editar (con datos) -->
+                                <a href="#" 
+                                   class="text-green-600 hover:text-green-800 btn-editar-detalle" 
+                                   data-id="${c.ID_Cuenta}" 
+                                   data-cuenta="${c.Cuenta}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+                                    </svg>
+                                </a>
+                                <!-- Botón Eliminar -->
+                                <a href="#" 
+                                   class="text-red-600 hover:text-red-800 btn-eliminar-detalle" 
+                                   data-id="${c.ID_Cuenta}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+      });
+      tbody.innerHTML = html;
+    } else {
+      tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">No hay cuentas registradas para este proveedor.</td></tr>';
+    }
+  } catch (error) {
+    console.error('Error al cargar cuentas:', error);
+    tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-red-500 text-sm">Error al cargar datos.</td></tr>';
+  }
+}
+
 
 //==================================================================================================================
 /**
