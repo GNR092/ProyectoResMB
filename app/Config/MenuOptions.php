@@ -111,6 +111,12 @@ class MenuOptions extends BaseConfig
             //     'label' => 'Departamentos',
             //     'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#departamentos"></use></svg>',
             // ],
+
+            'crud_cuentas' => [
+                'label' => 'Cuentas',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#cuentas"></use></svg>',
+            ],
+
         ];
     }
 }
