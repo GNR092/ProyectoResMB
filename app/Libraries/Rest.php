@@ -1,6 +1,7 @@
 <?php
 namespace App\Libraries;
 use App\Models\CotizacionModel;
+use App\Models\CuentasModel;
 use App\Models\DepartamentosModel;
 use App\Models\DetalleModel;
 use App\Models\OrdenCompraModel;
@@ -384,6 +385,10 @@ class Rest
         if (!$solicitud) {
             return null;
         }
+        if (!empty($solicitud['ID_Cuenta'])) {
+            $cuentasModel = new \App\Models\CuentasModel();
+            $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
+        }
         $solicitud['ID_Place'] = $placesModel->find(
             $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
         )['Nombre_Corto'];
@@ -589,6 +594,11 @@ class Rest
 
         if (!$solicitud) {
             return null;
+        }
+
+        if (!empty($solicitud['ID_Cuenta'])) {
+            $cuentasModel = new \App\Models\CuentasModel();
+            $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
         }
 
         if (!empty($solicitud['ID_Proveedor'])) {
@@ -1488,6 +1498,11 @@ class Rest
         if (!$solicitud) {
             log_message('debug', 'Solicitud no encontrada para ID: ' . $id);
             return null;
+        }
+
+        if (!empty($solicitud['ID_Cuenta'])) {
+            $cuentasModel = new \App\Models\CuentasModel();
+            $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
         }
 
         log_message('debug', 'Solicitud encontrada: ' . json_encode($solicitud));

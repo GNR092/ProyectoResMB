@@ -16,6 +16,7 @@ class SolicitudModel extends Model
         'ID_Usuario',
         'ID_Dpto',
         'ID_Proveedor',
+        'ID_Cuenta',
         'ID_RazonSocial',
         'IVA',
         'Fecha',

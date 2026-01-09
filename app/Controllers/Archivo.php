@@ -65,6 +65,7 @@ class Archivo extends BaseController
 
         $razon_social_id = isset($post['razon_social']) ? $post['razon_social'] : null;
         $proveedor_id = isset($post['ID_Proveedor']) ? $post['ID_Proveedor'] : null;
+        $cuenta_id = isset($post['ID_Cuenta']) ? $post['ID_Cuenta'] : null;
         $razon = null;
         $proveedor = null;
         if (!empty($razon_social_id)) {
@@ -85,6 +86,7 @@ class Archivo extends BaseController
             'ID_Usuario' => $user['ID_Usuario'],
             'ID_Dpto' => $user['ID_Dpto'],
             'ID_Proveedor' => $proveedor['ID_Proveedor'] ?? null,
+            'ID_Cuenta' => $cuenta_id,
             'ID_RazonSocial' => $razon['ID_RazonSocial'] ?? null,
             'IVA' => isset($post['iva']) ? true : false,
             'Fecha' => $fecha,

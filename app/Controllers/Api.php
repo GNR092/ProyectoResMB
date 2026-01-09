@@ -1232,19 +1232,19 @@ class Api extends ResourceController
                     }
 
                     if ($solicitud['Tipo'] == SolicitudTipo::Servicios) {
-                        $facturaResult = $this->GenerarFacturaServicio(
-                            $solicitud['ID_Solicitud'],
-                            $ordenActualizada,
+                        $pdfGenerator = new \App\Controllers\GenerarPDF();
+                        $pdfPath = $pdfGenerator->GenerarFacturaServicioPDF(
+                            $solicitud['ID_Solicitud']
                         );
-                        if ($facturaResult['error']) {
+    
+                        if (empty($pdfPath)) {
                             log_message(
                                 'error',
-                                'Error al generar factura de servicio: ' . $facturaResult['error'],
+                                'Error al generar factura de servicio para la solicitud ID: ' . $solicitud['ID_Solicitud']
                             );
                         } else {
                             $ordenCompraModel->update($idOrdenCompra, [
-                                'File_FacturaServicioPDF' => basename($facturaResult['pdf_path']),
-                                'File_FacturaServicioXML' => basename($facturaResult['xml_path']),
+                                'File_FacturaServicioPDF' => basename($pdfPath),
                             ]);
                         }
                     }
