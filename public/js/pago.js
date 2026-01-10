@@ -432,8 +432,11 @@ async function mostrarDetallePago(id) {
                 <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
                 <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
                 <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
-                <div><strong>Cuenta del proveedor:</strong> ${data.cuenta_details ? data.cuenta_details.Cuenta : (prov.Cuenta || 'N/A')}</div>
-                <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
+                ${data.cuenta_details 
+                    ? `<div><strong>Cuenta seleccionada para el pago:</strong> ${data.cuenta_details.Cuenta}</div>`
+                    : `<div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+                       <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>`
+                }
                 <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
                 <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
         prov.Monto_Credito

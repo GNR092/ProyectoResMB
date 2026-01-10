@@ -495,6 +495,39 @@ function RevisionX() {
       const detalles = document.getElementById('detalles-para-revision')
       if (detalles) detalles.innerHTML = ''
     },
+   async cargarCuentasProveedor(idProveedor) {
+      const cuentaSelectContainer = document.getElementById('cuenta-select-container');
+      if (!cuentaSelectContainer) return;
+
+      cuentaSelectContainer.innerHTML = '<p class="text-sm text-gray-500">Cargando cuentas...</p>';
+
+      if (!idProveedor) {
+          cuentaSelectContainer.innerHTML = '';
+          return;
+      }
+
+      try {
+          const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`);
+          
+          if (cuentas && cuentas.length > 0) {
+              let selectHtml = `
+                  <label for="cuenta-select" class="block text-sm font-medium text-gray-700">Seleccionar Cuenta para Pago:</label>
+                  <select id="cuenta-select" name="id_cuenta" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                      <option value="">Seleccione una cuenta</option>
+              `;
+              cuentas.forEach(cuenta => {
+                  selectHtml += `<option value="${cuenta.ID_Cuenta}">${cuenta.Cuenta}</option>`;
+              });
+              selectHtml += '</select>';
+              cuentaSelectContainer.innerHTML = selectHtml;
+          } else {
+              cuentaSelectContainer.innerHTML = '<p class="text-sm text-red-500">Este proveedor no tiene cuentas de pago registradas.</p>';
+          }
+      } catch (error) {
+          console.error('Error al cargar cuentas del proveedor:', error);
+          cuentaSelectContainer.innerHTML = '<p class="text-sm text-red-500">Error al cargar las cuentas.</p>';
+      }
+    },
    mostrarModalModificarMontos: async function (idSolicitud) {
       const modalModificar = document.getElementById('modal-modificar-montos')
       const productosContainer = document.getElementById('productos-modificar-container')
@@ -522,6 +555,7 @@ function RevisionX() {
       productosContainer.innerHTML =
         '<p class="text-center text-gray-500">Cargando productos...</p>'
       proveedorSelectContainer.innerHTML = ''
+      document.getElementById('cuenta-select-container').innerHTML = '';
       modalModificar.classList.remove('hidden')
 
       try {
@@ -587,11 +621,17 @@ function RevisionX() {
             )
             if (selectedCotizacion) {
               idprov = selectedCotizacion.ID_Proveedor
-              console.log(`provedor seleccionado ${idprov}`)
+              this.cargarCuentasProveedor(idprov);
+            } else {
+              idprov = null;
+              this.cargarCuentasProveedor(null);
             }
 
             this.validarOpcionCredito(data)
           })
+        } else if (cotizacionesData.length === 1) {
+            idprov = cotizacionesData[0].ID_Proveedor;
+            this.cargarCuentasProveedor(idprov);
         }
 
         function actualizarProductos(productos) {
@@ -649,6 +689,7 @@ function RevisionX() {
           let nuevoSubtotal = 0
 
           const commnt = formData.get('comentarios')
+          const idCuenta = formData.get('id_cuenta');
 
           data.productos.forEach((p, index) => {
             if(isServicio) {
@@ -707,6 +748,7 @@ function RevisionX() {
             id_cotizacion_seleccionada: selectedCotizacionId,
             productos: productosModificados,
             comentarios: commnt === '' ? null : commnt,
+            id_cuenta: idCuenta,
           }
 
           try {
