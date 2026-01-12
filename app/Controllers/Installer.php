@@ -290,6 +290,21 @@ class Installer extends BaseController
         }
     }
 
+    public function runMigrations()
+    {
+        if (session('departamento_usuario') !== 'Administración') {
+            return $this->response->setStatusCode(403)->setBody('Acceso denegado. Se requieren privilegios de administrador.');
+        }
+
+        try {
+            $migrate = \Config\Services::migrations();
+            $migrate->latest();
+            echo 'Migración completada exitosamente.';
+        } catch (\Throwable $e) {
+            echo 'Error al ejecutar las migraciones: ' . $e->getMessage();
+        }
+    }
+
     public function rollback()
     {
         if (ENVIRONMENT !== 'development') {

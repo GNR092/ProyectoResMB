@@ -1151,17 +1151,50 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(30, 7, 'BANCO:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(70, 7, mb_convert_encoding($data['Banco'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+        $pdf->Cell(
+            70,
+            7,
+            mb_convert_encoding(
+                isset($data['cuenta_details']) ? 'Cuenta Seleccionada' : $data['Banco'],
+                'ISO-8859-1',
+                'UTF-8',
+            ),
+            1,
+            1,
+            'L',
+        );
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(30, 7, 'CUENTA:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(70, 7, mb_convert_encoding($data['Cuenta'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+        $pdf->Cell(
+            70,
+            7,
+            mb_convert_encoding(
+                isset($data['cuenta_details']) ? $data['cuenta_details']['Cuenta'] : $data['Cuenta'],
+                'ISO-8859-1',
+                'UTF-8',
+            ),
+            1,
+            1,
+            'L',
+        );
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(30, 7, 'CLABE:', 1, 0, 'L');
         $pdf->SetFont('Arial', '', 10);
-        $pdf->Cell(70, 7, mb_convert_encoding($data['Clabe'], 'ISO-8859-1', 'UTF-8'), 1, 1, 'L');
+        $pdf->Cell(
+            70,
+            7,
+            mb_convert_encoding(
+                isset($data['cuenta_details']) ? 'N/A' : $data['Clabe'],
+                'ISO-8859-1',
+                'UTF-8',
+            ),
+            1,
+            1,
+            'L',
+        );
 
         $pdf->Ln(10);
 
