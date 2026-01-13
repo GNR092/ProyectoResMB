@@ -504,7 +504,6 @@ async function initSolicitarServicio() {
         }
       } catch (error) {
         console.error("Error al cargar cuentas bancarias:", error);
-        // Opcional: mostrar error visual
       }
     });
   }

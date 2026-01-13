@@ -486,7 +486,16 @@ class Api extends ResourceController
         $db->transStart();
 
         try {
-            $solicitudModel->update($idSolicitud, ['Estado' => Status::En_espera]);
+
+            $nuevoEstado = Status::En_espera;
+
+            // Si la solicitud es de Servicios
+            if ($solicitud['Tipo'] == SolicitudTipo::Servicios) {
+                $nuevoEstado = 'Cotizando';
+            }
+
+            // Actualizamos con el estado dinámico
+            $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
 
             $db->transComplete();
 
@@ -494,9 +503,14 @@ class Api extends ResourceController
                 throw new \Exception('Falla en la transacción de base de datos.');
             }
 
+            // Mensaje dinámico según el estado resultante
+            $mensajeExito = $nuevoEstado == 'Cotizando'
+                ? 'Solicitud aprobada y enviada a etapa de Cotización.'
+                : 'Solicitud aprobada y enviada a Compras para su cotización.';
+
             return $this->respondUpdated([
                 'success' => true,
-                'message' => 'Solicitud aprobada y enviada a Compras para su cotización.',
+                'message' => $mensajeExito,
             ]);
         } catch (\Exception $e) {
             $db->transRollback();

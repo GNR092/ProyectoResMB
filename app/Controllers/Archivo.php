@@ -39,7 +39,7 @@ class Archivo extends BaseController
         if (isset($post['servicio'])) {
             // Solicitud de Servicio
             $tipo = SolicitudTipo::Servicios;
-            $productos = $post['servicio']; // Descripciones de los servicios
+            $productos = $post['servicio'];
             $importes = $post['importe'];
             // Para servicios, la cantidad es 1 por defecto y no hay código de producto
             $cantidades = array_fill(0, count($productos), 1);
@@ -53,7 +53,7 @@ class Archivo extends BaseController
             $codigos = array_fill(0, count($productos), null);
             $importes = array_fill(0, count($productos), 0);
         } else {
-            // Solicitud de Material con Cotización (estándar)
+            // Solicitud de Material con Cotización
             $tipo = SolicitudTipo::Cotizacion;
             $codigos = $post['codigo'];
             $productos = $post['producto'];
@@ -65,7 +65,8 @@ class Archivo extends BaseController
 
         $razon_social_id = isset($post['razon_social']) ? $post['razon_social'] : null;
         $proveedor_id = isset($post['ID_Proveedor']) ? $post['ID_Proveedor'] : null;
-        $cuenta_id = isset($post['ID_Cuenta']) ? $post['ID_Cuenta'] : null;
+        $cuenta_id = $post['cuenta_proveedor'] ?? ($post['ID_Cuenta'] ?? null);
+
         $razon = null;
         $proveedor = null;
         if (!empty($razon_social_id)) {
@@ -78,9 +79,17 @@ class Archivo extends BaseController
         $fecha = $post['fecha'];
         $comentariosuser = isset($post['comentariosuser']) ? $post['comentariosuser'] : null;
 
-        // Determinar el estado inicial basado en el tipo de login
-        $estadoInicial =
-            session('login_type') === 'boss' ? Status::En_espera : Status::Aprobacion_pendiente;
+        $estadoInicial = Status::Aprobacion_pendiente;
+
+        if (session('login_type') === 'boss') {
+            // Si es Boss Y es Servicio
+            if ($tipo == SolicitudTipo::Servicios) {
+                $estadoInicial = 'Cotizando';
+            } else {
+                // Si es Boss pero es Material
+                $estadoInicial = Status::En_espera;
+            }
+        }
 
         $datosSolicitud = [
             'ID_Usuario' => $user['ID_Usuario'],
@@ -155,6 +164,7 @@ class Archivo extends BaseController
             ]);
         }
     }
+
 
     public function descargar($idSolicitud)
     {
