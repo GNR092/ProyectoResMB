@@ -21,7 +21,9 @@ function Reportes(initialData = []) {
     },
 
     init() {
-      this.allData = initialData.map((item) => {
+      const cleanData = initialData.filter(item => item.ID_Solicitud != null && item.ID_Solicitud !== '');
+
+      this.allData = cleanData.map((item) => {
         item.ProveedorFiltro = item.proveedor ? item.proveedor.RazonSocial : 'N/A'
         return item
       })

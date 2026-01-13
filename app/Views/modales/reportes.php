@@ -78,7 +78,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
             </select>
         </div>
 
-        <!-- Filtro Método de Pago -->
+        <!-- Filtro Metodo de Pago -->
         <div class="w-full sm:w-auto shrink-0">
             <select x-model="metodoPago" id="filtroMetodoPago-reportes" class="border p-2 rounded w-full min-w-[150px]">
                 <option value="">Método de Pago</option>
@@ -115,7 +115,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
                         </td>
                     </tr>
                 </template>
-                <template x-for="(item, index) in paginatedData" :key="item.ID_Solicitud">
+                <template x-for="(item, index) in paginatedData" :key="item.ID_Solicitud || ('row-' + index)">
                     <tr class="text-center hover:bg-gray-50 text-sm">
                         <td class="border px-3 py-2 text-left" x-text="item.No_Folio"></td>
                         <td class="border px-3 py-2 text-left" x-text="item.DepartamentoNombre"></td>
