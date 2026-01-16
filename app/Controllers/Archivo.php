@@ -221,7 +221,7 @@ if ($estadoInicial === 'Cotizando' && !empty($proveedor_id)) {
             'fromName' => $razonNombre,
         ];
 
-        $mail->send_email($to, $subject, $message, $option);
+     //   $mail->send_email($to, $subject, $message, $option);
     }
 
 
