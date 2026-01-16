@@ -6,11 +6,16 @@ use App\Libraries\FPath;
 use App\Models\SolicitudProductModel;
 use App\Models\SolicitudServiciosModel;
 use App\Models\SolicitudModel;
+use App\Models\CotizacionModel;
+use App\Models\ProveedorModel;
+use App\Models\RazonSocialModel;
 use App\Libraries\Status;
 use App\Libraries\HttpStatus;
 use App\Libraries\Rest;
 use App\Libraries\SolicitudTipo;
 use App\Libraries\MetodoPago;
+use App\Controllers\GenerarPDF;
+use App\Libraries\MBSMail;
 
 class Archivo extends BaseController
 {
@@ -144,7 +149,84 @@ class Archivo extends BaseController
                     $solicitudServicio->insert($solproducto);
                 }
             }
+if ($estadoInicial === 'Cotizando' && !empty($proveedor_id)) {
+    $cotizacionModel = new CotizacionModel();
+    $razonSocialModel = new RazonSocialModel();
+    $proveedorModel = new ProveedorModel();
 
+    // The solicitation details are already in the $solicitud variable, but I need to get it again to have all the fields
+    $solicitudData = $solicitud->find($solicitudId);
+
+
+    $razon = $razonSocialModel->find($solicitudData['ID_RazonSocial']);
+    $razonNombre = $razon['Nombre'];
+
+    $total = 0;
+    foreach($datosProductos as $p) {
+        $total += (float) $p['Importe'];
+    }
+
+
+    $pdf = new GenerarPDF();
+    $pdf->generarYGuardarRequisicion($solicitudId);
+    $attachmentPath = FPath::FPDF . 'Requisicion-MBSP-' . $solicitudId . '.pdf';
+
+    $db = \Config\Database::connect();
+    $db->transStart();
+
+    $mail = new MBSMail();
+    
+    $idProveedores = is_array($proveedor_id) ? $proveedor_id : [$proveedor_id];
+
+
+    foreach ($idProveedores as $idProv) {
+        $idProveedor = (int) $idProv;
+        $proveedor = $proveedorModel->find($idProveedor);
+
+        $cotizacionData = [
+            'ID_Solicitud' => $solicitudId,
+            'ID_Proveedor' => $idProveedor,
+            'Total' => $total,
+            'ID_Usuario_Cotiza' => $user['ID_Usuario'],
+        ];
+        $cotizacionModel->insert($cotizacionData);
+
+        $to = getenv('EMAIL_TO_TEST');
+        if (empty($to)) {
+            if (!$proveedor || empty($proveedor['Correo'])) {
+                throw new \Exception(
+                    "No se pudo encontrar un correo electrónico para el proveedor con ID: {$idProveedor}.",
+                );
+            }
+            $to = $proveedor['Correo'];
+        }
+
+        $proveedorNombre = $proveedor ? esc($proveedor['RazonSocial']) : 'Proveedor';
+        $folio = esc($solicitudData['No_Folio']);
+        $fecha = esc($solicitudData['Fecha']);
+        $razonSocialEsc = esc($razonNombre);
+
+        $subject = "Solicitud de Cotización - Folio {$folio} - {$razonSocialEsc}";
+
+        $message = view('emails/solicitud_cotizacion', [
+            'proveedorNombre' => $proveedorNombre,
+            'razonSocialEsc' => $razonSocialEsc,
+            'folio' => $folio,
+            'fecha' => $fecha,
+        ]);
+
+
+        $option = [
+            'attachments' => [$attachmentPath],
+            'fromName' => $razonNombre,
+        ];
+
+        $mail->send_email($to, $subject, $message, $option);
+    }
+
+
+    $db->transComplete();
+}
             $adjunto = $this->request->getFile('archivo');
             if ($adjunto && $adjunto->isValid()) {
                 $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();

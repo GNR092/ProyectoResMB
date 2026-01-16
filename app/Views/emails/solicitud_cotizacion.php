@@ -18,19 +18,23 @@
 </head>
 <body>
     <div class="container">
-        <div class="header"><h2>Solicitud de Cotización</h2></div>
+        <div class="header">
+            <h2>Solicitud de Cotización</h2>
+        </div>
         <div class="content">
-            <p>Estimado proveedor <strong><?= esc($proveedorNombre) ?></strong>,</p>
-            <p>Por medio de la presente, <strong><?= esc($razonSocialEsc) ?></strong> le solicita amablemente la cotización de los productos/servicios descritos en el documento PDF adjunto.</p>
+            <p>Estimado proveedor <strong><?= $proveedorNombre ?></strong>,</p>
+            <p>Por medio de la presente, <strong><?= $razonSocialEsc ?></strong> le solicita amablemente la cotización de los productos/servicios descritos en el documento PDF adjunto.</p>
             <p><strong>Detalles de la Requisición:</strong></p>
             <ul>
-                <li><strong>Folio:</strong> <?= esc($folio) ?></li>
-                <li><strong>Fecha de Solicitud:</strong> <?= esc($fecha) ?></li>
+                <li><strong>Folio:</strong> <?= $folio ?></li>
+                <li><strong>Fecha de Solicitud:</strong> <?= $fecha ?></li>
             </ul>
             <p>Agradeceríamos enormemente que nos hiciera llegar su propuesta a la brevedad posible. Si tiene alguna duda o requiere información adicional, no dude en contactarnos por los medios habituales.</p>
             <p>Quedamos a su disposición.</p>
         </div>
-        <div class="footer"><p><strong><?= esc($razonSocialEsc) ?></strong></p></div>
+        <div class="footer">
+            <p><strong><?= $razonSocialEsc ?></strong></p>
+        </div>
     </div>
 </body>
 </html>
