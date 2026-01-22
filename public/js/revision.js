@@ -160,32 +160,18 @@ function RevisionX() {
         let montoHtml = ''
 
         if (isMultiple) {
-          let selectOptions = '<option value="">Seleccione una cotización</option>'
-          data.cotizaciones.forEach((cot) => {
-            const totalFormateado = parseFloat(cot.Total || 0).toLocaleString('es-MX', {
-              style: 'currency',
-              currency: 'MXN',
-            })
-            selectOptions += `<option value="${cot.ID_Cotizacion}">${cot.ProveedorNombre} - ${totalFormateado}</option>`
-          })
+          
 
           proveedorHtml = `
             <div class="md:col-span-2">
               <label for="proveedor-select" class="block text-sm font-medium text-gray-700"><strong>Proveedor (Múltiples cotizaciones):</strong></label>
-              <select id="proveedor-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                  ${selectOptions}
-              </select>
+              
             </div>
           `
-          montoHtml = `<div class="md:col-span-1 flex items-end"><div><strong>Monto:</strong> <span id="monto-seleccionado" class="font-bold text-lg">N/A</span></div></div>`
-        } else {
-          const proveedorNombre = data.cotizacion?.ProveedorNombre || 'N/A'
+         } else {
+           const proveedorNombre = data.cotizacion?.ProveedorNombre || 'N/A'
           proveedorHtml = `<div><strong>Proveedor (Cotización):</strong> ${proveedorNombre}</div>`
-          if (data.cotizacion?.Total) {
-            montoHtml = `<div class="md:col-span-3"><strong>Monto (Cotización):</strong> <span class="font-bold text-lg">${parseFloat(
-              data.cotizacion.Total,
-            ).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span></div>`
-          }
+          
         }
 
         let html = `
@@ -291,34 +277,8 @@ function RevisionX() {
         detallesContainer.innerHTML = html
 
         if (isMultiple) {
-          const proveedorSelect = document.getElementById('proveedor-select')
-          proveedorSelect.addEventListener('change', (e) => {
-            const selectedCotizacionId = e.target.value
-            const montoSpan = document.getElementById('monto-seleccionado')
-
-            if (!selectedCotizacionId) {
-              idprov = null
-              if (montoSpan) montoSpan.textContent = 'N/A'
-              this.validarOpcionCredito({}) // Reset
-              return
-            }
-
-            const selectedCotizacion = data.cotizaciones.find(
-              (cot) => cot.ID_Cotizacion == selectedCotizacionId,
-            )
-
-            if (selectedCotizacion) {
-              idprov = selectedCotizacion.ID_Proveedor
-              if (montoSpan) {
-                montoSpan.textContent = parseFloat(selectedCotizacion.Total || 0).toLocaleString(
-                  'es-MX',
-                  { style: 'currency', currency: 'MXN' },
-                )
-              }
-              this.validarOpcionCredito({ ID_Proveedor: idprov })
-            }
-          })
-          // Initial state for multiple providers: disable credit until one is selected
+          // No se desea el listener para el selector de proveedor, y el elemento no se está creando.
+          // Solo se mantiene la inicialización del estado del crédito para múltiples proveedores.
           this.validarOpcionCredito({})
         } else {
           // For single provider

@@ -948,6 +948,42 @@ class GenerarPDF extends BaseController
         $pdf->Output('I', 'RequisicionPago-' . $solicitud['No_Folio'] . '.pdf');
     }
 
+    public function generarYGuardarRequisicionPago(int $id): ?string
+    {
+        try {
+            $solicitud = $this->api->getSolicitudPago($id);
+            if (empty($solicitud)) {
+                log_message('error', 'API devolvió datos vacíos para la requisición de pago ID: ' . $id);
+                return null;
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Excepción al conectar con el API para requisición de pago ID ' . $id . ': ' . $e->getMessage());
+            return null;
+        }
+
+        $pdf = new PDF('P', 'mm', 'Letter');
+        $pdf->AliasNbPages();
+        $pdf->AddPage();
+
+        $this->_generarRequisicionPago($pdf, $solicitud);
+
+        $folderPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_req_pago';
+        if (!is_dir($folderPath)) {
+            if (!mkdir($folderPath, 0777, true)) {
+                log_message('error', 'No se pudo crear el directorio para los PDFs de requisición de pago.');
+                return null;
+            }
+        }
+
+        $fileName = 'RequisicionPago-' . $solicitud['No_Folio'] . '.pdf';
+        $filePath = $folderPath . DIRECTORY_SEPARATOR . $fileName;
+
+        $pdf->Output('F', $filePath);
+
+        return $filePath;
+    }
+
+
     /**
      * Dibuja el contenido de la requisición de pago en el objeto PDF.
      *

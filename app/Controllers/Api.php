@@ -1137,6 +1137,37 @@ class Api extends ResourceController
             }
 
             if (!empty($nuevoEstado)) {
+                if ($nuevoEstado === Status::Por_Pagar) {
+                    try {
+                        $pdfGenerator = new GenerarPDF();
+                        $pdfPath = $pdfGenerator->generarYGuardarRequisicionPago($idSolicitud);
+
+                        if ($pdfPath) {
+                            $orden = $this->api->getOrdenCompra($idSolicitud);
+                            $mail = new MBSMail();
+                            
+                            $to = getenv('EMAIL_TO_TESORERIA');
+                            $subject = "Nueva Requisición de Pago - Folio " . ($orden['No_Folio'] ?? $idSolicitud);
+                            $message = view('emails/notificacion_pago', [
+                                'folio' => $orden['No_Folio'] ?? $idSolicitud,
+                                'proveedor' => $orden['proveedor']['RazonSocial'] ?? 'N/A',
+                                'total' => number_format($orden['cotizacion']['Total'] ?? 0, 2),
+                                'razonSocial' => $orden['Complejo'] ?? 'N/A',
+                            ]);
+                            
+                            $options = ['attachments' => [$pdfPath]];
+
+                            if ($to && $mail->send_email($to, $subject, $message, $options)) {
+                                log_message('info', "Correo de requisición de pago enviado a {$to} para solicitud {$idSolicitud}.");
+                            } else {
+                                log_message('error', "No se pudo enviar el correo de requisición de pago para la solicitud {$idSolicitud}. Destinatario: " . ($to ?: 'No configurado'));
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        log_message('error', '[cambiarEstadoOrden] Error al generar PDF o enviar correo para "Por Pagar": ' . $e->getMessage());
+                    }
+                }
+                
                 if ($nuevoEstado === 'Pagada') {
                     $ordenActualizada = $ordenCompraModel->find($idOrdenCompra);
 
@@ -2309,15 +2340,6 @@ class Api extends ResourceController
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = OrdenCompra.ID_Proveedor', 'left')
             ->where('OrdenCompra.Estado', Status::Programada)
-            ->groupBy([
-                'Solicitud.ID_Solicitud',
-                'Solicitud.No_Folio',
-                'Proveedor.RazonSocial',
-                'Cotizacion.Total',
-                'OrdenCompra.Estado',
-                'Solicitud.MetodoPago',
-                'Solicitud.Fecha',
-            ])
             ->orderBy('Solicitud.Fecha', 'DESC')
             ->findAll();
 
