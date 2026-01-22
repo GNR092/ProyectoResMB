@@ -1138,7 +1138,7 @@ class Api extends ResourceController
             $idOrdenCompra = $orden['ID_OrdenCompra'];
             $idProveedor = $cot['ID_Proveedor'];
             $randomString = uniqid();
-            $proveedor = $proveedorModel->find($idProveedor);
+            $proveedor = $proveedorModel->find($idProveedor); // Ensure $proveedor model is loaded
 
             if ($facturaFile && $facturaFile->isValid()) {
                 $baseFileName = "Factura-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}";
@@ -1156,13 +1156,19 @@ class Api extends ResourceController
 
             if ($comprobanteFile && $comprobanteFile->isValid()) {
                 $baseFileName = "Ficha-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}";
-                $savedFile = ImageProcessor::processAndSave(
+                $comprobanteFileName = ImageProcessor::processAndSave(
+                    // Changed $savedFile to $comprobanteFileName
                     $comprobanteFile,
                     FPath::FCOMPROBANTES,
                     $baseFileName,
                 );
-                if ($savedFile) {
-                    $ordenCompraModel->update($idOrdenCompra, ['File_Comprobante' => $savedFile]);
+                log_message('info', $comprobanteFileName);
+                if ($comprobanteFileName) {
+                    // Changed $savedFile to $comprobanteFileName
+                    $ordenCompraModel->update($idOrdenCompra, [
+                        'File_Comprobante' => $comprobanteFileName,
+                    ]);
+                    $comprobanteSavedPath = FPath::FCOMPROBANTES . $comprobanteFileName; // Set full path
                 } else {
                     return $this->failServerError('No se pudo guardar el archivo del comprobante.');
                 }
@@ -1171,60 +1177,63 @@ class Api extends ResourceController
             if (!empty($nuevoEstado)) {
                 if ($nuevoEstado === Status::Por_Pagar) {
                     try {
-                        $pdfGenerator = new GenerarPDF();
-                        $pdfPath = $pdfGenerator->generarYGuardarRequisicionPago($idSolicitud);
+                        
+                        $orden = $this->api->getOrdenCompra($idSolicitud);
+                        $mail = new MBSMail();
 
-                        if ($pdfPath) {
-                            $orden = $this->api->getOrdenCompra($idSolicitud);
-                            
-                            $proveedorData = $orden['proveedor'] ?? null;
-                            if (!$proveedorData && isset($orden['cotizacion']['ID_Proveedor'])) {
-                                $proveedorModel = new ProveedorModel();
-                                $proveedorData = $proveedorModel->find($orden['cotizacion']['ID_Proveedor']);
-                            }
+                        $proveedorData = null;
+                        if (isset($orden['cotizacion']['ID_Proveedor'])) {
+                            $proveedorModel = new ProveedorModel();
+                            $proveedorData = $proveedorModel->find(
+                                $orden['cotizacion']['ID_Proveedor'],
+                            );
+                        }
 
-                            $mail = new MBSMail();
-
-                            $to = getenv('EMAIL_TO_TEST');
-                            if (empty($to)) {
-                                if (!$proveedorData || empty($proveedorData['Correo'])) {
-                                    // Si el proveedor no tiene correo, lo saltamos pero NO rompemos el bucle
-                                    log_message(
-                                        'warning',
-                                        "Proveedor ID $idProveedor no tiene correo. Se creó la cotización pero no se envió email.",
-                                    );
-                                }
-                                $to = $proveedor['Correo'];
-                            }
-                            $subject =
-                                'Nueva Requisición de Pago - Folio ' .
-                                ($orden['No_Folio'] ?? $idSolicitud);
-                            $message = view('emails/notificacion_pago', [
-                                'folio' => $orden['No_Folio'] ?? $idSolicitud,
-                                'proveedor' => $orden['proveedor']['RazonSocial'] ?? 'N/A',
-                                'total' => number_format($orden['cotizacion']['Total'] ?? 0, 2),
-                                'razonSocial' => $orden['Complejo'] ?? 'N/A',
-                            ]);
-
-                            $options = ['attachments' => [$pdfPath]];
-
-                            if ($to && $mail->send_email($to, $subject, $message, $options)) {
-                                log_message(
-                                    'info',
-                                    "Correo de requisición de pago enviado a {$to} para solicitud {$idSolicitud}.",
+                        $to = getenv('EMAIL_TO_TEST');
+                        if (empty($to)) {
+                            if (!$proveedorData || empty($proveedorData['Correo'])) {
+                                throw new \Exception(
+                                    'No se pudo encontrar un correo electrónico para el proveedor.',
                                 );
+                            }
+                            $to = $proveedorData['Correo'];
+                        }
+                        $subject =
+                            'Comprobante de Pago - Folio ' . // Changed subject
+                            ($orden['No_Folio'] ?? $idSolicitud);
+                        $message = view('emails/notificacion_pago', [
+                            'folio' => $orden['No_Folio'] ?? $idSolicitud,
+                            'proveedor' => $proveedorData['RazonSocial'] ?? 'N/A',
+                            'total' => number_format($orden['cotizacion']['Total'] ?? 0, 2),
+                            'razonSocial' => $orden['Complejo'] ?? 'N/A',
+                        ]);
+
+                        $options = [];
+                        if (!empty($orden['OrdenCompra']['File_Comprobante'])) {
+                            $attachmentPath = FPath::FCOMPROBANTES . $orden['OrdenCompra']['File_Comprobante'];
+                            if (file_exists($attachmentPath)) {
+                                $options['attachments'] = [$attachmentPath];
                             } else {
-                                log_message(
-                                    'error',
-                                    "No se pudo enviar el correo de requisición de pago para la solicitud {$idSolicitud}. Destinatario: " .
-                                        ($to ?: 'No configurado'),
-                                );
+                                log_message('error', "El archivo adjunto para el correo 'Por Pagar' no se encontró: " . $attachmentPath);
                             }
+                        }
+                        log_message('info', 'Opciones de adjunto para correo Por Pagar: ' . print_r($options, true));
+                        if ($to && $mail->send_email($to, $subject, $message, $options)) {
+                            log_message(
+                                'info',
+                                "Correo de comprobante de pago enviado a {$to} para solicitud {$idSolicitud}.",
+                            );
+                        } else {
+                            log_message(
+                                'error',
+                                "No se pudo enviar el correo de comprobante de pago para la solicitud {$idSolicitud}. Destinatario: " .
+                                    ($to ?: 'No configurado'),
+                            );
                         }
                     } catch (\Exception $e) {
                         log_message(
                             'error',
-                            '[cambiarEstadoOrden] Error al generar PDF o enviar correo para "Por Pagar": ' .
+                            '[cambiarEstadoOrden] Error al enviar correo para "Por Pagar": ' .
                                 $e->getMessage(),
                         );
                     }
