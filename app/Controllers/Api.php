@@ -283,8 +283,8 @@ class Api extends ResourceController
             if (!empty($updateData)) {
                 $solicitudModel->update($idSolicitud, $updateData);
             }
-            
-            if ((int)$solicitud['Tipo'] === SolicitudTipo::Servicios) {
+
+            if ((int) $solicitud['Tipo'] === SolicitudTipo::Servicios) {
                 $solicitudServiciosModel = new SolicitudServiciosModel();
                 $solicitudItemsDB = $solicitudServiciosModel
                     ->where('ID_Solicitud', $idSolicitud)
@@ -354,7 +354,7 @@ class Api extends ResourceController
             $details = $this->api->getSolicitudWithProducts($idSolicitud);
             $nuevoTotal = 0;
             if (!empty($details['productos'])) {
-                if ((int)$solicitud['Tipo'] === SolicitudTipo::Servicios) {
+                if ((int) $solicitud['Tipo'] === SolicitudTipo::Servicios) {
                     foreach ($details['productos'] as $item) {
                         $nuevoTotal += (float) $item['Importe'];
                     }
@@ -428,16 +428,23 @@ class Api extends ResourceController
         }
 
         // Verificar estado actual
-        if ($solicitud['Estado'] !== 'Aprobacion pendiente' && $solicitud['Estado'] !== Status::Aprobacion_pendiente) {
-            return $this->fail('La solicitud ya ha sido procesada o no está pendiente de aprobación.', HttpStatus::BAD_REQUEST);
+        if (
+            $solicitud['Estado'] !== 'Aprobacion pendiente' &&
+            $solicitud['Estado'] !== Status::Aprobacion_pendiente
+        ) {
+            return $this->fail(
+                'La solicitud ya ha sido procesada o no está pendiente de aprobación.',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         try {
             // Si la acción es aprobar, pasa a 'En espera'.
             // Si es rechazar, pasa explícitamente a 'Rechazada'.
-            $nuevoEstado = ($accion === 'aprobar' || $accion === Status::Aprobar)
-                ? Status::En_espera
-                : 'Rechazada';
+            $nuevoEstado =
+                $accion === 'aprobar' || $accion === Status::Aprobar
+                    ? Status::En_espera
+                    : 'Rechazada';
 
             $solicitudModel->update($idSolicitud, [
                 'Estado' => $nuevoEstado,
@@ -446,13 +453,15 @@ class Api extends ResourceController
 
             return $this->respondUpdated([
                 'success' => true,
-                'message' => 'La solicitud ha sido ' .
+                'message' =>
+                    'La solicitud ha sido ' .
                     ($nuevoEstado === 'Rechazada' ? 'rechazada.' : 'aprobada y enviada a Compras.'),
             ]);
-
         } catch (\Exception $e) {
             log_message('error', '[dictaminarSolicitudJefe] ' . $e->getMessage());
-            return $this->failServerError('Ocurrió un error inesperado al actualizar la solicitud.');
+            return $this->failServerError(
+                'Ocurrió un error inesperado al actualizar la solicitud.',
+            );
         }
     }
 
@@ -486,7 +495,6 @@ class Api extends ResourceController
         $db->transStart();
 
         try {
-
             $nuevoEstado = Status::En_espera;
 
             // Si la solicitud es de Servicios
@@ -504,9 +512,10 @@ class Api extends ResourceController
             }
 
             // Mensaje dinámico según el estado resultante
-            $mensajeExito = $nuevoEstado == 'Cotizando'
-                ? 'Solicitud aprobada y enviada a etapa de Cotización.'
-                : 'Solicitud aprobada y enviada a Compras para su cotización.';
+            $mensajeExito =
+                $nuevoEstado == 'Cotizando'
+                    ? 'Solicitud aprobada y enviada a etapa de Cotización.'
+                    : 'Solicitud aprobada y enviada a Compras para su cotización.';
 
             return $this->respondUpdated([
                 'success' => true,
@@ -547,7 +556,9 @@ class Api extends ResourceController
             empty($json->ID_Proveedores) ||
             !isset($json->ID_Usuario)
         ) {
-            return $this->failValidationErrors('Se requiere ID de solicitud, un array de IDs de proveedor y el ID de usuario.');
+            return $this->failValidationErrors(
+                'Se requiere ID de solicitud, un array de IDs de proveedor y el ID de usuario.',
+            );
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
@@ -562,8 +573,15 @@ class Api extends ResourceController
         }
 
         // Permitimos 'En espera' y también 'Cotizando' (para recotizaciones)
-        if ($solicitud['Estado'] !== Status::En_espera && $solicitud['Estado'] !== Status::Cotizando) {
-            return $this->fail('La solicitud no está en estado "En espera". Estado actual: ' . $solicitud['Estado'], HttpStatus::BAD_REQUEST);
+        if (
+            $solicitud['Estado'] !== Status::En_espera &&
+            $solicitud['Estado'] !== Status::Cotizando
+        ) {
+            return $this->fail(
+                'La solicitud no está en estado "En espera". Estado actual: ' .
+                    $solicitud['Estado'],
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         // 3. Preparar datos generales
@@ -628,7 +646,10 @@ class Api extends ResourceController
                 if (empty($to)) {
                     if (!$proveedor || empty($proveedor['Correo'])) {
                         // Si el proveedor no tiene correo, lo saltamos pero NO rompemos el bucle
-                        log_message('warning', "Proveedor ID $idProveedor no tiene correo. Se creó la cotización pero no se envió email.");
+                        log_message(
+                            'warning',
+                            "Proveedor ID $idProveedor no tiene correo. Se creó la cotización pero no se envió email.",
+                        );
                         continue;
                     }
                     $to = $proveedor['Correo'];
@@ -642,8 +663,10 @@ class Api extends ResourceController
                 $subject = "Solicitud de Cotización - Folio {$folio} - {$razonSocialEsc}";
 
                 // Construcción del HTML (Incluido aquí para evitar errores de funciones faltantes)
-                $message = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Solicitud de Cotización</title>';
-                $message .= '<style>body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; } .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; background-color: #ffffff; } .header { background-color: #004a99; color: #ffffff; text-align: center; padding: 15px; } .content { padding: 20px; } .footer { margin-top: 20px; font-size: 0.85em; text-align: center; color: #6c757d; }</style></head><body>';
+                $message =
+                    '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Solicitud de Cotización</title>';
+                $message .=
+                    '<style>body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; } .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; background-color: #ffffff; } .header { background-color: #004a99; color: #ffffff; text-align: center; padding: 15px; } .content { padding: 20px; } .footer { margin-top: 20px; font-size: 0.85em; text-align: center; color: #6c757d; }</style></head><body>';
                 $message .= '<div class="container">';
                 $message .= '<div class="header"><h2>Solicitud de Cotización</h2></div>';
                 $message .= '<div class="content">';
@@ -667,7 +690,7 @@ class Api extends ResourceController
             // IMPORTANTE: Ponemos ID_Proveedor en NULL porque ahora hay múltiples cotizando
             $solicitudModel->update($idSolicitud, [
                 'Estado' => Status::Cotizando,
-                'ID_Proveedor' => null
+                'ID_Proveedor' => null,
             ]);
 
             $db->transComplete();
@@ -680,11 +703,18 @@ class Api extends ResourceController
                 'success' => true,
                 'message' => 'Cotizaciones generadas correctamente.',
             ]);
-
         } catch (\Throwable $e) {
             $db->transRollback();
             // ESTO ES CLAVE: Escribir el error real en el log para que puedas verlo si vuelve a fallar
-            log_message('critical', '[Error crearCotizacion]: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
+            log_message(
+                'critical',
+                '[Error crearCotizacion]: ' .
+                    $e->getMessage() .
+                    ' en ' .
+                    $e->getFile() .
+                    ':' .
+                    $e->getLine(),
+            );
 
             return $this->failServerError('Error interno: ' . $e->getMessage());
         }
@@ -1068,9 +1098,10 @@ class Api extends ResourceController
         $cotizacionModel = new CotizacionModel();
         $ordenCompraModel = new OrdenCompraModel();
         $solicitudModel = new SolicitudModel();
+        $proveedorModel = new proveedorModel();
 
         $nuevoEstado = null;
-    
+
         if ($this->request->is('json')) {
             $json = $this->request->getJSON();
             $nuevoEstado = $json->nuevoEstado ?? null;
@@ -1107,6 +1138,7 @@ class Api extends ResourceController
             $idOrdenCompra = $orden['ID_OrdenCompra'];
             $idProveedor = $cot['ID_Proveedor'];
             $randomString = uniqid();
+            $proveedor = $proveedorModel->find($idProveedor);
 
             if ($facturaFile && $facturaFile->isValid()) {
                 $baseFileName = "Factura-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}";
@@ -1144,30 +1176,60 @@ class Api extends ResourceController
 
                         if ($pdfPath) {
                             $orden = $this->api->getOrdenCompra($idSolicitud);
-                            $mail = new MBSMail();
                             
-                            $to = getenv('EMAIL_TO_TESORERIA');
-                            $subject = "Nueva Requisición de Pago - Folio " . ($orden['No_Folio'] ?? $idSolicitud);
+                            $proveedorData = $orden['proveedor'] ?? null;
+                            if (!$proveedorData && isset($orden['cotizacion']['ID_Proveedor'])) {
+                                $proveedorModel = new ProveedorModel();
+                                $proveedorData = $proveedorModel->find($orden['cotizacion']['ID_Proveedor']);
+                            }
+
+                            $mail = new MBSMail();
+
+                            $to = getenv('EMAIL_TO_TEST');
+                            if (empty($to)) {
+                                if (!$proveedorData || empty($proveedorData['Correo'])) {
+                                    // Si el proveedor no tiene correo, lo saltamos pero NO rompemos el bucle
+                                    log_message(
+                                        'warning',
+                                        "Proveedor ID $idProveedor no tiene correo. Se creó la cotización pero no se envió email.",
+                                    );
+                                }
+                                $to = $proveedor['Correo'];
+                            }
+                            $subject =
+                                'Nueva Requisición de Pago - Folio ' .
+                                ($orden['No_Folio'] ?? $idSolicitud);
                             $message = view('emails/notificacion_pago', [
                                 'folio' => $orden['No_Folio'] ?? $idSolicitud,
                                 'proveedor' => $orden['proveedor']['RazonSocial'] ?? 'N/A',
                                 'total' => number_format($orden['cotizacion']['Total'] ?? 0, 2),
                                 'razonSocial' => $orden['Complejo'] ?? 'N/A',
                             ]);
-                            
+
                             $options = ['attachments' => [$pdfPath]];
 
                             if ($to && $mail->send_email($to, $subject, $message, $options)) {
-                                log_message('info', "Correo de requisición de pago enviado a {$to} para solicitud {$idSolicitud}.");
+                                log_message(
+                                    'info',
+                                    "Correo de requisición de pago enviado a {$to} para solicitud {$idSolicitud}.",
+                                );
                             } else {
-                                log_message('error', "No se pudo enviar el correo de requisición de pago para la solicitud {$idSolicitud}. Destinatario: " . ($to ?: 'No configurado'));
+                                log_message(
+                                    'error',
+                                    "No se pudo enviar el correo de requisición de pago para la solicitud {$idSolicitud}. Destinatario: " .
+                                        ($to ?: 'No configurado'),
+                                );
                             }
                         }
                     } catch (\Exception $e) {
-                        log_message('error', '[cambiarEstadoOrden] Error al generar PDF o enviar correo para "Por Pagar": ' . $e->getMessage());
+                        log_message(
+                            'error',
+                            '[cambiarEstadoOrden] Error al generar PDF o enviar correo para "Por Pagar": ' .
+                                $e->getMessage(),
+                        );
                     }
                 }
-                
+
                 if ($nuevoEstado === 'Pagada') {
                     $ordenActualizada = $ordenCompraModel->find($idOrdenCompra);
 
@@ -1191,33 +1253,36 @@ class Api extends ResourceController
                         $solicitudModel = new SolicitudModel();
                         $proveedorModel = new ProveedorModel();
                         $razonSocialModel = new RazonSocialModel();
-    
+
                         $solicitud = $solicitudModel->find($idSolicitud);
                         $proveedor = $proveedorModel->find($ordenActualizada['ID_Proveedor']);
                         $razon = $razonSocialModel->find($solicitud['ID_RazonSocial']);
-    
+
                         if (!$solicitud || !$proveedor || !$razon) {
-                            throw new \Exception('Datos insuficientes para enviar la ficha de pago.');
+                            throw new \Exception(
+                                'Datos insuficientes para enviar la ficha de pago.',
+                            );
                         }
-    
-                        $attachmentPath = FPath::FCOMPROBANTES . $ordenActualizada['File_Comprobante'];
-    
+
+                        $attachmentPath =
+                            FPath::FCOMPROBANTES . $ordenActualizada['File_Comprobante'];
+
                         if (!file_exists($attachmentPath)) {
                             throw new \Exception(
                                 'El archivo de la ficha de pago no se encontró en la ruta esperada: ' .
                                     $attachmentPath,
                             );
                         }
-    
+
                         $mail = new MBSMail();
-    
+
                         $subject = "Ficha de Pago - Solicitud Folio {$solicitud['No_Folio']}";
-    
+
                         $totalAPagar = '$' . number_format($cot['Total'], 2);
                         $proveedorNombre = esc($proveedor['RazonSocial'] ?? 'Proveedor');
                         $folio = esc($solicitud['No_Folio']);
                         $razonNombre = esc($razon['Nombre']);
-    
+
                         $toProveedor = getenv('EMAIL_TO_TEST') ?: $proveedor['Correo'] ?? null;
                         if ($toProveedor) {
                             $messageProveedor = view('emails/ficha_pago', [
@@ -1237,7 +1302,7 @@ class Api extends ResourceController
                                 'No se pudo enviar ficha de pago al proveedor (correo no disponible).',
                             );
                         }
-    
+
                         $ccCompras = getenv('EMAIL_TO_COMPRAS');
                         if ($ccCompras) {
                             $messageCompras = view('emails/ficha_pago', [
@@ -1258,7 +1323,7 @@ class Api extends ResourceController
                                 'No se pudo enviar ficha de pago a Compras (correo no configurado).',
                             );
                         }
-    
+
                         $ccTesoreria = getenv('EMAIL_TO_TESORERIA');
                         if ($ccTesoreria) {
                             $messageTesoreria = view('emails/ficha_pago', [
@@ -1290,13 +1355,14 @@ class Api extends ResourceController
                     if ($solicitud['Tipo'] == SolicitudTipo::Servicios) {
                         $pdfGenerator = new \App\Controllers\GenerarPDF();
                         $pdfPath = $pdfGenerator->GenerarFacturaServicioPDF(
-                            $solicitud['ID_Solicitud']
+                            $solicitud['ID_Solicitud'],
                         );
-    
+
                         if (empty($pdfPath)) {
                             log_message(
                                 'error',
-                                'Error al generar factura de servicio para la solicitud ID: ' . $solicitud['ID_Solicitud']
+                                'Error al generar factura de servicio para la solicitud ID: ' .
+                                    $solicitud['ID_Solicitud'],
                             );
                         } else {
                             $ordenCompraModel->update($idOrdenCompra, [
@@ -1388,7 +1454,6 @@ class Api extends ResourceController
 
             //Solicitud tipo 2 (servicio) no se ejecuta
             if ($solicitud['Tipo'] != 2) {
-
                 $to = getenv('EMAIL_TO_TEST');
                 if (empty($to)) {
                     if (!$proveedor || empty($proveedor['Correo'])) {
@@ -2420,7 +2485,10 @@ class Api extends ResourceController
         $data = $this->api->getPagosPendientes();
 
         if (empty($data)) {
-            return $this->respond(['success' => false, 'message' => 'No se encontraron pagos pendientes.']);
+            return $this->respond([
+                'success' => false,
+                'message' => 'No se encontraron pagos pendientes.',
+            ]);
         }
 
         return $this->respond(['success' => true, 'data' => $data]);
@@ -2431,7 +2499,10 @@ class Api extends ResourceController
         $data = $this->api->getFichasPago();
 
         if (empty($data)) {
-            return $this->respond(['success' => false, 'message' => 'No se encontraron fichas de pago.']);
+            return $this->respond([
+                'success' => false,
+                'message' => 'No se encontraron fichas de pago.',
+            ]);
         }
 
         return $this->respond(['success' => true, 'data' => $data]);
