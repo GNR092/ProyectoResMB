@@ -525,16 +525,21 @@ class Api extends ResourceController
      */
     public function crearCotizacion()
     {
+        // Instanciar modelos
         $cotizacionModel = new CotizacionModel();
         $solicitudModel = new SolicitudModel();
         $razonSocialModel = new RazonSocialModel();
         $proveedorModel = new ProveedorModel();
 
+        // 1. Obtener y Validar JSON
         $json = $this->request->getJSON();
+
+        // Validación básica de existencia
         if (!$json) {
             return $this->fail('Invalid JSON.', HttpStatus::BAD_REQUEST);
         }
 
+        // Validación de campos requeridos
         if (
             !isset($json->ID_Solicitud) ||
             !isset($json->ID_Proveedores) ||
@@ -542,61 +547,73 @@ class Api extends ResourceController
             empty($json->ID_Proveedores) ||
             !isset($json->ID_Usuario)
         ) {
-            return $this->failValidationErrors(
-                'Se requiere ID de solicitud, un array de IDs de proveedor y el ID de usuario.',
-            );
+            return $this->failValidationErrors('Se requiere ID de solicitud, un array de IDs de proveedor y el ID de usuario.');
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
-        $idProveedores = $json->ID_Proveedores;
+        $idProveedores = $json->ID_Proveedores; // Array
         $idUsuarioCotiza = (int) $json->ID_Usuario;
 
+        // 2. Validar Estado de la Solicitud
         $solicitud = $solicitudModel->find($idSolicitud);
 
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
-        if ($solicitud['Estado'] !== Status::En_espera) {
-            return $this->fail(
-                'La solicitud ya no está en estado "En espera". Estado actual: ' .
-                    $solicitud['Estado'],
-                HttpStatus::BAD_REQUEST,
-            );
+
+        // Permitimos 'En espera' y también 'Cotizando' (para recotizaciones)
+        if ($solicitud['Estado'] !== Status::En_espera && $solicitud['Estado'] !== Status::Cotizando) {
+            return $this->fail('La solicitud no está en estado "En espera". Estado actual: ' . $solicitud['Estado'], HttpStatus::BAD_REQUEST);
         }
 
+        // 3. Preparar datos generales
         $details = $this->api->getSolicitudWithProducts($idSolicitud);
         $razon = $razonSocialModel->find($solicitud['ID_RazonSocial']);
-        $razonNombre = $razon['Nombre'];
+        $razonNombre = $razon['Nombre'] ?? 'Empresa';
 
+        // Calcular Total (Referencia)
         $total = 0;
-        if ($solicitud['Tipo'] != SolicitudTipo::Servicios) {
-            if (!empty($details['productos'])) {
-                foreach ($details['productos'] as $p) {
+        $productos = $details['productos'] ?? [];
+
+        if (!empty($productos)) {
+            foreach ($productos as $p) {
+                if ($solicitud['Tipo'] != SolicitudTipo::Servicios) {
                     $total += (float) $p['Cantidad'] * (float) $p['Importe'];
-                }
-            }
-        } else {
-            if (!empty($details['productos'])) {
-                foreach ($details['productos'] as $p) {
+                } else {
                     $total += (float) $p['Importe'];
                 }
             }
         }
 
-        $pdf = new GenerarPDF();
-        $pdf->generarYGuardarRequisicion($idSolicitud);
-        $attachmentPath = FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf';
+        // 4. Generar PDF
+        try {
+            $pdf = new GenerarPDF();
+            $pdf->generarYGuardarRequisicion($idSolicitud);
+            $attachmentPath = FPath::FPDF . 'Requisicion-MBSP-' . $idSolicitud . '.pdf';
 
+            // Verificación opcional de existencia del archivo
+            if (!file_exists($attachmentPath)) {
+                log_message('error', "El PDF no se encontró en: $attachmentPath");
+                // No lanzamos excepción aquí para no detener el flujo si el PDF falla, pero es ideal revisar logs.
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Error al generar PDF: ' . $e->getMessage());
+            return $this->failServerError('Error al generar el PDF de la requisición.');
+        }
+
+        // 5. Iniciar Transacción y Bucle de Proveedores
         $db = \Config\Database::connect();
         $db->transStart();
 
         try {
             $mail = new MBSMail();
 
+            // --- BUCLE: Crear una cotización por cada proveedor ---
             foreach ($idProveedores as $idProveedor) {
                 $idProveedor = (int) $idProveedor;
                 $proveedor = $proveedorModel->find($idProveedor);
 
+                // A. Insertar Cotización
                 $cotizacionData = [
                     'ID_Solicitud' => $idSolicitud,
                     'ID_Proveedor' => $idProveedor,
@@ -604,14 +621,15 @@ class Api extends ResourceController
                     'ID_Usuario_Cotiza' => $idUsuarioCotiza,
                 ];
                 $cotizacionModel->insert($cotizacionData);
-                $solicitudModel->update($idSolicitud, ['ID_Proveedor' => $idProveedor]);
 
+                // B. Enviar Correo
+                // Lógica de destinatario
                 $to = getenv('EMAIL_TO_TEST');
                 if (empty($to)) {
                     if (!$proveedor || empty($proveedor['Correo'])) {
-                        throw new \Exception(
-                            "No se pudo encontrar un correo electrónico para el proveedor con ID: {$idProveedor}.",
-                        );
+                        // Si el proveedor no tiene correo, lo saltamos pero NO rompemos el bucle
+                        log_message('warning', "Proveedor ID $idProveedor no tiene correo. Se creó la cotización pero no se envió email.");
+                        continue;
                     }
                     $to = $proveedor['Correo'];
                 }
@@ -623,35 +641,15 @@ class Api extends ResourceController
 
                 $subject = "Solicitud de Cotización - Folio {$folio} - {$razonSocialEsc}";
 
-                $message = '';
-                $message .=
-                    '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Solicitud de Cotización</title>';
-                $message .= '<style>';
-                $message .=
-                    'body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }';
-                $message .=
-                    '.container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; border-radius: 8px; background-color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }';
-                $message .=
-                    '.header { padding: 15px 20px; background-color: #004a99; color: #ffffff; text-align: center; border-radius: 8px 8px 0 0; }';
-                $message .= '.header h2 { margin: 0; font-size: 24px; }';
-                $message .= '.content { padding: 25px 20px; }';
-                $message .= '.content p { margin: 0 0 15px; }';
-                $message .=
-                    '.content ul { list-style: none; padding: 0; margin: 15px 0; border-left: 3px solid #004a99; padding-left: 15px; }';
-                $message .= '.content li { margin-bottom: 8px; }';
-                $message .=
-                    '.footer { margin-top: 20px; padding: 15px 20px; font-size: 0.85em; color: #6c757d; text-align: center; background-color: #f4f4f4; border-radius: 0 0 8px 8px; }';
-                $message .= '</style></head><body>';
+                // Construcción del HTML (Incluido aquí para evitar errores de funciones faltantes)
+                $message = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Solicitud de Cotización</title>';
+                $message .= '<style>body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; } .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #dee2e6; background-color: #ffffff; } .header { background-color: #004a99; color: #ffffff; text-align: center; padding: 15px; } .content { padding: 20px; } .footer { margin-top: 20px; font-size: 0.85em; text-align: center; color: #6c757d; }</style></head><body>';
                 $message .= '<div class="container">';
                 $message .= '<div class="header"><h2>Solicitud de Cotización</h2></div>';
                 $message .= '<div class="content">';
                 $message .= "<p>Estimado proveedor <strong>{$proveedorNombre}</strong>,</p>";
-                $message .= "<p>Por medio de la presente, <strong>{$razonSocialEsc}</strong> le solicita amablemente la cotización de los productos/servicios descritos en el documento PDF adjunto.</p>";
-                $message .= '<p><strong>Detalles de la Requisición:</strong></p>';
-                $message .= "<ul><li><strong>Folio:</strong> {$folio}</li><li><strong>Fecha de Solicitud:</strong> {$fecha}</li></ul>";
-                $message .=
-                    '<p>Agradeceríamos enormemente que nos hiciera llegar su propuesta a la brevedad posible. Si tiene alguna duda o requiere información adicional, no dude en contactarnos por los medios habituales.</p>';
-                $message .= '<p>Quedamos a su disposición.</p>';
+                $message .= "<p>Por medio de la presente, <strong>{$razonSocialEsc}</strong> le solicita amablemente la cotización de los productos/servicios adjuntos.</p>";
+                $message .= "<ul><li><strong>Folio:</strong> {$folio}</li><li><strong>Fecha:</strong> {$fecha}</li></ul>";
                 $message .= '</div>';
                 $message .= "<div class=\"footer\"><p><strong>{$razonSocialEsc}</strong></p></div>";
                 $message .= '</div></body></html>';
@@ -661,29 +659,34 @@ class Api extends ResourceController
                     'fromName' => $razonNombre,
                 ];
 
+                // Enviar
                 $mail->send_email($to, $subject, $message, $option);
             }
 
-            $solicitudModel->update($idSolicitud, ['Estado' => Status::Cotizando]);
+            // 6. Actualizar Estado Global de la Solicitud
+            // IMPORTANTE: Ponemos ID_Proveedor en NULL porque ahora hay múltiples cotizando
+            $solicitudModel->update($idSolicitud, [
+                'Estado' => Status::Cotizando,
+                'ID_Proveedor' => null
+            ]);
 
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                return $this->failServerError(
-                    'Ocurrió un error en la transacción de la base de datos.',
-                );
+                return $this->failServerError('Error en la transacción de la base de datos.');
             }
 
             return $this->respondCreated([
                 'success' => true,
-                'message' => 'Cotizaciones creadas y solicitud actualizada.',
+                'message' => 'Cotizaciones generadas correctamente.',
             ]);
-        } catch (\Exception $e) {
+
+        } catch (\Throwable $e) {
             $db->transRollback();
-            log_message('error', '[crearCotizacion] ' . $e->getMessage());
-            return $this->failServerError(
-                'Ocurrió un error inesperado al crear las cotizaciones: ' . $e->getMessage(),
-            );
+            // ESTO ES CLAVE: Escribir el error real en el log para que puedas verlo si vuelve a fallar
+            log_message('critical', '[Error crearCotizacion]: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
+
+            return $this->failServerError('Error interno: ' . $e->getMessage());
         }
     }
 
