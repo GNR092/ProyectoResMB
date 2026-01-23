@@ -2347,27 +2347,159 @@ function initCrudRazonSocial() {
   const tabla = document.getElementById('tabla-razonsocial')
   if (!tabla) return
 
+  initRazonSocialTabla()
+  initRazonSocialPantallas()
+  initRazonSocialForm()
+  initRazonSocialEditarForm()
   initRazonSocialActions(tabla)
 }
 
-function initRazonSocialActions(tabla) {
-    if (!tabla) return
+function initRazonSocialTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-razonsocial tr[data-id]',
+    paginationSelector: 'paginacion-razonsocial',
+    filterFormSelector: '#form-filtros-razonsocial',
+    filterFunction: (row, form) => {
+      const nombreFiltro = (document.getElementById('buscar-nombre')?.value || '').toLowerCase()
+      const nombre = row.querySelector('.nombre')?.textContent.toLowerCase() || ''
+      return nombre.includes(nombreFiltro)
+    },
+    rowsPerPage: 10,
+  })
+}
 
-    tabla.addEventListener('click', async (e) => {
-    // --- EDITAR ---
-    const btnEditar = e.target.closest("[id^='btn-editar-razonsocial-']")
-    if (!btnEditar) return
+function initRazonSocialPantallas() {
+  const pantallaAgregar = document.getElementById('pantalla-agregar-razonsocial')
+  const pantallaEditar = document.getElementById('pantalla-editar-razonsocial')
+  const pantallaLista = document.getElementById('pantalla-lista-razonsocial')
+
+  const btnAgregar = document.getElementById('btn-agregar-razonsocial')
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar')
+
+  if (btnAgregar)
+    btnAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaLista?.classList.add('hidden')
+      pantallaAgregar?.classList.remove('hidden')
+    }
+
+  if (btnRegresarAgregar)
+    btnRegresarAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaAgregar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+
+  if (btnRegresarEditar)
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+}
+
+function initRazonSocialForm() {
+    const formAgregar = document.getElementById('form-agregar-razonsocial')
+    if (!formAgregar) return
+
+    formAgregar.onsubmit = async (e) => {
+        e.preventDefault()
+        const formData = new FormData(formAgregar)
+
+        try {
+            const result = await SendDataEnd('modales/razonsocial/insertar', {
+                method: 'POST',
+                body: formData,
+            })
+
+            if (result.success) {
+                mostrarNotificacion('Razón social agregada correctamente ✅', 'success')
+                formAgregar.reset()
+                abrirModal('razonsocial') // Recargar el modal para ver los cambios
+            } else {
+                mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+            }
+        } catch (error) {
+            console.error('Error al agregar razón social:', error)
+            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+        }
+    }
+}
+
+function initRazonSocialEditarForm() {
+    const formEditar = document.getElementById('form-editar-razonsocial')
+    if (!formEditar) return
+
+    formEditar.onsubmit = async (e) => {
+        e.preventDefault()
+        const formData = new FormData(formEditar)
+        const id = formData.get('ID_RazonSocial')
+
+        try {
+            const result = await SendDataEnd(`modales/razonsocial/editar/${id}`, {
+                method: 'POST',
+                body: formData,
+            })
+
+            if (result.success) {
+                mostrarNotificacion('Razón social actualizada correctamente ✅', 'success')
+                abrirModal('razonsocial') // Recargar el modal para ver los cambios
+            } else {
+                mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+            }
+        } catch (error) {
+            console.error('Error al editar razón social:', error)
+            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+        }
+    }
+}
+
+function initRazonSocialActions(tabla) {
+  if (!tabla) return
+
+  tabla.addEventListener('click', async (e) => {
+    const btn = e.target.closest('a.btn-editar, a.btn-eliminar')
+    if (!btn) return
     e.preventDefault()
 
-    const fila = btnEditar.closest('tr')
-    if (!fila) return
+    const id = btn.dataset.id
+    const fila = btn.closest('tr')
 
-    document.getElementById('editar-ID_RazonSocial').value = fila.dataset.id
-    document.getElementById('editar-Nombre').value = fila.querySelector('.nombre').textContent
-    document.getElementById('editar-RFC').value = fila.dataset.rfc
+    // --- EDITAR ---
+    if (btn.classList.contains('btn-editar')) {
+      if (!fila) return
 
-    document.getElementById('pantalla-lista-razonsocial').classList.add('hidden')
-    document.getElementById('pantalla-editar-razonsocial').classList.remove('hidden')
+      document.getElementById('editar-ID_RazonSocial').value = id
+      document.getElementById('editar-Nombre').value = fila.querySelector('.nombre').textContent
+      document.getElementById('editar-RFC').value = fila.querySelector('.rfc').textContent
+
+      document.getElementById('pantalla-lista-razonsocial').classList.add('hidden')
+      document.getElementById('pantalla-editar-razonsocial').classList.remove('hidden')
+    }
+
+    // --- ELIMINAR ---
+    if (btn.classList.contains('btn-eliminar')) {
+      if (!(await Confirmar('Eliminar Razón Social', '¿Seguro que deseas eliminar este registro?'))) {
+        return
+      }
+
+      try {
+        const result = await SendDataEnd(`modales/razonsocial/eliminar/${id}`, {
+          method: 'POST',
+        })
+
+        if (result.success) {
+          mostrarNotificacion('Razón social eliminada ✅', 'success')
+          fila?.remove()
+        } else {
+          mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+        }
+      } catch (error) {
+        console.error('Error al eliminar razón social:', error)
+        mostrarNotificacion('Error de conexión ❌', 'error')
+      }
+    }
   })
 }
 
