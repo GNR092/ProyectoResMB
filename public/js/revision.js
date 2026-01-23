@@ -295,20 +295,20 @@ function RevisionX() {
           inputArchivos.disabled = false
           inputArchivos.value = ''
           inputArchivos.classList.remove('bg-gray-100', 'cursor-not-allowed')
-          checkboxLabel.textContent = 'Adjuntar solo la cotización del solicitante'
+       //   checkboxLabel.textContent = 'Adjuntar solo la cotización del solicitante'
           checkboxLabel.classList.remove('text-gray-500', 'cursor-not-allowed')
 
           if (!data.Archivo) {
-            checkboxInput.disabled = true
-            checkboxLabel.textContent += ' (No disponible)'
+          //  checkboxInput.disabled = true
+          //  checkboxLabel.textContent += ' (No disponible)'
 
-            checkboxLabel.classList.add('text-red-700', 'cursor-not-allowed')
-            checkboxInput.classList.add(
-              'cursor-not-allowed',
-              'bg-red-100',
-              'border-red-400',
-              'accent-red-500',
-            )
+          //  checkboxLabel.classList.add('text-red-700', 'cursor-not-allowed')
+          //  checkboxInput.classList.add(
+          //    'cursor-not-allowed',
+          //    'bg-red-100',
+          //    'border-red-400',
+          //    'accent-red-500',
+          //  )
             checkboxInput.classList.remove('text-indigo-600', 'focus:ring-indigo-500')
           } else {
             checkboxInput.onchange = (e) => {

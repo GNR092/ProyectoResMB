@@ -45,15 +45,15 @@
         <form id="form-enviar-revision" class="mt-4">
 
             <div class="flex items-center mb-4">
-                <input type="checkbox"
-                       id="adjuntar-solicitante-check"
-                       name="adjuntar_solicitante"
-                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-black-300 rounded ">
-                <label for="adjuntar-solicitante-check"
-                       id="adjuntar-solicitante-label"
-                       class="ml-2 block text-sm text-gray-900 cursor-pointer">
-                    Adjuntar solo la cotización del solicitante
-                </label>
+                <!-- <input type="checkbox"
+                        id="adjuntar-solicitante-check"
+                        name="adjuntar_solicitante"
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-black-300 rounded ">
+                  <label for="adjuntar-solicitante-check"
+                        id="adjuntar-solicitante-label"
+                        class="ml-2 block text-sm text-gray-900 cursor-pointer">
+                      Adjuntar solo la cotización del solicitante
+                 </label> -->
             </div>
             <div>
                 <label for="archivos-revision" class="block text-sm font-medium text-gray-700">Adjuntar Cotización (Imágenes o PDF)</label>

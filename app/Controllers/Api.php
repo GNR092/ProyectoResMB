@@ -25,6 +25,9 @@ use App\Models\RazonSocialModel;
 use App\Models\UsuariosModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class Api extends ResourceController
 {
@@ -2457,25 +2460,40 @@ class Api extends ResourceController
         return $this->respond($data);
     }
 
+
     public function exportarPagosProgramados()
     {
         $metodoPagoFiltro = $this->request->getGet('metodo_pago');
-
         $ordenCompraModel = new OrdenCompraModel();
 
         $builder = $ordenCompraModel
             ->select([
+                // --- Datos Generales ---
                 'Solicitud.No_Folio',
-                'Proveedor.RazonSocial as Proveedor',
-                'Cotizacion.Total',
+                'Solicitud.Fecha as FechaSolicitud',
                 'Solicitud.MetodoPago',
                 'OrdenCompra.Estado',
-                'Solicitud.Fecha as FechaSolicitud',
+                'Cotizacion.Total',
+                'Departamentos.Nombre as Departamento',
+                'Razon_Social.Nombre as Proyecto',
+
+                // --- Datos del Proveedor ---
+                'Proveedor.RazonSocial as Proveedor',
+                'Proveedor.RFC',
+                'Proveedor.Banco',
+                'Proveedor.Cuenta as CuentaProveedor',
+                'Proveedor.Clabe',
+                'Proveedor.Dias_Credito',
+                'Proveedor.Monto_Credito'
             ])
+            // Joins
             ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = OrdenCompra.ID_Proveedor', 'left')
-            ->where('OrdenCompra.Estado', Status::Programada)
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+
+            ->where('OrdenCompra.Estado', 'Programada')
             ->orderBy('Solicitud.Fecha', 'DESC');
 
         if ($metodoPagoFiltro !== null && $metodoPagoFiltro !== 'todos') {
@@ -2487,36 +2505,103 @@ class Api extends ResourceController
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        $sheet->setCellValue('A1', 'No. Folio');
-        $sheet->setCellValue('B1', 'Proveedor');
-        $sheet->setCellValue('C1', 'Total a Pagar');
-        $sheet->setCellValue('D1', 'Método de Pago');
-        $sheet->setCellValue('E1', 'Estado');
-        $sheet->setCellValue('F1', 'Fecha de Solicitud');
+        // ---  ENCABEZADOS SUPERIORES  ---
+        $sheet->setCellValue('A1', 'Datos generales');
+        $sheet->mergeCells('A1:F1');
+        $sheet->setCellValue('G1', 'Datos del proveedor');
+        $sheet->mergeCells('G1:N1');
 
-        $row = 2;
+        // Estilos Fila 1
+        $styleTopHeader = [
+            'font' => ['bold' => true],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FFD9D9D9'] // Color Gris claro
+            ]
+        ];
+        $sheet->getStyle('A1:N1')->applyFromArray($styleTopHeader);
+
+
+        // --- F ENCABEZADOS DE COLUMNA ---
+        $headers = [
+            'A2' => 'Folio',
+            'B2' => 'Fecha Solicitud',
+            'C2' => 'Departamento',
+            'D2' => 'Proyecto',
+            'E2' => 'Importe Total',
+            'F2' => 'Método Pago',
+            'G2' => 'Razón Social',
+            'H2' => 'RFC',
+            'I2' => 'Banco',
+            'J2' => 'Cuenta Proveedor',
+            'K2' => 'CLABE',
+            'L2' => 'Días Crédito',
+            'M2' => 'Monto Máx. Crédito',
+            'N2' => 'Estado'
+        ];
+
+        foreach ($headers as $cell => $text) {
+            $sheet->setCellValue($cell, $text);
+        }
+        // Negrita para la fila 2
+        $sheet->getStyle('A2:N2')->getFont()->setBold(true);
+
+        //LLenar datos
+        $row = 3;
+        $startRow = 3;
+
         foreach ($pagos as $pago) {
-            $metodoPagoTexto = '';
-            if ($pago['MetodoPago'] == '0') {
-                $metodoPagoTexto = 'Contado';
-            } elseif ($pago['MetodoPago'] == '1') {
-                $metodoPagoTexto = 'Crédito';
-            } else {
-                $metodoPagoTexto = 'Desconocido';
-            }
+            $metodoPagoTexto = match($pago['MetodoPago']) {
+                '0' => 'Contado',
+                '1' => 'Crédito',
+                default => 'Desconocido',
+            };
 
+            //Datos Generales
             $sheet->setCellValue('A' . $row, $pago['No_Folio']);
-            $sheet->setCellValue('B' . $row, $pago['Proveedor']);
-            $sheet->setCellValue('C' . $row, $pago['Total']);
-            $sheet->setCellValue('D' . $row, $metodoPagoTexto);
-            $sheet->setCellValue('E' . $row, $pago['Estado']);
-            $sheet->setCellValue('F' . $row, $pago['FechaSolicitud']);
+            $sheet->setCellValue('B' . $row, $pago['FechaSolicitud']);
+            $sheet->setCellValue('C' . $row, $pago['Departamento'] ?? 'N/A');
+            $sheet->setCellValue('D' . $row, $pago['Proyecto'] ?? 'N/A');
+            $sheet->setCellValue('E' . $row, $pago['Total']);
+            $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('"$"#,##0.00_-');
+            $sheet->setCellValue('F' . $row, $metodoPagoTexto);
+
+            //Datos Proveedor
+            $sheet->setCellValue('G' . $row, $pago['Proveedor']);
+            $sheet->setCellValue('H' . $row, $pago['RFC'] ?? '');
+            $sheet->setCellValue('I' . $row, $pago['Banco'] ?? '');
+            $sheet->setCellValueExplicit('J' . $row, $pago['CuentaProveedor'] ?? '', DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('K' . $row, $pago['Clabe'] ?? '', DataType::TYPE_STRING);
+            $sheet->setCellValue('L' . $row, $pago['Dias_Credito'] ?? '0');
+            $sheet->setCellValue('M' . $row, $pago['Monto_Credito'] ?? 0);
+            $sheet->getStyle('M' . $row)->getNumberFormat()->setFormatCode('"$"#,##0.00_-');
+
+            $sheet->setCellValue('N' . $row, $pago['Estado']);
+
             $row++;
         }
 
-        $writer = new Xlsx($spreadsheet);
 
-        $filename = 'pagos_programados.xlsx';
+        //Columna de totales
+        $lastDataRow = $row - 1;
+        $totalRow = $row + 3; // Bajamos 3 filas para dejar espacio
+
+        // Etiqueta "Total" en la columna D
+        $sheet->setCellValue('D' . $totalRow, 'Total');
+        $sheet->getStyle('D' . $totalRow)->getFont()->setBold(true);
+        $sheet->setCellValue('E' . $totalRow, '=SUM(E'.$startRow.':E'.$lastDataRow.')');
+        $sheet->getStyle('E' . $totalRow)->getFont()->setBold(true);
+        $sheet->getStyle('E' . $totalRow)->getNumberFormat()->setFormatCode('"$"#,##0.00_-');
+
+
+        // --- AJUSTE FINAL DE COLUMNAS ---
+        foreach (range('A', 'N') as $columnID) {
+            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'pagos_programados_' . date('Y-m-d_H-i') . '.xlsx';
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="' . $filename . '"');
