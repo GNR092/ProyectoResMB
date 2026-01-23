@@ -117,10 +117,10 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#cuentas"></use></svg>',
             ],
 
-            'limpiar_almacenamiento' => [
-                'label' => 'Limpiar Almacenamiento',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#limpiar_almacenamiento"></use></svg>',
-            ],
+//            'limpiar_almacenamiento' => [
+//                'label' => 'Limpiar Almacenamiento',
+//                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#limpiar_almacenamiento"></use></svg>',
+//            ],
 
         ];
     }
