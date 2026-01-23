@@ -742,45 +742,82 @@ class Api extends ResourceController
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
+        // Validación de estado...
         if ($solicitud['Estado'] !== Status::Cotizando) {
-            return $this->fail(
-                'La solicitud no está en estado "Cotizado".',
-                HttpStatus::BAD_REQUEST,
-            );
+            return $this->fail('La solicitud no está en estado "Cotizado".', HttpStatus::BAD_REQUEST);
         }
 
+        // Lógica de método de pago...
         switch ($request['tipo_pago']) {
-            case 'efectivo':
-                $tipoPago = MetodoPago::Efectivo;
-                break;
-            case 'credito':
-                $tipoPago = MetodoPago::Credito;
-                break;
+            case 'efectivo': $tipoPago = MetodoPago::Efectivo; break;
+            case 'credito': $tipoPago = MetodoPago::Credito; break;
         }
 
         try {
+            $idProveedorGanador = null; // Variable para guardar al ganador
+
+            // CASO 1: Se seleccionó una cotización explícitamente (Múltiples proveedores)
             if ($idCotizacionSeleccionada) {
-                $cotizacionModel
-                    ->where('ID_Solicitud', $idSolicitud)
-                    ->where('ID_Cotizacion !=', $idCotizacionSeleccionada)
-                    ->delete();
+                // 1. Obtener datos de la cotización ganadora para sacar el ID del proveedor
+                $cotizacionGanadora = $cotizacionModel->find($idCotizacionSeleccionada);
+
+                if ($cotizacionGanadora) {
+                    $idProveedorGanador = $cotizacionGanadora['ID_Proveedor']; // <--- CORRECCION: Obtenemos el ID
+
+                    // 2. Borrar las demás
+                    $cotizacionModel
+                        ->where('ID_Solicitud', $idSolicitud)
+                        ->where('ID_Cotizacion !=', $idCotizacionSeleccionada)
+                        ->delete();
+                }
+            }
+            // CASO 2: No se envió selección (Era un único proveedor)
+            else {
+                // Buscamos la única cotización que debe existir
+                $cotizacionUnica = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
+                if ($cotizacionUnica) {
+                    $idProveedorGanador = $cotizacionUnica['ID_Proveedor']; // <--- CORRECCION: Lo obtenemos de la única existente
+                    // Actualizamos la variable para el guardado de archivos posterior
+                    $idCotizacionSeleccionada = $cotizacionUnica['ID_Cotizacion'];
+                }
             }
 
+            // Si por alguna razón no encontramos proveedor, lanzamos error
+            if (!$idProveedorGanador) {
+                return $this->failNotFound('No se pudo identificar el proveedor ganador.');
+            }
+
+            // ACTUALIZAR LA SOLICITUD
             $this->api->updateSolicitudById($idSolicitud, [
                 'Estado' => 'En revision',
                 'MetodoPago' => $tipoPago,
+                'ID_Proveedor' => $idProveedorGanador // <--- CORRECCION CRÍTICA: Aquí asignamos el proveedor
             ]);
+
+            // ... El resto de tu código de manejo de archivos se queda igual ...
             $files = $this->request->getFiles();
             $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
 
-            if ($files) {
-                $cotizacion = $this->api->getCotizacionBySolicitudID($idSolicitud);
-                $idCotizacion = $cotizacion['ID_Cotizacion'];
+            if ($files && isset($files['cotizacion_files'])) { // Pequeña validación extra
+                // Nota: Aquí usabas getCotizacionBySolicitudID, ahora funcionará bien
+                // porque ya borramos las sobrantes o era única.
+
+                // Si $idCotizacionSeleccionada era null al principio, ya lo llenamos en el ELSE de arriba
+                $idCotizacion = $idCotizacionSeleccionada;
+
+                // Si por si acaso tu función getCotizacionBySolicitudID busca la única que queda:
+                if(!$idCotizacion) {
+                    $cot = $this->api->getCotizacionBySolicitudID($idSolicitud);
+                    $idCotizacion = $cot['ID_Cotizacion'];
+                }
+
                 $tmp = [];
                 $count = 0;
-                foreach ($files['cotizacion_files'] as $file) {
-                    $baseFileName =
-                        'cotizacion_' . $idCotizacion . '_' . $solicitud['Fecha'] . '_' . $count++;
+                // Aseguramos que sea iterable
+                $archivosAProcesar = is_array($files['cotizacion_files']) ? $files['cotizacion_files'] : [$files['cotizacion_files']];
+
+                foreach ($archivosAProcesar as $file) {
+                    $baseFileName = 'cotizacion_' . $idCotizacion . '_' . $solicitud['Fecha'] . '_' . $count++;
                     $savedFileName = ImageProcessor::processAndSave($file, $folder, $baseFileName);
                     if ($savedFileName) {
                         $tmp[] = $savedFileName;
