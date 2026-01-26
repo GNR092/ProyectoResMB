@@ -423,8 +423,10 @@ class Rest
             $orden = $ordenCompraModel
                 ->where('ID_Cotizacion', $cotizaciones[0]['ID_Cotizacion'])
                 ->first();
+
             if ($orden) {
                 $solicitud['EstadoOrden'] = $orden['Estado'];
+                $solicitud['OrdenCompra'] = $orden; // <--- ¡ESTA ES LA LÍNEA MÁGICA QUE FALTA!
             }
         }
 

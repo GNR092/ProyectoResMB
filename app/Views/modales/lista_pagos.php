@@ -1,6 +1,6 @@
 <div id="lista-pagos-modal" x-data="ListaPagos()" x-init="init()" @reload-pagos.window="init()" class="p-4">
 
-    <!-- ================== CONTENEDOR 1: LISTA (Tu código original envuelto) ================== -->
+    <!-- ================== CONTENEDOR 1: LISTA  ================== -->
     <div id="div-lista-pagos">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-bold">Lista de Pagos</h2>

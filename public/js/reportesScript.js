@@ -1,5 +1,3 @@
-
-
 function Reportes(initialData = []) {
   return {
     allData: [],
@@ -199,21 +197,9 @@ function Reportes(initialData = []) {
               </tbody>
           </table>
       `
-      html += `
-      <h3 class="text-md font-semibold mb-3 text-gray-700">Adjuntos</h3>
-      <div class="flex flex-col space-y-2 mb-6 p-4 border rounded-lg bg-gray-50 text-sm text-left">
-          <div><strong>Solicitud:</strong> <a href="${BASE_URL}api/storage/serve?path=pdf_solicitudes/Requisicion-${data.No_Folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> Requisicion-${data.No_Folio}.pdf</a></div>
-          <div><strong>Cotizacion:</strong> <a href="${BASE_URL}api/storage/serve?path=cotizaciones/${data.Fecha}/${data.cotizacion['Cotizacion_Files']}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> ${data.cotizacion['Cotizacion_Files']}</a></div>
-          <div><strong>Orden de Compra:</strong> <a href="${BASE_URL}api/storage/serve?path=pdf_ordenes/OrdenCompra-${data.No_Folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> OrdenCompra-${data.No_Folio}.pdf</a></div>
-          <div><strong>Ficha de pago:</strong> <a href="${BASE_URL}api/storage/serve?path=comprobantes/${data.OrdenCompra['File_Comprobante']}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> ${data.OrdenCompra['File_Comprobante']}</a></div>
-          <div><strong>Factura:</strong> <a href="${BASE_URL}api/storage/serve?path=facturas/${data.OrdenCompra['File_Factura']}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> ${data.OrdenCompra['File_Factura']}</a></div>
-      </div>
-      <div class="mt-4 mb-4 flex justify-start">
-        <a href="${BASE_URL}api/download-attachments/${data.ID_Solicitud}" class="bg-carbon-700 hover:bg-carbon-800 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
-            Descargar Todo (ZIP)
-        </a>
-      </div>
-      `
+
+
+      html += generarSeccionAdjuntos(data);
 
       html +=`
         </div>

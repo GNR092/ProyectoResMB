@@ -23,17 +23,17 @@ function Pagos() {
         const uniqueIds = [...new Set(ordenes.map((o) => o.ID_Solicitud))]
 
         const detallesPromises = uniqueIds.map((id) =>
-          SendDataEnd(`api/orden-compra/details/${id}`),
+            SendDataEnd(`api/orden-compra/details/${id}`),
         )
         const detalles = await Promise.all(detallesPromises)
 
         if (!detalles) return
 
         this.ordenesContado = detalles.filter(
-          (det) => det && det.EstadoOrden === 'Espera_Programacion' && det.MetodoPago == '0',
+            (det) => det && det.EstadoOrden === 'Espera_Programacion' && det.MetodoPago == '0',
         )
         this.ordenesCredito = detalles.filter(
-          (det) => det && det.EstadoOrden === 'Espera_Programacion' && det.MetodoPago == '1',
+            (det) => det && det.EstadoOrden === 'Espera_Programacion' && det.MetodoPago == '1',
         )
 
         this.ordenesCredito.sort((a, b) => 0)
@@ -64,8 +64,8 @@ function Pagos() {
       }
 
       const confirmacion = await Confirmar(
-        'Programar Pagos',
-        `¿Está seguro de que desea programar ${this.selectedOrdenes.length} pago(s)?`,
+          'Programar Pagos',
+          `¿Está seguro de que desea programar ${this.selectedOrdenes.length} pago(s)?`,
       )
 
       if (!confirmacion) return
@@ -94,15 +94,16 @@ function Pagos() {
       this.screen = 'detalle'
 
       SendDataEnd(`api/orden-compra/details/${id}`)
-        .then((data) => {
-          this.detalleOrden = data
-          this.loadingDetalle = false
-        })
-        .catch((error) => {
-          console.error('Error al cargar detalle de la orden:', error)
-          this.loadingDetalle = false
-          this.screen = this.previousScreen
-        })
+          .then((data) => {
+            this.detalleOrden = data
+            this.loadingDetalle = false
+          })
+          .catch((error) => {
+            console.error('Error al cargar detalle de la orden:', error)
+            this.loadingDetalle = false
+            this.screen = this.previousScreen
+          })
+
     },
 
     volverATabla() {
@@ -145,7 +146,7 @@ function Pagos() {
                 `
       }
 
-      return `
+      let html = `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
                     <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
                     <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
@@ -179,9 +180,12 @@ function Pagos() {
                         <tbody>${productosHtml}</tbody>
                     </table>
                 </div>
-
-                ${GetFiles(data)}
             `
+
+      // === INTEGRACIÓN DE ADJUNTOS ===
+      html += generarSeccionAdjuntos(data);
+
+      return html;
     },
 
     formatCurrency(value) {
@@ -246,6 +250,57 @@ function ListaPagos() {
  * Lógica para el modal "Lista de pagos pendientes"
  */
 
+function ListaPagos() {
+  return {
+    pagos: [],
+    loading: true,
+    filtroMetodoPago: 'todos',
+
+    get pagosFiltrados() {
+      if (this.filtroMetodoPago === 'todos') {
+        return this.pagos
+      }
+      return this.pagos.filter((p) => p.MetodoPago === this.filtroMetodoPago)
+    },
+
+    async init() {
+      this.loading = true
+      this.pagos = [];
+      try {
+        const url = `api/pagos/programados?t=${new Date().getTime()}`;
+        const listpagos = await SendDataEnd(url);
+
+        if (!listpagos || listpagos.length === 0) {
+          this.pagos = []
+          return
+        }
+        this.pagos = listpagos
+      } catch (error) {
+        console.error('Error al cargar pagos programados:', error)
+        this.pagos = []
+      } finally {
+        this.loading = false
+      }
+    },
+
+    formatCurrency(value) {
+      if (value === null || isNaN(value)) return 'N/A'
+      return parseFloat(value).toLocaleString('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+      })
+    },
+
+    exportarExcel() {
+      let url = `${BASE_URL}api/pagos/exportar`
+      if (this.filtroMetodoPago !== 'todos') {
+        url += `?metodo_pago=${this.filtroMetodoPago}`
+      }
+      window.location.href = url
+    },
+  }
+}
+
 async function initListaPagos() {
   createPaginatedTable({
     tableSelector: '#tablaListaPagos',
@@ -258,7 +313,6 @@ async function initListaPagos() {
           <td class="py-3 px-6 text-right">$${parseFloat(p.Total).toFixed(2)}</td>
           <td class="py-3 px-6 text-left">${p.Estado || 'N/A'}</td>
           <td class="py-3 px-6 text-center">
-              <!-- MODIFICADO: Llamada a la nueva función -->
               <button onclick="mostrarDetallePago(${p.ID_Pago || p.ID_Solicitud})" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">Ver</button>
           </td>
       </tr>
@@ -267,11 +321,11 @@ async function initListaPagos() {
   })
 }
 
-function renderComprobanteUploader(idSolicitud) { 
-    const container = document.getElementById('comprobante-uploader-container'); 
-    if (!container) return;
+function renderComprobanteUploader(idSolicitud) {
+  const container = document.getElementById('comprobante-uploader-container');
+  if (!container) return;
 
-    container.innerHTML = `
+  container.innerHTML = `
         <div id="file-preview-comprobante" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div> 
         <input type="file" id="archivo-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="handleComprobanteFileSelect(this, ${idSolicitud})"> 
         <button id="btn-upload-comprobante" onclick="document.getElementById('archivo-comprobante').click()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition"> 
@@ -280,29 +334,29 @@ function renderComprobanteUploader(idSolicitud) {
     `;
 }
 
-function handleComprobanteFileSelect(input, idSolicitud) { 
-    const file = input.files[0];
-    if (!file) {
-        removeComprobanteFile(idSolicitud);
-        return;
-    }
+function handleComprobanteFileSelect(input, idSolicitud) {
+  const file = input.files[0];
+  if (!file) {
+    removeComprobanteFile(idSolicitud);
+    return;
+  }
 
-    const previewContainer = document.getElementById('file-preview-comprobante'); 
-    const uploadButton = document.getElementById('btn-upload-comprobante'); 
-    
-    // Simple file type icon logic
-    let icon = '📄'; // default icon
-    if (file.type.startsWith('image/')) {
-        icon = '🖼️';
-    } else if (file.type === 'application/pdf') {
-        icon = '📕';
-    } else if (file.type === 'text/xml' || file.type === 'application/xml') {
-        icon = '🔗';
-    }
-    
-    const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+  const previewContainer = document.getElementById('file-preview-comprobante');
+  const uploadButton = document.getElementById('btn-upload-comprobante');
 
-    previewContainer.innerHTML = `
+  // Simple file type icon logic
+  let icon = '📄';
+  if (file.type.startsWith('image/')) {
+    icon = '🖼️';
+  } else if (file.type === 'application/pdf') {
+    icon = '📕';
+  } else if (file.type === 'text/xml' || file.type === 'application/xml') {
+    icon = '🔗';
+  }
+
+  const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+
+  previewContainer.innerHTML = `
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="text-2xl">${icon}</span>
@@ -314,44 +368,44 @@ function handleComprobanteFileSelect(input, idSolicitud) {
             <button onclick="removeComprobanteFile(${idSolicitud})" class="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button> 
         </div>
     `;
-    previewContainer.classList.remove('hidden');
+  previewContainer.classList.remove('hidden');
 
-    uploadButton.innerText = 'Confirmar y Subir Comprobante'; 
-    uploadButton.onclick = () => uploadComprobante(idSolicitud);
+  uploadButton.innerText = 'Confirmar y Subir Comprobante';
+  uploadButton.onclick = () => uploadComprobante(idSolicitud);
 }
 
-function removeComprobanteFile(idSolicitud) { 
-    const fileInput = document.getElementById('archivo-comprobante'); 
-    if (fileInput) {
-        fileInput.value = '';
-    }
+function removeComprobanteFile(idSolicitud) {
+  const fileInput = document.getElementById('archivo-comprobante');
+  if (fileInput) {
+    fileInput.value = '';
+  }
 
-    const previewContainer = document.getElementById('file-preview-comprobante'); 
-    if (previewContainer) {
-        previewContainer.innerHTML = '';
-        previewContainer.classList.add('hidden');
-    }
-    
-    const uploadButton = document.getElementById('btn-upload-comprobante'); 
-    if(uploadButton) {
-        uploadButton.innerText = 'Subir Comprobante'; 
-        uploadButton.onclick = () => document.getElementById('archivo-comprobante').click(); 
-    }
+  const previewContainer = document.getElementById('file-preview-comprobante');
+  if (previewContainer) {
+    previewContainer.innerHTML = '';
+    previewContainer.classList.add('hidden');
+  }
+
+  const uploadButton = document.getElementById('btn-upload-comprobante');
+  if(uploadButton) {
+    uploadButton.innerText = 'Subir Comprobante';
+    uploadButton.onclick = () => document.getElementById('archivo-comprobante').click();
+  }
 }
 
-async function uploadComprobante(idSolicitud) { 
-    const fileInput = document.getElementById('archivo-comprobante'); 
-    const file = fileInput.files[0];
+async function uploadComprobante(idSolicitud) {
+  const fileInput = document.getElementById('archivo-comprobante');
+  const file = fileInput.files[0];
 
-    if (!file) {
-        mostrarNotificacion('No se ha seleccionado ningún archivo.', 'warning');
-        return;
-    }
+  if (!file) {
+    mostrarNotificacion('No se ha seleccionado ningún archivo.', 'warning');
+    return;
+  }
 
-    const previewContainer = document.getElementById('file-preview-comprobante'); 
-    const uploadButton = document.getElementById('btn-upload-comprobante'); 
+  const previewContainer = document.getElementById('file-preview-comprobante');
+  const uploadButton = document.getElementById('btn-upload-comprobante');
 
-    previewContainer.innerHTML = `
+  previewContainer.innerHTML = `
         <div class="flex items-center justify-center gap-2">
             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -360,34 +414,34 @@ async function uploadComprobante(idSolicitud) {
             <span class="text-sm text-gray-600">Subiendo comprobante...</span> 
         </div>
     `;
-    uploadButton.disabled = true;
+  uploadButton.disabled = true;
 
-    const formData = new FormData();
-    formData.append('ficha', file); 
+  const formData = new FormData();
+  formData.append('ficha', file);
 
-    try {
-        const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
-            method: 'POST',
-            body: formData,
-        });
+  try {
+    const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
+      method: 'POST',
+      body: formData,
+    });
 
-        if (result.success) {
-            mostrarNotificacion('Comprobante subido con éxito.', 'success'); 
-            removeComprobanteFile(idSolicitud);
+    if (result.success) {
+      mostrarNotificacion('Comprobante subido con éxito.', 'success');
+      removeComprobanteFile(idSolicitud);
 
-          // Recargar la vista de detalles
-          await mostrarDetallePago(idSolicitud);
+      // Recargar la vista de detalles
+      await mostrarDetallePago(idSolicitud);
 
-        } else {
-            throw new Error(result.message || 'Error desconocido del servidor.');
-        }
-    } catch (error) {
-        console.error('Error al subir comprobante:', error); 
-        mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error'); 
-        handleComprobanteFileSelect(fileInput, idSolicitud); 
-    } finally {
-        uploadButton.disabled = false;
+    } else {
+      throw new Error(result.message || 'Error desconocido del servidor.');
     }
+  } catch (error) {
+    console.error('Error al subir comprobante:', error);
+    mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error');
+    handleComprobanteFileSelect(fileInput, idSolicitud);
+  } finally {
+    uploadButton.disabled = false;
+  }
 }
 
 async function mostrarDetallePago(id) {
@@ -432,11 +486,11 @@ async function mostrarDetallePago(id) {
                 <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
                 <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
                 <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
-                ${data.cuenta_details 
-                    ? `<div><strong>Cuenta seleccionada para el pago:</strong> ${data.cuenta_details.Cuenta}</div>`
-                    : `<div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+                ${data.cuenta_details
+        ? `<div><strong>Cuenta seleccionada para el pago:</strong> ${data.cuenta_details.Cuenta}</div>`
+        : `<div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
                        <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>`
-                }
+    }
                 <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
                 <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
         prov.Monto_Credito
@@ -480,18 +534,7 @@ async function mostrarDetallePago(id) {
 
     html += `</tbody></table></div>`;
 
-    // Mostrar archivos
-    if (typeof GetFiles === 'function') {
-      html += GetFiles(data);
-    } else if (data.Archivo) {
-      const archivoUrl = `${BASE_URL}solicitudes/archivo/${id}`;
-      html += `
-                <div class="mt-6 mb-6">
-                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
-                    <a href="${archivoUrl}" target="_blank" class="text-blue-600 hover:underline">${data.Archivo}</a>
-                </div>
-            `;
-    }
+    html += generarSeccionAdjuntos(data);
 
     html += `
           <div class="mt-6 pt-4 border-t">
@@ -512,7 +555,7 @@ async function mostrarDetallePago(id) {
 
     contenedorDetalle.innerHTML = html;
 
-    // Renderizar uploader
+
     renderComprobanteUploader(id);
 
   } catch (error) {
@@ -831,12 +874,16 @@ async function mostrarDetalleFicha(id, metodoPago) {
       html += `<tr><td colspan="5" class="text-center py-3">No hay productos en esta orden.</td></tr>`
     }
 
+
+
     html += `
             </tbody>
         </table>
       </div>
       `
-    html += GetFiles(data)
+
+
+    html += generarSeccionAdjuntos(data);
 
     html += `
       <div class="mt-4 pt-4" id="factura-uploader-container"></div> 

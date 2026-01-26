@@ -843,3 +843,75 @@ function getStatusSVG(status) {
   }
   return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
 }
+
+//*** Función del manejador de archivos (mostrar archivos adjuntos)  ***//
+
+function generarSeccionAdjuntos(data) {
+  const ordenObj = data.OrdenCompra || data.orden_compra || data.orden || {};
+  const cotizacionObj = data.cotizacion || {};
+  const folio = data.No_Folio || data.ID_Solicitud;
+  const cotizacionFile = cotizacionObj.Cotizacion_Files || data.Cotizacion_Files;
+  const comprobanteFile = ordenObj.File_Comprobante || data.File_Comprobante || ordenObj.comprobante || data.comprobante;
+  const facturaFile = ordenObj.File_Factura || data.File_Factura || ordenObj.factura || data.factura;
+  const idSolicitud = data.ID_Solicitud;
+
+  return `
+    <div class="mt-6">
+        <h4 class="text-md font-bold mb-3 text-gray-700">Adjuntos</h4>
+        <div class="flex flex-col space-y-2 mb-6 p-4 border rounded-lg bg-gray-50 text-sm text-left">
+            
+            ${ folio ? `
+            <div>
+                <strong>Solicitud:</strong> 
+                <a href="${BASE_URL}api/storage/serve?path=pdf_solicitudes/Requisicion-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                    Requisicion-${folio}.pdf
+                </a>
+            </div>` : ''
+  }
+
+            ${ cotizacionFile ? `
+            <div>
+                <strong>Cotizacion:</strong> 
+                <a href="${BASE_URL}api/storage/serve?path=cotizaciones/${data.Fecha}/${cotizacionFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                    ${cotizacionFile}
+                </a>
+            </div>` : '<div class="text-gray-400"><strong>Cotizacion:</strong> No adjuntada</div>'
+  }
+
+            ${ folio ? `
+            <div>
+                <strong>Orden de Compra:</strong> 
+                <a href="${BASE_URL}api/storage/serve?path=pdf_ordenes/OrdenCompra-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                    OrdenCompra-${folio}.pdf
+                </a>
+            </div>` : ''
+  }
+
+            ${ comprobanteFile ? `
+            <div>
+                <strong>Ficha de pago:</strong> 
+                <a href="${BASE_URL}api/storage/serve?path=comprobantes/${comprobanteFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                    ${comprobanteFile}
+                </a>
+            </div>` : '<div class="text-gray-400"><strong>Ficha de pago:</strong> No adjuntada</div>'
+  }
+
+            ${ facturaFile ? `
+            <div>
+                <strong>Factura:</strong> 
+                <a href="${BASE_URL}api/storage/serve?path=facturas/${facturaFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                    ${facturaFile}
+                </a>
+            </div>` : '<div class="text-gray-400"><strong>Factura:</strong> No adjuntada</div>'
+  }
+
+        </div>
+        
+        <div class="mt-4 mb-4 flex justify-start">
+            <a href="${BASE_URL}api/download-attachments/${idSolicitud}" class="bg-carbon-700 hover:bg-carbon-800 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
+                Descargar Todo (ZIP)
+            </a>
+        </div>
+    </div>
+    `;
+}

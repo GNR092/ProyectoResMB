@@ -742,6 +742,7 @@ async function mostrarVerHistorial(idSolicitud) {
 
     let html = generarDetallesSolicitudHTML(data)
 
+    // Sección de Comentarios Admin
     if (data.ComentariosAdmin) {
       if (data.TipoComentarioAdmin === 'Rechazo') {
         html += `
@@ -763,8 +764,10 @@ async function mostrarVerHistorial(idSolicitud) {
                 </div>`
       }
     }
+
     html += generarProductosServiciosHTML(data)
 
+    // Sección de Comentarios Usuario
     if (data.ComentariosUser) {
       html += `
             <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
@@ -772,15 +775,8 @@ async function mostrarVerHistorial(idSolicitud) {
                 <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
             </div>`
     }
-    if (data.Archivo) {
-      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
-      html += `
-                <div class="mt-6">
-                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
-                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
-                </div>
-            `
-    }
+
+    html += generarSeccionAdjuntos(data);
 
     detallesContainer.innerHTML = html
   } catch (error) {
@@ -796,7 +792,6 @@ function regresarHistorial() {
   const divHistorial = document.getElementById('div-historial')
   if (divHistorial) divHistorial.classList.remove('hidden')
 
-  console.log('Regresando a la tabla de historial')
 }
 
 /**
@@ -1627,36 +1622,7 @@ window.mostrarVerDictamen = async function(idSolicitud) {
 
     html += generarProductosServiciosHTML(data)
 
-    if (data.Archivo) {
-      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
-      html += `
-                <div class="mt-6">
-                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
-                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
-                </div>
-            `
-    }
-
-    if (data.cotizacion && data.cotizacion.Cotizacion_Files) {
-      const listaDeArchivos = data.cotizacion.Cotizacion_Files.split(',')
-      html += `
-        <div class="mt-6">
-            <h4 class="text-md font-bold mb-2">Cotizaciones adjuntas</h4>
-    `
-      listaDeArchivos.forEach((nombreDeArchivo) => {
-        const filec = nombreDeArchivo.trim()
-
-        if (filec) {
-          const archivoUrl = `${BASE_URL}cotizaciones/archivo/${idSolicitud}/${filec}`
-          html += `
-                <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline block mb-1">${filec}</a>
-            `
-        }
-      })
-      html += `
-        </div>
-    `
-    }
+    html += generarSeccionAdjuntos(data);
 
     // Solo mostrar botones de acción si la solicitud está 'En revision'
     if (data.Estado === 'En revision') {
@@ -1789,26 +1755,7 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
             `
     }
 
-    if (data.cotizacion && data.cotizacion.Cotizacion_Files) {
-      const listaDeArchivos = data.cotizacion.Cotizacion_Files.split(',')
-      html += `
-        <div class="mt-6">
-            <h4 class="text-md font-bold mb-2">Cotizaciones adjuntas</h4>
-    `
-      listaDeArchivos.forEach((nombreDeArchivo) => {
-        const filec = nombreDeArchivo.trim()
-
-        if (filec) {
-          const archivoUrl = `${BASE_URL}cotizaciones/archivo/${idOrden}/${filec}`
-          html += `
-                <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline block mb-1">${filec}</a>
-            `
-        }
-      })
-      html += `
-        </div>
-    `
-    }
+    html += generarSeccionAdjuntos(data);
 
     // Solo mostrar botones de acción si la solicitud está 'Aprobada'
     if (data.Estado === 'Aprobada') {

@@ -137,7 +137,6 @@ function RevisionX() {
     },
 
     VerDetalle: async function (idSolicitud) {
-      console.log(`ID seleccionado ${idprov}`)
       const divTabla = document.getElementById('div-tabla-enviar')
       const divRevision = document.getElementById('div-enviar-revision')
       const detallesContainer = document.getElementById('detalles-para-revision')
@@ -150,7 +149,6 @@ function RevisionX() {
 
       try {
         const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
-        console.log('Datos de la solicitud (Un proveedor):', data)
         const isServicio = data.Tipo == 2
         const isMultiple = data.cotizaciones && data.cotizaciones.length > 1
 
