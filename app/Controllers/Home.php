@@ -35,7 +35,8 @@ class Home extends BaseController
                 'ficha_pago',
                 'ordenes_compra',
                 'pagos_pendientes',
-                'almacen'
+                'almacen',
+                'crud_cuentas'
             ],
 
             // Rol Dirección
@@ -63,6 +64,7 @@ class Home extends BaseController
                 'pagos_pendientes',
                 'lista_pagos',
                 'ver_historial',
+                'crud_cuentas'
             ],
 
             // Rol Almacén
