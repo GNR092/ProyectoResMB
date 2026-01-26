@@ -266,7 +266,6 @@ class Modales extends BaseController
                 return view('modales/lista_pagos', $data);
 
             case 'recepcion_material':
-                $data['ordenes_compra_pendientes'] = $this->api->getOrdenesCompraPendientesRecepcion();
                 return view('modales/recepcion_material', $data);
 
             case 'bajas_destruccion':
