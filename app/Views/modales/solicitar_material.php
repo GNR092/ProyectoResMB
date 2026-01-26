@@ -128,7 +128,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         <tbody>
                             <tr class="bg-gray-200 text-gray-700 font-semibold">
                                 <td class="px-3 py-2 border text-left" style="width: 70%;">
-                                    Subtotal:
+                                    Total:
                                 </td>
                                 <td id="subtotal-costo" class="px-3 py-2 border text-right" style="width: 30%;">
                                     $0.00
@@ -427,7 +427,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         <tbody>
                         <tr class="bg-gray-200 text-gray-700 font-semibold">
                             <td class="px-3 py-2 border text-left" style="width: 70%;">
-                                Subtotal:
+                                Total:
                             </td>
                             <td id="subtotal-servicio" class="px-3 py-2 border text-right" style="width: 30%;">
                                 $0.00
