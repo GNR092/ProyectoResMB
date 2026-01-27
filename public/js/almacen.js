@@ -506,3 +506,207 @@ function CrudProductos() {
     },
   }
 }
+
+//Ingresos nuevos con XML
+function RecepcionMateriales() {
+  return {
+    // --- DATOS DEL INGRESO ---
+    form: {
+      id_proveedor: '',
+      rfc_receptor: '',
+      uuid: '',
+      fecha_emision: new Date().toISOString().slice(0, 16)
+    },
+
+    // --- CATÁLOGOS ---
+    listaProveedores: [],
+    listaProductos: [],
+    listaReceptores: [],
+    itemsIngreso: [],
+
+    // --- ESTADO VISUAL ---
+    terminoBusqueda: '',
+    cargando: false,
+    modalCrearAbierto: false,
+    creandoProducto: false,
+
+    // --- FORMULARIO NUEVO PRODUCTO  ---
+    nuevoProducto: {
+      nombre: ''
+    },
+    notificacion: { show: false, mensaje: '', tipo: 'info' },
+    async init() {
+      console.log('Iniciando Recepción de Materiales...');
+      await this.cargarCatalogos();
+    },
+
+    async cargarCatalogos() {
+      try {
+        // Proveedores
+        this.listaProveedores = await SendDataEnd('inventario/getProveedores', { method: 'GET' });
+
+        // Productos
+        this.listaProductos = await SendDataEnd('inventario/getProductos', { method: 'GET' });
+
+        // Receptores
+        const receptores = await SendDataEnd('inventario/getReceptores', { method: 'GET' });
+
+        // Validación extra
+        if (Array.isArray(receptores)) {
+          this.listaReceptores = receptores;
+        } else {
+          this.listaReceptores = [];
+          console.warn('La API de receptores no devolvió un arreglo.');
+        }
+      } catch (error) {
+        this.mostrarNotif('Error cargando catálogos.', 'error');
+        console.error(error);
+      }
+    },
+
+    // --- FILTRADO DE PRODUCTOS ---
+    get productosFiltrados() {
+      if (this.terminoBusqueda.trim() === '') return [];
+      const termino = this.terminoBusqueda.toLowerCase();
+
+      return this.listaProductos.filter(p => {
+        // Excluir los que ya están agregados a la tabla
+        const enTabla = this.itemsIngreso.some(item => item.id_producto === p.ID_Producto);
+
+        // Buscar por Nombre o Código
+        const coincide = (p.Nombre || '').toLowerCase().includes(termino) ||
+            (p.Codigo || '').toLowerCase().includes(termino);
+
+        return coincide && !enTabla;
+      }).slice(0, 8);
+    },
+
+    // --- CREAR PRODUCTO ---
+    abrirModalCrear() {
+      this.terminoBusqueda = '';
+      this.nuevoProducto = { nombre: '' };
+      this.modalCrearAbierto = true;
+    },
+    cerrarModalCrear() {
+      this.modalCrearAbierto = false;
+    },
+
+    async guardarProductoNuevo() {
+      // Validación
+      if (!this.nuevoProducto.nombre.trim()) {
+        this.mostrarNotif('El nombre es obligatorio', 'error');
+        return;
+      }
+
+      this.creandoProducto = true;
+
+      try {
+        // Enviamos SOLO el nombre.
+        const response = await SendDataEnd('inventario/crearProductoRapido', {
+          method: 'POST',
+          body: {
+            Nombre: this.nuevoProducto.nombre
+          }
+        });
+
+        if (response.success && response.producto) {
+          this.listaProductos.push(response.producto);
+          this.agregarProductoALista(response.producto, true);
+
+          this.mostrarNotif('Producto creado: Código ' + response.producto.Codigo, 'success');
+          this.cerrarModalCrear();
+        } else {
+          this.mostrarNotif('Error al crear producto.', 'error');
+        }
+      } catch (error) {
+        console.error(error);
+        this.mostrarNotif('Error de servidor al crear producto.', 'error');
+      } finally {
+        this.creandoProducto = false;
+      }
+    },
+
+    // --- TABLA DE RECEPCIÓN ---
+    agregarProductoALista(producto, esNuevo = false) {
+      this.itemsIngreso.push({
+        id_producto: producto.ID_Producto,
+        codigo: producto.Codigo,
+        nombre: producto.Nombre,
+        cantidad: 1,
+        esNuevo: esNuevo
+      });
+      this.terminoBusqueda = '';
+    },
+
+    eliminarFila(index) {
+      this.itemsIngreso.splice(index, 1);
+    },
+
+    async guardarIngreso() {
+      if (!this.validar()) return;
+      this.cargando = true;
+
+      const payload = {
+        cabecera: {
+          id_proveedor: this.form.id_proveedor,
+          rfc_receptor: this.form.rfc_receptor,
+          uuid: this.form.uuid,
+          fecha_emision: this.form.fecha_emision
+        },
+        detalles: this.itemsIngreso.map(item => ({
+          id_producto: item.id_producto,
+          cantidad: item.cantidad
+        }))
+      };
+
+      try {
+        const response = await SendDataEnd('inventario/guardarIngresoManual', {
+          method: 'POST',
+          body: payload
+        });
+
+        if (response.success) {
+          this.mostrarNotif('Entrada registrada correctamente.', 'success');
+          this.resetForm();
+          await this.cargarCatalogos();
+        } else {
+          this.mostrarNotif(response.message || 'Error al guardar.', 'error');
+        }
+      } catch (error) {
+        console.error(error);
+        this.mostrarNotif('Error de conexión.', 'error');
+      } finally {
+        this.cargando = false;
+      }
+    },
+
+    validar() {
+      if (!this.form.id_proveedor) return this.error('Seleccione Proveedor');
+      if (!this.form.rfc_receptor) return this.error('Seleccione Empresa Receptora');
+      if (!this.form.uuid) return this.error('Ingrese UUID o Referencia');
+      if (this.itemsIngreso.length === 0) return this.error('La lista está vacía');
+      if (this.itemsIngreso.some(i => i.cantidad <= 0)) return this.error('Las cantidades deben ser mayores a 0');
+
+      return true;
+    },
+
+    error(msg) {
+      this.mostrarNotif(msg, 'error');
+      return false;
+    },
+
+    resetForm() {
+      this.itemsIngreso = [];
+      this.form.uuid = '';
+    },
+
+    mostrarNotif(mensaje, tipo = 'info') {
+      if (this.notificacion) {
+        this.notificacion.mensaje = mensaje;
+        this.notificacion.tipo = tipo;
+        this.notificacion.show = true;
+        setTimeout(() => { this.notificacion.show = false; }, 4000);
+      }
+    }
+  }
+}

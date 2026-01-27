@@ -55,6 +55,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('proveedores/insertar', 'Modales::insertarProveedor');
         $routes->post('proveedores/eliminarProveedor/(:num)', 'Modales::eliminarProveedor/$1');
         $routes->post('proveedores/editar/(:num)', 'Modales::editarProveedor/$1');
+        
         // Solicitudes y Cotizaciones
         $routes->post('api/cotizacion/crear', 'Api::crearCotizacion');
         $routes->post('api/solicitud/update', 'Api::actualizarMontos');
@@ -82,21 +83,26 @@ if (!file_exists($installerLockFile)) {
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');
         $routes->get('modales/vistas/service_row', 'Modales::getServiceTableRow');
+
         // API Restful - Productos
         $routes->get('api/product/search', 'Api::search');
         $routes->get('api/product/all', 'Api::allProducts');
         $routes->get('api/product/(:num)', 'Api::getProductById/$1');
         $routes->get('api/product', 'Api::allProducts');
         //endregion
+
         //region departamentos
         $routes->get('api/departments/all', 'Api::getDepartments');
+
         //region proveedores
         $routes->get('api/providers/all', 'Api::getAllProviders');
         $routes->get('api/provider/(:num)', 'Api::getProviderById/$1');
+
         // Historial
         $routes->get('api/historic', 'Api::getHistorial');
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
         $routes->get('api/historial/exportar', 'Api::exportarHistorial');
+
         // Solicitudes
         $routes->get('api/solicitud/details/(:num)', 'Api::getSolicitudDetails/$1');
         $routes->get('api/cotizacion/details/(:num)', 'Api::getCotizacionDetails/$1');
@@ -105,8 +111,15 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/solicitudes/en-revision', 'Api::getSolicitudesEnRevision');
         $routes->get('api/pagos/all', 'Api::getAllPagos');
         $routes->get('api/pagos/programados', 'Api::getPagosProgramados');
-        $routes->get('api/pagos/exportar', 'Api::exportarPagosProgramados'); // Nueva ruta para exportar pagos
+        $routes->get('api/pagos/exportar', 'Api::exportarPagosProgramados');
         $routes->get('api/exportar-requisiciones', 'Api::exportarRequisiciones');
+
+        //Inventarios
+        $routes->get('inventario/getProveedores', 'Inventario::getProveedores');
+        $routes->get('inventario/getProductos', 'Inventario::getProductos');
+        $routes->post('inventario/guardarIngresoManual', 'Inventario::guardarIngresoManual');
+        $routes->get('inventario/getReceptores', 'Inventario::getReceptores');
+        $routes->post('inventario/crearProductoRapido', 'Inventario::crearProductoRapido');
 
         //Orden de compra
         $routes->get('api/orden-compra/details/(:num)', 'Api::getOrdenCompra/$1');
