@@ -234,6 +234,52 @@ class Api extends ResourceController
     //region Solicitudes (Acciones)
 
     /**
+     * Cancela una solicitud, cambiando su estado a 'Cancelada'.
+     * Requiere el ID de la solicitud y opcionalmente comentarios del administrador.
+     *
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function cancelarSolicitud()
+    {
+        $json = $this->request->getJSON();
+
+        if (!isset($json->ID_Solicitud)) {
+            return $this->failValidationErrors('Se requiere el ID de la solicitud.');
+        }
+
+        $idSolicitud = (int) $json->ID_Solicitud;
+        $comentarios = $json->ComentariosAdmin ?? null; // Obtener comentarios del JSON
+
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) {
+            return $this->failNotFound('La solicitud no existe.');
+        }
+
+        $estadosPermitidos = [Status::En_Revision, Status::Aprobacion_pendiente, Status::En_espera, Status::Cotizando];
+        if (!in_array($solicitud['Estado'], $estadosPermitidos)) {
+            return $this->fail('La solicitud no se puede cancelar en su estado actual: ' . $solicitud['Estado'] . '.', HttpStatus::BAD_REQUEST);
+        }
+
+        try {
+            $updateData = [
+                'Estado' => Status::Cancelada,
+                'ComentariosAdmin' => $comentarios,
+                'TipoComentarioAdmin' => 'Cancelacion' // Asignar un tipo de comentario
+            ];
+            $solicitudModel->update($idSolicitud, $updateData);
+            return $this->respondUpdated([
+                'success' => true,
+                'message' => 'Solicitud cancelada correctamente.',
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', '[cancelarSolicitud] ' . $e->getMessage());
+            return $this->failServerError('Ocurrió un error inesperado al cancelar la solicitud.');
+        }
+    }
+
+    /**
      * Actualiza los montos y comentarios de una solicitud.
      *
      * @return \CodeIgniter\HTTP\Response

@@ -742,28 +742,7 @@ async function mostrarVerHistorial(idSolicitud) {
 
     let html = generarDetallesSolicitudHTML(data)
 
-    // Sección de Comentarios Admin
-    if (data.ComentariosAdmin) {
-      if (data.TipoComentarioAdmin === 'Rechazo') {
-        html += `
-                <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
-                    <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      } else if (data.TipoComentarioAdmin === 'Observacion') {
-        html += `
-                <div class="mb-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                    <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      } else {
-        html += `
-                <div class="mb-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
-                    <h4 class="text-md font-bold text-gray-700 mb-2">Comentario del Administrador</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      }
-    }
+    html += generarComentariosHtml(data)
 
     html += generarProductosServiciosHTML(data)
 
@@ -1142,7 +1121,7 @@ async function mostrarVer(idSolicitud) {
               <div class="mt-6">
                 <h4 class="text-md font-bold mb-2">Acciones</h4>
                 <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
-            </div>
+              </div>
             `
     detallesContainer.innerHTML = html
   } catch (error) {
@@ -1326,7 +1305,6 @@ async function mostrarCotizar(idSolicitud, idUsuario) {
         abrirModal('revisar_solicitudes')
       } else {
         alert('Error: ' + (result.message || 'No se pudieron generar las cotizaciones.'))
-        // Re-habilitar el botón si falla
         btn.disabled = false
         btn.textContent = 'Generar requisicion de Cotización'
       }
@@ -1340,6 +1318,52 @@ async function mostrarCotizar(idSolicitud, idUsuario) {
 
   if (btnGenerar) {
     btnGenerar.onclick = () => handleGenerarCotizacion(idUsuario)
+  }
+}
+
+async function cancelarReq(idSolicitud) {
+  if (
+    !(await Confirmar(
+      'Cancelar solicitud',
+      '¿Está seguro de que desea cancelar la solicitud?',
+    ))
+  ) {
+    return;
+  }
+
+  const comentarios = await InputPrompt(
+    'Cancelar Solicitud',
+    'Por favor, ingrese el motivo de la cancelación (obligatorio):',
+    true,
+  );
+
+  if (comentarios === null) {
+    return; 
+  }
+
+  const procesandoNotif = mostrarNotificacion('Cancelando solicitud...', 'info', 999999);
+
+  try {
+    const result = await SendDataEnd('api/solicitud/cancelar', {
+      method: 'POST',
+      body: { 
+        ID_Solicitud: idSolicitud,
+        ComentariosAdmin: comentarios 
+      },
+    });
+
+    procesandoNotif.click();
+
+    if (result.success) {
+      mostrarNotificacion(result.message || 'Solicitud cancelada correctamente.', 'success');
+      abrirModal('revisar_solicitudes');
+    } else {
+      mostrarNotificacion(result.message || 'No se pudo cancelar la solicitud.', 'error');
+    }
+  } catch (error) {
+    procesandoNotif.click();
+    console.error('Error al cancelar solicitud:', error);
+    mostrarNotificacion('Ocurrió un error de red al intentar cancelar la solicitud.', 'error');
   }
 }
 
@@ -1597,28 +1621,7 @@ window.mostrarVerDictamen = async function(idSolicitud) {
 
     let html = generarDetallesSolicitudHTML(data)
 
-    // Mostrar comentarios si existen
-    if (data.ComentariosAdmin) {
-      if (data.TipoComentarioAdmin === 'Rechazo') {
-        html += `
-                <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
-                    <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      } else if (data.TipoComentarioAdmin === 'Observacion') {
-        html += `
-                <div class="mt-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                    <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      } else {
-        html += `
-                <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
-                    <h4 class="text-md font-bold text-gray-700 mb-2">Comentario del Administrador</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      }
-    }
+   html += generarComentariosHtml(data)
 
     html += generarProductosServiciosHTML(data)
 
@@ -1720,28 +1723,7 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
 
     let html = generarDetallesSolicitudHTML(data)
 
-    // Mostrar comentarios si existen (especialmente para rechazos)
-    if (data.ComentariosAdmin) {
-      if (data.TipoComentarioAdmin === 'Rechazo') {
-        html += `
-              <div class="mt-6 p-4 border rounded-lg bg-red-50 border-red-200">
-                  <h4 class="text-md font-bold text-red-700 mb-2">Motivo del Rechazo</h4>
-                  <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-              </div>`
-      } else if (data.TipoComentarioAdmin === 'Observacion') {
-        html += `
-              <div class="mt-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                  <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
-                  <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-              </div>`
-      } else {
-        html += `
-              <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
-                  <h4 class="text-md font-bold text-gray-700 mb-2">Comentario del Administrador</h4>
-                  <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-              </div>`
-      }
-    }
+    html += generarComentariosHtml(data)
 
     html += generarProductosServiciosHTML(data)
 

@@ -389,6 +389,39 @@ function generarDetallesSolicitudHTML(data) {
     `
 }
 
+function generarComentariosHtml(data){
+  let html = ''
+  // Sección de Comentarios Admin
+    if (data.ComentariosAdmin) {
+      if (data.TipoComentarioAdmin === 'Rechazo') {
+        html += `
+                <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                    <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`
+      } else if (data.TipoComentarioAdmin === 'Observacion') {
+        html += `
+                <div class="mb-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                    <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`
+      }else if (data.TipoComentarioAdmin === 'Cancelacion') {
+        html += `
+                <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                    <h4 class="text-md font-bold text-red-700 mb-2">Cancelacion</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`
+      } else {
+        html += `
+                <div class="mb-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
+                    <h4 class="text-md font-bold text-gray-700 mb-2">Comentario</h4>
+                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+                </div>`
+      }
+    }
+    return html
+}
+
 function generarProductosServiciosHTML(data) {
   const iva = data.IVA === 't'
   let html = `

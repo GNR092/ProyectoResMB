@@ -32,6 +32,7 @@
                             <td class="py-3 px-6 text-left"><?= esc($solicitud['Estado']) ?></td>
                             <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVer(<?= $solicitud['ID_Solicitud'] ?>)">VER</td>
                             <td class="py-3 px-6 text-left text-green-600 cursor-pointer" onclick="mostrarCotizar(<?= $solicitud['ID_Solicitud'] ?>, <?= session('id') ?>)">Solicitar cotización</td>
+                            <td class="py-3 px-6 text-left text-red-600 cursor-pointer" onclick="cancelarReq(<?= $solicitud['ID_Solicitud'] ?>)"> Cancelar</td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
