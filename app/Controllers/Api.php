@@ -1262,8 +1262,6 @@ class Api extends ResourceController
 
             if (!empty($nuevoEstado)) {
                 if ($nuevoEstado === Status::Por_Pagar) {
-                    try {
-                        
                         $orden = $this->api->getOrdenCompra($idSolicitud);
                         $mail = new MBSMail();
 
@@ -1304,25 +1302,12 @@ class Api extends ResourceController
                             }
                         }
                         log_message('info', 'Opciones de adjunto para correo Por Pagar: ' . print_r($options, true));
-                        if ($to && $mail->send_email($to, $subject, $message, $options)) {
-                            log_message(
-                                'info',
-                                "Correo de comprobante de pago enviado a {$to} para solicitud {$idSolicitud}.",
-                            );
-                        } else {
-                            log_message(
-                                'error',
-                                "No se pudo enviar el correo de comprobante de pago para la solicitud {$idSolicitud}. Destinatario: " .
-                                    ($to ?: 'No configurado'),
-                            );
-                        }
-                    } catch (\Exception $e) {
+                        
+                        $mail->send_email($to, $subject, $message, $options);
                         log_message(
-                            'error',
-                            '[cambiarEstadoOrden] Error al enviar correo para "Por Pagar": ' .
-                                $e->getMessage(),
+                            'info',
+                            "Correo de comprobante de pago enviado a {$to} para solicitud {$idSolicitud}.",
                         );
-                    }
                 }
 
                 if ($nuevoEstado === 'Pagada') {
@@ -1344,8 +1329,7 @@ class Api extends ResourceController
                         );
                     }
 
-                    try {
-                        $solicitudModel = new SolicitudModel();
+                    $solicitudModel = new SolicitudModel();
                         $proveedorModel = new ProveedorModel();
                         $razonSocialModel = new RazonSocialModel();
 
@@ -1439,13 +1423,6 @@ class Api extends ResourceController
                                 'No se pudo enviar ficha de pago a Tesorería (correo no configurado).',
                             );
                         }
-                    } catch (\Exception $e) {
-                        log_message(
-                            'error',
-                            '[cambiarEstadoOrden] Error al enviar email de ficha de pago: ' .
-                                $e->getMessage(),
-                        );
-                    }
 
                     if ($solicitud['Tipo'] == SolicitudTipo::Servicios) {
                         $pdfGenerator = new \App\Controllers\GenerarPDF();

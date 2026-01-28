@@ -67,8 +67,7 @@ class MBSMail
             $this->mail->send();
             return true;
         } catch (Exception $e) {
-            log_message('error', 'Error al enviar el correo: ' . $this->mail->ErrorInfo);
-            return false;
+            throw new Exception("Error al enviar el correo: " . $this->mail->ErrorInfo);
         }
     }
 }
