@@ -1272,6 +1272,7 @@ class Rest
         $proveedorModel = new ProveedorModel();
         $results = $proveedorModel
             ->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC')
+            ->orderBy('RazonSocial', 'ASC')
             ->findAll();
         return $results;
     }

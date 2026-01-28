@@ -161,6 +161,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Referencia o cotización -->
             <div class="mt-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-2">Referencia o cotización</h2>
+                <p class="text-orange-500 text-xs mt-1">Evite caracteres especiales en el nombre  (como `;`, `&`, `#`)  para prevenir errores.</p>
                 <input type="file" name="archivo"
                     class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
                     accept="image/jpg,image/jpeg,image/png,application/pdf">
@@ -297,6 +298,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Referencia o cotización (opcional) -->
             <div class="mt-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-2">Referencia o cotización</h2>
+                <p class="text-orange-500 text-xs mt-1">Evite caracteres especiales en el nombre  (como `;`, `&`, `#`)  para prevenir errores.</p>
                 <input type="file" name="archivo"
                     class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
                     accept="image/jpg,image/jpeg,image/png,application/pdf">
@@ -457,6 +459,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Referencia o cotización -->
             <div class="mt-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-2">Factura</h2>
+                <p class="text-orange-500 text-xs mt-1">Evite caracteres especiales en el nombre  (como `;`, `&`, `#`) para prevenir errores.</p>
                 <input type="file" name="archivo"
                        class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
                        accept="image/jpg,image/jpeg,image/png,application/pdf,text/xml">

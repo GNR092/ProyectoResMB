@@ -24,7 +24,7 @@ async function SendDataEnd(endpoint, options = {}) {
     }
   }
 
-  const csrfHeaderName = document.querySelector('meta[name="csrf-token-name"]')?.content
+  const csrfHeaderName = 'X-CSRF-TOKEN'; 
   const csrfTokenHash = document.querySelector('meta[name="csrf-token-hash"]')?.content
   const method = (config.method || 'GET').toUpperCase()
 
