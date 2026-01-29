@@ -19,6 +19,7 @@
                     <th class="py-3 px-6 text-left">Estado</th>
                     <th></th> <!-- VER -->
                     <th></th> <!-- COTIZAR -->
+                    <th></th> <!-- Cancelar -->
                 </tr>
                 </thead>
                 <tbody id="tablaRevisarSolicitud">

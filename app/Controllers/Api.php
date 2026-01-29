@@ -250,6 +250,10 @@ class Api extends ResourceController
         $idSolicitud = (int) $json->ID_Solicitud;
         $comentarios = $json->ComentariosAdmin ?? null; // Obtener comentarios del JSON
 
+        if (empty($comentarios)) {
+            return $this->failValidationErrors('Se requiere un comenatio.');
+        }
+
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel->find($idSolicitud);
 
@@ -257,16 +261,11 @@ class Api extends ResourceController
             return $this->failNotFound('La solicitud no existe.');
         }
 
-        $estadosPermitidos = [Status::En_Revision, Status::Aprobacion_pendiente, Status::En_espera, Status::Cotizando];
-        if (!in_array($solicitud['Estado'], $estadosPermitidos)) {
-            return $this->fail('La solicitud no se puede cancelar en su estado actual: ' . $solicitud['Estado'] . '.', HttpStatus::BAD_REQUEST);
-        }
-
         try {
             $updateData = [
                 'Estado' => Status::Cancelada,
                 'ComentariosAdmin' => $comentarios,
-                'TipoComentarioAdmin' => 'Cancelacion' // Asignar un tipo de comentario
+                'TipoComentarioAdmin' => 'Cancelacion', // Asignar un tipo de comentario
             ];
             $solicitudModel->update($idSolicitud, $updateData);
             return $this->respondUpdated([
@@ -793,13 +792,20 @@ class Api extends ResourceController
         }
         // Validación de estado...
         if ($solicitud['Estado'] !== Status::Cotizando) {
-            return $this->fail('La solicitud no está en estado "Cotizado".', HttpStatus::BAD_REQUEST);
+            return $this->fail(
+                'La solicitud no está en estado "Cotizado".',
+                HttpStatus::BAD_REQUEST,
+            );
         }
 
         // Lógica de método de pago...
         switch ($request['tipo_pago']) {
-            case 'efectivo': $tipoPago = MetodoPago::Efectivo; break;
-            case 'credito': $tipoPago = MetodoPago::Credito; break;
+            case 'efectivo':
+                $tipoPago = MetodoPago::Efectivo;
+                break;
+            case 'credito':
+                $tipoPago = MetodoPago::Credito;
+                break;
         }
 
         try {
@@ -840,14 +846,15 @@ class Api extends ResourceController
             $this->api->updateSolicitudById($idSolicitud, [
                 'Estado' => 'En revision',
                 'MetodoPago' => $tipoPago,
-                'ID_Proveedor' => $idProveedorGanador // <--- CORRECCION CRÍTICA: Aquí asignamos el proveedor
+                'ID_Proveedor' => $idProveedorGanador, // <--- CORRECCION CRÍTICA: Aquí asignamos el proveedor
             ]);
 
             // ... El resto de tu código de manejo de archivos se queda igual ...
             $files = $this->request->getFiles();
             $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
 
-            if ($files && isset($files['cotizacion_files'])) { // Pequeña validación extra
+            if ($files && isset($files['cotizacion_files'])) {
+                // Pequeña validación extra
                 // Nota: Aquí usabas getCotizacionBySolicitudID, ahora funcionará bien
                 // porque ya borramos las sobrantes o era única.
 
@@ -855,7 +862,7 @@ class Api extends ResourceController
                 $idCotizacion = $idCotizacionSeleccionada;
 
                 // Si por si acaso tu función getCotizacionBySolicitudID busca la única que queda:
-                if(!$idCotizacion) {
+                if (!$idCotizacion) {
                     $cot = $this->api->getCotizacionBySolicitudID($idSolicitud);
                     $idCotizacion = $cot['ID_Cotizacion'];
                 }
@@ -863,10 +870,13 @@ class Api extends ResourceController
                 $tmp = [];
                 $count = 0;
                 // Aseguramos que sea iterable
-                $archivosAProcesar = is_array($files['cotizacion_files']) ? $files['cotizacion_files'] : [$files['cotizacion_files']];
+                $archivosAProcesar = is_array($files['cotizacion_files'])
+                    ? $files['cotizacion_files']
+                    : [$files['cotizacion_files']];
 
                 foreach ($archivosAProcesar as $file) {
-                    $baseFileName = 'cotizacion_' . $idCotizacion . '_' . $solicitud['Fecha'] . '_' . $count++;
+                    $baseFileName =
+                        'cotizacion_' . $idCotizacion . '_' . $solicitud['Fecha'] . '_' . $count++;
                     $savedFileName = ImageProcessor::processAndSave($file, $folder, $baseFileName);
                     if ($savedFileName) {
                         $tmp[] = $savedFileName;
@@ -1262,52 +1272,60 @@ class Api extends ResourceController
 
             if (!empty($nuevoEstado)) {
                 if ($nuevoEstado === Status::Por_Pagar) {
-                        $orden = $this->api->getOrdenCompra($idSolicitud);
-                        $mail = new MBSMail();
+                    $orden = $this->api->getOrdenCompra($idSolicitud);
+                    $mail = new MBSMail();
 
-                        $proveedorData = null;
-                        if (isset($orden['cotizacion']['ID_Proveedor'])) {
-                            $proveedorModel = new ProveedorModel();
-                            $proveedorData = $proveedorModel->find(
-                                $orden['cotizacion']['ID_Proveedor'],
+                    $proveedorData = null;
+                    if (isset($orden['cotizacion']['ID_Proveedor'])) {
+                        $proveedorModel = new ProveedorModel();
+                        $proveedorData = $proveedorModel->find(
+                            $orden['cotizacion']['ID_Proveedor'],
+                        );
+                    }
+
+                    $to = getenv('EMAIL_TO_TEST');
+                    if (empty($to)) {
+                        if (!$proveedorData || empty($proveedorData['Correo'])) {
+                            throw new \Exception(
+                                'No se pudo encontrar un correo electrónico para el proveedor.',
                             );
                         }
+                        $to = $proveedorData['Correo'];
+                    }
+                    $subject =
+                        'Comprobante de Pago - Folio ' . // Changed subject
+                        ($orden['No_Folio'] ?? $idSolicitud);
+                    $message = view('emails/notificacion_pago', [
+                        'folio' => $orden['No_Folio'] ?? $idSolicitud,
+                        'proveedor' => $proveedorData['RazonSocial'] ?? 'N/A',
+                        'total' => number_format($orden['cotizacion']['Total'] ?? 0, 2),
+                        'razonSocial' => $orden['Complejo'] ?? 'N/A',
+                    ]);
 
-                        $to = getenv('EMAIL_TO_TEST');
-                        if (empty($to)) {
-                            if (!$proveedorData || empty($proveedorData['Correo'])) {
-                                throw new \Exception(
-                                    'No se pudo encontrar un correo electrónico para el proveedor.',
-                                );
-                            }
-                            $to = $proveedorData['Correo'];
+                    $options = [];
+                    if (!empty($orden['OrdenCompra']['File_Comprobante'])) {
+                        $attachmentPath =
+                            FPath::FCOMPROBANTES . $orden['OrdenCompra']['File_Comprobante'];
+                        if (file_exists($attachmentPath)) {
+                            $options['attachments'] = [$attachmentPath];
+                        } else {
+                            log_message(
+                                'error',
+                                "El archivo adjunto para el correo 'Por Pagar' no se encontró: " .
+                                    $attachmentPath,
+                            );
                         }
-                        $subject =
-                            'Comprobante de Pago - Folio ' . // Changed subject
-                            ($orden['No_Folio'] ?? $idSolicitud);
-                        $message = view('emails/notificacion_pago', [
-                            'folio' => $orden['No_Folio'] ?? $idSolicitud,
-                            'proveedor' => $proveedorData['RazonSocial'] ?? 'N/A',
-                            'total' => number_format($orden['cotizacion']['Total'] ?? 0, 2),
-                            'razonSocial' => $orden['Complejo'] ?? 'N/A',
-                        ]);
+                    }
+                    log_message(
+                        'info',
+                        'Opciones de adjunto para correo Por Pagar: ' . print_r($options, true),
+                    );
 
-                        $options = [];
-                        if (!empty($orden['OrdenCompra']['File_Comprobante'])) {
-                            $attachmentPath = FPath::FCOMPROBANTES . $orden['OrdenCompra']['File_Comprobante'];
-                            if (file_exists($attachmentPath)) {
-                                $options['attachments'] = [$attachmentPath];
-                            } else {
-                                log_message('error', "El archivo adjunto para el correo 'Por Pagar' no se encontró: " . $attachmentPath);
-                            }
-                        }
-                        log_message('info', 'Opciones de adjunto para correo Por Pagar: ' . print_r($options, true));
-                        
-                        $mail->send_email($to, $subject, $message, $options);
-                        log_message(
-                            'info',
-                            "Correo de comprobante de pago enviado a {$to} para solicitud {$idSolicitud}.",
-                        );
+                    $mail->send_email($to, $subject, $message, $options);
+                    log_message(
+                        'info',
+                        "Correo de comprobante de pago enviado a {$to} para solicitud {$idSolicitud}.",
+                    );
                 }
 
                 if ($nuevoEstado === 'Pagada') {
@@ -1330,99 +1348,96 @@ class Api extends ResourceController
                     }
 
                     $solicitudModel = new SolicitudModel();
-                        $proveedorModel = new ProveedorModel();
-                        $razonSocialModel = new RazonSocialModel();
+                    $proveedorModel = new ProveedorModel();
+                    $razonSocialModel = new RazonSocialModel();
 
-                        $solicitud = $solicitudModel->find($idSolicitud);
-                        $proveedor = $proveedorModel->find($ordenActualizada['ID_Proveedor']);
-                        $razon = $razonSocialModel->find($solicitud['ID_RazonSocial']);
+                    $solicitud = $solicitudModel->find($idSolicitud);
+                    $proveedor = $proveedorModel->find($ordenActualizada['ID_Proveedor']);
+                    $razon = $razonSocialModel->find($solicitud['ID_RazonSocial']);
 
-                        if (!$solicitud || !$proveedor || !$razon) {
-                            throw new \Exception(
-                                'Datos insuficientes para enviar la ficha de pago.',
-                            );
-                        }
+                    if (!$solicitud || !$proveedor || !$razon) {
+                        throw new \Exception('Datos insuficientes para enviar la ficha de pago.');
+                    }
 
-                        $attachmentPath =
-                            FPath::FCOMPROBANTES . $ordenActualizada['File_Comprobante'];
+                    $attachmentPath = FPath::FCOMPROBANTES . $ordenActualizada['File_Comprobante'];
 
-                        if (!file_exists($attachmentPath)) {
-                            throw new \Exception(
-                                'El archivo de la ficha de pago no se encontró en la ruta esperada: ' .
-                                    $attachmentPath,
-                            );
-                        }
+                    if (!file_exists($attachmentPath)) {
+                        throw new \Exception(
+                            'El archivo de la ficha de pago no se encontró en la ruta esperada: ' .
+                                $attachmentPath,
+                        );
+                    }
 
-                        $mail = new MBSMail();
+                    $mail = new MBSMail();
 
-                        $subject = "Ficha de Pago - Solicitud Folio {$solicitud['No_Folio']}";
+                    $subject = "Ficha de Pago - Solicitud Folio {$solicitud['No_Folio']}";
 
-                        $totalAPagar = '$' . number_format($cot['Total'], 2);
-                        $proveedorNombre = esc($proveedor['RazonSocial'] ?? 'Proveedor');
-                        $folio = esc($solicitud['No_Folio']);
-                        $razonNombre = esc($razon['Nombre']);
+                    $totalAPagar = '$' . number_format($cot['Total'], 2);
+                    $proveedorNombre = esc($proveedor['RazonSocial'] ?? 'Proveedor');
+                    $folio = esc($solicitud['No_Folio']);
+                    $razonNombre = esc($razon['Nombre']);
 
-                        $toProveedor = getenv('EMAIL_TO_TEST') ?: $proveedor['Correo'] ?? null;
-                        if ($toProveedor) {
-                            $messageProveedor = view('emails/ficha_pago', [
-                                'recipientName' => $proveedorNombre,
-                                'folio' => $folio,
-                                'totalAPagar' => $totalAPagar,
-                                'proveedorNombre' => $proveedorNombre,
-                                'razonNombre' => $razonNombre,
-                            ]);
-                            $mail->send_email($toProveedor, $subject, $messageProveedor, [
-                                'attachments' => [$attachmentPath],
-                                'fromName' => $razonNombre,
-                            ]);
-                        } else {
-                            log_message(
-                                'warning',
-                                'No se pudo enviar ficha de pago al proveedor (correo no disponible).',
-                            );
-                        }
+                    $toProveedor = getenv('EMAIL_TO_TEST') ?: $proveedor['Correo'] ?? null;
+                    if ($toProveedor) {
+                        $messageProveedor = view('emails/ficha_pago', [
+                            'recipientName' => $proveedorNombre,
+                            'folio' => $folio,
+                            'totalAPagar' => $totalAPagar,
+                            'proveedorNombre' => $proveedorNombre,
+                            'razonNombre' => $razonNombre,
+                        ]);
+                        $mail->send_email($toProveedor, $subject, $messageProveedor, [
+                            'attachments' => [$attachmentPath],
+                            'fromName' => $razonNombre,
+                        ]);
+                    } else {
+                        log_message(
+                            'warning',
+                            'No se pudo enviar ficha de pago al proveedor (correo no disponible).',
+                        );
+                    }
 
-                        $ccCompras = getenv('EMAIL_TO_COMPRAS');
-                        if ($ccCompras) {
-                            $messageCompras = view('emails/ficha_pago', [
-                                'recipientName' => 'Departamento de Compras',
-                                'folio' => $folio,
-                                'totalAPagar' => $totalAPagar,
-                                'proveedorNombre' => $proveedorNombre,
-                                'razonNombre' => $razonNombre,
-                            ]);
-                            $mail->send_email($ccCompras, $subject, $messageCompras, [
-                                'attachments' => [$attachmentPath],
-                                'fromName' => $razonNombre,
-                                'isHtml' => true,
-                            ]);
-                        } else {
-                            log_message(
-                                'warning',
-                                'No se pudo enviar ficha de pago a Compras (correo no configurado).',
-                            );
-                        }
+                    $ccCompras = getenv('EMAIL_TO_COMPRAS');
+                    if ($ccCompras) {
+                        $messageCompras = view('emails/ficha_pago', [
+                            'recipientName' => 'Departamento de Compras',
+                            'folio' => $folio,
+                            'totalAPagar' => $totalAPagar,
+                            'proveedorNombre' => $proveedorNombre,
+                            'razonNombre' => $razonNombre,
+                        ]);
+                        $mail->send_email($ccCompras, $subject, $messageCompras, [
+                            'attachments' => [$attachmentPath],
+                            'fromName' => $razonNombre,
+                            'isHtml' => true,
+                        ]);
+                    } else {
+                        log_message(
+                            'warning',
+                            'No se pudo enviar ficha de pago a Compras (correo no configurado).',
+                        );
+                    }
 
-                        $ccTesoreria = getenv('EMAIL_TO_TESORERIA');
-                        if ($ccTesoreria) {
-                            $messageTesoreria = view('emails/ficha_pago', [
-                                'recipientName' => 'Departamento de Tesorería',
-                                'folio' => $folio,
-                                'totalAPagar' => $totalAPagar,
-                                'proveedorNombre' => $proveedorNombre,
-                                'razonNombre' => $razonNombre,
-                            ]);
-                            $mail->send_email($ccTesoreria, $subject, $messageTesoreria, [
-                                'attachments' => [$attachmentPath],
-                                'fromName' => $razonNombre,
-                                'isHtml' => true,
-                            ]);
-                        } else {
-                            log_message(
-                                'warning',
-                                'No se pudo enviar ficha de pago a Tesorería (correo no configurado).',
-                            );
-                        }
+                    $ccTesoreria = getenv('EMAIL_TO_TESORERIA');
+                    if ($ccTesoreria) {
+                        $messageTesoreria = view('emails/ficha_pago', [
+                            'recipientName' => 'Departamento de Tesorería',
+                            'folio' => $folio,
+                            'totalAPagar' => $totalAPagar,
+                            'proveedorNombre' => $proveedorNombre,
+                            'razonNombre' => $razonNombre,
+                        ]);
+                        $mail->send_email($ccTesoreria, $subject, $messageTesoreria, [
+                            'attachments' => [$attachmentPath],
+                            'fromName' => $razonNombre,
+                            'isHtml' => true,
+                        ]);
+                    } else {
+                        log_message(
+                            'warning',
+                            'No se pudo enviar ficha de pago a Tesorería (correo no configurado).',
+                        );
+                    }
 
                     if ($solicitud['Tipo'] == SolicitudTipo::Servicios) {
                         $pdfGenerator = new \App\Controllers\GenerarPDF();
@@ -2483,7 +2498,6 @@ class Api extends ResourceController
         return $this->respond($data);
     }
 
-
     public function exportarPagosProgramados()
     {
         $metodoPagoFiltro = $this->request->getGet('metodo_pago');
@@ -2507,7 +2521,7 @@ class Api extends ResourceController
                 'Proveedor.Cuenta as CuentaProveedor',
                 'Proveedor.Clabe',
                 'Proveedor.Dias_Credito',
-                'Proveedor.Monto_Credito'
+                'Proveedor.Monto_Credito',
             ])
             // Joins
             ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
@@ -2540,11 +2554,10 @@ class Api extends ResourceController
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['argb' => 'FFD9D9D9'] // Color Gris claro
-            ]
+                'startColor' => ['argb' => 'FFD9D9D9'], // Color Gris claro
+            ],
         ];
         $sheet->getStyle('A1:N1')->applyFromArray($styleTopHeader);
-
 
         // --- F ENCABEZADOS DE COLUMNA ---
         $headers = [
@@ -2561,7 +2574,7 @@ class Api extends ResourceController
             'K2' => 'CLABE',
             'L2' => 'Días Crédito',
             'M2' => 'Monto Máx. Crédito',
-            'N2' => 'Estado'
+            'N2' => 'Estado',
         ];
 
         foreach ($headers as $cell => $text) {
@@ -2575,7 +2588,7 @@ class Api extends ResourceController
         $startRow = 3;
 
         foreach ($pagos as $pago) {
-            $metodoPagoTexto = match($pago['MetodoPago']) {
+            $metodoPagoTexto = match ($pago['MetodoPago']) {
                 '0' => 'Contado',
                 '1' => 'Crédito',
                 default => 'Desconocido',
@@ -2587,24 +2600,33 @@ class Api extends ResourceController
             $sheet->setCellValue('C' . $row, $pago['Departamento'] ?? 'N/A');
             $sheet->setCellValue('D' . $row, $pago['Proyecto'] ?? 'N/A');
             $sheet->setCellValue('E' . $row, $pago['Total']);
-            $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('"$"#,##0.00_-');
+            $sheet
+                ->getStyle('E' . $row)
+                ->getNumberFormat()
+                ->setFormatCode('"$"#,##0.00_-');
             $sheet->setCellValue('F' . $row, $metodoPagoTexto);
 
             //Datos Proveedor
             $sheet->setCellValue('G' . $row, $pago['Proveedor']);
             $sheet->setCellValue('H' . $row, $pago['RFC'] ?? '');
             $sheet->setCellValue('I' . $row, $pago['Banco'] ?? '');
-            $sheet->setCellValueExplicit('J' . $row, $pago['CuentaProveedor'] ?? '', DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit(
+                'J' . $row,
+                $pago['CuentaProveedor'] ?? '',
+                DataType::TYPE_STRING,
+            );
             $sheet->setCellValueExplicit('K' . $row, $pago['Clabe'] ?? '', DataType::TYPE_STRING);
             $sheet->setCellValue('L' . $row, $pago['Dias_Credito'] ?? '0');
             $sheet->setCellValue('M' . $row, $pago['Monto_Credito'] ?? 0);
-            $sheet->getStyle('M' . $row)->getNumberFormat()->setFormatCode('"$"#,##0.00_-');
+            $sheet
+                ->getStyle('M' . $row)
+                ->getNumberFormat()
+                ->setFormatCode('"$"#,##0.00_-');
 
             $sheet->setCellValue('N' . $row, $pago['Estado']);
 
             $row++;
         }
-
 
         //Columna de totales
         $lastDataRow = $row - 1;
@@ -2612,11 +2634,19 @@ class Api extends ResourceController
 
         // Etiqueta "Total" en la columna D
         $sheet->setCellValue('D' . $totalRow, 'Total');
-        $sheet->getStyle('D' . $totalRow)->getFont()->setBold(true);
-        $sheet->setCellValue('E' . $totalRow, '=SUM(E'.$startRow.':E'.$lastDataRow.')');
-        $sheet->getStyle('E' . $totalRow)->getFont()->setBold(true);
-        $sheet->getStyle('E' . $totalRow)->getNumberFormat()->setFormatCode('"$"#,##0.00_-');
-
+        $sheet
+            ->getStyle('D' . $totalRow)
+            ->getFont()
+            ->setBold(true);
+        $sheet->setCellValue('E' . $totalRow, '=SUM(E' . $startRow . ':E' . $lastDataRow . ')');
+        $sheet
+            ->getStyle('E' . $totalRow)
+            ->getFont()
+            ->setBold(true);
+        $sheet
+            ->getStyle('E' . $totalRow)
+            ->getNumberFormat()
+            ->setFormatCode('"$"#,##0.00_-');
 
         // --- AJUSTE FINAL DE COLUMNAS ---
         foreach (range('A', 'N') as $columnID) {

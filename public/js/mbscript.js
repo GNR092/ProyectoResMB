@@ -1363,7 +1363,7 @@ async function cancelarReq(idSolicitud) {
   } catch (error) {
     procesandoNotif.click();
     console.error('Error al cancelar solicitud:', error);
-    mostrarNotificacion('Ocurrió un error de red al intentar cancelar la solicitud.', 'error');
+    mostrarNotificacion(error.data.messages.error || error.message, 'error');
   }
 }
 
