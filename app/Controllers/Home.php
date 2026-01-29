@@ -117,7 +117,8 @@ class Home extends BaseController
         $permisosAjustesDpto = [
             'Administración' => array_values($opcionesAjustes),
             'Compras' => array_values($opcionesAjustes),
-            'Direccion' => array_values($opcionesAjustes),   
+            'Direccion' => array_values($opcionesAjustes),
+            'Contaduría' => array_values($opcionesAjustes),
             //'Tesoreria' => array_values($opcionesAjustes),
             // Rol por defecto (Jefes de Departamento)
             'default' => [
