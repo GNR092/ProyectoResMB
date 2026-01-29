@@ -775,7 +775,8 @@ class Rest
                 ($solicitud['Estado'] ?? '') === Status::Aprobada ||
                 ($solicitud['Estado'] ?? '') === Status::Rechazada ||
                 ($solicitud['Estado'] ?? '') === Status::En_Proceso_Pago ||
-                ($solicitud['Estado'] ?? '') === Status::Por_Pagar
+                ($solicitud['Estado'] ?? '') === Status::Por_Pagar ||
+                ($solicitud['Estado'] ?? '') === Status::Cancelada
             ) {
                 continue;
             }
