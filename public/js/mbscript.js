@@ -3,6 +3,20 @@
  * y la inicialización de su contenido dinámico.
  */
 function abrirModal(opcion) {
+
+  const titulosHeaders = [
+    'TituloOperacion',
+    'TituloCompras',
+    'TituloDireccion',
+    'TituloTesoreria',
+    'TituloAlmacen'
+  ];
+
+  if (titulosHeaders.includes(opcion)) {
+    return;
+  }
+
+
   const parentModals = {
     registrar_productos: 'almacen',
     crud_productos: 'almacen',
@@ -49,8 +63,8 @@ function abrirModal(opcion) {
   }
 
   let titulos = {
-    solicitar_material: 'Requisiciones',
-    ver_historial: 'Historial',
+    solicitar_material: 'Crear Requisición',
+    ver_historial: 'Historial Y Estado De Requisición',
     revisar_solicitudes: 'Revisar requisiciones',
     ordenes_compra: 'Órdenes de Compra',
     enviar_revision: 'Enviar a Revisión',
@@ -69,7 +83,7 @@ function abrirModal(opcion) {
     reportes: 'Reportes/Auditoria',
     razonsocial: 'Razón social',
     reporte_almacen: 'Reportes/Historial',
-    micuenta: 'Mi cuenta',
+    micuenta: 'Ajustes De Cuenta',
     programar_pagos: 'Programar pagos',
     recepcion_material: 'Recepción de Material',
     bajas_destruccion: 'Bajas por Destrucción',

@@ -25,62 +25,51 @@ class Home extends BaseController
             
             // Rol Compras
             'Compras' => [
+                'TituloCompras',
                 'solicitar_material',
                 'revisar_solicitudes',
                 'enviar_revision',
-                'crud_proveedores',
-                'ver_historial',
-                'crud_usuarios',
-                'limpiar_almacenamiento',
-                'ficha_pago',
                 'ordenes_compra',
                 'pagos_pendientes',
-                'almacen',
-                'crud_cuentas'
+                'ver_historial',
+
+                'crud_proveedores',
+                'crud_usuarios',
+                'crud_cuentas',
             ],
 
             // Rol Dirección
             'Direccion' => [
-                //Estos no se si deberia tenerlos dirección, no tendria logica
-//                'revisar_solicitudes',
-//                'enviar_revision',
+                'TituloDireccion',
                 'dictamen_solicitudes',
-                'crud_proveedores',
-                'ver_historial',
-                'crud_usuarios',
-                'limpiar_almacenamiento',
-                'ficha_pago',
-                'ordenes_compra',
-                'pagos_pendientes',
-                'almacen',
                 'programar_pagos',
             ],
 
             // Rol Tesorería
             'Tesoreria' => [
-                //'solicitar_material',
-                //'ordenes_compra',
-                'ficha_pago',
+                'TituloTesoreria', // Título explícito
+                'ficha_pago',       // <-- ASEGÚRATE DE QUE ESTA LÍNEA NO ESTÉ COMENTADA
                 'pagos_pendientes',
-                'lista_pagos',
-                'ver_historial',
-                'crud_cuentas'
+                'crud_cuentas',
+                'lista_pagos',      // Agrégala si quieres que vea la lista también
             ],
 
             // Rol Almacén
             'Almacen' => [
+                'TituloAlmacen',
                 'registrar_productos',
                 'crud_productos', // Existencias
                 'entrega_productos',
                 'recepcion_material',
                 'bajas_destruccion',
-                'almacen'
+                'almacen',
             ],
 
             // Rol por defecto (Jefes de Departamento)
             'default' => [
+                'TituloOperacion',
                 'solicitar_material',
-                'ver_historial'
+                'ver_historial',
             ]
         ];
         
@@ -134,6 +123,51 @@ class Home extends BaseController
         } elseif ($loginType === 'boss') {
             $loginModeText = 'Jefe de Depto.';
         }
+
+            // Creamos un mapa de qué opciones activan qué títulos
+            $mapaTitulos = [
+                // Operación
+                'solicitar_material'   => 'TituloOperacion',
+                'aprobar_solicitudes'  => 'TituloOperacion',
+                'ver_historial'        => 'TituloOperacion',
+
+                // Compras
+                'revisar_solicitudes'  => 'TituloCompras',
+                'enviar_revision'      => 'TituloCompras',
+                'ordenes_compra'       => 'TituloCompras',
+                'pagos_pendientes'     => 'TituloCompras',
+
+                // Dirección
+                'dictamen_solicitudes' => 'TituloDireccion',
+                'programar_pagos'      => 'TituloDireccion',
+
+                // Tesorería
+                'lista_pagos'          => 'TituloTesoreria',
+                'ficha_pago'           => 'TituloTesoreria',
+
+                // Almacén
+                'almacen'              => 'TituloAlmacen',
+                'registrar_productos'  => 'TituloAlmacen',
+                'crud_productos'       => 'TituloAlmacen',
+                'entrega_productos'    => 'TituloAlmacen',
+                'recepcion_material'   => 'TituloAlmacen',
+                'bajas_destruccion'    => 'TituloAlmacen',
+            ];
+
+            foreach ($mapaTitulos as $opcion => $titulo) {
+                if (in_array($opcion, $permisosUsuario)) {
+                    if (!in_array($titulo, $permisosUsuario)) {
+                        $permisosUsuario[] = $titulo;
+                    }
+                }
+            }
+
+            $opcionesFiltradas = [];
+            foreach ($opcionesDisponibles as $key => $info) {
+                if (in_array($key, $permisosUsuario)) {
+                    $opcionesFiltradas[$key] = $info;
+                }
+            }
 
         $data = [
             'opcionesDinamicas' => $opcionesFiltradas,
