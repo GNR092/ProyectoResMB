@@ -43,6 +43,7 @@ class Home extends BaseController
                 'TituloDireccion',
                 'dictamen_solicitudes',
                 'programar_pagos',
+                'ver_historial',
             ],
 
             // Rol Tesorería
