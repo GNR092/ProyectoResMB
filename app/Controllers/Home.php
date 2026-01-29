@@ -47,11 +47,11 @@ class Home extends BaseController
 
             // Rol Tesorería
             'Tesoreria' => [
-                'TituloTesoreria', // Título explícito
-                'ficha_pago',       // <-- ASEGÚRATE DE QUE ESTA LÍNEA NO ESTÉ COMENTADA
+                'TituloTesoreria',
+                'ficha_pago',
                 'pagos_pendientes',
                 'crud_cuentas',
-                'lista_pagos',      // Agrégala si quieres que vea la lista también
+                'lista_pagos',
             ],
 
             // Rol Almacén
@@ -63,6 +63,36 @@ class Home extends BaseController
                 'recepcion_material',
                 'bajas_destruccion',
                 'almacen',
+            ],
+
+            //Rol Contaduria
+            'Contaduría' => [
+                //COMPRAS
+                'TituloCompras',
+                'solicitar_material',
+                'revisar_solicitudes',
+                'enviar_revision',
+                'ordenes_compra',
+                'pagos_pendientes',
+                'ver_historial',
+
+                //TESORERIA
+                'TituloTesoreria',
+                'ficha_pago',
+                'pagos_pendientes',
+                'crud_cuentas',
+                'lista_pagos',
+
+                //ALMACEN
+                'TituloAlmacen',
+                'registrar_productos',
+                'crud_productos', // Existencias
+                'entrega_productos',
+                'recepcion_material',
+                'bajas_destruccion',
+                'almacen',
+
+                'reportes',
             ],
 
             // Rol por defecto (Jefes de Departamento)
@@ -152,6 +182,11 @@ class Home extends BaseController
                 'entrega_productos'    => 'TituloAlmacen',
                 'recepcion_material'   => 'TituloAlmacen',
                 'bajas_destruccion'    => 'TituloAlmacen',
+
+                // Contaduria
+                'reportes'    => 'TituloContador',
+
+
             ];
 
             foreach ($mapaTitulos as $opcion => $titulo) {

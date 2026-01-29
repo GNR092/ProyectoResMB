@@ -9,7 +9,8 @@ function abrirModal(opcion) {
     'TituloCompras',
     'TituloDireccion',
     'TituloTesoreria',
-    'TituloAlmacen'
+    'TituloAlmacen',
+    'TituloContador',
   ];
 
   if (titulosHeaders.includes(opcion)) {

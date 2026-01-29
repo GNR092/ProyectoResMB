@@ -31,8 +31,13 @@ class MenuOptions extends BaseConfig
             ],
 
             'aprobar_solicitudes' => [
-                'label' => 'Aprobar Requisiciones',
+                'label' => 'Aprobar Requisiciones Auxiliares',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar"></use></svg>',
+            ],
+
+            'ver_historial' => [
+                'label' => 'Estado De Requisiciones',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ver_historial"></use></svg>',
             ],
 
             // ********* COMNPRAS **********//
@@ -43,7 +48,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'revisar_solicitudes' => [
-                'label' => 'Revisar requisiciones',
+                'label' => 'Cotizar Solicitudes',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#revisar_solicitudes"></use></svg>',
             ],
 
@@ -69,6 +74,7 @@ class MenuOptions extends BaseConfig
                 'icon' => '',
                 'is_title' => true,
             ],
+
             'dictamen_solicitudes' => [
                 'label' => 'Aprobar requisiciones',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#dictamen_solicitudes"></use></svg>',
@@ -79,12 +85,19 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar_pagos"></use></svg>',
             ],
 
+            // ********** COMPRAS Y TESORERIA ************ //
+            'crud_cuentas' => [
+                'label' => 'Cuentas',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#cuentas"></use></svg>',
+            ],
+
             // ****** TESORERIA ******//
             'TituloTesoreria' => [
                 'label' => 'Tesorería',
                 'icon' => '',
                 'is_title' => true,
             ],
+
             'lista_pagos' => [
                 'label' => 'Lista de Pagos',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
@@ -97,24 +110,24 @@ class MenuOptions extends BaseConfig
                 'icon' => '',
                 'is_title' => true,
             ],
+
             'almacen' => [
                 'label' => 'Almacén',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#almacen"></use></svg>',
             ],
 
 
-            'ver_historial' => [
-                'label' => 'Estado De Requisiciones',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ver_historial"></use></svg>',
+            //**********CONTADOR**********//
+            'TituloContador' => [
+                'label' => 'Contaduría',
+                'icon' => '',
+                'is_title' => true,
             ],
 
-
-            // ********** COMPRAS Y TESORERIA ************ //
-            'crud_cuentas' => [
-                'label' => 'Cuentas',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#cuentas"></use></svg>',
+            'reportes' => [
+                'label' => 'Reportes/Auditoria',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#reportes"></use></svg>',
             ],
-
         ];
     }
 }

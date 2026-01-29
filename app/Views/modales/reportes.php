@@ -82,7 +82,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
         <div class="w-full sm:w-auto shrink-0">
             <select x-model="metodoPago" id="filtroMetodoPago-reportes" class="border p-2 rounded w-full min-w-[150px]">
                 <option value="">Método de Pago</option>
-                <option value="0">Efectivo</option>
+                <option value="0">Contado</option>
                 <option value="1">Crédito</option>
             </select>
         </div>
