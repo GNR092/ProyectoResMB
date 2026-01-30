@@ -175,5 +175,9 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/requisicionpago/pdf/(:num)', 'GenerarPDF::GenerarRequisicionPago/$1');
         $routes->post('api/entrega/pdf', 'GenerarPDF::GenerarEntregaMateriales');
         $routes->get('admin/migrate', 'Installer::runMigrations');
+
+        $routes->get('dev', 'Dev::index');
+        $routes->get('api/test-email', 'Api::testEmailConnection');
+
     });
 }

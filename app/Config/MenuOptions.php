@@ -106,7 +106,7 @@ class MenuOptions extends BaseConfig
 
             // ********* INVENTARIO *************//
             'TituloAlmacen' => [
-                'label' => 'Almacen',
+                'label' => 'Inventario',
                 'icon' => '',
                 'is_title' => true,
             ],

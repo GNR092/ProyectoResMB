@@ -9,6 +9,8 @@ use App\Models\ProveedorModel;
 use App\Models\ProductoModel;
 use App\Models\SolicitudModel;
 use App\Models\HistorialProductosModel;
+use App\Models\PlacesModel;
+use App\Models\CuentasModel;
 
 class Modales extends BaseController
 {
@@ -273,13 +275,13 @@ class Modales extends BaseController
                 return view('modales/bajas_destruccion', $data);
 
             case 'crud_places':
-                $placesModel = new \App\Models\PlacesModel();
+                $placesModel = new PlacesModel();
                 $data['places'] = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
                 return view('modales/crud_places', $data);
 
             case 'crud_departamento':
-                $deptosModel = new \App\Models\DepartamentosModel();
-                $placesModel = new \App\Models\PlacesModel();
+                $deptosModel = new DepartamentosModel();
+                $placesModel = new PlacesModel();
 
                 // Obtenemos los departamentos junto con el nombre del lugar
                 $data['departamentos'] = $deptosModel
@@ -295,10 +297,13 @@ class Modales extends BaseController
 
             case 'crud_cuentas':
                 // Llenamos la tabla principal con los datos del proveedor
-                $proveedorModel = new \App\Models\ProveedorModel();
+                $proveedorModel = new ProveedorModel();
                 $data['cuentas'] = $proveedorModel->orderBy('RazonSocial', 'ASC')->findAll();
 
                 return view('modales/crud_cuentas', $data);
+
+            case 'developer':
+                return view('developer/dev');
 
             default:
                 return 'Opción no válida';
@@ -818,7 +823,7 @@ class Modales extends BaseController
     // --- CRUD PLACES ---
     public function insertarPlace()
     {
-        $model = new \App\Models\PlacesModel();
+        $model = new PlacesModel();
         $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo']);
 
         if ($model->insert($data)) {
@@ -834,7 +839,7 @@ class Modales extends BaseController
 
     public function editarPlace($id)
     {
-        $model = new \App\Models\PlacesModel();
+        $model = new PlacesModel();
         $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo']);
 
         try {
@@ -850,7 +855,7 @@ class Modales extends BaseController
 
     public function eliminarPlace($id)
     {
-        $model = new \App\Models\PlacesModel();
+        $model = new PlacesModel();
 
         if ($model->delete($id)) {
             return $this->response->setJSON(['success' => true]);
@@ -865,7 +870,7 @@ class Modales extends BaseController
     // --- CRUD DEPARTAMENTOS ---
     public function insertarDepartamento()
     {
-        $model = new \App\Models\DepartamentosModel();
+        $model = new DepartamentosModel();
         $data = $this->request->getPost(['Nombre', 'ID_Place']);
 
         if ($model->insert($data)) {
@@ -881,7 +886,7 @@ class Modales extends BaseController
 
     public function editarDepartamento($id)
     {
-        $model = new \App\Models\DepartamentosModel();
+        $model = new DepartamentosModel();
         $data = $this->request->getPost(['Nombre', 'ID_Place']);
 
         try {
@@ -897,7 +902,7 @@ class Modales extends BaseController
 
     public function eliminarDepartamento($id)
     {
-        $model = new \App\Models\DepartamentosModel();
+        $model = new DepartamentosModel();
 
         if ($model->delete($id)) {
             return $this->response->setJSON(['success' => true]);
@@ -913,7 +918,7 @@ class Modales extends BaseController
     public function getCuentasByProveedor($idProveedor)
     {
         // Instanciamos el modelo directamente como en tus otros ejemplos
-        $cuentasModel = new \App\Models\CuentasModel();
+        $cuentasModel = new CuentasModel();
 
         // Buscamos todas las cuentas asociadas a este proveedor
         $cuentas = $cuentasModel->where('ID_Proveedor', $idProveedor)->findAll();
@@ -925,7 +930,7 @@ class Modales extends BaseController
     // --- INSERTAR CUENTA ---
     public function insertarCuenta()
     {
-        $model = new \App\Models\CuentasModel();
+        $model = new CuentasModel();
 
         // Obtenemos los datos enviados por FormData
         $data = [
@@ -951,7 +956,7 @@ class Modales extends BaseController
     // --- ACTUALIZAR CUENTA ---
     public function actualizarCuenta($id)
     {
-        $model = new \App\Models\CuentasModel();
+        $model = new CuentasModel();
 
         // Recibimos solo el campo 'Cuenta' que es el editable
         $data = [
@@ -984,7 +989,7 @@ class Modales extends BaseController
     // --- ELIMINAR CUENTA ---
     public function eliminarCuenta($id)
     {
-        $model = new \App\Models\CuentasModel();
+        $model = new CuentasModel();
 
         // CodeIgniter delete
         if ($model->delete($id)) {

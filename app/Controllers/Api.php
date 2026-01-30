@@ -2691,4 +2691,36 @@ class Api extends ResourceController
 
         return $this->respond(['success' => true, 'data' => $data]);
     }
+    /**
+     * Prueba la conexión y el envío de un correo electrónico.
+     * Utiliza la configuración de correo de la aplicación.
+     *
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function testEmailConnection()
+    {
+        $mail = new MBSMail();
+        $to = getenv('EMAIL_TO_TEST') ?: 'developer2@mbsignatureproperties.com'; // Usar un correo de prueba o configurar en .env
+        $subject = 'Prueba de Conexión de Correo desde CodeIgniter';
+        $message = 'Este es un correo de prueba enviado desde tu aplicación CodeIgniter para verificar la conexión SMTP.';
+
+        try {
+            $success = $mail->send_email($to, $subject, $message);
+
+            if ($success) {
+                return $this->respond([
+                    'success' => true,
+                    'message' => "Correo de prueba enviado exitosamente a {$to}.",
+                ], HttpStatus::OK);
+            } else {
+                // Si send_email retorna false, buscar errores en el log de CodeIgniter.
+                // MBSMail debería loguear los errores detallados.
+                return $this->failServerError('Fallo al enviar el correo de prueba. Revisa los logs del servidor para más detalles.');
+            }
+        } catch (\Exception $e) {
+            // Capturar excepciones si el proceso de envío arroja una.
+            log_message('critical', '[testEmailConnection] Error al enviar correo de prueba: ' . $e->getMessage());
+            return $this->failServerError('Excepción al enviar correo de prueba: ' . $e->getMessage());
+        }
+    }
 } //endregion

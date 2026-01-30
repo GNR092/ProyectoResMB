@@ -386,7 +386,7 @@ class Rest
             return null;
         }
         if (!empty($solicitud['ID_Cuenta'])) {
-            $cuentasModel = new \App\Models\CuentasModel();
+            $cuentasModel = new CuentasModel();
             $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
         }
         $solicitud['ID_Place'] = $placesModel->find(
@@ -599,7 +599,7 @@ class Rest
         }
 
         if (!empty($solicitud['ID_Cuenta'])) {
-            $cuentasModel = new \App\Models\CuentasModel();
+            $cuentasModel = new CuentasModel();
             $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
         }
 
@@ -1505,7 +1505,7 @@ class Rest
         }
 
         if (!empty($solicitud['ID_Cuenta'])) {
-            $cuentasModel = new \App\Models\CuentasModel();
+            $cuentasModel = new CuentasModel();
             $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
         }
 
