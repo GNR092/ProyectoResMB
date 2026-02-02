@@ -1066,29 +1066,19 @@ function exportarRequisicionesExcel() {
 }
 
 function exportarHistorialExcel() {
-  const fecha = document.getElementById('filtro-fecha').value
-  const porMes = document.getElementById('filtrar-por-mes').checked
-  const estado = document.getElementById('filtro-estado').value
-  const dpto = document.getElementById('filtroDepartamento')?.value || ''
+  const fecha = document.getElementById('filtro-fecha').value;
+  const porMes = document.getElementById('filtrar-por-mes').checked;
+  const estado = document.getElementById('filtro-estado').value;
+  const dpto = document.getElementById('filtroDepartamento')?.value || '';
 
-  const params = new URLSearchParams()
-  if (fecha) {
-    params.append('fecha', fecha)
-  }
-  if (porMes) {
-    params.append('por_mes', '1')
-  }
-  if (estado) {
-    params.append('estado', estado)
-  }
-  if (dpto) {
-    params.append('dpto', dpto)
-  }
+  const params = new URLSearchParams();
+  if (fecha) params.append('fecha', fecha);
+  if (porMes) params.append('por_mes', '1');
+  if (estado) params.append('estado', estado);
+  if (dpto) params.append('dpto', dpto);
 
-  const queryString = params.toString()
-  window.location.href = `${BASE_URL}api/historial/exportar${queryString ? '?' + queryString : ''}`
+  window.location.href = `api/historial/exportar?${params.toString()}`;
 }
-
 async function mostrarVer(idSolicitud) {
   document.getElementById('btn-exportar-requisiciones').classList.add('hidden') // Ocultar el botón de exportar
   const divTabla = document.getElementById('div-tabla')

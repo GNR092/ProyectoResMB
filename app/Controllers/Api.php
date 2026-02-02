@@ -2032,35 +2032,50 @@ class Api extends ResourceController
 
     public function exportarHistorial()
     {
-        $fecha = $this->request->getGet('fecha');
+        //Leer filtros
+        $fecha  = $this->request->getGet('fecha');
         $porMes = $this->request->getGet('por_mes');
         $estado = $this->request->getGet('estado');
-        $dpto = $this->request->getGet('dpto');
+        $dpto   = $this->request->getGet('dpto');
 
-        $solicitudModel = new SolicitudModel();
+        // Sesión correcta
+        $sessionDeptoFull = session('departamento_usuario'); //Leer departamento
+        $sessionType      = session('login_type');
+        $exceptions       = ['Compras', 'Administración', 'Direccion', 'Tesoreria'];
+
+
+        //Transformar el campo de departamento
+        $sessionDeptoClean = trim(explode('(', $sessionDeptoFull)[0]);
+
+        if (!in_array($sessionDeptoClean, $exceptions)) {
+            $dpto = $sessionDeptoClean;
+        }
+
+        $solicitudModel = new \App\Models\SolicitudModel();
         $builder = $solicitudModel
-            ->select(
-                'Solicitud.No_Folio, Solicitud.Fecha, Departamentos.Nombre as DepartamentoNombre, Solicitud.Estado',
-            )
+            ->select('Solicitud.No_Folio, Solicitud.Fecha, Departamentos.Nombre as DepartamentoNombre, Solicitud.Estado')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left');
 
         if ($fecha) {
             if ($porMes) {
-                $builder->where("to_char(Solicitud.Fecha, 'YYYY-MM')", $fecha);
+                $builder->where("to_char(Solicitud.Fecha, 'YYYY-MM')", substr($fecha, 0, 7));
             } else {
                 $builder->where('Solicitud.Fecha', $fecha);
             }
         }
+
         if ($estado) {
             $builder->where('Solicitud.Estado', $estado);
         }
+
         if ($dpto) {
             $builder->where('Departamentos.Nombre', $dpto);
         }
 
         $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')->findAll();
 
-        $spreadsheet = new Spreadsheet();
+        // Generacion de Excel
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setCellValue('A1', 'Folio');
         $sheet->setCellValue('B1', 'Fecha');
@@ -2076,11 +2091,9 @@ class Api extends ResourceController
             $row++;
         }
 
-        $writer = new Xlsx($spreadsheet);
-        $filename = 'historial_requisiciones.xlsx';
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
+        header('Content-Disposition: attachment;filename="historial_requisiciones.xlsx"');
         $writer->save('php://output');
         exit();
     }
