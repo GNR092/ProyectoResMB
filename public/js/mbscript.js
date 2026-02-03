@@ -694,7 +694,7 @@ function initPaginacionHistorial() {
             <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
             <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
             <td class="border px-4 py-2 col-fecha">${item.Fecha}</td>
-            <td class="border px-4 py-2">${item.DepartamentoNombre || 'N/A'}</td>
+            <td class="border px-4 py-2">${(item.DepartamentoNombre + " - " + item.PlaceNombre) || 'N/A'}</td>
             <td class="border px-4 py-2 col-estado" data-estado="${status}" title="${status}">
                 ${svg}
                 <span >${status}</span>
@@ -712,9 +712,13 @@ function initPaginacionHistorial() {
       const departamentoFiltro = document.getElementById('filtroDepartamento')?.value || ''
 
       return allData.filter((item) => {
-        const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
-        const coincideDepartamento =
-          !departamentoFiltro || item.DepartamentoNombre === departamentoFiltro
+        const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
+
+        let coincideDepartamento = !departamentoFiltro;
+        if (departamentoFiltro) {
+          const [dptoFiltro, placeFiltro] = departamentoFiltro.split('|');
+          coincideDepartamento = item.DepartamentoNombre === dptoFiltro && (item.PlaceNombre || '') === placeFiltro;
+        }
 
         if (!fechaFiltro) {
           return coincideEstado && coincideDepartamento

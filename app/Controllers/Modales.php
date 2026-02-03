@@ -32,7 +32,11 @@ class Modales extends BaseController
         switch ($opcion) {
             case 'ver_historial':
                 $departamentoModel = new DepartamentosModel();
-                $data['departamentos'] = $departamentoModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['departamentos'] = $departamentoModel
+                    ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->orderBy('Departamentos.Nombre', 'ASC')
+                    ->findAll();
                 return view('modales/ver_historial', $data);
 
             case 'solicitar_material':

@@ -213,9 +213,10 @@ class Rest
         $ordenCompraModel = new OrdenCompraModel();
 
         $solicitudes = $solicitudModel
-            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre')
             ->whereNotIn('Solicitud.Estado', $excluded_statuses)
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left') // <-- Añadir este join
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
 
@@ -275,12 +276,13 @@ class Rest
         $ordenCompraModel = new OrdenCompraModel();
 
         $solicitudes = $solicitudModel
-            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre')
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->where('Solicitud.ID_Dpto', $id)
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
-
+        log_message('debug', print_r($solicitudes[0] ?? [], true));
         if (empty($solicitudes)) {
             return [];
         }

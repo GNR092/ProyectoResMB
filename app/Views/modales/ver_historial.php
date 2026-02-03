@@ -23,6 +23,10 @@
             <option value="Cotizando">🔵 Cotizando</option>
             <option value="Aprobacion pendiente" id="filtro-pendiente-aprobacion" class="hidden">🟠 Aprobación Pendiente</option>
             <option value="Cotizada">🟣 Cotizada</option>
+            <!-- Nuevas opciones -->
+            <option value="Espera_Programacion">🟠 Espera Programación</option>
+            <option value="Programada">🔵 Programada</option>
+            <option value="Por Pagar">⚪ En espera de factura</option>
         </select>
 
         <!-- Filtro por Departamento -->
@@ -31,8 +35,8 @@
             <option value="">Todos los departamentos</option>
             <?php if (isset($departamentos) && !empty($departamentos)): ?>
                 <?php foreach ($departamentos as $dpto): ?>
-                    <option value="<?= esc($dpto['Nombre']) ?>">
-                        <?= esc($dpto['Nombre']) ?>
+                    <option value="<?= esc($dpto['Nombre']) ?>|<?= esc($dpto['PlaceNombre'] ?? '') ?>">
+                        <?= esc($dpto['Nombre']) ?> - <?= esc($dpto['PlaceNombre'] ?? '') ?>
                     </option>
                 <?php endforeach; ?>
             <?php endif; ?>
