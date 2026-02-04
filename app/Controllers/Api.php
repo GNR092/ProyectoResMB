@@ -2054,9 +2054,21 @@ class Api extends ResourceController
         if (!in_array($sessionDeptoClean, $exceptions)) {
             $builder->where('Departamentos.Nombre', $sessionDeptoClean);
         } elseif (!empty($dptoRaw)) {
-            $parts = explode('|', $dptoRaw);
-            if (!empty($parts[0])) $builder->where('Departamentos.Nombre', $parts[0]);
-            if (!empty($parts[1])) $builder->where('Places.Nombre_Corto', $parts[1]);
+            if (is_array($dptoRaw)) {
+                $builder->groupStart();
+                foreach ($dptoRaw as $dpto) {
+                    $parts = explode('|', $dpto);
+                    $builder->orGroupStart();
+                    if (!empty($parts[0])) $builder->where('Departamentos.Nombre', $parts[0]);
+                    if (!empty($parts[1])) $builder->where('Places.Nombre_Corto', $parts[1]);
+                    $builder->groupEnd();
+                }
+                $builder->groupEnd();
+            } else {
+                $parts = explode('|', $dptoRaw);
+                if (!empty($parts[0])) $builder->where('Departamentos.Nombre', $parts[0]);
+                if (!empty($parts[1])) $builder->where('Places.Nombre_Corto', $parts[1]);
+            }
         }
 
         // Filtro de Fecha
