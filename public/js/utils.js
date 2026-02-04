@@ -876,6 +876,16 @@ function getStatusSVG(status) {
   }
   return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
 }
+function getMetodoPago(metodo) {
+    switch (metodo){
+      case '0':
+        return 'Contado'
+      case '1':
+        return 'Credito'
+      default:
+        return 'No asignado'
+    }
+}
 
 //*** Función del manejador de archivos (mostrar archivos adjuntos)  ***//
 

@@ -6,8 +6,6 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
-$routes->get('installer/rollback', 'Installer::rollback');
-
 $installerLockFile = WRITEPATH . 'installer.lock';
 
 // --- Rutas del Instalador ---
@@ -175,6 +173,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/requisicionpago/pdf/(:num)', 'GenerarPDF::GenerarRequisicionPago/$1');
         $routes->post('api/entrega/pdf', 'GenerarPDF::GenerarEntregaMateriales');
         $routes->get('admin/migrate', 'Installer::runMigrations');
+        $routes->get('admin/rollback', 'Installer::rollback');
 
         $routes->get('dev', 'Dev::index');
         $routes->get('api/test-email', 'Api::testEmailConnection');

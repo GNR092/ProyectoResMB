@@ -815,6 +815,8 @@ class GenerarPDF extends BaseController
         $y = $pdf->GetY();
         $pdf->SetY($y - 40);
 
+        // --- 1. Dibuja la sección de recepción de facturas ---
+        // Esta sección siempre aparecerá después de los totales.
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->SetFillColor(230, 230, 230);
         $pdf->Cell(110, 7, 'RECEPCION DE FACTURAS', 1, 1, 'C', true);
@@ -824,81 +826,63 @@ class GenerarPDF extends BaseController
         $pdf->Cell(110, 7, 'compras@campusmerida.com', 'LR', 1, 'C');
         $pdf->Cell(110, 7, 'gfreyre@campusmerida.com', 'LRB', 1, 'C');
 
-        $sigY = 25;
-        $pdf->SetY($y + $sigY);
+        // --- 2. Gestiona y dibuja el bloque de firmas ---
 
+        // Estima la altura requerida solo para el bloque de firmas.
+        $altura_firmas = 40; // (Altura de imagen/espacio + texto)
+
+        // Comprueba si hay suficiente espacio para el bloque de firmas. Si no, salta de página.
+        if ($pdf->GetY() + $altura_firmas > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage($pdf->getCurOrientation());
+        }
+
+        $pdf->Ln(15); // Espacio consistente antes de las firmas.
+
+        // Se captura la posición Y de inicio para el bloque de firmas.
+        $y_inicio_firmas = $pdf->GetY();
+        $y_linea_firma = $y_inicio_firmas + 20; // La línea de la firma estará 20mm por debajo.
+        $y_imagen_firma = $y_inicio_firmas; // La imagen se alinea con el inicio del bloque.
+    
         $signatureWidth = 60;
-        $x_start = $pdf->GetX();
+        $x_start = 15; // Posición X inicial absoluta para el primer bloque.
 
-        // FIRMA DE QUIEN ELABORA (Usuario de la sesión)
-        $pdf->SetX($x_start);
-        if (
-            isset($orden['UsuarioSession']['Firma_digital']) &&
-            !empty($orden['UsuarioSession']['Firma_digital'])
-        ) {
-            $firmaPath =
-                FPath::FUSER .
-                $orden['UsuarioSession']['ID_Usuario'] .
-                DIRECTORY_SEPARATOR .
-                $orden['UsuarioSession']['Firma_digital'];
+        // --- Dibuja el bloque de tres firmas ---
+    
+        // FIRMA 1: ELABORADO POR
+        $x_elabora = $x_start;
+        if (isset($orden['UsuarioSession']['Firma_digital']) && !empty($orden['UsuarioSession']['Firma_digital'])) {
+            $firmaPath = FPath::FUSER . $orden['UsuarioSession']['ID_Usuario'] . DIRECTORY_SEPARATOR . $orden['UsuarioSession']['Firma_digital'];
             if (file_exists($firmaPath)) {
                 $imageWidth = 50;
-                $imageHeight = 25;
-                $x_img = $x_start + ($signatureWidth - $imageWidth) / 2;
-                $pdf->Image($firmaPath, $x_img, $y, $imageWidth, $imageHeight);
-                $pdf->SetY($y + $imageHeight);
+                $imageHeight = 20;
+                $x_img = $x_elabora + ($signatureWidth - $imageWidth) / 2;
+                $pdf->Image($firmaPath, $x_img, $y_imagen_firma, $imageWidth, $imageHeight);
             }
         }
-        $pdf->SetX($x_start);
+        $pdf->SetXY($x_elabora, $y_linea_firma);
         $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell($signatureWidth, 5, 'ELABORADO POR', 'T', 2, 'C');
+        $pdf->Cell($signatureWidth, 5, 'ELABORADO POR', 'T', 0, 'C');
+        $pdf->SetXY($x_elabora, $y_linea_firma + 5);
         $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(
-            $signatureWidth,
-            5,
-            mb_convert_encoding($orden['UsuarioSession']['Nombre'] ?? '', 'ISO-8859-1', 'UTF-8'),
-            0,
-            0,
-            'C',
-        );
-
-        // FIRMA DE QUIEN COTIZA
-        $pdf->SetY($y + $sigY);
-        $x_cotiza = $x_start + $signatureWidth + 5;
-        $pdf->SetX($x_cotiza);
+        $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioSession']['Nombre'] ?? '', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+    
+        // FIRMA 2: COTIZADO POR
+        $x_cotiza = $x_elabora + $signatureWidth + 5;
+        $pdf->SetXY($x_cotiza, $y_linea_firma);
         $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell($signatureWidth, 5, 'COTIZADO POR', 'T', 2, 'C');
+        $pdf->Cell($signatureWidth, 5, 'COTIZADO POR', 'T', 0, 'C');
+        $pdf->SetXY($x_cotiza, $y_linea_firma + 5);
         $pdf->SetFont('Arial', '', 8);
-        $pdf->SetX($x_cotiza);
-        $pdf->Cell(
-            $signatureWidth,
-            5,
-            mb_convert_encoding($orden['UsuarioCotizaNombre'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'),
-            0,
-            0,
-            'C',
-        );
-
-        // FIRMA DE QUIEN AUTORIZA
-        $pdf->SetY($y + $sigY);
+        $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioCotizaNombre'] ?? 'N/A', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+    
+        // FIRMA 3: AUTORIZADO POR
         $x_autoriza = $x_cotiza + $signatureWidth + 5;
-        $pdf->SetX($x_autoriza);
+        $pdf->SetXY($x_autoriza, $y_linea_firma);
         $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell($signatureWidth, 5, 'AUTORIZADO POR', 'T', 2, 'C');
+        $pdf->Cell($signatureWidth, 5, 'AUTORIZADO POR', 'T', 0, 'C');
+        $pdf->SetXY($x_autoriza, $y_linea_firma + 5);
         $pdf->SetFont('Arial', '', 8);
-        $pdf->SetX($x_autoriza);
-        $pdf->Cell(
-            $signatureWidth,
-            5,
-            mb_convert_encoding(
-                $orden['UsuarioAutorizaNombre'] ?? 'AUTORIZADO',
-                'ISO-8859-1',
-                'UTF-8',
-            ),
-            0,
-            0,
-            'C',
-        );
+        $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioAutorizaNombre'] ?? 'AUTORIZADO', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
     }
 
     //endregion

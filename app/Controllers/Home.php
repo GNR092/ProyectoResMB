@@ -53,6 +53,7 @@ class Home extends BaseController
                 'pagos_pendientes',
                 'crud_cuentas',
                 'lista_pagos',
+                'ver_historial',
             ],
 
             // Rol Almacén
@@ -142,8 +143,8 @@ class Home extends BaseController
             // Si es Jefe, añadimos el permiso para aprobar solicitudes.
             $permisosUsuario[] = 'aprobar_solicitudes';
         }
+        
         // Los empleados ('employee') se quedan con los permisos por defecto de su depto.
-
         $opcionesFiltradas = array_filter($opcionesDisponibles, fn($key) => in_array($key, $permisosUsuario), ARRAY_FILTER_USE_KEY);
 
         $ajustesFiltrados = array_intersect($opcionesAjustes, $permisosAjustesDpto[$nombreDepartamento] ?? $permisosAjustesDpto['default']);

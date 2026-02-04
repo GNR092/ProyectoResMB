@@ -32,7 +32,7 @@
 
         <!-- Filtro por Departamento -->
          <?php if (session('login_type') === 'boss'): ?>
-        <select id="filtroDepartamento" class="border p-2 rounded w-full md:w-auto">
+        <select id="filtroDepartamento" multiple name="departamentos[]" class="border p-2 rounded w-full md:w-auto">
             <option value="">Todos los departamentos</option>
             <?php if (isset($departamentos) && !empty($departamentos)): ?>
                 <?php foreach ($departamentos as $dpto): ?>
@@ -62,6 +62,7 @@
                     <th class="border px-4 py-2">Fecha</th>
                     <th class="border px-4 py-2">Departamento</th>
                     <th class="border px-4 py-2">Estado</th>
+                    <th class="border px-4 py-2">Metodo de pago</th>
                     <th class="border px-4 py-2">Acción</th>
                 </tr>
             </thead>

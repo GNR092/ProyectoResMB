@@ -689,6 +689,7 @@ function initPaginacionHistorial() {
     renderRow: (item) => {
       const status = getStatusText(item.Estado)
       const svg = getStatusSVG(item.Estado)
+      const MetodoPag = getMetodoPago(item.MetodoPago)
       return `
         <tr class="text-center">
             <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
@@ -699,6 +700,7 @@ function initPaginacionHistorial() {
                 ${svg}
                 <span >${status}</span>
             </td>
+            <td class="border px-4 py-2 col-metodo">${MetodoPag}</td>
             <td class="border px-4 py-2">
                 <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">ver</a>
             </td>
