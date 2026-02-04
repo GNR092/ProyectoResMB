@@ -2032,30 +2032,34 @@ class Api extends ResourceController
 
     public function exportarHistorial()
     {
-        //Leer filtros
+        // 1. Obtener filtros y datos de sesión
         $fecha  = $this->request->getGet('fecha');
         $porMes = $this->request->getGet('por_mes');
-        $estado = $this->request->getGet('estado');
-        $dpto   = $this->request->getGet('dpto');
+        $estadoFiltro = $this->request->getGet('estado');
+        $dptoRaw = $this->request->getGet('dpto');
 
-        // Sesión correcta
-        $sessionDeptoFull = session('departamento_usuario'); //Leer departamento
+        $sessionDeptoFull = session('departamento_usuario');
         $sessionType      = session('login_type');
         $exceptions       = ['Compras', 'Administración', 'Direccion', 'Tesoreria'];
-
-
-        //Transformar el campo de departamento
         $sessionDeptoClean = trim(explode('(', $sessionDeptoFull)[0]);
 
-        if (!in_array($sessionDeptoClean, $exceptions)) {
-            $dpto = $sessionDeptoClean;
-        }
-
+        // 2. Construir la consulta base (Igual a tu REST)
         $solicitudModel = new \App\Models\SolicitudModel();
         $builder = $solicitudModel
-            ->select('Solicitud.No_Folio, Solicitud.Fecha, Departamentos.Nombre as DepartamentoNombre, Solicitud.Estado')
-            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left');
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left');
 
+        // 3. Aplicar Filtros de Seguridad y Departamento
+        if (!in_array($sessionDeptoClean, $exceptions)) {
+            $builder->where('Departamentos.Nombre', $sessionDeptoClean);
+        } elseif (!empty($dptoRaw)) {
+            $parts = explode('|', $dptoRaw);
+            if (!empty($parts[0])) $builder->where('Departamentos.Nombre', $parts[0]);
+            if (!empty($parts[1])) $builder->where('Places.Nombre_Corto', $parts[1]);
+        }
+
+        // Filtro de Fecha
         if ($fecha) {
             if ($porMes) {
                 $builder->where("to_char(Solicitud.Fecha, 'YYYY-MM')", substr($fecha, 0, 7));
@@ -2064,36 +2068,80 @@ class Api extends ResourceController
             }
         }
 
-        if ($estado) {
-            $builder->where('Solicitud.Estado', $estado);
-        }
-
-        if ($dpto) {
-            $builder->where('Departamentos.Nombre', $dpto);
-        }
-
         $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')->findAll();
 
-        // Generacion de Excel
+        if (empty($solicitudes)) {
+            die("No hay datos para exportar con los filtros seleccionados.");
+        }
+
+        // 4. LÓGICA DE ESTADOS DINÁMICOS (Copiada de tu REST)
+        $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
+        $cotizacionModel = new \App\Models\CotizacionModel();
+        $ordenCompraModel = new \App\Models\OrdenCompraModel();
+
+        $cotizaciones = $cotizacionModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
+        $cotizacionIds = array_column($cotizaciones, 'ID_Cotizacion');
+
+        $ordenesMap = [];
+        if (!empty($cotizacionIds)) {
+            $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
+            foreach ($ordenes as $ord) { $ordenesMap[$ord['ID_Cotizacion']] = $ord; }
+        }
+
+        $cotizacionesMap = [];
+        foreach ($cotizaciones as $cot) { $cotizacionesMap[$cot['ID_Solicitud']] = $cot; }
+
+        // Procesar estados y filtrar por el estado seleccionado en el UI
+        foreach ($solicitudes as $key => &$sol) {
+            if ($sol['Estado'] === 'Aprobada') { // Asumiendo que Status::Aprobada es 'Aprobada'
+                if (isset($cotizacionesMap[$sol['ID_Solicitud']])) {
+                    $cot = $cotizacionesMap[$sol['ID_Solicitud']];
+                    if (isset($ordenesMap[$cot['ID_Cotizacion']])) {
+                        $orden = $ordenesMap[$cot['ID_Cotizacion']];
+                        if (!empty($orden['Estado'])) {
+                            $sol['Estado'] = $orden['Estado'];
+                        }
+                    }
+                }
+            }
+
+            // IMPORTANTE: Si el usuario filtró por un estado específico en la web,
+            // debemos validar que el estado final coincida, si no, lo quitamos de la lista.
+            if ($estadoFiltro && $sol['Estado'] !== $estadoFiltro) {
+                unset($solicitudes[$key]);
+            }
+        }
+
+        // 5. Generar Excel
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setCellValue('A1', 'Folio');
-        $sheet->setCellValue('B1', 'Fecha');
-        $sheet->setCellValue('C1', 'Departamento');
-        $sheet->setCellValue('D1', 'Estado');
+
+        $headers = ['Folio', 'Fecha', 'Departamento', 'Sede', 'Estado'];
+        $sheet->fromArray($headers, NULL, 'A1');
+        $sheet->getStyle('A1:E1')->getFont()->setBold(true);
 
         $row = 2;
-        foreach ($solicitudes as $solicitud) {
-            $sheet->setCellValue('A' . $row, $solicitud['No_Folio']);
-            $sheet->setCellValue('B' . $row, $solicitud['Fecha']);
-            $sheet->setCellValue('C' . $row, $solicitud['DepartamentoNombre']);
-            $sheet->setCellValue('D' . $row, $solicitud['Estado']);
+        foreach ($solicitudes as $sol) {
+            $sheet->setCellValue('A' . $row, $sol['No_Folio']);
+            $sheet->setCellValue('B' . $row, $sol['Fecha']);
+            $sheet->setCellValue('C' . $row, $sol['DepartamentoNombre']);
+            $sheet->setCellValue('D' . $row, $sol['PlaceNombre']);
+            $sheet->setCellValue('E' . $row, $sol['Estado']);
             $row++;
         }
 
+        // Formato
+        $sheet->getStyle('A1:D1')->getFont()->setBold(true);
+        foreach (range('A', 'D') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // 6. Descarga con el nombre original solicitado
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="historial_requisiciones.xlsx"');
+        header('Cache-Control: max-age=0');
+
         $writer->save('php://output');
         exit();
     }
