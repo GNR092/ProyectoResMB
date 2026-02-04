@@ -22,11 +22,12 @@
             <option value="Rechazada">🔴 Rechazada</option>
             <option value="Cotizando">🔵 Cotizando</option>
             <option value="Aprobacion pendiente" id="filtro-pendiente-aprobacion" class="hidden">🟠 Aprobación Pendiente</option>
-            <option value="Cotizada">🟣 Cotizada</option>
+            <option value="En revision">🔵 En revisión</option>
             <!-- Nuevas opciones -->
             <option value="Espera_Programacion">🟠 Espera Programación</option>
             <option value="Programada">🔵 Programada</option>
             <option value="Por Pagar">⚪ En espera de factura</option>
+            <option value="Pagada">🟢Pagada </option>
         </select>
 
         <!-- Filtro por Departamento -->

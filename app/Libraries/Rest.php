@@ -758,46 +758,39 @@ class Rest
      */
     public function getSolicitudesCotizadas()
     {
-        $result = [];
-
-        $cotizacionModel = new CotizacionModel();
         $solicitudModel = new SolicitudModel();
-        $usuarioModel = new UsuariosModel();
-        $dptoModel = new DepartamentosModel();
-        $proveedorModel = new ProveedorModel();
 
-        $cotizaciones = $cotizacionModel->findAll();
+        $solicitudes = $solicitudModel
+            ->select(
+                'Solicitud.ID_Solicitud as ID, Solicitud.No_Folio as Folio, Solicitud.Estado, Solicitud.IVA,
+                Usuarios.Nombre as Usuario, Departamentos.Nombre as Departamento,
+                Proveedor.RazonSocial as Proveedor, Cotizacion.Total as Monto, Cotizacion.ID_Cotizacion'
+            )
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
+            ->where('Solicitud.Estado', Status::Cotizando)
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->findAll();
 
-        foreach ($cotizaciones as $cotizacion) {
-            $solicitud = $solicitudModel->find($cotizacion['ID_Solicitud']);
-
-            if (
-                !$solicitud ||
-                ($solicitud['Estado'] ?? '') === Status::En_Revision ||
-                ($solicitud['Estado'] ?? '') === Status::Aprobada ||
-                ($solicitud['Estado'] ?? '') === Status::Rechazada ||
-                ($solicitud['Estado'] ?? '') === Status::En_Proceso_Pago ||
-                ($solicitud['Estado'] ?? '') === Status::Por_Pagar ||
-                ($solicitud['Estado'] ?? '') === Status::Cancelada
-            ) {
-                continue;
+        $result = [];
+        foreach ($solicitudes as $solicitud) {
+            $montoFinal = (float) $solicitud['Monto'];
+            if ($solicitud['IVA'] === true) {
+                $montoFinal *= 1.16;
             }
 
-            $usuario = $usuarioModel->find($solicitud['ID_Usuario']);
-            $departamento = $dptoModel->find($solicitud['ID_Dpto']);
-
-            $proveedor = $proveedorModel->find($cotizacion['ID_Proveedor']);
-
             $result[] = [
-                'ID' => $cotizacion['ID_Cotizacion'],
-                'ID_Solicitud' => $solicitud['ID_Solicitud'],
-                'Folio' => $solicitud['No_Folio'] ?? '',
-                'Usuario' => $usuario['Nombre'] ?? '',
-                'Departamento' => $departamento['Nombre'] ?? '',
-                'Proveedor' => $proveedor['RazonSocial'] ?? '',
-                'Monto' =>
-                    $solicitud['IVA'] === true ? $cotizacion['Total'] * 1.16 : $cotizacion['Total'],
-                'Estado' => $solicitud['Estado'] ?? '',
+                'ID' => $solicitud['ID'],
+                'ID_Solicitud' => $solicitud['ID'],
+                'Folio' => $solicitud['Folio'],
+                'Usuario' => $solicitud['Usuario'],
+                'Departamento' => $solicitud['Departamento'],
+                'Proveedor' => $solicitud['Proveedor'],
+                'Monto' => $montoFinal,
+                'Estado' => $solicitud['Estado'],
+                'ID_Cotizacion' => $solicitud['ID_Cotizacion'],
             ];
         }
 
