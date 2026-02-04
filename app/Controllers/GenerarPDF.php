@@ -692,14 +692,18 @@ class GenerarPDF extends BaseController
 
             foreach ($items as $item) {
                 $nombre = mb_convert_encoding($item['Nombre'], 'ISO-8859-1', 'UTF-8');
-                $sku = $isService ? 'N/A' : $item['Codigo'];
+                $sku = $isService ? 'N/A' : mb_convert_encoding($item['Codigo'], 'ISO-8859-1', 'UTF-8');
                 $cantidad = $isService ? 1 : $item['Cantidad'];
                 $precio = $this->RemoveIVA($item['Importe']);
                 $importe = $isService ? $precio : $cantidad * $precio;
                 $subtotal += $importe;
 
-                $nb = $pdf->NbLines($wds[2], $nombre);
+                // Calcular el número de líneas para el nombre y el SKU
+                $nb_nombre = $pdf->NbLines($wds[2], $nombre);
+                $nb_sku = $pdf->NbLines($wds[3], $sku);
+                $nb = max($nb_nombre, $nb_sku); // Usar el máximo de líneas
                 $rowHeight = $nb * $lineHeight;
+
 
                 if ($pdf->GetY() + $rowHeight > $pdf->getPageBreakTrigger()) {
                     $pdf->AddPage($pdf->getCurOrientation());
@@ -714,7 +718,7 @@ class GenerarPDF extends BaseController
                 $pdf->SetXY($x0 + $wds[0] + $wds[1], $y0);
                 $pdf->MultiCell($wds[2], $lineHeight, $nombre, 1, 'L', false);
                 $pdf->SetXY($x0 + $wds[0] + $wds[1] + $wds[2], $y0);
-                $pdf->MultiCell($wds[3], $rowHeight, $sku, 1, 'C', false);
+                $pdf->MultiCell($wds[3], $lineHeight, $sku, 1, 'C', false);
                 $pdf->SetXY($x0 + $wds[0] + $wds[1] + $wds[2] + $wds[3], $y0);
                 $pdf->MultiCell(
                     $wds[4],
