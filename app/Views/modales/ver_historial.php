@@ -32,7 +32,7 @@
 
         <!-- Filtro por Departamento -->
          <?php if (session('login_type') === 'boss'): ?>
-        <select id="filtroDepartamento" multiple name="departamentos[]" class="border p-2 rounded w-full md:w-auto">
+        <select id="filtroDepartamento" class="border p-2 rounded w-full md:w-auto" multiple>
             <option value="">Todos los departamentos</option>
             <?php if (isset($departamentos) && !empty($departamentos)): ?>
                 <?php foreach ($departamentos as $dpto): ?>

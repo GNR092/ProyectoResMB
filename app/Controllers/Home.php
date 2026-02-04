@@ -54,6 +54,7 @@ class Home extends BaseController
                 'crud_cuentas',
                 'lista_pagos',
                 'ver_historial',
+                'solicitar_material',
             ],
 
             // Rol Almacén

@@ -593,9 +593,25 @@ function regresarSubmenuMaterial() {
 /**
  * Lógica para el modal "Ver Historial"
  */
+let choicesDepartamento = null;
 function initPaginacionHistorial() {
   const tabla = document.getElementById('tabla-historial')
   if (!tabla) return
+
+
+  const filtroEl = document.getElementById('filtroDepartamento');
+  if (filtroEl) {
+      choicesDepartamento = new Choices(filtroEl, {
+          removeItemButton: true,
+          placeholder: true,
+          placeholderValue: 'Todos los departamentos',
+          searchPlaceholderValue: 'Buscar...',
+          itemSelectText: 'Presionar para seleccionar',
+          noResultsText: 'No se encontraron resultados',
+          noChoicesText: 'No hay más opciones para elegir',
+      });
+  }
+
 
   //Filtro para la casilla de departamentos
   function validarFiltroDepartamento() {
@@ -606,10 +622,7 @@ function initPaginacionHistorial() {
     const miDepto = typeof USER_DEPT_NAME !== 'undefined' ? USER_DEPT_NAME : ''
 
     if (!deptosPermitidos.includes(miDepto)) {
-      filtro.classList.add('hidden') // Clase de Tailwind para ocultar
-      filtro.disabled = true // Deshabilitar para evitar envíos accidentales
-    } else {
-      filtro.classList.remove('hidden')
+      filtro.parentElement.style.display = 'none';
     }
   }
 
@@ -711,15 +724,23 @@ function initPaginacionHistorial() {
       const fechaFiltro = document.getElementById('filtro-fecha').value
       const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
       const estadoFiltro = document.getElementById('filtro-estado').value
-      const departamentoFiltro = document.getElementById('filtroDepartamento')?.value || ''
+      const departamentosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : [];
 
       return allData.filter((item) => {
         const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
 
-        let coincideDepartamento = !departamentoFiltro;
-        if (departamentoFiltro) {
-          const [dptoFiltro, placeFiltro] = departamentoFiltro.split('|');
-          coincideDepartamento = item.DepartamentoNombre === dptoFiltro && (item.PlaceNombre || '') === placeFiltro;
+        let coincideDepartamento = true; 
+        if (departamentosSeleccionados.length > 0) {
+            const itemDepartamentoCompleto = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`;
+            coincideDepartamento = departamentosSeleccionados.includes(itemDepartamentoCompleto);
+        } else {
+          // If the multi-select is empty, all departments should match
+          coincideDepartamento = true;
+        }
+
+        // Fix for when the array is empty after clearing the selection
+        if (choicesDepartamento && choicesDepartamento.getValue(true).length === 0) {
+            coincideDepartamento = true;
         }
 
         if (!fechaFiltro) {
@@ -1075,13 +1096,18 @@ function exportarHistorialExcel() {
   const fecha = document.getElementById('filtro-fecha').value;
   const porMes = document.getElementById('filtrar-por-mes').checked;
   const estado = document.getElementById('filtro-estado').value;
-  const dpto = document.getElementById('filtroDepartamento')?.value || '';
+  const departamentosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : [];
 
   const params = new URLSearchParams();
   if (fecha) params.append('fecha', fecha);
   if (porMes) params.append('por_mes', '1');
   if (estado) params.append('estado', estado);
-  if (dpto) params.append('dpto', dpto);
+  
+  if (departamentosSeleccionados.length > 0) {
+    departamentosSeleccionados.forEach(dpto => {
+        params.append('dpto[]', dpto);
+    });
+  }
 
   window.location.href = `api/historial/exportar?${params.toString()}`;
 }

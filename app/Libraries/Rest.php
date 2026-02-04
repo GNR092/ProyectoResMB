@@ -1573,7 +1573,108 @@ class Rest
         log_message('debug', print_r($solicitud, true));
         return $solicitud ?: [];
     }
+    
+    /**
+     * Obtiene solicitudes filtradas por varios criterios.
+     *
+     * @param string|null $fecha La fecha para filtrar (YYYY-MM-DD).
+     * @param bool $porMes Si es true, filtra por mes (YYYY-MM).
+     * @param string|null $estado El estado de la solicitud para filtrar.
+     * @param array|null $departamentos Un array de strings "Departamento|Lugar" para filtrar.
+     * @return array Un array de solicitudes filtradas.
+     */
+    public function getFilteredSolicitudes(?string $fecha, bool $porMes, ?string $estado, ?array $departamentos): array
+    {
+        $solicitudModel = new SolicitudModel();
+        $cotizacionModel = new CotizacionModel();
+        $ordenCompraModel = new OrdenCompraModel();
 
+        $builder = $solicitudModel
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Usuarios.Nombre as UsuarioNombre')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left');
+
+        // Excluir estados por defecto si no se especifica un estado de filtro.
+        // Si el estado es 'Todos los estados' (vacío), aplicamos la exclusión de getAllSolicitud.
+        if (empty($estado)) {
+            $excluded_statuses = [Status::Dept_Rechazada, Status::Aprobacion_pendiente];
+            $builder->whereNotIn('Solicitud.Estado', $excluded_statuses);
+        } elseif ($estado !== 'Todos los estados') { // Aplicar el estado específico si no es 'Todos los estados'
+            $builder->where('Solicitud.Estado', $estado);
+        }
+
+        // Filtro por Fecha
+        if (!empty($fecha)) {
+            if ($porMes) {
+                $builder->like('Solicitud.Fecha', substr($fecha, 0, 7), 'after'); // 'YYYY-MM%'
+            } else {
+                $builder->where('Solicitud.Fecha', $fecha);
+            }
+        }
+
+        // Filtro por Departamentos
+        if (!empty($departamentos)) {
+            $builder->groupStart();
+            foreach ($departamentos as $dptoPlace) {
+                list($dpto, $place) = explode('|', $dptoPlace);
+                $builder->orGroupStart();
+                $builder->where('Departamentos.Nombre', $dpto);
+                // Si 'Todos los lugares' (vacío) se selecciona para un departamento, no filtrar por PlaceNombre
+                if (!empty($place)) {
+                    $builder->where('Places.Nombre_Corto', $place);
+                }
+                $builder->groupEnd();
+            }
+            $builder->groupEnd();
+        }
+
+        $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')->findAll();
+
+        if (empty($solicitudes)) {
+            return [];
+        }
+
+        $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
+
+        // Obtener cotizaciones y órdenes de compra para actualizar el estado
+        $cotizaciones = $cotizacionModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
+        $cotizacionIds = array_column($cotizaciones, 'ID_Cotizacion');
+
+        $ordenes = [];
+        if (!empty($cotizacionIds)) {
+            $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
+        }
+
+        $cotizacionesMap = [];
+        foreach ($cotizaciones as $cot) {
+            if (!isset($cotizacionesMap[$cot['ID_Solicitud']])) {
+                $cotizacionesMap[$cot['ID_Solicitud']] = $cot;
+            }
+        }
+
+        $ordenesMap = [];
+        foreach ($ordenes as $orden) {
+            $ordenesMap[$orden['ID_Cotizacion']] = $orden;
+        }
+
+        foreach ($solicitudes as &$solicitud) {
+            if ($solicitud['Estado'] === Status::Aprobada) {
+                if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
+                    $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
+                    if (isset($ordenesMap[$cotizacion['ID_Cotizacion']])) {
+                        $orden = $ordenesMap[$cotizacion['ID_Cotizacion']];
+                        if (!empty($orden['Estado'])) {
+                            $solicitud['Estado'] = $orden['Estado'];
+                        }
+                    }
+                }
+            }
+        }
+
+        return $solicitudes;
+    }
+    
     /**
      * Obtiene todas las órdenes de compra pendientes de pago con sus detalles.
      *
@@ -1581,6 +1682,7 @@ class Rest
      */
     public function getPagosPendientes(): array
     {
+
         $ordenCompraModel = new OrdenCompraModel();
 
         $ordenes = $ordenCompraModel

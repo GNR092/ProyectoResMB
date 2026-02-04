@@ -12,6 +12,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     <title>Pantalla principal</title>
     <meta name="csrf-token-name" content="<?= csrf_token() ?>">
     <meta name="csrf-token-hash" content="<?= csrf_hash() ?>">
+    <link rel="stylesheet" href="<?= base_url('css/choices.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>?v=<?= $version ?>">
 </head>
 
@@ -101,6 +102,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     ?>
     const ICON_SVG_VERSION = "<?= $iconVersion ?>";
 </script>
+<script src="<?= base_url() ?>js/choices.min.js" defer></script>
 <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
 <script src="<?= base_url() ?>js/utils.js" defer></script>
 <script src="<?= base_url(file_exists(FCPATH . 'js/mbscript.js') ? 'js/mbscript.js' : 'js/mbscript.min.js') ?>" defer></script>
