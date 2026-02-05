@@ -37,7 +37,7 @@ class CreateTableSolicitudProd extends Migration
                 'type' => 'INT',
                 'constraint' => 5,
                 'unsigned' => true,
-                'null' => false,
+                'null' => true,
             ],
             'IVA' => [
                 'type' => 'BOOLEAN',

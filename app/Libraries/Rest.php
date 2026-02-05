@@ -377,9 +377,11 @@ class Rest
                 'Departamentos.Nombre as DepartamentoNombre',
                 'Proveedor.RazonSocial as RazonSocialNombre',
                 'Razon_Social.Nombre as Complejo',
+                'Places.Nombre_Corto as ID_Place',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
@@ -391,9 +393,7 @@ class Rest
             $cuentasModel = new CuentasModel();
             $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
         }
-        $solicitud['ID_Place'] = $placesModel->find(
-            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
-        )['Nombre_Corto'];
+
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
 
@@ -461,9 +461,11 @@ class Rest
                 'Proveedor.MetodoPago as ProveedorMetodoPago', // Para forma de pago
                 'Razon_Social.Nombre as Complejo',
                 'Solicitud.Fecha_Aprobacion', // Necesario para la fecha de la factura
+                'Places.Nombre_Corto as ID_Place',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
@@ -472,9 +474,6 @@ class Rest
             return null;
         }
 
-        $solicitud['ID_Place'] = $placesModel->find(
-            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
-        )['Nombre_Corto'];
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $solicitud['UsuarioRazon'] = $razonSocialModel->find($solicitud['ID_RazonSocial']); // Detalles completos de la razón social del complejo
 
@@ -563,10 +562,11 @@ class Rest
      */
     public function getOrdenCompra(int $id): ?array
     {
+        log_message('debug', 'Iniciando getOrdenCompra para Solicitud ID: ' . $id);
         $solicitudModel = new SolicitudModel();
         $placesModel = new PlacesModel();
         $razonSocialModel = new RazonSocialModel();
-        $ordeCompraModel = new OrdenCompraModel();
+        $ordenCompraModel = new OrdenCompraModel();
         $proveedorModel = new ProveedorModel();
         $solicitud = $solicitudModel
             ->select([
@@ -578,9 +578,11 @@ class Rest
                 'OrdenCompra.Estado as EstadoOrden',
                 'UsuarioCotiza.Nombre as UsuarioCotizaNombre',
                 'UsuarioAutoriza.Nombre as UsuarioAutorizaNombre',
+                'Places.Nombre_Corto as ID_Place',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
             ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
@@ -616,9 +618,7 @@ class Rest
 
             $solicitud['proveedor'] = $proveedor;
         }
-        $solicitud['ID_Place'] = $placesModel->find(
-            $this->getDepartmentById($solicitud['ID_Dpto'])['ID_Place'],
-        )['Nombre_Corto'];
+
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
         $productos = [];
         if (

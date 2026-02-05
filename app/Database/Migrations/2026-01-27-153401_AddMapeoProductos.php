@@ -16,9 +16,9 @@ class AddMapeoProductos extends Migration
                 'auto_increment' => true,
             ],
             'ID_Proveedor' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true, // Ajustar si tu tabla Proveedor no es unsigned
+                'type'       => 'BIGINT',
+                'constraint' => 20,
+                'unsigned'   => true,
             ],
             'IdentificadorXML' => [
                 'type'       => 'TEXT',
