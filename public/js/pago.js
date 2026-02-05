@@ -14,6 +14,23 @@ function Pagos() {
     pageContado: 1,
     pageCredito: 1,
 
+    get totalSeleccionado() {
+      // 1. Detectamos qué lista estamos viendo
+      const listaActual = this.screen === 'contado' ? this.ordenesContado : this.ordenesCredito;
+
+      if (!listaActual || listaActual.length === 0) return 0;
+
+      // 2. Filtramos solo las órdenes que están en 'selectedOrdenes'
+      const ordenesSeleccionadas = listaActual.filter(o => this.selectedOrdenes.includes(o.ID_Solicitud));
+
+      // 3. Sumamos los totales (asegurando que sea número)
+      const suma = ordenesSeleccionadas.reduce((acumulado, orden) => {
+        return acumulado + parseFloat(orden.Total || 0);
+      }, 0);
+
+      return suma;
+    },
+
     async cargardatos() {
       this.loading = true;
       this.selectedOrdenes = [];
@@ -74,15 +91,27 @@ function Pagos() {
     },
 
     toggleSelectAll(event, type) {
-      // Nota: Selecciona TODOS los elementos (no solo los visibles en la página)
-      const list = type === 'contado' ? this.ordenesContado : this.ordenesCredito;
-      const ids = list.map((o) => o.ID_Solicitud);
+      // para obtener SOLO los 10 elementos visibles.
+      const list = type === 'contado' ? this.paginatedContado : this.paginatedCredito;
+
+      // Obtenemos los IDs
+      const pageIds = list.map((o) => o.ID_Solicitud);
 
       if (event.target.checked) {
-        this.selectedOrdenes = [...new Set([...this.selectedOrdenes, ...ids])];
+        // Agregamos los IDs
+        this.selectedOrdenes = [...new Set([...this.selectedOrdenes, ...pageIds])];
       } else {
-        this.selectedOrdenes = this.selectedOrdenes.filter((id) => !ids.includes(id));
+        // Removemos los IDs
+        this.selectedOrdenes = this.selectedOrdenes.filter((id) => !pageIds.includes(id));
       }
+    },
+
+    // Agrega esto dentro del objeto Pagos()
+    isPageSelected(type) {
+      const list = type === 'contado' ? this.paginatedContado : this.paginatedCredito;
+      if (list.length === 0) return false;
+      // Verifica si TODOS los elementos visibles están en la lista de seleccionados
+      return list.every(o => this.selectedOrdenes.includes(o.ID_Solicitud));
     },
 
     async programarPago() {
