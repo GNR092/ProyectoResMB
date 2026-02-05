@@ -58,7 +58,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'ordenes_compra' => [
-                'label' => 'Operación De Compras',
+                'label' => 'Ordenes de Compras',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ordenes_compra"></use></svg>',
             ],
 
