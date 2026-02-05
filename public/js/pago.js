@@ -9,12 +9,15 @@ function Pagos() {
     loading: true,
     loadingDetalle: false,
 
+    // --- VARIABLES DE PAGINACIÓN AGREGADAS ---
+    itemsPerPage: 10,
+    pageContado: 1,
+    pageCredito: 1,
+
     async cargardatos() {
       this.loading = true;
-      this.selectedOrdenes = []; // Limpiar selección al recargar
-
+      this.selectedOrdenes = [];
       try {
-
         const data = await SendDataEnd('api/ordenes-programar');
 
         if (!data || data.length === 0) {
@@ -23,21 +26,17 @@ function Pagos() {
           return;
         }
 
-        // Como el backend ya filtró por "Espera_Programacion",
-        // aquí solo separamos por método de pago.
-
-        // MetodoPago '0' = Contado
         this.ordenesContado = data.filter((o) => o.MetodoPago == '0');
-
-        // MetodoPago '1' = Crédito
         this.ordenesCredito = data.filter((o) => o.MetodoPago == '1');
 
-        // Ordenar crédito (opcional, aquí no hay fecha vencimiento en la tabla principal, pero se puede agregar)
+        // Resetear paginación al cargar
+        this.pageContado = 1;
+        this.pageCredito = 1;
         this.ordenesCredito.sort((a, b) => 0);
 
       } catch (error) {
-        console.error('Error al cargar las órdenes para programar:', error);
-        mostrarNotificacion('Error de conexión al cargar datos.', 'error');
+        console.error('Error al cargar las órdenes:', error);
+        mostrarNotificacion('Error de conexión.', 'error');
         this.ordenesContado = [];
         this.ordenesCredito = [];
       } finally {
@@ -45,15 +44,43 @@ function Pagos() {
       }
     },
 
+    // --- LÓGICA DE PAGINACIÓN (COMPUTADOS) ---
+    get paginatedContado() {
+      const start = (this.pageContado - 1) * this.itemsPerPage;
+      return this.ordenesContado.slice(start, start + this.itemsPerPage);
+    },
+
+    get paginatedCredito() {
+      const start = (this.pageCredito - 1) * this.itemsPerPage;
+      return this.ordenesCredito.slice(start, start + this.itemsPerPage);
+    },
+
+    get totalPagesContado() {
+      return Math.ceil(this.ordenesContado.length / this.itemsPerPage) || 1;
+    },
+
+    get totalPagesCredito() {
+      return Math.ceil(this.ordenesCredito.length / this.itemsPerPage) || 1;
+    },
+
+    changePage(type, direction) {
+      if (type === 'contado') {
+        if (direction === 'next' && this.pageContado < this.totalPagesContado) this.pageContado++;
+        if (direction === 'prev' && this.pageContado > 1) this.pageContado--;
+      } else {
+        if (direction === 'next' && this.pageCredito < this.totalPagesCredito) this.pageCredito++;
+        if (direction === 'prev' && this.pageCredito > 1) this.pageCredito--;
+      }
+    },
+
     toggleSelectAll(event, type) {
+      // Nota: Selecciona TODOS los elementos (no solo los visibles en la página)
       const list = type === 'contado' ? this.ordenesContado : this.ordenesCredito;
       const ids = list.map((o) => o.ID_Solicitud);
 
       if (event.target.checked) {
-        // Agregar todos los IDs de la lista actual sin duplicados
         this.selectedOrdenes = [...new Set([...this.selectedOrdenes, ...ids])];
       } else {
-        // Remover los IDs de la lista actual
         this.selectedOrdenes = this.selectedOrdenes.filter((id) => !ids.includes(id));
       }
     },
@@ -79,13 +106,13 @@ function Pagos() {
 
         if (result.success) {
           mostrarNotificacion(result.message, 'success');
-          await this.cargardatos(); // Recargar la lista optimizada
+          await this.cargardatos();
         } else {
           mostrarNotificacion(result.message || 'No se pudieron programar los pagos.', 'error');
         }
       } catch (error) {
         console.error('Error al programar pagos:', error);
-        mostrarNotificacion('Ocurrió un error de red al intentar programar los pagos.', 'error');
+        mostrarNotificacion('Ocurrió un error de red.', 'error');
       }
     },
 
@@ -94,15 +121,13 @@ function Pagos() {
       this.previousScreen = metodoPago == '0' ? 'contado' : 'credito';
       this.screen = 'detalle';
 
-      // Aquí está bien usar 'details/{id}' porque es una sola petición individual
-      // iniciada por el usuario, no un bucle automático.
       SendDataEnd(`api/orden-compra/details/${id}`)
           .then((data) => {
             this.detalleOrden = data;
             this.loadingDetalle = false;
           })
           .catch((error) => {
-            console.error('Error al cargar detalle de la orden:', error);
+            console.error('Error al cargar detalle:', error);
             mostrarNotificacion('No se pudo cargar el detalle.', 'error');
             this.loadingDetalle = false;
             this.screen = this.previousScreen;
@@ -114,6 +139,12 @@ function Pagos() {
       this.detalleOrden = null;
     },
 
+    formatCurrency(value) {
+      if (value === null || isNaN(value)) return 'N/A';
+      return parseFloat(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+    },
+
+    // --- AGREGADO: ESTO FALTABA PARA QUE SE VIERAN LOS DETALLES ---
     generarDetalleHtml() {
       if (!this.detalleOrden) return '';
 
@@ -127,14 +158,13 @@ function Pagos() {
         data.productos.forEach((p) => {
           const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
           productosHtml += `
-                        <tr class="hover:bg-gray-50">
-                            <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
-                            <td class="py-2 px-4 border-t">${p.Nombre}</td>
-                            <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
-                            <td class="py-2 px-4 border-t text-right">${this.formatCurrency(p.Importe)}</td>
-                            <td class="py-2 px-4 border-t text-right">${this.formatCurrency(costoTotal)}</td>
-                        </tr>
-                    `;
+            <tr class="hover:bg-gray-50">
+                <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
+                <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                <td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>
+                <td class="py-2 px-4 border-t text-right">${this.formatCurrency(p.Importe)}</td>
+                <td class="py-2 px-4 border-t text-right">${this.formatCurrency(costoTotal)}</td>
+            </tr>`;
         });
       } else {
         productosHtml = `<tr><td colspan="5" class="text-center py-3">No hay productos en esta orden.</td></tr>`;
@@ -143,59 +173,52 @@ function Pagos() {
       let proveedorCreditoHtml = '';
       if (data.MetodoPago == 1) {
         proveedorCreditoHtml = `
-                    <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-                    <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${this.formatCurrency(prov.Monto_Credito)}</div>
-                `;
+            <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
+            <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${this.formatCurrency(prov.Monto_Credito)}</div>`;
       }
 
       let html = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-                    <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
-                    <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
-                    <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
-                    <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
-                    <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
-                </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+            <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
+            <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
+            <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
+            <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
+            <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
+        </div>
 
-                <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-                    <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
-                    <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
-                    <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
-                    <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
-                    <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
-                    ${proveedorCreditoHtml}
-                </div>
+        <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+            <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
+            <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
+            <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
+            <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+            <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
+            ${proveedorCreditoHtml}
+        </div>
 
-                <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
-                <div class="overflow-x-auto mb-6">
-                    <table class="min-w-full border border-gray-300">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="py-2 px-4 text-left">Código</th>
-                                <th class="py-2 px-4 text-left">Producto</th>
-                                <th class="py-2 px-4 text-right">Cantidad</th>
-                                <th class="py-2 px-4 text-right">Importe</th>
-                                <th class="py-2 px-4 text-right">Costo Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>${productosHtml}</tbody>
-                    </table>
-                </div>
-            `;
+        <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
+        <div class="overflow-x-auto mb-6">
+            <table class="min-w-full border border-gray-300">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="py-2 px-4 text-left">Código</th>
+                        <th class="py-2 px-4 text-left">Producto</th>
+                        <th class="py-2 px-4 text-right">Cantidad</th>
+                        <th class="py-2 px-4 text-right">Importe</th>
+                        <th class="py-2 px-4 text-right">Costo Total</th>
+                    </tr>
+                </thead>
+                <tbody>${productosHtml}</tbody>
+            </table>
+        </div>`;
 
-      // Se asume que generarSeccionAdjuntos es una función global definida en otro script
+      // Se asume que generarSeccionAdjuntos es global
       if (typeof generarSeccionAdjuntos === 'function') {
         html += generarSeccionAdjuntos(data);
       }
 
       return html;
-    },
-
-    formatCurrency(value) {
-      if (value === null || isNaN(value)) return 'N/A';
-      return parseFloat(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-    },
+    }
   };
 }
 function ListaPagos() {
