@@ -2661,6 +2661,7 @@ class Api extends ResourceController
                 'Solicitud.ID_Solicitud',
                 'Solicitud.No_Folio',
                 'Proveedor.RazonSocial as Proveedor',
+                'Razon_Social.Nombre as RazonSocial',
                 'Cotizacion.Total',
                 'OrdenCompra.Estado',
                 'Solicitud.MetodoPago',
@@ -2668,6 +2669,7 @@ class Api extends ResourceController
             ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = OrdenCompra.ID_Proveedor', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->where('OrdenCompra.Estado', Status::Programada)
             ->orderBy('Solicitud.Fecha', 'DESC')
             ->findAll();

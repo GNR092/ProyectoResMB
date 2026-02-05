@@ -22,6 +22,7 @@
                 <thead class="bg-gray-100">
                 <tr>
                     <th class="py-3 px-6 text-left">Folio Solicitud</th>
+                    <th class="py-3 px-6 text-left">Razón Social</th>
                     <th class="py-3 px-6 text-left">Proveedor</th>
                     <th class="py-3 px-6 text-right">Total a Pagar</th>
                     <th class="py-3 px-6 text-left">Método de Pago</th>
@@ -32,17 +33,18 @@
                 <tbody id="tablaListaPagos">
                 <template x-if="loading">
                     <tr>
-                        <td colspan="6" class="text-center py-4">Cargando pagos...</td>
+                        <td colspan="7" class="text-center py-4">Cargando pagos...</td>
                     </tr>
                 </template>
                 <template x-if="!loading && pagosFiltrados.length === 0">
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-gray-500">No hay pagos programados que coincidan con el filtro.</td>
+                        <td colspan="7" class="text-center py-4 text-gray-500">No hay pagos programados que coincidan con el filtro.</td>
                     </tr>
                 </template>
                 <template x-for="pago in pagosFiltrados" :key="pago.ID_Solicitud">
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 px-4 border-t" x-text="pago.No_Folio"></td>
+                        <td class="py-2 px-4 border-t" x-text="pago.RazonSocial"></td>
                         <td class="py-2 px-4 border-t" x-text="pago.Proveedor"></td>
                         <td class="py-2 px-4 border-t text-right" x-text="formatCurrency(pago.Total)"></td>
                         <td class="py-2 px-4 border-t" x-text="pago.MetodoPago == '0' ? 'Contado' : 'Crédito'"></td>
@@ -80,5 +82,4 @@
     </div>
 
 </div>
-<!-- Asegúrate de cargar tu script original -->
 <script src="public/js/pago.js"></script>
