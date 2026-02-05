@@ -94,9 +94,22 @@
     </div>
 
     <div x-show="screen === 'credito'" class="p-6">
-        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-            <button @click="screen = 'menu'" class="text-sm text-gray-600 hover:text-gray-900 self-start">&larr; Regresar</button>
-            <button @click="programarPago()" :disabled="selectedOrdenes.length === 0" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 self-end sm:self-center">Programar pago</button>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+            <button @click="screen = 'menu'" class="text-sm text-gray-600 hover:text-gray-900 font-medium">
+                &larr; Regresar al menú
+            </button>
+
+            <div class="flex flex-col items-end gap-1 self-end sm:self-center">
+                <button @click="programarPago()"
+                        :disabled="selectedOrdenes.length === 0"
+                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed shadow-sm">
+                    Programar pago (<span x-text="selectedOrdenes.length"></span>)
+                </button>
+
+                <div x-show="selectedOrdenes.length > 0" x-transition class="text-sm font-semibold text-gray-700 text-right">
+                    Costo Total a programar: <span class="text-green-600" x-text="formatCurrency(totalSeleccionado)"></span>
+                </div>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
