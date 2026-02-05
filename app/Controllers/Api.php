@@ -1145,6 +1145,11 @@ class Api extends ResourceController
         return $this->respond($details);
     }
 
+    /**
+     * Obtiene los detalles necesarios para no saturar el servidor
+     * @param int|null $id El ID de la solicitud para la orden de compra.
+     * @return \CodeIgniter\HTTP\Response
+     */
     public function getOrdenesParaProgramacion()
     {
         try {
@@ -1183,6 +1188,53 @@ class Api extends ResourceController
                 ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
 
                 ->where('OrdenCompra.Estado', 'Espera_Programacion')
+                ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            return $this->response->setJSON($data);
+
+        } catch (\Throwable $th) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => $th->getMessage()
+            ]);
+        }
+    }
+
+    public function getFacturasPorPagar()
+    {
+        try {
+            $db = \Config\Database::connect();
+
+            $data = $db->table('OrdenCompra')
+                ->select([
+                    'Solicitud.ID_Solicitud',
+                    'Solicitud.No_Folio',
+                    'Solicitud.MetodoPago',
+                    // Necesitamos Fecha_Aprobacion para el semáforo.
+                    // Si no existe esa columna exacta, usa 'OrdenCompra.Fecha' o la que uses para calcular vencimiento.
+                    'Solicitud.Fecha_Aprobacion',
+                    'OrdenCompra.Estado as EstadoOrden',
+                    'Departamentos.Nombre as DepartamentoNombre',
+                    'Razon_Social.Nombre as Complejo',
+
+                    // Datos Proveedor
+                    'Proveedor.RazonSocial',
+                    'Proveedor.Banco',
+                    'Proveedor.Dias_Credito', // Importante para calcular vencimiento
+
+                    // Datos Cotización
+                    'Cotizacion.Total'
+                ])
+                ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'inner')
+                ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'inner')
+                ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+                ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+
+                // FILTRO CLAVE: Solo las que están listas para pagar
+                ->where('OrdenCompra.Estado', 'Por Pagar')
                 ->orderBy('Solicitud.ID_Solicitud', 'DESC')
                 ->get()
                 ->getResultArray();

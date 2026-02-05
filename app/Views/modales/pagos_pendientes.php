@@ -9,17 +9,17 @@
 <div x-data="{ screen: 'menu' }" x-init="initFichasPago()">
     <!-- Pantalla principal -->
     <div x-show="screen === 'menu'" id="pagos-menu" class="p-6">
-        <h2 class="text-lg font-semibold mb-4">Facturas Pendientes</h2>
-
-        <div class="grid gap-4">
+        <div class="flex flex-col sm:flex-row gap-2">
             <button @click="screen = 'contado'"
-                    class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                Pago de contado
+                    class="w-full sm:w-auto flex-grow px-4 py-3 m-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ">
+                <p class="font-medium">Pago de contado</p>
+                <p id="count-contado-fichas" class="text-xs opacity-75">Cargando...</p>
             </button>
 
             <button @click="screen = 'credito'"
-                    class="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-                Pago a crédito
+                    class="w-full sm:w-auto flex-grow px-4 py-3 m-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                <p class="font-medium">Pago a crédito</p>
+                <p id="count-credito-fichas" class="text-xs opacity-75">Cargando...</p>
             </button>
         </div>
     </div>

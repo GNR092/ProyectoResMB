@@ -684,149 +684,150 @@ function verRequisicionPago(id) {
  */
 
 async function initFichasPago() {
-  const tbodyContado = document.getElementById('body-contado')
-  const tbodyCredito = document.getElementById('body-credito')
+  const tbodyContado = document.getElementById('body-contado');
+  const tbodyCredito = document.getElementById('body-credito');
 
-  tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
-  tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
+  // Referencias a los textos del contador en el menú
+  const badgeContado = document.getElementById('count-contado-fichas');
+  const badgeCredito = document.getElementById('count-credito-fichas');
 
+  // Estado inicial
+  if(badgeContado) badgeContado.textContent = 'Cargando...';
+  if(badgeCredito) badgeCredito.textContent = 'Cargando...';
+
+  tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>';
+  tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>';
+  // --- Funciones auxiliares conservadas ---
   function calcularFechaVencimiento(fechaStr, diasStr) {
-    if (!fechaStr) {
-      return new Date('2999-12-31')
-    }
-    const fechaSimple = fechaStr.split(' ')[0]
-    const partes = fechaSimple.split('-')
-    if (partes.length !== 3) return new Date('2999-12-31')
-    const anio = parseInt(partes[0])
-    const mes = parseInt(partes[1]) - 1
-    const dia = parseInt(partes[2])
-    const fechaAprobacion = new Date(anio, mes, dia)
-    const diasCredito = parseInt(diasStr) || 0
-    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito)
-    return fechaAprobacion
+    if (!fechaStr) return new Date('2999-12-31');
+    const fechaSimple = fechaStr.split(' ')[0];
+    const partes = fechaSimple.split('-');
+    if (partes.length !== 3) return new Date('2999-12-31');
+
+    const anio = parseInt(partes[0]);
+    const mes = parseInt(partes[1]) - 1;
+    const dia = parseInt(partes[2]);
+
+    const fechaAprobacion = new Date(anio, mes, dia);
+    const diasCredito = parseInt(diasStr) || 0;
+
+    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito);
+    return fechaAprobacion;
   }
 
   function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
-    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime()
-    const diasDiferencia = Math.floor(diffMs / 86400000)
+    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime();
+    const diasDiferencia = Math.floor(diffMs / 86400000);
 
-    if (diasDiferencia < 0) return 'bg-gray-900 text-white hover:bg-gray-800'
-    if (diasDiferencia < 5) return 'bg-red-100 text-red-800 hover:bg-red-200'
-    if (diasDiferencia < 15) return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-    return 'hover:bg-gray-50'
+    if (diasDiferencia < 0) return 'bg-gray-900 text-white hover:bg-gray-800';
+    if (diasDiferencia < 5) return 'bg-red-100 text-red-800 hover:bg-red-200';
+    if (diasDiferencia < 15) return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+    return 'hover:bg-gray-50';
   }
 
   try {
-    const ordenes = await SendDataEnd('api/orden-compra/alldata')
+    // 1. PETICIÓN OPTIMIZADA (Una sola llamada)
+    const ordenes = await SendDataEnd('api/facturas-por-pagar');
 
     if (!ordenes || ordenes.length === 0) {
-      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
-      tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
-      return
+      if(badgeContado) badgeContado.textContent = '0 pendientes';
+      if(badgeCredito) badgeCredito.textContent = '0 pendientes';
+      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>';
+      tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>';
+      return;
     }
 
-    const detallesPromises = ordenes.map((o) =>
-        SendDataEnd(`api/orden-compra/details/${o.ID_Solicitud}`).catch((err) => null),
-    )
-    const resultados = await Promise.allSettled(detallesPromises)
+    // 2. Filtrado en memoria
+    let ordenesContado = ordenes.filter(o => o.MetodoPago == '0');
+    let ordenesCredito = ordenes.filter(o => o.MetodoPago == '1');
 
-    let ordenesContado = []
-    let ordenesCredito = []
+    // Actualizar contenedores del menu
+    if(badgeContado) badgeContado.textContent = `${ordenesContado.length} pendientes`;
+    if(badgeCredito) badgeCredito.textContent = `${ordenesCredito.length} pendientes`;
 
-    resultados.forEach((resultado) => {
-      if (resultado.status === 'fulfilled' && resultado.value) {
-        const det = resultado.value
-        if (det.EstadoOrden !== 'Por Pagar') return
-
-        if (det.MetodoPago == '0') {
-          ordenesContado.push(det)
-        } else if (det.MetodoPago == '1') {
-          ordenesCredito.push(det)
-        }
-      }
-    })
-
+    // Ordenar Crédito por fecha
     ordenesCredito.sort((a, b) => {
-      const fechaVencimientoA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.proveedor?.Dias_Credito)
-      const fechaVencimientoB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.proveedor?.Dias_Credito)
-      return fechaVencimientoA - fechaVencimientoB
-    })
+      const fechaA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.Dias_Credito);
+      const fechaB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.Dias_Credito);
+      return fechaA - fechaB;
+    });
 
-    tbodyContado.innerHTML = ''
-    tbodyCredito.innerHTML = ''
+    // Limpiar tablas
+    tbodyContado.innerHTML = '';
+    tbodyCredito.innerHTML = '';
 
-    // --- TABLA CONTADO
+    // --- RENDERIZADO TABLA CONTADO ---
     if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>'
+      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>';
     } else {
       ordenesContado.forEach((det) => {
+        // Nota: Usamos det.Total y det.RazonSocial directamente (ya no det.cotizacion.Total)
+        const total = det.Total ? parseFloat(det.Total).toLocaleString('es-MX', {style: 'currency', currency: 'MXN'}) : '-';
+
         const fila = `
-          <tr class="hover:bg-gray-50 transition">
-            <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
-            <td class="px-4 py-2 border-b text-center">
+          <tr class="hover:bg-gray-50 transition border-b">
+            <td class="px-4 py-2">${det.DepartamentoNombre || '-'}</td>
+            <td class="px-4 py-2">${det.Complejo || '-'}</td>
+            <td class="px-4 py-2">${det.No_Folio || '-'}</td>
+            <td class="px-4 py-2">${det.RazonSocial || '-'}</td>
+            <td class="px-4 py-2">${det.Banco || '-'}</td>
+            <td class="px-4 py-2">${total}</td>
+            <td class="px-4 py-2 text-center">
               <button onclick="mostrarDetalleFicha(${det.ID_Solicitud}, '${det.MetodoPago}')"
-                      class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                      class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-xs uppercase">
                 VER
               </button>
             </td>
-          </tr>
-        `
-        tbodyContado.insertAdjacentHTML('beforeend', fila)
-      })
+          </tr>`;
+        tbodyContado.insertAdjacentHTML('beforeend', fila);
+      });
     }
 
-    const hoy = new Date()
-    hoy.setHours(0, 0, 0, 0)
+    // --- RENDERIZADO TABLA CRÉDITO ---
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
 
-    // --- TABLA CRÉDITO
     if (ordenesCredito.length === 0) {
-      tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>'
+      tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>';
     } else {
       ordenesCredito.forEach((det) => {
-        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.proveedor?.Dias_Credito)
-        const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
+        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.Dias_Credito);
+        const claseFila = getClaseSemaforo(fechaVencimiento, hoy);
 
-        // Cálculo de días restantes para mostrar en texto
-        const diffTime = fechaVencimiento.getTime() - hoy.getTime()
-        const diffDays = Math.floor(diffTime / 86400000)
-        let diasTexto = ''
+        const diffTime = fechaVencimiento.getTime() - hoy.getTime();
+        const diffDays = Math.floor(diffTime / 86400000);
 
-        if (diffDays < 0) {
-          diasTexto = `<span class="font-bold">Vencido (${Math.abs(diffDays)} días)</span>`
-        } else if (diffDays === 0) {
-          diasTexto = `<span class="font-bold">Vence hoy</span>`
-        } else {
-          diasTexto = `${diffDays} días`
-        }
+        let diasTexto = '';
+        if (diffDays < 0) diasTexto = `<span class="font-bold">Vencido (${Math.abs(diffDays)} días)</span>`;
+        else if (diffDays === 0) diasTexto = `<span class="font-bold">Vence hoy</span>`;
+        else diasTexto = `${diffDays} días`;
+
+        const total = det.Total ? parseFloat(det.Total).toLocaleString('es-MX', {style: 'currency', currency: 'MXN'}) : '-';
 
         const fila = `
-          <tr class="${claseFila} transition">
-            <td class="px-4 py-2 border-b">${det.DepartamentoNombre || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.Complejo || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.No_Folio || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.proveedor?.RazonSocial || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.proveedor?.Banco || '-'}</td>
-            <td class="px-4 py-2 border-b">${det.cotizacion?.Total ? '$' + det.cotizacion.Total : '-'}</td>
-            <td class="px-4 py-2 border-b text-center text-sm">${diasTexto}</td>
-            <td class="px-4 py-2 border-b text-center">
+          <tr class="${claseFila} transition border-b">
+            <td class="px-4 py-2">${det.DepartamentoNombre || '-'}</td>
+            <td class="px-4 py-2">${det.Complejo || '-'}</td>
+            <td class="px-4 py-2">${det.No_Folio || '-'}</td>
+            <td class="px-4 py-2">${det.RazonSocial || '-'}</td>
+            <td class="px-4 py-2">${det.Banco || '-'}</td>
+            <td class="px-4 py-2">${total}</td>
+            <td class="px-4 py-2 text-center text-sm">${diasTexto}</td>
+            <td class="px-4 py-2 text-center">
               <button onclick="mostrarDetalleFicha(${det.ID_Solicitud}, '${det.MetodoPago}')"
-                      class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                      class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-xs uppercase">
                 VER
               </button>
             </td>
-          </tr>
-        `
-        tbodyCredito.insertAdjacentHTML('beforeend', fila)
-      })
+          </tr>`;
+        tbodyCredito.insertAdjacentHTML('beforeend', fila);
+      });
     }
+
   } catch (error) {
-    tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar fichas de pago.</td></tr>'
-    tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar fichas de pago.</td></tr>'
+    console.error(error);
+    tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>';
+    tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>';
   }
 }
 
