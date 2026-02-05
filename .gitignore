@@ -67,6 +67,7 @@ writable/users/*
 writable/debugbar/*
 !writable/debugbar/.gitkeep
 
+writable/writable.zip
 writable/installer.lock
 
 php_errors.log

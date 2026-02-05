@@ -13,6 +13,11 @@ async function SendDataEnd(endpoint, options = {}) {
     },
   }
 
+  // New: Introduce a delay if specified
+  if (options.delay && typeof options.delay === 'number' && options.delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, options.delay));
+  }
+
   if (config.body) {
     if (config.body instanceof FormData) {
       delete config.headers['Content-Type']

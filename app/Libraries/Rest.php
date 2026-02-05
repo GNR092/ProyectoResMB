@@ -564,66 +564,83 @@ class Rest
     {
         log_message('debug', 'Iniciando getOrdenCompra para Solicitud ID: ' . $id);
         $solicitudModel = new SolicitudModel();
-        $placesModel = new PlacesModel();
         $razonSocialModel = new RazonSocialModel();
-        $ordenCompraModel = new OrdenCompraModel();
+        $cuentasModel = new CuentasModel();
         $proveedorModel = new ProveedorModel();
+
+        // 1. Consolidate Main Solicitud Query with all necessary joins
         $solicitud = $solicitudModel
             ->select([
                 'Solicitud.*',
                 'Usuarios.Nombre as UsuarioNombre',
                 'Departamentos.Nombre as DepartamentoNombre',
-                'Razon_Social.Nombre as Complejo',
+                'RS.Nombre as Complejo', // Alias Razon_Social to RS
                 'Solicitud.TipoComentarioAdmin',
-                'OrdenCompra.Estado as EstadoOrden',
+                'OC.Estado as EstadoOrden', // Alias OrdenCompra to OC
                 'UsuarioCotiza.Nombre as UsuarioCotizaNombre',
                 'UsuarioAutoriza.Nombre as UsuarioAutorizaNombre',
                 'Places.Nombre_Corto as ID_Place',
+                // Cotizacion details
+                'Cotizacion.ID_Cotizacion',
+                'Cotizacion.Total as CotizacionTotal',
+                'Cotizacion.ID_Proveedor as CotizacionIDProveedor',
+                'Prov.RazonSocial as ProveedorNombreCotizacion', // Alias Proveedor to Prov
+                // OrdenCompra details (files)
+                'OC.File_Factura',
+                'OC.File_Comprobante',
+                'OC.File_ReqPag',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
-            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Razon_Social RS', 'RS.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left') // Use alias
+            // Join Cotizacion and OrdenCompra early
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
-            ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
+            ->join('OrdenCompra OC', 'OC.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left') // Use alias
+            ->join('Proveedor Prov', 'Prov.ID_Proveedor = Cotizacion.ID_Proveedor', 'left') // Use alias for Cotizacion's Provider
+            // Joins for user names (if they are different from the main Solicitud user)
             ->join(
-                'Usuarios as UsuarioCotiza',
+                'Usuarios UsuarioCotiza',
                 'UsuarioCotiza.ID_Usuario = Cotizacion.ID_Usuario_Cotiza',
-                'left',
+                'left'
             )
             ->join(
-                'Usuarios as UsuarioAutoriza',
+                'Usuarios UsuarioAutoriza',
                 'UsuarioAutoriza.ID_Usuario = Solicitud.ID_Usuario_Autoriza',
-                'left',
+                'left'
             )
             ->find($id);
 
         if (!$solicitud) {
+            log_message('debug', 'Solicitud no encontrada para ID: ' . $id);
             return null;
         }
 
-        if (!empty($solicitud['ID_Cuenta'])) {
-            $cuentasModel = new CuentasModel();
-            $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
+        // Initialize structured data for return
+        $solicitudData = $solicitud; // Use the fetched array directly
+
+        // Handle additional details from separate models
+        if (!empty($solicitudData['ID_Cuenta'])) {
+            $solicitudData['cuenta_details'] = $cuentasModel->find($solicitudData['ID_Cuenta']);
         }
 
-        if (!empty($solicitud['ID_Proveedor'])) {
-            $proveedorModel = new ProveedorModel();
-            $proveedor = $proveedorModel->find($solicitud['ID_Proveedor']);
-
+        // Fetch supplier details only if not already joined effectively
+        if (!empty($solicitudData['ID_Proveedor'])) {
+            $proveedor = $proveedorModel->find($solicitudData['ID_Proveedor']);
             if ($proveedor) {
                 unset($proveedor['Correo']);
                 unset($proveedor['Tel_Contacto']);
             }
-
-            $solicitud['proveedor'] = $proveedor;
+            $solicitudData['proveedor'] = $proveedor;
         }
 
-        $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
+        $solicitudData['ComplejoRFC'] = $razonSocialModel->find($solicitudData['ID_RazonSocial'])['RFC'];
+
+        // Fetch products or services
         $productos = [];
         if (
-            $solicitud['Tipo'] == SolicitudTipo::Cotizacion ||
-            $solicitud['Tipo'] == SolicitudTipo::NoCotizacion
+            $solicitudData['Tipo'] == SolicitudTipo::Cotizacion ||
+            $solicitudData['Tipo'] == SolicitudTipo::NoCotizacion
         ) {
             $solicitudProductModel = new SolicitudProductModel();
             $productos = $solicitudProductModel->where('ID_Solicitud', $id)->findAll();
@@ -631,31 +648,43 @@ class Rest
             $solicitudServicioModel = new SolicitudServiciosModel();
             $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
         }
-        $solicitud['productos'] = $productos;
+        $solicitudData['productos'] = $productos;
 
-        $cotizacionModel = new CotizacionModel();
-        $cotizacion = $cotizacionModel
-            ->select('Cotizacion.*, Proveedor.RazonSocial as ProveedorNombre')
-            ->join('Proveedor', 'Proveedor.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
-            ->where('ID_Solicitud', $id)
-            ->first();
-
-        if ($cotizacion) {
-            $solicitud['cotizacion'] = $cotizacion;
-            $ordenCompraModel = new OrdenCompraModel();
-            $orden = $ordenCompraModel
-                ->select(
-                    'OrdenCompra.File_Factura, OrdenCompra.File_Comprobante, OrdenCompra.File_ReqPag',
-                )
-                ->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])
-                ->first();
-
-            if ($orden) {
-                $solicitud['OrdenCompra'] = $orden;
-            }
+        // Structure Cotizacion data
+        if (!empty($solicitudData['ID_Cotizacion'])) {
+            $solicitudData['cotizacion'] = [
+                'ID_Cotizacion' => $solicitudData['ID_Cotizacion'],
+                'Total' => $solicitudData['CotizacionTotal'],
+                'ID_Proveedor' => $solicitudData['CotizacionIDProveedor'],
+                'ProveedorNombre' => $solicitudData['ProveedorNombreCotizacion'],
+                // Add any other Cotizacion fields you need that are not directly on Solicitud
+            ];
+            // Remove redundant fields from top level if they are now nested
+            unset($solicitudData['CotizacionTotal']);
+            unset($solicitudData['CotizacionIDProveedor']);
+            unset($solicitudData['ProveedorNombreCotizacion']);
+            // If EstadoOrden is primarily from OrdenCompra, it should be within OrdenCompra details or renamed at top level
         }
 
-        return $solicitud ? $solicitud : [];
+        // Structure OrdenCompra data
+        if (!empty($solicitudData['File_Factura']) || !empty($solicitudData['File_Comprobante']) || !empty($solicitudData['File_ReqPag'])) {
+            $solicitudData['OrdenCompra'] = [
+                'File_Factura' => $solicitudData['File_Factura'],
+                'File_Comprobante' => $solicitudData['File_Comprobante'],
+                'File_ReqPag' => $solicitudData['File_ReqPag'],
+                'Estado' => $solicitudData['EstadoOrden'] ?? null, // Ensure Estado is present if needed
+            ];
+            // Remove redundant fields from top level if they are now nested
+            unset($solicitudData['File_Factura']);
+            unset($solicitudData['File_Comprobante']);
+            unset($solicitudData['File_ReqPag']);
+            unset($solicitudData['EstadoOrden']);
+        }
+
+
+        log_message('debug', 'Finalizando getOrdenCompra con éxito para Solicitud ID: ' . $id);
+        // The original method returns $solicitud ?: [] at the end, so I'll follow that convention.
+        return $solicitudData ?: [];
     }
 
     /**
