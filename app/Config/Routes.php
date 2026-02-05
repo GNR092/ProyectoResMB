@@ -125,6 +125,9 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/pagos-pendientes', 'Api::getPagosPendientes');
         $routes->get('api/fichas-pago', 'Api::getFichasPago');
         $routes->get('api/orden-compra/data/(:num)', 'Api::getOrdenCompraData/$1');
+
+        $routes->get('api/ordenes-programar', 'Api::getOrdenesParaProgramacion');
+
         $routes->get(
             'api/ordenes-compra/pendientes-recepcion',
             'Api::getOrdenesCompraPendientesRecepcion',

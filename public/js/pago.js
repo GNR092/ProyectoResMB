@@ -10,119 +10,122 @@ function Pagos() {
     loadingDetalle: false,
 
     async cargardatos() {
-      this.loading = true
-      this.selectedOrdenes = []
+      this.loading = true;
+      this.selectedOrdenes = []; // Limpiar selección al recargar
+
       try {
-        const ordenes = await SendDataEnd('api/orden-compra/alldata')
-        if (!ordenes || ordenes.length === 0) {
-          this.ordenesContado = []
-          this.ordenesCredito = []
-          return
+
+        const data = await SendDataEnd('api/ordenes-programar');
+
+        if (!data || data.length === 0) {
+          this.ordenesContado = [];
+          this.ordenesCredito = [];
+          return;
         }
 
-        const uniqueIds = [...new Set(ordenes.map((o) => o.ID_Solicitud))]
+        // Como el backend ya filtró por "Espera_Programacion",
+        // aquí solo separamos por método de pago.
 
-        const detallesPromises = uniqueIds.map((id) =>
-            SendDataEnd(`api/orden-compra/details/${id}`),
-        )
-        const detalles = await Promise.all(detallesPromises)
+        // MetodoPago '0' = Contado
+        this.ordenesContado = data.filter((o) => o.MetodoPago == '0');
 
-        if (!detalles) return
+        // MetodoPago '1' = Crédito
+        this.ordenesCredito = data.filter((o) => o.MetodoPago == '1');
 
-        this.ordenesContado = detalles.filter(
-            (det) => det && det.EstadoOrden === 'Espera_Programacion' && det.MetodoPago == '0',
-        )
-        this.ordenesCredito = detalles.filter(
-            (det) => det && det.EstadoOrden === 'Espera_Programacion' && det.MetodoPago == '1',
-        )
+        // Ordenar crédito (opcional, aquí no hay fecha vencimiento en la tabla principal, pero se puede agregar)
+        this.ordenesCredito.sort((a, b) => 0);
 
-        this.ordenesCredito.sort((a, b) => 0)
       } catch (error) {
-        console.error('Error al cargar las órdenes:', error)
-        this.ordenesContado = []
-        this.ordenesCredito = []
+        console.error('Error al cargar las órdenes para programar:', error);
+        mostrarNotificacion('Error de conexión al cargar datos.', 'error');
+        this.ordenesContado = [];
+        this.ordenesCredito = [];
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     },
 
     toggleSelectAll(event, type) {
-      const list = type === 'contado' ? this.ordenesContado : this.ordenesCredito
-      const ids = list.map((o) => o.ID_Solicitud)
+      const list = type === 'contado' ? this.ordenesContado : this.ordenesCredito;
+      const ids = list.map((o) => o.ID_Solicitud);
 
       if (event.target.checked) {
-        this.selectedOrdenes = [...new Set([...this.selectedOrdenes, ...ids])]
+        // Agregar todos los IDs de la lista actual sin duplicados
+        this.selectedOrdenes = [...new Set([...this.selectedOrdenes, ...ids])];
       } else {
-        this.selectedOrdenes = this.selectedOrdenes.filter((id) => !ids.includes(id))
+        // Remover los IDs de la lista actual
+        this.selectedOrdenes = this.selectedOrdenes.filter((id) => !ids.includes(id));
       }
     },
 
     async programarPago() {
       if (this.selectedOrdenes.length === 0) {
-        mostrarNotificacion('Debe seleccionar al menos una orden para programar.', 'warning')
-        return
+        mostrarNotificacion('Debe seleccionar al menos una orden para programar.', 'warning');
+        return;
       }
 
       const confirmacion = await Confirmar(
           'Programar Pagos',
-          `¿Está seguro de que desea programar ${this.selectedOrdenes.length} pago(s)?`,
-      )
+          `¿Está seguro de que desea programar ${this.selectedOrdenes.length} pago(s)?`
+      );
 
-      if (!confirmacion) return
+      if (!confirmacion) return;
 
       try {
         const result = await SendDataEnd('api/orden/programar-pagos', {
           method: 'POST',
           body: { ids: this.selectedOrdenes },
-        })
+        });
 
         if (result.success) {
-          mostrarNotificacion(result.message, 'success')
-          await this.cargardatos() // Recargar los datos para refrescar las listas
+          mostrarNotificacion(result.message, 'success');
+          await this.cargardatos(); // Recargar la lista optimizada
         } else {
-          mostrarNotificacion(result.message || 'No se pudieron programar los pagos.', 'error')
+          mostrarNotificacion(result.message || 'No se pudieron programar los pagos.', 'error');
         }
       } catch (error) {
-        console.error('Error al programar pagos:', error)
-        mostrarNotificacion('Ocurrió un error de red al intentar programar los pagos.', 'error')
+        console.error('Error al programar pagos:', error);
+        mostrarNotificacion('Ocurrió un error de red al intentar programar los pagos.', 'error');
       }
     },
 
     mostrarDetalle(id, metodoPago) {
-      this.loadingDetalle = true
-      this.previousScreen = metodoPago == '0' ? 'contado' : 'credito'
-      this.screen = 'detalle'
+      this.loadingDetalle = true;
+      this.previousScreen = metodoPago == '0' ? 'contado' : 'credito';
+      this.screen = 'detalle';
 
+      // Aquí está bien usar 'details/{id}' porque es una sola petición individual
+      // iniciada por el usuario, no un bucle automático.
       SendDataEnd(`api/orden-compra/details/${id}`)
           .then((data) => {
-            this.detalleOrden = data
-            this.loadingDetalle = false
+            this.detalleOrden = data;
+            this.loadingDetalle = false;
           })
           .catch((error) => {
-            console.error('Error al cargar detalle de la orden:', error)
-            this.loadingDetalle = false
-            this.screen = this.previousScreen
-          })
-
+            console.error('Error al cargar detalle de la orden:', error);
+            mostrarNotificacion('No se pudo cargar el detalle.', 'error');
+            this.loadingDetalle = false;
+            this.screen = this.previousScreen;
+          });
     },
 
     volverATabla() {
-      this.screen = this.previousScreen
-      this.detalleOrden = null
+      this.screen = this.previousScreen;
+      this.detalleOrden = null;
     },
 
     generarDetalleHtml() {
-      if (!this.detalleOrden) return ''
+      if (!this.detalleOrden) return '';
 
-      const data = this.detalleOrden
-      const prov = data.proveedor || {}
-      const totalFormateado = this.formatCurrency(data.cotizacion?.Total)
-      const metodoPagoTexto = data.MetodoPago == 0 ? 'Efectivo' : 'Crédito'
+      const data = this.detalleOrden;
+      const prov = data.proveedor || {};
+      const totalFormateado = this.formatCurrency(data.cotizacion?.Total);
+      const metodoPagoTexto = data.MetodoPago == 0 ? 'Efectivo' : 'Crédito';
 
-      let productosHtml = ''
+      let productosHtml = '';
       if (data.productos && data.productos.length > 0) {
         data.productos.forEach((p) => {
-          const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
+          const costoTotal = (p.Cantidad * p.Importe).toFixed(2);
           productosHtml += `
                         <tr class="hover:bg-gray-50">
                             <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>
@@ -131,19 +134,18 @@ function Pagos() {
                             <td class="py-2 px-4 border-t text-right">${this.formatCurrency(p.Importe)}</td>
                             <td class="py-2 px-4 border-t text-right">${this.formatCurrency(costoTotal)}</td>
                         </tr>
-                    `
-        })
+                    `;
+        });
       } else {
-        productosHtml = `<tr><td colspan="5" class="text-center py-3">No hay productos en esta orden.</td></tr>`
+        productosHtml = `<tr><td colspan="5" class="text-center py-3">No hay productos en esta orden.</td></tr>`;
       }
 
-      let proveedorCreditoHtml = ''
+      let proveedorCreditoHtml = '';
       if (data.MetodoPago == 1) {
-        // Solo mostrar si es de crédito
         proveedorCreditoHtml = `
                     <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
                     <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${this.formatCurrency(prov.Monto_Credito)}</div>
-                `
+                `;
       }
 
       let html = `
@@ -180,19 +182,21 @@ function Pagos() {
                         <tbody>${productosHtml}</tbody>
                     </table>
                 </div>
-            `
+            `;
 
-      // === INTEGRACIÓN DE ADJUNTOS ===
-      html += generarSeccionAdjuntos(data);
+      // Se asume que generarSeccionAdjuntos es una función global definida en otro script
+      if (typeof generarSeccionAdjuntos === 'function') {
+        html += generarSeccionAdjuntos(data);
+      }
 
       return html;
     },
 
     formatCurrency(value) {
-      if (value === null || isNaN(value)) return 'N/A'
-      return parseFloat(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+      if (value === null || isNaN(value)) return 'N/A';
+      return parseFloat(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
     },
-  }
+  };
 }
 function ListaPagos() {
   return {

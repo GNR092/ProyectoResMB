@@ -31,6 +31,7 @@
                         <th class="px-4 py-2 border-b text-center">Acciones</th>
                     </tr>
                 </thead>
+
                 <tbody id="body-contado">
                     <template x-if="loading">
                         <tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
@@ -40,15 +41,22 @@
                     </template>
                     <template x-for="orden in ordenesContado" :key="orden.ID_Solicitud">
                         <tr class="hover:bg-gray-50 transition">
-                            <td class="px-4 py-2 border-b"><input type="checkbox" :value="orden.ID_Solicitud" x-model="selectedOrdenes"></td>
+                            <td class="px-4 py-2 border-b">
+                                <input type="checkbox" :value="orden.ID_Solicitud" x-model="selectedOrdenes">
+                            </td>
                             <td class="px-4 py-2 border-b" x-text="orden.DepartamentoNombre || '-'"></td>
                             <td class="px-4 py-2 border-b" x-text="orden.Complejo || '-'"></td>
                             <td class="px-4 py-2 border-b" x-text="orden.No_Folio || '-'"></td>
-                            <td class="px-4 py-2 border-b" x-text="orden.proveedor?.RazonSocial || '-'"></td>
-                            <td class="px-4 py-2 border-b" x-text="orden.proveedor?.Banco || '-'"></td>
-                            <td class="px-4 py-2 border-b" x-text="formatCurrency(orden.cotizacion?.Total)"></td>
+
+                            <td class="px-4 py-2 border-b" x-text="orden.RazonSocial || '-'"></td>
+                            <td class="px-4 py-2 border-b" x-text="orden.Banco || '-'"></td>
+                            <td class="px-4 py-2 border-b" x-text="formatCurrency(orden.Total)"></td>
+
                             <td class="px-4 py-2 border-b text-center">
-                                <button @click="mostrarDetalle(orden.ID_Solicitud, orden.MetodoPago)" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">VER</button>
+                                <button @click="mostrarDetalle(orden.ID_Solicitud, orden.MetodoPago)"
+                                        class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                                    VER
+                                </button>
                             </td>
                         </tr>
                     </template>
@@ -86,15 +94,22 @@
                     </template>
                     <template x-for="orden in ordenesCredito" :key="orden.ID_Solicitud">
                         <tr class="hover:bg-gray-50 transition">
-                            <td class="px-4 py-2 border-b"><input type="checkbox" :value="orden.ID_Solicitud" x-model="selectedOrdenes"></td>
+                            <td class="px-4 py-2 border-b">
+                                <input type="checkbox" :value="orden.ID_Solicitud" x-model="selectedOrdenes">
+                            </td>
                             <td class="px-4 py-2 border-b" x-text="orden.DepartamentoNombre || '-'"></td>
                             <td class="px-4 py-2 border-b" x-text="orden.Complejo || '-'"></td>
                             <td class="px-4 py-2 border-b" x-text="orden.No_Folio || '-'"></td>
-                            <td class="px-4 py-2 border-b" x-text="orden.proveedor?.RazonSocial || '-'"></td>
-                            <td class="px-4 py-2 border-b" x-text="orden.proveedor?.Banco || '-'"></td>
-                            <td class="px-4 py-2 border-b" x-text="formatCurrency(orden.cotizacion?.Total)"></td>
+
+                            <td class="px-4 py-2 border-b" x-text="orden.RazonSocial || '-'"></td>
+                            <td class="px-4 py-2 border-b" x-text="orden.Banco || '-'"></td>
+                            <td class="px-4 py-2 border-b" x-text="formatCurrency(orden.Total)"></td>
+
                             <td class="px-4 py-2 border-b text-center">
-                                <button @click="mostrarDetalle(orden.ID_Solicitud, orden.MetodoPago)" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">VER</button>
+                                <button @click="mostrarDetalle(orden.ID_Solicitud, orden.MetodoPago)"
+                                        class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                                    VER
+                                </button>
                             </td>
                         </tr>
                     </template>

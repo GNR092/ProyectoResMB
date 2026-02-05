@@ -1145,6 +1145,58 @@ class Api extends ResourceController
         return $this->respond($details);
     }
 
+    public function getOrdenesParaProgramacion()
+    {
+        try {
+            $db = \Config\Database::connect();
+
+            $data = $db->table('OrdenCompra')
+                ->select([
+                    'Solicitud.ID_Solicitud',
+                    'Solicitud.No_Folio',
+                    'Solicitud.MetodoPago',
+                    'Solicitud.Fecha',
+                    'OrdenCompra.Estado as EstadoOrden',
+                    'Departamentos.Nombre as DepartamentoNombre',
+                    'Razon_Social.Nombre as Complejo',
+
+                    // --- DATOS DEL PROVEEDOR ---
+                    'Proveedor.RazonSocial',  // Antes no se mostraba porque el JOIN estaba mal
+                    'Proveedor.Banco',
+                    'Proveedor.Monto_Credito',
+                    'Proveedor.Dias_Credito',
+
+                    // --- TOTALES ---
+                    'Cotizacion.Total'
+                ])
+                // 1. Unimos Orden con Cotización (Pivote principal)
+                ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'inner')
+
+                // 2. Unimos Cotización con Solicitud (De aquí sacamos el ID del proveedor)
+                ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'inner')
+
+                // 3. CORRECCIÓN: Unimos Proveedor usando la SOLICITUD (como hace tu Rest.php)
+                ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+
+                // 4. Resto de tablas informativas
+                ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+
+                ->where('OrdenCompra.Estado', 'Espera_Programacion')
+                ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            return $this->response->setJSON($data);
+
+        } catch (\Throwable $th) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => $th->getMessage()
+            ]);
+        }
+    }
+
     public function getOrdenesCompraPendientesRecepcion()
     {
         $ordenCompraModel = new OrdenCompraModel();
