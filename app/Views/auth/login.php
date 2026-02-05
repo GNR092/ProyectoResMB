@@ -7,12 +7,94 @@
     <title>Iniciar Sesión - MB Signature Properties</title>
     <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>">
     <link rel="shortcut icon" type="image/png" href="/favicon.ico">
+    <script src="https://unpkg.com/css-doodle@0.38.4/css-doodle.min.js"></script>
+    <style>
+    html,
+    body {
+        background-color: transparent;
+    }
 
+    css-doodle {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+    }
+    </style>
 </head>
 
-<body class="min-h-screen bg-gray-200 flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4 bg-carbon-500">
+    <css-doodle>
+        <style>
+         --color: #efb810, #efb810, #efb810, #efb810;
 
-    <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md font-montserrat">
+        :doodle {
+    @grid: 12x1 / 100vw 100vh;
+    background-position: 50%;
+    background: #3c3c3c;
+    background-image: @svg(
+      viewBox: 0 0 1000 1000;
+      circle*240 {
+        cx: @r(20, 980);
+        cy: @r(20, 980);
+        r: @r(.01, 10);
+        fill: @p(--color);
+        fill-opacity: @r.5;
+      }
+      path*100 {
+        d: M @r(1000) @r(1000) l @r(-30, 30) @r(-200, 500);
+        stroke: @p(--color);
+        stroke-width: @r(.01, .6);
+        stroke-dasharray: 5 @round.r(5, 20)
+      }
+      path*20 {
+        d: M @r(1000) @r(1000) l @r(-30, 30) @r(-20, 50);
+        stroke: @p(--color);
+        stroke-width: @r(8, 15);
+        stroke-dasharray: 5 @round.r(5, 20);
+      }
+    );
+  }
+
+        @size: 100% 50%;
+        position: absolute;
+        top: 25%;
+        rotate: @iI(*360deg);
+
+        --s: @r5;
+        --c: @p(--color);
+
+        :after {
+            content: '';
+            position: absolute;
+
+            @size: @r(40vmin, 61vmin) @r(12vmin, 17vmin);
+            border-left: @r(3px) solid var(--c);
+            border-radius: 50vmin;
+            background:
+                radial-gradient(var(--c) 50%, transparent 0%) 1vmin 42% / 3px 6px no-repeat,
+                radial-gradient(var(--c) 50%, transparent 0%) 1vmin 58% / 3px 6px no-repeat,
+                @m20(linear-gradient(to right, var(--c), transparent @r(50%, 80%)) 0 @r(100%) / @r(20%) 1px no-repeat),
+                linear-gradient(to right, var(--c), transparent @r(50%, 80%)) 0 50% / @r(40%, 60%) 1px no-repeat,
+                linear-gradient(to right, rgba(255, 255, 255, .015), transparent);
+            transform: rotateY(0) scaleX(@p(--s)) translateZ(50vmin);
+            transform-origin: 0 50%;
+            will-change: transform;
+            animation: r @r(10s, 20s) linear infinite;
+            animation-delay: -@r(50s);
+        }
+
+        @keyframes r {
+            to {
+                transform: rotateY(-1turn) scaleX(@p(--s)) translateZ(50vmin)
+            }
+        }
+        </style>
+    </css-doodle>
+
+    <div class="bg-gray-200 opacity-95 rounded-lg shadow-lg p-8 w-full max-w-md font-montserrat">
         <!-- Logo -->
         <div class="text-center mb-8">
             <img src="<?= base_url(
@@ -47,8 +129,10 @@
         </div>
 
         <div class="flex items-center">
-            <input id="login_as_employee" name="login_as_employee" type="checkbox" value="1" <?= set_checkbox('login_as_employee', '1') ?> 
-                class="h-4 w-4 text-gray-800 focus:ring-gray-900 border-gray-300 rounded">
+            <input id="login_as_employee" name="login_as_employee" type="checkbox" value="1" <?= set_checkbox(
+                'login_as_employee',
+                '1',
+            ) ?> class="h-4 w-4 text-gray-800 focus:ring-gray-900 border-gray-300 rounded">
             <label for="login_as_employee" class="ml-2 block text-sm text-gray-900">
                 Auxiliar
             </label>
