@@ -138,7 +138,8 @@
                 </template>
 
                 <template x-for="orden in paginatedCredito" :key="orden.ID_Solicitud">
-                    <tr class="hover:bg-gray-50 transition">
+                    <tr :class="orden.claseColor">
+
                         <td class="px-4 py-2 border-b">
                             <input type="checkbox" :value="orden.ID_Solicitud" x-model="selectedOrdenes">
                         </td>

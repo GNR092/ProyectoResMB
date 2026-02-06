@@ -43,13 +43,59 @@ function Pagos() {
           return;
         }
 
+        // 1. Filtrar Contado
         this.ordenesContado = data.filter((o) => o.MetodoPago == '0');
-        this.ordenesCredito = data.filter((o) => o.MetodoPago == '1');
 
-        // Resetear paginación al cargar
+        // 2. Filtrar y Procesar Crédito (Semáforo + Ordenamiento)
+        const rawCredito = data.filter((o) => o.MetodoPago == '1');
+
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
+        this.ordenesCredito = rawCredito.map(orden => {
+          let claseColor = 'hover:bg-gray-50 transition'; // Default
+          let diasRestantes = 9999; // Valor alto por defecto (para que se vaya al final si no tiene fecha)
+
+          if (orden.Fecha) {
+            const fechaSimple = orden.Fecha.split(" ")[0];
+            const partes = fechaSimple.split("-");
+
+            if (partes.length === 3) {
+              const anio = parseInt(partes[0]);
+              const mes = parseInt(partes[1]) - 1;
+              const dia = parseInt(partes[2]);
+
+              const fechaVencimiento = new Date(anio, mes, dia);
+              const diasCredito = parseInt(orden.Dias_Credito) || 0;
+              fechaVencimiento.setDate(fechaVencimiento.getDate() + diasCredito);
+
+              const diffTime = fechaVencimiento.getTime() - hoy.getTime();
+
+              // Guardamos este valor para usarlo en el ordenamiento
+              diasRestantes = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+              if (diasRestantes < 0) {
+                claseColor = 'bg-gray-800 text-white hover:bg-gray-700 transition';
+              } else if (diasRestantes < 5) {
+                claseColor = 'bg-red-100 hover:bg-red-200 transition';
+              } else if (diasRestantes < 15) {
+                claseColor = 'bg-yellow-100 hover:bg-yellow-200 transition';
+              }
+            }
+          }
+
+          return {
+            ...orden,
+            claseColor: claseColor,
+            _sortValue: diasRestantes // Propiedad temporal para ordenar
+          };
+        });
+
+        // 3. ORDENAR: Los números menores (vencidos o cercanos) van primero
+        this.ordenesCredito.sort((a, b) => a._sortValue - b._sortValue);
+
         this.pageContado = 1;
         this.pageCredito = 1;
-        this.ordenesCredito.sort((a, b) => 0);
 
       } catch (error) {
         console.error('Error al cargar las órdenes:', error);
@@ -250,6 +296,7 @@ function Pagos() {
     }
   };
 }
+
 function ListaPagos() {
   return {
     pagos: [],
