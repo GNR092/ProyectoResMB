@@ -270,6 +270,10 @@ function RevisionX() {
                 <div class="mt-6">
                     <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
                     <button @click="mostrarModalModificarMontos(${idSolicitud})" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Modificar valores</button>
+                 <button onclick="globalCancelarSolicitud(${idSolicitud}, () => document.getElementById('btn-regresar-revision').click())" 
+                  class="px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition ml-2">
+                  Cancelar Solicitud
+                </button>
                 </div>
                 `
         detallesContainer.innerHTML = html
@@ -452,6 +456,7 @@ function RevisionX() {
       if (form) form.reset()
       const detalles = document.getElementById('detalles-para-revision')
       if (detalles) detalles.innerHTML = ''
+        this.loadTable();
     },
    async cargarCuentasProveedor(idProveedor) {
       const cuentaSelectContainer = document.getElementById('cuenta-select-container');

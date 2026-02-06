@@ -1,3 +1,7 @@
+/**
+ * Lógica para el modal "Programar Pagos"
+ */
+
 function Pagos() {
   return {
     screen: 'menu',
@@ -163,9 +167,11 @@ function Pagos() {
           });
     },
 
-    volverATabla() {
+    async volverATabla() {
       this.screen = this.previousScreen;
       this.detalleOrden = null;
+      // Agregamos esto para refrescar la lista y que desaparezca lo cancelado
+      await this.cargardatos();
     },
 
     formatCurrency(value) {
@@ -241,10 +247,21 @@ function Pagos() {
             </table>
         </div>`;
 
-      // Se asume que generarSeccionAdjuntos es global
+      // Carga la sección de adjuntos (Botón ZIP suele estar aquí a la derecha)
       if (typeof generarSeccionAdjuntos === 'function') {
         html += generarSeccionAdjuntos(data);
       }
+
+      // --- NUEVO BLOQUE: Botón Cancelar al extremo izquierdo ---
+      // Usamos mt-8 y border-t para separarlo visualmente como un pie de página
+      html += `
+        <div class="mt-8 pt-4 border-t flex justify-between items-center">
+             <button onclick="globalCancelarSolicitud(${data.ID_Solicitud}, () => document.getElementById('btn-volver-pagos').click())" 
+                    class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition shadow-sm">
+                Rechazar / Cancelar Pago
+            </button>
+            </div>
+      `;
 
       return html;
     }

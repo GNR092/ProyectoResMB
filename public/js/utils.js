@@ -394,37 +394,72 @@ function generarDetallesSolicitudHTML(data) {
     `
 }
 
-function generarComentariosHtml(data){
+function generarComentariosHtml(data) {
   let html = ''
-  // Sección de Comentarios Admin
-    if (data.ComentariosAdmin) {
-      if (data.TipoComentarioAdmin === 'Rechazo') {
-        html += `
-                <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
-                    <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      } else if (data.TipoComentarioAdmin === 'Observacion') {
-        html += `
-                <div class="mb-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                    <h4 class="text-md font-bold text-yellow-700 mb-2">Observación</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      }else if (data.TipoComentarioAdmin === 'Cancelacion') {
-        html += `
-                <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
-                    <h4 class="text-md font-bold text-red-700 mb-2">Cancelacion</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      } else {
-        html += `
-                <div class="mb-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
-                    <h4 class="text-md font-bold text-gray-700 mb-2">Comentario</h4>
-                    <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
-                </div>`
-      }
+
+  if (data.ComentariosAdmin) {
+    let rawComment = data.ComentariosAdmin;
+    let mensajeMostrar = rawComment;
+    let nombreAutor = null;
+
+    // --- CORRECCIÓN AQUÍ ---
+    // 1. Intentamos detectar el formato [Nombre]: Comentario
+    const match = rawComment.match(/^\[(.*?)\]:\s*([\s\S]*)/);
+
+    if (match) {
+      // Si match[1] está vacío (el error de tu captura "[]"), forzamos 'Admin'
+      // Si tiene texto, usamos el nombre real.
+      nombreAutor = match[1].trim() ? match[1] : 'Admin';
+      mensajeMostrar = match[2]; // El mensaje limpio
     }
-    return html
+    // -----------------------
+
+    // BLOQUE 1: RECHAZO
+    if (data.TipoComentarioAdmin === 'Rechazo') {
+      const titulo = nombreAutor
+          ? `Rechazado por ${nombreAutor}, motivo:`
+          : 'Comentarios / Motivo del Rechazo';
+
+      html += `
+              <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                  <h4 class="text-md font-bold text-red-700 mb-2">${titulo}</h4>
+                  <p class="text-gray-800 whitespace-pre-wrap">${mensajeMostrar}</p>
+              </div>`
+
+      // BLOQUE 2: OBSERVACIÓN
+    } else if (data.TipoComentarioAdmin === 'Observacion') {
+      const titulo = nombreAutor
+          ? `Observación de ${nombreAutor}:`
+          : 'Observación';
+
+      html += `
+              <div class="mb-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                  <h4 class="text-md font-bold text-yellow-700 mb-2">${titulo}</h4>
+                  <p class="text-gray-800 whitespace-pre-wrap">${mensajeMostrar}</p>
+              </div>`
+
+      // BLOQUE 3: CANCELACIÓN (Aquí es donde tenías el problema visual)
+    } else if (data.TipoComentarioAdmin === 'Cancelacion') {
+      const titulo = nombreAutor
+          ? `Cancelado por ${nombreAutor}, motivo:`
+          : 'Motivo de Cancelación';
+
+      html += `
+              <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
+                  <h4 class="text-md font-bold text-red-700 mb-2">${titulo}</h4>
+                  <p class="text-gray-800 whitespace-pre-wrap">${mensajeMostrar}</p>
+              </div>`
+
+      // BLOQUE 4: GENÉRICO
+    } else {
+      html += `
+              <div class="mb-6 p-4 border rounded-lg bg-gray-100 border-gray-300">
+                  <h4 class="text-md font-bold text-gray-700 mb-2">Comentario</h4>
+                  <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
+              </div>`
+    }
+  }
+  return html
 }
 
 function generarProductosServiciosHTML(data) {

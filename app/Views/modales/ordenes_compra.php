@@ -33,7 +33,7 @@ $sessionid = session('id');
                         <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerOrdenCompra(<?= $solicitud[
                             'ID_Solicitud'
                         ] ?>,<?= $sessionid ?>)">VER</td>
-                        <td class="py-3 px-6 text-left text-red-600 cursor-pointer" onclick="cancelarReq(<?= $solicitud[
+                        <td class="py-3 px-6 text-left text-red-600 cursor-pointer" onclick="cancelarReqOrden(<?= $solicitud[
                             'ID_Solicitud'
                         ] ?>,<?= $sessionid ?>)">Cancelar</td>
                     </tr>

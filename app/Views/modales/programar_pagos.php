@@ -177,7 +177,7 @@
         <div x-show="loadingDetalle" class="text-center text-gray-500">Cargando detalles...</div>
         <div x-show="!loadingDetalle && detalleOrden">
             <div class="flex justify-between items-center mb-4">
-                <button @click="volverATabla()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+                <button id="btn-volver-pagos" @click="volverATabla()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
                 <h2 class="text-lg font-semibold">Detalle Orden #<span x-text="detalleOrden ? (detalleOrden.No_Folio || detalleOrden.ID_Solicitud) : ''"></span></h2>
                 <div></div>
             </div>
