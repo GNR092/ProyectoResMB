@@ -1096,21 +1096,22 @@ function exportarHistorialExcel() {
   const fecha = document.getElementById('filtro-fecha').value;
   const porMes = document.getElementById('filtrar-por-mes').checked;
   const estado = document.getElementById('filtro-estado').value;
-  const departamentosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : [];
+
+  // Obtener valores de Choices.js
+  const deptosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : [];
 
   const params = new URLSearchParams();
   if (fecha) params.append('fecha', fecha);
   if (porMes) params.append('por_mes', '1');
   if (estado) params.append('estado', estado);
-  
-  if (departamentosSeleccionados.length > 0) {
-    departamentosSeleccionados.forEach(dpto => {
-        params.append('dpto[]', dpto);
-    });
+  if (deptosSeleccionados.length > 0) {
+    params.append('dpto', deptosSeleccionados.join(','));
   }
 
   window.location.href = `api/historial/exportar?${params.toString()}`;
 }
+
+
 async function mostrarVer(idSolicitud) {
   document.getElementById('btn-exportar-requisiciones').classList.add('hidden') // Ocultar el botón de exportar
   const divTabla = document.getElementById('div-tabla')
