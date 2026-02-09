@@ -248,11 +248,19 @@ class Api extends ResourceController
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
-        $comentarios = $json->ComentariosAdmin ?? null; // Obtener comentarios del JSON
+        $comentarios = $json->ComentariosAdmin ?? null;
 
         if (empty($comentarios)) {
-            return $this->failValidationErrors('Se requiere un comenatio.');
+            return $this->failValidationErrors('Se requiere un comentario.');
         }
+
+        // 1. OBTENER USUARIO
+        $session = session();
+        $nombreUsuario = $session->get('nombre_usuario');
+        if (empty($nombreUsuario)) {
+            $nombreUsuario = 'Usuario';
+        }
+        $comentarioFinal = "[$nombreUsuario]: " . $comentarios;
 
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel->find($idSolicitud);
@@ -261,20 +269,47 @@ class Api extends ResourceController
             return $this->failNotFound('La solicitud no existe.');
         }
 
+        $db = \Config\Database::connect();
+        $db->transStart();
+
         try {
+            // 2. ACTUALIZAR LA SOLICITUD
             $updateData = [
-                'Estado' => Status::Cancelada,
-                'ComentariosAdmin' => $comentarios,
-                'TipoComentarioAdmin' => 'Cancelacion', // Asignar un tipo de comentario
+                'Estado' => 'Cancelada',
+                'ComentariosAdmin' => $comentarioFinal,
+                'TipoComentarioAdmin' => 'Cancelacion',
             ];
             $solicitudModel->update($idSolicitud, $updateData);
+
+            // 3. ACTUALIZAR LA ORDEN DE COMPRA (CORREGIDO)
+            $ordenModel = new OrdenCompraModel();
+
+            // Usamos 'Cotizacion' en singular (como en tu base de datos)
+            $orden = $ordenModel->select('OrdenCompra.ID_OrdenCompra')
+                ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion')
+                ->where('Cotizacion.ID_Solicitud', $idSolicitud)
+                ->first();
+
+            if ($orden) {
+                $ordenModel->update($orden['ID_OrdenCompra'], ['Estado' => 'Cancelada']);
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                // Esto captura el error real si falla la DB
+                throw new \Exception($db->error()['message'] ?? 'Error desconocido en transacción');
+            }
+
             return $this->respondUpdated([
                 'success' => true,
-                'message' => 'Solicitud cancelada correctamente.',
+                'message' => 'Solicitud y Orden de Compra canceladas correctamente.',
             ]);
+
         } catch (\Exception $e) {
+            $db->transRollback();
             log_message('error', '[cancelarSolicitud] ' . $e->getMessage());
-            return $this->failServerError('Ocurrió un error inesperado al cancelar la solicitud.');
+            return $this->failServerError('Error: ' . $e->getMessage());
         }
     }
 

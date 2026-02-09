@@ -1,6 +1,8 @@
 /**
  * Lógica para el modal "Enviar a Revisión"
  */
+let choicesDepartamentoRevision = null;
+
 function RevisionX() {
   /*
     ID del proveedor seleccionado puedes usar /api/provider/ID_Proveedor para obtener los montos y los datos
@@ -10,13 +12,59 @@ function RevisionX() {
   let idprov = null
   return {
     init() {
-      this.loadTable()
+        this.initFilters();
+        this.loadTable();
     },
+
+      // --- Filtros de Dpto ---
+      initFilters() {
+          const filtroEl = document.getElementById('filtroDepartamentoRevision');
+          if (filtroEl) {
+              // Destruir instancia previa si existe para evitar duplicados
+              if (choicesDepartamentoRevision) {
+                  // Verificamos si la instancia tiene el método destroy (por seguridad)
+                  try { choicesDepartamentoRevision.destroy(); } catch (e) {}
+              }
+
+              // Inicializar Choices sin condiciones de ocultamiento
+              choicesDepartamentoRevision = new Choices(filtroEl, {
+                  removeItemButton: true,
+                  placeholder: true,
+                  placeholderValue: 'Todos los departamentos',
+                  searchPlaceholderValue: 'Buscar...',
+                  itemSelectText: 'Presionar para seleccionar',
+                  noResultsText: 'No se encontraron resultados',
+                  noChoicesText: 'No hay más opciones para elegir',
+              });
+          }
+      },
+
+
     loadTable() {
       createPaginatedTable({
         tableSelector: '#tabla-enviar tbody',
         paginationSelector: 'paginacion-enviar-revision',
         endpoint: 'api/solicitudes/cotizadas',
+
+          filterFormSelector: '#contenedor-filtros-revision',
+
+          filterFunction: (allData) => {
+              const selecciones = choicesDepartamentoRevision ? choicesDepartamentoRevision.getValue(true) : [];
+
+              const nombresSeleccionados = selecciones.length > 0
+                  ? selecciones.map(val => val.split('|')[0])
+                  : [];
+
+              return allData.filter((item) => {
+                  if (nombresSeleccionados.length === 0) {
+                      return true;
+                  }
+                  if (!item.Departamento) return false;
+                  // Comparamos solo el nombre del departamento
+                  return nombresSeleccionados.includes(item.Departamento);
+              });
+          },
+
         processData: (data) => {
           const agrupado = data.reduce((acc, s) => {
             if (s.Estado === 'En revision') return acc
@@ -270,6 +318,10 @@ function RevisionX() {
                 <div class="mt-6">
                     <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
                     <button @click="mostrarModalModificarMontos(${idSolicitud})" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Modificar valores</button>
+                 <button onclick="globalCancelarSolicitud(${idSolicitud}, () => document.getElementById('btn-regresar-revision').click())" 
+                  class="px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition ml-2">
+                  Cancelar Solicitud
+                </button>
                 </div>
                 `
         detallesContainer.innerHTML = html
@@ -452,6 +504,7 @@ function RevisionX() {
       if (form) form.reset()
       const detalles = document.getElementById('detalles-para-revision')
       if (detalles) detalles.innerHTML = ''
+        this.loadTable();
     },
    async cargarCuentasProveedor(idProveedor) {
       const cuentaSelectContainer = document.getElementById('cuenta-select-container');

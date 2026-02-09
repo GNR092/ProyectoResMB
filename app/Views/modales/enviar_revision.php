@@ -1,9 +1,27 @@
 <div x-data="RevisionX()" class="p-4">
     <h2 class="text-xl font-bold mb-4">Adjuntar/Confirmar Cotización</h2>
 
+    <!-- Contenedor de filtros -->
+    <div id="contenedor-filtros-revision" class="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+        <div class="w-full md:w-auto min-w-[250px]">
+            <select id="filtroDepartamentoRevision" class="border p-2 rounded w-full" multiple>
+                <option value="">Todos los departamentos</option>
+                <?php if (isset($departamentos) && !empty($departamentos)): ?>
+                    <?php foreach ($departamentos as $dpto): ?>
+                        <option value="<?= esc($dpto['Nombre']) ?>|<?= esc($dpto['PlaceNombre'] ?? '') ?>">
+                            <?= esc($dpto['Nombre']) ?> - <?= esc($dpto['PlaceNombre'] ?? '') ?>
+                        </option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </select>
+        </div>
+    </div>
+
     <!-- Div Tabla Principal -->
     <div id="div-tabla-enviar">
         <div class="overflow-x-auto">
+
+
             <table id="tabla-enviar" class="min-w-full border border-gray-300">
                 <thead class="bg-gray-100">
                 <tr>
@@ -29,7 +47,7 @@
     <div id="div-enviar-revision" class="hidden">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-bold">Enviar a Revisión</h3>
-            <div class="cursor-pointer p-2 rounded-full hover:bg-gray-200" x-on:click="regresar()" title="Regresar a la lista">
+            <div id="btn-regresar-revision" class="cursor-pointer p-2 rounded-full hover:bg-gray-200" x-on:click="regresar()" title="Regresar a la lista">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-gray-600">
                     <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-4.28 9.22a.75.75 0 0 0 0 1.06l3 3a.75.75 0 1 0 1.06-1.06l-1.72-1.72h5.69a.75.75 0 0 0 0-1.5h-5.69l1.72-1.72a.75.75 0 0 0-1.06-1.06l-3 3Z" clip-rule="evenodd" />
                 </svg>

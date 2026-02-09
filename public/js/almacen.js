@@ -710,3 +710,265 @@ function RecepcionMateriales() {
     }
   }
 }
+
+async function initRecepcionMaterial() {
+  const ordenCompraSelect = document.getElementById('ordenCompraSelect')
+  const solicitudFolioInput = document.getElementById('solicitudFolio')
+  const proveedorNombreInput = document.getElementById('proveedorNombre')
+  const productosRecepcionTable = document.getElementById('productosRecepcionTable')
+  const formRecepcionMaterial = document.getElementById('form-recepcion-material')
+
+  if (!ordenCompraSelect || !formRecepcionMaterial) return
+
+  let allOrdenesCompra = []
+
+  // Cargar órdenes de compra pendientes
+  const loadOrdenesCompra = async () => {
+    try {
+      const ordenes = await SendDataEnd('api/ordenes-compra/pendientes-recepcion')
+      allOrdenesCompra = ordenes // Guardar todas las órdenes para referencia
+      ordenCompraSelect.innerHTML = '<option value="">-- Seleccionar Orden de Compra --</option>'
+      if (ordenes.length > 0) {
+        ordenes.forEach((orden) => {
+          const option = document.createElement('option')
+          option.value = orden.ID_Solicitud // Usar ID_Solicitud para obtener detalles
+          option.textContent = `${orden.No_Folio} - ${orden.ProveedorNombre} (Total: $${parseFloat(orden.Total).toFixed(2)})`
+          ordenCompraSelect.appendChild(option)
+        })
+      } else {
+        ordenCompraSelect.innerHTML =
+            '<option value="">No hay órdenes pendientes de recepción</option>'
+      }
+    } catch (error) {
+      console.error('Error cargando órdenes de compra:', error)
+      ordenCompraSelect.innerHTML = '<option value="">Error al cargar órdenes de compra</option>'
+    }
+  }
+
+  // Manejar selección de Orden de Compra
+  ordenCompraSelect.addEventListener('change', async () => {
+    const idSolicitud = ordenCompraSelect.value
+    if (!idSolicitud) {
+      solicitudFolioInput.value = ''
+      proveedorNombreInput.value = ''
+      productosRecepcionTable.innerHTML =
+          '<tr><td colspan="3" class="text-center py-2">Seleccione una Orden de Compra para ver los productos.</td></tr>'
+      return
+    }
+
+    try {
+      const data = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`)
+
+      // Llenar campos de solo lectura
+      solicitudFolioInput.value = data.No_Folio || ''
+      proveedorNombreInput.value = data.proveedor?.RazonSocial || ''
+
+      // Llenar tabla de productos
+      productosRecepcionTable.innerHTML = ''
+      if (data.productos && data.productos.length > 0) {
+        data.productos.forEach((p) => {
+          const tr = document.createElement('tr')
+          tr.innerHTML = `
+                        <td class="py-2 px-4 border-b">${p.Nombre}</td>
+                        <td class="py-2 px-4 border-b text-right">${p.Cantidad}</td>
+                        <td class="py-2 px-4 border-b">
+                            <input type="number" name="productos[${p.ID_SolicitudProd}][cantidad_recibida]" 
+                                class="w-full border-gray-300 rounded-md shadow-sm text-right cantidad-recibida" 
+                                value="${p.Cantidad}" min="0" max="${p.Cantidad}">
+                            <input type="hidden" name="productos[${p.ID_SolicitudProd}][id_producto]" value="${p.ID_Producto}">
+                            <input type="hidden" name="productos[${p.ID_SolicitudProd}][id_solicitud_prod]" value="${p.ID_SolicitudProd}">
+                        </td>
+                    `
+          productosRecepcionTable.appendChild(tr)
+        })
+      } else {
+        productosRecepcionTable.innerHTML =
+            '<tr><td colspan="3" class="text-center py-2">No hay productos en esta Orden de Compra.</td></tr>'
+      }
+    } catch (error) {
+      console.error('Error cargando detalles de la orden de compra:', error)
+      solicitudFolioInput.value = ''
+      proveedorNombreInput.value = ''
+      productosRecepcionTable.innerHTML =
+          '<tr><td colspan="3" class="text-center py-2 text-red-500">Error al cargar detalles de la orden.</td></tr>'
+    }
+  })
+
+  // Manejar envío del formulario
+  formRecepcionMaterial.addEventListener('submit', async (e) => {
+    e.preventDefault()
+
+    const idOrdenCompra = ordenCompraSelect.value
+    if (!idOrdenCompra) {
+      mostrarNotificacion('Debe seleccionar una Orden de Compra.', 'error')
+      return
+    }
+
+    const formData = new FormData(formRecepcionMaterial)
+    const productosRecibidos = []
+    productosRecepcionTable.querySelectorAll('tr').forEach((row) => {
+      const cantidadInput = row.querySelector('.cantidad-recibida')
+      if (cantidadInput) {
+        const idSolicitudProd = cantidadInput.name.match(/\[(\d+)\]/)[1] // Extraer el ID
+        const idProductoInput = row.querySelector(
+            `input[name="productos[${idSolicitudProd}][id_producto]"]`,
+        )
+
+        productosRecibidos.push({
+          id_solicitud_prod: idSolicitudProd,
+          id_producto: idProductoInput ? idProductoInput.value : null,
+          cantidad_recibida: parseInt(cantidadInput.value),
+          cantidad_pedida: parseInt(cantidadInput.max),
+        })
+      }
+    })
+
+    // Obtener archivo de remisión
+    const remisionFile = document.getElementById('remisionArchivo').files[0]
+    if (remisionFile) {
+      formData.append('remision_file', remisionFile)
+    }
+
+    // Obtener archivo de factura de entrada
+    const facturaEntradaFile = document.getElementById('facturaEntradaArchivo').files[0]
+    if (facturaEntradaFile) {
+      formData.append('factura_entrada_file', facturaEntradaFile)
+    }
+
+    formData.append('id_orden_compra', idOrdenCompra)
+    formData.append('productos_recibidos', JSON.stringify(productosRecibidos)) // Enviar como JSON string
+
+    const procesandoNotif = mostrarNotificacion('Confirmando recepción...', 'info', 999999)
+
+    try {
+      const result = await SendDataEnd('api/recepcion/confirmar', {
+        method: 'POST',
+        body: formData, // FormData con el archivo y otros campos
+      })
+
+      procesandoNotif.click()
+
+      if (result.success) {
+        mostrarNotificacion(result.message, 'success')
+        formRecepcionMaterial.reset()
+        productosRecepcionTable.innerHTML =
+            '<tr><td colspan="3" class="text-center py-2">Seleccione una Orden de Compra para ver los productos.</td></tr>'
+        loadOrdenesCompra() // Recargar la lista de órdenes pendientes
+      } else {
+        mostrarNotificacion(result.message || 'Error al confirmar la recepción.', 'error')
+      }
+    } catch (error) {
+      procesandoNotif.click()
+      console.error('Error en la recepción de material:', error)
+      mostrarNotificacion('Error de red al confirmar la recepción.', 'error')
+    }
+  })
+
+  loadOrdenesCompra() // Cargar órdenes al inicializar el modal
+}
+
+async function initBajasDestruccion() {
+  const productoSelect = document.getElementById('productoSelect')
+  const existenciaActualInput = document.getElementById('existenciaActual')
+  const cantidadBajaInput = document.getElementById('cantidadBaja')
+  const formBajasDestruccion = document.getElementById('form-bajas-destruccion')
+
+  if (!productoSelect || !formBajasDestruccion) return
+
+  let allProducts = [] // Para almacenar todos los productos cargados
+
+  // Cargar productos
+  const loadProducts = async () => {
+    try {
+      const products = await SendDataEnd('api/product/all', { method: 'GET' })
+      allProducts = products
+      productoSelect.innerHTML = '<option value="">-- Seleccionar Producto --</option>'
+      if (products.length > 0) {
+        products.forEach((p) => {
+          const option = document.createElement('option')
+          option.value = p.ID_Producto
+          option.textContent = `${p.Nombre} (Código: ${p.Codigo})`
+          productoSelect.appendChild(option)
+        })
+      } else {
+        productoSelect.innerHTML = '<option value="">No hay productos disponibles</option>'
+      }
+    } catch (error) {
+      console.error('Error cargando productos:', error)
+      productoSelect.innerHTML = '<option value="">Error al cargar productos</option>'
+    }
+  }
+
+  // Manejar selección de producto
+  productoSelect.addEventListener('change', () => {
+    const idProducto = productoSelect.value
+    if (idProducto) {
+      const selectedProduct = allProducts.find((p) => String(p.ID_Producto) === idProducto)
+      if (selectedProduct) {
+        existenciaActualInput.value = selectedProduct.Existencia
+        cantidadBajaInput.max = selectedProduct.Existencia // Establecer máximo para la cantidad a dar de baja
+        cantidadBajaInput.value = '' // Limpiar campo de cantidad
+      }
+    } else {
+      existenciaActualInput.value = ''
+      cantidadBajaInput.max = ''
+      cantidadBajaInput.value = ''
+    }
+  })
+
+  // Manejar envío del formulario
+  formBajasDestruccion.addEventListener('submit', async (e) => {
+    e.preventDefault()
+
+    const idProducto = productoSelect.value
+    const cantidadBaja = parseInt(cantidadBajaInput.value)
+    const existenciaActual = parseInt(existenciaActualInput.value)
+    const motivoBaja = document.getElementById('motivoBaja').value
+    const fechaBaja = document.getElementById('fechaBaja').value
+
+    if (!idProducto || !cantidadBaja || !motivoBaja || !fechaBaja) {
+      mostrarNotificacion('Por favor, complete todos los campos.', 'error')
+      return
+    }
+
+    if (cantidadBaja <= 0 || cantidadBaja > existenciaActual) {
+      mostrarNotificacion(
+          'La cantidad a dar de baja debe ser mayor a 0 y no puede exceder la existencia actual.',
+          'error',
+      )
+      return
+    }
+
+    const payload = {
+      id_producto: idProducto,
+      cantidad_baja: cantidadBaja,
+      motivo_baja: motivoBaja,
+      fecha_baja: fechaBaja,
+    }
+
+    const procesandoNotif = mostrarNotificacion('Confirmando baja...', 'info', 999999)
+
+    try {
+      const result = await SendDataEnd('api/bajas/destruccion/registrar', {
+        method: 'POST',
+        body: payload,
+      })
+
+      procesandoNotif.click()
+
+      if (result.success) {
+        mostrarNotificacion(result.message, 'success')
+        formBajasDestruccion.reset()
+        loadProducts() // Recargar productos para actualizar existencias
+      } else {
+        mostrarNotificacion(result.message || 'Error al confirmar la baja.', 'error')
+      }
+    } catch (error) {
+      procesandoNotif.click()
+      console.error('Error en baja por destrucción:', error)
+      mostrarNotificacion('Error de red al confirmar la baja.', 'error')
+    }
+  })
+
+  loadProducts() // Cargar productos al inicializar el modal
+}

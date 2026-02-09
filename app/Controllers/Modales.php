@@ -86,7 +86,15 @@ class Modales extends BaseController
                 return view('modales/ordenes_compra', $data);
 
             case 'enviar_revision':
-                return view('modales/enviar_revision');
+                $departamentoModel = new DepartamentosModel();
+
+                $data['departamentos'] = $departamentoModel
+                    ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->orderBy('Departamentos.Nombre', 'ASC')
+                    ->findAll();
+
+                return view('modales/enviar_revision', $data);
 
             case 'usuarios':
                 $departamentosModel = new DepartamentosModel();
