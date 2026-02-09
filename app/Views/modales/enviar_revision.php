@@ -1,9 +1,27 @@
 <div x-data="RevisionX()" class="p-4">
     <h2 class="text-xl font-bold mb-4">Adjuntar/Confirmar Cotización</h2>
 
+    <!-- Contenedor de filtros -->
+    <div id="contenedor-filtros-revision" class="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+        <div class="w-full md:w-auto min-w-[250px]">
+            <select id="filtroDepartamentoRevision" class="border p-2 rounded w-full" multiple>
+                <option value="">Todos los departamentos</option>
+                <?php if (isset($departamentos) && !empty($departamentos)): ?>
+                    <?php foreach ($departamentos as $dpto): ?>
+                        <option value="<?= esc($dpto['Nombre']) ?>|<?= esc($dpto['PlaceNombre'] ?? '') ?>">
+                            <?= esc($dpto['Nombre']) ?> - <?= esc($dpto['PlaceNombre'] ?? '') ?>
+                        </option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </select>
+        </div>
+    </div>
+
     <!-- Div Tabla Principal -->
     <div id="div-tabla-enviar">
         <div class="overflow-x-auto">
+
+
             <table id="tabla-enviar" class="min-w-full border border-gray-300">
                 <thead class="bg-gray-100">
                 <tr>

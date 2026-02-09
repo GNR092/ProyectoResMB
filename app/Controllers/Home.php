@@ -68,6 +68,13 @@ class Home extends BaseController
                 'almacen',
             ],
 
+            // Rol Direccion Campus
+            'Direccion Campus' => [
+                'solicitar_material',
+                'enviar_revision',
+                'ver_historial',
+            ],
+
             //Rol Contaduria
             'Contaduría' => [
                 //COMPRAS
@@ -122,8 +129,6 @@ class Home extends BaseController
             'Compras' => array_values($opcionesAjustes),
             'Direccion' => array_values($opcionesAjustes),
             'Contaduría' => array_values($opcionesAjustes),
-            //'Tesoreria' => array_values($opcionesAjustes),
-            // Rol por defecto (Jefes de Departamento)
             'default' => [
                 null
             ]
