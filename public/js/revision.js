@@ -191,6 +191,9 @@ function RevisionX() {
       const form = document.getElementById('form-enviar-revision')
       const btnConfirmar = document.getElementById('btn-confirmar-revision')
 
+        const divFiltros = document.getElementById('contenedor-filtros-revision')
+        if (divFiltros) divFiltros.classList.add('hidden')
+
       divTabla.classList.add('hidden')
       divRevision.classList.remove('hidden')
       detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>'
@@ -496,16 +499,24 @@ function RevisionX() {
         detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`
       }
     },
-    regresar: function () {
-      idprov = null
-      document.getElementById('div-tabla-enviar').classList.remove('hidden')
-      document.getElementById('div-enviar-revision').classList.add('hidden')
-      const form = document.getElementById('form-enviar-revision')
-      if (form) form.reset()
-      const detalles = document.getElementById('detalles-para-revision')
-      if (detalles) detalles.innerHTML = ''
-        this.loadTable();
-    },
+
+      regresar: function () {
+          idprov = null
+          document.getElementById('div-tabla-enviar').classList.remove('hidden')
+          
+          const divFiltros = document.getElementById('contenedor-filtros-revision')
+          if (divFiltros) divFiltros.classList.remove('hidden')
+
+          document.getElementById('div-enviar-revision').classList.add('hidden')
+
+          const form = document.getElementById('form-enviar-revision')
+          if (form) form.reset()
+          const detalles = document.getElementById('detalles-para-revision')
+          if (detalles) detalles.innerHTML = ''
+          this.loadTable();
+      },
+
+
    async cargarCuentasProveedor(idProveedor) {
       const cuentaSelectContainer = document.getElementById('cuenta-select-container');
       if (!cuentaSelectContainer) return;
