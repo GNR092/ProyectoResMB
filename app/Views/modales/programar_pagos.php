@@ -111,6 +111,30 @@
                 </div>
             </div>
         </div>
+
+        <div class="flex flex-wrap items-center gap-6 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm">
+            <span class="font-bold text-gray-700">Simbología:</span>
+
+            <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded bg-gray-800 border border-gray-600 shadow-sm"></span>
+                <span class="text-gray-600">Vencido</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded bg-red-100 border border-red-200 shadow-sm"></span>
+                <span class="text-gray-600">Menos de 5 días</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded bg-yellow-100 border border-yellow-200 shadow-sm"></span>
+                <span class="text-gray-600">Menos de 15 días</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded bg-white border border-gray-300 shadow-sm"></span>
+                <span class="text-gray-600">Vigente (más de 15 días)</span>
+            </div>
+        </div>
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
                 <thead class="bg-gray-100 text-gray-800">
@@ -138,22 +162,21 @@
                 </template>
 
                 <template x-for="orden in paginatedCredito" :key="orden.ID_Solicitud">
-                    <tr :class="orden.claseColor">
-
-                        <td class="px-4 py-2 border-b">
+                    <tr :class="orden.claseColor" class="border-b">
+                        <td class="px-4 py-2">
                             <input type="checkbox" :value="orden.ID_Solicitud" x-model="selectedOrdenes">
                         </td>
-                        <td class="px-4 py-2 border-b" x-text="orden.DepartamentoNombre || '-'"></td>
-                        <td class="px-4 py-2 border-b" x-text="orden.Complejo || '-'"></td>
-                        <td class="px-4 py-2 border-b" x-text="orden.No_Folio || '-'"></td>
+                        <td class="px-4 py-2" x-text="orden.DepartamentoNombre || '-'"></td>
+                        <td class="px-4 py-2" x-text="orden.Complejo || '-'"></td>
+                        <td class="px-4 py-2" x-text="orden.No_Folio || '-'"></td>
 
-                        <td class="px-4 py-2 border-b" x-text="orden.RazonSocial || '-'"></td>
-                        <td class="px-4 py-2 border-b" x-text="orden.Banco || '-'"></td>
-                        <td class="px-4 py-2 border-b" x-text="formatCurrency(orden.Total)"></td>
+                        <td class="px-4 py-2" x-text="orden.RazonSocial || '-'"></td>
+                        <td class="px-4 py-2" x-text="orden.Banco || '-'"></td>
+                        <td class="px-4 py-2" x-text="formatCurrency(orden.Total)"></td>
 
-                        <td class="px-4 py-2 border-b text-center">
+                        <td class="px-4 py-2 text-center">
                             <button @click="mostrarDetalle(orden.ID_Solicitud, orden.MetodoPago)"
-                                    class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
+                                    class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition shadow-sm">
                                 VER
                             </button>
                         </td>
