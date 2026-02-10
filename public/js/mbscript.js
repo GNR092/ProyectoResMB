@@ -1536,20 +1536,47 @@ async function cancelarReqOrden(idSolicitud) {
   }
 }
 
+// --- FUNCIÓN MODIFICADA ---
 async function mostrarVerOrdenCompra(idOrden, $idsession) {
   document.getElementById('div-tabla-ordenes').classList.add('hidden')
   document.getElementById('div-ver-orden').classList.remove('hidden')
   const detallesContainer = document.getElementById('detallesOrdenCompra')
   const iduser = $idsession
 
-  detallesContainer.innerHTML = `<p>Cargando detalles de la orden ${idOrden}...</p>`
+  detallesContainer.innerHTML = `<p class="text-center p-4">Cargando detalles de la orden ${idOrden}...</p>`
   try {
     const data = await SendDataEnd(`api/cotizacion/details/${idOrden}`)
     if (data.error) throw new Error(data.error)
 
+    // 1. Generamos el HTML de encabezado
     let html = generarDetallesSolicitudHTML(data)
 
     html += generarComentariosHtml(data)
+
+    // --- NUEVO: CHECKBOX DE CORRECCIÓN DE IVA ---
+    // Solo permitimos corregir si está aprobada (antes de enviarse o pagarse)
+// En la función mostrarVerOrdenCompra...
+
+    if (data.Estado === 'Aprobada') {
+      const tieneIva = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
+
+      // CORRECCIÓN AQUÍ: Pasamos $idsession como 3er argumento
+      html += `
+            <div class="flex justify-end items-center mb-2 px-4 p-2 rounded ">
+                <label class="inline-flex items-center cursor-pointer select-none">
+                    <span class="ml-2 text-gray-800 font-medium">Agregar IVA a los precios</span>
+                    
+                    <input type="checkbox"
+                        id="chk-iva-correction-${idOrden}"
+                        onchange="toggleIvaOrden(${idOrden}, this.checked, ${$idsession})" 
+                        ${tieneIva ? 'checked' : ''}
+                        class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300 transition duration-150 ease-in-out cursor-pointer">
+                        
+                </label>
+                <div id="loading-iva-${idOrden}" class="hidden ml-3">
+                   </div>
+            </div>`;
+    }
 
     html += generarProductosServiciosHTML(data)
 
@@ -1563,27 +1590,118 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
             `
     }
 
-    html += generarSeccionAdjuntos(data);
+    if (typeof generarSeccionAdjuntos === 'function') {
+      html += generarSeccionAdjuntos(data);
+    }
 
     // Solo mostrar botones de acción si la solicitud está 'Aprobada'
     if (data.Estado === 'Aprobada') {
       html += `
                 <div class="mt-8 flex justify-end space-x-4">
                     <button onclick="mostrarOrdenPdf(${idOrden}, 1)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                    Ver Orden
+                    Ver Orden (PDF)
                     </button>
                     
-                    <!-- Aqui se necesitaria que el boton envie la orden por pdf al proveedor y que cambie de estado a "Por Pagar" -->
                     <button onclick="enviarOrdenCompra(${idOrden}, ${iduser}, this)" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
                         Enviar orden de compra
                     </button>
-
                 </div>
             `
     }
     detallesContainer.innerHTML = html
   } catch (error) {
+    console.error(error);
     detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
+  }
+}
+
+async function toggleIvaOrden(idSolicitud, nuevoEstadoIva, idSession) {
+  const loadingIcon = document.getElementById(`loading-iva-${idSolicitud}`);
+  const checkbox = document.getElementById(`chk-iva-correction-${idSolicitud}`);
+
+  // UI: Mostrar carga y bloquear checkbox
+  if(loadingIcon) loadingIcon.classList.remove('hidden');
+  if(checkbox) checkbox.disabled = true;
+
+  try {
+    // 1. Obtener datos actuales para no perder información (proveedor, cuenta, productos base)
+    const currentData = await SendDataEnd(`api/cotizacion/details/${idSolicitud}`);
+
+    if(!currentData || currentData.error) {
+      throw new Error("No se pudieron obtener los datos de la orden para actualizar.");
+    }
+
+    const isServicio = currentData.Tipo == 2;
+
+    // 2. Preparar el array de productos para la API de update
+    // IMPORTANTE: Enviamos el "Importe" tal cual viene de la BD (Precio Base).
+    // Al cambiar el flag "iva", el backend hará la matemática (Base * 1.16) o dejará la Base sola.
+    let productosPayload = [];
+
+    if (currentData.productos && currentData.productos.length > 0) {
+      productosPayload = currentData.productos.map(p => {
+        // Parseamos a float para evitar errores de string
+        const importeBase = parseFloat(p.Importe) || 0;
+
+        if (isServicio) {
+          return {
+            nombre: p.Nombre,
+            importe: importeBase
+          };
+        } else {
+          return {
+            codigo: p.Codigo,
+            nombre: p.Nombre,
+            cantidad: parseFloat(p.Cantidad) || 1,
+            importe: importeBase
+          };
+        }
+      });
+    }
+
+    // 3. Determinar ID Cotización (si existe)
+    const idCotizacion = currentData.ID_Cotizacion ||
+        (currentData.cotizaciones && currentData.cotizaciones.length > 0 ? currentData.cotizaciones[0].ID_Cotizacion : null);
+
+    // 4. Construir Payload
+    const payload = {
+      id_solicitud: idSolicitud,
+      id_cotizacion_seleccionada: idCotizacion,
+      productos: productosPayload,
+      comentarios: currentData.ComentariosAdmin || null, // Mantenemos comentarios del admin
+      id_cuenta: currentData.ID_Cuenta || null,         // Mantenemos la cuenta bancaria seleccionada
+      iva: nuevoEstadoIva ? 1 : 0                        // <--- AQUÍ CAMBIAMOS EL ESTADO DEL IMPUESTO
+    };
+
+    // 5. Enviar Actualización
+    const result = await SendDataEnd('api/solicitud/update', {
+      method: 'POST',
+      body: payload
+    });
+
+    if (result.success) {
+      mostrarNotificacion('IVA actualizado y PDF regenerado correctamente.', 'success');
+
+      // 6. Recargar la vista para ver los nuevos totales
+      // Pasamos idSolicitud y el idSession que recibimos como argumento
+      await mostrarVerOrdenCompra(idSolicitud, idSession);
+
+    } else {
+      throw new Error(result.message || 'Error desconocido al actualizar la orden.');
+    }
+
+  } catch (error) {
+    console.error('Error en toggleIvaOrden:', error);
+    mostrarNotificacion(`Error: ${error.message}`, 'error');
+
+    // Revertir el checkbox visualmente si falló la operación
+    if(checkbox) {
+      checkbox.checked = !nuevoEstadoIva; // Volver al estado anterior
+    }
+  } finally {
+    // UI: Ocultar carga y desbloquear
+    if(loadingIcon) loadingIcon.classList.add('hidden');
+    if(checkbox) checkbox.disabled = false;
   }
 }
 
