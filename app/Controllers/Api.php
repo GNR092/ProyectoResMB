@@ -331,9 +331,10 @@ class Api extends ResourceController
         $comentarios = $json->comentarios ?? null;
         $idCuenta = $json->id_cuenta ?? null;
 
-        // [CORRECCIÓN CRÍTICA PARA POSTGRESQL]
-        // Postgres necesita 't' o 'f' para columnas booleanas, no 1 o 0.
-        $iva = (isset($json->iva) && ($json->iva == 1 || $json->iva === true)) ? 't' : 'f';
+        // --- [CAMBIO 1: UNIVERSAL] ---
+        // NO usamos "1" ni "'t'". Usamos el booleano nativo de PHP (true/false).
+        // El "Model" de CodeIgniter se encargará de traducirlo al idioma de la base de datos que estés usando.
+        $iva = filter_var($json->iva ?? 0, FILTER_VALIDATE_BOOLEAN);
 
         $idCotizacionSeleccionada = $json->id_cotizacion_seleccionada ?? null;
 
@@ -350,7 +351,10 @@ class Api extends ResourceController
 
         try {
             $updateData = [];
-            $updateData['IVA'] = $iva; // Ahora enviamos 't' o 'f'
+
+            // CodeIgniter detecta el driver:
+            // En MySQL guardará 1. En Postgres guardará 't' o TRUE.
+            $updateData['IVA'] = $iva;
 
             if ($idCotizacionSeleccionada) {
                 $cotizacionSeleccionada = $cotizacionModel->find($idCotizacionSeleccionada);
@@ -365,17 +369,14 @@ class Api extends ResourceController
 
             $solicitudModel->update($idSolicitud, $updateData);
 
-            // Usamos 2 directamente para evitar errores de importación de Clases
+            // Actualización de productos (Lógica idéntica a la anterior)
             $esServicio = (int) $solicitud['Tipo'] === 2;
-
             if ($esServicio) {
                 $solicitudServiciosModel = new SolicitudServiciosModel();
                 $solicitudItemsDB = $solicitudServiciosModel->where('ID_Solicitud', $idSolicitud)->findAll();
-
                 foreach ($itemsPayload as $index => $item) {
                     if(isset($solicitudItemsDB[$index])) {
-                        $idSolicitudItem = $solicitudItemsDB[$index]['ID_SolicitudServ'];
-                        $solicitudServiciosModel->update($idSolicitudItem, [
+                        $solicitudServiciosModel->update($solicitudItemsDB[$index]['ID_SolicitudServ'], [
                             'Nombre' => (string) $item->nombre,
                             'Importe' => (float) $item->importe,
                         ]);
@@ -384,11 +385,9 @@ class Api extends ResourceController
             } else {
                 $solicitudProductModel = new SolicitudProductModel();
                 $solicitudItemsDB = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
-
                 foreach ($itemsPayload as $index => $p) {
                     if(isset($solicitudItemsDB[$index])) {
-                        $idSolicitudProd = $solicitudItemsDB[$index]['ID_SolicitudProd'];
-                        $solicitudProductModel->update($idSolicitudProd, [
+                        $solicitudProductModel->update($solicitudItemsDB[$index]['ID_SolicitudProd'], [
                             'Codigo' => (string) $p->codigo,
                             'Nombre' => (string) $p->nombre,
                             'Cantidad' => (int) $p->cantidad,
@@ -400,7 +399,7 @@ class Api extends ResourceController
 
             $solicitudModel->update($idSolicitud, ['ComentariosUser' => $comentarios]);
 
-            // Instancia manual de la librería API
+            // Recálculo de totales
             $apiLib = new \App\Libraries\Rest();
             $details = $apiLib->getSolicitudWithProducts($idSolicitud);
 
@@ -417,8 +416,10 @@ class Api extends ResourceController
                 }
             }
 
-            // [CORRECCIÓN LÓGICA] Verificamos si es 't' para aplicar el cálculo
-            if ($iva === 't') {
+            // --- [CAMBIO 2: LÓGICA DE CÁLCULO] ---
+            // Al ser $iva un booleano real (true/false), la condición es mucho más limpia.
+            // Funciona igual en local y en servidor.
+            if ($iva === true) {
                 $nuevoTotal = $nuevoTotal * 1.16;
             }
 
@@ -430,30 +431,21 @@ class Api extends ResourceController
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                // Este error salía en tu log porque la transacción moría antes
                 throw new \Exception('Falla en la transacción de base de datos.');
             }
 
+            // Regeneración de PDFs
             try {
                 $pdfController = new \App\Controllers\GenerarPDF();
-
-                // 1. Regenerar Requisición (Ya lo tenías)
                 $pdfController->generarYGuardarRequisicion($idSolicitud, 0, 1);
 
-                // 2. [NUEVO] Regenerar Orden de Compra
-                // Necesitamos el ID del usuario actual para la firma "Elaborado por"
                 $userId = session()->get('id');
-
                 if ($userId) {
-                    // Esta función internamente valida si existe la orden.
-                    // Si no existe (porque la solicitud apenas se está cotizando), no hace nada y retorna null, lo cual es seguro.
                     $pdfController->generarYGuardarOrden($idSolicitud, $userId);
                 }
-
             } catch (\Exception $e) {
-                log_message('error', 'Error al regenerar PDFs físicos: ' . $e->getMessage());
+                log_message('error', 'Error PDF: ' . $e->getMessage());
             }
-
 
             return $this->respondUpdated([
                 'success' => true,
