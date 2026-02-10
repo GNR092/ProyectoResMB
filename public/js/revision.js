@@ -550,114 +550,126 @@ function RevisionX() {
           cuentaSelectContainer.innerHTML = '<p class="text-sm text-red-500">Error al cargar las cuentas.</p>';
       }
     },
-   mostrarModalModificarMontos: async function (idSolicitud) {
-      const modalModificar = document.getElementById('modal-modificar-montos')
-      const productosContainer = document.getElementById('productos-modificar-container')
-      const formModificar = document.getElementById('form-modificar-montos')
-      const idSolicitudInput = document.getElementById('modificar_id_solicitud')
-      const proveedorSelectContainer = document.getElementById('proveedor-select-container')
 
-      const subtotalEl = document.getElementById('subtotal-modificar')
-      const totalEl = document.getElementById('total-modificar')
+      mostrarModalModificarMontos: async function (idSolicitud) {
+          const modalModificar = document.getElementById('modal-modificar-montos')
+          const productosContainer = document.getElementById('productos-modificar-container')
+          const formModificar = document.getElementById('form-modificar-montos')
+          const idSolicitudInput = document.getElementById('modificar_id_solicitud')
+          const proveedorSelectContainer = document.getElementById('proveedor-select-container')
 
-      if (
-        !modalModificar ||
-        !productosContainer ||
-        !formModificar ||
-        !idSolicitudInput ||
-        !proveedorSelectContainer ||
-        !subtotalEl ||
-        !totalEl
-      ) {
-        console.error('Elementos del modal de modificación no encontrados.')
-        return
-      }
+          // Referencia al checkbox de IVA
+          const ivaCheckbox = document.getElementById('modificar_iva')
 
-      idSolicitudInput.value = idSolicitud
-      productosContainer.innerHTML =
-        '<p class="text-center text-gray-500">Cargando productos...</p>'
-      proveedorSelectContainer.innerHTML = ''
-      document.getElementById('cuenta-select-container').innerHTML = '';
-      modalModificar.classList.remove('hidden')
+          const subtotalEl = document.getElementById('subtotal-modificar')
+          const totalEl = document.getElementById('total-modificar')
 
-      try {
-        const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
-
-        if (data.error) throw new Error(data.error)
-        
-        const isServicio = data.Tipo == 2;
-
-        const cotizacionesData = data.cotizaciones || []
-
-        function actualizarTotalesModificar() {
-          let subtotal = 0
-          const inputsImporte = formModificar.querySelectorAll(
-            'input[name^="productos["][name$="[importe]"]',
-          )
-          
-          if(isServicio) {
-            inputsImporte.forEach((importeInput) => {
-              const importe = parseFloat(importeInput.value) || 0
-              subtotal += importe
-            });
-          } else {
-            const inputsCantidad = formModificar.querySelectorAll(
-              'input[name^="productos["][name$="[cantidad]"]',
-            )
-            inputsImporte.forEach((importeInput, index) => {
-              const importe = parseFloat(importeInput.value) || 0
-              const cantidad = parseFloat(inputsCantidad[index].value) || 0
-              subtotal += importe * cantidad
-            })
+          if (!modalModificar || !productosContainer || !formModificar || !idSolicitudInput || !subtotalEl || !totalEl || !ivaCheckbox) {
+              console.error('Elementos del modal de modificación no encontrados.')
+              return
           }
 
-          const total = subtotal
+          idSolicitudInput.value = idSolicitud
+          productosContainer.innerHTML = '<p class="text-center text-gray-500">Cargando productos...</p>'
+          proveedorSelectContainer.innerHTML = ''
+          document.getElementById('cuenta-select-container').innerHTML = '';
+          modalModificar.classList.remove('hidden')
 
-          subtotalEl.textContent = subtotal.toLocaleString('es-MX', {
-            style: 'currency',
-            currency: 'MXN',
-          })
-          totalEl.textContent = total.toLocaleString('es-MX', {
-            style: 'currency',
-            currency: 'MXN',
-          })
-        }
+          try {
+              const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
+              if (data.error) throw new Error(data.error)
 
-        if (cotizacionesData.length > 1) {
-          let selectHtml =
-            '<label for="proveedor-select" class="block text-sm font-medium text-gray-700">Seleccionar Proveedor:</label>'
-          selectHtml +=
-            '<select id="proveedor-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">'
-          selectHtml += '<option value="">Seleccione un proveedor</option>'
-          cotizacionesData.forEach((cot) => {
-            selectHtml += `<option value="${cot.ID_Cotizacion}">${cot.ProveedorNombre}</option>`
-          })
-          selectHtml += '</select>'
-          proveedorSelectContainer.innerHTML = selectHtml
+              const isServicio = data.Tipo == 2;
+              const cotizacionesData = data.cotizaciones || []
 
-          const proveedorSelect = document.getElementById('proveedor-select')
-          proveedorSelect.addEventListener('change', (e) => {
-            const selectedCotizacionId = e.target.value
-            const selectedCotizacion = cotizacionesData.find(
-              (cot) => cot.ID_Cotizacion == selectedCotizacionId,
-            )
-            if (selectedCotizacion) {
-              idprov = selectedCotizacion.ID_Proveedor
-              this.cargarCuentasProveedor(idprov);
-            } else {
-              idprov = null;
-              this.cargarCuentasProveedor(null);
-            }
+              // Inicializar el checkbox.
+              // Si la solicitud ya tenía IVA (1 o true), marcamos la casilla "Más IVA" por defecto.
+              // Si era 0, la dejamos desmarcada (IVA incluido o exento).
+              ivaCheckbox.checked = (data.IVA == 1 || data.IVA === true || data.IVA === 't');
 
-            this.validarOpcionCredito(data)
-          })
-        } else if (cotizacionesData.length === 1) {
-            idprov = cotizacionesData[0].ID_Proveedor;
-            this.cargarCuentasProveedor(idprov);
-        }
+              // --- LÓGICA DE CÁLCULO ACTUALIZADA ---
+              function actualizarTotalesModificar() {
+                  let sumaInputs = 0
 
-        function actualizarProductos(productos) {
-          let productosHtml = `
+                  // 1. Sumamos tal cual lo que el usuario escribió en los inputs
+                  const inputsImporte = formModificar.querySelectorAll('input[name^="productos["][name$="[importe]"]')
+
+                  if(isServicio) {
+                      inputsImporte.forEach((importeInput) => {
+                          sumaInputs += parseFloat(importeInput.value) || 0
+                      });
+                  } else {
+                      const inputsCantidad = formModificar.querySelectorAll('input[name^="productos["][name$="[cantidad]"]')
+                      inputsImporte.forEach((importeInput, index) => {
+                          const importe = parseFloat(importeInput.value) || 0
+                          const cantidad = parseFloat(inputsCantidad[index].value) || 0
+                          sumaInputs += importe * cantidad
+                      })
+                  }
+
+                  // 2. Aplicamos la lógica según el estado del Checkbox
+                  const esMasIva = ivaCheckbox.checked; // true = Precios + IVA, false = IVA Incluido
+
+                  let subtotalCalculado = 0;
+                  let totalCalculado = 0;
+
+                  if (esMasIva) {
+                      // CASO A: El usuario dice "Estos precios son MAS IVA"
+                      // Lo que escribió es el Subtotal. El Total aumenta.
+                      subtotalCalculado = sumaInputs;
+                      totalCalculado = subtotalCalculado * 1.16;
+                  } else {
+                      // CASO B: El usuario dice "El IVA ya está INCLUIDO"
+                      // Lo que escribió es el Total. El Subtotal disminuye.
+                      totalCalculado = sumaInputs;
+                      subtotalCalculado = totalCalculado / 1.16;
+                  }
+
+                  // 3. Renderizamos
+                  subtotalEl.textContent = subtotalCalculado.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+                  totalEl.textContent = totalCalculado.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+              }
+
+              // Escuchar cambios en el checkbox para recalcular al instante
+              ivaCheckbox.onchange = actualizarTotalesModificar;
+
+              // --- MANEJO DE PROVEEDORES ---
+              if (cotizacionesData.length > 1) {
+                  let selectHtml =
+                      '<label for="proveedor-select" class="block text-sm font-medium text-gray-700">Seleccionar Proveedor:</label>'
+                  selectHtml +=
+                      '<select id="proveedor-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">'
+                  selectHtml += '<option value="">Seleccione un proveedor</option>'
+                  cotizacionesData.forEach((cot) => {
+                      selectHtml += `<option value="${cot.ID_Cotizacion}">${cot.ProveedorNombre}</option>`
+                  })
+                  selectHtml += '</select>'
+                  proveedorSelectContainer.innerHTML = selectHtml
+
+                  const proveedorSelect = document.getElementById('proveedor-select')
+                  proveedorSelect.addEventListener('change', (e) => {
+                      const selectedCotizacionId = e.target.value
+                      const selectedCotizacion = cotizacionesData.find(
+                          (cot) => cot.ID_Cotizacion == selectedCotizacionId,
+                      )
+                      if (selectedCotizacion) {
+                          idprov = selectedCotizacion.ID_Proveedor
+                          this.cargarCuentasProveedor(idprov);
+                      } else {
+                          idprov = null;
+                          this.cargarCuentasProveedor(null);
+                      }
+                      this.validarOpcionCredito(data)
+                  })
+
+              } else if (cotizacionesData.length === 1) {
+                  idprov = cotizacionesData[0].ID_Proveedor;
+                  this.cargarCuentasProveedor(idprov);
+              }
+
+              // --- GENERACIÓN DE TABLA DE PRODUCTOS ---
+              function actualizarProductos(productos) {
+                  let productosHtml = `
             <div class="overflow-x-auto">
               <table class="min-w-full border border-gray-300">
                 <thead class="bg-gray-100">
@@ -670,8 +682,8 @@ function RevisionX() {
                 </thead>
                 <tbody>
           `
-          productos.forEach((p, index) => {
-            productosHtml += `
+                  productos.forEach((p, index) => {
+                      productosHtml += `
                   <tr class="hover:bg-gray-50">
                       ${!isServicio ? `<td class="py-2 px-4 border-t text-right">
                           <input type="text" name="productos[${index}][codigo]" placeholder="N/A" value="${p.Codigo || ''}" class="w-full px-2 py-1 border rounded text-left">
@@ -687,118 +699,116 @@ function RevisionX() {
                       </td>
                   </tr>
             `
-          })
-          productosHtml += `
-                </tbody>
-              </table>
-            </div>
-          `
-          productosContainer.innerHTML = productosHtml
+                  })
+                  productosHtml += `</tbody></table></div>`
+                  productosContainer.innerHTML = productosHtml
 
-          const inputs = productosContainer.querySelectorAll(
-            '.producto-cantidad, .producto-importe',
-          )
-          inputs.forEach((input) => input.addEventListener('input', actualizarTotalesModificar))
-        }
-
-        actualizarProductos(data.productos)
-        actualizarTotalesModificar()
-
-        formModificar.onsubmit = async (e) => {
-          e.preventDefault()
-          const formData = new FormData(formModificar)
-          const productosModificados = []
-          let nuevoSubtotal = 0
-
-          const commnt = formData.get('comentarios')
-          const idCuenta = formData.get('id_cuenta');
-
-          data.productos.forEach((p, index) => {
-            if(isServicio) {
-                const importe = formData.get(`productos[${index}][importe]`)
-                nuevoSubtotal += (parseFloat(importe) || 0)
-                productosModificados.push({
-                    nombre: formData.get(`productos[${index}][nombre]`),
-                    importe: importe
-                });
-            } else {
-                const c = formData.get(`productos[${index}][codigo]`)
-                const cantidad = formData.get(`productos[${index}][cantidad]`)
-                const importe = formData.get(`productos[${index}][importe]`)
-                nuevoSubtotal += (parseFloat(cantidad) || 0) * (parseFloat(importe) || 0)
-                productosModificados.push({
-                    codigo: c === '' ? null : c,
-                    nombre: formData.get(`productos[${index}][nombre]`),
-                    cantidad: cantidad,
-                    importe: importe,
-                })
-            }
-          })
-
-          const nuevoTotal = nuevoSubtotal
-
-          const selectedCotizacionId = document.getElementById('proveedor-select')?.value
-
-          const selectedCotizacion = selectedCotizacionId
-            ? cotizacionesData.find((cot) => cot.ID_Cotizacion == selectedCotizacionId)
-            : cotizacionesData.length === 1
-              ? cotizacionesData[0]
-              : null
-
-          const proveedor = selectedCotizacion
-            ? selectedCotizacion.proveedor
-            : data.proveedor || null
-
-          if (proveedor && proveedor.Monto_Credito && parseFloat(proveedor.Monto_Credito) > 0) {
-            const montoCredito = parseFloat(proveedor.Monto_Credito)
-            if (nuevoTotal > montoCredito) {
-              if (
-                !(await Confirmar(
-                  'Monto Excedido',
-                  `ALERTA: El monto total (${nuevoTotal.toFixed(2)}) excede el límite de crédito del proveedor ${proveedor.RazonSocial} (${montoCredito.toFixed(2)}).
-
-¿Desea continuar?`,
-                ))
-              ) {
-                return
+                  const inputs = productosContainer.querySelectorAll('.producto-cantidad, .producto-importe')
+                  inputs.forEach((input) => input.addEventListener('input', actualizarTotalesModificar))
               }
-            }
-          }
 
-          const payload = {
-            id_solicitud: idSolicitud,
-            id_cotizacion_seleccionada: selectedCotizacionId,
-            productos: productosModificados,
-            comentarios: commnt === '' ? null : commnt,
-            id_cuenta: idCuenta,
-          }
+              actualizarProductos(data.productos)
+              actualizarTotalesModificar() // Calcular inicial
 
-          try {
-            const updateResult = await SendDataEnd('api/solicitud/update', {
-              method: 'POST',
-              body: payload,
-            })
+              // --- ENVÍO DE DATOS ---
+              formModificar.onsubmit = async (e) => {
+                  e.preventDefault()
+                  const formData = new FormData(formModificar)
+                  const productosModificados = []
+                  const commnt = formData.get('comentarios')
+                  const idCuenta = formData.get('id_cuenta');
 
-            if (updateResult.success) {
-              mostrarNotificacion(
-                updateResult.message || 'Montos actualizados correctamente.',
-                'success',
-              )
-              this.cerrarModalModificarMontos(idSolicitud)
-              this.VerDetalle(idSolicitud)
-            } else {
-              mostrarNotificacion(updateResult.message || 'Error al actualizar montos.', 'error')
-            }
-          } catch (updateError) {
-            console.error('Error al enviar actualización de montos:', updateError)
-            mostrarNotificacion('Error de red al actualizar montos.', 'error')
+                  // Detectamos modo para saber si hay que "limpiar" el precio antes de enviarlo
+                  const esMasIva = ivaCheckbox.checked;
+                  let subtotalAcumuladoParaValidacion = 0;
+
+                  data.productos.forEach((p, index) => {
+                      if(isServicio) {
+                          // Obtener valor del input
+                          let importeUsuario = parseFloat(formData.get(`productos[${index}][importe]`)) || 0
+
+                          // Si el usuario dijo "IVA Incluido", le quitamos el 16% para guardar la BASE
+                          let importeBase = esMasIva ? importeUsuario : (importeUsuario / 1.16);
+
+                          subtotalAcumuladoParaValidacion += importeBase;
+
+                          productosModificados.push({
+                              nombre: formData.get(`productos[${index}][nombre]`),
+                              importe: importeBase // Enviamos siempre el precio base
+                          });
+                      } else {
+                          const c = formData.get(`productos[${index}][codigo]`)
+                          const cantidad = parseFloat(formData.get(`productos[${index}][cantidad]`)) || 0
+                          let importeUsuario = parseFloat(formData.get(`productos[${index}][importe]`)) || 0
+
+                          // Si el usuario dijo "IVA Incluido", le quitamos el 16% para guardar la BASE
+                          let importeBase = esMasIva ? importeUsuario : (importeUsuario / 1.16);
+
+                          subtotalAcumuladoParaValidacion += (cantidad * importeBase);
+
+                          productosModificados.push({
+                              codigo: c === '' ? null : c,
+                              nombre: formData.get(`productos[${index}][nombre]`),
+                              cantidad: cantidad,
+                              importe: importeBase, // Enviamos siempre el precio base
+                          })
+                      }
+                  })
+
+                  // El total real de la operación siempre lleva IVA (ya sea que se sumó o estaba incluido)
+                  const nuevoTotalFinal = subtotalAcumuladoParaValidacion * 1.16;
+
+                  const selectedCotizacionId = document.getElementById('proveedor-select')?.value
+                  const selectedCotizacion = selectedCotizacionId
+                      ? cotizacionesData.find((cot) => cot.ID_Cotizacion == selectedCotizacionId)
+                      : cotizacionesData.length === 1
+                          ? cotizacionesData[0]
+                          : null
+
+                  const proveedor = selectedCotizacion ? selectedCotizacion.proveedor : data.proveedor || null
+
+                  if (proveedor && proveedor.Monto_Credito && parseFloat(proveedor.Monto_Credito) > 0) {
+                      const montoCredito = parseFloat(proveedor.Monto_Credito)
+                      if (nuevoTotalFinal > montoCredito) {
+                          if (!(await Confirmar('Monto Excedido', `ALERTA: El monto total (${nuevoTotalFinal.toFixed(2)}) excede el límite de crédito del proveedor...`))) {
+                              return
+                          }
+                      }
+                  }
+
+                  const payload = {
+                      id_solicitud: idSolicitud,
+                      id_cotizacion_seleccionada: selectedCotizacionId,
+                      productos: productosModificados,
+                      comentarios: commnt === '' ? null : commnt,
+                      id_cuenta: idCuenta,
+                      // IMPORTANTE: Siempre enviamos 1.
+                      // ¿Por qué? Porque si estaba desmarcado ("Incluido"), ya desglosamos el precio a Base.
+                      // Al guardar Base + IVA=1, el PDF volverá a calcular el total original que puso el usuario.
+                      iva: 1
+                  }
+
+                  try {
+                      const updateResult = await SendDataEnd('api/solicitud/update', { method: 'POST', body: payload })
+
+                      if (updateResult.success) {
+                          mostrarNotificacion(updateResult.message || 'Montos actualizados.', 'success')
+                          this.cerrarModalModificarMontos(idSolicitud)
+                          this.VerDetalle(idSolicitud)
+                      } else {
+                          mostrarNotificacion(updateResult.message || 'Error al actualizar.', 'error')
+                      }
+                  } catch (updateError) {
+                      console.error(updateError)
+                      mostrarNotificacion('Error de red.', 'error')
+                  }
+              }
+          } catch (error) {
+              productosContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`
           }
-        }
-      } catch (error) {
-        console.error('Error al cargar detalles para modificar montos:', error)
-        productosContainer.innerHTML = `<p class="text-red-500 text-center">No se pudieron cargar los detalles para modificar. ${error.message}</p>`
-      }
-    },
+      },
+
+
     cerrarModalModificarMontos: function (idSolicitud) {
       document.getElementById('modal-modificar-montos').classList.add('hidden')
       this.VerDetalle(idSolicitud)

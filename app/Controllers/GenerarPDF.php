@@ -240,22 +240,42 @@ class GenerarPDF extends BaseController
         return $total;
     }
 
-    private function _generarTotales(PDF $pdf, array $solicitud, float $total)
+    private function _generarTotales(PDF $pdf, array $solicitud, float $importeAcumulado)
     {
         $nht = 5;
-        $wds = [30, 90, 30, 40];
-        $pdf->SetFont('Arial', 'B', 10);
-        $pdf->Cell($wds[0] + $wds[1] + $wds[2], $nht, 'Subtotal', 1, 0, 'R');
-        $pdf->Cell(40, $nht, '$' . number_format($total, 2), 1, 1, 'R');
+        // Anchos de columnas previos: [30, 90, 30, 40]
+        // Sumamos las primeras 3 para alinear la etiqueta a la derecha antes del monto
+        $anchoEtiqueta = 30 + 90 + 30; // 150
+        $anchoMonto = 40;
 
-        if ($solicitud['IVA'] === 't') {
-            $iva = $total * 0.16;
-            $granTotal = $total + $iva;
-            $pdf->Cell($wds[0] + $wds[1] + $wds[2], $nht, 'IVA (16%)', 1, 0, 'R');
-            $pdf->Cell(40, $nht, '$' . number_format($iva, 2), 1, 1, 'R');
-            $pdf->Cell($wds[0] + $wds[1] + $wds[2], $nht, 'Total', 1, 0, 'R');
-            $pdf->Cell(40, $nht, '$' . number_format($granTotal, 2), 1, 1, 'R');
+        $pdf->SetFont('Arial', 'B', 10);
+
+        // 1. Calcular Montos
+        $subtotal = $importeAcumulado;
+        $iva = 0;
+
+        // Validamos si tiene IVA (Soporta formato antiguo 't' o nuevo 1/true)
+        $tieneIVA = !empty($solicitud['IVA']) && ($solicitud['IVA'] === 't' || $solicitud['IVA'] == 1 || $solicitud['IVA'] === true);
+
+        if ($tieneIVA) {
+            $iva = $subtotal * 0.16;
         }
+
+        $granTotal = $subtotal + $iva;
+
+        // 2. Imprimir Subtotal
+        $pdf->Cell($anchoEtiqueta, $nht, 'Subtotal', 1, 0, 'R');
+        $pdf->Cell($anchoMonto, $nht, '$' . number_format($subtotal, 2), 1, 1, 'R');
+
+        // 3. Imprimir IVA (Solo si aplica)
+        if ($tieneIVA) {
+            $pdf->Cell($anchoEtiqueta, $nht, 'IVA (16%)', 1, 0, 'R');
+            $pdf->Cell($anchoMonto, $nht, '$' . number_format($iva, 2), 1, 1, 'R');
+        }
+
+        // 4. Imprimir Total
+        $pdf->Cell($anchoEtiqueta, $nht, 'Total', 1, 0, 'R');
+        $pdf->Cell($anchoMonto, $nht, '$' . number_format($granTotal, 2), 1, 1, 'R');
     }
 
     private function _mostrarComentarios(PDF $pdf, array $solicitud)
@@ -694,7 +714,11 @@ class GenerarPDF extends BaseController
                 $nombre = mb_convert_encoding($item['Nombre'], 'ISO-8859-1', 'UTF-8');
                 $sku = $isService ? 'N/A' : mb_convert_encoding($item['Codigo'], 'ISO-8859-1', 'UTF-8');
                 $cantidad = $isService ? 1 : $item['Cantidad'];
-                $precio = $this->RemoveIVA($item['Importe']);
+
+                // [CORRECCIÓN] Usamos el importe directo. NO REMOVEMOS IVA.
+                // El importe guardado en BD es el precio base (Unitario).
+                $precio = $item['Importe'];
+
                 $importe = $isService ? $precio : $cantidad * $precio;
                 $subtotal += $importe;
 
@@ -703,7 +727,6 @@ class GenerarPDF extends BaseController
                 $nb_sku = $pdf->NbLines($wds[3], $sku);
                 $nb = max($nb_nombre, $nb_sku); // Usar el máximo de líneas
                 $rowHeight = $nb * $lineHeight;
-
 
                 if ($pdf->GetY() + $rowHeight > $pdf->getPageBreakTrigger()) {
                     $pdf->AddPage($pdf->getCurOrientation());
@@ -742,13 +765,7 @@ class GenerarPDF extends BaseController
 
         return $subtotal;
     }
-
-    private function RemoveIVA(float $cantidadConIva): float
-    {
-        $iva = 0.16;
-        $base = $cantidadConIva / (1 + $iva);
-        return round($base, 2);
-    }
+    
 
     private function _generarTotalesOrden(PDF $pdf, array $orden, float $subtotal)
     {
@@ -759,41 +776,56 @@ class GenerarPDF extends BaseController
         $col_width2 = 35;
         $line_height = 5;
 
+        // 1. Primer Subtotal
         $pdf->SetXY($x_start, $y_start);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'SUBTOTAL', 1, 0, 'R');
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell($col_width2, $line_height, '$' . number_format($subtotal, 2), 1, 1, 'R');
 
+        // 2. Anticipo (Vacio por defecto)
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'ANTICIPO 50%', 1, 0, 'R');
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R');
 
+        // 3. Descuento (Vacio por defecto)
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'DESCUENTO', 1, 0, 'R');
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R');
 
+        // 4. Segundo Subtotal (Base imponible)
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'SUBTOTAL', 1, 0, 'R');
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell($col_width2, $line_height, '$' . number_format($subtotal, 2), 1, 1, 'R');
 
+        // --- CORRECCIÓN DE IVA AQUÍ ---
         $iva = 0;
-        $iva = $subtotal * 0.16;
+
+        // Verificamos si la orden tiene la marca de IVA (Soporta 't', 1, true)
+        $tieneIVA = !empty($orden['IVA']) && ($orden['IVA'] === 't' || $orden['IVA'] == 1 || $orden['IVA'] === true);
+
+        if ($tieneIVA) {
+            $iva = $subtotal * 0.16;
+        }
 
         $total = $subtotal + $iva;
+        // -----------------------------
 
+        // 5. Renglón de IVA
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'IVA', 1, 0, 'R');
         $pdf->SetFont('Arial', '', 8);
+        // Si no tiene IVA, imprimirá $0.00
         $pdf->Cell($col_width2, $line_height, '$' . number_format($iva, 2), 1, 1, 'R');
 
+        // 6. Retenciones (Vacias por defecto)
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'Retencion ISR', 1, 0, 'R');
@@ -806,6 +838,7 @@ class GenerarPDF extends BaseController
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell($col_width2, $line_height, '', 1, 1, 'R');
 
+        // 7. Gran Total
         $pdf->SetX($x_start);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell($col_width1, $line_height, 'TOTAL', 1, 0, 'R');

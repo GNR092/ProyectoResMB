@@ -22,6 +22,13 @@
                     <textarea id="modificar_comentarios" name="comentarios" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea>
                 </div>
 
+                <div class="mt-4 flex justify-end items-center px-2">
+                    <label class="inline-flex items-center cursor-pointer select-none">
+                        <input type="checkbox" id="modificar_iva" class="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 transition duration-150 ease-in-out">
+                        <span class="ml-2 text-gray-700 font-medium">Agregar IVA (16%)</span>
+                    </label>
+                </div>
+
                 <div id="calculos-modificar" class="mt-6 p-4 border-t border-gray-200 space-y-2">
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600 font-medium">Subtotal:</span>

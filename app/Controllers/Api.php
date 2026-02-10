@@ -322,20 +322,18 @@ class Api extends ResourceController
     {
         $json = $this->request->getJSON();
 
-        if (
-            !isset($json->id_solicitud) ||
-            !isset($json->productos) ||
-            !is_array($json->productos)
-        ) {
-            return $this->failValidationErrors(
-                'Se requiere ID de solicitud y un array de productos/servicios.',
-            );
+        if (!isset($json->id_solicitud) || !isset($json->productos) || !is_array($json->productos)) {
+            return $this->failValidationErrors('Se requiere ID de solicitud y un array de productos/servicios.');
         }
 
         $idSolicitud = (int) $json->id_solicitud;
         $itemsPayload = $json->productos;
         $comentarios = $json->comentarios ?? null;
         $idCuenta = $json->id_cuenta ?? null;
+
+        // [CORRECCIÓN CRÍTICA PARA POSTGRESQL]
+        // Postgres necesita 't' o 'f' para columnas booleanas, no 1 o 0.
+        $iva = (isset($json->iva) && ($json->iva == 1 || $json->iva === true)) ? 't' : 'f';
 
         $idCotizacionSeleccionada = $json->id_cotizacion_seleccionada ?? null;
 
@@ -344,7 +342,7 @@ class Api extends ResourceController
 
         $solicitud = $solicitudModel->find($idSolicitud);
         if (!$solicitud) {
-            return $this->failNotFound('La esolicitud no existe.');
+            return $this->failNotFound('La solicitud no existe.');
         }
 
         $db = \Config\Database::connect();
@@ -352,6 +350,8 @@ class Api extends ResourceController
 
         try {
             $updateData = [];
+            $updateData['IVA'] = $iva; // Ahora enviamos 't' o 'f'
+
             if ($idCotizacionSeleccionada) {
                 $cotizacionSeleccionada = $cotizacionModel->find($idCotizacionSeleccionada);
                 if ($cotizacionSeleccionada) {
@@ -363,81 +363,50 @@ class Api extends ResourceController
                 $updateData['ID_Cuenta'] = $idCuenta;
             }
 
-            if (!empty($updateData)) {
-                $solicitudModel->update($idSolicitud, $updateData);
-            }
+            $solicitudModel->update($idSolicitud, $updateData);
 
-            if ((int) $solicitud['Tipo'] === SolicitudTipo::Servicios) {
+            // Usamos 2 directamente para evitar errores de importación de Clases
+            $esServicio = (int) $solicitud['Tipo'] === 2;
+
+            if ($esServicio) {
                 $solicitudServiciosModel = new SolicitudServiciosModel();
-                $solicitudItemsDB = $solicitudServiciosModel
-                    ->where('ID_Solicitud', $idSolicitud)
-                    ->findAll();
-
-                if (count($itemsPayload) !== count($solicitudItemsDB)) {
-                    throw new \Exception(
-                        'El número de servicios en el payload no coincide con el número de servicios existentes en la solicitud.',
-                    );
-                }
+                $solicitudItemsDB = $solicitudServiciosModel->where('ID_Solicitud', $idSolicitud)->findAll();
 
                 foreach ($itemsPayload as $index => $item) {
-                    if (!isset($item->nombre) || !isset($item->importe)) {
-                        throw new \Exception('Cada servicio debe tener nombre e importe.');
+                    if(isset($solicitudItemsDB[$index])) {
+                        $idSolicitudItem = $solicitudItemsDB[$index]['ID_SolicitudServ'];
+                        $solicitudServiciosModel->update($idSolicitudItem, [
+                            'Nombre' => (string) $item->nombre,
+                            'Importe' => (float) $item->importe,
+                        ]);
                     }
-
-                    $idSolicitudItem = $solicitudItemsDB[$index]['ID_SolicitudServ'];
-                    $nombre = (string) $item->nombre;
-                    $importe = (float) $item->importe;
-
-                    $solicitudServiciosModel->update($idSolicitudItem, [
-                        'Nombre' => $nombre,
-                        'Importe' => $importe,
-                    ]);
                 }
             } else {
                 $solicitudProductModel = new SolicitudProductModel();
-                $solicitudItemsDB = $solicitudProductModel
-                    ->where('ID_Solicitud', $idSolicitud)
-                    ->findAll();
-
-                if (count($itemsPayload) !== count($solicitudItemsDB)) {
-                    throw new \Exception(
-                        'El número de productos en el payload no coincide con el número de productos existentes en la solicitud.',
-                    );
-                }
+                $solicitudItemsDB = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
 
                 foreach ($itemsPayload as $index => $p) {
-                    if (
-                        !isset($p->codigo) ||
-                        !isset($p->nombre) ||
-                        !isset($p->cantidad) ||
-                        !isset($p->importe)
-                    ) {
-                        throw new \Exception(
-                            'Cada producto debe tener código, nombre, cantidad e importe.',
-                        );
+                    if(isset($solicitudItemsDB[$index])) {
+                        $idSolicitudProd = $solicitudItemsDB[$index]['ID_SolicitudProd'];
+                        $solicitudProductModel->update($idSolicitudProd, [
+                            'Codigo' => (string) $p->codigo,
+                            'Nombre' => (string) $p->nombre,
+                            'Cantidad' => (int) $p->cantidad,
+                            'Importe' => (float) $p->importe,
+                        ]);
                     }
-
-                    $idSolicitudProd = $solicitudItemsDB[$index]['ID_SolicitudProd'];
-                    $codigo = (string) $p->codigo;
-                    $nombre = (string) $p->nombre;
-                    $cantidad = (int) $p->cantidad;
-                    $importe = (float) $p->importe;
-
-                    $solicitudProductModel->update($idSolicitudProd, [
-                        'Codigo' => $codigo,
-                        'Nombre' => $nombre,
-                        'Cantidad' => $cantidad,
-                        'Importe' => $importe,
-                    ]);
                 }
             }
 
             $solicitudModel->update($idSolicitud, ['ComentariosUser' => $comentarios]);
 
-            $details = $this->api->getSolicitudWithProducts($idSolicitud);
+            // Instancia manual de la librería API
+            $apiLib = new \App\Libraries\Rest();
+            $details = $apiLib->getSolicitudWithProducts($idSolicitud);
+
             $nuevoTotal = 0;
             if (!empty($details['productos'])) {
-                if ((int) $solicitud['Tipo'] === SolicitudTipo::Servicios) {
+                if ($esServicio) {
                     foreach ($details['productos'] as $item) {
                         $nuevoTotal += (float) $item['Importe'];
                     }
@@ -448,31 +417,53 @@ class Api extends ResourceController
                 }
             }
 
+            // [CORRECCIÓN LÓGICA] Verificamos si es 't' para aplicar el cálculo
+            if ($iva === 't') {
+                $nuevoTotal = $nuevoTotal * 1.16;
+            }
+
             $cotizacion = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
             if ($cotizacion) {
                 $cotizacionModel->update($cotizacion['ID_Cotizacion'], ['Total' => $nuevoTotal]);
-            } else {
-                throw new \Exception('No se encontró cotización asociada a la solicitud.');
             }
 
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                throw new \Exception(
-                    'Falla en la transacción de base de datos al actualizar montos.',
-                );
+                // Este error salía en tu log porque la transacción moría antes
+                throw new \Exception('Falla en la transacción de base de datos.');
             }
+
+            try {
+                $pdfController = new \App\Controllers\GenerarPDF();
+
+                // 1. Regenerar Requisición (Ya lo tenías)
+                $pdfController->generarYGuardarRequisicion($idSolicitud, 0, 1);
+
+                // 2. [NUEVO] Regenerar Orden de Compra
+                // Necesitamos el ID del usuario actual para la firma "Elaborado por"
+                $userId = session()->get('id');
+
+                if ($userId) {
+                    // Esta función internamente valida si existe la orden.
+                    // Si no existe (porque la solicitud apenas se está cotizando), no hace nada y retorna null, lo cual es seguro.
+                    $pdfController->generarYGuardarOrden($idSolicitud, $userId);
+                }
+
+            } catch (\Exception $e) {
+                log_message('error', 'Error al regenerar PDFs físicos: ' . $e->getMessage());
+            }
+
 
             return $this->respondUpdated([
                 'success' => true,
-                'message' => 'Solicitud actualizada correctamente.',
+                'message' => 'Solicitud actualizada correctamente.'
             ]);
+
         } catch (\Exception $e) {
             $db->transRollback();
-            log_message('error', '[actualizarMontos] ' . $e->getMessage());
-            return $this->failServerError(
-                'Ocurrió un error inesperado al actualizar los montos: ' . $e->getMessage(),
-            );
+            log_message('critical', '[actualizarMontos Error]: ' . $e->getMessage());
+            return $this->failServerError('Error al guardar: ' . $e->getMessage());
         }
     }
 

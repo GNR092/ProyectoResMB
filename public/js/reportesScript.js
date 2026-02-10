@@ -103,109 +103,127 @@ function Reportes(initialData = []) {
       this.goToPage(this.currentPage - 1)
     },
 
-    mostrarVerReporte(index) {
-      const data = this.paginatedData[index]
-      if (!data) return
+// Reemplaza tu función actual con esta:
+    async mostrarVerReporte(index) {
+      const item = this.paginatedData[index];
+      if (!item) return;
 
-      document.getElementById('div-reportes').classList.add('hidden')
-      document.getElementById('div-ver-reporte').classList.remove('hidden')
+      // Usamos ID_Orden o ID_Solicitud según venga
+      const id = item.ID_Solicitud || item.ID_Orden;
 
-      const detallesContainer = document.getElementById('div-ver-reporte')
+      const divReportes = document.getElementById('div-reportes');
+      const divVer = document.getElementById('div-ver-reporte');
 
-      const prov = data.proveedor || {}
-      const totalFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
-        style: 'currency',
-        currency: 'MXN',
-      })
+      // Mostrar cargando
+      divReportes.classList.add('hidden');
+      divVer.classList.remove('hidden');
+      divVer.innerHTML = '<p class="text-center p-8 text-gray-500">Cargando detalles completos...</p>';
 
-      const metodoPagoTexto =
-        data.MetodoPago == 0
-          ? 'Efectivo'
-          : data.MetodoPago == 1
-            ? 'Crédito'
-            : data.MetodoPago == 9
-              ? 'En Espera'
-              : 'N/A'
+      try {
+        // Petición fresca a la API para asegurar datos de IVA y Productos
+        const fullData = await SendDataEnd(`api/orden-compra/details/${id}`);
+        if(!fullData) throw new Error("No se recibieron datos.");
 
-      let html = `
-        <div class="flex justify-between items-center mb-4">
-          <button onclick="regresarReportes()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-          <h2 class="text-lg font-semibold">Detalle Orden #${data.No_Folio || data.ID_Solicitud}</h2>
-          <div></div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-          <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
-          <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
-          <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
-          <div><strong>Importe total:</strong> <span class="font-bold">${totalFormateado}</span></div>
-          <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
-        </div>
-        <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
-          <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
-          <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
-          <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
-          <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
-          <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
-          ${
-            data.MetodoPago != 0
-              ? `
-            <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-            <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
-              prov.Monto_Credito
-                ? parseFloat(prov.Monto_Credito).toLocaleString('es-MX', {
-                    style: 'currency',
-                    currency: 'MXN',
-                  })
-                : 'N/A'
-            }</div>
-          `
-              : ''
-          }
-        </div>
-        <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
-        <div class="overflow-x-auto shadow rounded-lg mb-6">
-          <table class="min-w-full border border-gray-300">
-              <thead class="bg-gray-100">
-                  <tr>
-                      <th class="py-2 px-4 text-left text-sm">Código</th>
-                      <th class="py-2 px-4 text-left text-sm">Producto</th>
-                      <th class="py-2 px-4 text-right text-sm">Cantidad</th>
-                      <th class="py-2 px-4 text-right text-sm">Importe Unit.</th>
-                      <th class="py-2 px-4 text-right text-sm">Costo Total</th>
+        const prov = fullData.proveedor || {}
+
+        // Helper para moneda
+        const format = (val) => parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+
+        const totalFormateado = format(fullData.cotizacion?.Total);
+        const metodoPagoTexto = fullData.MetodoPago == 0 ? 'Contado' : 'Crédito';
+
+        // Lógica de IVA
+        const tieneIVA = fullData.IVA == 1 || fullData.IVA === 't' || fullData.IVA === true;
+        const isServicio = fullData.Tipo == 2;
+
+        let html = `
+            <div class="flex justify-between items-center mb-4">
+              <button onclick="regresarReportes()" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+              <h2 class="text-lg font-semibold">Detalle Orden #${fullData.No_Folio || id}</h2>
+              <div></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+              <div><strong>Fecha de solicitud:</strong> ${fullData.Fecha || 'N/A'}</div>
+              <div><strong>Departamento:</strong> ${fullData.DepartamentoNombre || 'N/A'}</div>
+              <div><strong>Proyecto:</strong> ${fullData.Complejo || 'N/A'}</div>
+              <div><strong>Importe Total (Con IVA):</strong> <span class="font-bold text-blue-700">${totalFormateado}</span></div>
+              <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
+            </div>
+
+            <h3 class="text-md font-semibold mb-3 text-gray-700">INFORMACIÓN DEL PROVEEDOR</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+              <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
+              <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
+              <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
+              <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+              <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
+              ${
+            fullData.MetodoPago != 0
+                ? `<div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
+                     <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${prov.Monto_Credito ? format(prov.Monto_Credito) : 'N/A'}</div>`
+                : ''
+        }
+            </div>
+
+            <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
+            <div class="overflow-x-auto shadow rounded-lg mb-6">
+              <table class="min-w-full border border-gray-300">
+                  <thead class="bg-gray-100">
+                      <tr>
+                          <th class="py-2 px-4 text-left text-sm">Código</th>
+                          <th class="py-2 px-4 text-left text-sm">Producto</th>
+                          <th class="py-2 px-4 text-right text-sm">Cant.</th>
+                          <th class="py-2 px-4 text-right text-sm">Base</th>
+                          <th class="py-2 px-4 text-right text-sm">IVA</th>
+                          <th class="py-2 px-4 text-right text-sm">Total</th>
+                      </tr>
+                  </thead>
+                  <tbody class="bg-white">
+          `;
+
+        if (fullData.productos && fullData.productos.length > 0) {
+          fullData.productos.forEach((p) => {
+            const cantidad = isServicio ? 1 : (parseFloat(p.Cantidad) || 0);
+            const importeBase = parseFloat(p.Importe) || 0;
+
+            // CÁLCULOS FILA POR FILA
+            const subtotalFila = cantidad * importeBase;
+            const ivaFila = tieneIVA ? (subtotalFila * 0.16) : 0;
+            const totalFila = subtotalFila + ivaFila;
+
+            html += `
+                  <tr class="hover:bg-gray-50">
+                      <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? (p.Codigo || '-') : 'N/A'}</td>
+                      <td class="py-2 px-4 border-t text-sm">${p.Nombre}</td>
+                      <td class="py-2 px-4 border-t text-right text-sm">${cantidad}</td>
+                      <td class="py-2 px-4 border-t text-right text-sm">${format(importeBase)}</td>
+                      <td class="py-2 px-4 border-t text-right text-sm">${format(ivaFila)}</td>
+                      <td class="py-2 px-4 border-t text-right text-sm font-bold">${format(totalFila)}</td>
                   </tr>
-              </thead>
-              <tbody class="bg-white">
-      `
-      if (data.productos && data.productos.length > 0) {
-        data.productos.forEach((p) => {
-          const costoTotal = (p.Cantidad * p.Importe).toFixed(2)
-          html += `
-              <tr class="hover:bg-gray-50">
-                  <td class="py-2 px-4 border-t text-sm">${p.Codigo || 'N/A'}</td>
-                  <td class="py-2 px-4 border-t text-sm">${p.Nombre}</td>
-                  <td class="py-2 px-4 border-t text-right text-sm">${p.Cantidad}</td>
-                  <td class="py-2 px-4 border-t text-right text-sm">$${parseFloat(p.Importe).toFixed(2)}</td>
-                  <td class="py-2 px-4 border-t text-right text-sm">$${costoTotal}</td>
-              </tr>
-          `
-        })
-      } else {
-        html += `<tr><td colspan="5" class="text-center py-3 text-sm">No hay productos en esta orden.</td></tr>`
+              `;
+          })
+        } else {
+          html += `<tr><td colspan="6" class="text-center py-3 text-sm text-gray-500">No hay productos en esta orden.</td></tr>`;
+        }
+
+        html += `</tbody></table></div>`;
+
+        // Sección de Adjuntos (reutilizando tu función global)
+        if(typeof generarSeccionAdjuntos === 'function') {
+          if(!fullData.ID_Solicitud && fullData.ID_Orden) fullData.ID_Solicitud = fullData.ID_Orden;
+          html += generarSeccionAdjuntos(fullData);
+        }
+
+        divVer.innerHTML = html;
+
+      } catch (error) {
+        console.error(error);
+        divVer.innerHTML = `<p class="text-center p-8 text-red-500">Error al cargar detalles: ${error.message}</p>
+                              <button onclick="regresarReportes()" class="block mx-auto mt-4 text-blue-600 underline">Regresar</button>`;
       }
-      html += `
-              </tbody>
-          </table>
-      `
-
-
-      html += generarSeccionAdjuntos(data);
-
-      html +=`
-        </div>
-      `
-      detallesContainer.innerHTML = html
     },
+
     generarReporteCSV() {
       if (this.filteredData.length === 0) {
         alert('No hay datos filtrados para generar el reporte.')

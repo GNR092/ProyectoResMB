@@ -363,13 +363,11 @@ function GetMetodoPago(metodo) {
  * @returns {string} - Cadena de texto con el HTML.
  */
 function generarDetallesSolicitudHTML(data) {
-  const iva = data.IVA === 't'
-  const montoFormateado = parseFloat(
-    (iva ? 1.16 * data.cotizacion?.Total : data.cotizacion?.Total) || 0,
-  ).toLocaleString('es-MX', {
+  const montoFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
     style: 'currency',
     currency: 'MXN',
   })
+
   const metodoPago = GetMetodoPago(data.MetodoPago)
   const fechaAprobacionHTML = data.Fecha_Aprobacion
     ? `<div><strong>Fecha de Aprobación:</strong> ${new Date(data.Fecha_Aprobacion).toLocaleString('es-MX')}</div>`
