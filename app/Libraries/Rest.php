@@ -678,7 +678,7 @@ class Rest
             unset($solicitudData['File_Factura']);
             unset($solicitudData['File_Comprobante']);
             unset($solicitudData['File_ReqPag']);
-            unset($solicitudData['EstadoOrden']);
+            // unset($solicitudData['EstadoOrden']);
         }
 
 

@@ -246,9 +246,16 @@ class Modales extends BaseController
                 } else {
                     $ocs = $this->api->getAllOrdenCompraData();
                     $tabledata = [];
+
                     foreach ($ocs as $oc) {
                         $o = $this->api->getOrdenCompra($oc['ID_Solicitud']);
-                        $tabledata[] = $o;
+
+                        // --- [MODIFICACIÓN CLAVE] ---
+                        // Filtramos para incluir SOLO si tiene datos de Orden de Compra.
+                        // La API 'getOrdenCompra' devuelve la llave 'OrdenCompra' solo si existe ID_Orden o archivos.
+                        if ($o && !empty($o['OrdenCompra'])) {
+                            $tabledata[] = $o;
+                        }
                     }
                     $data['tabledata'] = $tabledata;
                 }

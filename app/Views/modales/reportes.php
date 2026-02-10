@@ -30,7 +30,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
         <!-- Filtro Estado -->
         <div class="w-full sm:w-auto shrink-0">
             <select x-model="estado" id="filtro-estado-reportes" class="border p-2 rounded w-full min-w-[150px]">
-                <option value="">Estado</option>
+                <option value="">Estado (Todos)</option>
                 <option value="Por Pagar">🟠 Por Pagar</option>
                 <option value="En Proceso de Pago">🟡 En Proceso</option>
                 <option value="Pagada">🟢 Pagada</option>
@@ -123,9 +123,9 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
                         <td class="border px-3 py-2 text-left" x-text="item.proveedor.RazonSocial"></td>
                         <td class="border px-3 py-2 text-left" x-text="item.Fecha"></td>
                         <td class="border px-3 py-2 col-estado"
-                            :data-estado="item.EstadoOrden || item.Estado"
-                            :title="item.EstadoOrden || item.Estado"
-                            x-text="item.EstadoOrden || item.Estado">
+                            :data-estado="item.EstadoOrden"
+                            :title="item.EstadoOrden"
+                            x-text="item.EstadoOrden">
                         </td>
                         <td class="border px-3 py-2">
                             <button class="bg-carbon-700 hover:bg-carbon-800 text-white font-semibold px-4 py-2 rounded-md transition text-sm" @click="mostrarVerReporte(index)">Ver</button>

@@ -66,7 +66,9 @@ function Reportes(initialData = []) {
               itemDate.getUTCFullYear() === filterDate.getUTCFullYear()
           }
         }
-        const estadoMatch = !this.estado || item.EstadoOrden === this.estado
+        // Calculamos el estado real del item (igual que en la tabla visual)
+        const estadoReal = item.EstadoOrden || item.Estado;
+        const estadoMatch = !this.estado || estadoReal === this.estado;
         const deptoMatch = !this.departamento || item.DepartamentoNombre === this.departamento
         const razonSocialMatch = !this.razonSocial || item.Complejo === this.razonSocial
         const proveedorMatch = !this.proveedor || item.ProveedorFiltro === this.proveedor
