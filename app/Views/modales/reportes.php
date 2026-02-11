@@ -31,8 +31,13 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
         <div class="w-full sm:w-auto shrink-0">
             <select x-model="estado" id="filtro-estado-reportes" class="border p-2 rounded w-full min-w-[150px]">
                 <option value="">Estado (Todos)</option>
+
+                <option value="Aprobada">✅ Aprobada</option>
+                <option value="Espera_Programacion">⏳ Espera Programación</option>
+                <option value="Programada">📅 Programada</option>
+
                 <option value="Por Pagar">🟠 Por Pagar</option>
-                <option value="En Proceso de Pago">🟡 En Proceso</option>
+                <option value="En Proceso de Pago">🟡 En Proceso de Pago</option>
                 <option value="Pagada">🟢 Pagada</option>
                 <option value="Cancelada">🔴 Cancelada</option>
             </select>
