@@ -200,6 +200,9 @@ function RevisionX() {
 
       try {
         const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
+          if (!data.cotizacion && data.ID_Proveedor) {
+              idprov = data.ID_Proveedor;
+          }
         const isServicio = data.Tipo == 2
         const isMultiple = data.cotizaciones && data.cotizaciones.length > 1
 
@@ -208,20 +211,26 @@ function RevisionX() {
         let proveedorHtml = ''
         let montoHtml = ''
 
-        if (isMultiple) {
-          
-
-          proveedorHtml = `
+          if (isMultiple) {
+              proveedorHtml = `
             <div class="md:col-span-2">
               <label for="proveedor-select" class="block text-sm font-medium text-gray-700"><strong>Proveedor (Múltiples cotizaciones):</strong></label>
-              
             </div>
           `
-         } else {
-           const proveedorNombre = data.cotizacion?.ProveedorNombre || 'N/A'
-          proveedorHtml = `<div><strong>Proveedor (Cotización):</strong> ${proveedorNombre}</div>`
-          
-        }
+          } else {
+              // --- INICIO DEL CAMBIO ---
+              // Lógica de respaldo: Si no hay objeto cotización, usamos el de la solicitud raíz
+              let proveedorNombre = 'N/A';
+
+              if (data.cotizacion && data.cotizacion.ProveedorNombre) {
+                  proveedorNombre = data.cotizacion.ProveedorNombre;
+              } else if (data.RazonSocialNombre) {
+                  proveedorNombre = data.RazonSocialNombre; // Aquí tomamos "SANEAMIENTO SANA" del JSON raíz
+              }
+
+              proveedorHtml = `<div><strong>Proveedor:</strong> ${proveedorNombre}</div>`
+              // --- FIN DEL CAMBIO ---
+          }
 
         let html = `
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
@@ -634,7 +643,9 @@ function RevisionX() {
               ivaCheckbox.onchange = actualizarTotalesModificar;
 
               // --- MANEJO DE PROVEEDORES ---
+              // --- MANEJO DE PROVEEDORES ---
               if (cotizacionesData.length > 1) {
+                  // CASO 1: Hay múltiples cotizaciones -> Mostrar Select
                   let selectHtml =
                       '<label for="proveedor-select" class="block text-sm font-medium text-gray-700">Seleccionar Proveedor:</label>'
                   selectHtml +=
@@ -663,7 +674,14 @@ function RevisionX() {
                   })
 
               } else if (cotizacionesData.length === 1) {
+                  // CASO 2: Solo una cotización en el array -> Asignar directo
                   idprov = cotizacionesData[0].ID_Proveedor;
+                  this.cargarCuentasProveedor(idprov);
+
+              } else if (data.ID_Proveedor) {
+                  // CASO 3 (EL ARREGLO): No hay array de cotizaciones, pero la solicitud tiene proveedor directo
+                  // Esto arregla el fallo con la solicitud ID 121 (SANEAMIENTO SANA)
+                  idprov = data.ID_Proveedor;
                   this.cargarCuentasProveedor(idprov);
               }
 
