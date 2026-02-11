@@ -617,7 +617,7 @@ function initPaginacionHistorial() {
   function validarFiltroDepartamento() {
     const filtro = document.getElementById('filtroDepartamento')
     if (!filtro) return
-    const deptosPermitidos = ['Administración', 'Compras', 'Direccion', 'Tesoreria', 'Direccion Campus']
+    const deptosPermitidos = ['Administración', 'Compras', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría']
 
     const miDepto = typeof USER_DEPT_NAME !== 'undefined' ? USER_DEPT_NAME : ''
 
