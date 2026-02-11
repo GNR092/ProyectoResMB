@@ -89,7 +89,8 @@ class Archivo extends BaseController
         if (session('login_type') === 'boss') {
             // Si es Boss Y es Servicio
             if ($tipo == SolicitudTipo::Servicios) {
-                $estadoInicial = 'Cotizando';
+                $estadoInicial = Status::Cotizando;
+                //Crear la cotizacion ficticia
             } else {
                 // Si es Boss pero es Material
                 $estadoInicial = Status::En_espera;
@@ -149,84 +150,92 @@ class Archivo extends BaseController
                     $solicitudServicio->insert($solproducto);
                 }
             }
-if ($estadoInicial === 'Cotizando' && !empty($proveedor_id)) {
-    $cotizacionModel = new CotizacionModel();
-    $razonSocialModel = new RazonSocialModel();
-    $proveedorModel = new ProveedorModel();
+            if ($estadoInicial === 'Cotizando') {
+                $cotizacionModel = new CotizacionModel();
+                $total = 0;
+                foreach ($datosProductos as $p) {
+                    $total += (float) $p['Importe'];
+                }
 
-    // The solicitation details are already in the $solicitud variable, but I need to get it again to have all the fields
-    $solicitudData = $solicitud->find($solicitudId);
+                if (!empty($proveedor_id)) {
+                    $razonSocialModel = new RazonSocialModel();
+                    $proveedorModel = new ProveedorModel();
 
+                    // The solicitation details are already in the $solicitud variable, but I need to get it again to have all the fields
+                    $solicitudData = $solicitud->find($solicitudId);
 
-    $razon = $razonSocialModel->find($solicitudData['ID_RazonSocial']);
-    $razonNombre = $razon['Nombre'];
+                    $razon = $razonSocialModel->find($solicitudData['ID_RazonSocial']);
+                    $razonNombre = $razon['Nombre'];
 
-    $total = 0;
-    foreach($datosProductos as $p) {
-        $total += (float) $p['Importe'];
-    }
+                    $pdf = new GenerarPDF();
+                    $pdf->generarYGuardarRequisicion($solicitudId);
+                    $attachmentPath = FPath::FPDF . 'Requisicion-MBSP-' . $solicitudId . '.pdf';
 
+                    $db = \Config\Database::connect();
+                    $db->transStart();
 
-    $pdf = new GenerarPDF();
-    $pdf->generarYGuardarRequisicion($solicitudId);
-    $attachmentPath = FPath::FPDF . 'Requisicion-MBSP-' . $solicitudId . '.pdf';
+                    $mail = new MBSMail();
 
-    $db = \Config\Database::connect();
-    $db->transStart();
+                    $idProveedores = is_array($proveedor_id) ? $proveedor_id : [$proveedor_id];
 
-    $mail = new MBSMail();
-    
-    $idProveedores = is_array($proveedor_id) ? $proveedor_id : [$proveedor_id];
+                    foreach ($idProveedores as $idProv) {
+                        $idProveedor = (int) $idProv;
+                        $proveedor = $proveedorModel->find($idProveedor);
 
+                        $cotizacionData = [
+                            'ID_Solicitud' => $solicitudId,
+                            'ID_Proveedor' => $idProveedor,
+                            'Total' => $total,
+                            'ID_Usuario_Cotiza' => $user['ID_Usuario'],
+                        ];
+                        $cotizacionModel->insert($cotizacionData);
 
-    foreach ($idProveedores as $idProv) {
-        $idProveedor = (int) $idProv;
-        $proveedor = $proveedorModel->find($idProveedor);
+                        $to = getenv('EMAIL_TO_TEST');
+                        if (empty($to)) {
+                            if (!$proveedor || empty($proveedor['Correo'])) {
+                                throw new \Exception(
+                                    "No se pudo encontrar un correo electrónico para el proveedor con ID: {$idProveedor}.",
+                                );
+                            }
+                            $to = $proveedor['Correo'];
+                        }
 
-        $cotizacionData = [
-            'ID_Solicitud' => $solicitudId,
-            'ID_Proveedor' => $idProveedor,
-            'Total' => $total,
-            'ID_Usuario_Cotiza' => $user['ID_Usuario'],
-        ];
-        $cotizacionModel->insert($cotizacionData);
+                        $proveedorNombre = $proveedor
+                            ? esc($proveedor['RazonSocial'])
+                            : 'Proveedor';
+                        $folio = esc($solicitudData['No_Folio']);
+                        $fecha = esc($solicitudData['Fecha']);
+                        $razonSocialEsc = esc($razonNombre);
 
-        $to = getenv('EMAIL_TO_TEST');
-        if (empty($to)) {
-            if (!$proveedor || empty($proveedor['Correo'])) {
-                throw new \Exception(
-                    "No se pudo encontrar un correo electrónico para el proveedor con ID: {$idProveedor}.",
-                );
+                        $subject = "Solicitud de Cotización - Folio {$folio} - {$razonSocialEsc}";
+
+                        $message = view('emails/solicitud_cotizacion', [
+                            'proveedorNombre' => $proveedorNombre,
+                            'razonSocialEsc' => $razonSocialEsc,
+                            'folio' => $folio,
+                            'fecha' => $fecha,
+                        ]);
+
+                        $option = [
+                            'attachments' => [$attachmentPath],
+                            'fromName' => $razonNombre,
+                        ];
+
+                        //   $mail->send_email($to, $subject, $message, $option);
+                    }
+
+                    $db->transComplete();
+                } else {
+                    // Crear cotización ficticia si no hay proveedor
+                    $cotizacionData = [
+                        'ID_Solicitud' => $solicitudId,
+                        'ID_Proveedor' => null,
+                        'Total' => $total,
+                        'ID_Usuario_Cotiza' => $user['ID_Usuario'],
+                    ];
+                    $cotizacionModel->insert($cotizacionData);
+                }
             }
-            $to = $proveedor['Correo'];
-        }
-
-        $proveedorNombre = $proveedor ? esc($proveedor['RazonSocial']) : 'Proveedor';
-        $folio = esc($solicitudData['No_Folio']);
-        $fecha = esc($solicitudData['Fecha']);
-        $razonSocialEsc = esc($razonNombre);
-
-        $subject = "Solicitud de Cotización - Folio {$folio} - {$razonSocialEsc}";
-
-        $message = view('emails/solicitud_cotizacion', [
-            'proveedorNombre' => $proveedorNombre,
-            'razonSocialEsc' => $razonSocialEsc,
-            'folio' => $folio,
-            'fecha' => $fecha,
-        ]);
-
-
-        $option = [
-            'attachments' => [$attachmentPath],
-            'fromName' => $razonNombre,
-        ];
-
-     //   $mail->send_email($to, $subject, $message, $option);
-    }
-
-
-    $db->transComplete();
-}
             $adjunto = $this->request->getFile('archivo');
             if ($adjunto && $adjunto->isValid()) {
                 $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
@@ -246,7 +255,6 @@ if ($estadoInicial === 'Cotizando' && !empty($proveedor_id)) {
             ]);
         }
     }
-
 
     public function descargar($idSolicitud)
     {
