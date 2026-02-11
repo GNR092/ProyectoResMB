@@ -256,8 +256,10 @@ async function initSolicitarMaterial() {
 
     nuevoBtn.addEventListener('click', async () => {
       const rowHtml = await getProductRowHtml()
-      const nuevaFila = tabla.insertRow()
-      nuevaFila.innerHTML = rowHtml
+      const template = document.createElement('template');
+      template.innerHTML = rowHtml.trim(); // rowHtml debe traer el <tr>
+      const nuevaFila = template.content.firstChild;
+      tabla.appendChild(nuevaFila);
       asignarEventosFila(nuevaFila)
       actualizarNumeros()
       actualizarBotonesEliminar()
