@@ -683,7 +683,7 @@ function initPaginacionHistorial() {
     return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
   }
 
-  const exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus']
+  const exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría']
   let url = 'api/historic'
   if (
     typeof USER_DEPT_NAME !== 'undefined' &&
