@@ -2163,7 +2163,7 @@ class Api extends ResourceController
 
             // 2. Seguridad de Sesión
             $sessionDeptoFull = session('departamento_usuario') ?? '';
-            $exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus'];
+            $exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus','Contaduría'];
             $sessionDeptoClean = trim(explode('(', $sessionDeptoFull)[0]);
 
             $db = \Config\Database::connect();
