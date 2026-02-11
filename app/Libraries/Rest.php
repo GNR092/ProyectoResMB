@@ -793,7 +793,7 @@ class Rest
             ->select(
                 'Solicitud.ID_Solicitud as ID, Solicitud.No_Folio as Folio, Solicitud.Estado, Solicitud.IVA,
                 Usuarios.Nombre as Usuario, Departamentos.Nombre as Departamento,
-                Proveedor.RazonSocial as Proveedor, Cotizacion.Total as Monto, Cotizacion.ID_Cotizacion'
+                Proveedor.RazonSocial as Proveedor, Cotizacion.Total as Monto, Cotizacion.ID_Cotizacion, Cotizacion.ID_Proveedor, Solicitud.ID_Proveedor as SolicitudProveedorID'
             )
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -810,13 +810,34 @@ class Rest
                 $montoFinal *= 1.16;
             }
 
+            $proveedorNombre = $solicitud['Proveedor']; // This is Proveedor.RazonSocial from the LEFT JOIN (via Cotizacion)
+
+            $idProveedorToLookup = null;
+            if (!empty($solicitud['SolicitudProveedorID'])) { // Prioritize Solicitud's ID_Proveedor
+                $idProveedorToLookup = $solicitud['SolicitudProveedorID'];
+            } elseif (!empty($solicitud['ID_Proveedor'])) { // Fallback to Cotizacion's ID_Proveedor
+                $idProveedorToLookup = $solicitud['ID_Proveedor'];
+            }
+
+            if (empty($proveedorNombre) && !empty($idProveedorToLookup)) {
+                $proveedorModel = new ProveedorModel();
+                $foundProveedor = $proveedorModel->find($idProveedorToLookup);
+                if ($foundProveedor) {
+                    $proveedorNombre = $foundProveedor['RazonSocial'];
+                } else {
+                    $proveedorNombre = 'Proveedor no encontrado (' . $idProveedorToLookup . ')';
+                }
+            } else if (empty($proveedorNombre)) {
+                 $proveedorNombre = 'N/A'; // Final fallback if no ID was found or no name was resolved
+            }
+
             $result[] = [
                 'ID' => $solicitud['ID'],
                 'ID_Solicitud' => $solicitud['ID'],
                 'Folio' => $solicitud['Folio'],
                 'Usuario' => $solicitud['Usuario'],
                 'Departamento' => $solicitud['Departamento'],
-                'Proveedor' => $solicitud['Proveedor'],
+                'Proveedor' => $proveedorNombre,
                 'Monto' => $montoFinal,
                 'Estado' => $solicitud['Estado'],
                 'ID_Cotizacion' => $solicitud['ID_Cotizacion'],
