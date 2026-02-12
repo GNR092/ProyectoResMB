@@ -190,51 +190,21 @@ class Archivo extends BaseController
                         ];
                         $cotizacionModel->insert($cotizacionData);
 
-                        $to = getenv('EMAIL_TO_TEST');
-                        if (empty($to)) {
-                            if (!$proveedor || empty($proveedor['Correo'])) {
-                                throw new \Exception(
-                                    "No se pudo encontrar un correo electrónico para el proveedor con ID: {$idProveedor}.",
-                                );
-                            }
-                            $to = $proveedor['Correo'];
-                        }
-
-                        $proveedorNombre = $proveedor
-                            ? esc($proveedor['RazonSocial'])
-                            : 'Proveedor';
-                        $folio = esc($solicitudData['No_Folio']);
                         $fecha = esc($solicitudData['Fecha']);
-                        $razonSocialEsc = esc($razonNombre);
-
-                        $subject = "Solicitud de Cotización - Folio {$folio} - {$razonSocialEsc}";
-
-                        $message = view('emails/solicitud_cotizacion', [
-                            'proveedorNombre' => $proveedorNombre,
-                            'razonSocialEsc' => $razonSocialEsc,
-                            'folio' => $folio,
-                            'fecha' => $fecha,
-                        ]);
-
-                        $option = [
-                            'attachments' => [$attachmentPath],
-                            'fromName' => $razonNombre,
-                        ];
-
-                        //   $mail->send_email($to, $subject, $message, $option);
                     }
 
                     $db->transComplete();
-                } else {
-                    // Crear cotización ficticia si no hay proveedor
-                    $cotizacionData = [
-                        'ID_Solicitud' => $solicitudId,
-                        'ID_Proveedor' => null,
-                        'Total' => $total,
-                        'ID_Usuario_Cotiza' => $user['ID_Usuario'],
-                    ];
-                    $cotizacionModel->insert($cotizacionData);
-                }
+                } 
+                // else {
+                //     // Crear cotización ficticia si no hay proveedor
+                //     $cotizacionData = [
+                //         'ID_Solicitud' => $solicitudId,
+                //         'ID_Proveedor' => null,
+                //         'Total' => $total,
+                //         'ID_Usuario_Cotiza' => $user['ID_Usuario'],
+                //     ];
+                //     $cotizacionModel->insert($cotizacionData);
+                // }
             }
             $adjunto = $this->request->getFile('archivo');
             if ($adjunto && $adjunto->isValid()) {
