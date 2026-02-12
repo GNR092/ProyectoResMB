@@ -1270,7 +1270,6 @@ function initPlacesForm() {
     const formData = new FormData(formAgregar)
 
     try {
-      // --- CAMBIO: Ruta actualizada a crud_places ---
       const result = await SendDataEnd('modales/crud_places/insertar', {
         method: 'POST',
         body: formData,
@@ -1281,7 +1280,7 @@ function initPlacesForm() {
         pantallaAgregar?.classList.add('hidden')
         pantallaLista?.classList.remove('hidden')
         formAgregar.reset()
-        // --- CAMBIO: Nombre del modal actualizado ---
+        // Recargamos el modal para ver los cambios
         abrirModal('crud_places')
       } else {
         mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
@@ -1305,7 +1304,6 @@ function initPlacesEditarForm() {
     const id = formData.get('ID_Place')
 
     try {
-      // --- CAMBIO: Ruta actualizada a crud_places ---
       const result = await SendDataEnd(`modales/crud_places/editar/${id}`, {
         method: 'POST',
         body: formData,
@@ -1316,11 +1314,22 @@ function initPlacesEditarForm() {
 
         const fila = tabla.querySelector(`tr[data-id='${id}']`)
         if (fila) {
+          // Actualizar textos básicos
           fila.querySelector('.nombre-corto').textContent = formData.get('Nombre_Corto')
           fila.querySelector('.nombre-completo').textContent = formData.get('Nombre_Completo')
 
+          // --- NUEVO: Actualizar Razón Social visualmente ---
+          const selectRS = document.getElementById('editar-ID_RazonSocial');
+          // Obtenemos el texto de la opción seleccionada para mostrarlo en la tabla
+          const rsTexto = selectRS.options[selectRS.selectedIndex].text;
+          // Si el value es vacío (no seleccionó nada), ponemos un guion, si no, el nombre
+          fila.querySelector('.razon-social-nombre').textContent = selectRS.value ? rsTexto : '-';
+
+          // Actualizar Datasets
           fila.dataset.nombreCorto = formData.get('Nombre_Corto')
           fila.dataset.nombreCompleto = formData.get('Nombre_Completo')
+          // --- NUEVO: Actualizar dataset de ID RS ---
+          fila.dataset.idRazonSocial = formData.get('ID_RazonSocial')
         }
 
         pantallaEditar?.classList.add('hidden')
@@ -1338,6 +1347,7 @@ function initPlacesActions(tabla) {
   if (!tabla) return
 
   tabla.addEventListener('click', async (e) => {
+    // --- ELIMINAR ---
     const btnEliminar = e.target.closest("[id^='btn-eliminar-places-']")
     if (btnEliminar) {
       e.preventDefault()
@@ -1351,7 +1361,6 @@ function initPlacesActions(tabla) {
       )
         return
 
-      // --- CAMBIO: Ruta actualizada a crud_places ---
       SendDataEnd(`modales/crud_places/eliminar/${id}`, {
         method: 'POST',
       })
@@ -1367,6 +1376,7 @@ function initPlacesActions(tabla) {
       return
     }
 
+    // --- EDITAR ---
     const btnEditar = e.target.closest("[id^='btn-editar-places-']")
     if (!btnEditar) return
     e.preventDefault()
@@ -1377,6 +1387,10 @@ function initPlacesActions(tabla) {
     document.getElementById('editar-ID_Place').value = fila.dataset.id
     document.getElementById('editar-Nombre_Corto').value = fila.dataset.nombreCorto
     document.getElementById('editar-Nombre_Completo').value = fila.dataset.nombreCompleto
+
+    // --- NUEVO: Cargar el valor de la Razón Social al select ---
+    // Usamos el dataset que agregamos en la vista HTML
+    document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonSocial || "";
 
     document.getElementById('pantalla-lista-places').classList.add('hidden')
     document.getElementById('pantalla-editar-places').classList.remove('hidden')

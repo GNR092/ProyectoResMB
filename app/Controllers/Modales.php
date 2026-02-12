@@ -295,7 +295,19 @@ class Modales extends BaseController
 
             case 'crud_places':
                 $placesModel = new PlacesModel();
-                $data['places'] = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
+                // 1. Necesitamos el modelo de Razon Social
+                $razonSocialModel = new RazonSocialModel();
+
+                // 2. Modificamos la consulta para traer el NOMBRE de la Razón Social
+                $data['places'] = $placesModel
+                    ->select('Places.*, Razon_Social.Nombre as RazonSocial_Nombre') // Seleccionamos campos
+                    ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial', 'left') // Unimos tablas
+                    ->orderBy('Places.Nombre_Corto', 'ASC')
+                    ->findAll();
+
+                // 3. Enviamos la lista de razones sociales para llenar los <select>
+                $data['razones_sociales'] = $razonSocialModel->orderBy('Nombre', 'ASC')->findAll();
+
                 return view('modales/crud_places', $data);
 
             case 'crud_departamento':
@@ -843,32 +855,29 @@ class Modales extends BaseController
     public function insertarPlace()
     {
         $model = new PlacesModel();
-        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo']);
+        // AGREGAR 'ID_RazonSocial' al array
+        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial']);
 
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'No se pudo insertar el lugar',
-                'errors' => $model->errors()
-            ]);
+            // ... resto del código igual
+            return $this->response->setJSON(['success' => false, 'message' => 'Error', 'errors' => $model->errors()]);
         }
     }
 
     public function editarPlace($id)
     {
         $model = new PlacesModel();
-        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo']);
+        // AGREGAR 'ID_RazonSocial' al array
+        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial']);
 
         try {
             $model->update($id, $data);
             return $this->response->setJSON(['success' => true]);
         } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ]);
+            // ... resto del código igual
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 

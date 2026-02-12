@@ -28,11 +28,12 @@
     <!-- Tabla -->
     <div class="overflow-x-auto">
         <table class="min-w-full border border-gray-300 rounded-lg table-fixed">
-            <thead class="bg-gray-100">
+            <thead>
             <tr>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Nombre Corto</th>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Nombre Completo</th>
-                <th class="w-1/3 px-3 py-2 border-b text-center">Acciones</th>
+                <th class="w-1/4 px-3 py-2 border-b text-left">Nombre Corto</th>
+                <th class="w-1/4 px-3 py-2 border-b text-left">Nombre Completo</th>
+                <th class="w-1/4 px-3 py-2 border-b text-left">Razón Social</th>
+                <th class="w-1/4 px-3 py-2 border-b text-center">Acciones</th>
             </tr>
             </thead>
             <tbody id="tabla-places">
@@ -41,10 +42,12 @@
                     <tr data-id="<?= $place['ID_Place'] ?>"
                         data-nombre-corto="<?= esc($place['Nombre_Corto']) ?>"
                         data-nombre-completo="<?= esc($place['Nombre_Completo']) ?>"
+                        data-id-razon-social="<?= esc($place['ID_RazonSocial']) ?>"
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
 
                         <td class="px-3 py-2 border-b nombre-corto"><?= esc($place['Nombre_Corto']) ?></td>
                         <td class="px-3 py-2 border-b nombre-completo"><?= esc($place['Nombre_Completo']) ?></td>
+                        <td class="px-3 py-2 border-b razon-social-nombre"><?= esc($place['RazonSocial_Nombre'] ?? '-') ?></td>
 
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
@@ -94,6 +97,17 @@
 
     <form id="form-agregar-places" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div class="flex flex-col sm:col-span-2">
+                <label for="ID_RazonSocial" class="mb-1 font-medium">Razón Social</label>
+                <select name="ID_RazonSocial" id="ID_RazonSocial" class="w-full px-3 py-2 border rounded-lg bg-white">
+                    <option value="">-- Seleccione (Opcional) --</option>
+                    <?php foreach ($razones_sociales as $rs): ?>
+                        <option value="<?= $rs['ID_RazonSocial'] ?>"><?= esc($rs['Nombre']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
             <div class="flex flex-col">
                 <label for="Nombre_Corto" class="mb-1 font-medium">Nombre Corto</label>
                 <input type="text" name="Nombre_Corto" id="Nombre_Corto" placeholder="Ej. QRO" required class="w-full px-3 py-2 border rounded-lg">
@@ -116,6 +130,17 @@
     <form id="form-editar-places" class="space-y-4">
         <input type="hidden" name="ID_Place" id="editar-ID_Place">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div class="flex flex-col sm:col-span-2">
+                <label for="editar-ID_RazonSocial" class="mb-1 font-medium">Razón Social</label>
+                <select name="ID_RazonSocial" id="editar-ID_RazonSocial" class="w-full px-3 py-2 border rounded-lg bg-white">
+                    <option value="">-- Seleccione (Opcional) --</option>
+                    <?php foreach ($razones_sociales as $rs): ?>
+                        <option value="<?= $rs['ID_RazonSocial'] ?>"><?= esc($rs['Nombre']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
             <div class="flex flex-col">
                 <label for="editar-Nombre_Corto" class="mb-1 font-medium">Nombre Corto</label>
                 <input type="text" name="Nombre_Corto" id="editar-Nombre_Corto" required class="w-full px-3 py-2 border rounded-lg">
