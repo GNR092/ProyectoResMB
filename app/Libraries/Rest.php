@@ -205,64 +205,107 @@ class Rest
      *
      * @return array Un array de solicitudes con el nombre del departamento.
      */
+    /**
+     * Obtiene todas las solicitudes activas con sus montos y estados calculados.
+     * Retorna un ARRAY, no un JSON.
+     */
     public function getAllSolicitud()
     {
-        $excluded_statuses = [Status::Dept_Rechazada, Status::Aprobacion_pendiente];
-        $solicitudModel = new SolicitudModel();
-        $cotizacionModel = new CotizacionModel();
-        $ordenCompraModel = new OrdenCompraModel();
+        // 1. Definir estados excluidos
+        // Asegúrate de importar la clase Status arriba: use App\Libraries\Status;
+        // O usa la ruta completa: \App\Libraries\Status::Dept_Rechazada
+        $excluded_statuses = [
+            \App\Libraries\Status::Dept_Rechazada,
+            \App\Libraries\Status::Aprobacion_pendiente
+        ];
 
+        $solicitudModel = new \App\Models\SolicitudModel();
+        $cotizacionModel = new \App\Models\CotizacionModel();
+        $ordenCompraModel = new \App\Models\OrdenCompraModel();
+
+        // ---------------------------------------------------------
+        // PASO 1: Obtener Solicitudes (Datos Base)
+        // ---------------------------------------------------------
         $solicitudes = $solicitudModel
-            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre')
-            ->whereNotIn('Solicitud.Estado', $excluded_statuses)
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left') // <-- Añadir este join
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+            ->whereNotIn('Solicitud.Estado', $excluded_statuses)
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
 
         if (empty($solicitudes)) {
-            return [];
+            return []; // Retornamos array vacío, no response
         }
 
         $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
 
-        $cotizaciones = $cotizacionModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
+        // ---------------------------------------------------------
+        // PASO 2: Obtener Cotizaciones (Monto y Relación)
+        // ---------------------------------------------------------
+        // Traemos los totales calculados en PHP para evitar errores de SQL GroupBy
+        $cotizaciones = $cotizacionModel
+            ->select('ID_Cotizacion, ID_Solicitud, Total')
+            ->whereIn('ID_Solicitud', $solicitudIds)
+            ->findAll();
 
-        $cotizacionIds = array_column($cotizaciones, 'ID_Cotizacion');
+        $mapaMontos = [];
+        $mapaRelacionCotizacion = [];
+        $cotizacionIds = [];
 
-        $ordenes = [];
-        if (!empty($cotizacionIds)) {
-            $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
+        foreach ($cotizaciones as $cot) {
+            $idSol = $cot['ID_Solicitud'];
+
+            // Sumar montos en PHP (seguro y rápido)
+            if (!isset($mapaMontos[$idSol])) {
+                $mapaMontos[$idSol] = 0;
+            }
+            $mapaMontos[$idSol] += (float)$cot['Total'];
+
+            // Guardamos referencia para buscar ordenes
+            $mapaRelacionCotizacion[$idSol] = $cot['ID_Cotizacion'];
+            $cotizacionIds[] = $cot['ID_Cotizacion'];
         }
 
-        $cotizacionesMap = [];
-        foreach ($cotizaciones as $cot) {
-            if (!isset($cotizacionesMap[$cot['ID_Solicitud']])) {
-                $cotizacionesMap[$cot['ID_Solicitud']] = $cot;
+        // ---------------------------------------------------------
+        // PASO 3: Obtener Órdenes de Compra (Estados)
+        // ---------------------------------------------------------
+        $mapaOrdenes = [];
+        if (!empty($cotizacionIds)) {
+            $ordenes = $ordenCompraModel
+                ->select('ID_Cotizacion, Estado')
+                ->whereIn('ID_Cotizacion', $cotizacionIds)
+                ->findAll();
+
+            foreach ($ordenes as $orden) {
+                $mapaOrdenes[$orden['ID_Cotizacion']] = $orden['Estado'];
             }
         }
 
-        $ordenesMap = [];
-        foreach ($ordenes as $orden) {
-            $ordenesMap[$orden['ID_Cotizacion']] = $orden;
-        }
-
+        // ---------------------------------------------------------
+        // PASO 4: Unificar Datos
+        // ---------------------------------------------------------
         foreach ($solicitudes as &$solicitud) {
-            if ($solicitud['Estado'] === Status::Aprobada) {
-                if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
-                    $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
-                    if (isset($ordenesMap[$cotizacion['ID_Cotizacion']])) {
-                        $orden = $ordenesMap[$cotizacion['ID_Cotizacion']];
-                        if (!empty($orden['Estado'])) {
-                            $solicitud['Estado'] = $orden['Estado'];
-                        }
+            $idSol = $solicitud['ID_Solicitud'];
+
+            // 1. Asignar Monto (Si no existe, es 0)
+            $solicitud['MontoTotal'] = $mapaMontos[$idSol] ?? 0;
+
+            // 2. Actualizar Estado basado en Orden de Compra
+            if ($solicitud['Estado'] === \App\Libraries\Status::Aprobada) {
+                if (isset($mapaRelacionCotizacion[$idSol])) {
+                    $idCot = $mapaRelacionCotizacion[$idSol];
+                    if (isset($mapaOrdenes[$idCot]) && !empty($mapaOrdenes[$idCot])) {
+                        $solicitud['Estado'] = $mapaOrdenes[$idCot];
                     }
                 }
             }
         }
 
-        return $solicitudes;
+        return $solicitudes; // <--- Retornamos el ARRAY limpio
     }
+
     /**
      * Obtiene todas las solicitudes de un departamento específico.
      *

@@ -56,21 +56,21 @@
     <div class="overflow-x-auto">
         <table class="w-full border-collapse border border-gray-300" id="tabla-historial">
             <thead class="bg-gray-100">
-                <tr>
-                    <th class="hidden border px-4 py-2">ID</th>
-                    <th class="border px-4 py-2">Folio</th>
-                    <th class="border px-4 py-2">Fecha</th>
-                    <th class="border px-4 py-2">Departamento</th>
-                    <th class="border px-4 py-2">Estado</th>
-                    <th class="border px-4 py-2">Metodo de pago</th>
-                    <th class="border px-4 py-2">Acción</th>
-                </tr>
+            <tr>
+                <th class="hidden border px-4 py-2">ID</th>
+                <th class="border px-4 py-2">Folio</th>
+                <th class="border px-4 py-2">Fecha</th>
+                <th class="border px-4 py-2">Departamento</th>
+                <th class="border px-4 py-2">Proveedor</th>
+                <th class="border px-4 py-2">Monto</th>
+                <th class="border px-4 py-2">Estado</th>
+                <th class="border px-4 py-2">Metodo de pago</th>
+                <th class="border px-4 py-2">Acción</th>
+            </tr>
             </thead>
             <tbody>
-                <!-- Las filas se insertarán aquí dinámicamente -->
             </tbody>
         </table>
-        <!-- Paginación -->
         <div id="paginacion-historial" class="flex justify-center mt-4 space-x-2"></div>
     </div>
 </div>
