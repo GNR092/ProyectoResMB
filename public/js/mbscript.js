@@ -701,27 +701,50 @@ function initPaginacionHistorial() {
     paginationSelector: 'paginacion-historial',
     endpoint: url,
     filterFormSelector: '#modal-contenido', // Container for filters, used to attach events
+
     renderRow: (item) => {
-      const status = getStatusText(item.Estado)
-      const svg = getStatusSVG(item.Estado)
-      const MetodoPag = getMetodoPago(item.MetodoPago)
+      const status = getStatusText(item.Estado);
+      const svg = getStatusSVG(item.Estado);
+      const MetodoPag = getMetodoPago(item.MetodoPago);
+
+      // El valor que viene del backend (item.MontoTotal) ya es el 'Total' de la tabla Cotizacion
+      const totalRaw = parseFloat(item.MontoTotal) || 0;
+
+      // Formateo de moneda
+      const montoFormateado = new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN'
+      }).format(totalRaw);
+
       return `
-        <tr class="text-center">
-            <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
-            <td class="border px-4 py-2">${item.No_Folio || 'N/A'}</td>
-            <td class="border px-4 py-2 col-fecha">${item.Fecha}</td>
-            <td class="border px-4 py-2">${(item.DepartamentoNombre + " - " + item.PlaceNombre) || 'N/A'}</td>
-            <td class="border px-4 py-2 col-estado" data-estado="${status}" title="${status}">
+    <tr class="text-center hover:bg-gray-50 transition">
+        <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
+        <td class="border px-4 py-2 font-medium">${item.No_Folio || 'N/A'}</td>
+        <td class="border px-4 py-2 text-sm">${item.Fecha}</td>
+        <td class="border px-4 py-2 text-xs text-gray-600">${item.DepartamentoNombre} - ${item.PlaceNombre}</td>
+        
+        <td class="border px-4 py-2 text-sm text-left px-6">${item.ProveedorNombre || '<span class="text-gray-400">N/A</span>'}</td>
+        
+        <td class="border px-4 py-2 font-bold text-gray-800">
+            ${totalRaw > 0 ? montoFormateado : '<span class="text-gray-400">$0.00</span>'}
+        </td>
+        
+        <td class="border px-4 py-2 col-estado" data-estado="${status}" title="${status}">
+            <div class="flex flex-col items-center">
                 ${svg}
-                <span >${status}</span>
-            </td>
-            <td class="border px-4 py-2 col-metodo">${MetodoPag}</td>
-            <td class="border px-4 py-2">
-                <a href="#" class="text-blue-600 hover:underline" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">ver</a>
-            </td>
-        </tr>
-      `
+                <span class="text-[10px] uppercase font-bold">${status}</span>
+            </div>
+        </td>
+        <td class="border px-4 py-2 text-xs">${MetodoPag}</td>
+        <td class="border px-4 py-2">
+            <button class="text-blue-600 hover:text-blue-800 font-semibold transition" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">
+                Detalles
+            </button>
+        </td>
+    </tr>
+  `;
     },
+
     filterFunction: (allData, form) => {
       const fechaFiltro = document.getElementById('filtro-fecha').value
       const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
