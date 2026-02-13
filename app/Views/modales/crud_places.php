@@ -112,6 +112,7 @@
                 <label for="Nombre_Corto" class="mb-1 font-medium">Nombre Corto</label>
                 <input type="text" name="Nombre_Corto" id="Nombre_Corto" placeholder="Ej. QRO" required class="w-full px-3 py-2 border rounded-lg">
             </div>
+
             <div class="flex flex-col">
                 <label for="Nombre_Completo" class="mb-1 font-medium">Nombre Completo</label>
                 <input type="text" name="Nombre_Completo" id="Nombre_Completo" placeholder="Ej. Querétaro" required class="w-full px-3 py-2 border rounded-lg">
@@ -145,6 +146,7 @@
                 <label for="editar-Nombre_Corto" class="mb-1 font-medium">Nombre Corto</label>
                 <input type="text" name="Nombre_Corto" id="editar-Nombre_Corto" required class="w-full px-3 py-2 border rounded-lg">
             </div>
+
             <div class="flex flex-col">
                 <label for="editar-Nombre_Completo" class="mb-1 font-medium">Nombre Completo</label>
                 <input type="text" name="Nombre_Completo" id="editar-Nombre_Completo" required class="w-full px-3 py-2 border rounded-lg">
