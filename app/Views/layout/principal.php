@@ -111,6 +111,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 <script src="<?= base_url() ?>js/almacen.js" defer></script>
 <script src="<?= base_url() ?>js/user.js" defer></script>
 <script src="<?= base_url() ?>js/pago.js" defer></script>
+<script src="<?= base_url() ?>js/correcciones.js" defer></script>
 </body>
 
 </html>

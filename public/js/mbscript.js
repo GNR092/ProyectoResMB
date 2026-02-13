@@ -54,7 +54,7 @@ function abrirModal(opcion) {
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
 
-  const modalesAnchos = ['reportes', 'ver_historial']
+  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones']
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
     modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto')
@@ -118,6 +118,7 @@ function abrirModal(opcion) {
         crud_places: initCrudPlaces,
         crud_departamento: initCrudDepartamentos,
         crud_cuentas: initCrudCuentas,
+        correcciones: initControlMaestro,
       }
 
       const inicializador = inicializadores[opcion]
