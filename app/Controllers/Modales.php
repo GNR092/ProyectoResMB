@@ -333,8 +333,8 @@ class Modales extends BaseController
 
                 return view('modales/crud_cuentas', $data);
 
-            case 'developer':
-                return view('developer/dev');
+            case 'correcciones':
+                return view('modales/correcciones');
 
             default:
                 return 'Opción no válida';

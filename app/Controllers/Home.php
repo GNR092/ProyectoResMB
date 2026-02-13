@@ -32,6 +32,7 @@ class Home extends BaseController
                 'ordenes_compra',
                 'pagos_pendientes',
                 'ver_historial',
+                'correcciones',
 
                 'crud_proveedores',
                 'crud_usuarios',
