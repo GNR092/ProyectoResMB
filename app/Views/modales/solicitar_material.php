@@ -116,9 +116,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         </tr>
                     </thead>
                     <tbody id="tabla-productos">
-                        <tr class="fila-producto">
-                            <?= $this->include('layout/productTable') ?>
-                        </tr>
+                    <?= $this->include('layout/productTable') ?>
                     </tbody>
                 </table>
                 <!-- Total costo -->
