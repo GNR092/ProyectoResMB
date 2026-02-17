@@ -2199,7 +2199,7 @@ class Api extends ResourceController
     public function exportarHistorial()
     {
         try {
-            // 1. Obtención de Parámetros de Filtro
+            // 1. Parámetros de Filtro
             $fecha = $this->request->getGet('fecha');
             $porMes = $this->request->getGet('por_mes');
             $estadoFiltro = $this->request->getGet('estado');
@@ -2207,21 +2207,22 @@ class Api extends ResourceController
 
             // 2. Seguridad de Sesión
             $sessionDeptoFull = session('departamento_usuario') ?? '';
-            $exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus','Contaduría'];
+            $exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría'];
             $sessionDeptoClean = trim(explode('(', $sessionDeptoFull)[0]);
 
             $db = \Config\Database::connect();
             $solicitudModel = new SolicitudModel();
 
-            // 3. Consulta Base con Relaciones
+            // 3. Consulta Principal (Incluye el Total de Cotización como MontoOficial)
             $builder = $solicitudModel
-                ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as EmpresaNombre, Proveedor.RazonSocial as ProveedorNombre')
+                ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as EmpresaNombre, Proveedor.RazonSocial as ProveedorNombre, Cotizacion.Total as MontoOficial')
                 ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                 ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                 ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
-                ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left');
+                ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+                ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left');
 
-            // Filtro por Departamentos
+            // Filtro Multi-Departamento
             if (!in_array($sessionDeptoClean, $exceptions) && !empty($sessionDeptoClean)) {
                 $builder->where('Departamentos.Nombre', $sessionDeptoClean);
             } elseif (!empty($dptoRaw)) {
@@ -2233,8 +2234,7 @@ class Api extends ResourceController
                         $builder->where('Departamentos.Nombre', $parts[0]);
                         if(isset($parts[1])) $builder->where('Places.Nombre_Corto', $parts[1]);
                     } else {
-                        $builder->orGroupStart();
-                        $builder->where('Departamentos.Nombre', $parts[0]);
+                        $builder->orGroupStart()->where('Departamentos.Nombre', $parts[0]);
                         if(isset($parts[1])) $builder->where('Places.Nombre_Corto', $parts[1]);
                         $builder->groupEnd();
                     }
@@ -2251,68 +2251,53 @@ class Api extends ResourceController
             }
 
             $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')->findAll();
-
-            if (empty($solicitudes)) {
-                exit("No se encontraron registros para exportar.");
-            }
+            if (empty($solicitudes)) exit("No hay datos.");
 
             $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
 
-            // 4. Obtención de Productos Y Servicios
+            // 4. Carga de Productos y Servicios (Para Respaldo de Monto y Nombres)
             $prodModel = new SolicitudProductModel();
             $servModel = new SolicitudServiciosModel();
-
             $productosRaw = $prodModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
             $serviciosRaw = $servModel->whereIn('ID_Solicitud', $solicitudIds)->findAll();
 
-            // Mapeo combinado de Conceptos (Productos + Servicios)
             $conceptosMap = [];
+            $respaldoMap = [];
             foreach ($productosRaw as $p) {
-                $conceptosMap[$p['ID_Solicitud']][] = [
-                    'Nombre' => $p['Nombre'],
-                    'Importe' => (float)($p['Importe'] ?? 0)
-                ];
+                $conceptosMap[$p['ID_Solicitud']][] = $p['Nombre'];
+                $respaldoMap[$p['ID_Solicitud']] = ($respaldoMap[$p['ID_Solicitud']] ?? 0) + (float)$p['Importe'];
             }
             foreach ($serviciosRaw as $s) {
-                $conceptosMap[$s['ID_Solicitud']][] = [
-                    'Nombre' => $s['Nombre'],
-                    'Importe' => (float)($s['Importe'] ?? 0)
-                ];
+                $conceptosMap[$s['ID_Solicitud']][] = $s['Nombre'];
+                $respaldoMap[$s['ID_Solicitud']] = ($respaldoMap[$s['ID_Solicitud']] ?? 0) + (float)$s['Importe'];
             }
 
-            // 5. Mapeo de Estados desde Orden de Compra
+            // 5. Estados de Orden de Compra
             $estadosOCMap = [];
             $ocQuery = $db->table('OrdenCompra oc')
                 ->select('c.ID_Solicitud, oc.Estado as EstadoOC')
                 ->join('Cotizacion c', 'c.ID_Cotizacion = oc.ID_Cotizacion', 'inner')
-                ->whereIn('c.ID_Solicitud', $solicitudIds)
-                ->get()->getResultArray();
+                ->whereIn('c.ID_Solicitud', $solicitudIds)->get()->getResultArray();
+            foreach ($ocQuery as $row) { $estadosOCMap[$row['ID_Solicitud']] = $row['EstadoOC']; }
 
-            foreach ($ocQuery as $row) {
-                $estadosOCMap[$row['ID_Solicitud']] = $row['EstadoOC'];
-            }
-
-            // 6. Configuración del Excel
+            // 6. Generar Excel
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
+            // Estructura de Columnas (Folio a Costo)
             $headers = ['Folio', 'Fecha', 'Razón Social', 'Sede', 'Departamento', 'Estado', 'M. Pago', 'Proveedor', 'Productos / Servicios', 'Costo'];
             $sheet->fromArray($headers, NULL, 'A1');
 
-            $headerStyle = [
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '404040']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-            ];
-            $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+            // Estilo: Gris Claro (FFD3D3D3)
+            $sheet->getStyle('A1:J1')->getFont()->setBold(true);
+            $sheet->getStyle('A1:J1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFD3D3D3');
+            $sheet->getStyle('A1:J1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
             $row = 2;
             $montoFinalGlobal = 0;
 
             foreach ($solicitudes as $sol) {
                 $idSol = $sol['ID_Solicitud'];
-
-                // Determinar el Estado Final
                 $estadoFinal = $estadosOCMap[$idSol] ?? $sol['Estado'];
 
                 if ($estadoFiltro && $estadoFinal !== $estadoFiltro) continue;
@@ -2325,53 +2310,43 @@ class Api extends ResourceController
                     case MetodoPago::EnEspera: $txtPago = 'En Espera'; break;
                 }
 
-                // Combinar Nombres y Sumar Importes de Productos y Servicios
-                $nombresConceptos = [];
-                $costoFila = 0;
-                if (isset($conceptosMap[$idSol])) {
-                    foreach ($conceptosMap[$idSol] as $item) {
-                        $nombresConceptos[] = $item['Nombre'];
-                        $costoFila += $item['Importe'];
-                    }
+                // Lógica de Monto (Cotización > Suma de Items)
+                $montoFila = (float)($sol['MontoOficial'] ?? 0);
+                if ($montoFila <= 0) {
+                    $montoFila = (float)($respaldoMap[$idSol] ?? 0);
                 }
-                $listaConceptos = implode(', ', $nombresConceptos);
 
-                // Llenado de Datos
+                $txtConceptos = isset($conceptosMap[$idSol]) ? implode(', ', $conceptosMap[$idSol]) : 'N/A';
+
                 $sheet->setCellValue('A' . $row, $sol['No_Folio']);
                 $sheet->setCellValue('B' . $row, $sol['Fecha']);
-                $sheet->setCellValue('C' . $row, $sol['EmpresaNombre'] ?? 'N/A');
+                $sheet->setCellValue('C' . $row, $sol['EmpresaNombre'] ?? 'MB Signature Properties');
                 $sheet->setCellValue('D' . $row, $sol['PlaceNombre']);
                 $sheet->setCellValue('E' . $row, $sol['DepartamentoNombre']);
                 $sheet->setCellValue('F' . $row, $estadoFinal);
                 $sheet->setCellValue('G' . $row, $txtPago);
                 $sheet->setCellValue('H' . $row, $sol['ProveedorNombre'] ?? 'N/A');
-                $sheet->setCellValue('I' . $row, $listaConceptos);
-                $sheet->setCellValue('J' . $row, $costoFila);
+                $sheet->setCellValue('I' . $row, $txtConceptos);
+                $sheet->setCellValue('J' . $row, $montoFila);
 
-                $montoFinalGlobal += $costoFila;
+                $montoFinalGlobal += $montoFila;
                 $row++;
             }
 
-            // 7. Fila de Monto Final
+            // Fila de Monto Final
             $row++;
             $sheet->setCellValue('I' . $row, 'Monto Final');
             $sheet->setCellValue('J' . $row, $montoFinalGlobal);
             $sheet->getStyle('I' . $row . ':J' . $row)->getFont()->setBold(true);
-            $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode('$#,##0.00');
 
-            // Ajuste Automático de Columnas
-            foreach (range('A', 'J') as $col) {
-                $sheet->getColumnDimension($col)->setAutoSize(true);
-            }
+            foreach (range('A', 'J') as $col) { $sheet->getColumnDimension($col)->setAutoSize(true); }
 
-            // 8. Nombre con Fecha y Descarga
-            $fechaDescarga = date('d-m-Y');
-            $filename = "historial_requisiciones_{$fechaDescarga}.xlsx";
+            // Nombre con fecha actual
+            $filename = "historial_requisiciones_" . date('d-m-Y') . ".xlsx";
 
             $writer = new Xlsx($spreadsheet);
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             header('Content-Disposition: attachment;filename="' . $filename . '"');
-            header('Cache-Control: max-age=0');
             $writer->save('php://output');
             exit();
 

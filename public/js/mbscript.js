@@ -253,20 +253,28 @@ async function initSolicitarMaterial() {
   }
 
   if (agregarBtn) {
-    const nuevoBtn = agregarBtn.cloneNode(true)
-    agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn)
+    // Clonamos para limpiar eventos previos (manteniendo tu lógica actual)
+    const nuevoBtn = agregarBtn.cloneNode(true);
+    agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn);
 
     nuevoBtn.addEventListener('click', async () => {
-      const rowHtml = await getProductRowHtml()
-      const template = document.createElement('template');
-      template.innerHTML = rowHtml.trim(); // rowHtml debe traer el <tr>
-      const nuevaFila = template.content.firstChild;
-      tabla.appendChild(nuevaFila);
-      asignarEventosFila(nuevaFila)
-      actualizarNumeros()
-      actualizarBotonesEliminar()
-      actualizarTotal()
-    })
+      const rowHtml = await getProductRowHtml();
+
+      // Usamos insertAdjacentHTML para meter el HTML directamente al final del body
+      // Esto evita errores de "firstChild" con espacios en blanco
+      tabla.insertAdjacentHTML('beforeend', rowHtml.trim());
+
+      // Ahora obtenemos la última fila insertada para asignarle eventos
+      const nuevasFilas = tabla.querySelectorAll('tr');
+      const nuevaFila = nuevasFilas[nuevasFilas.length - 1];
+
+      if (nuevaFila) {
+        asignarEventosFila(nuevaFila);
+        actualizarNumeros();
+        actualizarBotonesEliminar();
+        actualizarTotal();
+      }
+    });
   }
 
   loadRazonSocialProv('ProvSelect')
