@@ -930,43 +930,25 @@ class GenerarPDF extends BaseController
      * @param int $id El ID de la solicitud de la cual se generará la requisición de pago.
      * @return string|void Retorna un string con un mensaje de error si falla, o void si el PDF se genera correctamente y se envía al navegador.
      */
-    /**
-     * Genera un PDF de requisición de pago a partir de una solicitud.
-     *
-     * @param int $id El ID de la solicitud de la cual se generará la requisición de pago.
-     * @return string|void Retorna un string con un mensaje de error si falla, o void si el PDF se genera correctamente y se envía al navegador.
-     */
     public function GenerarRequisicionPago(int $id)
     {
-        try {
-            $solicitud = $this->api->getSolicitudPago($id);
+        // 1. Llamamos a la función que GENERA y GUARDA
+        $rutaArchivo = $this->generarYGuardarRequisicionPago($id);
 
-            if (empty($solicitud)) {
-                log_message(
-                    'error',
-                    'API devolvió datos vacíos para la requisición de pago ID: ' . $id,
-                );
-                return 'Error al generar el PDF: No se recibieron datos válidos de la requisición de pago.';
-            }
-        } catch (\Exception $e) {
-            log_message(
-                'error',
-                'Excepción al conectar con el API para requisición de pago ID ' .
-                    $id .
-                    ': ' .
-                    $e->getMessage(),
-            );
-            return 'Error al generar el PDF: No se pudo conectar al API.';
+        // 2. Si falló (retornó null), mostramos error
+        if (!$rutaArchivo || !file_exists($rutaArchivo)) {
+            return "Error: No se pudo generar o guardar el archivo PDF.";
         }
 
-        $pdf = new PDF('P', 'mm', 'Letter');
-        $pdf->AliasNbPages();
-        $pdf->AddPage();
-
-        $this->_generarRequisicionPago($pdf, $solicitud);
+        // 3. Si se guardó, lo leemos y se lo enviamos al navegador
+        $nombreArchivo = basename($rutaArchivo);
 
         $this->response->setHeader('Content-Type', 'application/pdf');
-        $pdf->Output('I', 'RequisicionPago-' . $solicitud['No_Folio'] . '.pdf');
+        // 'inline' hace que se abra en el navegador. Usa 'attachment' si quieres forzar descarga.
+        $this->response->setHeader('Content-Disposition', 'inline; filename="' . $nombreArchivo . '"');
+
+        // Leemos el archivo físico que acabamos de crear
+        readfile($rutaArchivo);
     }
 
     public function generarYGuardarRequisicionPago(int $id): ?string
@@ -988,10 +970,11 @@ class GenerarPDF extends BaseController
 
         $this->_generarRequisicionPago($pdf, $solicitud);
 
+        // CONFIRMA QUE ESTA SEA LA CARPETA:
         $folderPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_req_pago';
+
         if (!is_dir($folderPath)) {
             if (!mkdir($folderPath, 0777, true)) {
-                log_message('error', 'No se pudo crear el directorio para los PDFs de requisición de pago.');
                 return null;
             }
         }
@@ -999,7 +982,7 @@ class GenerarPDF extends BaseController
         $fileName = 'RequisicionPago-' . $solicitud['No_Folio'] . '.pdf';
         $filePath = $folderPath . DIRECTORY_SEPARATOR . $fileName;
 
-        $pdf->Output('F', $filePath);
+        $pdf->Output('F', $filePath); // Guarda en disco
 
         return $filePath;
     }

@@ -205,10 +205,6 @@ class Rest
      *
      * @return array Un array de solicitudes con el nombre del departamento.
      */
-    /**
-     * Obtiene todas las solicitudes activas con sus montos y estados calculados.
-     * Retorna un ARRAY, no un JSON.
-     */
     public function getAllSolicitud()
     {
         // 1. Definir estados excluidos
@@ -611,24 +607,27 @@ class Rest
         $cuentasModel = new CuentasModel();
         $proveedorModel = new ProveedorModel();
 
-        // 1. Consolidate Main Solicitud Query with all necessary joins
         $solicitud = $solicitudModel
             ->select([
                 'Solicitud.*',
                 'Usuarios.Nombre as UsuarioNombre',
                 'Departamentos.Nombre as DepartamentoNombre',
-                'RS.Nombre as Complejo', // Alias Razon_Social to RS
+                'RS.Nombre as Complejo',
                 'Solicitud.TipoComentarioAdmin',
-                'OC.Estado as EstadoOrden', // Alias OrdenCompra to OC
+                // CAMPOS CLAVE AGREGADOS:
+                'OC.ID_OrdenCompra',
+                'OC.Estado as EstadoOrden',
+                'OC.Fecha as FechaOrden',
                 'UsuarioCotiza.Nombre as UsuarioCotizaNombre',
                 'UsuarioAutoriza.Nombre as UsuarioAutorizaNombre',
                 'Places.Nombre_Corto as ID_Place',
-                // Cotizacion details
+                // Cotizacion
                 'Cotizacion.ID_Cotizacion',
                 'Cotizacion.Total as CotizacionTotal',
                 'Cotizacion.ID_Proveedor as CotizacionIDProveedor',
-                'Prov.RazonSocial as ProveedorNombreCotizacion', // Alias Proveedor to Prov
-                // OrdenCompra details (files)
+                'Cotizacion.Cotizacion_Files',
+                'Prov.RazonSocial as ProveedorNombreCotizacion',
+                // Archivos Orden
                 'OC.File_Factura',
                 'OC.File_Comprobante',
                 'OC.File_ReqPag',
@@ -636,38 +635,25 @@ class Rest
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
-            ->join('Razon_Social RS', 'RS.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left') // Use alias
-            // Join Cotizacion and OrdenCompra early
+            ->join('Razon_Social RS', 'RS.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
-            ->join('OrdenCompra OC', 'OC.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left') // Use alias
-            ->join('Proveedor Prov', 'Prov.ID_Proveedor = Cotizacion.ID_Proveedor', 'left') // Use alias for Cotizacion's Provider
-            // Joins for user names (if they are different from the main Solicitud user)
-            ->join(
-                'Usuarios UsuarioCotiza',
-                'UsuarioCotiza.ID_Usuario = Cotizacion.ID_Usuario_Cotiza',
-                'left'
-            )
-            ->join(
-                'Usuarios UsuarioAutoriza',
-                'UsuarioAutoriza.ID_Usuario = Solicitud.ID_Usuario_Autoriza',
-                'left'
-            )
+            ->join('OrdenCompra OC', 'OC.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
+            ->join('Proveedor Prov', 'Prov.ID_Proveedor = Cotizacion.ID_Proveedor', 'left')
+            ->join('Usuarios UsuarioCotiza', 'UsuarioCotiza.ID_Usuario = Cotizacion.ID_Usuario_Cotiza', 'left')
+            ->join('Usuarios UsuarioAutoriza', 'UsuarioAutoriza.ID_Usuario = Solicitud.ID_Usuario_Autoriza', 'left')
             ->find($id);
 
         if (!$solicitud) {
-            log_message('debug', 'Solicitud no encontrada para ID: ' . $id);
             return null;
         }
 
-        // Initialize structured data for return
-        $solicitudData = $solicitud; // Use the fetched array directly
+        $solicitudData = $solicitud;
 
-        // Handle additional details from separate models
+        // Detalles adicionales
         if (!empty($solicitudData['ID_Cuenta'])) {
             $solicitudData['cuenta_details'] = $cuentasModel->find($solicitudData['ID_Cuenta']);
         }
 
-        // Fetch supplier details only if not already joined effectively
         if (!empty($solicitudData['ID_Proveedor'])) {
             $proveedor = $proveedorModel->find($solicitudData['ID_Proveedor']);
             if ($proveedor) {
@@ -679,12 +665,9 @@ class Rest
 
         $solicitudData['ComplejoRFC'] = $razonSocialModel->find($solicitudData['ID_RazonSocial'])['RFC'];
 
-        // Fetch products or services
+        // Productos
         $productos = [];
-        if (
-            $solicitudData['Tipo'] == SolicitudTipo::Cotizacion ||
-            $solicitudData['Tipo'] == SolicitudTipo::NoCotizacion
-        ) {
+        if ($solicitudData['Tipo'] == 1 || $solicitudData['Tipo'] == 3) {
             $solicitudProductModel = new SolicitudProductModel();
             $productos = $solicitudProductModel->where('ID_Solicitud', $id)->findAll();
         } else {
@@ -693,40 +676,42 @@ class Rest
         }
         $solicitudData['productos'] = $productos;
 
-        // Structure Cotizacion data
+        // Cotización
         if (!empty($solicitudData['ID_Cotizacion'])) {
             $solicitudData['cotizacion'] = [
                 'ID_Cotizacion' => $solicitudData['ID_Cotizacion'],
                 'Total' => $solicitudData['CotizacionTotal'],
                 'ID_Proveedor' => $solicitudData['CotizacionIDProveedor'],
                 'ProveedorNombre' => $solicitudData['ProveedorNombreCotizacion'],
-                // Add any other Cotizacion fields you need that are not directly on Solicitud
+                'Cotizacion_Files' => $solicitudData['Cotizacion_Files'],
             ];
-            // Remove redundant fields from top level if they are now nested
             unset($solicitudData['CotizacionTotal']);
             unset($solicitudData['CotizacionIDProveedor']);
             unset($solicitudData['ProveedorNombreCotizacion']);
-            // If EstadoOrden is primarily from OrdenCompra, it should be within OrdenCompra details or renamed at top level
+            unset($solicitudData['Cotizacion_Files']);
         }
 
-        // Structure OrdenCompra data
-        if (!empty($solicitudData['File_Factura']) || !empty($solicitudData['File_Comprobante']) || !empty($solicitudData['File_ReqPag'])) {
+        // --- CORRECCIÓN FINAL ---
+        // Si existe ID de Orden o Estado de Orden, construimos el objeto.
+        if (!empty($solicitudData['ID_OrdenCompra']) || !empty($solicitudData['EstadoOrden'])) {
             $solicitudData['OrdenCompra'] = [
-                'File_Factura' => $solicitudData['File_Factura'],
+                'ID_OrdenCompra'   => $solicitudData['ID_OrdenCompra'] ?? null,
+                'Estado'           => $solicitudData['EstadoOrden'] ?? 'Generada',
+                'Fecha'            => $solicitudData['FechaOrden'] ?? null,
+                'File_Factura'     => $solicitudData['File_Factura'],
                 'File_Comprobante' => $solicitudData['File_Comprobante'],
-                'File_ReqPag' => $solicitudData['File_ReqPag'],
-                'Estado' => $solicitudData['EstadoOrden'] ?? null, // Ensure Estado is present if needed
+                'File_ReqPag'      => $solicitudData['File_ReqPag'],
             ];
-            // Remove redundant fields from top level if they are now nested
+
+            unset($solicitudData['ID_OrdenCompra']);
+            unset($solicitudData['EstadoOrden']);
+            unset($solicitudData['FechaOrden']);
             unset($solicitudData['File_Factura']);
             unset($solicitudData['File_Comprobante']);
             unset($solicitudData['File_ReqPag']);
-            // unset($solicitudData['EstadoOrden']);
         }
 
-
-        log_message('debug', 'Finalizando getOrdenCompra con éxito para Solicitud ID: ' . $id);
-        // The original method returns $solicitud ?: [] at the end, so I'll follow that convention.
+        log_message('debug', 'Finalizando getOrdenCompra con éxito.');
         return $solicitudData ?: [];
     }
 

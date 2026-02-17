@@ -934,6 +934,7 @@ function generarSeccionAdjuntos(data) {
   const cotizacionFile = cotizacionObj.Cotizacion_Files || data.Cotizacion_Files;
   const comprobanteFile = ordenObj.File_Comprobante || data.File_Comprobante || ordenObj.comprobante || data.comprobante;
   const facturaFile = ordenObj.File_Factura || data.File_Factura || ordenObj.factura || data.factura;
+
   const idSolicitud = data.ID_Solicitud;
 
   return `
@@ -941,7 +942,8 @@ function generarSeccionAdjuntos(data) {
         <h4 class="text-md font-bold mb-3 text-gray-700">Adjuntos</h4>
         <div class="flex flex-col space-y-2 mb-6 p-4 border rounded-lg bg-gray-50 text-sm text-left">
             
-            ${ folio ? `
+            ${ /* 1. REQUISICIÓN (SOLICITUD) */
+      folio ? `
             <div>
                 <strong>Solicitud:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=pdf_solicitudes/Requisicion-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
@@ -950,7 +952,8 @@ function generarSeccionAdjuntos(data) {
             </div>` : ''
   }
 
-            ${ cotizacionFile ? `
+            ${ /* 2. COTIZACIÓN */
+      cotizacionFile ? `
             <div>
                 <strong>Cotizacion:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=cotizaciones/${data.Fecha}/${cotizacionFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
@@ -959,7 +962,8 @@ function generarSeccionAdjuntos(data) {
             </div>` : '<div class="text-gray-400"><strong>Cotizacion:</strong> No adjuntada</div>'
   }
 
-            ${ folio ? `
+            ${ /* 3. ORDEN DE COMPRA */
+      folio ? `
             <div>
                 <strong>Orden de Compra:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=pdf_ordenes/OrdenCompra-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
@@ -968,7 +972,18 @@ function generarSeccionAdjuntos(data) {
             </div>` : ''
   }
 
-            ${ comprobanteFile ? `
+            ${ /* 4. REQUISICIÓN DE PAGO */
+      idSolicitud ? `
+            <div>
+                <strong>Requisición de Pago:</strong> 
+                <a href="${BASE_URL}api/requisicionpago/pdf/${idSolicitud}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                    RequisicionPago-${folio}.pdf
+                </a>
+            </div>` : ''
+  }
+
+            ${ /* 5. FICHA DE PAGO */
+      comprobanteFile ? `
             <div>
                 <strong>Ficha de pago:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=comprobantes/${comprobanteFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
@@ -977,7 +992,8 @@ function generarSeccionAdjuntos(data) {
             </div>` : '<div class="text-gray-400"><strong>Ficha de pago:</strong> No adjuntada</div>'
   }
 
-            ${ facturaFile ? `
+            ${ /* 6. FACTURA */
+      facturaFile ? `
             <div>
                 <strong>Factura:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=facturas/${facturaFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
