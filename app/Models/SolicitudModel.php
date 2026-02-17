@@ -30,6 +30,7 @@ class SolicitudModel extends Model
         'MetodoPago',
         'Fecha_Aprobacion',
         'ID_Usuario_Autoriza',
+        'ComentarioCotizacion',
     ];
 
     // Dates
