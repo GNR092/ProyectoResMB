@@ -801,6 +801,14 @@ class Api extends ResourceController
         $idSolicitud = (int) $request['ID_Solicitud'];
         $idCotizacionSeleccionada = $request['id_cotizacion_seleccionada'] ?? null;
 
+        // === CAPTURA DEL NUEVO CAMPO ===
+        // Capturamos el valor que envía el JS. Si viene vacío, asignamos null.
+        $comentarioCotizacion = $request['ComentarioCotizacion'] ?? null;
+        if (empty($comentarioCotizacion)) {
+            $comentarioCotizacion = null;
+        }
+        // ===============================
+
         $solicitud = $this->api->getSolicitudById($idSolicitud);
         $cotizacionModel = new CotizacionModel();
         $tipoPago = MetodoPago::EnEspera;
@@ -808,78 +816,57 @@ class Api extends ResourceController
         if (!$solicitud) {
             return $this->failNotFound('La solicitud no existe.');
         }
-        // Validación de estado...
+
+        // Validar estado
         if ($solicitud['Estado'] !== Status::Cotizando) {
-            return $this->fail(
-                'La solicitud no está en estado "Cotizado".',
-                HttpStatus::BAD_REQUEST,
-            );
+            return $this->fail('La solicitud no está en estado "Cotizado".', HttpStatus::BAD_REQUEST);
         }
 
-        // Lógica de método de pago...
         switch ($request['tipo_pago']) {
-            case 'efectivo':
-                $tipoPago = MetodoPago::Efectivo;
-                break;
-            case 'credito':
-                $tipoPago = MetodoPago::Credito;
-                break;
+            case 'efectivo': $tipoPago = MetodoPago::Efectivo; break;
+            case 'credito': $tipoPago = MetodoPago::Credito; break;
         }
 
         try {
-            $idProveedorGanador = null; // Variable para guardar al ganador
+            $idProveedorGanador = null;
 
-            // CASO 1: Se seleccionó una cotización explícitamente (Múltiples proveedores)
+            // Lógica de selección de proveedor (Igual que tu código original)
             if ($idCotizacionSeleccionada) {
-                // 1. Obtener datos de la cotización ganadora para sacar el ID del proveedor
                 $cotizacionGanadora = $cotizacionModel->find($idCotizacionSeleccionada);
-
                 if ($cotizacionGanadora) {
-                    $idProveedorGanador = $cotizacionGanadora['ID_Proveedor']; // <--- CORRECCION: Obtenemos el ID
-
-                    // 2. Borrar las demás
-                    $cotizacionModel
-                        ->where('ID_Solicitud', $idSolicitud)
+                    $idProveedorGanador = $cotizacionGanadora['ID_Proveedor'];
+                    // Eliminar las no seleccionadas
+                    $cotizacionModel->where('ID_Solicitud', $idSolicitud)
                         ->where('ID_Cotizacion !=', $idCotizacionSeleccionada)
                         ->delete();
                 }
-            }
-            // CASO 2: No se envió selección (Era un único proveedor)
-            else {
-                // Buscamos la única cotización que debe existir
+            } else {
+                // Caso único proveedor
                 $cotizacionUnica = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
                 if ($cotizacionUnica) {
-                    $idProveedorGanador = $cotizacionUnica['ID_Proveedor']; // <--- CORRECCION: Lo obtenemos de la única existente
-                    // Actualizamos la variable para el guardado de archivos posterior
+                    $idProveedorGanador = $cotizacionUnica['ID_Proveedor'];
                     $idCotizacionSeleccionada = $cotizacionUnica['ID_Cotizacion'];
                 }
             }
 
-            // Si por alguna razón no encontramos proveedor, lanzamos error
             if (!$idProveedorGanador) {
                 return $this->failNotFound('No se pudo identificar el proveedor ganador.');
             }
 
-            // ACTUALIZAR LA SOLICITUD
+            // === ACTUALIZAR LA SOLICITUD ===
             $this->api->updateSolicitudById($idSolicitud, [
-                'Estado' => 'En revision',
-                'MetodoPago' => $tipoPago,
-                'ID_Proveedor' => $idProveedorGanador, // <--- CORRECCION CRÍTICA: Aquí asignamos el proveedor
+                'Estado'               => 'En revision',
+                'MetodoPago'           => $tipoPago,
+                'ID_Proveedor'         => $idProveedorGanador,
+                'ComentarioCotizacion' => $comentarioCotizacion, // <--- CAMPO AGREGADO
             ]);
 
-            // ... El resto de tu código de manejo de archivos se queda igual ...
+            // === PROCESAMIENTO DE ARCHIVOS (Igual que tu código original) ===
             $files = $this->request->getFiles();
             $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
 
             if ($files && isset($files['cotizacion_files'])) {
-                // Pequeña validación extra
-                // Nota: Aquí usabas getCotizacionBySolicitudID, ahora funcionará bien
-                // porque ya borramos las sobrantes o era única.
-
-                // Si $idCotizacionSeleccionada era null al principio, ya lo llenamos en el ELSE de arriba
                 $idCotizacion = $idCotizacionSeleccionada;
-
-                // Si por si acaso tu función getCotizacionBySolicitudID busca la única que queda:
                 if (!$idCotizacion) {
                     $cot = $this->api->getCotizacionBySolicitudID($idSolicitud);
                     $idCotizacion = $cot['ID_Cotizacion'];
@@ -887,14 +874,10 @@ class Api extends ResourceController
 
                 $tmp = [];
                 $count = 0;
-                // Aseguramos que sea iterable
-                $archivosAProcesar = is_array($files['cotizacion_files'])
-                    ? $files['cotizacion_files']
-                    : [$files['cotizacion_files']];
+                $archivosAProcesar = is_array($files['cotizacion_files']) ? $files['cotizacion_files'] : [$files['cotizacion_files']];
 
                 foreach ($archivosAProcesar as $file) {
-                    $baseFileName =
-                        'cotizacion_' . $idCotizacion . '_' . $solicitud['Fecha'] . '_' . $count++;
+                    $baseFileName = 'cotizacion_' . $idCotizacion . '_' . $solicitud['Fecha'] . '_' . $count++;
                     $savedFileName = ImageProcessor::processAndSave($file, $folder, $baseFileName);
                     if ($savedFileName) {
                         $tmp[] = $savedFileName;
@@ -906,10 +889,8 @@ class Api extends ResourceController
                 }
             }
 
-            return $this->respondUpdated([
-                'success' => true,
-                'message' => 'Solicitud enviada a revisión.',
-            ]);
+            return $this->respondUpdated(['success' => true, 'message' => 'Solicitud enviada a revisión.']);
+
         } catch (\Exception $e) {
             log_message('error', '[enviarSolicitudARevision] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado.');
