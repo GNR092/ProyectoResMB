@@ -371,6 +371,17 @@ function ListaPagos() {
       })
     },
 
+    formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      // Crea fecha y formatea a DD/MM/AAAA
+      const date = new Date(dateString);
+      return date.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    },
+
     exportarExcel() {
       let url = `${BASE_URL}api/pagos/exportar`
       if (this.filtroMetodoPago !== 'todos') {
@@ -425,6 +436,18 @@ function ListaPagos() {
         style: 'currency',
         currency: 'MXN',
       })
+    },
+
+    formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+
+      return date.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
     },
 
     exportarExcel() {
@@ -595,9 +618,12 @@ async function mostrarDetallePago(id) {
 
     if (!data) throw new Error("No se recibieron datos del servidor.");
 
+    const fechaAprobacion = (data.OrdenCompra && data.OrdenCompra.Fecha)
+        ? new Date(data.OrdenCompra.Fecha).toLocaleDateString('es-MX')
+        : 'Pendiente';
+
     const prov = data.proveedor || {};
 
-    // Helper para moneda
     const format = (val) => parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
 
     const totalFormateado = format(data.cotizacion?.Total);
@@ -607,7 +633,6 @@ async function mostrarDetallePago(id) {
             data.MetodoPago == 1 ? 'Crédito' :
                 data.MetodoPago == 9 ? 'En Espera' : 'N/A';
 
-    // 1. DETECTAR IVA Y TIPO
     const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
     const isServicio = data.Tipo == 2;
 
@@ -615,6 +640,7 @@ async function mostrarDetallePago(id) {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha solicitud:</strong> ${data.Fecha || 'N/A'}</div>
+                <div><strong>Fecha aprobación:</strong> ${fechaAprobacion}</div>
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
                 <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
                 <div><strong>Importe Total:</strong> <span class="font-bold text-lg text-blue-700">${totalFormateado}</span></div>
@@ -657,7 +683,6 @@ async function mostrarDetallePago(id) {
 
     if (data.productos && data.productos.length > 0) {
       data.productos.forEach((p) => {
-        // 2. CÁLCULOS POR FILA
         const cantidad = isServicio ? 1 : (parseFloat(p.Cantidad) || 0);
         const importeBase = parseFloat(p.Importe) || 0;
 
@@ -682,9 +707,7 @@ async function mostrarDetallePago(id) {
 
     html += `</tbody></table></div>`;
 
-    // Sección de adjuntos
     if (typeof generarSeccionAdjuntos === 'function') {
-      // Aseguramos compatibilidad de ID
       if(!data.ID_Solicitud && data.ID_Orden) data.ID_Solicitud = data.ID_Orden;
       html += generarSeccionAdjuntos(data);
     }
