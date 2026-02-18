@@ -22,7 +22,11 @@
                 <thead class="bg-gray-100">
                 <tr>
                     <th class="py-3 px-6 text-left">Folio Solicitud</th>
+                    <th class="py-3 px-6 text-left">Fecha Aprobación</th>
                     <th class="py-3 px-6 text-left">Razón Social</th>
+
+                    <th class="py-3 px-6 text-left">Departamento</th>
+
                     <th class="py-3 px-6 text-left">Proveedor</th>
                     <th class="py-3 px-6 text-right">Total a Pagar</th>
                     <th class="py-3 px-6 text-left">Método de Pago</th>
@@ -44,16 +48,18 @@
                 <template x-for="pago in pagosFiltrados" :key="pago.ID_Solicitud">
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 px-4 border-t" x-text="pago.No_Folio"></td>
+                        <td class="py-2 px-4 border-t" x-text="formatDate(pago.FechaOrden)"></td>
                         <td class="py-2 px-4 border-t" x-text="pago.RazonSocial"></td>
+
+                        <td class="py-2 px-4 border-t" x-text="pago.Departamento"></td>
+
                         <td class="py-2 px-4 border-t" x-text="pago.Proveedor"></td>
                         <td class="py-2 px-4 border-t text-right" x-text="formatCurrency(pago.Total)"></td>
                         <td class="py-2 px-4 border-t" x-text="pago.MetodoPago == '0' ? 'Contado' : 'Crédito'"></td>
                         <td class="py-2 px-4 border-t">
-                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" x-text="pago.Estado">
-                                </span>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" x-text="pago.Estado"></span>
                         </td>
                         <td class="py-2 px-4 border-t text-center">
-                            <!-- CAMBIO AQUÍ: Llamada a mostrarDetallePago en lugar de abrirModal -->
                             <button @click="mostrarDetallePago(pago.ID_Solicitud)" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">
                                 Ver
                             </button>

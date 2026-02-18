@@ -54,7 +54,7 @@ function abrirModal(opcion) {
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
 
-  const modalesAnchos = ['reportes', 'ver_historial']
+  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos']
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
     modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto')

@@ -2682,6 +2682,7 @@ class Api extends ResourceController
             return $this->failServerError('Ocurrió un error inesperado al programar los pagos.');
         }
     }
+
     public function getPagosProgramados()
     {
         $ordenCompraModel = new OrdenCompraModel();
@@ -2692,14 +2693,20 @@ class Api extends ResourceController
                 'Solicitud.No_Folio',
                 'Proveedor.RazonSocial as Proveedor',
                 'Razon_Social.Nombre as RazonSocial',
+                // AGREGAMOS ESTE CAMPO:
+                'Departamentos.Nombre as Departamento',
                 'Cotizacion.Total',
                 'OrdenCompra.Estado',
                 'Solicitud.MetodoPago',
+                'OrdenCompra.Fecha as FechaOrden'
             ])
             ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = OrdenCompra.ID_Proveedor', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            // AGREGAMOS ESTE JOIN:
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+
             ->where('OrdenCompra.Estado', Status::Programada)
             ->orderBy('Solicitud.Fecha', 'DESC')
             ->findAll();
