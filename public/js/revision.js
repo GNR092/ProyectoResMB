@@ -184,61 +184,64 @@ function RevisionX() {
       }
     },
 
-    VerDetalle: async function (idSolicitud) {
-      const divTabla = document.getElementById('div-tabla-enviar')
-      const divRevision = document.getElementById('div-enviar-revision')
-      const detallesContainer = document.getElementById('detalles-para-revision')
-      const form = document.getElementById('form-enviar-revision')
-      const btnConfirmar = document.getElementById('btn-confirmar-revision')
+      VerDetalle: async function (idSolicitud) {
+          const divTabla = document.getElementById('div-tabla-enviar')
+          const divRevision = document.getElementById('div-enviar-revision')
+          const detallesContainer = document.getElementById('detalles-para-revision')
+          const form = document.getElementById('form-enviar-revision')
+          const btnConfirmar = document.getElementById('btn-confirmar-revision')
 
-        const divFiltros = document.getElementById('contenedor-filtros-revision')
-        if (divFiltros) divFiltros.classList.add('hidden')
+          // Ocultar filtros si existen
+          const divFiltros = document.getElementById('contenedor-filtros-revision')
+          if (divFiltros) divFiltros.classList.add('hidden')
 
-      divTabla.classList.add('hidden')
-      divRevision.classList.remove('hidden')
-      detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>'
+          divTabla.classList.add('hidden')
+          divRevision.classList.remove('hidden')
+          detallesContainer.innerHTML = '<p class="text-center">Cargando detalles...</p>'
 
-      try {
-        const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
-          if (!data.cotizacion && data.ID_Proveedor) {
-              idprov = data.ID_Proveedor;
-          }
-        const isServicio = data.Tipo == 2
-        const isMultiple = data.cotizaciones && data.cotizaciones.length > 1
+          try {
+              const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
 
-        let estadoClass = getStatus(data.Estado)
+              // Lógica de respaldo: Si no hay objeto cotización, y hay ID_Proveedor en la raíz, lo usamos.
+              if (!data.cotizacion && data.ID_Proveedor) {
+                  idprov = data.ID_Proveedor;
+              }
 
-        let proveedorHtml = ''
-        let montoHtml = ''
+              const isServicio = data.Tipo == 2
+              const isMultiple = data.cotizaciones && data.cotizaciones.length > 1
+              let estadoClass = getStatus(data.Estado)
 
-          if (isMultiple) {
-              proveedorHtml = `
-            <div class="md:col-span-2">
-              <label for="proveedor-select" class="block text-sm font-medium text-gray-700"><strong>Proveedor (Múltiples cotizaciones):</strong></label>
-            </div>
-          `
-          } else {
-              // --- INICIO DEL CAMBIO ---
-              // Lógica de respaldo: Si no hay objeto cotización, usamos el de la solicitud raíz
+              // Lógica para determinar el nombre del proveedor a mostrar
               let proveedorNombre = 'N/A';
-
               if (data.cotizacion && data.cotizacion.ProveedorNombre) {
                   proveedorNombre = data.cotizacion.ProveedorNombre;
               } else if (data.RazonSocialNombre) {
-                  proveedorNombre = data.RazonSocialNombre; // Aquí tomamos "SANEAMIENTO SANA" del JSON raíz
+                  proveedorNombre = data.RazonSocialNombre;
+              } else if (data.ProveedorNombre) {
+                  proveedorNombre = data.ProveedorNombre;
               }
 
-              proveedorHtml = `<div><strong>Proveedor:</strong> ${proveedorNombre}</div>`
-              // --- FIN DEL CAMBIO ---
-          }
+              let proveedorHtml = ''
+              let montoHtml = '' // Nota: montoHtml estaba vacío en tu código original, lo mantengo así.
 
-        let html = `
+              if (isMultiple) {
+                  proveedorHtml = `
+            <div class="md:col-span-2">
+              <label for="proveedor-select" class="block text-sm font-medium text-gray-700"><strong>Proveedor (Múltiples cotizaciones):</strong></label>
+              </div>
+          `
+              } else {
+                  proveedorHtml = `<div><strong>Proveedor:</strong> ${proveedorNombre}</div>`
+              }
+
+              // --- CONSTRUCCIÓN DEL HTML ---
+              let html = `
            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
                 <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
                 <div><strong>Fecha:</strong> ${data.Fecha}</div>
                 <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${
                   data.Estado === 'Dept_Rechazada' ? 'Rechazada' : data.Estado || 'N/A'
-                }</span></div>
+              }</span></div>
                 <div><strong>Usuario:</strong> ${data.UsuarioNombre}</div>
                 <div><strong>Departamento:</strong> ${data.DepartamentoNombre}</div>
                 <div><strong>Complejo:</strong> ${data.Complejo}</div>
@@ -246,268 +249,289 @@ function RevisionX() {
                 ${montoHtml}
             </div>
         `
-        if (data.ComentariosAdmin) {
-          html += `
+
+              if (data.ComentariosAdmin) {
+                  html += `
                 <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
                     <h4 class="text-md font-bold text-red-700 mb-2">Comentarios / Motivo del Rechazo</h4>
                     <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosAdmin}</p>
                 </div>`
-        }
-        html += `
+              }
+
+              // === NUEVO INPUT: ComentarioCotizacion ===
+              // Insertado antes de la tabla de productos
+              html += `
+            <div class="mb-6">
+                <label for="input-comentario-cotizacion-main" class="block text-sm font-bold text-gray-700 mb-1">
+                    Comentarios de la Cotización <span class="text-gray-400 font-normal text-xs">(Opcional: detalles de entrega, notas del proveedor, etc.)</span>
+                </label>
+                <textarea 
+                    id="input-comentario-cotizacion-main" 
+                    rows="2" 
+                    class="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    placeholder="Escriba aquí los comentarios relacionados a la cotización..."></textarea>
+            </div>
+        `
+              // =========================================
+
+              html += `
                 <h4 class="text-md font-bold mb-2">${
                   isServicio ? 'Servicios' : 'Productos'
-                } Solicitados</h4>
+              } Solicitados</h4>
                 <div class="overflow-x-auto">
                     <table class="min-w-full border border-gray-300">
                         <thead class="bg-gray-100">
                             <tr>
                                 ${!isServicio ? '<th class="py-2 px-4 text-left">Código</th>' : ''}
                                 <th class="py-2 px-4 text-left">${
-                                  isServicio ? 'Servicio' : 'Producto'
-                                }</th>
+                  isServicio ? 'Servicio' : 'Producto'
+              }</th>
                                 ${
-                                  !isServicio
-                                    ? '<th class="py-2 px-4 text-right">Cantidad</th>'
-                                    : ''
-                                }
+                  !isServicio
+                      ? '<th class="py-2 px-4 text-right">Cantidad</th>'
+                      : ''
+              }
                                 <th class="py-2 px-4 text-right">Importe</th>
                                 ${
-                                  !isServicio
-                                    ? '<th class="py-2 px-4 text-right">Costo Total</th>'
-                                    : ''
-                                }
+                  !isServicio
+                      ? '<th class="py-2 px-4 text-right">Costo Total</th>'
+                      : ''
+              }
                             </tr>
                         </thead>
                         <tbody>
             `
-        data.productos.forEach((p) => {
-          const costoTotal = !isServicio ? (p.Cantidad * p.Importe).toFixed(2) : ''
-          html += `
+              data.productos.forEach((p) => {
+                  const costoTotal = !isServicio ? (p.Cantidad * p.Importe).toFixed(2) : ''
+                  html += `
                     <tr class="hover:bg-gray-50">
                         ${
-                          !isServicio ? `<td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>` : ''
-                        }
+                      !isServicio ? `<td class="py-2 px-4 border-t">${p.Codigo || 'N/A'}</td>` : ''
+                  }
                         <td class="py-2 px-4 border-t">${p.Nombre}</td>
                         ${
-                          !isServicio
-                            ? `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>`
-                            : ''
-                        }
+                      !isServicio
+                          ? `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>`
+                          : ''
+                  }
                         <td class="py-2 px-4 border-t text-right">${parseFloat(p.Importe).toFixed(
-                          2,
-                        )}</td>
+                      2,
+                  )}</td>
                         ${
-                          !isServicio
-                            ? `<td class="py-2 px-4 border-t text-right">${costoTotal}</td>`
-                            : ''
-                        }
+                      !isServicio
+                          ? `<td class="py-2 px-4 border-t text-right">${costoTotal}</td>`
+                          : ''
+                  }
                     </tr>
                 `
-        })
+              })
 
-        html += `
+              html += `
                         </tbody>
                     </table>
                 </div>
             `
-        if (data.ComentariosUser) {
-          html += `
+
+              if (data.ComentariosUser) {
+                  html += `
                 <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
-                    <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                    <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias (Usuario)</h4>
                     <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
                 </div>`
-        }
-        if (data.Archivo) {
-          const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
-          html += `
+              }
+
+              if (data.Archivo) {
+                  const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
+                  html += `
                     <div class="mt-6">
                         <h4 class="text-md font-bold mb-2">Archivo Adjunto (Solicitante)</h4>
                         <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
                     </div>
                 `
-        }
-        html += `
+              }
+
+              html += `
                 <div class="mt-6">
                     <button onclick="mostrarVerPdf(${idSolicitud})" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Ver PDF</button>
                     <button @click="mostrarModalModificarMontos(${idSolicitud})" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Modificar valores</button>
-                 <button onclick="globalCancelarSolicitud(${idSolicitud}, () => document.getElementById('btn-regresar-revision').click())" 
-                  class="px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition ml-2">
-                  Cancelar Solicitud
-                </button>
+                    <button onclick="globalCancelarSolicitud(${idSolicitud}, () => document.getElementById('btn-regresar-revision').click())" 
+                    class="px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition ml-2">
+                    Cancelar Solicitud
+                    </button>
                 </div>
                 `
-        detallesContainer.innerHTML = html
+              detallesContainer.innerHTML = html
 
-        if (isMultiple) {
-          // No se desea el listener para el selector de proveedor, y el elemento no se está creando.
-          // Solo se mantiene la inicialización del estado del crédito para múltiples proveedores.
-          this.validarOpcionCredito({})
-        } else {
-          // For single provider
-          this.validarOpcionCredito(data)
-        }
-
-        const checkboxInput = document.getElementById('adjuntar-solicitante-check')
-        const checkboxLabel = document.getElementById('adjuntar-solicitante-label')
-        const inputArchivos = document.getElementById('archivos-revision')
-
-        if (checkboxInput && checkboxLabel && inputArchivos) {
-          checkboxInput.checked = false
-          checkboxInput.disabled = false
-          inputArchivos.disabled = false
-          inputArchivos.value = ''
-          inputArchivos.classList.remove('bg-gray-100', 'cursor-not-allowed')
-       //   checkboxLabel.textContent = 'Adjuntar solo la cotización del solicitante'
-          checkboxLabel.classList.remove('text-gray-500', 'cursor-not-allowed')
-
-          if (!data.Archivo) {
-          //  checkboxInput.disabled = true
-          //  checkboxLabel.textContent += ' (No disponible)'
-
-          //  checkboxLabel.classList.add('text-red-700', 'cursor-not-allowed')
-          //  checkboxInput.classList.add(
-          //    'cursor-not-allowed',
-          //    'bg-red-100',
-          //    'border-red-400',
-          //    'accent-red-500',
-          //  )
-            checkboxInput.classList.remove('text-indigo-600', 'focus:ring-indigo-500')
-          } else {
-            checkboxInput.onchange = (e) => {
-              inputArchivos.disabled = e.target.checked
-              inputArchivos.classList.toggle('bg-gray-100', e.target.checked)
-              inputArchivos.classList.toggle('cursor-not-allowed', e.target.checked)
-              if (e.target.checked) {
-                inputArchivos.value = ''
-              }
-            }
-          }
-        }
-
-        const radioCredito = form.querySelector('input[name="tipo_pago"][value="credito"]')
-        if (radioCredito) {
-          radioCredito.onclick = () => {
-            if (isMultiple) {
-              const selectedCotizacion = data.cotizaciones.find(
-                (cot) => cot.ID_Cotizacion == document.getElementById('proveedor-select').value,
-              )
-              if (selectedCotizacion)
-                this.validarOpcionCredito({ ID_Proveedor: selectedCotizacion.ID_Proveedor })
-            } else {
-              this.validarOpcionCredito(data)
-            }
-          }
-        }
-
-        form.onsubmit = async (e) => {
-          e.preventDefault()
-
-          const tipoPagoRadio = document.querySelector('input[name="tipo_pago"]:checked')
-
-          if (!tipoPagoRadio) {
-            mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error')
-            return
-          }
-
-          if (tipoPagoRadio.value === 'credito') {
-            const diasCredito = await this._getDiasDeCredito(data)
-
-            if (diasCredito <= 0) {
-              mostrarNotificacion(
-                'No se puede enviar: El proveedor no tiene crédito aprobado.',
-                'error',
-              )
-              return
-            }
-          }
-
-          if (
-            !(await Confirmar(
-              'Enviar a revisión',
-              '¿Está seguro de que desea enviar la solicitud a revisión? Esta acción es irreversible y las cotizaciones no seleccionadas serán eliminadas.',
-            ))
-          ) {
-            return
-          }
-
-          const formData = new FormData()
-          formData.append('ID_Solicitud', idSolicitud)
-
-          const selectedCotizacionId = document.getElementById('proveedor-select')?.value
-          if (selectedCotizacionId) {
-            formData.append('id_cotizacion_seleccionada', selectedCotizacionId)
-          } else if (isMultiple) {
-            mostrarNotificacion('Por favor, seleccione una cotización de la lista.', 'error')
-            return
-          }
-
-          const adjuntarSoloSolicitante =
-            document.getElementById('adjuntar-solicitante-check')?.checked || false
-          const archivos = document.getElementById('archivos-revision').files
-
-          if (!adjuntarSoloSolicitante && archivos.length === 0) {
-            mostrarNotificacion(
-              'Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.',
-              'error',
-            )
-            return
-          }
-
-          if (!adjuntarSoloSolicitante && archivos.length > 0) {
-            for (let i = 0; i < archivos.length; i++) {
-              formData.append('cotizacion_files[]', archivos[i])
-            }
-          }
-
-          const tipoPago = document.querySelector('input[name="tipo_pago"]:checked')
-          if (!tipoPago) {
-            mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error')
-            return
-          }
-          formData.append('tipo_pago', tipoPago.value)
-
-          formData.append('usar_archivo_solicitante', adjuntarSoloSolicitante)
-
-          btnConfirmar.disabled = true
-          btnConfirmar.textContent = 'Enviando...'
-
-          try {
-            const result = await SendDataEnd('api/solicitud/enviar-revision', {
-              method: 'POST',
-              body: formData,
-            })
-
-            if (result.success) {
-              mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success')
-              this.regresar()
-              this.loadTable()
-            } else {
-              if (
-                !adjuntarSoloSolicitante &&
-                archivos.length === 0 &&
-                result.message &&
-                result.message.includes('archivo')
-              ) {
-                mostrarNotificacion(
-                  'Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.',
-                  'error',
-                )
+              // --- VALIDACIONES DE CRÉDITO Y PROVEEDOR ---
+              if (isMultiple) {
+                  this.validarOpcionCredito({})
               } else {
-                mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error')
+                  this.validarOpcionCredito(data)
               }
-            }
+
+              // --- RESETEO DEL FORMULARIO INFERIOR ---
+              const checkboxInput = document.getElementById('adjuntar-solicitante-check')
+              const checkboxLabel = document.getElementById('adjuntar-solicitante-label')
+              const inputArchivos = document.getElementById('archivos-revision')
+
+              // También limpiamos el nuevo input si existe (para que no tenga datos viejos)
+              const nuevoInputComentario = document.getElementById('input-comentario-cotizacion-main');
+              if (nuevoInputComentario) nuevoInputComentario.value = '';
+
+              if (checkboxInput && checkboxLabel && inputArchivos) {
+                  checkboxInput.checked = false
+                  checkboxInput.disabled = false
+                  inputArchivos.disabled = false
+                  inputArchivos.value = ''
+                  inputArchivos.classList.remove('bg-gray-100', 'cursor-not-allowed')
+                  checkboxLabel.classList.remove('text-gray-500', 'cursor-not-allowed')
+
+                  if (!data.Archivo) {
+                      checkboxInput.classList.remove('text-indigo-600', 'focus:ring-indigo-500')
+                      // Aquí tenías código comentado en tu versión original, lo dejo limpio.
+                  } else {
+                      checkboxInput.onchange = (e) => {
+                          inputArchivos.disabled = e.target.checked
+                          inputArchivos.classList.toggle('bg-gray-100', e.target.checked)
+                          inputArchivos.classList.toggle('cursor-not-allowed', e.target.checked)
+                          if (e.target.checked) {
+                              inputArchivos.value = ''
+                          }
+                      }
+                  }
+              }
+
+              // Listener para cambio de tipo de pago (si es múltiple proveedor)
+              const radioCredito = form.querySelector('input[name="tipo_pago"][value="credito"]')
+              if (radioCredito) {
+                  radioCredito.onclick = () => {
+                      if (isMultiple) {
+                          const selectedCotizacion = data.cotizaciones.find(
+                              (cot) => cot.ID_Cotizacion == document.getElementById('proveedor-select').value,
+                          )
+                          if (selectedCotizacion)
+                              this.validarOpcionCredito({ ID_Proveedor: selectedCotizacion.ID_Proveedor })
+                      } else {
+                          this.validarOpcionCredito(data)
+                      }
+                  }
+              }
+
+              // --- ENVÍO DEL FORMULARIO ---
+              form.onsubmit = async (e) => {
+                  e.preventDefault()
+
+                  const tipoPagoRadio = document.querySelector('input[name="tipo_pago"]:checked')
+
+                  if (!tipoPagoRadio) {
+                      mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error')
+                      return
+                  }
+
+                  if (tipoPagoRadio.value === 'credito') {
+                      const diasCredito = await this._getDiasDeCredito(data)
+
+                      if (diasCredito <= 0) {
+                          mostrarNotificacion(
+                              'No se puede enviar: El proveedor no tiene crédito aprobado.',
+                              'error',
+                          )
+                          return
+                      }
+                  }
+
+                  if (
+                      !(await Confirmar(
+                          'Enviar a revisión',
+                          '¿Está seguro de que desea enviar la solicitud a revisión? Esta acción es irreversible y las cotizaciones no seleccionadas serán eliminadas.',
+                      ))
+                  ) {
+                      return
+                  }
+
+                  const formData = new FormData()
+                  formData.append('ID_Solicitud', idSolicitud)
+
+                  const selectedCotizacionId = document.getElementById('proveedor-select')?.value
+                  if (selectedCotizacionId) {
+                      formData.append('id_cotizacion_seleccionada', selectedCotizacionId)
+                  } else if (isMultiple) {
+                      mostrarNotificacion('Por favor, seleccione una cotización de la lista.', 'error')
+                      return
+                  }
+
+                  // === CAPTURAR NUEVO CAMPO ===
+                  const comentarioCotizacionVal = document.getElementById('input-comentario-cotizacion-main')?.value || '';
+                  formData.append('ComentarioCotizacion', comentarioCotizacionVal);
+                  // ============================
+
+                  const adjuntarSoloSolicitante =
+                      document.getElementById('adjuntar-solicitante-check')?.checked || false
+                  const archivos = document.getElementById('archivos-revision').files
+
+                  if (!adjuntarSoloSolicitante && archivos.length === 0) {
+                      mostrarNotificacion(
+                          'Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.',
+                          'error',
+                      )
+                      return
+                  }
+
+                  if (!adjuntarSoloSolicitante && archivos.length > 0) {
+                      for (let i = 0; i < archivos.length; i++) {
+                          formData.append('cotizacion_files[]', archivos[i])
+                      }
+                  }
+
+                  const tipoPago = document.querySelector('input[name="tipo_pago"]:checked')
+                  if (!tipoPago) {
+                      mostrarNotificacion('Por favor, seleccione un tipo de pago.', 'error')
+                      return
+                  }
+                  formData.append('tipo_pago', tipoPago.value)
+
+                  formData.append('usar_archivo_solicitante', adjuntarSoloSolicitante)
+
+                  btnConfirmar.disabled = true
+                  btnConfirmar.textContent = 'Enviando...'
+
+                  try {
+                      const result = await SendDataEnd('api/solicitud/enviar-revision', {
+                          method: 'POST',
+                          body: formData,
+                      })
+
+                      if (result.success) {
+                          mostrarNotificacion(result.message || 'Solicitud enviada a revisión.', 'success')
+                          this.regresar()
+                          this.loadTable()
+                      } else {
+                          if (
+                              !adjuntarSoloSolicitante &&
+                              archivos.length === 0 &&
+                              result.message &&
+                              result.message.includes('archivo')
+                          ) {
+                              mostrarNotificacion(
+                                  'Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.',
+                                  'error',
+                              )
+                          } else {
+                              mostrarNotificacion(result.message || 'Error al enviar a revisión.', 'error')
+                          }
+                      }
+                  } catch (error) {
+                      console.error('Error:', error)
+                      mostrarNotificacion('Error de red al enviar a revisión.', 'error')
+                  } finally {
+                      btnConfirmar.disabled = false
+                      btnConfirmar.textContent = 'Solicitar Autorización'
+                  }
+              }
           } catch (error) {
-            console.error('Error:', error)
-            mostrarNotificacion('Error de red al enviar a revisión.', 'error')
-          } finally {
-            btnConfirmar.disabled = false
-            btnConfirmar.textContent = 'Solicitar Autorización'
+              detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`
           }
-        }
-      } catch (error) {
-        detallesContainer.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`
-      }
-    },
+      },
 
       regresar: function () {
           idprov = null
@@ -566,9 +590,13 @@ function RevisionX() {
           const formModificar = document.getElementById('form-modificar-montos')
           const idSolicitudInput = document.getElementById('modificar_id_solicitud')
           const proveedorSelectContainer = document.getElementById('proveedor-select-container')
+          const cuentaSelectContainer = document.getElementById('cuenta-select-container')
 
           // Referencia al checkbox de IVA
           const ivaCheckbox = document.getElementById('modificar_iva')
+
+          // Referencia al input de comentarios que se borraba
+          const inputComentariosModificar = document.getElementById('modificar_comentarios')
 
           const subtotalEl = document.getElementById('subtotal-modificar')
           const totalEl = document.getElementById('total-modificar')
@@ -578,25 +606,32 @@ function RevisionX() {
               return
           }
 
+          // Reset UI
           idSolicitudInput.value = idSolicitud
           productosContainer.innerHTML = '<p class="text-center text-gray-500">Cargando productos...</p>'
           proveedorSelectContainer.innerHTML = ''
-          document.getElementById('cuenta-select-container').innerHTML = '';
+          if (cuentaSelectContainer) cuentaSelectContainer.innerHTML = '';
           modalModificar.classList.remove('hidden')
 
           try {
               const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`)
               if (data.error) throw new Error(data.error)
 
+              // === CORRECCIÓN DEL BUG: Pre-llenar comentarios ===
+              if (inputComentariosModificar) {
+                  // Si data.ComentariosUser es null, pone string vacío
+                  inputComentariosModificar.value = data.ComentariosUser || '';
+              }
+              // ==================================================
+
               const isServicio = data.Tipo == 2;
               const cotizacionesData = data.cotizaciones || []
 
-              // Inicializar el checkbox.
-              // Si la solicitud ya tenía IVA (1 o true), marcamos la casilla "Más IVA" por defecto.
-              // Si era 0, la dejamos desmarcada (IVA incluido o exento).
+              // Inicializar el checkbox de IVA
+              // Si la solicitud ya tenía IVA (1 o true), marcamos la casilla.
               ivaCheckbox.checked = (data.IVA == 1 || data.IVA === true || data.IVA === 't');
 
-              // --- LÓGICA DE CÁLCULO ACTUALIZADA ---
+              // --- LÓGICA DE CÁLCULO ---
               function actualizarTotalesModificar() {
                   let sumaInputs = 0
 
@@ -643,7 +678,6 @@ function RevisionX() {
               ivaCheckbox.onchange = actualizarTotalesModificar;
 
               // --- MANEJO DE PROVEEDORES ---
-              // --- MANEJO DE PROVEEDORES ---
               if (cotizacionesData.length > 1) {
                   // CASO 1: Hay múltiples cotizaciones -> Mostrar Select
                   let selectHtml =
@@ -665,7 +699,7 @@ function RevisionX() {
                       )
                       if (selectedCotizacion) {
                           idprov = selectedCotizacion.ID_Proveedor
-                          this.cargarCuentasProveedor(idprov);
+                          this.cargarCuentasProveedor(idprov); // Nota: Asegúrate de tener esta función en tu objeto o usar `RevisionX().cargarCuentasProveedor`
                       } else {
                           idprov = null;
                           this.cargarCuentasProveedor(null);
@@ -680,7 +714,6 @@ function RevisionX() {
 
               } else if (data.ID_Proveedor) {
                   // CASO 3 (EL ARREGLO): No hay array de cotizaciones, pero la solicitud tiene proveedor directo
-                  // Esto arregla el fallo con la solicitud ID 121 (SANEAMIENTO SANA)
                   idprov = data.ID_Proveedor;
                   this.cargarCuentasProveedor(idprov);
               }

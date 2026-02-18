@@ -1433,6 +1433,27 @@ window.mostrarVerDictamen = async function(idSolicitud) {
 
     html += generarProductosServiciosHTML(data)
 
+    if (data.ComentariosUser) {
+      html += `
+            <div class="mt-4">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Comentarios del Usuario:</label>
+                <div class="p-3 bg-gray-50 border border-gray-200 rounded-md text-gray-800 text-sm whitespace-pre-wrap">
+                    ${data.ComentariosUser}
+                </div>
+            </div>`
+    }
+
+    // 2. Comentarios de la Cotización (Solo lectura)
+    if (data.ComentarioCotizacion) {
+      html += `
+            <div class="mt-4">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Comentarios de la Cotización:</label>
+                <div class="p-3 bg-blue-50 border border-blue-200 rounded-md text-gray-800 text-sm whitespace-pre-wrap">
+                    ${data.ComentarioCotizacion}
+                </div>
+            </div>`
+    }
+
     html += generarSeccionAdjuntos(data);
 
     // Solo mostrar botones de acción si la solicitud está 'En revision'
