@@ -151,10 +151,11 @@ class Archivo extends BaseController
                 }
             }
             // CORRECCIÓN 1: Usar la constante Status::Cotizando para evitar fallos lógicos
+            // 1. Usamos la constante para asegurar que siempre entre al bloque
             if ($estadoInicial === Status::Cotizando || $estadoInicial === 'Cotizando') {
                 $cotizacionModel = new CotizacionModel();
 
-                // CORRECCIÓN 2: Cálculo del total (multiplicando por cantidad si existe)
+                // Calculamos el total
                 $total = 0;
                 foreach ($datosProductos as $p) {
                     $cantidad = isset($p['Cantidad']) ? (float) $p['Cantidad'] : 1;
@@ -162,51 +163,49 @@ class Archivo extends BaseController
                     $total += ($cantidad * $importe);
                 }
 
+                // ==========================================
+                // PASO A: CREACIÓN GARANTIZADA DE COTIZACIÓN
+                // ==========================================
                 if (!empty($proveedor_id)) {
-                    $razonSocialModel = new RazonSocialModel();
-                    $proveedorModel = new ProveedorModel();
-
-                    $solicitudData = $solicitud->find($solicitudId);
-                    $razon = $razonSocialModel->find($solicitudData['ID_RazonSocial']);
-                    $razonNombre = $razon['Nombre'] ?? '';
-
-                    $pdf = new GenerarPDF();
-                    $pdf->generarYGuardarRequisicion($solicitudId);
-                    $attachmentPath = FPath::FPDF . 'Requisicion-MBSP-' . $solicitudId . '.pdf';
-
-                    $db = \Config\Database::connect();
-                    $db->transStart();
-
-                    $mail = new MBSMail();
+                    // Hay proveedor: Creamos cotizaciones reales
                     $idProveedores = is_array($proveedor_id) ? $proveedor_id : [$proveedor_id];
-
                     foreach ($idProveedores as $idProv) {
-                        $idProveedor = (int) $idProv;
-                        $proveedor = $proveedorModel->find($idProveedor);
-
-                        $cotizacionData = [
+                        $cotizacionModel->insert([
                             'ID_Solicitud' => $solicitudId,
-                            'ID_Proveedor' => $idProveedor,
+                            'ID_Proveedor' => (int) $idProv,
                             'Total' => $total,
                             'ID_Usuario_Cotiza' => $user['ID_Usuario'],
-                        ];
-                        $cotizacionModel->insert($cotizacionData);
+                        ]);
                     }
-
-                    $db->transComplete();
-                }
-                else {
-                    // === CORRECCIÓN 3: Descomentar y habilitar la cotización ficticia ===
-                    // Esto permite que el INNER JOIN de la siguiente vista encuentre el registro
-                    $cotizacionData = [
+                } else {
+                    // No hay proveedor: Creamos la cotización ficticia
+                    $cotizacionModel->insert([
                         'ID_Solicitud' => $solicitudId,
-                        'ID_Proveedor' => null, // No hay proveedor aún
+                        'ID_Proveedor' => null,
                         'Total' => $total,
                         'ID_Usuario_Cotiza' => $user['ID_Usuario'],
-                    ];
-                    $cotizacionModel->insert($cotizacionData);
+                    ]);
+                }
+
+                // ==========================================
+                // PASO B: GENERAR PDF (Aislado de la BD)
+                // ==========================================
+                if (!empty($proveedor_id)) {
+                    try {
+                        // Ponemos esto en un Try-Catch.
+                        // Si el PDF falla, la cotización de arriba NO se borra.
+                        $pdf = new GenerarPDF();
+                        $pdf->generarYGuardarRequisicion($solicitudId);
+
+                        // Aquí iba la lógica de correos ($mail = new MBSMail();)
+
+                    } catch (\Exception $e) {
+                        // Registramos el error en el servidor, pero el usuario no sufre
+                        log_message('error', '[Solicitud subir] Error al generar PDF/Correo: ' . $e->getMessage());
+                    }
                 }
             }
+
             $adjunto = $this->request->getFile('archivo');
             if ($adjunto && $adjunto->isValid()) {
                 $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
