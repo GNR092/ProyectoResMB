@@ -846,6 +846,9 @@ class Api extends ResourceController
                 if ($cotizacionUnica) {
                     $idProveedorGanador = $cotizacionUnica['ID_Proveedor'];
                     $idCotizacionSeleccionada = $cotizacionUnica['ID_Cotizacion'];
+                } else if (!empty($solicitud['ID_Proveedor'])) {
+                    // LÓGICA DE RESPALDO: Si no hay registro de cotización, pero la solicitud ya tiene proveedor
+                    $idProveedorGanador = $solicitud['ID_Proveedor'];
                 }
             }
 
