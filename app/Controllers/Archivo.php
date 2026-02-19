@@ -195,16 +195,16 @@ class Archivo extends BaseController
 
                     $db->transComplete();
                 } 
-                // else {
-                //     // Crear cotización ficticia si no hay proveedor
-                //     $cotizacionData = [
-                //         'ID_Solicitud' => $solicitudId,
-                //         'ID_Proveedor' => null,
-                //         'Total' => $total,
-                //         'ID_Usuario_Cotiza' => $user['ID_Usuario'],
-                //     ];
-                //     $cotizacionModel->insert($cotizacionData);
-                // }
+                 else {
+                     // Crear cotización ficticia si no hay proveedor
+                     $cotizacionData = [
+                         'ID_Solicitud' => $solicitudId,
+                         'ID_Proveedor' => null,
+                         'Total' => $total,
+                         'ID_Usuario_Cotiza' => $user['ID_Usuario'],
+                     ];
+                     $cotizacionModel->insert($cotizacionData);
+                 }
             }
             $adjunto = $this->request->getFile('archivo');
             if ($adjunto && $adjunto->isValid()) {
