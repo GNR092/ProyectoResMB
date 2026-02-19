@@ -1345,7 +1345,8 @@ class Rest
     {
         $proveedorModel = new ProveedorModel();
         $results = $proveedorModel
-            ->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC')
+            // ¡Aquí está la magia! Agregamos Dias_Credito y Monto_Credito
+            ->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC, Dias_Credito, Monto_Credito')
             ->orderBy('RazonSocial', 'ASC')
             ->findAll();
         return $results;
@@ -1375,6 +1376,7 @@ class Rest
         return $results;
     }
     public function getDepartmentById(int $id): ?array
+
     {
         $departamentosModel = new DepartamentosModel();
         $result = $departamentosModel->find($id);

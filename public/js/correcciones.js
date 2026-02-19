@@ -190,82 +190,69 @@ async function cargarEditorMaestro(idSolicitud, folio) {
 /**
  * RENDERIZADO DEL FORMULARIO CON CARGA DE ARCHIVOS VISUAL
  */
-
 function renderizarInputsDios(data, container, listaProveedores = [], listaRazones = []) {
     const sol = data.solicitud || data;
     const orden = data.OrdenCompra || {};
     const coti = data.cotizacion || {};
 
-    // ------------------------------------------------------------------------
-    // 0. CORRECCIÓN DEFINITIVA DE ESTADO VISUAL
-    // ------------------------------------------------------------------------
+    // 0. ESTADO VISUAL
     let estadoVisual = sol.Estado;
-
-    // Si la Solicitud ya cruzó el umbral de "Aprobada", el estado REAL vive en la Orden.
     if (sol.Estado === 'Aprobada' && orden && orden.Estado) {
         estadoVisual = orden.Estado;
     }
 
-    // 1. REGLAS DE BLOQUEO (ACTUALIZADO: Precios libres hasta que esté Pagada)
+    // 1. REGLAS DE BLOQUEO (Actualizado para liberar Espera_Programacion)
     const REGLAS_BLOQUEO = {
-        // Estados Iniciales (Todo libre)
         'En espera':            { financiero: false, control: false },
         'Cotizando':            { financiero: false, control: false },
         'Rechazada':            { financiero: false, control: false },
         'En revision':          { financiero: false, control: false },
         'Aprobacion pendiente': { financiero: false, control: false },
-
-        // Estados Intermedios (Precios LIBRES, Metadatos Bloqueados)
-        'Aprobada':             { financiero: false, control: false }, // Antes true
-        'Espera_Programacion':  { financiero: false, control: true },  // Antes true
-        'Programada':           { financiero: false, control: true },  // Antes true
-        'Por Pagar':            { financiero: false, control: true },  // Antes true
-
-        // Estado Final (Todo Bloqueado)
+        'Aprobada':             { financiero: false, control: false },
+        'Espera_Programacion':  { financiero: false, control: false }, // <-- CAMBIO: Liberado el control
+        'Programada':           { financiero: false, control: true },
+        'Por Pagar':            { financiero: false, control: true },
         'Pagada':               { financiero: true,  control: true }
     };
 
-    // Si el estado no está en la lista, asumimos bloqueo total por seguridad
     const reglas = REGLAS_BLOQUEO[estadoVisual] || { financiero: true, control: true };
-
     const disabledFinanciero = reglas.financiero ? 'disabled' : '';
     const classFinanciero    = reglas.financiero ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white';
-
-    // Control se refiere a Fechas y Método de Pago (se mantienen bloqueados en etapas avanzadas)
     const disabledControl    = reglas.control ? 'disabled' : '';
     const classControl       = reglas.control ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white';
-
-    const disabledArchivos   = '';
     const classArchivos      = 'grid';
 
-    // Preparación de Selects
+    // 2. PREPARACIÓN DE SELECT PROVEEDORES
     let idProveedorActual = sol.ID_Proveedor;
     if (!idProveedorActual && data.proveedor) idProveedorActual = data.proveedor.ID_Proveedor;
 
-    let htmlProv = `<option value="">-- Seleccionar --</option>`;
+    let htmlProv = `<option value="" data-credito="0">-- Seleccionar --</option>`;
     listaProveedores.forEach(p => {
         const selected = (p.ID_Proveedor == idProveedorActual) ? 'selected' : '';
-        htmlProv += `<option value="${p.ID_Proveedor}" ${selected}>${p.RazonSocial}</option>`;
+        const diasRaw = p.Dias_Credito !== undefined ? p.Dias_Credito : (p.dias_credito || 0);
+        const dias = parseFloat(diasRaw);
+        const tieneCredito = (dias > 0) ? '1' : '0';
+        htmlProv += `<option value="${p.ID_Proveedor}" data-credito="${tieneCredito}" ${selected}>${p.RazonSocial}</option>`;
     });
 
     let idRazonActual = sol.ID_RazonSocial;
     let htmlRazon = `<option value="">-- Seleccionar Proyecto --</option>`;
     listaRazones.forEach(r => {
-        const idR = r.ID_RazonSocial;
-        const selected = (idR == idRazonActual) ? 'selected' : '';
-        htmlRazon += `<option value="${idR}" ${selected}>${r.Nombre} (${r.RFC || ''})</option>`;
+        const selected = (r.ID_RazonSocial == idRazonActual) ? 'selected' : '';
+        htmlRazon += `<option value="${r.ID_RazonSocial}" ${selected}>${r.Nombre} (${r.RFC || ''})</option>`;
     });
 
     const tieneIva = (sol.IVA == 1 || sol.IVA === 't' || sol.IVA === true);
     const checkedIva = tieneIva ? 'checked' : '';
     const productos = Array.isArray(data.productos) ? data.productos : (Array.isArray(data.servicios) ? data.servicios : []);
     const valorFechaRef = (orden.Fecha) ? orden.Fecha.split(' ')[0] : (sol.Fecha_Pago_Programado ? sol.Fecha_Pago_Programado.split(' ')[0] : '');
+    const fechaRegistroVista = sol.Fecha ? sol.Fecha.split(' ')[0] : ''; // Para la fecha estática
 
     const baseInputClass = "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xs text-gray-700";
     const labelClass = "block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide";
     const sectionClass = "bg-white shadow rounded-lg p-6 border border-gray-200 mb-6";
 
-    // Adjuntos previos
+    // Adjuntos
     let htmlAdjuntos = '';
     if (typeof generarSeccionAdjuntos === 'function') {
         try {
@@ -302,9 +289,25 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
                     <option value="Pagada">Pagada</option>
                 </select>
             </div>
-            <div><label class="${labelClass}">Método Pago</label><select name="MetodoPago" ${disabledControl} class="${baseInputClass} ${classControl}"><option value="${sol.MetodoPago}" selected>Actual: ${sol.MetodoPago}</option><option value="0">Contado</option><option value="1">Crédito</option></select></div>
-            <div><label class="${labelClass}">Fecha Registro</label><input type="date" name="Fecha" value="${sol.Fecha ? sol.Fecha.split(' ')[0] : ''}" ${disabledControl} class="${baseInputClass} ${classControl}"></div>
-            <div><label class="${labelClass} text-blue-700">Fecha Ref. Pago</label><input type="date" name="Fecha_Pago_Programado" value="${valorFechaRef}" ${disabledControl} class="${baseInputClass} bg-blue-50 border-blue-200 ${classControl}"></div>
+            <div>
+                <label class="${labelClass}">Método Pago</label>
+                <select name="MetodoPago" id="select-metodo-pago" ${disabledControl} class="${baseInputClass} ${classControl}">
+                    <option value="${sol.MetodoPago}" selected>Actual: ${sol.MetodoPago == 1 ? 'Crédito' : 'Contado'}</option>
+                    <option value="0">Contado</option>
+                    <option value="1">Crédito</option>
+                </select>
+            </div>
+            <div>
+                <label class="${labelClass}">Fecha Registro</label>
+                <div class="${baseInputClass} bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 shadow-none font-mono">
+                    ${fechaRegistroVista || 'N/A'}
+                </div>
+                <input type="hidden" name="Fecha" value="${fechaRegistroVista}">
+            </div>
+            <div>
+                <label class="${labelClass} text-blue-700">Fecha Ref. Pago</label>
+                <input type="date" name="Fecha_Pago_Programado" value="${valorFechaRef}" ${disabledControl} class="${baseInputClass} bg-blue-50 border-blue-200 ${classControl}">
+            </div>
         </div>
     </div>
 
@@ -313,7 +316,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="${labelClass} text-indigo-700">Proveedor Asignado <span class="text-red-500">*</span></label>
-                <select name="ID_Proveedor" id="select-proveedor-maestro" ${disabledFinanciero} class="${baseInputClass} border-indigo-200 ${classFinanciero}">${htmlProv}</select>
+                <select name="ID_Proveedor" id="select-proveedor-maestro" onchange="window.validarCreditoProveedor()" ${disabledFinanciero} class="${baseInputClass} border-indigo-200 ${classFinanciero}">${htmlProv}</select>
             </div>
             <div><label class="${labelClass} text-green-700">Proyecto</label><select name="ID_RazonSocial" ${disabledFinanciero} class="${baseInputClass} border-green-200 ${classFinanciero}">${htmlRazon}</select></div>
         </div>
@@ -345,21 +348,63 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
             ${htmlAdjuntos || '<span class="text-xs text-gray-400">Sin adjuntos previos.</span>'}
         </div>
         <div class="${classArchivos} grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-100">
-            <div><label class="block text-xs font-bold text-green-600 mb-2">Nueva Cotización (Múltiple)</label><div id="preview-cotizacion" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 hover:bg-green-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
+            <div><label class="block text-xs font-bold text-green-600 mb-2">Nueva Cotización</label><div id="preview-cotizacion" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 hover:bg-green-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
             <div><label class="block text-xs font-bold text-blue-600 mb-2">Nuevo Comprobante</label><div id="preview-comprobante" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Comprobante" id="file-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'comprobante')"><button type="button" onclick="document.getElementById('file-comprobante').click()" class="w-full bg-white border border-blue-300 text-blue-600 hover:bg-blue-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
             <div><label class="block text-xs font-bold text-indigo-600 mb-2">Nueva Factura</label><div id="preview-factura" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Factura" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
         </div>
     </div>
 
     <input type="hidden" id="original-id-proveedor" value="${idProveedorActual}">
-
     <input type="hidden" id="flag-existe-cotizacion" value="${existeCotizacion}">
     <input type="hidden" id="flag-existe-ficha" value="${existeFicha}">
     <input type="hidden" id="flag-existe-factura" value="${existeFactura}">
     `;
 
     calcularTotalesUI();
+
+    // Forzamos la validación inicial para que lea el proveedor cargado
+    setTimeout(() => {
+        window.validarCreditoProveedor();
+    }, 100);
 }
+
+/**
+ * FUNCIÓN GLOBAL: Validar si el proveedor seleccionado tiene crédito
+ */
+window.validarCreditoProveedor = function() {
+    const selectProv = document.getElementById('select-proveedor-maestro');
+    const selectMetodo = document.getElementById('select-metodo-pago');
+
+    if (!selectProv || !selectMetodo) return;
+
+    // Obtener la opción seleccionada
+    const optionSelected = selectProv.options[selectProv.selectedIndex];
+
+    // Validar con seguridad (getAttribute puede ser null si es placeholder)
+    const dataCredito = optionSelected ? optionSelected.getAttribute('data-credito') : '0';
+    const tieneCredito = (dataCredito === '1');
+
+    // Buscar la opción de Crédito (value="1")
+    const optionCredito = selectMetodo.querySelector('option[value="1"]');
+
+    if (optionCredito) {
+        if (tieneCredito) {
+            // HABILITAR
+            optionCredito.disabled = false;
+            // Restaurar texto limpio
+            optionCredito.textContent = "Crédito";
+        } else {
+            // BLOQUEAR
+            optionCredito.disabled = true;
+            optionCredito.textContent = "Crédito (No disponible)";
+
+            // Si estaba seleccionado Crédito, lo pasamos a Contado
+            if (selectMetodo.value === "1") {
+                selectMetodo.value = "0";
+            }
+        }
+    }
+};
 
 /**
  * HELPER PARA SELECCIÓN DE ARCHIVOS (Estilo pago.js)
