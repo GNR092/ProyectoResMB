@@ -841,13 +841,18 @@ class Api extends ResourceController
                         ->delete();
                 }
             } else {
-                // Caso único proveedor
-                $cotizacionUnica = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
-                if ($cotizacionUnica) {
-                    $idProveedorGanador = $cotizacionUnica['ID_Proveedor'];
-                    $idCotizacionSeleccionada = $cotizacionUnica['ID_Cotizacion'];
-                }
-            }
+        // Caso único proveedor
+        $cotizacionUnica = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
+
+        if ($cotizacionUnica) {
+            $idProveedorGanador = $cotizacionUnica['ID_Proveedor'];
+            $idCotizacionSeleccionada = $cotizacionUnica['ID_Cotizacion'];
+        } else if (!empty($solicitud['ID_Proveedor'])) {
+            // EL PARCHE 2: Red de seguridad para solicitudes sin tabla Cotizacion
+            $idProveedorGanador = $solicitud['ID_Proveedor'];
+            $idCotizacionSeleccionada = null;
+        }
+    }
 
             if (!$idProveedorGanador) {
                 return $this->failNotFound('No se pudo identificar el proveedor ganador.');
@@ -1159,18 +1164,20 @@ class Api extends ResourceController
                     'Solicitud.ID_Solicitud',
                     'Solicitud.No_Folio',
                     'Solicitud.MetodoPago',
-                    'Solicitud.Fecha',
+                    'Solicitud.Fecha', // Mantenemos esta por si se usa en la vista HTML
+
+                    // --- NUEVOS CAMPOS AGREGADOS ---
+                    'OrdenCompra.Fecha as FechaOrden',
+                    'OrdenCompra.FechaRefPago',
+                    // -------------------------------
+
                     'OrdenCompra.Estado as EstadoOrden',
                     'Departamentos.Nombre as DepartamentoNombre',
                     'Razon_Social.Nombre as Complejo',
-
-                    // --- DATOS DEL PROVEEDOR ---
-                    'Proveedor.RazonSocial',  // Antes no se mostraba porque el JOIN estaba mal
+                    'Proveedor.RazonSocial',
                     'Proveedor.Banco',
                     'Proveedor.Monto_Credito',
                     'Proveedor.Dias_Credito',
-
-                    // --- TOTALES ---
                     'Cotizacion.Total'
                 ])
                 // 1. Unimos Orden con Cotización (Pivote principal)
@@ -1562,9 +1569,18 @@ class Api extends ResourceController
                     }
                 }
 
-                $updateResult = $ordenCompraModel->update($idOrdenCompra, [
+                // PREPARAMOS LOS DATOS A ACTUALIZAR
+                $datosActualizar = [
                     'Estado' => $nuevoEstado,
-                ]);
+                ];
+
+                // Si el estado que recibimos es el del botón ("Por Pagar"), inyectamos la fecha actual
+                if ($nuevoEstado === 'Por Pagar' || (class_exists('Status') && $nuevoEstado === Status::Por_Pagar)) {
+                    $datosActualizar['FechaPagoRealizado'] = date('Y-m-d H:i:s');
+                }
+
+                // EJECUTAMOS EL UPDATE
+                $updateResult = $ordenCompraModel->update($idOrdenCompra, $datosActualizar);
 
                 if ($updateResult === false) {
                     $errors = $ordenCompraModel->errors();

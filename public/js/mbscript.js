@@ -620,7 +620,7 @@ function initPaginacionHistorial() {
           placeholder: true,
           placeholderValue: 'Todos los departamentos',
           searchPlaceholderValue: 'Buscar...',
-          itemSelectText: 'Presionar para seleccionar',
+          itemSelectText: 'Seleccionar',
           noResultsText: 'No se encontraron resultados',
           noChoicesText: 'No hay más opciones para elegir',
       });

@@ -42,6 +42,7 @@
                     <th class="px-4 py-2 border-b">Departamento</th>
                     <th class="px-4 py-2 border-b">Complejo</th>
                     <th class="px-4 py-2 border-b">No. Folio</th>
+                    <th class="px-4 py-2 border-b">Fecha de aprobación</th>
                     <th class="px-4 py-2 border-b">Proveedor</th>
                     <th class="px-4 py-2 border-b">Banco</th>
                     <th class="px-4 py-2 border-b">Importe</th>
@@ -51,10 +52,10 @@
 
                 <tbody id="body-contado">
                 <template x-if="loading">
-                    <tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
+                    <tr><td colspan="9" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
                 </template>
                 <template x-if="!loading && ordenesContado.length === 0">
-                    <tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>
+                    <tr><td colspan="9" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>
                 </template>
 
                 <template x-for="orden in paginatedContado" :key="orden.ID_Solicitud">
@@ -65,6 +66,8 @@
                         <td class="px-4 py-2 border-b" x-text="orden.DepartamentoNombre || '-'"></td>
                         <td class="px-4 py-2 border-b" x-text="orden.Complejo || '-'"></td>
                         <td class="px-4 py-2 border-b" x-text="orden.No_Folio || '-'"></td>
+
+                        <td class="px-4 py-2 border-b" x-text="formatDate(orden.FechaAprobacion)"></td>
 
                         <td class="px-4 py-2 border-b" x-text="orden.RazonSocial || '-'"></td>
                         <td class="px-4 py-2 border-b" x-text="orden.Banco || '-'"></td>
@@ -147,6 +150,7 @@
                     <th class="px-4 py-2 border-b">Departamento</th>
                     <th class="px-4 py-2 border-b">Complejo</th>
                     <th class="px-4 py-2 border-b">No. Folio</th>
+                    <th class="px-4 py-2 border-b">Fecha de aprobación</th>
                     <th class="px-4 py-2 border-b">Proveedor</th>
                     <th class="px-4 py-2 border-b">Banco</th>
                     <th class="px-4 py-2 border-b">Importe</th>
@@ -155,10 +159,10 @@
                 </thead>
                 <tbody id="body-credito">
                 <template x-if="loading">
-                    <tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
+                    <tr><td colspan="9" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>
                 </template>
                 <template x-if="!loading && ordenesCredito.length === 0">
-                    <tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>
+                    <tr><td colspan="9" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>
                 </template>
 
                 <template x-for="orden in paginatedCredito" :key="orden.ID_Solicitud">
@@ -169,6 +173,8 @@
                         <td class="px-4 py-2" x-text="orden.DepartamentoNombre || '-'"></td>
                         <td class="px-4 py-2" x-text="orden.Complejo || '-'"></td>
                         <td class="px-4 py-2" x-text="orden.No_Folio || '-'"></td>
+
+                        <td class="px-4 py-2" x-text="formatDate(orden.FechaAprobacion)"></td>
 
                         <td class="px-4 py-2" x-text="orden.RazonSocial || '-'"></td>
                         <td class="px-4 py-2" x-text="orden.Banco || '-'"></td>

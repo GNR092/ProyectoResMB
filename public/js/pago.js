@@ -46,21 +46,31 @@ function Pagos() {
           return;
         }
 
-        // 1. Filtrar Contado
-        this.ordenesContado = data.filter((o) => o.MetodoPago == '0');
+        // --- PRE-PROCESAMOS TODOS LOS DATOS PARA ASIGNAR LA FECHA ---
+        const datosProcesados = data.map(orden => {
+          return {
+            ...orden,
+            // Prioridad: FechaRefPago -> FechaOrden -> Fecha
+            FechaAprobacion: orden.FechaRefPago || orden.FechaOrden || orden.Fecha
+          };
+        });
 
-        // 2. Filtrar y Procesar Crédito (Semáforo + Ordenamiento)
-        const rawCredito = data.filter((o) => o.MetodoPago == '1');
+        // 1. Filtrar Contado usando los datos ya procesados
+        this.ordenesContado = datosProcesados.filter((o) => o.MetodoPago == '0');
+
+        // 2. Filtrar y Procesar Crédito
+        const rawCredito = datosProcesados.filter((o) => o.MetodoPago == '1');
 
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
         this.ordenesCredito = rawCredito.map(orden => {
-          let claseColor = 'hover:bg-gray-50 transition'; // Default
-          let diasRestantes = 9999; // Valor alto por defecto (para que se vaya al final si no tiene fecha)
+          let claseColor = 'hover:bg-gray-50 transition';
+          let diasRestantes = 9999;
 
-          if (orden.Fecha) {
-            const fechaSimple = orden.Fecha.split(" ")[0];
+          // Usamos la variable que acabamos de crear arriba
+          if (orden.FechaAprobacion) {
+            const fechaSimple = orden.FechaAprobacion.split(" ")[0];
             const partes = fechaSimple.split("-");
 
             if (partes.length === 3) {
@@ -73,8 +83,6 @@ function Pagos() {
               fechaVencimiento.setDate(fechaVencimiento.getDate() + diasCredito);
 
               const diffTime = fechaVencimiento.getTime() - hoy.getTime();
-
-              // Guardamos este valor para usarlo en el ordenamiento
               diasRestantes = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
               if (diasRestantes < 0) {
@@ -90,11 +98,11 @@ function Pagos() {
           return {
             ...orden,
             claseColor: claseColor,
-            _sortValue: diasRestantes // Propiedad temporal para ordenar
+            _sortValue: diasRestantes
           };
         });
 
-        // 3. ORDENAR: Los números menores (vencidos o cercanos) van primero
+        // 3. ORDENAR Crédito
         this.ordenesCredito.sort((a, b) => a._sortValue - b._sortValue);
 
         this.pageContado = 1;
@@ -222,6 +230,17 @@ function Pagos() {
     formatCurrency(value) {
       if (value === null || isNaN(value)) return 'N/A';
       return parseFloat(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+    },
+
+    formatDate(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
     },
 
     // --- AGREGADO: ESTO FALTABA PARA QUE SE VIERAN LOS DETALLES ---

@@ -313,6 +313,7 @@ class Rest
         $solicitudModel = new SolicitudModel();
         $cotizacionModel = new CotizacionModel();
         $ordenCompraModel = new OrdenCompraModel();
+        $proveedorModel = new ProveedorModel(); // <-- Instanciamos el modelo del proveedor
 
         $solicitudes = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre')
@@ -321,6 +322,7 @@ class Rest
             ->where('Solicitud.ID_Dpto', $id)
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
+
         log_message('debug', print_r($solicitudes[0] ?? [], true));
         if (empty($solicitudes)) {
             return [];
@@ -337,6 +339,13 @@ class Rest
             $ordenes = $ordenCompraModel->whereIn('ID_Cotizacion', $cotizacionIds)->findAll();
         }
 
+        // --- NUEVO: Extraemos los IDs de los proveedores y los buscamos ---
+        $proveedorIds = array_filter(array_column($cotizaciones, 'ID_Proveedor'));
+        $proveedores = [];
+        if (!empty($proveedorIds)) {
+            $proveedores = $proveedorModel->whereIn('ID_Proveedor', $proveedorIds)->findAll();
+        }
+
         $cotizacionesMap = [];
         foreach ($cotizaciones as $cot) {
             if (!isset($cotizacionesMap[$cot['ID_Solicitud']])) {
@@ -349,10 +358,31 @@ class Rest
             $ordenesMap[$orden['ID_Cotizacion']] = $orden;
         }
 
+        // --- NUEVO: Creamos el mapa de proveedores ---
+        $proveedoresMap = [];
+        foreach ($proveedores as $prov) {
+            $proveedoresMap[$prov['ID_Proveedor']] = $prov;
+        }
+
         foreach ($solicitudes as &$solicitud) {
-            if ($solicitud['Estado'] === Status::Aprobada) {
-                if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
-                    $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
+            // Inicializamos las variables por defecto para evitar errores en JS
+            $solicitud['ProveedorNombre'] = null;
+            $solicitud['MontoTotal'] = 0;
+
+            // Si la solicitud tiene una cotización
+            if (isset($cotizacionesMap[$solicitud['ID_Solicitud']])) {
+                $cotizacion = $cotizacionesMap[$solicitud['ID_Solicitud']];
+
+                // 1. Asignamos el Monto Total
+                $solicitud['MontoTotal'] = $cotizacion['Total'] ?? 0;
+
+                // 2. Asignamos el Proveedor
+                if (isset($proveedoresMap[$cotizacion['ID_Proveedor']])) {
+                    $solicitud['ProveedorNombre'] = $proveedoresMap[$cotizacion['ID_Proveedor']]['RazonSocial'] ?? null;
+                }
+
+                // 3. Lógica original del Estado
+                if ($solicitud['Estado'] === Status::Aprobada) {
                     if (isset($ordenesMap[$cotizacion['ID_Cotizacion']])) {
                         $orden = $ordenesMap[$cotizacion['ID_Cotizacion']];
                         if (!empty($orden['Estado'])) {
