@@ -150,22 +150,25 @@ class Archivo extends BaseController
                     $solicitudServicio->insert($solproducto);
                 }
             }
-            if ($estadoInicial === 'Cotizando') {
+            // CORRECCIÓN 1: Usar la constante Status::Cotizando para evitar fallos lógicos
+            if ($estadoInicial === Status::Cotizando || $estadoInicial === 'Cotizando') {
                 $cotizacionModel = new CotizacionModel();
+
+                // CORRECCIÓN 2: Cálculo del total (multiplicando por cantidad si existe)
                 $total = 0;
                 foreach ($datosProductos as $p) {
-                    $total += (float) $p['Importe'];
+                    $cantidad = isset($p['Cantidad']) ? (float) $p['Cantidad'] : 1;
+                    $importe = isset($p['Importe']) ? (float) $p['Importe'] : 0;
+                    $total += ($cantidad * $importe);
                 }
 
                 if (!empty($proveedor_id)) {
                     $razonSocialModel = new RazonSocialModel();
                     $proveedorModel = new ProveedorModel();
 
-                    // The solicitation details are already in the $solicitud variable, but I need to get it again to have all the fields
                     $solicitudData = $solicitud->find($solicitudId);
-
                     $razon = $razonSocialModel->find($solicitudData['ID_RazonSocial']);
-                    $razonNombre = $razon['Nombre'];
+                    $razonNombre = $razon['Nombre'] ?? '';
 
                     $pdf = new GenerarPDF();
                     $pdf->generarYGuardarRequisicion($solicitudId);
@@ -175,7 +178,6 @@ class Archivo extends BaseController
                     $db->transStart();
 
                     $mail = new MBSMail();
-
                     $idProveedores = is_array($proveedor_id) ? $proveedor_id : [$proveedor_id];
 
                     foreach ($idProveedores as $idProv) {
@@ -189,22 +191,21 @@ class Archivo extends BaseController
                             'ID_Usuario_Cotiza' => $user['ID_Usuario'],
                         ];
                         $cotizacionModel->insert($cotizacionData);
-
-                        $fecha = esc($solicitudData['Fecha']);
                     }
 
                     $db->transComplete();
-                } 
-                 else {
-                     // Crear cotización ficticia si no hay proveedor
-                     $cotizacionData = [
-                         'ID_Solicitud' => $solicitudId,
-                         'ID_Proveedor' => null,
-                         'Total' => $total,
-                         'ID_Usuario_Cotiza' => $user['ID_Usuario'],
-                     ];
-                     $cotizacionModel->insert($cotizacionData);
-                 }
+                }
+                else {
+                    // === CORRECCIÓN 3: Descomentar y habilitar la cotización ficticia ===
+                    // Esto permite que el INNER JOIN de la siguiente vista encuentre el registro
+                    $cotizacionData = [
+                        'ID_Solicitud' => $solicitudId,
+                        'ID_Proveedor' => null, // No hay proveedor aún
+                        'Total' => $total,
+                        'ID_Usuario_Cotiza' => $user['ID_Usuario'],
+                    ];
+                    $cotizacionModel->insert($cotizacionData);
+                }
             }
             $adjunto = $this->request->getFile('archivo');
             if ($adjunto && $adjunto->isValid()) {
