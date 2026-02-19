@@ -2093,3 +2093,40 @@
     }
   }
 }
+
+/* para la libreria choice */
+.choices {
+  margin-bottom: 0 !important;
+}
+.choices__inner {
+  background-color: #ffffff !important; /* Fondo blanco como los otros */
+  border: 1px solid #d1d5db !important; /* Color exacto de border-gray-300 */
+  border-radius: 0.25rem !important;    /* rounded de Tailwind */
+  min-height: 42px !important;         /* Altura idéntica al input de fecha y select estado */
+  padding: 4px 8px !important;         /* Espaciado interno similar a p-2 */
+  display: flex;
+  align-items: center;
+}
+.choices__list--multiple .choices__item {
+  background-color: #2563eb !important; /* Azul acorde a accent-blue-600 */
+  border: 1px solid #1d4ed8 !important;
+  border-radius: 4px !important;
+  padding: 2px 8px !important;
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
+}
+.choices__input {
+  background-color: transparent !important;
+  font-size: 0.875rem !important; /* text-sm */
+  margin-bottom: 0 !important;
+}
+.is-focused .choices__inner {
+  border-color: #3b82f6 !important; /* azul-500 */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+@media (min-width: 768px) {
+  .choices {
+    width: auto !important;
+    min-width: 220px; /* Evita que se vea muy pequeño comparado a los otros */
+  }
+}
