@@ -865,14 +865,17 @@ class Api extends ResourceController
             ]);
 
             // === PROCESAMIENTO DE ARCHIVOS (Igual que tu código original) ===
+// === PROCESAMIENTO DE ARCHIVOS ===
             $files = $this->request->getFiles();
             $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
 
             if ($files && isset($files['cotizacion_files'])) {
                 $idCotizacion = $idCotizacionSeleccionada;
+
+                // CORRECCIÓN: Evitar el error si $cot es nulo
                 if (!$idCotizacion) {
                     $cot = $this->api->getCotizacionBySolicitudID($idSolicitud);
-                    $idCotizacion = $cot['ID_Cotizacion'];
+                    $idCotizacion = $cot ? $cot['ID_Cotizacion'] : null;
                 }
 
                 $tmp = [];
@@ -880,13 +883,16 @@ class Api extends ResourceController
                 $archivosAProcesar = is_array($files['cotizacion_files']) ? $files['cotizacion_files'] : [$files['cotizacion_files']];
 
                 foreach ($archivosAProcesar as $file) {
-                    $baseFileName = 'cotizacion_' . $idCotizacion . '_' . $solicitud['Fecha'] . '_' . $count++;
+                    // Si no hay idCotizacion, le ponemos un identificador temporal para que no falle el string
+                    $baseFileName = 'cotizacion_' . ($idCotizacion ?? 'directa') . '_' . $solicitud['Fecha'] . '_' . $count++;
                     $savedFileName = ImageProcessor::processAndSave($file, $folder, $baseFileName);
                     if ($savedFileName) {
                         $tmp[] = $savedFileName;
                     }
                 }
-                if (!empty($tmp)) {
+
+                // CORRECCIÓN: Solo actualizamos la tabla cotizaciones si realmente tenemos un ID válido
+                if (!empty($tmp) && $idCotizacion) {
                     $cfls['Cotizacion_Files'] = implode(',', $tmp);
                     $this->api->updateCotizacionById($idCotizacion, $cfls);
                 }
