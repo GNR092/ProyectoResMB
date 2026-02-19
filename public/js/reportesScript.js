@@ -7,9 +7,9 @@ function Reportes(initialData = []) {
     fecha: '',
     porMes: false,
     estado: '',
-    departamento: '',
-    razonSocial: '',
-    proveedor: '',
+    departamento: [],
+    razonSocial: [],
+    proveedor: [],
     metodoPago: '',
 
     currentPage: 1,
@@ -19,27 +19,66 @@ function Reportes(initialData = []) {
     },
 
     init() {
+      // 1. Limpieza y preparación de datos original
       const cleanData = initialData.filter(item => item.ID_Solicitud != null && item.ID_Solicitud !== '');
 
       this.allData = cleanData.map((item) => {
-        item.ProveedorFiltro = item.proveedor ? item.proveedor.RazonSocial : 'N/A'
-        return item
-      })
+        item.ProveedorFiltro = item.proveedor ? item.proveedor.RazonSocial : 'N/A';
+        return item;
+      });
 
-      this.applyFiltersAndPaginate()
+      // 2. Inicializar Choices.js asegurando que el DOM (HTML) ya está listo
+      this.$nextTick(() => {
+        const config = {
+          removeItemButton: true,
+          itemSelectText: '', // Oculta el texto "Presionar para seleccionar"
+          searchPlaceholderValue: 'Buscar...',
+          placeholder: true,
+          noResultsText: 'No se encontraron resultados',
+          noChoicesText: 'No hay más opciones'
+        };
 
-      this.$watch('fecha', () => this.applyFiltersAndPaginate())
+        // Mapeamos los x-ref del HTML con sus variables en Alpine
+        const selects = [
+          { ref: this.$refs.deptoSelect, model: 'departamento' },
+          { ref: this.$refs.razonSelect, model: 'razonSocial' },
+          { ref: this.$refs.provSelect, model: 'proveedor' }
+        ];
+
+        this.selectInstances = []; // Lo guardamos para poder usarlo en clearFilters()
+
+        selects.forEach(item => {
+          if (item.ref) {
+            const choice = new Choices(item.ref, config);
+
+            // Sincronizar los cambios de Choices.js hacia las variables de Alpine.js
+            item.ref.addEventListener('change', () => {
+              this[item.model] = choice.getValue(true);
+              this.applyFiltersAndPaginate();
+            });
+
+            // Guardamos la instancia para el botón de limpiar filtros
+            this.selectInstances.push({ ...item, choiceInstance: choice });
+          }
+        });
+      });
+
+      // 3. Aplicar filtros iniciales
+      this.applyFiltersAndPaginate();
+
+      // 4. Mantener los watchers SOLO para los elementos que NO usan Choices.js
+      this.$watch('fecha', () => this.applyFiltersAndPaginate());
       this.$watch('porMes', (value) => {
         if (!value) {
-          this.fecha = ''
+          this.fecha = '';
         }
-        this.applyFiltersAndPaginate()
-      })
-      this.$watch('estado', () => this.applyFiltersAndPaginate())
-      this.$watch('departamento', () => this.applyFiltersAndPaginate())
-      this.$watch('razonSocial', () => this.applyFiltersAndPaginate())
-      this.$watch('proveedor', () => this.applyFiltersAndPaginate())
-      this.$watch('metodoPago', () => this.applyFiltersAndPaginate())
+        this.applyFiltersAndPaginate();
+      });
+      this.$watch('estado', () => this.applyFiltersAndPaginate());
+      this.$watch('metodoPago', () => this.applyFiltersAndPaginate());
+
+      // Nota: Se eliminaron los $watch de departamento, razonSocial y proveedor
+      // porque ahora se actualizan en tiempo real gracias al evento 'change' de arriba.
     },
 
     applyFiltersAndPaginate() {
@@ -50,39 +89,37 @@ function Reportes(initialData = []) {
 
     applyFilters() {
       this.filteredData = this.allData.filter((item) => {
-        const filterFecha = this.fecha
-        let fechaMatch = true
+        // Filtro Fecha (se queda igual)
+        const filterFecha = this.fecha;
+        let fechaMatch = true;
         if (filterFecha) {
-          const itemDate = new Date(item.Fecha + 'T00:00:00')
-          const filterDate = new Date(filterFecha + 'T00:00:00')
+          const itemDate = new Date(item.Fecha + 'T00:00:00');
+          const filterDate = new Date(filterFecha + 'T00:00:00');
           if (this.porMes) {
-            fechaMatch =
-              itemDate.getUTCFullYear() === filterDate.getUTCFullYear() &&
-              itemDate.getUTCMonth() === filterDate.getUTCMonth()
+            fechaMatch = itemDate.getUTCFullYear() === filterDate.getUTCFullYear() && itemDate.getUTCMonth() === filterDate.getUTCMonth();
           } else {
-            fechaMatch =
-              itemDate.getUTCDate() === filterDate.getUTCDate() &&
-              itemDate.getUTCMonth() === filterDate.getUTCMonth() &&
-              itemDate.getUTCFullYear() === filterDate.getUTCFullYear()
+            fechaMatch = itemDate.getUTCDate() === filterDate.getUTCDate() && itemDate.getUTCMonth() === filterDate.getUTCMonth() && itemDate.getUTCFullYear() === filterDate.getUTCFullYear();
           }
         }
-        // Calculamos el estado real del item (igual que en la tabla visual)
+
         const estadoReal = item.EstadoOrden || item.Estado;
         const estadoMatch = !this.estado || estadoReal === this.estado;
-        const deptoMatch = !this.departamento || item.DepartamentoNombre === this.departamento
-        const razonSocialMatch = !this.razonSocial || item.Complejo === this.razonSocial
-        const proveedorMatch = !this.proveedor || item.ProveedorFiltro === this.proveedor
-        const metodoPagoMatch = !this.metodoPago || item.MetodoPago == this.metodoPago
+        const metodoPagoMatch = !this.metodoPago || item.MetodoPago == this.metodoPago;
+
+        // NUEVA LÓGICA PARA MÚLTIPLES SELECCIONES
+        const deptoMatch = this.departamento.length === 0 || this.departamento.includes(item.DepartamentoNombre);
+        const razonSocialMatch = this.razonSocial.length === 0 || this.razonSocial.includes(item.Complejo);
+        const proveedorMatch = this.proveedor.length === 0 || this.proveedor.includes(item.ProveedorFiltro);
 
         return (
-          fechaMatch &&
-          estadoMatch &&
-          deptoMatch &&
-          razonSocialMatch &&
-          proveedorMatch &&
-          metodoPagoMatch
-        )
-      })
+            fechaMatch &&
+            estadoMatch &&
+            deptoMatch &&
+            razonSocialMatch &&
+            proveedorMatch &&
+            metodoPagoMatch
+        );
+      });
     },
 
     paginate() {
@@ -293,14 +330,26 @@ function Reportes(initialData = []) {
     },
 
     clearFilters() {
-      this.fecha = ''
-      this.porMes = false
-      this.estado = ''
-      this.departamento = ''
-      this.razonSocial = ''
-      this.proveedor = ''
-      this.metodoPago = ''
-      this.applyFiltersAndPaginate()
+      this.fecha = '';
+      this.porMes = false;
+      this.estado = '';
+      this.metodoPago = '';
+
+      // Limpiar los arreglos
+      this.departamento = [];
+      this.razonSocial = [];
+      this.proveedor = [];
+
+      // Limpiar visualmente los Choices
+      if (this.selectInstances) {
+        this.selectInstances.forEach(item => {
+          if (item.choiceInstance) {
+            item.choiceInstance.removeActiveItems(); // Quita las pastillas azules seleccionadas
+          }
+        });
+      }
+
+      this.applyFiltersAndPaginate();
     }
   }
 }
