@@ -364,9 +364,14 @@ function RevisionX() {
 
               // --- VALIDACIONES DE CRÉDITO Y PROVEEDOR ---
               if (isMultiple) {
-                  this.validarOpcionCredito({})
+                  if (data.cotizaciones && data.cotizaciones.length > 0) {
+                      // Tomamos el ID del primer proveedor de la lista para validar inicialmente
+                      this.validarOpcionCredito({ ID_Proveedor: data.cotizaciones[0].ID_Proveedor });
+                  } else {
+                      this.validarOpcionCredito({});
+                  }
               } else {
-                  this.validarOpcionCredito(data)
+                  this.validarOpcionCredito(data);
               }
 
               // --- RESETEO DEL FORMULARIO INFERIOR ---
