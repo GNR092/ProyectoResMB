@@ -1564,9 +1564,18 @@ class Api extends ResourceController
                     }
                 }
 
-                $updateResult = $ordenCompraModel->update($idOrdenCompra, [
+                // PREPARAMOS LOS DATOS A ACTUALIZAR
+                $datosActualizar = [
                     'Estado' => $nuevoEstado,
-                ]);
+                ];
+
+                // Si el estado que recibimos es el del botón ("Por Pagar"), inyectamos la fecha actual
+                if ($nuevoEstado === 'Por Pagar' || (class_exists('Status') && $nuevoEstado === Status::Por_Pagar)) {
+                    $datosActualizar['FechaPagoRealizado'] = date('Y-m-d H:i:s');
+                }
+
+                // EJECUTAMOS EL UPDATE
+                $updateResult = $ordenCompraModel->update($idOrdenCompra, $datosActualizar);
 
                 if ($updateResult === false) {
                     $errors = $ordenCompraModel->errors();
