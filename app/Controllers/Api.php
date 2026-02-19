@@ -1159,18 +1159,20 @@ class Api extends ResourceController
                     'Solicitud.ID_Solicitud',
                     'Solicitud.No_Folio',
                     'Solicitud.MetodoPago',
-                    'Solicitud.Fecha',
+                    'Solicitud.Fecha', // Mantenemos esta por si se usa en la vista HTML
+
+                    // --- NUEVOS CAMPOS AGREGADOS ---
+                    'OrdenCompra.Fecha as FechaOrden',
+                    'OrdenCompra.FechaRefPago',
+                    // -------------------------------
+
                     'OrdenCompra.Estado as EstadoOrden',
                     'Departamentos.Nombre as DepartamentoNombre',
                     'Razon_Social.Nombre as Complejo',
-
-                    // --- DATOS DEL PROVEEDOR ---
-                    'Proveedor.RazonSocial',  // Antes no se mostraba porque el JOIN estaba mal
+                    'Proveedor.RazonSocial',
                     'Proveedor.Banco',
                     'Proveedor.Monto_Credito',
                     'Proveedor.Dias_Credito',
-
-                    // --- TOTALES ---
                     'Cotizacion.Total'
                 ])
                 // 1. Unimos Orden con Cotización (Pivote principal)
