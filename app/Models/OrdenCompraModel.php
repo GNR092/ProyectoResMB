@@ -28,6 +28,7 @@ class OrdenCompraModel extends Model
         'File_FacturaServicioXML',
         'ID_GrupoPresupuestal',
         'FechaRefPago',
+        'FechaPagoRealizado',
     ];
 
     // Dates
