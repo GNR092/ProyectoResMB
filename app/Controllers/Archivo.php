@@ -42,23 +42,18 @@ class Archivo extends BaseController
 
         // Determina el tipo de solicitud y prepara los arrays de datos
         if (isset($post['servicio'])) {
-            // Solicitud de Servicio
             $tipo = SolicitudTipo::Servicios;
             $productos = $post['servicio'];
             $importes = $post['importe'];
-            // Para servicios, la cantidad es 1 por defecto y no hay código de producto
             $cantidades = array_fill(0, count($productos), 1);
             $codigos = array_fill(0, count($productos), null);
         } elseif (isset($post['sin_cotizar'])) {
-            // Solicitud de Material sin Cotizar
             $tipo = SolicitudTipo::NoCotizacion;
             $productos = $post['producto'];
             $cantidades = $post['cantidad'];
-            // No hay códigos ni importes para este tipo de solicitud
             $codigos = array_fill(0, count($productos), null);
             $importes = array_fill(0, count($productos), 0);
         } else {
-            // Solicitud de Material con Cotización
             $tipo = SolicitudTipo::Cotizacion;
             $codigos = $post['codigo'];
             $productos = $post['producto'];
@@ -87,12 +82,9 @@ class Archivo extends BaseController
         $estadoInicial = Status::Aprobacion_pendiente;
 
         if (session('login_type') === 'boss') {
-            // Si es Boss Y es Servicio
             if ($tipo == SolicitudTipo::Servicios) {
                 $estadoInicial = Status::Cotizando;
-                //Crear la cotizacion ficticia
             } else {
-                // Si es Boss pero es Material
                 $estadoInicial = Status::En_espera;
             }
         }
@@ -121,6 +113,7 @@ class Archivo extends BaseController
             $solicitud->update($solicitudId, [
                 'No_Folio' => 'MBSP-' . $solicitudId,
             ]);
+
             if ($tipo == SolicitudTipo::Cotizacion || $tipo == SolicitudTipo::NoCotizacion) {
                 $solicitudProduct = new SolicitudProductModel();
 
@@ -150,37 +143,41 @@ class Archivo extends BaseController
                     $solicitudServicio->insert($solproducto);
                 }
             }
-            if ($estadoInicial === 'Cotizando') {
+
+            // CORRECCIÓN 1: Aseguramos la evaluación del estado
+            if ($estadoInicial === Status::Cotizando || $estadoInicial === 'Cotizando') {
                 $cotizacionModel = new CotizacionModel();
                 $total = 0;
+
+                // CORRECCIÓN 2: Cálculo total más seguro
                 foreach ($datosProductos as $p) {
-                    $total += (float) $p['Importe'];
+                    $cantidad = isset($p['Cantidad']) ? (float)$p['Cantidad'] : 1;
+                    $importe = isset($p['Importe']) ? (float)$p['Importe'] : 0;
+                    $total += ($cantidad * $importe);
                 }
 
                 if (!empty($proveedor_id)) {
                     $razonSocialModel = new RazonSocialModel();
                     $proveedorModel = new ProveedorModel();
 
-                    // The solicitation details are already in the $solicitud variable, but I need to get it again to have all the fields
                     $solicitudData = $solicitud->find($solicitudId);
-
                     $razon = $razonSocialModel->find($solicitudData['ID_RazonSocial']);
-                    $razonNombre = $razon['Nombre'];
+                    $razonNombre = $razon['Nombre'] ?? '';
 
-                    $pdf = new GenerarPDF();
-                    $pdf->generarYGuardarRequisicion($solicitudId);
-                    $attachmentPath = FPath::FPDF . 'Requisicion-MBSP-' . $solicitudId . '.pdf';
-
-                    $db = \Config\Database::connect();
-                    $db->transStart();
+                    // CORRECCIÓN 3: Aislar el PDF. Si falla por permisos en Linux, NO detiene la BD
+                    try {
+                        $pdf = new GenerarPDF();
+                        $pdf->generarYGuardarRequisicion($solicitudId);
+                    } catch (\Exception $e) {
+                        log_message('error', '[PDF Error] Fallo al crear la requisición PDF: ' . $e->getMessage());
+                    }
 
                     $mail = new MBSMail();
-
                     $idProveedores = is_array($proveedor_id) ? $proveedor_id : [$proveedor_id];
 
+                    // CORRECCIÓN 4: Inserción directa sin transacción frágil y con reporte de errores
                     foreach ($idProveedores as $idProv) {
                         $idProveedor = (int) $idProv;
-                        $proveedor = $proveedorModel->find($idProveedor);
 
                         $cotizacionData = [
                             'ID_Solicitud' => $solicitudId,
@@ -188,24 +185,22 @@ class Archivo extends BaseController
                             'Total' => $total,
                             'ID_Usuario_Cotiza' => $user['ID_Usuario'],
                         ];
-                        $cotizacionModel->insert($cotizacionData);
 
-                        $fecha = esc($solicitudData['Fecha']);
+                        $inserted = $cotizacionModel->insert($cotizacionData);
+
+                        // Si MySQL rechaza la inserción, detenemos todo y mostramos POR QUÉ
+                        if (!$inserted) {
+                            return $this->response->setStatusCode(400)->setJSON([
+                                'success' => false,
+                                'message' => 'Error de Base de Datos al guardar la cotización',
+                                'errores' => $cotizacionModel->errors(),
+                                'error_db' => $cotizacionModel->db->error()
+                            ]);
+                        }
                     }
-
-                    $db->transComplete();
-                } 
-                // else {
-                //     // Crear cotización ficticia si no hay proveedor
-                //     $cotizacionData = [
-                //         'ID_Solicitud' => $solicitudId,
-                //         'ID_Proveedor' => null,
-                //         'Total' => $total,
-                //         'ID_Usuario_Cotiza' => $user['ID_Usuario'],
-                //     ];
-                //     $cotizacionModel->insert($cotizacionData);
-                // }
+                }
             }
+
             $adjunto = $this->request->getFile('archivo');
             if ($adjunto && $adjunto->isValid()) {
                 $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
@@ -214,10 +209,12 @@ class Archivo extends BaseController
                 $adjunto->move($folder, $nuevoNombre);
                 $solicitud->update($solicitudId, ['Archivo' => $nuevoNombre]);
             }
+
             return $this->response->setStatusCode(HttpStatus::OK)->setJSON([
                 'success' => true,
                 'message' => 'Solicitud registrada correctamente',
             ]);
+
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
