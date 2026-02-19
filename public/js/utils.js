@@ -928,14 +928,19 @@ function getMetodoPago(metodo) {
 //*** Función del manejador de archivos (mostrar archivos adjuntos)  ***//
 
 function generarSeccionAdjuntos(data) {
+  const sol = data.solicitud || data;
   const ordenObj = data.OrdenCompra || data.orden_compra || data.orden || {};
   const cotizacionObj = data.cotizacion || {};
-  const folio = data.No_Folio || data.ID_Solicitud;
+  const folio = sol.No_Folio || data.No_Folio || data.ID_Solicitud;
   const cotizacionFile = cotizacionObj.Cotizacion_Files || data.Cotizacion_Files;
   const comprobanteFile = ordenObj.File_Comprobante || data.File_Comprobante || ordenObj.comprobante || data.comprobante;
   const facturaFile = ordenObj.File_Factura || data.File_Factura || ordenObj.factura || data.factura;
+  const idSolicitud = sol.ID_Solicitud || data.ID_Solicitud;
 
-  const idSolicitud = data.ID_Solicitud;
+  // VALIDACIÓN UNIVERSAL:
+  // ¿El objeto de la orden de compra tiene contenido real?
+  // Si tiene llaves (keys), significa que existe en la BD. Si no, es un objeto vacío {}.
+  const existeOrden = (ordenObj && Object.keys(ordenObj).length > 0);
 
   return `
     <div class="mt-6">
@@ -956,14 +961,14 @@ function generarSeccionAdjuntos(data) {
       cotizacionFile ? `
             <div>
                 <strong>Cotizacion:</strong> 
-                <a href="${BASE_URL}api/storage/serve?path=cotizaciones/${data.Fecha}/${cotizacionFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                <a href="${BASE_URL}api/storage/serve?path=cotizaciones/${sol.Fecha ? sol.Fecha.split(' ')[0] : data.Fecha}/${cotizacionFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
                     ${cotizacionFile}
                 </a>
             </div>` : '<div class="text-gray-400"><strong>Cotizacion:</strong> No adjuntada</div>'
   }
 
-            ${ /* 3. ORDEN DE COMPRA */
-      folio ? `
+            ${ /* 3. ORDEN DE COMPRA (Se oculta si no existe la orden en BD) */
+      (folio && existeOrden) ? `
             <div>
                 <strong>Orden de Compra:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=pdf_ordenes/OrdenCompra-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
@@ -972,8 +977,8 @@ function generarSeccionAdjuntos(data) {
             </div>` : ''
   }
 
-            ${ /* 4. REQUISICIÓN DE PAGO */
-      idSolicitud ? `
+            ${ /* 4. REQUISICIÓN DE PAGO (Se oculta si no existe la orden en BD) */
+      (idSolicitud && existeOrden) ? `
             <div>
                 <strong>Requisición de Pago:</strong> 
                 <a href="${BASE_URL}api/requisicionpago/pdf/${idSolicitud}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 

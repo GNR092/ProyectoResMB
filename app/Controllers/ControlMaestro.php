@@ -35,7 +35,8 @@ class ControlMaestro extends BaseController
 
         // 0. PRE-LECTURA
         $solicitudOriginal = $this->db->table('Solicitud')
-            ->select('ID_Proveedor, Tipo, ID_RazonSocial, MetodoPago, Fecha, IVA, Estado')
+            // AGREGAR 'No_Folio' AL SELECT
+            ->select('ID_Proveedor, Tipo, ID_RazonSocial, MetodoPago, Fecha, IVA, Estado, No_Folio')
             ->where('ID_Solicitud', $id_solicitud)
             ->get()
             ->getRow();
@@ -81,8 +82,10 @@ class ControlMaestro extends BaseController
 
             $idRazonSocial = (isset($post['ID_RazonSocial']) && is_numeric($post['ID_RazonSocial'])) ? intval($post['ID_RazonSocial']) : $solicitudOriginal->ID_RazonSocial;
             $metodoPago = isset($post['MetodoPago']) ? $post['MetodoPago'] : $solicitudOriginal->MetodoPago;
-            $fechaRegistro = isset($post['Fecha']) ? $post['Fecha'] : $solicitudOriginal->Fecha;
+            $fechaRegistro = $solicitudOriginal->Fecha;
             $fechaRefPago = (!empty($post['Fecha_Pago_Programado'])) ? $post['Fecha_Pago_Programado'] : date('Y-m-d');
+            $fechaRefPago       = empty($post['FechaRefPago']) ? null : $post['FechaRefPago'];
+            $fechaPagoRealizado = empty($post['FechaPagoRealizado']) ? null : $post['FechaPagoRealizado'];
 
             // ---------------------------------------------------------
             // 3. LIMPIEZA DE ARCHIVOS
@@ -96,21 +99,26 @@ class ControlMaestro extends BaseController
             }
 
             // CASO A: Bajamos de nivel "Espera Programación" (5) -> Eliminamos la Orden completa
+            // CASO A: Bajamos de nivel "Espera Programación" (5) -> Eliminamos la Orden completa
             if ($nivelNuevo < 5 && $rowOrd) {
                 // Borramos Factura y Ficha
                 if (!empty($rowOrd->File_Factura)) @unlink(WRITEPATH . 'uploads/facturas/' . $rowOrd->File_Factura);
                 if (!empty($rowOrd->File_Comprobante)) @unlink(WRITEPATH . 'uploads/comprobantes/' . $rowOrd->File_Comprobante);
 
-                // NUEVO: Borramos también la Requisición de Pago si existe, para limpiar basura
-                if (!empty($rowOrd->File_ReqPag)) {
-                    @unlink(WRITEPATH . 'uploads/requisiciones/' . $rowOrd->File_ReqPag); // Asumiendo ruta, si es diferente ajustala
-                    // Nota: Si usas una carpeta específica para PDFs generados, asegúrate de borrarla ahí.
-                    // Si GenerarPDF la guarda en otro lado, el unlink aquí es buena práctica.
+                // --- NUEVO: DESTRUIR EL PDF FÍSICO DE LA ORDEN ---
+                $folioPdf = $solicitudOriginal->No_Folio;
+                $pathOrdenPdf = WRITEPATH . 'uploads/pdf_ordenes/OrdenCompra-' . $folioPdf . '.pdf';
+                if (file_exists($pathOrdenPdf)) {
+                    @unlink($pathOrdenPdf);
                 }
+
+                // NOTA: La Requisición de pago no la borramos físicamente porque tu API
+                // api/requisicionpago/pdf/ la genera al vuelo (o no deja basura estática).
 
                 $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $rowOrd->ID_OrdenCompra)->delete();
                 $rowOrd = null;
             }
+
             // CASO B: Fase de Orden (Nivel >= 5)
             elseif ($rowOrd) {
                 // Limpieza Factura
@@ -200,11 +208,23 @@ class ControlMaestro extends BaseController
                 if ($nivelNuevo >= 5) {
                     if (!$orden) {
                         $estadoInicial = $estadoOrden ? $estadoOrden : 'Espera_Programacion';
-                        $this->db->table('OrdenCompra')->insert(['ID_Cotizacion' => $idCotizacion, 'ID_Proveedor' => $idProveedor, 'Estado' => $estadoInicial, 'Fecha' => $fechaRefPago]);
+                        $this->db->table('OrdenCompra')->insert([
+                            'ID_Cotizacion'      => $idCotizacion,
+                            'ID_Proveedor'       => $idProveedor,
+                            'Estado'             => $estadoInicial,
+                            'Fecha'              => date('Y-m-d H:i:s'), // <--- Nace con la fecha y hora de este momento (Aprobación)
+                            'FechaRefPago'       => $fechaRefPago,       // <--- NUEVO
+                            'FechaPagoRealizado' => $fechaPagoRealizado  // <--- NUEVO
+                        ]);
                         $orden = $this->db->table('OrdenCompra')->where('ID_Cotizacion', $idCotizacion)->get()->getRowArray();
                     } else {
-                        $datosUpdateOrden = ['Fecha' => $fechaRefPago];
+                        $datosUpdateOrden = [];
                         if ($estadoOrden) $datosUpdateOrden['Estado'] = $estadoOrden;
+
+                        // Actualizamos solo las nuevas fechas (La 'Fecha' de aprobación original ya no se toca)
+                        $datosUpdateOrden['FechaRefPago']       = $fechaRefPago;
+                        $datosUpdateOrden['FechaPagoRealizado'] = $fechaPagoRealizado;
+
                         $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $orden['ID_OrdenCompra'])->update($datosUpdateOrden);
                     }
                 }
@@ -212,15 +232,33 @@ class ControlMaestro extends BaseController
                 if ($orden) {
                     $idOrdenCompra = $orden['ID_OrdenCompra'];
                     $rnd = uniqid();
-                    if ($f = $this->request->getFile('File_Comprobante')) if ($f->isValid() && !$f->hasMoved()) {
-                        $n = "Ficha-{$id_solicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$rnd}.".$f->getClientExtension();
-                        $f->move(WRITEPATH.'uploads/comprobantes/', $n, true);
-                        $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $idOrdenCompra)->update(['File_Comprobante' => $n]);
+
+                    // 1. PROCESAR COMPROBANTE DE PAGO
+                    if ($f = $this->request->getFile('File_Comprobante')) {
+                        if ($f->isValid() && !$f->hasMoved()) {
+                            $n = "Ficha-{$id_solicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$rnd}.".$f->getClientExtension();
+                            $f->move(WRITEPATH.'uploads/comprobantes/', $n, true);
+
+                            // Automatización: Tomar fecha manual o poner la fecha actual por defecto
+                            $fechaRealizada = !empty($post['FechaPagoRealizado']) ? $post['FechaPagoRealizado'] : date('Y-m-d');
+
+                            $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $idOrdenCompra)->update([
+                                'File_Comprobante'   => $n,
+                                'FechaPagoRealizado' => $fechaRealizada
+                            ]);
+                        }
                     }
-                    if ($f = $this->request->getFile('File_Factura')) if ($f->isValid() && !$f->hasMoved()) {
-                        $n = "Factura-{$id_solicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$rnd}.".$f->getClientExtension();
-                        $f->move(WRITEPATH.'uploads/facturas/', $n, true);
-                        $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $idOrdenCompra)->update(['File_Factura' => $n]);
+
+                    // 2. PROCESAR FACTURA
+                    if ($f = $this->request->getFile('File_Factura')) {
+                        if ($f->isValid() && !$f->hasMoved()) {
+                            $n = "Factura-{$id_solicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$rnd}.".$f->getClientExtension();
+                            $f->move(WRITEPATH.'uploads/facturas/', $n, true);
+
+                            $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $idOrdenCompra)->update([
+                                'File_Factura' => $n
+                            ]);
+                        }
                     }
                 }
 

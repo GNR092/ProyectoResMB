@@ -190,6 +190,7 @@ async function cargarEditorMaestro(idSolicitud, folio) {
 /**
  * RENDERIZADO DEL FORMULARIO CON CARGA DE ARCHIVOS VISUAL
  */
+
 function renderizarInputsDios(data, container, listaProveedores = [], listaRazones = []) {
     const sol = data.solicitud || data;
     const orden = data.OrdenCompra || {};
@@ -201,7 +202,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
         estadoVisual = orden.Estado;
     }
 
-    // 1. REGLAS DE BLOQUEO (Actualizado para liberar Espera_Programacion)
+    // 1. REGLAS DE BLOQUEO
     const REGLAS_BLOQUEO = {
         'En espera':            { financiero: false, control: false },
         'Cotizando':            { financiero: false, control: false },
@@ -209,7 +210,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
         'En revision':          { financiero: false, control: false },
         'Aprobacion pendiente': { financiero: false, control: false },
         'Aprobada':             { financiero: false, control: false },
-        'Espera_Programacion':  { financiero: false, control: false }, // <-- CAMBIO: Liberado el control
+        'Espera_Programacion':  { financiero: false, control: false },
         'Programada':           { financiero: false, control: true },
         'Por Pagar':            { financiero: false, control: true },
         'Pagada':               { financiero: true,  control: true }
@@ -221,6 +222,25 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     const disabledControl    = reglas.control ? 'disabled' : '';
     const classControl       = reglas.control ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white';
     const classArchivos      = 'grid';
+
+    // ------------------------------------------------------------------------
+    // CANDADO DE SEGURIDAD PARA FECHAS DE ORDEN
+    // ------------------------------------------------------------------------
+    // Verificamos si la orden realmente existe en la base de datos
+    const existeOrden = (orden && orden.Estado) ? true : false;
+
+    // Si no existe la orden o las reglas dicen que se bloquee, deshabilitamos
+    const disabledFechasOrden = (!existeOrden || reglas.control) ? 'disabled' : '';
+
+    // Clases dinámicas: Gris si está bloqueado, color original si está habilitado
+    const classInputRefPago = (!existeOrden || reglas.control)
+        ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 shadow-none'
+        : 'bg-blue-50 border-blue-200';
+
+    const classInputPagoReal = (!existeOrden || reglas.control)
+        ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 shadow-none'
+        : 'bg-green-50 border-green-200';
+    // ------------------------------------------------------------------------
 
     // 2. PREPARACIÓN DE SELECT PROVEEDORES
     let idProveedorActual = sol.ID_Proveedor;
@@ -245,8 +265,12 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     const tieneIva = (sol.IVA == 1 || sol.IVA === 't' || sol.IVA === true);
     const checkedIva = tieneIva ? 'checked' : '';
     const productos = Array.isArray(data.productos) ? data.productos : (Array.isArray(data.servicios) ? data.servicios : []);
-    const valorFechaRef = (orden.Fecha) ? orden.Fecha.split(' ')[0] : (sol.Fecha_Pago_Programado ? sol.Fecha_Pago_Programado.split(' ')[0] : '');
-    const fechaRegistroVista = sol.Fecha ? sol.Fecha.split(' ')[0] : ''; // Para la fecha estática
+
+    // VARIABLES DE FECHAS
+    const fechaRegistroVista = sol.Fecha ? sol.Fecha.split(' ')[0] : '';
+    const valorFechaAprobacion = orden.Fecha ? orden.Fecha.split(' ')[0] : '';
+    const valorFechaRefPago = orden.FechaRefPago ? orden.FechaRefPago.split(' ')[0] : '';
+    const valorFechaPagoReal = orden.FechaPagoRealizado ? orden.FechaPagoRealizado.split(' ')[0] : '';
 
     const baseInputClass = "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xs text-gray-700";
     const labelClass = "block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide";
@@ -298,15 +322,28 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
                 </select>
             </div>
             <div>
-                <label class="${labelClass}">Fecha Registro</label>
+                <label class="${labelClass}">Fecha Registro (Solicitud)</label>
                 <div class="${baseInputClass} bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 shadow-none font-mono">
                     ${fechaRegistroVista || 'N/A'}
                 </div>
                 <input type="hidden" name="Fecha" value="${fechaRegistroVista}">
             </div>
             <div>
+                <label class="${labelClass}">Fecha Aprobación (Orden)</label>
+                <div class="${baseInputClass} bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 shadow-none font-mono">
+                    ${valorFechaAprobacion || 'Aún no generada'}
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-gray-100">
+            <div>
                 <label class="${labelClass} text-blue-700">Fecha Ref. Pago</label>
-                <input type="date" name="Fecha_Pago_Programado" value="${valorFechaRef}" ${disabledControl} class="${baseInputClass} bg-blue-50 border-blue-200 ${classControl}">
+                <input type="date" name="FechaRefPago" value="${valorFechaRefPago}" ${disabledFechasOrden} class="${baseInputClass} ${classInputRefPago}">
+            </div>
+            <div>
+                <label class="${labelClass} text-green-700">Fecha Pago Realizado</label>
+                <input type="date" name="FechaPagoRealizado" value="${valorFechaPagoReal}" ${disabledFechasOrden} class="${baseInputClass} ${classInputPagoReal}">
             </div>
         </div>
     </div>
@@ -362,7 +399,6 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
 
     calcularTotalesUI();
 
-    // Forzamos la validación inicial para que lea el proveedor cargado
     setTimeout(() => {
         window.validarCreditoProveedor();
     }, 100);
