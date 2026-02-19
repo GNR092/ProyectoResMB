@@ -841,13 +841,18 @@ class Api extends ResourceController
                         ->delete();
                 }
             } else {
-                // Caso único proveedor
-                $cotizacionUnica = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
-                if ($cotizacionUnica) {
-                    $idProveedorGanador = $cotizacionUnica['ID_Proveedor'];
-                    $idCotizacionSeleccionada = $cotizacionUnica['ID_Cotizacion'];
-                }
-            }
+        // Caso único proveedor
+        $cotizacionUnica = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
+
+        if ($cotizacionUnica) {
+            $idProveedorGanador = $cotizacionUnica['ID_Proveedor'];
+            $idCotizacionSeleccionada = $cotizacionUnica['ID_Cotizacion'];
+        } else if (!empty($solicitud['ID_Proveedor'])) {
+            // EL PARCHE 2: Red de seguridad para solicitudes sin tabla Cotizacion
+            $idProveedorGanador = $solicitud['ID_Proveedor'];
+            $idCotizacionSeleccionada = null;
+        }
+    }
 
             if (!$idProveedorGanador) {
                 return $this->failNotFound('No se pudo identificar el proveedor ganador.');
