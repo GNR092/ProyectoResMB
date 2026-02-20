@@ -699,7 +699,10 @@ class Rest
 
         // Productos
         $productos = [];
-        if ($solicitudData['Tipo'] == 1 || $solicitudData['Tipo'] == 3) {
+        if (
+            $solicitudData['Tipo'] == SolicitudTipo::Cotizacion ||
+            $solicitudData['Tipo'] == SolicitudTipo::NoCotizacion
+        ) {
             $solicitudProductModel = new SolicitudProductModel();
             $productos = $solicitudProductModel->where('ID_Solicitud', $id)->findAll();
         } else {
