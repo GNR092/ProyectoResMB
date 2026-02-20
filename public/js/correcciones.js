@@ -117,11 +117,7 @@ async function cargarEditorMaestro(idSolicitud, folio) {
     // Spinner
     container.innerHTML = `
         <div class="flex flex-col items-center justify-center py-12">
-            <svg class="animate-spin h-8 w-8 text-indigo-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="text-gray-500 animate-pulse">Cargando datos y archivos...</p>
+            <p class="text-gray-500 font-medium animate-pulse">Cargando datos y archivos...</p>
         </div>`;
 
     try {
@@ -206,7 +202,6 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     const REGLAS_BLOQUEO = {
         'En espera':            { financiero: false, control: false },
         'Cotizando':            { financiero: false, control: false },
-        'Rechazada':            { financiero: false, control: false },
         'En revision':          { financiero: false, control: false },
         'Aprobacion pendiente': { financiero: false, control: false },
         'Aprobada':             { financiero: false, control: false },
@@ -303,7 +298,6 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
                     <option value="${estadoVisual}" selected>➡ ${estadoVisual}</option>
                     <option value="En espera">En espera</option>
                     <option value="Aprobada">Aprobada</option>
-                    <option value="Rechazada">Rechazada</option>
                     <option value="Cotizando">Cotizando</option>
                     <option value="Aprobacion pendiente">Aprobación Pendiente</option>
                     <option value="En revision">En revisión</option>
@@ -369,8 +363,8 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
                 ${productos.map((prod, index) => `
                 <tr class="hover:bg-gray-50 transition">
                     <td class="p-2"><input type="hidden" name="productos[${index}][id]" value="${prod.ID_SolicitudProd || prod.ID_SolicitudServ || prod.ID_Detalle}"><input type="text" name="productos[${index}][nombre]" value="${prod.Nombre || ''}" ${disabledFinanciero} class="${baseInputClass} ${classFinanciero}"></td>
-                    <td class="p-2 w-24"><input type="number" step="1.00" name="productos[${index}][cantidad]" value="${parseFloat(prod.Cantidad)||1}" ${disabledFinanciero} class="${baseInputClass} text-center input-cantidad ${classFinanciero}" oninput="calcularTotalesUI()"></td>
-                    <td class="p-2 w-32"><input type="number" step="0.01" name="productos[${index}][precio]" value="${parseFloat(prod.Importe||prod.Precio)||0}" ${disabledFinanciero} class="${baseInputClass} text-right input-precio ${classFinanciero}" oninput="calcularTotalesUI()"></td>
+                    <td class="p-2 w-24"><input type="number" step="1.00" min="1" name="productos[${index}][cantidad]" value="${parseFloat(prod.Cantidad)||1}" ${disabledFinanciero} class="${baseInputClass} text-center input-cantidad ${classFinanciero}" oninput="calcularTotalesUI()"></td>
+                    <td class="p-2 w-32"><input type="number" step="0.01" min="0" name="productos[${index}][precio]" value="${parseFloat(prod.Importe||prod.Precio)||0}" ${disabledFinanciero} class="${baseInputClass} text-right input-precio ${classFinanciero}" oninput="calcularTotalesUI()"></td>
                     <td class="p-2 text-right td-subtotal font-mono text-gray-500">$0.00</td>
                 </tr>`).join('')}
             </tbody>
@@ -385,9 +379,9 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
             ${htmlAdjuntos || '<span class="text-xs text-gray-400">Sin adjuntos previos.</span>'}
         </div>
         <div class="${classArchivos} grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-100">
-            <div><label class="block text-xs font-bold text-green-600 mb-2">Nueva Cotización</label><div id="preview-cotizacion" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 hover:bg-green-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
-            <div><label class="block text-xs font-bold text-blue-600 mb-2">Nuevo Comprobante</label><div id="preview-comprobante" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Comprobante" id="file-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'comprobante')"><button type="button" onclick="document.getElementById('file-comprobante').click()" class="w-full bg-white border border-blue-300 text-blue-600 hover:bg-blue-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
-            <div><label class="block text-xs font-bold text-indigo-600 mb-2">Nueva Factura</label><div id="preview-factura" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Factura" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
+            <div><label class="block text-xs font-bold text-green-600 mb-2">Cargar Cotización</label><div id="preview-cotizacion" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 hover:bg-green-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
+            <div><label class="block text-xs font-bold text-blue-600 mb-2">Cargar Ficha De Pago</label><div id="preview-comprobante" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Comprobante" id="file-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'comprobante')"><button type="button" onclick="document.getElementById('file-comprobante').click()" class="w-full bg-white border border-blue-300 text-blue-600 hover:bg-blue-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
+            <div><label class="block text-xs font-bold text-indigo-600 mb-2">Cargar Factura</label><div id="preview-factura" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Factura" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
         </div>
     </div>
 

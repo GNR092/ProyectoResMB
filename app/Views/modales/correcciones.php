@@ -1,7 +1,6 @@
 <div id="div-control-maestro" class="p-4">
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-semibold text-gray-800">Control Maestro (Edición)</h2>
-        <span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded border border-red-200">MODO DIOS</span>
+        <h2 class="text-2xl font-semibold text-gray-800">Editar/Corregir Solicitudes</h2>
     </div>
 
     <div id="filtros-maestro-container" class="flex flex-col md:flex-row md:items-center gap-4 mb-4 bg-white p-3 rounded shadow-sm border border-gray-200">
@@ -61,7 +60,6 @@
     <div class="flex justify-between items-center mb-6 border-b pb-4">
         <div>
             <h3 class="text-xl font-bold text-gray-800" id="titulo-editor">Editar Requisición</h3>
-            <p class="text-sm text-red-600 font-medium">⚠ Modo Silencioso: Los cambios NO activarán alertas ni cambios de estado automáticos.</p>
         </div>
         <div class="flex gap-2">
             <button onclick="regresarMaestro()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded transition font-medium">
