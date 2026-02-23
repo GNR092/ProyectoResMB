@@ -387,6 +387,9 @@ function generarDetallesSolicitudHTML(data) {
             <div><strong>Complejo:</strong> ${data.Complejo}</div>
             <div><strong>Proveedor:</strong> ${providerName}</div>
             ${metodoPago}
+            ${data.OrdenCompra?.Fecha ? `<div><strong>Fecha Creación OC:</strong> ${new Date(data.OrdenCompra.Fecha).toLocaleDateString('es-MX')}</div>` : ''}
+            ${data.OrdenCompra?.FechaRefPago ? `<div><strong>Fecha Ref. Pago OC:</strong> ${new Date(data.OrdenCompra.FechaRefPago).toLocaleDateString('es-MX')}</div>` : ''}
+            ${data.OrdenCompra?.FechaPagoRealizado ? `<div><strong>Fecha Pago Realizado OC:</strong> ${new Date(data.OrdenCompra.FechaPagoRealizado).toLocaleDateString('es-MX')}</div>` : ''}
             <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${montoFormateado}</span></div>
         </div>
     `
