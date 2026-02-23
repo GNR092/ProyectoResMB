@@ -45,7 +45,7 @@ class ControlMaestro extends BaseController
             return $this->failNotFound('La solicitud no existe.');
         }
 
-        $this->db->transStart();
+        $this->db->transException(true)->transStart();
 
         try {
             // ---------------------------------------------------------

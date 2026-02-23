@@ -270,7 +270,7 @@ class Api extends ResourceController
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             // 2. ACTUALIZAR LA SOLICITUD
@@ -347,7 +347,7 @@ class Api extends ResourceController
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $updateData = [];
@@ -558,7 +558,7 @@ class Api extends ResourceController
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $nuevoEstado = Status::En_espera;
@@ -687,7 +687,7 @@ class Api extends ResourceController
 
         // 5. Iniciar Transacción y Bucle de Proveedores
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $mail = new MBSMail();
@@ -1030,7 +1030,7 @@ class Api extends ResourceController
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $ordenData = [
@@ -1340,6 +1340,8 @@ class Api extends ResourceController
         }
 
         try {
+            $db = \Config\Database::connect();
+            $db->transException(true)->transStart();
             $idCotizacion = $cot['ID_Cotizacion'];
             $idOrdenCompra = $orden['ID_OrdenCompra'];
             $idProveedor = $cot['ID_Proveedor'];
@@ -1591,12 +1593,14 @@ class Api extends ResourceController
                 }
             }
 
+            $db->transComplete();
             return $this->respondUpdated([
                 'success' => true,
                 'message' => 'Operación completada exitosamente.',
                 'nuevoEstado' => $nuevoEstado ?? $orden['Estado'],
             ]);
         } catch (\Exception $e) {
+            $db->transRollback();
             log_message('error', '[cambiarEstadoOrden - Simple] ' . $e->getMessage());
             return $this->failServerError($e->getMessage());
         }
@@ -1622,7 +1626,7 @@ class Api extends ResourceController
         $razonSocialModel = new RazonSocialModel();
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $solicitud = $solicitudModel->find($idSolicitud);
