@@ -12,6 +12,7 @@ use App\Models\HistorialProductosModel;
 use App\Models\CuentasModel;
 use App\Models\PlacesModel;
 use App\Models\GrupoPresupuestalModel;
+use App\Models\BancoDptoModel;
 
 class Modales extends BaseController
 {
@@ -353,7 +354,12 @@ class Modales extends BaseController
                 return view('modales/CrudGrupos', $data);
 
             case 'BancoDpto':
-                return view('modales/BancoDpto');
+                $bancoModel = new BancoDptoModel();
+                $dptoModel  = new DepartamentosModel();
+                $data['bancos_dpto'] = $bancoModel->withDepartamento()->findAll();
+                $data['departamentos'] = $dptoModel->orderBy('Nombre', 'ASC')->findAll();
+
+                return view('modales/BancoDpto', $data);
 
             default:
                 return 'Opción no válida';
@@ -1078,6 +1084,49 @@ class Modales extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'No se pudo eliminar el grupo presupuestal',
+            ]);
+        }
+    }
+
+    //-----Bancos de Dpto -------------
+    public function insertarBancoDpto()
+    {
+        $model = new BancoDptoModel();
+        // Recibimos ID_Dpto, Banco, Clabe
+        $data = $this->request->getPost(['ID_Dpto', 'Banco', 'Clabe']);
+
+        if ($model->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error al guardar',
+                'errors' => $model->errors()
+            ]);
+        }
+    }
+    public function editarBancoDpto($id)
+    {
+        $model = new BancoDptoModel();
+        $data = $this->request->getPost(['ID_Dpto', 'Banco', 'Clabe']);
+
+        try {
+            $model->update($id, $data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+    public function eliminarBancoDpto($id)
+    {
+        $model = new BancoDptoModel();
+
+        if ($model->delete($id)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo eliminar el registro',
             ]);
         }
     }
