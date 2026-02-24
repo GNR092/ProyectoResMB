@@ -3205,7 +3205,7 @@ function initGruposForm() {
         pantallaLista?.classList.remove('hidden')
         formAgregar.reset()
         // Recargamos el modal para ver los cambios
-        abrirModal('crud_grupos_presupuestales')
+        abrirModal('GrupoPresupuestal')
       } else {
         mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
       }
@@ -3283,6 +3283,7 @@ function initGruposActions(tabla) {
             if (result.success) {
               mostrarNotificacion('Grupo eliminado ✅', 'success')
               btnEliminar.closest('tr')?.remove()
+              abrirModal('GrupoPresupuestal')
             } else {
               mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
             }
