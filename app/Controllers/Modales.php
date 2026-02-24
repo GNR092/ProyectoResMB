@@ -342,6 +342,9 @@ class Modales extends BaseController
             case 'correcciones':
                 return view('modales/correcciones');
 
+            case 'GrupoPresupuestal':
+                return view('modales/CrudGrupos');
+
             default:
                 return 'Opción no válida';
         }
