@@ -122,6 +122,7 @@ function abrirModal(opcion) {
         crud_departamento: initCrudDepartamentos,
         crud_cuentas: initCrudCuentas,
         correcciones: initControlMaestro,
+        GrupoPresupuestal: initCrudGrupos,
       }
 
       const inicializador = inicializadores[opcion]
@@ -3116,6 +3117,195 @@ async function cargarCuentasDeProveedor(idProveedor) {
     console.error('Error al cargar cuentas:', error);
     tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-red-500 text-sm">Error al cargar datos.</td></tr>';
   }
+}
+
+
+/**
+ * Lógica para el CRUD de cuentas de Grupos Presupuestales
+ */
+function initCrudGrupos() {
+  const tabla = document.getElementById('tabla-grupos')
+  if (!tabla) return
+
+  initGruposTabla()
+  initGruposPantallas()
+  initGruposForm()
+  initGruposEditarForm()
+  initGruposActions(tabla)
+}
+
+function initGruposTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-grupos tr[data-id]',
+    paginationSelector: 'paginacion-grupos',
+    filterFormSelector: '#form-filtros-grupos',
+    filterFunction: (row, form) => {
+      const nombreFiltro = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase()
+      const descFiltro = (document.getElementById('buscar-descripcion-grupo')?.value || '').toLowerCase()
+
+      const nombre = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || ''
+      const descripcion = row.querySelector('.descripcion-grupo')?.textContent.toLowerCase() || ''
+
+      return nombre.includes(nombreFiltro) && descripcion.includes(descFiltro)
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initGruposPantallas() {
+  const pantallaAgregar = document.getElementById('pantalla-agregar-grupos')
+  const pantallaEditar = document.getElementById('pantalla-editar-grupos')
+  const pantallaLista = document.getElementById('pantalla-lista-grupos')
+
+  const btnAgregar = document.getElementById('btn-agregar-grupos')
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista-grupos')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-grupos')
+
+  if (btnAgregar)
+    btnAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaLista?.classList.add('hidden')
+      pantallaAgregar?.classList.remove('hidden')
+    }
+
+  if (btnRegresarAgregar)
+    btnRegresarAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaAgregar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+
+  if (btnRegresarEditar)
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+}
+
+function initGruposForm() {
+  const formAgregar = document.getElementById('form-agregar-grupos')
+  const pantallaAgregar = document.getElementById('pantalla-agregar-grupos')
+  const pantallaLista = document.getElementById('pantalla-lista-grupos')
+  if (!formAgregar) return
+
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formAgregar)
+
+    try {
+      const result = await SendDataEnd('modales/crud_grupos_presupuestales/insertar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Grupo agregado correctamente ✅', 'success')
+        pantallaAgregar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+        formAgregar.reset()
+        // Recargamos el modal para ver los cambios
+        abrirModal('crud_grupos_presupuestales')
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initGruposEditarForm() {
+  const formEditar = document.getElementById('form-editar-grupos')
+  const pantallaEditar = document.getElementById('pantalla-editar-grupos')
+  const pantallaLista = document.getElementById('pantalla-lista-grupos')
+  const tabla = document.getElementById('tabla-grupos')
+  if (!formEditar) return
+
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
+    const id = formData.get('ID_GrupoPresupuestal')
+
+    try {
+      const result = await SendDataEnd(`modales/crud_grupos_presupuestales/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Grupo actualizado correctamente ✅', 'success')
+
+        const fila = tabla.querySelector(`tr[data-id='${id}']`)
+        if (fila) {
+          // Actualizar textos básicos
+          fila.querySelector('.nombre-grupo').textContent = formData.get('Nombre')
+          fila.querySelector('.descripcion-grupo').textContent = formData.get('Descripcion')
+
+          // Actualizar Datasets
+          fila.dataset.nombre = formData.get('Nombre')
+          fila.dataset.descripcion = formData.get('Descripcion')
+        }
+
+        pantallaEditar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initGruposActions(tabla) {
+  if (!tabla) return
+
+  tabla.addEventListener('click', async (e) => {
+    // --- ELIMINAR ---
+    const btnEliminar = e.target.closest("[id^='btn-eliminar-grupos-']")
+    if (btnEliminar) {
+      e.preventDefault()
+      const id = btnEliminar.dataset.id
+
+      if (
+          !(await Confirmar(
+              'Eliminar Grupo?',
+              '¿Seguro que deseas eliminar este grupo presupuestal?',
+          ))
+      )
+        return
+
+      SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${id}`, {
+        method: 'POST',
+      })
+          .then((result) => {
+            if (result.success) {
+              mostrarNotificacion('Grupo eliminado ✅', 'success')
+              btnEliminar.closest('tr')?.remove()
+            } else {
+              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+            }
+          })
+          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+      return
+    }
+
+    // --- EDITAR ---
+    const btnEditar = e.target.closest("[id^='btn-editar-grupos-']")
+    if (!btnEditar) return
+    e.preventDefault()
+
+    const fila = btnEditar.closest('tr')
+    if (!fila) return
+
+    document.getElementById('editar-ID_GrupoPresupuestal').value = fila.dataset.id
+    document.getElementById('editar-Nombre').value = fila.dataset.nombre
+    document.getElementById('editar-Descripcion').value = fila.dataset.descripcion
+
+    document.getElementById('pantalla-lista-grupos').classList.add('hidden')
+    document.getElementById('pantalla-editar-grupos').classList.remove('hidden')
+  })
 }
 
 
