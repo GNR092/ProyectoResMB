@@ -2100,7 +2100,7 @@
 }
 .choices__inner {
   background-color: #ffffff !important; /* Fondo blanco como los otros */
-  border: 1px solid #d1d5db !important; /* Color exacto de border-gray-300 */
+  border: 1px solid #000000 !important; /* Color exacto de border-gray-300 */
   border-radius: 0.25rem !important;    /* rounded de Tailwind */
   min-height: 42px !important;         /* Altura idéntica al input de fecha y select estado */
   padding: 4px 8px !important;         /* Espaciado interno similar a p-2 */

@@ -270,7 +270,7 @@ class Api extends ResourceController
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             // 2. ACTUALIZAR LA SOLICITUD
@@ -347,7 +347,7 @@ class Api extends ResourceController
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $updateData = [];
@@ -558,7 +558,7 @@ class Api extends ResourceController
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $nuevoEstado = Status::En_espera;
@@ -687,7 +687,7 @@ class Api extends ResourceController
 
         // 5. Iniciar Transacción y Bucle de Proveedores
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $mail = new MBSMail();
@@ -841,16 +841,18 @@ class Api extends ResourceController
                         ->delete();
                 }
             } else {
-                // Caso único proveedor
-                $cotizacionUnica = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
-                if ($cotizacionUnica) {
-                    $idProveedorGanador = $cotizacionUnica['ID_Proveedor'];
-                    $idCotizacionSeleccionada = $cotizacionUnica['ID_Cotizacion'];
-                } else if (!empty($solicitud['ID_Proveedor'])) {
-                    // LÓGICA DE RESPALDO: Si no hay registro de cotización, pero la solicitud ya tiene proveedor
-                    $idProveedorGanador = $solicitud['ID_Proveedor'];
-                }
-            }
+        // Caso único proveedor
+        $cotizacionUnica = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
+
+        if ($cotizacionUnica) {
+            $idProveedorGanador = $cotizacionUnica['ID_Proveedor'];
+            $idCotizacionSeleccionada = $cotizacionUnica['ID_Cotizacion'];
+        } else if (!empty($solicitud['ID_Proveedor'])) {
+            // EL PARCHE 2: Red de seguridad para solicitudes sin tabla Cotizacion
+            $idProveedorGanador = $solicitud['ID_Proveedor'];
+            $idCotizacionSeleccionada = null;
+        }
+    }
 
             if (!$idProveedorGanador) {
                 return $this->failNotFound('No se pudo identificar el proveedor ganador.');
@@ -1034,7 +1036,7 @@ class Api extends ResourceController
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $ordenData = [
@@ -1344,6 +1346,8 @@ class Api extends ResourceController
         }
 
         try {
+            $db = \Config\Database::connect();
+            $db->transException(true)->transStart();
             $idCotizacion = $cot['ID_Cotizacion'];
             $idOrdenCompra = $orden['ID_OrdenCompra'];
             $idProveedor = $cot['ID_Proveedor'];
@@ -1595,12 +1599,14 @@ class Api extends ResourceController
                 }
             }
 
+            $db->transComplete();
             return $this->respondUpdated([
                 'success' => true,
                 'message' => 'Operación completada exitosamente.',
                 'nuevoEstado' => $nuevoEstado ?? $orden['Estado'],
             ]);
         } catch (\Exception $e) {
+            $db->transRollback();
             log_message('error', '[cambiarEstadoOrden - Simple] ' . $e->getMessage());
             return $this->failServerError($e->getMessage());
         }
@@ -1626,7 +1632,7 @@ class Api extends ResourceController
         $razonSocialModel = new RazonSocialModel();
 
         $db = \Config\Database::connect();
-        $db->transStart();
+        $db->transException(true)->transStart();
 
         try {
             $solicitud = $solicitudModel->find($idSolicitud);
@@ -1851,6 +1857,19 @@ class Api extends ResourceController
     }
     //endregion
 
+    //Obtener todas las razones sociales
+    public function getAllRazonSocial()
+    {
+        $db = \Config\Database::connect();
+        // Usamos los nombres exactos del modelo RazonSocialModel
+        $data = $db->table('Razon_Social')
+            ->select('ID_RazonSocial, Nombre, RFC') // 'Nombre' es la columna correcta
+            ->get()
+            ->getResultArray();
+
+        return $this->respond($data);
+    }
+
     /**
      * Actualiza los datos de un usuario utilizando su correo electrónico como identificador.
      * Espera un JSON con "email" y "data".
@@ -1996,117 +2015,148 @@ class Api extends ResourceController
         $solicitudData = $this->api->getOrdenCompra((int) $idSolicitud);
 
         if (empty($solicitudData)) {
-            return $this->failNotFound(
-                'No se encontraron datos de la orden para la solicitud con ID: ' . $idSolicitud,
-            );
+            return $this->failNotFound('No se encontraron datos para la ID: ' . $idSolicitud);
         }
 
         $filePaths = [];
         $basePath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR;
+        $folio = $solicitudData['No_Folio'] ?? null;
 
-        if (!empty($solicitudData['No_Folio'])) {
-            $requisicionPath =
-                'pdf_solicitudes' .
-                DIRECTORY_SEPARATOR .
-                'Requisicion-' .
-                $solicitudData['No_Folio'] .
-                '.pdf';
-            if (file_exists($basePath . $requisicionPath)) {
-                $filePaths['Requisicion-' . $solicitudData['No_Folio'] . '.pdf'] =
-                    $basePath . $requisicionPath;
+        // NOTA: Agregamos prefijos (01_, 02_, etc.) a las llaves del array.
+        // Ese será el nombre que tendrá el archivo DENTRO del ZIP.
+
+        // ---------------------------------------------------------
+        // 1. REQUISICIÓN (SOLICITUD ORIGINAL) -> 01_
+        // ---------------------------------------------------------
+        if (!empty($folio)) {
+            $reqName = 'Requisicion-' . $folio . '.pdf';
+            $reqPath = 'pdf_solicitudes' . DIRECTORY_SEPARATOR . $reqName;
+            if (file_exists($basePath . $reqPath)) {
+                // Nombre en el ZIP: 01_Requisicion-...
+                $filePaths['01_' . $reqName] = $basePath . $reqPath;
             }
         }
 
-        if (
-            !empty($solicitudData['cotizacion']['Cotizacion_Files']) &&
-            !empty($solicitudData['Fecha'])
-        ) {
-            $cotFiles = explode(',', $solicitudData['cotizacion']['Cotizacion_Files']);
+        // ---------------------------------------------------------
+        // 2. COTIZACIÓN -> 02_
+        // ---------------------------------------------------------
+        $archivosCotizacionString = null;
+        if (!empty($solicitudData['cotizacion']) && is_array($solicitudData['cotizacion']) && !empty($solicitudData['cotizacion']['Cotizacion_Files'])) {
+            $archivosCotizacionString = $solicitudData['cotizacion']['Cotizacion_Files'];
+        } elseif (!empty($solicitudData['Cotizacion_Files'])) {
+            $archivosCotizacionString = $solicitudData['Cotizacion_Files'];
+        }
+
+        if (!empty($archivosCotizacionString) && !empty($solicitudData['Fecha'])) {
+            $fechaCarpeta = date('Y-m-d', strtotime($solicitudData['Fecha']));
+            $cotFiles = explode(',', $archivosCotizacionString);
+
             foreach ($cotFiles as $file) {
                 $trimmedFile = trim($file);
-                if (empty($trimmedFile)) {
-                    continue;
-                }
-                $cotizacionPath =
-                    'cotizaciones' .
-                    DIRECTORY_SEPARATOR .
-                    $solicitudData['Fecha'] .
-                    DIRECTORY_SEPARATOR .
-                    $trimmedFile;
+                if (empty($trimmedFile)) continue;
+
+                $cotizacionPath = 'cotizaciones' . DIRECTORY_SEPARATOR . $fechaCarpeta . DIRECTORY_SEPARATOR . $trimmedFile;
+
                 if (file_exists($basePath . $cotizacionPath)) {
-                    $filePaths[$trimmedFile] = $basePath . $cotizacionPath;
+                    // Nombre en el ZIP: 02_NombreArchivoOriginal
+                    $filePaths['02_' . $trimmedFile] = $basePath . $cotizacionPath;
                 }
             }
         }
 
-        if (!empty($solicitudData['No_Folio'])) {
-            $ordenCompraPath =
-                'pdf_ordenes' .
-                DIRECTORY_SEPARATOR .
-                'OrdenCompra-' .
-                $solicitudData['No_Folio'] .
-                '.pdf';
-            if (file_exists($basePath . $ordenCompraPath)) {
-                $filePaths['OrdenCompra-' . $solicitudData['No_Folio'] . '.pdf'] =
-                    $basePath . $ordenCompraPath;
+        // ---------------------------------------------------------
+        // 3. ORDEN DE COMPRA -> 03_
+        // ---------------------------------------------------------
+        if (!empty($folio)) {
+            $ocName = 'OrdenCompra-' . $folio . '.pdf';
+            $ocPath = 'pdf_ordenes' . DIRECTORY_SEPARATOR . $ocName;
+            if (file_exists($basePath . $ocPath)) {
+                $filePaths['03_' . $ocName] = $basePath . $ocPath;
             }
         }
 
+        // ---------------------------------------------------------
+        // 4. REQUISICIÓN DE PAGO -> 04_
+        // ---------------------------------------------------------
+        if (!empty($folio)) {
+            $reqPagoName = 'RequisicionPago-' . $folio . '.pdf';
+            $reqPagoPath = 'pdf_req_pago' . DIRECTORY_SEPARATOR . $reqPagoName;
+            if (file_exists($basePath . $reqPagoPath)) {
+                $filePaths['04_' . $reqPagoName] = $basePath . $reqPagoPath;
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 5. FICHA DE PAGO -> 05_
+        // ---------------------------------------------------------
+        $compName = null;
         if (!empty($solicitudData['OrdenCompra']['File_Comprobante'])) {
-            $comprobantePath =
-                'comprobantes' .
-                DIRECTORY_SEPARATOR .
-                $solicitudData['OrdenCompra']['File_Comprobante'];
-            if (file_exists($basePath . $comprobantePath)) {
-                $filePaths[$solicitudData['OrdenCompra']['File_Comprobante']] =
-                    $basePath . $comprobantePath;
+            $compName = $solicitudData['OrdenCompra']['File_Comprobante'];
+        } elseif (!empty($solicitudData['File_Comprobante'])) {
+            $compName = $solicitudData['File_Comprobante'];
+        }
+
+        if ($compName) {
+            $compPath = 'comprobantes' . DIRECTORY_SEPARATOR . $compName;
+            if (file_exists($basePath . $compPath)) {
+                // Forzamos que se llame FichaPago para que sea claro
+                $filePaths['05_FichaPago-' . $compName] = $basePath . $compPath;
             }
         }
 
+        // ---------------------------------------------------------
+        // 6. FACTURA -> 06_
+        // ---------------------------------------------------------
+        $facName = null;
         if (!empty($solicitudData['OrdenCompra']['File_Factura'])) {
-            $facturaPath =
-                'facturas' . DIRECTORY_SEPARATOR . $solicitudData['OrdenCompra']['File_Factura'];
-            if (file_exists($basePath . $facturaPath)) {
-                $filePaths[$solicitudData['OrdenCompra']['File_Factura']] =
-                    $basePath . $facturaPath;
+            $facName = $solicitudData['OrdenCompra']['File_Factura'];
+        } elseif (!empty($solicitudData['File_Factura'])) {
+            $facName = $solicitudData['File_Factura'];
+        }
+
+        if ($facName) {
+            $facPath = 'facturas' . DIRECTORY_SEPARATOR . $facName;
+            if (file_exists($basePath . $facPath)) {
+                $filePaths['06_' . $facName] = $basePath . $facPath;
             }
         }
 
+        // ---------------------------------------------------------
+        // GENERAR ZIP
+        // ---------------------------------------------------------
         if (empty($filePaths)) {
-            return $this->failNotFound('No se encontraron archivos adjuntos para descargar.');
+            return $this->failNotFound('No se encontraron archivos adjuntos físicos.');
         }
 
         $zip = new \ZipArchive();
-        $zipFileName = ($solicitudData['No_Folio'] ?? $idSolicitud) . '.zip';
+        $zipFileName = ($folio ?? $idSolicitud) . '.zip';
         $tempDir = WRITEPATH . 'temp';
-        if (!is_dir($tempDir)) {
-            mkdir($tempDir, 0775, true);
-        }
+        if (!is_dir($tempDir)) mkdir($tempDir, 0775, true);
+
         $zipTempPath = $tempDir . DIRECTORY_SEPARATOR . $zipFileName;
 
         if ($zip->open($zipTempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
-            return $this->failServerError('No se pudo crear el archivo ZIP.');
+            return $this->failServerError('Error creando ZIP.');
         }
 
-        foreach ($filePaths as $displayName => $realPath) {
-            $zip->addFile($realPath, $displayName);
+        foreach ($filePaths as $zipName => $realPath) {
+            // $zipName ya trae el prefijo (01_, 02_...)
+            $zip->addFile($realPath, $zipName);
         }
         $zip->close();
 
-        $zipContent = @file_get_contents($zipTempPath);
-        @unlink($zipTempPath);
+        if (file_exists($zipTempPath)) {
+            $zipContent = file_get_contents($zipTempPath);
+            unlink($zipTempPath);
 
-        if ($zipContent === false) {
-            return $this->failServerError('No se pudo leer el archivo ZIP temporal para enviarlo.');
+            return $this->response
+                ->setBody($zipContent)
+                ->setHeader('Content-Type', 'application/zip')
+                ->setHeader('Content-Disposition', 'attachment; filename="' . $zipFileName . '"')
+                ->setHeader('Content-Length', (string) strlen($zipContent));
         }
 
-        return $this->response
-            ->setBody($zipContent)
-            ->setHeader('Content-Type', 'application/zip')
-            ->setHeader('Content-Disposition', 'attachment; filename="' . $zipFileName . '"')
-            ->setHeader('Content-Length', (string) strlen($zipContent));
-        log_message('debug', print_r($solicitud, true));
-        return $solicitud ?: [];
+        return $this->failServerError('Error al procesar ZIP final.');
     }
 
     public function exportarRequisiciones()

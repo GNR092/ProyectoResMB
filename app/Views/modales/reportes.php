@@ -37,42 +37,38 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
             </select>
         </div>
 
-        <!-- Filtro Departamento -->
+        <!-- Filtro Dpto -->
         <div class="w-full sm:w-auto shrink-0">
-            <select x-model="departamento" id="filtroDepartamento-reportes"
-                class="border p-2 rounded w-full min-w-[150px]">
-                <option value="">Departamento</option>
+            <select x-ref="deptoSelect" id="filtroDepartamento-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>
+                <option value="">Departamento (Todos)</option>
                 <?php if (!empty($departamentos)): ?>
-                <?php foreach ($departamentos as $dpto): ?>
-                <option value="<?= esc($dpto['Nombre']) ?>"><?= esc($dpto['Nombre']) ?></option>
-                <?php endforeach; ?>
+                    <?php foreach ($departamentos as $dpto): ?>
+                        <option value="<?= esc($dpto['Nombre']) ?>"><?= esc($dpto['Nombre']) ?></option>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </select>
         </div>
 
-        <!-- Filtro Razón Social -->
+        <!-- Filtro Razon Social -->
         <div class="w-full sm:w-auto shrink-0">
-            <select x-model="razonSocial" id="filtroRazonSocial-reportes"
-                class="border p-2 rounded w-full min-w-[150px]">
-                <option value="">Razón Social</option>
+            <select x-ref="razonSelect" id="filtroRazonSocial-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>
+                <option value="">Razón Social (Todas)</option>
                 <?php if (!empty($razones_sociales)): ?>
-                <?php foreach ($razones_sociales as $rs): ?>
-                <option value="<?= esc($rs['Nombre']) ?>"><?= esc($rs['Nombre']) ?></option>
-                <?php endforeach; ?>
+                    <?php foreach ($razones_sociales as $rs): ?>
+                        <option value="<?= esc($rs['Nombre']) ?>"><?= esc($rs['Nombre']) ?></option>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </select>
         </div>
 
         <!-- Filtro Proveedor -->
         <div class="w-full sm:w-auto shrink-0">
-            <select x-model="proveedor" id="filtroProveedor-reportes" class="border p-2 rounded w-full min-w-[150px]">
-                <option value="">Proveedor</option>
+            <select x-ref="provSelect" id="filtroProveedor-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>
+                <option value="">Proveedor (Todos)</option>
                 <?php if (!empty($proveedores)): ?>
-                <?php foreach ($proveedores as $prov): ?>
-                <option value="<?= esc($prov['RazonSocial']) ?>"><?= esc(
-    $prov['RazonSocial'],
-) ?></option>
-                <?php endforeach; ?>
+                    <?php foreach ($proveedores as $prov): ?>
+                        <option value="<?= esc($prov['RazonSocial']) ?>"><?= esc($prov['RazonSocial']) ?></option>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </select>
         </div>

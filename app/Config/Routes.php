@@ -146,6 +146,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/orden/programar-pagos', 'Api::programarPagos');
 
         //razon social
+        $routes->get('api/razonsocial/all', 'Api::getAllRazonSocial');
         $routes->post('modales/razonsocial/insertar', 'Modales::insertarRazonSocial');
         $routes->post('modales/razonsocial/editar/(:num)', 'Modales::editarRazonSocial/$1');
         $routes->post('modales/razonsocial/eliminar/(:num)', 'Modales::eliminarRazonSocial/$1');
@@ -164,6 +165,9 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/crud_departamentos/insertar', 'Modales::insertarDepartamento');
         $routes->post('modales/crud_departamentos/editar/(:num)', 'Modales::editarDepartamento/$1');
         $routes->post('modales/crud_departamentos/eliminar/(:num)', 'Modales::eliminarDepartamento/$1');
+
+        //Control maestro
+        $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');
 
         // User
         $routes->post('api/user/update', 'Api::updateUser');

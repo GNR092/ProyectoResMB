@@ -2,26 +2,38 @@
 namespace App\Libraries;
 class Status
 {
-    public const En_espera = 'En espera';
+    //Campos de DPTO
+
     public const Aprobacion_pendiente = 'Aprobacion Pendiente';
-    public const Aprobada = 'Aprobada';
+
     public const Aprobar = 'aprobar';
-    public const Rechazada = 'Rechazada';
+
     public const Dept_Rechazada = 'Dept_Rechazada';
-    public const Rechazar = 'rechazar';
+
+    // Campos Generales en orden
+    public const En_espera = 'En espera';
+
     public const Cotizando = 'Cotizando';
-    public const Cotizada = 'Cotizada';
-    public const Ordenada = 'Ordenada';
-    public const Recibida = 'Recibida';
-    public const Cancelada = 'Cancelada';
-    public const Entregada = 'Entregada';
+
     public const En_Revision = 'En revision';
 
-    // --- Estados de Tesorería/Pagos ---
+    public const Rechazada = 'Rechazada';
+    public const Aprobada = 'Aprobada';
+
     public const Espera_Programacion = 'Espera_Programacion';
+
     public const Programada = 'Programada';
-    public const Pago_Autorizado = "Pago autorizado";
+
     public const Por_Pagar = 'Por Pagar';
-    public const En_Proceso_Pago = 'En Proceso de Pago';
+
     public const Pagada = 'Pagada';
+
+
+
+    //------------???------------------//
+
+    public const Rechazar = 'rechazar';
+
+    public const En_Proceso_Pago = 'En Proceso de Pago';
+
 }

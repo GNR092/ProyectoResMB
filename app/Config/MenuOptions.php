@@ -68,6 +68,11 @@ class MenuOptions extends BaseConfig
                     '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#pagos_pendientes"></use></svg>',
             ],
 
+            'correcciones' => [
+                'label' => 'Corregir solicitudes',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#Fix"></use></svg>',
+            ],
+
             // ******** DIRECCION *******//
             'TituloDireccion' => [
                 'label' => 'Dirección',

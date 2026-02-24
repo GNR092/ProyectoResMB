@@ -54,7 +54,9 @@ function abrirModal(opcion) {
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
 
+
   const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos']
+
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
     modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto')
@@ -92,6 +94,7 @@ function abrirModal(opcion) {
     crud_departamento:"Departametos",
     lista_pagos: "Lista de pagos",
     crud_cuentas: "Cuentas de proveedores",
+    correcciones: "Corregir Solicitudes",
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -117,6 +120,7 @@ function abrirModal(opcion) {
         crud_places: initCrudPlaces,
         crud_departamento: initCrudDepartamentos,
         crud_cuentas: initCrudCuentas,
+        correcciones: initControlMaestro,
       }
 
       const inicializador = inicializadores[opcion]
