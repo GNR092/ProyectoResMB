@@ -96,6 +96,7 @@ function abrirModal(opcion) {
     crud_cuentas: "Cuentas de proveedores",
     correcciones: "Corregir Solicitudes",
     GrupoPresupuestal: "Grupo Presupuestal",
+    BancoDpto: "Cuentas Bancarias de los Departamentos",
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 

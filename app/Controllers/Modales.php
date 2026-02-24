@@ -352,6 +352,9 @@ class Modales extends BaseController
 
                 return view('modales/CrudGrupos', $data);
 
+            case 'BancoDpto':
+                return view('modales/BancoDpto');
+
             default:
                 return 'Opción no válida';
         }
