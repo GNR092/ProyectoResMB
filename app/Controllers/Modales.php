@@ -357,7 +357,11 @@ class Modales extends BaseController
                 $bancoModel = new BancoDptoModel();
                 $dptoModel  = new DepartamentosModel();
                 $data['bancos_dpto'] = $bancoModel->withDepartamento()->findAll();
-                $data['departamentos'] = $dptoModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['departamentos'] = $dptoModel
+                    ->select('Departamentos.*, Places.Nombre_Completo as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->orderBy('Departamentos.Nombre', 'ASC')
+                    ->findAll();
 
                 return view('modales/BancoDpto', $data);
 
