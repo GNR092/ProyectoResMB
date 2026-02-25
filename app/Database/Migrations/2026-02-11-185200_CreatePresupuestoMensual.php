@@ -18,20 +18,26 @@ class CreatePresupuestoMensual extends Migration
             'ID_Dpto' => [
                 'type'       => 'INT',
                 'constraint' => 11,
-                // 'unsigned'   => true, // Debe coincidir con la PK de Departamentos
-                'null'       => true, // Permitimos NULL si un presupuesto puede quedar huérfano temporalmente
+                /**
+                 * CORRECCIÓN DE COMPATIBILIDAD POSTGRES/MYSQL:
+                 * - MySQL: Requiere 'unsigned' => true para coincidir con la tabla padre.
+                 * - Postgres: Ignorará esta instrucción o la manejará sin romper nada.
+                 * - Es vital dejarlo en TRUE para que funcione en tu servidor.
+                 */
+                'unsigned'   => true,
+                'null'       => true,
             ],
             'Anio' => [
                 'type'       => 'INT',
-                'constraint' => 4, // Año de 4 dígitos (ej. 2025)
+                'constraint' => 4,
             ],
             'Mes' => [
                 'type'       => 'INT',
-                'constraint' => 2, // Mes numérico (1-12)
+                'constraint' => 2,
             ],
             'Monto_Asignado' => [
                 'type'       => 'DECIMAL',
-                'constraint' => '15,2', // 15 dígitos en total, 2 decimales
+                'constraint' => '15,2',
                 'default'    => 0.00,
             ],
             'Monto_Comprometido' => [
@@ -51,12 +57,12 @@ class CreatePresupuestoMensual extends Migration
 
         // Llave Foránea
         $this->forge->addForeignKey(
-            'ID_Dpto',           // Columna actual
-            'Departamentos',     // Tabla padre
-            'ID_Dpto',           // Columna padre
-            'CASCADE',           // On Update
-            'RESTRICT',          // On Delete (No permite borrar un depto si tiene presupuesto asignado)
-            'presupuesto_dpto_fk' // Nombre único para Postgres
+            'ID_Dpto',               // Columna en esta tabla
+            'Departamentos',         // Tabla padre (Confirmado que en MySQL es con mayúscula)
+            'ID_Dpto',               // Columna padre
+            'CASCADE',               // ON UPDATE
+            'RESTRICT',              // ON DELETE
+            'fk_presupuesto_dpto_v3' // <--- Usamos un nombre único para evitar basura anterior en MySQL
         );
 
         $this->forge->createTable('PresupuestoMensual');
