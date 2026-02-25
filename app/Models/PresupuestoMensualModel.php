@@ -15,6 +15,7 @@ class PresupuestoMensualModel extends Model
 
     protected $allowedFields    = [
         'ID_Dpto',
+        'ID_GrupoPresupuestal',
         'Anio',
         'Mes',
         'Monto_Asignado',

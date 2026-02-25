@@ -26,7 +26,7 @@ class CreateGrupoPresupuestal extends Migration
         ]);
 
         $this->forge->addKey('ID_GrupoPresupuestal', true);
-        $this->forge->createTable('GrupoPresupuestal');
+        $this->forge->createTable('GrupoPresupuestal', true);
     }
 
     public function down()

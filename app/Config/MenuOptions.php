@@ -133,6 +133,16 @@ class MenuOptions extends BaseConfig
                 'label' => 'Reportes/Auditoria',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#reportes"></use></svg>',
             ],
+
+            'GrupoPresupuestal' => [
+                'label' => 'Grupo Presupuestal',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#GrupoPresupuestal"></use></svg>',
+            ],
+
+            'BancoDpto' => [
+                'label' => 'Bancos de Departamento',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#BancoDpto"></use></svg>',
+            ],
         ];
     }
 }

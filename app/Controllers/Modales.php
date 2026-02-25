@@ -9,8 +9,10 @@ use App\Models\ProveedorModel;
 use App\Models\ProductoModel;
 use App\Models\SolicitudModel;
 use App\Models\HistorialProductosModel;
-use App\Models\PlacesModel;
 use App\Models\CuentasModel;
+use App\Models\PlacesModel;
+use App\Models\GrupoPresupuestalModel;
+use App\Models\BancoDptoModel;
 
 class Modales extends BaseController
 {
@@ -342,6 +344,27 @@ class Modales extends BaseController
             case 'correcciones':
                 return view('modales/correcciones');
 
+            case 'GrupoPresupuestal':
+                $grupoModel = new GrupoPresupuestalModel();
+
+                $data['grupos'] = $grupoModel
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+
+                return view('modales/CrudGrupos', $data);
+
+            case 'BancoDpto':
+                $bancoModel = new BancoDptoModel();
+                $dptoModel  = new DepartamentosModel();
+                $data['bancos_dpto'] = $bancoModel->withDepartamento()->findAll();
+                $data['departamentos'] = $dptoModel
+                    ->select('Departamentos.*, Places.Nombre_Completo as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->orderBy('Departamentos.Nombre', 'ASC')
+                    ->findAll();
+
+                return view('modales/BancoDpto', $data);
+
             default:
                 return 'Opción no válida';
         }
@@ -356,6 +379,7 @@ class Modales extends BaseController
     {
         return view('layout/serviceTable');
     }
+
 
     //Funciones para usuarios
     public function registrarUsuario()
@@ -408,7 +432,6 @@ class Modales extends BaseController
             ->setStatusCode(500)
             ->setJSON(['success' => false, 'message' => 'No se pudo registrar el usuario.']);
     }
-
     public function actualizarUsuario($id)
     {
         if (!$this->request->isAJAX()) {
@@ -459,7 +482,6 @@ class Modales extends BaseController
             ->setStatusCode(500)
             ->setJSON(['success' => false, 'message' => 'No se pudo actualizar el usuario.']);
     }
-
     public function eliminarUsuario($id)
     {
         if (!$this->request->isAJAX()) {
@@ -492,6 +514,7 @@ class Modales extends BaseController
             ->setStatusCode(500)
             ->setJSON(['success' => false, 'message' => 'No se pudo eliminar el usuario.']);
     }
+
 
     //Funciones para almacen
     public function registrarMaterial()
@@ -811,6 +834,7 @@ class Modales extends BaseController
         }
     }
 
+
     //Funcion crud para razon social
     public function insertarRazonSocial()
     {
@@ -826,7 +850,6 @@ class Modales extends BaseController
             ]);
         }
     }
-
     public function editarRazonSocial($id)
     {
         $model = new RazonSocialModel();
@@ -842,7 +865,6 @@ class Modales extends BaseController
             ]);
         }
     }
-
     public function eliminarRazonSocial($id)
     {
         $model = new RazonSocialModel();
@@ -856,6 +878,7 @@ class Modales extends BaseController
             ]);
         }
     }
+
 
     // --- CRUD PLACES ---
     public function insertarPlace()
@@ -871,7 +894,6 @@ class Modales extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Error', 'errors' => $model->errors()]);
         }
     }
-
     public function editarPlace($id)
     {
         $model = new PlacesModel();
@@ -886,7 +908,6 @@ class Modales extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
-
     public function eliminarPlace($id)
     {
         $model = new PlacesModel();
@@ -900,6 +921,7 @@ class Modales extends BaseController
             ]);
         }
     }
+
 
     // --- CRUD DEPARTAMENTOS ---
     public function insertarDepartamento()
@@ -917,7 +939,6 @@ class Modales extends BaseController
             ]);
         }
     }
-
     public function editarDepartamento($id)
     {
         $model = new DepartamentosModel();
@@ -933,7 +954,6 @@ class Modales extends BaseController
             ]);
         }
     }
-
     public function eliminarDepartamento($id)
     {
         $model = new DepartamentosModel();
@@ -948,6 +968,7 @@ class Modales extends BaseController
         }
     }
 
+
     // --- CRUD CUENTAS ---
     public function getCuentasByProveedor($idProveedor)
     {
@@ -960,8 +981,6 @@ class Modales extends BaseController
         // Retornamos en formato JSON
         return $this->response->setJSON($cuentas);
     }
-
-    // --- INSERTAR CUENTA ---
     public function insertarCuenta()
     {
         $model = new CuentasModel();
@@ -987,7 +1006,6 @@ class Modales extends BaseController
             ]);
         }
     }
-    // --- ACTUALIZAR CUENTA ---
     public function actualizarCuenta($id)
     {
         $model = new CuentasModel();
@@ -1020,7 +1038,6 @@ class Modales extends BaseController
             ]);
         }
     }
-    // --- ELIMINAR CUENTA ---
     public function eliminarCuenta($id)
     {
         $model = new CuentasModel();
@@ -1032,6 +1049,88 @@ class Modales extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'No se pudo eliminar la cuenta.'
+            ]);
+        }
+    }
+
+    // ----------- Grupos Presupuestales ------------
+    public function insertarGrupo()
+    {
+        $model = new GrupoPresupuestalModel();
+        // Recibimos solo Nombre y Descripcion
+        $data = $this->request->getPost(['Nombre', 'Descripcion']);
+
+        if ($model->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al guardar', 'errors' => $model->errors()]);
+        }
+    }
+    public function editarGrupo($id)
+    {
+        $model = new GrupoPresupuestalModel();
+        $data = $this->request->getPost(['Nombre', 'Descripcion']);
+
+        try {
+            $model->update($id, $data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+    public function eliminarGrupo($id)
+    {
+        $model = new GrupoPresupuestalModel();
+
+        if ($model->delete($id)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo eliminar el grupo presupuestal',
+            ]);
+        }
+    }
+
+    //-----Bancos de Dpto -------------
+    public function insertarBancoDpto()
+    {
+        $model = new BancoDptoModel();
+        // Recibimos ID_Dpto, Banco, Clabe
+        $data = $this->request->getPost(['ID_Dpto', 'Banco', 'Clabe']);
+
+        if ($model->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error al guardar',
+                'errors' => $model->errors()
+            ]);
+        }
+    }
+    public function editarBancoDpto($id)
+    {
+        $model = new BancoDptoModel();
+        $data = $this->request->getPost(['ID_Dpto', 'Banco', 'Clabe']);
+
+        try {
+            $model->update($id, $data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+    public function eliminarBancoDpto($id)
+    {
+        $model = new BancoDptoModel();
+
+        if ($model->delete($id)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo eliminar el registro',
             ]);
         }
     }

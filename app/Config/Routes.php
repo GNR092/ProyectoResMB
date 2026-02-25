@@ -165,6 +165,15 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/crud_departamentos/insertar', 'Modales::insertarDepartamento');
         $routes->post('modales/crud_departamentos/editar/(:num)', 'Modales::editarDepartamento/$1');
         $routes->post('modales/crud_departamentos/eliminar/(:num)', 'Modales::eliminarDepartamento/$1');
+        //Bancos de Dpto
+        $routes->post('modales/crud_banco_dpto/insertar', 'Modales::insertarBancoDpto');
+        $routes->post('modales/crud_banco_dpto/editar/(:num)', 'Modales::editarBancoDpto/$1');
+        $routes->post('modales/crud_banco_dpto/eliminar/(:num)', 'Modales::eliminarBancoDpto/$1');
+
+        // Rutas para CRUD Grupo Presupuestal
+        $routes->post('modales/crud_grupos_presupuestales/insertar', 'Modales::insertarGrupo');
+        $routes->post('modales/crud_grupos_presupuestales/editar/(:num)', 'Modales::editarGrupo/$1');
+        $routes->post('modales/crud_grupos_presupuestales/eliminar/(:num)', 'Modales::eliminarGrupo/$1');
 
         //Control maestro
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');

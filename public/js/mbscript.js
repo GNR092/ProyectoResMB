@@ -95,6 +95,8 @@ function abrirModal(opcion) {
     lista_pagos: "Lista de pagos",
     crud_cuentas: "Cuentas de proveedores",
     correcciones: "Corregir Solicitudes",
+    GrupoPresupuestal: "Grupo Presupuestal",
+    BancoDpto: "Cuentas Bancarias de los Departamentos",
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -121,6 +123,8 @@ function abrirModal(opcion) {
         crud_departamento: initCrudDepartamentos,
         crud_cuentas: initCrudCuentas,
         correcciones: initControlMaestro,
+        GrupoPresupuestal: initCrudGrupos,
+        BancoDpto: initCrudBancoDpto
       }
 
       const inicializador = inicializadores[opcion]
@@ -3115,6 +3119,394 @@ async function cargarCuentasDeProveedor(idProveedor) {
     console.error('Error al cargar cuentas:', error);
     tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-red-500 text-sm">Error al cargar datos.</td></tr>';
   }
+}
+
+
+/**
+ * Lógica para el CRUD de cuentas de Grupos Presupuestales
+ */
+function initCrudGrupos() {
+  const tabla = document.getElementById('tabla-grupos')
+  if (!tabla) return
+
+  initGruposTabla()
+  initGruposPantallas()
+  initGruposForm()
+  initGruposEditarForm()
+  initGruposActions(tabla)
+}
+
+function initGruposTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-grupos tr[data-id]',
+    paginationSelector: 'paginacion-grupos',
+    filterFormSelector: '#form-filtros-grupos',
+    filterFunction: (row, form) => {
+      const nombreFiltro = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase()
+      const descFiltro = (document.getElementById('buscar-descripcion-grupo')?.value || '').toLowerCase()
+
+      const nombre = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || ''
+      const descripcion = row.querySelector('.descripcion-grupo')?.textContent.toLowerCase() || ''
+
+      return nombre.includes(nombreFiltro) && descripcion.includes(descFiltro)
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initGruposPantallas() {
+  const pantallaAgregar = document.getElementById('pantalla-agregar-grupos')
+  const pantallaEditar = document.getElementById('pantalla-editar-grupos')
+  const pantallaLista = document.getElementById('pantalla-lista-grupos')
+
+  const btnAgregar = document.getElementById('btn-agregar-grupos')
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista-grupos')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-grupos')
+
+  if (btnAgregar)
+    btnAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaLista?.classList.add('hidden')
+      pantallaAgregar?.classList.remove('hidden')
+    }
+
+  if (btnRegresarAgregar)
+    btnRegresarAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaAgregar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+
+  if (btnRegresarEditar)
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+}
+
+function initGruposForm() {
+  const formAgregar = document.getElementById('form-agregar-grupos')
+  const pantallaAgregar = document.getElementById('pantalla-agregar-grupos')
+  const pantallaLista = document.getElementById('pantalla-lista-grupos')
+  if (!formAgregar) return
+
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formAgregar)
+
+    try {
+      const result = await SendDataEnd('modales/crud_grupos_presupuestales/insertar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Grupo agregado correctamente ✅', 'success')
+        pantallaAgregar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+        formAgregar.reset()
+        // Recargamos el modal para ver los cambios
+        abrirModal('GrupoPresupuestal')
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initGruposEditarForm() {
+  const formEditar = document.getElementById('form-editar-grupos')
+  const pantallaEditar = document.getElementById('pantalla-editar-grupos')
+  const pantallaLista = document.getElementById('pantalla-lista-grupos')
+  const tabla = document.getElementById('tabla-grupos')
+  if (!formEditar) return
+
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
+    const id = formData.get('ID_GrupoPresupuestal')
+
+    try {
+      const result = await SendDataEnd(`modales/crud_grupos_presupuestales/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Grupo actualizado correctamente ✅', 'success')
+
+        const fila = tabla.querySelector(`tr[data-id='${id}']`)
+        if (fila) {
+          // Actualizar textos básicos
+          fila.querySelector('.nombre-grupo').textContent = formData.get('Nombre')
+          fila.querySelector('.descripcion-grupo').textContent = formData.get('Descripcion')
+
+          // Actualizar Datasets
+          fila.dataset.nombre = formData.get('Nombre')
+          fila.dataset.descripcion = formData.get('Descripcion')
+        }
+
+        pantallaEditar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initGruposActions(tabla) {
+  if (!tabla) return
+
+  tabla.addEventListener('click', async (e) => {
+    // --- ELIMINAR ---
+    const btnEliminar = e.target.closest("[id^='btn-eliminar-grupos-']")
+    if (btnEliminar) {
+      e.preventDefault()
+      const id = btnEliminar.dataset.id
+
+      if (
+          !(await Confirmar(
+              'Eliminar Grupo?',
+              '¿Seguro que deseas eliminar este grupo presupuestal?',
+          ))
+      )
+        return
+
+      SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${id}`, {
+        method: 'POST',
+      })
+          .then((result) => {
+            if (result.success) {
+              mostrarNotificacion('Grupo eliminado ✅', 'success')
+              btnEliminar.closest('tr')?.remove()
+              abrirModal('GrupoPresupuestal')
+            } else {
+              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+            }
+          })
+          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+      return
+    }
+
+    // --- EDITAR ---
+    const btnEditar = e.target.closest("[id^='btn-editar-grupos-']")
+    if (!btnEditar) return
+    e.preventDefault()
+
+    const fila = btnEditar.closest('tr')
+    if (!fila) return
+
+    document.getElementById('editar-ID_GrupoPresupuestal').value = fila.dataset.id
+    document.getElementById('editar-Nombre').value = fila.dataset.nombre
+    document.getElementById('editar-Descripcion').value = fila.dataset.descripcion
+
+    document.getElementById('pantalla-lista-grupos').classList.add('hidden')
+    document.getElementById('pantalla-editar-grupos').classList.remove('hidden')
+  })
+}
+
+
+/**
+ * Lógica para el CRUD de cuentas Bancos Dpto
+ */
+function initCrudBancoDpto() {
+  const tabla = document.getElementById('tabla-banco-dpto')
+  if (!tabla) return
+
+  initBancoDptoTabla()
+  initBancoDptoPantallas()
+  initBancoDptoForm()
+  initBancoDptoEditarForm()
+  initBancoDptoActions(tabla)
+}
+
+function initBancoDptoTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-banco-dpto tr[data-id]',
+    paginationSelector: 'paginacion-banco-dpto',
+    filterFormSelector: '#form-filtros-banco-dpto',
+    filterFunction: (row, form) => {
+      const dptoFiltro = (document.getElementById('buscar-dpto')?.value || '').toLowerCase()
+      const bancoFiltro = (document.getElementById('buscar-banco')?.value || '').toLowerCase()
+
+      const dpto = row.querySelector('.nombre-dpto')?.textContent.toLowerCase() || ''
+      const banco = row.querySelector('.nombre-banco')?.textContent.toLowerCase() || ''
+
+      return dpto.includes(dptoFiltro) && banco.includes(bancoFiltro)
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initBancoDptoPantallas() {
+  const pantallaAgregar = document.getElementById('pantalla-agregar-banco-dpto')
+  const pantallaEditar = document.getElementById('pantalla-editar-banco-dpto')
+  const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
+
+  const btnAgregar = document.getElementById('btn-agregar-banco-dpto')
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista-banco-dpto')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-banco-dpto')
+
+  if (btnAgregar)
+    btnAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaLista?.classList.add('hidden')
+      pantallaAgregar?.classList.remove('hidden')
+    }
+
+  if (btnRegresarAgregar)
+    btnRegresarAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaAgregar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+
+  if (btnRegresarEditar)
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+}
+
+function initBancoDptoForm() {
+  const formAgregar = document.getElementById('form-agregar-banco-dpto')
+  const pantallaAgregar = document.getElementById('pantalla-agregar-banco-dpto')
+  const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
+  if (!formAgregar) return
+
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formAgregar)
+
+    try {
+      const result = await SendDataEnd('modales/crud_banco_dpto/insertar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Banco agregado correctamente ✅', 'success')
+        pantallaAgregar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+        formAgregar.reset()
+        // Recargamos el modal para ver los cambios
+        abrirModal('BancoDpto')
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initBancoDptoEditarForm() {
+  const formEditar = document.getElementById('form-editar-banco-dpto')
+  const pantallaEditar = document.getElementById('pantalla-editar-banco-dpto')
+  const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
+  const tabla = document.getElementById('tabla-banco-dpto')
+  if (!formEditar) return
+
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
+    const id = formData.get('ID_BancoDpto')
+
+    try {
+      const result = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Banco actualizado correctamente ✅', 'success')
+
+        const fila = tabla.querySelector(`tr[data-id='${id}']`)
+        if (fila) {
+          // Actualizar textos visuales
+          fila.querySelector('.nombre-banco').textContent = formData.get('Banco')
+          fila.querySelector('.clabe-banco').textContent = formData.get('Clabe')
+
+          // Actualizar Nombre Dpto visualmente desde el select
+          const selectDpto = document.getElementById('editar-ID_Dpto');
+          const dptoTexto = selectDpto.options[selectDpto.selectedIndex].text;
+          fila.querySelector('.nombre-dpto').textContent = dptoTexto;
+
+          // Actualizar Datasets
+          fila.dataset.banco = formData.get('Banco')
+          fila.dataset.clabe = formData.get('Clabe')
+          fila.dataset.idDpto = formData.get('ID_Dpto')
+        }
+
+        pantallaEditar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initBancoDptoActions(tabla) {
+  if (!tabla) return
+
+  tabla.addEventListener('click', async (e) => {
+    // --- ELIMINAR ---
+    const btnEliminar = e.target.closest("[id^='btn-eliminar-banco-dpto-']")
+    if (btnEliminar) {
+      e.preventDefault()
+      const id = btnEliminar.dataset.id
+
+      if (
+          !(await Confirmar(
+              'Eliminar Banco?',
+              '¿Seguro que deseas eliminar este registro?',
+          ))
+      )
+        return
+
+      SendDataEnd(`modales/crud_banco_dpto/eliminar/${id}`, {
+        method: 'POST',
+      })
+          .then((result) => {
+            if (result.success) {
+              mostrarNotificacion('Registro eliminado ✅', 'success')
+              btnEliminar.closest('tr')?.remove()
+            } else {
+              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+            }
+          })
+          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+      return
+    }
+
+    // --- EDITAR ---
+    const btnEditar = e.target.closest("[id^='btn-editar-banco-dpto-']")
+    if (!btnEditar) return
+    e.preventDefault()
+
+    const fila = btnEditar.closest('tr')
+    if (!fila) return
+
+    // Cargar datos al formulario
+    document.getElementById('editar-ID_BancoDpto').value = fila.dataset.id
+    document.getElementById('editar-Banco').value = fila.dataset.banco
+    document.getElementById('editar-Clabe').value = fila.dataset.clabe
+    document.getElementById('editar-ID_Dpto').value = fila.dataset.idDpto
+
+    // Cambiar de pantalla
+    document.getElementById('pantalla-lista-banco-dpto').classList.add('hidden')
+    document.getElementById('pantalla-editar-banco-dpto').classList.remove('hidden')
+  })
 }
 
 

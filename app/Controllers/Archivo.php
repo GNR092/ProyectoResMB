@@ -193,7 +193,6 @@ class Archivo extends BaseController
 
                         $inserted = $cotizacionModel->insert($cotizacionData);
 
-                        // Si MySQL rechaza la inserción, detenemos todo y mostramos POR QUÉ
                         if (!$inserted) {
                             return $this->response->setStatusCode(400)->setJSON([
                                 'success' => false,
@@ -229,6 +228,7 @@ class Archivo extends BaseController
     }
 
     public function descargar($idSolicitud)
+
     {
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel->find($idSolicitud);

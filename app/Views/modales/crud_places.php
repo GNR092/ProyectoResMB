@@ -7,7 +7,7 @@
         </button>
     </div>
 
-    <h2 class="text-2xl font-semibold mb-4 text-center">Lista de Lugares</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Lista de Complejos</h2>
 
     <!-- Buscador y botón AGREGAR -->
     <div id="form-filtros-places" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
