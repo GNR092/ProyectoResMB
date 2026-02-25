@@ -18,7 +18,7 @@ class CreatePresupuestoMensual extends Migration
             'ID_Dpto' => [
                 'type'       => 'INT',
                 'constraint' => 11,
-                'unsigned'   => true, // Debe coincidir con la PK de Departamentos
+                // 'unsigned'   => true, // Debe coincidir con la PK de Departamentos
                 'null'       => true, // Permitimos NULL si un presupuesto puede quedar huérfano temporalmente
             ],
             'Anio' => [
