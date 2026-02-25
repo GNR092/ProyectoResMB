@@ -31,7 +31,19 @@ class AddGrupoPresupuestalToSolicitudProducto extends Migration
 
     public function down()
     {
-        $this->forge->dropForeignKey('Solicitud_Producto', 'solicitudproducto_grupo_fk');
+        $db = \Config\Database::connect();
+        $schema = $db->getDatabase(); // Get the current database name/schema
+
+        $query = $db->table('information_schema.table_constraints')
+                    ->where('constraint_type', 'FOREIGN KEY')
+                    ->where('constraint_name', 'solicitudproducto_grupo_fk')
+                    ->where('table_schema', $schema) // For PostgreSQL, this is usually 'public' or the schema name
+                    ->where('table_name', 'Solicitud_Producto')
+                    ->get();
+
+        if ($query->getRow()) {
+            $this->forge->dropForeignKey('Solicitud_Producto', 'solicitudproducto_grupo_fk');
+        }
         $this->forge->dropColumn('Solicitud_Producto', 'ID_GrupoPresupuestal');
     }
 }
