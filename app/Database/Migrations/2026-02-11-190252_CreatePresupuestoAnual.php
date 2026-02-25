@@ -8,6 +8,18 @@ class CreatePresupuestoAnual extends Migration
 {
     public function up()
     {
+        // ---------------------------------------------------------
+        // PASO 1: ARREGLAR LA TABLA PADRE (Razon_Social)
+        // ---------------------------------------------------------
+        // Convertimos 'Razon_Social' a InnoDB para permitir llaves foráneas.
+        // Verificamos si es MySQL para no afectar tu entorno local si usas otro driver.
+        if ($this->db->DBDriver === 'MySQLi') {
+            $this->db->query("ALTER TABLE Razon_Social ENGINE = InnoDB");
+        }
+
+        // ---------------------------------------------------------
+        // PASO 2: DEFINIR LA NUEVA TABLA
+        // ---------------------------------------------------------
         $this->forge->addField([
             'ID_PresupuestoAnual' => [
                 'type'           => 'INT',
@@ -22,11 +34,11 @@ class CreatePresupuestoAnual extends Migration
             ],
             'Anio' => [
                 'type'       => 'INT',
-                'constraint' => 4, // Año de 4 dígitos (ej. 2026)
+                'constraint' => 4,
             ],
             'Monto' => [
                 'type'       => 'DECIMAL',
-                'constraint' => '15,2', // 15 dígitos totales, 2 decimales
+                'constraint' => '15,2',
                 'default'    => 0.00,
             ],
         ]);
@@ -36,12 +48,12 @@ class CreatePresupuestoAnual extends Migration
 
         // Llave Foránea
         $this->forge->addForeignKey(
-            'ID_RazonSocial',      // Columna actual
-            'Razon_Social',        // Tabla padre
-            'ID_RazonSocial',      // Columna padre
-            'CASCADE',             // On Update
-            'RESTRICT',            // On Delete (Evita borrar una Razón Social si tiene historial de presupuestos)
-            'presupuesto_rs_fk'    // Nombre único para evitar conflicto en Postgres
+            'ID_RazonSocial',          // Columna actual
+            'Razon_Social',            // Tabla padre
+            'ID_RazonSocial',          // Columna padre
+            'CASCADE',                 // On Update
+            'RESTRICT',                // On Delete
+            'fk_presupuesto_rs_innodb' // Nombre único nuevo para evitar basura de intentos previos
         );
 
         $this->forge->createTable('PresupuestoAnual');
