@@ -8,68 +8,25 @@ class CreatePresupuestoMensual extends Migration
 {
     public function up()
     {
-        $this->forge->addField([
-            'ID_PresupuestoMensual' => [
-                'type'           => 'INT',
-                'constraint'     => 11,
-                'unsigned'       => true,
-                'auto_increment' => true,
-            ],
-            'ID_Dpto' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                /**
-                 * CORRECCIÓN DE COMPATIBILIDAD POSTGRES/MYSQL:
-                 * - MySQL: Requiere 'unsigned' => true para coincidir con la tabla padre.
-                 * - Postgres: Ignorará esta instrucción o la manejará sin romper nada.
-                 * - Es vital dejarlo en TRUE para que funcione en tu servidor.
-                 */
-                'unsigned'   => true,
-                'null'       => true,
-            ],
-            'Anio' => [
-                'type'       => 'INT',
-                'constraint' => 4,
-            ],
-            'Mes' => [
-                'type'       => 'INT',
-                'constraint' => 2,
-            ],
-            'Monto_Asignado' => [
-                'type'       => 'DECIMAL',
-                'constraint' => '15,2',
-                'default'    => 0.00,
-            ],
-            'Monto_Comprometido' => [
-                'type'       => 'DECIMAL',
-                'constraint' => '15,2',
-                'default'    => 0.00,
-            ],
-            'Monto_Ejecutado' => [
-                'type'       => 'DECIMAL',
-                'constraint' => '15,2',
-                'default'    => 0.00,
-            ],
-        ]);
+        // 1. Conectamos a la BD
+        $db = \Config\Database::connect();
 
-        // Llave Primaria
-        $this->forge->addKey('ID_PresupuestoMensual', true);
+        // 2. Preguntamos CÓMO está creada la tabla padre
+        // (Esto es solo lectura, no modifica nada)
+        $query = $db->query("SHOW CREATE TABLE Departamentos");
+        $result = $query->getRowArray();
 
-        // Llave Foránea
-        $this->forge->addForeignKey(
-            'ID_Dpto',               // Columna en esta tabla
-            'Departamentos',         // Tabla padre (Confirmado que en MySQL es con mayúscula)
-            'ID_Dpto',               // Columna padre
-            'CASCADE',               // ON UPDATE
-            'RESTRICT',              // ON DELETE
-            'fk_presupuesto_dpto_v3' // <--- Usamos un nombre único para evitar basura anterior en MySQL
-        );
+        // 3. Mostramos el resultado en la consola
+        echo "\n\n================ EL SECRETO DE LA TABLA PADRE ================\n";
+        print_r($result);
+        echo "\n==============================================================\n\n";
 
-        $this->forge->createTable('PresupuestoMensual');
+        // 4. IMPORTANTE: Detenemos todo aquí para no hacer cambios
+        die("Diagnóstico terminado. Copia lo que salió arriba y pásamelo.");
     }
 
     public function down()
     {
-        $this->forge->dropTable('PresupuestoMensual');
+        // Nada
     }
 }
