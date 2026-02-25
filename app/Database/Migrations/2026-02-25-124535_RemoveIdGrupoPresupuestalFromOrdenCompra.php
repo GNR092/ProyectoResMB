@@ -8,11 +8,19 @@ class RemoveIdGrupoPresupuestalFromOrdenCompra extends Migration
 {
     public function up()
     {
-        // Drop the foreign key first
-        $this->forge->dropForeignKey('OrdenCompra', 'ordencompra_grupo_fk');
+        // 1. Intentamos borrar la llave foránea
+        // Usamos try-catch para ignorar el error si la llave no existe en la BD
+        try {
+            $this->forge->dropForeignKey('OrdenCompra', 'ordencompra_grupo_fk');
+        } catch (\Throwable $e) {
+            // Si falla (porque no existe), no hacemos nada y continuamos.
+        }
 
-        // Drop the column 'ID_GrupoPresupuestal' from 'OrdenCompra' table
-        $this->forge->dropColumn('OrdenCompra', 'ID_GrupoPresupuestal');
+        // 2. Ahora borramos la columna (si existe)
+        // Verificamos si la columna existe antes de intentar borrarla para evitar otro error
+        if ($this->db->fieldExists('ID_GrupoPresupuestal', 'OrdenCompra')) {
+            $this->forge->dropColumn('OrdenCompra', 'ID_GrupoPresupuestal');
+        }
     }
 
     public function down()
@@ -29,6 +37,8 @@ class RemoveIdGrupoPresupuestalFromOrdenCompra extends Migration
         $this->forge->addColumn('OrdenCompra', $fields);
 
         // Re-add the foreign key constraint
+        // Nota: Esto solo funcionará si 'OrdenCompra' es InnoDB.
+        // Si sigue siendo MyISAM, fallará silenciosamente (lo cual está bien para un rollback).
         $this->forge->addForeignKey(
             'ID_GrupoPresupuestal',
             'GrupoPresupuestal',
@@ -37,8 +47,5 @@ class RemoveIdGrupoPresupuestalFromOrdenCompra extends Migration
             'SET NULL',
             'ordencompra_grupo_fk'
         );
-
-        // Process indexes to apply the foreign key
-        $this->forge->processIndexes('OrdenCompra');
     }
 }
