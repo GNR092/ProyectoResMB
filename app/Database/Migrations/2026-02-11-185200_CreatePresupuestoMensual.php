@@ -8,25 +8,49 @@ class CreatePresupuestoMensual extends Migration
 {
     public function up()
     {
-        // 1. Conectamos a la BD
-        $db = \Config\Database::connect();
+        // 1. Modernizamos la tabla padre a InnoDB (Seguro y necesario)
+        if ($this->db->DBDriver === 'MySQLi') {
+            $this->db->query("ALTER TABLE Departamentos ENGINE = InnoDB");
+        }
 
-        // 2. Preguntamos CÓMO está creada la tabla padre
-        // (Esto es solo lectura, no modifica nada)
-        $query = $db->query("SHOW CREATE TABLE Departamentos");
-        $result = $query->getRowArray();
+        // 2. Definimos la nueva tabla
+        $this->forge->addField([
+            'ID_PresupuestoMensual' => [
+                'type'           => 'INT',
+                'constraint'     => 11,
+                'unsigned'       => true,
+                'auto_increment' => true,
+            ],
+            'ID_Dpto' => [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'unsigned'   => true, // Coincide con Departamentos
+                'null'       => true,
+            ],
+            'Anio' => ['type' => 'INT', 'constraint' => 4],
+            'Mes'  => ['type' => 'INT', 'constraint' => 2],
+            'Monto_Asignado'     => ['type' => 'DECIMAL', 'constraint' => '15,2', 'default' => 0.00],
+            'Monto_Comprometido' => ['type' => 'DECIMAL', 'constraint' => '15,2', 'default' => 0.00],
+            'Monto_Ejecutado'    => ['type' => 'DECIMAL', 'constraint' => '15,2', 'default' => 0.00],
+        ]);
 
-        // 3. Mostramos el resultado en la consola
-        echo "\n\n================ EL SECRETO DE LA TABLA PADRE ================\n";
-        print_r($result);
-        echo "\n==============================================================\n\n";
+        $this->forge->addKey('ID_PresupuestoMensual', true);
 
-        // 4. IMPORTANTE: Detenemos todo aquí para no hacer cambios
-        die("Diagnóstico terminado. Copia lo que salió arriba y pásamelo.");
+        // 3. Creamos la llave foránea (Ahora sí funcionará)
+        $this->forge->addForeignKey(
+            'ID_Dpto',
+            'Departamentos',
+            'ID_Dpto',
+            'CASCADE',
+            'RESTRICT',
+            'fk_presupuesto_dpto_innodb'
+        );
+
+        $this->forge->createTable('PresupuestoMensual');
     }
 
     public function down()
     {
-        // Nada
+        $this->forge->dropTable('PresupuestoMensual');
     }
 }
