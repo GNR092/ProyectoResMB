@@ -1,11 +1,14 @@
 <?php
-$gruposJson      = json_encode($grupos ?? []);
-$presupuestosJson = json_encode($presupuestos ?? []);
+$gruposJson      = json_encode($grupos ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
+$presupuestosJson = json_encode($presupuestos ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 
-<div class="p-6 bg-white rounded-xl shadow-md"
-     x-data="PresupuestoMensual(<?= $gruposJson ?>, <?= $presupuestosJson ?>)"
-     x-init="init()">
+<div id="presupuesto-mensual-main-div"
+     class="p-6 bg-white rounded-xl shadow-md"
+     x-data="PresupuestoMensualData()"
+     x-init="init()"
+     data-grupos-json="<?= esc($gruposJson) ?>"
+     data-presupuestos-json="<?= esc($presupuestosJson) ?>">
 
     <!-- Filtros: Departamento + Mes y Año -->
     <div class="flex flex-wrap items-center gap-x-10 gap-y-4 mb-8">
@@ -18,7 +21,7 @@ $presupuestosJson = json_encode($presupuestos ?? []);
                     class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300 min-w-55">
                 <option value="">—</option>
                 <?php foreach ($departamentos as $dpto): ?>
-                    <option value="<?= esc($dpto['ID_Dpto']) ?>"><?= esc($dpto['Nombre']) ?></option>
+                    <option value="<?= esc($dpto['ID_Dpto']) ?>"><?= esc($dpto['Nombre']) ?> (<?= esc($dpto['PlaceNombre']) ?>)</option>
                 <?php endforeach; ?>
             </select>
         </div>
@@ -106,7 +109,7 @@ $presupuestosJson = json_encode($presupuestos ?? []);
 </div>
 
 <script>
-function PresupuestoMensual(todosGrupos, presupuestosExistentes) {
+window.PresupuestoMensual = function(todosGrupos, presupuestosExistentes) {
     return {
         idDpto: '',
         mesAnio: '',
@@ -122,6 +125,7 @@ function PresupuestoMensual(todosGrupos, presupuestosExistentes) {
             const anio  = now.getFullYear();
             const mes   = String(now.getMonth() + 1).padStart(2, '0');
             this.mesAnio = `${anio}-${mes}`;
+            this.filtrarGrupos(); // Call filter on init
         },
 
         filtrarGrupos() {
@@ -132,8 +136,12 @@ function PresupuestoMensual(todosGrupos, presupuestosExistentes) {
 
             const [anio, mes] = this.mesAnio.split('-');
 
+            console.log('Selected idDpto:', this.idDpto);
             const gruposDpto = this.todosGrupos.filter(
-                g => String(g.ID_Dpto) === String(this.idDpto)
+                g => {
+                    console.log('Group ID_Dpto:', g.ID_Dpto);
+                    return g.ID_Dpto !== null && g.ID_Dpto !== undefined && String(g.ID_Dpto) === String(this.idDpto);
+                }
             );
 
             this.gruposFiltrados = gruposDpto.map(g => {

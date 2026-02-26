@@ -376,22 +376,22 @@ class Modales extends BaseController
                 return view('modales/BancoDpto', $data);
 
             case 'PresupuestoMensual':
-                $data[] = [];
-                // $dptoModelPM   = new DepartamentosModel();
-                // $grupoModelPM  = new GrupoPresupuestalModel();
-                // $presupuestoMensualModel = new PresupuestoMensualModel();
+                $dptoModelPM   = new DepartamentosModel();
+                $grupoModelPM  = new GrupoPresupuestalModel();
+                $presupuestoMensualModel = new PresupuestoMensualModel();
 
-                // $data['departamentos'] = $dptoModelPM
-                //     ->select('ID_Dpto, Nombre')
-                //     ->orderBy('Nombre', 'ASC')
-                //     ->findAll();
+                $data['departamentos'] = $dptoModelPM
+                    ->select('Departamentos.ID_Dpto, Departamentos.Nombre, Places.Nombre_Corto as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->orderBy('Departamentos.Nombre', 'ASC')
+                    ->findAll();
 
-                // $data['grupos'] = $grupoModelPM
-                //     ->select('ID_GrupoPresupuestal, Nombre, ID_Dpto')
-                //     ->orderBy('Nombre', 'ASC')
-                //     ->findAll();
+                $data['grupos'] = $grupoModelPM
+                    ->select('ID_GrupoPresupuestal, Nombre, ID_Dpto')
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
 
-                // $data['presupuestos'] = $presupuestoMensualModel->findAll();
+                $data['presupuestos'] = $presupuestoMensualModel->findAll();
 
                 return view('modales/control/PresupuestoMensual', $data);
 

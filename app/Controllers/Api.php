@@ -125,6 +125,31 @@ class Api extends ResourceController
         $results = $this->api->getAllDepartments();
         return $this->respond($results, HttpStatus::OK);
     }
+
+    /**
+     * Obtiene todos los grupos presupuestales con su ID_Dpto.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getBudgetGroups()
+    {
+        $grupoModel = new \App\Models\GrupoPresupuestalModel();
+        $results = $grupoModel
+            ->select('ID_GrupoPresupuestal, Nombre, ID_Dpto')
+            ->orderBy('Nombre', 'ASC')
+            ->findAll();
+        return $this->respond($results, HttpStatus::OK);
+    }
+
+    /**
+     * Obtiene todos los presupuestos mensuales.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getMonthlyBudgets()
+    {
+        $presupuestoMensualModel = new \App\Models\PresupuestoMensualModel();
+        $results = $presupuestoMensualModel->findAll();
+        return $this->respond($results, HttpStatus::OK);
+    }
     //endregion
 
     //region Solicitudes (Consultas)

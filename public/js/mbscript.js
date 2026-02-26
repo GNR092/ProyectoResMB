@@ -125,7 +125,8 @@ function abrirModal(opcion) {
         crud_cuentas: initCrudCuentas,
         correcciones: initControlMaestro,
         GrupoPresupuestal: initCrudGrupos,
-        BancoDpto: initCrudBancoDpto
+        BancoDpto: initCrudBancoDpto,
+        PresupuestoMensual: initPresupuestoMensual
       }
 
       const inicializador = inicializadores[opcion]
@@ -3120,6 +3121,137 @@ async function cargarCuentasDeProveedor(idProveedor) {
     console.error('Error al cargar cuentas:', error);
     tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-red-500 text-sm">Error al cargar datos.</td></tr>';
   }
+}
+
+
+/**
+ * Lógica para Presupuesto Mensual (Alpine.js Component)
+ */
+function PresupuestoMensualData() { // No arguments passed here anymore
+    return {
+        idDpto: '',
+        mesAnio: '',
+        todosGrupos: [], // Initialize as empty array
+        presupuestosExistentes: [], // Initialize as empty array
+        gruposFiltrados: [],
+        guardando: false,
+        mensaje: '',
+        error: false,
+
+        init() {
+            const now   = new Date();
+            const anio  = now.getFullYear();
+            const mes   = String(now.getMonth() + 1).padStart(2, '0');
+            this.mesAnio = `${anio}-${mes}`;
+            this.filtrarGrupos(); // Call filter on init
+        },
+
+        filtrarGrupos() {
+            if (!this.idDpto || !this.mesAnio) {
+                this.gruposFiltrados = [];
+                return;
+            }
+
+            const [anio, mes] = this.mesAnio.split('-');
+
+            const gruposDpto = this.todosGrupos.filter(
+                g => {
+
+                    return g.ID_Dpto !== null && g.ID_Dpto !== undefined && String(g.ID_Dpto) === String(this.idDpto);
+                }
+            );
+
+            this.gruposFiltrados = gruposDpto.map(g => {
+                const existente = this.presupuestosExistentes.find(
+                    p => String(p.ID_GrupoPresupuestal) === String(g.ID_GrupoPresupuestal)
+                      && String(p.ID_Dpto)              === String(this.idDpto)
+                      && String(p.Anio)                 === String(anio)
+                      && String(p.Mes)                  === String(parseInt(mes))
+                );
+                return {
+                    ...g,
+                    ID_PresupuestoMensual: existente ? existente.ID_PresupuestoMensual : null,
+                    Monto_Asignado: existente ? existente.Monto_Asignado : ''
+                };
+            });
+        },
+
+        async guardar() {
+            if (!this.idDpto || !this.mesAnio || this.gruposFiltrados.length === 0) return;
+
+            const [anio, mes] = this.mesAnio.split('-');
+            this.guardando    = true;
+            this.mensaje      = '';
+
+            const payload = {
+                id_dpto: this.idDpto,
+                anio: parseInt(anio),
+                mes: parseInt(mes),
+                grupos: this.gruposFiltrados.map(g => ({
+                    id_grupo:          g.ID_GrupoPresupuestal,
+                    id_existente:      g.ID_PresupuestoMensual,
+                    monto_asignado:    parseFloat(g.Monto_Asignado) || 0
+                }))
+            };
+
+            try {
+                const res = await fetch(`${BASE_URL}api/presupuesto-mensual/guardar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const json = await res.json();
+                    this.presupuestosExistentes = json.presupuestos ?? this.presupuestosExistentes;
+                    this.filtrarGrupos();
+                    this.mensaje = 'Presupuesto guardado correctamente';
+                    this.error   = false;
+                } else {
+                    this.mensaje = 'Error al guardar el presupuesto';
+                    this.error   = true;
+                }
+            } catch (e) {
+                this.mensaje = 'Error de conexión';
+                this.error   = true;
+            } finally {
+                this.guardando = false;
+                setTimeout(() => { this.mensaje = ''; }, 3000);
+            }
+        }
+    };
+}
+
+function initPresupuestoMensual() {
+    const mainDiv = document.getElementById('presupuesto-mensual-main-div');
+    if (!mainDiv) return;
+
+    // Fetch data from new API endpoints
+    Promise.all([
+        fetch(`${BASE_URL}api/v1/budget-groups`).then(res => res.json()),
+        fetch(`${BASE_URL}api/v1/monthly-budgets`).then(res => res.json())
+    ])
+    .then(([gruposData, presupuestosData]) => {
+        const component = Alpine.$data(mainDiv); // Get Alpine.js component instance
+
+        if (component) {
+            component.todosGrupos = gruposData || [];
+            component.presupuestosExistentes = presupuestosData || [];
+            component.filtrarGrupos(); // Re-filter after data is loaded
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching data for PresupuestoMensual:', error);
+        // Display error message in the component if possible
+        const component = Alpine.$data(mainDiv);
+        if (component) {
+            component.mensaje = 'Error al cargar datos iniciales.';
+            component.error = true;
+        }
+    });
 }
 
 

@@ -91,6 +91,8 @@ if (!file_exists($installerLockFile)) {
 
         //region departamentos
         $routes->get('api/departments/all', 'Api::getDepartments');
+        $routes->get('api/v1/budget-groups', 'Api::getBudgetGroups');
+        $routes->get('api/v1/monthly-budgets', 'Api::getMonthlyBudgets');
 
         //region proveedores
         $routes->get('api/providers/all', 'Api::getAllProviders');
