@@ -97,6 +97,7 @@ function abrirModal(opcion) {
     correcciones: "Corregir Solicitudes",
     GrupoPresupuestal: "Grupo Presupuestal",
     BancoDpto: "Cuentas Bancarias de los Departamentos",
+    PresupuestoMensual: "Partidas Presupuestales Mensuales",
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
