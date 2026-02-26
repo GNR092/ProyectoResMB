@@ -346,9 +346,18 @@ class Modales extends BaseController
 
             case 'GrupoPresupuestal':
                 $grupoModel = new GrupoPresupuestalModel();
+                $departamentosModel = new DepartamentosModel();
+                $placesModel = new PlacesModel();
 
                 $data['grupos'] = $grupoModel
                     ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+
+                // Fetch departments with their associated place names
+                $data['departamentos'] = $departamentosModel
+                    ->select('Departamentos.ID_Dpto, Departamentos.Nombre, Places.Nombre_Corto as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();
 
                 return view('modales/CrudGrupos', $data);
@@ -1057,8 +1066,8 @@ class Modales extends BaseController
     public function insertarGrupo()
     {
         $model = new GrupoPresupuestalModel();
-        // Recibimos solo Nombre y Descripcion
-        $data = $this->request->getPost(['Nombre', 'Descripcion']);
+        // Recibimos Nombre, Descripcion y ID_Dpto
+        $data = $this->request->getPost(['Nombre', 'Descripcion', 'ID_Dpto']);
 
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
@@ -1069,7 +1078,7 @@ class Modales extends BaseController
     public function editarGrupo($id)
     {
         $model = new GrupoPresupuestalModel();
-        $data = $this->request->getPost(['Nombre', 'Descripcion']);
+        $data = $this->request->getPost(['Nombre', 'Descripcion', 'ID_Dpto']);
 
         try {
             $model->update($id, $data);

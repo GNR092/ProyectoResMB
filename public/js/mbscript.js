@@ -3244,9 +3244,15 @@ function initGruposEditarForm() {
           fila.querySelector('.nombre-grupo').textContent = formData.get('Nombre')
           fila.querySelector('.descripcion-grupo').textContent = formData.get('Descripcion')
 
+          // Actualizar el Departamento
+          const selectDpto = document.getElementById('editar-ID_Dpto');
+          const dptoTexto = selectDpto.options[selectDpto.selectedIndex].text;
+          fila.querySelector('.departamento-grupo').textContent = selectDpto.value ? dptoTexto : 'N/A';
+
           // Actualizar Datasets
           fila.dataset.nombre = formData.get('Nombre')
           fila.dataset.descripcion = formData.get('Descripcion')
+          fila.dataset.id_dpto = formData.get('ID_Dpto')
         }
 
         pantallaEditar?.classList.add('hidden')
@@ -3305,6 +3311,7 @@ function initGruposActions(tabla) {
     document.getElementById('editar-ID_GrupoPresupuestal').value = fila.dataset.id
     document.getElementById('editar-Nombre').value = fila.dataset.nombre
     document.getElementById('editar-Descripcion').value = fila.dataset.descripcion
+    document.getElementById('editar-ID_Dpto').value = fila.dataset.id_dpto || "";
 
     document.getElementById('pantalla-lista-grupos').classList.add('hidden')
     document.getElementById('pantalla-editar-grupos').classList.remove('hidden')

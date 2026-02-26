@@ -27,9 +27,10 @@
         <table class="min-w-full border border-gray-300 rounded-lg table-fixed">
             <thead>
             <tr>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Nombre</th>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Descripción</th>
-                <th class="w-1/3 px-3 py-2 border-b text-center">Acciones</th>
+                <th class="w-1/4 px-3 py-2 border-b text-left">Nombre</th>
+                <th class="w-1/4 px-3 py-2 border-b text-left">Descripción</th>
+                <th class="w-1/4 px-3 py-2 border-b text-left">Departamento</th>
+                <th class="w-1/4 px-3 py-2 border-b text-center">Acciones</th>
             </tr>
             </thead>
             <tbody id="tabla-grupos">
@@ -38,10 +39,25 @@
                     <tr data-id="<?= $grupo['ID_GrupoPresupuestal'] ?>"
                         data-nombre="<?= esc($grupo['Nombre']) ?>"
                         data-descripcion="<?= esc($grupo['Descripcion']) ?>"
+                        data-id_dpto="<?= esc($grupo['ID_Dpto'] ?? '') ?>"
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
 
                         <td class="px-3 py-2 border-b nombre-grupo"><?= esc($grupo['Nombre']) ?></td>
                         <td class="px-3 py-2 border-b descripcion-grupo"><?= esc($grupo['Descripcion']) ?></td>
+                        <td class="px-3 py-2 border-b departamento-grupo">
+                            <?php
+                            if (!empty($grupo['ID_Dpto']) && !empty($departamentos)) {
+                                foreach ($departamentos as $dpto) {
+                                    if ($dpto['ID_Dpto'] == $grupo['ID_Dpto']) {
+                                        echo esc($dpto['Nombre']) . ' (' . esc($dpto['PlaceNombre']) . ')';
+                                        break;
+                                    }
+                                }
+                            } else {
+                                echo 'N/A';
+                            }
+                            ?>
+                        </td>
 
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
@@ -71,7 +87,7 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="3" class="px-3 py-4 text-center text-gray-500">No hay grupos registrados</td>
+                    <td colspan="4" class="px-3 py-4 text-center text-gray-500">No hay grupos registrados</td>
                 </tr>
             <?php endif; ?>
             </tbody>
@@ -97,6 +113,20 @@
                 <label for="Descripcion" class="mb-1 font-medium">Descripción</label>
                 <input type="text" name="Descripcion" id="Descripcion" placeholder="Ej. Grupo de materiales de construcción" required class="w-full px-3 py-2 border rounded-lg">
             </div>
+
+            <div class="flex flex-col">
+                <label for="ID_Dpto" class="mb-1 font-medium">Departamento</label>
+                <select name="ID_Dpto" id="ID_Dpto" class="w-full px-3 py-2 border rounded-lg">
+                    <option value="">Seleccionar Departamento</option>
+                    <?php if (!empty($departamentos)): ?>
+                        <?php foreach ($departamentos as $dpto): ?>
+                            <option value="<?= esc($dpto['ID_Dpto']) ?>">
+                                <?= esc($dpto['Nombre']) ?> (<?= esc($dpto['PlaceNombre']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
         </div>
         <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">Guardar</button>
     </form>
@@ -118,7 +148,21 @@
 
             <div class="flex flex-col">
                 <label for="editar-Descripcion" class="mb-1 font-medium">Descripción</label>
-                <input type="text" name="Descripcion" id="editar-Descripcion" required class="w-full px-3 py-2 border rounded-lg">
+                <input type="text" name="Descripcion" id="editar-Descripcion" class="w-full px-3 py-2 border rounded-lg">
+            </div>
+
+            <div class="flex flex-col">
+                <label for="editar-ID_Dpto" class="mb-1 font-medium">Departamento</label>
+                <select name="ID_Dpto" id="editar-ID_Dpto" class="w-full px-3 py-2 border rounded-lg">
+                    <option value="">Seleccionar Departamento</option>
+                    <?php if (!empty($departamentos)): ?>
+                        <?php foreach ($departamentos as $dpto): ?>
+                            <option value="<?= esc($dpto['ID_Dpto']) ?>">
+                                <?= esc($dpto['Nombre']) ?> (<?= esc($dpto['PlaceNombre']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
             </div>
         </div>
         <button type="submit" class="px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg shadow hover:bg-yellow-600 transition">Guardar Cambios</button>
