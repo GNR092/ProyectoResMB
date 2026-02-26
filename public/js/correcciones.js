@@ -80,10 +80,17 @@ function initControlMaestro() {
             const fechaFiltro = document.getElementById('filtro-fecha-maestro').value;
             const filtrarPorMes = document.getElementById('filtrar-por-mes-maestro').checked;
             const estadoFiltro = document.getElementById('filtro-estado-maestro').value;
+            // 1. Capturamos el valor del nuevo filtro
+            const metodoFiltro = document.getElementById('filtro-metodo-maestro').value;
             const deptosSeleccionados = choicesDeptoMaestro ? choicesDeptoMaestro.getValue(true) : [];
 
             return allData.filter((item) => {
                 const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
+
+                // 2. Evaluamos si coincide el método de pago.
+                // Usamos == en lugar de === por si el item.MetodoPago viene como entero (0 o 1) y metodoFiltro como string ("0" o "1")
+                const coincideMetodo = !metodoFiltro || item.MetodoPago == metodoFiltro;
+
                 let coincideDepto = true;
                 if (deptosSeleccionados.length > 0) {
                     const deptoFull = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`;
@@ -92,12 +99,13 @@ function initControlMaestro() {
                     coincideDepto = true;
                 }
 
-                if (!fechaFiltro) return coincideEstado && coincideDepto;
+                // 3. Agregamos coincideMetodo a las condiciones de retorno
+                if (!fechaFiltro) return coincideEstado && coincideDepto && coincideMetodo;
                 const fechaItem = item.Fecha;
                 if (filtrarPorMes) {
-                    return fechaItem.slice(0, 7) === fechaFiltro.slice(0, 7) && coincideEstado && coincideDepto;
+                    return fechaItem.slice(0, 7) === fechaFiltro.slice(0, 7) && coincideEstado && coincideDepto && coincideMetodo;
                 }
-                return fechaItem === fechaFiltro && coincideEstado && coincideDepto;
+                return fechaItem === fechaFiltro && coincideEstado && coincideDepto && coincideMetodo;
             });
         }
     });
