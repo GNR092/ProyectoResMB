@@ -13,6 +13,7 @@ use App\Models\CuentasModel;
 use App\Models\PlacesModel;
 use App\Models\GrupoPresupuestalModel;
 use App\Models\BancoDptoModel;
+use App\Models\PresupuestoMensualModel;
 
 class Modales extends BaseController
 {
@@ -373,6 +374,26 @@ class Modales extends BaseController
                     ->findAll();
 
                 return view('modales/BancoDpto', $data);
+
+            case 'PresupuestoMensual':
+                $data[] = [];
+                // $dptoModelPM   = new DepartamentosModel();
+                // $grupoModelPM  = new GrupoPresupuestalModel();
+                // $presupuestoMensualModel = new PresupuestoMensualModel();
+
+                // $data['departamentos'] = $dptoModelPM
+                //     ->select('ID_Dpto, Nombre')
+                //     ->orderBy('Nombre', 'ASC')
+                //     ->findAll();
+
+                // $data['grupos'] = $grupoModelPM
+                //     ->select('ID_GrupoPresupuestal, Nombre, ID_Dpto')
+                //     ->orderBy('Nombre', 'ASC')
+                //     ->findAll();
+
+                // $data['presupuestos'] = $presupuestoMensualModel->findAll();
+
+                return view('modales/control/PresupuestoMensual', $data);
 
             default:
                 return 'Opción no válida';
