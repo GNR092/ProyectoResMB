@@ -818,6 +818,7 @@ class Api extends ResourceController
     public function enviarSolicitudARevision()
     {
         $request = $this->request->getPost();
+        log_message('debug', "API: enviarSolicitudARevision llamada. Datos: " . json_encode($request));
 
         if (!isset($request['ID_Solicitud'])) {
             return $this->failValidationErrors('Se requiere ID de solicitud.');
@@ -835,6 +836,8 @@ class Api extends ResourceController
         // ===============================
 
         $solicitud = $this->api->getSolicitudById($idSolicitud);
+        log_message('debug', "API: Solicitud recuperada: " . json_encode($solicitud));
+        
         $cotizacionModel = new CotizacionModel();
         $tipoPago = MetodoPago::EnEspera;
 
@@ -844,10 +847,11 @@ class Api extends ResourceController
 
         // Validar estado
         if ($solicitud['Estado'] !== Status::Cotizando) {
+            log_message('debug', "API: Solicitud $idSolicitud no está en estado Cotizando. Estado actual: " . $solicitud['Estado']);
             return $this->fail('La solicitud no está en estado "Cotizado".', HttpStatus::BAD_REQUEST);
         }
 
-        switch ($request['tipo_pago']) {
+        switch ($request['tipo_pago'] ?? '') {
             case 'efectivo': $tipoPago = MetodoPago::Efectivo; break;
             case 'credito': $tipoPago = MetodoPago::Credito; break;
         }
@@ -890,6 +894,86 @@ class Api extends ResourceController
                 'ID_Proveedor'         => $idProveedorGanador,
                 'ComentarioCotizacion' => $comentarioCotizacion, // <--- CAMPO AGREGADO
             ]);
+
+            // === LÓGICA DE PRESUPUESTO (SOLO MATERIALES) ===
+            if ((int)$solicitud['Tipo'] !== (int)SolicitudTipo::Servicios) {
+                try {
+                    $productModel = new SolicitudProductModel();
+                    $presupuestoModel = new \App\Models\PresupuestoMensualModel();
+                    
+                    $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
+                    log_message('debug', "Presupuesto: " . count($productos) . " productos encontrados para la solicitud $idSolicitud.");
+                    
+                    // Agrupar montos por ID_GrupoPresupuestal
+                    $montosPorGrupo = [];
+                    // Manejo de IVA para PostgreSQL (t/f) o MySQL (1/0)
+                    $ivaValue = $solicitud['IVA'] ?? false;
+                    $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
+                    $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
+                    
+                    log_message('debug', "Presupuesto: IVA Habilitado: " . ($ivaHabilitado ? 'SI' : 'NO') . " (Valor original: " . json_encode($ivaValue) . ")");
+
+                    foreach ($productos as $p) {
+                        $idGrupo = $p['ID_GrupoPresupuestal'];
+                        // Si no tiene grupo, no podemos afectar un presupuesto específico.
+                        if (!$idGrupo) {
+                            log_message('debug', "Presupuesto: Solicitud $idSolicitud, Producto ID " . $p['ID_SolicitudProd'] . " no tiene ID_GrupoPresupuestal. Saltando.");
+                            continue;
+                        }
+
+                        $montoItem = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
+                        $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoItem;
+                    }
+
+                    // Obtener mes y año de la solicitud
+                    $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
+                    $fechaSol = strtotime($fechaSolStr);
+                    $mes = (int)date('n', $fechaSol);
+                    $anio = (int)date('Y', $fechaSol);
+                    $idDpto = $solicitud['ID_Dpto'];
+
+                    if (empty($montosPorGrupo)) {
+                        log_message('debug', "Presupuesto: No hay productos con grupo presupuestal con montos para la solicitud $idSolicitud.");
+                    }
+
+                    foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
+                        if (!$idDpto || !$idGrupo) continue;
+
+                        log_message('debug', "Presupuesto: Procesando Grupo $idGrupo, Dpto $idDpto, Mes $mes, Anio $anio, Monto $montoAComprometer");
+
+                        // Buscar si ya existe el registro de presupuesto mensual
+                        $presupuesto = $presupuestoModel->where([
+                            'ID_Dpto' => $idDpto,
+                            'ID_GrupoPresupuestal' => $idGrupo,
+                            'Mes' => $mes,
+                            'Anio' => $anio
+                        ])->first();
+
+                        if ($presupuesto) {
+                            $nuevoComprometido = (float)$presupuesto['Monto_Comprometido'] + $montoAComprometer;
+                            $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
+                                'Monto_Comprometido' => $nuevoComprometido
+                            ]);
+                            log_message('debug', "Presupuesto Actualizado: ID " . $presupuesto['ID_PresupuestoMensual'] . " - Nuevo Comprometido: $nuevoComprometido");
+                        } else {
+                            // Si no existe, lo creamos con el monto comprometido inicial
+                            $presupuestoModel->insert([
+                                'ID_Dpto' => $idDpto,
+                                'ID_GrupoPresupuestal' => $idGrupo,
+                                'Mes' => $mes,
+                                'Anio' => $anio,
+                                'Monto_Asignado' => 0,
+                                'Monto_Comprometido' => $montoAComprometer,
+                                'Monto_Ejecutado' => 0
+                            ]);
+                            log_message('debug', "Presupuesto Creado: Dpto $idDpto, Grupo $idGrupo, Mes $mes, Anio $anio - Comprometido: $montoAComprometer");
+                        }
+                    }
+                } catch (\Exception $eBudget) {
+                    log_message('error', "Error en lógica de presupuesto: " . $eBudget->getMessage());
+                    // No detenemos el flujo principal si el presupuesto falla, pero lo registramos
+                }
+            }
 
             // === PROCESAMIENTO DE ARCHIVOS (Igual que tu código original) ===
 // === PROCESAMIENTO DE ARCHIVOS ===
