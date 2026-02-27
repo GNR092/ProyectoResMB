@@ -45,6 +45,7 @@ class Modales extends BaseController
             case 'solicitar_material':
                 $proveedorModel = new ProveedorModel();
                 $razonSocialModel = new RazonSocialModel();
+                $grupoModel = new GrupoPresupuestalModel();
 
                 // Obtener proveedores
                 $data['proveedores'] = $proveedorModel
@@ -55,6 +56,13 @@ class Modales extends BaseController
                 // Obtener razones sociales
                 $data['razones_sociales'] = $razonSocialModel
                     ->select('ID_RazonSocial, Nombre')
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+
+                // Obtener grupos presupuestales filtrados por el departamento del usuario
+                $idDepto = session('id_departamento_usuario');
+                $data['grupos_presupuestales'] = $grupoModel
+                    ->where('ID_Dpto', $idDepto)
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
 

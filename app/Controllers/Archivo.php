@@ -37,6 +37,7 @@ class Archivo extends BaseController
         $productos = [];
         $cantidades = [];
         $importes = [];
+        $grupos_presupuestales = [];
         $tipo = null;
         $comentariosuser = null;
 
@@ -51,6 +52,7 @@ class Archivo extends BaseController
             $tipo = SolicitudTipo::NoCotizacion;
             $productos = $post['producto'];
             $cantidades = $post['cantidad'];
+            $grupos_presupuestales = $post['id_grupo_presupuestal'] ?? [];
             $codigos = array_fill(0, count($productos), null);
             $importes = array_fill(0, count($productos), 0);
         } else {
@@ -59,6 +61,7 @@ class Archivo extends BaseController
             $productos = $post['producto'];
             $cantidades = $post['cantidad'];
             $importes = $post['importe'];
+            $grupos_presupuestales = $post['id_grupo_presupuestal'] ?? [];
         }
 
         $user = $this->api->getUserById(session('id'));
@@ -123,6 +126,7 @@ class Archivo extends BaseController
                         'Nombre' => $productos[$i],
                         'Cantidad' => $cantidades[$i],
                         'Importe' => $importes[$i],
+                        'ID_GrupoPresupuestal' => $grupos_presupuestales[$i] ?? null,
                     ];
                 }
 

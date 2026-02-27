@@ -12,6 +12,18 @@ $iconUrl = "/icons/icons.svg?v=$version";
         <input type="text" name="producto[]" class="w-full border rounded px-2 py-1" placeholder="Producto" required>
     </td>
     <td class="border px-3 py-1">
+        <select name="id_grupo_presupuestal[]" class="w-full border rounded px-2 py-1" required>
+            <option value="">Seleccione grupo</option>
+            <?php if (isset($grupos_presupuestales)): ?>
+                <?php foreach ($grupos_presupuestales as $grupo): ?>
+                    <option value="<?= esc($grupo['ID_GrupoPresupuestal']) ?>">
+                        <?= esc($grupo['Nombre']) ?>
+                    </option>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </select>
+    </td>
+    <td class="border px-3 py-1">
         <input type="number" name="cantidad[]" class="cantidad w-full border rounded px-2 py-1" min="1" step="1" value="1" required>
     </td>
     <td class="border px-3 py-1">

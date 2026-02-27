@@ -109,6 +109,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                             <th class="px-3 py-2 border">No.</th>
                             <th class="px-3 py-2 border">Código o SKU</th>
                             <th class="px-3 py-2 border">Producto</th>
+                            <th class="px-3 py-2 border">Grupo Presupuestal</th>
                             <th class="px-3 py-2 border">Cantidad</th>
                             <th class="px-3 py-2 border">Importe</th>
                             <th class="px-3 py-2 border">Costo</th>
@@ -248,7 +249,8 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <thead class="bg-gray-200 text-gray-700">
                         <tr>
                             <th class="px-3 py-2 border w-12">No.</th>
-                            <th class="px-3 py-2 border w-3/4">Producto</th>
+                            <th class="px-3 py-2 border w-1/2">Producto</th>
+                            <th class="px-3 py-2 border">Grupo Presupuestal</th>
                             <th class="px-3 py-2 border w-32">Cantidad</th>
                             <th class="px-3 py-2 border text-center w-24">Acción</th>
                         </tr>
@@ -259,6 +261,18 @@ $iconUrl = "/icons/icons.svg?v=$version";
                             <td class="px-3 py-2 border">
                                 <input type="text" name="producto[]" class="w-full px-2 py-1 border rounded"
                                     placeholder="Nombre del producto">
+                            </td>
+                            <td class="px-3 py-2 border">
+                                <select name="id_grupo_presupuestal[]" class="w-full border rounded px-2 py-1" required>
+                                    <option value="">Seleccione grupo</option>
+                                    <?php if (isset($grupos_presupuestales)): ?>
+                                        <?php foreach ($grupos_presupuestales as $grupo): ?>
+                                            <option value="<?= esc($grupo['ID_GrupoPresupuestal']) ?>">
+                                                <?= esc($grupo['Nombre']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
                             </td>
                             <td class="px-3 py-2 border">
                                 <input type="number" name="cantidad[]" class="w-full px-2 py-1 border rounded cantidad"

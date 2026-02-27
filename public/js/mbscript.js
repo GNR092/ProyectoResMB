@@ -368,12 +368,21 @@ async function initSolicitarMaterialSinCotizar() {
     agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn)
 
     nuevoBtn.addEventListener('click', () => {
+      // Obtenemos las opciones del primer select para clonarlas
+      const primerSelect = tabla.querySelector('select[name="id_grupo_presupuestal[]"]');
+      const opcionesHtml = primerSelect ? primerSelect.innerHTML : '<option value="">Seleccione grupo</option>';
+
       const nuevaFila = document.createElement('tr')
       nuevaFila.classList.add('fila-producto')
       nuevaFila.innerHTML = `
                 <td class="numero-fila px-3 py-2 border text-center"></td>
                 <td class="px-3 py-2 border">
                     <input type="text" name="producto[]" class="w-full px-2 py-1 border rounded" placeholder="Nombre del producto">
+                </td>
+                <td class="px-3 py-2 border">
+                    <select name="id_grupo_presupuestal[]" class="w-full border rounded px-2 py-1" required>
+                        ${opcionesHtml}
+                    </select>
                 </td>
                 <td class="px-3 py-2 border">
                     <input type="number" name="cantidad[]" class="w-full px-2 py-1 border rounded cantidad" min="1" value="1">
