@@ -27,6 +27,12 @@
             <option value="Pagada">🟢 Pagada</option>
         </select>
 
+        <select id="filtro-metodo-maestro" class="border border-gray-300 p-2 rounded w-full md:w-auto text-sm">
+            <option value="">Todos los métodos</option>
+            <option value="0">Contado</option>
+            <option value="1">Crédito</option>
+        </select>
+
         <div id="wrapper-depto-maestro" class="hidden w-full md:w-auto">
             <select id="filtroDepartamentoMaestro" class="border p-2 rounded w-full" multiple>
                 <option value="">Todos los departamentos</option>
