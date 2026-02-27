@@ -923,6 +923,11 @@ class Api extends ResourceController
 
                         $montoItem = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
                         $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoItem;
+
+                        // === GUARDAR MONTO ORIGINAL COMPROMETIDO ===
+                        $productModel->update($p['ID_SolicitudProd'], [
+                            'Monto_Comprometido_Original' => $montoItem
+                        ]);
                     }
 
                     // Obtener mes y año de la solicitud
@@ -1014,6 +1019,104 @@ class Api extends ResourceController
         } catch (\Exception $e) {
             log_message('error', '[enviarSolicitudARevision] ' . $e->getMessage());
             return $this->failServerError('Ocurrió un error inesperado.');
+        }
+    }
+
+    /**
+     * Mueve los montos de una solicitud de 'Comprometido' a 'Ejecutado'.
+     * @param int $idSolicitud
+     */
+    private function actualizarPresupuestoEjecucion($idSolicitud)
+    {
+        try {
+            $solicitudModel = new SolicitudModel();
+            $solicitud = $solicitudModel->find($idSolicitud);
+
+            if (!$solicitud || (int)$solicitud['Tipo'] === (int)SolicitudTipo::Servicios) {
+                return; // Solo materiales
+            }
+
+            // --- PROTECCIÓN: Evitar doble ejecución si ya estaba en un estado final ---
+            $ordenModel = new OrdenCompraModel();
+            $cotModel = new CotizacionModel();
+            $cot = $cotModel->where('ID_Solicitud', $idSolicitud)->first();
+            if ($cot) {
+                $ordenExistente = $ordenModel->where('ID_Cotizacion', $cot['ID_Cotizacion'])->first();
+                // Si la orden ya está "Por Pagar" o "Pagada", significa que el presupuesto YA se movió anteriormente.
+                if ($ordenExistente && in_array($ordenExistente['Estado'], [Status::Por_Pagar, Status::Pagada, 'Por Pagar', 'Pagada'])) {
+                    log_message('debug', "Presupuesto: Solicitud $idSolicitud ya ejecutada anteriormente (Estado: {$ordenExistente['Estado']}). Saltando.");
+                    return;
+                }
+            }
+            // -------------------------------------------------------------------------
+
+            $productModel = new SolicitudProductModel();
+            $presupuestoModel = new \App\Models\PresupuestoMensualModel();
+            
+            $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
+            
+            // Agrupar montos por ID_GrupoPresupuestal
+            // Necesitamos dos valores: el original (para restar del comprometido) y el actual (para sumar al ejecutado)
+            $montosADescontar = []; // Monto_Comprometido_Original
+            $montosAEjecutar = [];   // Cantidad * Importe (actual)
+
+            $ivaValue = $solicitud['IVA'] ?? false;
+            $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
+            $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
+
+            foreach ($productos as $p) {
+                $idGrupo = $p['ID_GrupoPresupuestal'];
+                if (!$idGrupo) continue;
+
+                // 1. Lo que vamos a RESTAR del comprometido (el valor que se guardó al inicio)
+                $original = (float)$p['Monto_Comprometido_Original'];
+                $montosADescontar[$idGrupo] = ($montosADescontar[$idGrupo] ?? 0) + $original;
+
+                // 2. Lo que vamos a SUMAR al ejecutado (el valor real actual)
+                $actual = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
+                $montosAEjecutar[$idGrupo] = ($montosAEjecutar[$idGrupo] ?? 0) + $actual;
+            }
+
+            // Obtener mes y año de la solicitud
+            $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
+            $fechaSol = strtotime($fechaSolStr);
+            $mes = (int)date('n', $fechaSol);
+            $anio = (int)date('Y', $fechaSol);
+            $idDpto = $solicitud['ID_Dpto'];
+
+            // Combinar las llaves de ambos arrays para asegurar que procesamos todos los grupos
+            $todosLosGrupos = array_unique(array_merge(array_keys($montosADescontar), array_keys($montosAEjecutar)));
+
+            foreach ($todosLosGrupos as $idGrupo) {
+                if (!$idDpto || !$idGrupo) continue;
+
+                $montoRestar = $montosADescontar[$idGrupo] ?? 0;
+                $montoSumar = $montosAEjecutar[$idGrupo] ?? 0;
+
+                $presupuesto = $presupuestoModel->where([
+                    'ID_Dpto' => $idDpto,
+                    'ID_GrupoPresupuestal' => $idGrupo,
+                    'Mes' => $mes,
+                    'Anio' => $anio
+                ])->first();
+
+                if ($presupuesto) {
+                    $nuevoComprometido = (float)$presupuesto['Monto_Comprometido'] - $montoRestar;
+                    $nuevoEjecutado = (float)$presupuesto['Monto_Ejecutado'] + $montoSumar;
+
+                    // Evitar que el comprometido sea negativo
+                    if ($nuevoComprometido < 0) $nuevoComprometido = 0;
+
+                    $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
+                        'Monto_Comprometido' => $nuevoComprometido,
+                        'Monto_Ejecutado'    => $nuevoEjecutado
+                    ]);
+                    
+                    log_message('debug', "Presupuesto Ejecutado (Final): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Restado: $montoRestar, Sumado: $montoSumar");
+                }
+            }
+        } catch (\Exception $e) {
+            log_message('error', "Error al actualizar presupuesto ejecutado: " . $e->getMessage());
         }
     }
 
@@ -1556,6 +1659,9 @@ class Api extends ResourceController
                 }
 
                 if ($nuevoEstado === 'Pagada') {
+                    // === ACTUALIZAR PRESUPUESTO (COMPROMETIDO -> EJECUTADO) ===
+                    $this->actualizarPresupuestoEjecucion($idSolicitud);
+
                     $ordenActualizada = $ordenCompraModel->find($idOrdenCompra);
 
                     $missingFiles = [];
@@ -1694,6 +1800,9 @@ class Api extends ResourceController
                 // Si el estado que recibimos es el del botón ("Por Pagar"), inyectamos la fecha actual
                 if ($nuevoEstado === 'Por Pagar' || (class_exists('Status') && $nuevoEstado === Status::Por_Pagar)) {
                     $datosActualizar['FechaPagoRealizado'] = date('Y-m-d H:i:s');
+                    
+                    // === ACTUALIZAR PRESUPUESTO (COMPROMETIDO -> EJECUTADO) ===
+                    $this->actualizarPresupuestoEjecucion($idSolicitud);
                 }
 
                 // EJECUTAMOS EL UPDATE

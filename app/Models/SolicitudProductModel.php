@@ -12,7 +12,7 @@ class SolicitudProductModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_Solicitud', 'ID_GrupoPresupuestal', 'Codigo', 'Nombre', 'Cantidad', 'Importe'];
+    protected $allowedFields    = ['ID_Solicitud', 'ID_GrupoPresupuestal', 'Codigo', 'Nombre', 'Cantidad', 'Importe', 'Monto_Comprometido_Original'];
 
     // Dates
     protected $useTimestamps = false;
