@@ -63,7 +63,6 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/solicitud/dictaminar-jefe', 'Api::dictaminarSolicitudJefe');
         $routes->post('api/solicitud/cancelar', 'Api::cancelarSolicitud');
         $routes->post('api/solicitud/aprobar-y-cotizar', 'Api::aprobarYCotizar');
-        $routes->post('api/presupuesto-mensual/guardar', 'PresupuestoApiController::saveMonthlyBudget'); // Added
         $routes->post('api/orden/generar/(:num)', 'Api::GenerarOrden/$1');
         $routes->post('solicitudes/registrar', 'Archivo::subir');
         $routes->get('solicitudes/archivo/(:num)', 'Archivo::descargar/$1');
@@ -168,6 +167,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/crud_departamentos/insertar', 'Modales::insertarDepartamento');
         $routes->post('modales/crud_departamentos/editar/(:num)', 'Modales::editarDepartamento/$1');
         $routes->post('modales/crud_departamentos/eliminar/(:num)', 'Modales::eliminarDepartamento/$1');
+
         //Bancos de Dpto
         $routes->post('modales/crud_banco_dpto/insertar', 'Modales::insertarBancoDpto');
         $routes->post('modales/crud_banco_dpto/editar/(:num)', 'Modales::editarBancoDpto/$1');
@@ -177,6 +177,10 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/crud_grupos_presupuestales/insertar', 'Modales::insertarGrupo');
         $routes->post('modales/crud_grupos_presupuestales/editar/(:num)', 'Modales::editarGrupo/$1');
         $routes->post('modales/crud_grupos_presupuestales/eliminar/(:num)', 'Modales::eliminarGrupo/$1');
+
+        //Rutas para presupuestos mensuales
+        $routes->post('api/presupuesto-mensual/guardar-masivo', 'PresupuestoApiController::saveMasivo');
+        $routes->get('api/presupuesto-mensual/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructura/$1/$2/$3');
 
         //Control maestro
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');

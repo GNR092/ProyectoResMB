@@ -1,210 +1,128 @@
 <?php
-$gruposJson      = json_encode($grupos ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
-$presupuestosJson = json_encode($presupuestos ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
+// Codificamos los datos iniciales enviados por el controlador
+// JSON_HEX_APOS y JSON_HEX_QUOT aseguran que no haya choques con las comillas HTML
+$razonesJson = json_encode($razones_sociales ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
+$placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
 
 <div id="presupuesto-mensual-main-div"
      class="p-6 bg-white rounded-xl shadow-md"
-     x-data="PresupuestoMensualData()"
-     x-init="init()"
-     data-grupos-json="<?= esc($gruposJson) ?>"
-     data-presupuestos-json="<?= esc($presupuestosJson) ?>">
+     x-data="presupuestoEscalonado"
+     data-razones-json='<?= esc($razonesJson) ?>'
+     data-places-json='<?= esc($placesJson) ?>'>
 
-    <!-- Filtros: Departamento + Mes y Año -->
-    <div class="flex flex-wrap items-center gap-x-10 gap-y-4 mb-8">
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-4 mb-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
 
-        <div class="flex items-center gap-3">
-            <label for="pm-departamento" class="text-sm font-medium text-gray-700">Departamentos</label>
-            <select id="pm-departamento"
-                    x-model="idDpto"
-                    @change="filtrarGrupos()"
-                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300 min-w-55">
-                <option value="">—</option>
-                <?php foreach ($departamentos as $dpto): ?>
-                    <option value="<?= esc($dpto['ID_Dpto']) ?>"><?= esc($dpto['Nombre']) ?> (<?= esc($dpto['PlaceNombre']) ?>)</option>
-                <?php endforeach; ?>
+        <div class="flex flex-col gap-1">
+            <label for="pm-razon-social" class="text-sm font-medium text-gray-700">Razón Social</label>
+            <select id="pm-razon-social"
+                    x-model="idRazonSocial"
+                    @change="idPlace = ''; resetEstructura()"
+                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300 min-w-[200px]">
+                <option value="">Seleccione Razón Social</option>
+                <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial">
+                    <option :value="rs.ID_RazonSocial" x-text="rs.Nombre"></option>
+                </template>
             </select>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-col gap-1">
+            <label for="pm-place" class="text-sm font-medium text-gray-700">Place</label>
+            <select id="pm-place"
+                    x-model="idPlace"
+                    @change="cargarEstructura()"
+                    :disabled="!idRazonSocial"
+                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300 min-w-[200px] disabled:bg-gray-100 disabled:cursor-not-allowed">
+                <option value="">Seleccione Place</option>
+                <template x-for="place in placesFiltrados" :key="place.ID_Place">
+                    <option :value="place.ID_Place" x-text="place.Nombre_Corto"></option>
+                </template>
+            </select>
+        </div>
+
+        <div class="flex flex-col gap-1">
             <label for="pm-mes-anio" class="text-sm font-medium text-gray-700">Mes y año</label>
             <input type="month"
                    id="pm-mes-anio"
                    x-model="mesAnio"
-                   @change="filtrarGrupos()"
+                   @change="cargarEstructura()"
                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
         </div>
-
     </div>
 
-    <!-- Tab + Tabla -->
-    <div>
+    <div class="border border-gray-300 rounded-lg overflow-hidden">
+        <table class="min-w-full text-sm">
+            <thead class="bg-blue-50">
+            <tr>
+                <th class="w-2/3 px-6 py-3 border-b border-gray-300 text-left font-semibold text-gray-700">Departamento / Grupo Presupuestal</th>
+                <th class="w-1/3 px-6 py-3 border-b border-gray-300 text-right font-semibold text-gray-700 border-l border-l-gray-300">Monto Asignado</th>
+            </tr>
+            </thead>
 
-        <!-- Tab header -->
-        <div class="flex">
-            <div class="px-4 py-2 text-sm font-medium border border-b-0 border-gray-300 rounded-t-lg bg-white text-gray-800 relative z-10">
-                Grupos
-            </div>
-        </div>
+            <tbody x-show="cargando || departamentos.length === 0">
+            <tr x-show="cargando">
+                <td colspan="2" class="px-4 py-12 text-center text-gray-500">
+                    <span class="inline-block animate-pulse">Cargando datos de la estructura...</span>
+                </td>
+            </tr>
+            <tr x-show="!cargando && departamentos.length === 0">
+                <td colspan="2" class="px-4 py-12 text-center text-gray-400">
+                    Seleccione una Razón Social, un Place y una Fecha para visualizar los grupos presupuestales.
+                </td>
+            </tr>
+            </tbody>
 
-        <!-- Tabla -->
-        <div class="border border-gray-300 rounded-b-lg rounded-tr-lg overflow-hidden">
-            <table class="min-w-full">
-                <thead class="bg-white">
-                    <tr>
-                        <th class="w-1/2 px-6 py-3 border-b border-gray-300 text-center font-medium text-gray-700">Grupo</th>
-                        <th class="w-1/2 px-6 py-3 border-b border-gray-300 text-center font-medium text-gray-700 border-l border-l-gray-300">Asignar monto</th>
+            <template x-for="dpto in departamentos" :key="dpto.ID_Dpto">
+                <tbody x-show="!cargando && departamentos.length > 0">
+
+                <tr class="bg-gray-100 border-y border-gray-300">
+                    <td colspan="2" class="px-6 py-3 font-bold text-gray-800">
+                        <span class="text-blue-600 mr-2">🏢</span>
+                        <span x-text="dpto.Nombre"></span>
+                    </td>
+                </tr>
+
+                <template x-for="grupo in dpto.grupos" :key="grupo.ID_GrupoPresupuestal">
+                    <tr class="bg-white hover:bg-gray-50 transition-colors duration-150">
+                        <td class="px-6 py-2 border-b border-gray-200 text-gray-600 pl-12" x-text="grupo.Nombre"></td>
+                        <td class="px-6 py-2 border-b border-gray-200 border-l border-l-gray-200">
+                            <div class="flex items-center justify-end gap-1">
+                                <span class="text-gray-500 font-medium">$</span>
+                                <input type="number"
+                                       min="0" step="0.01"
+                                       x-model="grupo.Monto_Asignado"
+                                       placeholder="0.00"
+                                       class="w-32 px-2 py-1.5 border border-gray-300 rounded-md text-right focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent">
+                            </div>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-
-                    <template x-if="gruposFiltrados.length === 0">
-                        <tr>
-                            <td colspan="2" class="px-4 py-16 text-center text-gray-400 text-sm">
-                                Seleccione un departamento y un mes/año para ver los grupos
-                            </td>
-                        </tr>
-                    </template>
-
-                    <template x-for="(grupo, i) in gruposFiltrados" :key="grupo.ID_GrupoPresupuestal">
-                        <tr :class="i % 2 === 0 ? 'bg-white' : 'bg-gray-50'">
-                            <td class="px-6 py-3 border-b border-gray-200 text-gray-800" x-text="grupo.Nombre"></td>
-                            <td class="px-6 py-3 border-b border-gray-200 border-l border-l-gray-200">
-                                <div class="flex items-center gap-1">
-                                    <span class="text-gray-500 text-sm">$</span>
-                                    <input type="number"
-                                           min="0"
-                                           step="0.01"
-                                           x-model="grupo.Monto_Asignado"
-                                           placeholder="0.00"
-                                           class="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-right focus:outline-none focus:ring focus:ring-blue-300 text-sm">
-                                </div>
-                            </td>
-                        </tr>
-                    </template>
+                </template>
 
                 </tbody>
-            </table>
-        </div>
-
-        <!-- Botón guardar -->
-        <div class="flex justify-end mt-4" x-show="gruposFiltrados.length > 0">
-            <button @click="guardar()"
-                    :disabled="guardando"
-                    class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed">
-                <span x-show="!guardando">Guardar</span>
-                <span x-show="guardando">Guardando...</span>
-            </button>
-        </div>
-
+            </template>
+        </table>
     </div>
 
-    <!-- Mensaje de feedback -->
-    <p class="mt-4 text-center text-sm font-medium"
-       x-show="mensaje !== ''"
-       :class="error ? 'text-red-600' : 'text-green-600'"
-       x-text="mensaje">
-    </p>
+    <div class="flex items-center justify-between mt-6">
+        <p class="text-sm font-medium px-2 py-1 rounded"
+           x-show="mensaje !== ''"
+           :class="error ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'"
+           x-text="mensaje"></p>
+
+        <div x-show="mensaje === ''"></div>
+
+        <button x-show="departamentos.length > 0"
+                @click="guardarMasivo()"
+                :disabled="guardando"
+                class="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
+
+            <svg x-show="guardando" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+
+            <span x-text="guardando ? 'Guardando...' : 'Guardar Presupuestos'"></span>
+        </button>
+    </div>
 
 </div>
-
-<script>
-window.PresupuestoMensual = function(todosGrupos, presupuestosExistentes) {
-    return {
-        idDpto: '',
-        mesAnio: '',
-        todosGrupos: todosGrupos,
-        presupuestosExistentes: presupuestosExistentes,
-        gruposFiltrados: [],
-        guardando: false,
-        mensaje: '',
-        error: false,
-
-        init() {
-            const now   = new Date();
-            const anio  = now.getFullYear();
-            const mes   = String(now.getMonth() + 1).padStart(2, '0');
-            this.mesAnio = `${anio}-${mes}`;
-            this.filtrarGrupos(); // Call filter on init
-        },
-
-        filtrarGrupos() {
-            if (!this.idDpto || !this.mesAnio) {
-                this.gruposFiltrados = [];
-                return;
-            }
-
-            const [anio, mes] = this.mesAnio.split('-');
-
-            console.log('Selected idDpto:', this.idDpto);
-            const gruposDpto = this.todosGrupos.filter(
-                g => {
-                    console.log('Group ID_Dpto:', g.ID_Dpto);
-                    return g.ID_Dpto !== null && g.ID_Dpto !== undefined && String(g.ID_Dpto) === String(this.idDpto);
-                }
-            );
-
-            this.gruposFiltrados = gruposDpto.map(g => {
-                const existente = this.presupuestosExistentes.find(
-                    p => String(p.ID_GrupoPresupuestal) === String(g.ID_GrupoPresupuestal)
-                      && String(p.ID_Dpto)              === String(this.idDpto)
-                      && String(p.Anio)                 === String(anio)
-                      && String(p.Mes)                  === String(parseInt(mes))
-                );
-                return {
-                    ...g,
-                    ID_PresupuestoMensual: existente ? existente.ID_PresupuestoMensual : null,
-                    Monto_Asignado: existente ? existente.Monto_Asignado : ''
-                };
-            });
-        },
-
-        async guardar() {
-            if (!this.idDpto || !this.mesAnio || this.gruposFiltrados.length === 0) return;
-
-            const [anio, mes] = this.mesAnio.split('-');
-            this.guardando    = true;
-            this.mensaje      = '';
-
-            const payload = {
-                id_dpto: this.idDpto,
-                anio: parseInt(anio),
-                mes: parseInt(mes),
-                grupos: this.gruposFiltrados.map(g => ({
-                    id_grupo:          g.ID_GrupoPresupuestal,
-                    id_existente:      g.ID_PresupuestoMensual,
-                    monto_asignado:    parseFloat(g.Monto_Asignado) || 0
-                }))
-            };
-
-            try {
-                const res = await fetch(`${BASE_URL}api/presupuesto-mensual/guardar`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (res.ok) {
-                    const json = await res.json();
-                    this.presupuestosExistentes = json.presupuestos ?? this.presupuestosExistentes;
-                    this.filtrarGrupos();
-                    this.mensaje = 'Presupuesto guardado correctamente';
-                    this.error   = false;
-                } else {
-                    this.mensaje = 'Error al guardar el presupuesto';
-                    this.error   = true;
-                }
-            } catch (e) {
-                this.mensaje = 'Error de conexión';
-                this.error   = true;
-            } finally {
-                this.guardando = false;
-                setTimeout(() => { this.mensaje = ''; }, 3000);
-            }
-        }
-    };
-}
-</script>

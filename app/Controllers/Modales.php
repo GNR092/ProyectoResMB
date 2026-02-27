@@ -376,22 +376,12 @@ class Modales extends BaseController
                 return view('modales/BancoDpto', $data);
 
             case 'PresupuestoMensual':
-                $dptoModelPM   = new DepartamentosModel();
-                $grupoModelPM  = new GrupoPresupuestalModel();
-                $presupuestoMensualModel = new PresupuestoMensualModel();
+                $razonSocialModel = new \App\Models\RazonSocialModel();
+                $placesModel      = new \App\Models\PlacesModel();
 
-                $data['departamentos'] = $dptoModelPM
-                    ->select('Departamentos.ID_Dpto, Departamentos.Nombre, Places.Nombre_Corto as PlaceNombre')
-                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
-                    ->orderBy('Departamentos.Nombre', 'ASC')
-                    ->findAll();
-
-                $data['grupos'] = $grupoModelPM
-                    ->select('ID_GrupoPresupuestal, Nombre, ID_Dpto')
-                    ->orderBy('Nombre', 'ASC')
-                    ->findAll();
-
-                $data['presupuestos'] = $presupuestoMensualModel->findAll();
+                // Mandamos catálogos base para los primeros dos selectores
+                $data['razones_sociales'] = $razonSocialModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['places']           = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
 
                 return view('modales/control/PresupuestoMensual', $data);
 

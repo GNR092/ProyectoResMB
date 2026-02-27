@@ -126,7 +126,7 @@ function abrirModal(opcion) {
         correcciones: initControlMaestro,
         GrupoPresupuestal: initCrudGrupos,
         BancoDpto: initCrudBancoDpto,
-        PresupuestoMensual: initPresupuestoMensual
+        // PresupuestoMensual: initPresupuestoMensual
       }
 
       const inicializador = inicializadores[opcion]
@@ -3125,133 +3125,138 @@ async function cargarCuentasDeProveedor(idProveedor) {
 
 
 /**
- * Lógica para Presupuesto Mensual (Alpine.js Component)
+ * Lógica para Presupuesto Mensual
  */
-function PresupuestoMensualData() { // No arguments passed here anymore
+function registrarComponentePresupuesto() {
+  Alpine.data('presupuestoEscalonado', function () {
     return {
-        idDpto: '',
-        mesAnio: '',
-        todosGrupos: [], // Initialize as empty array
-        presupuestosExistentes: [], // Initialize as empty array
-        gruposFiltrados: [],
-        guardando: false,
-        mensaje: '',
-        error: false,
+      idRazonSocial: '',
+      idPlace: '',
+      mesAnio: '',
 
-        init() {
-            const now   = new Date();
-            const anio  = now.getFullYear();
-            const mes   = String(now.getMonth() + 1).padStart(2, '0');
-            this.mesAnio = `${anio}-${mes}`;
-            this.filtrarGrupos(); // Call filter on init
-        },
+      razonesSociales: [],
+      todosPlaces: [],
+      departamentos: [],
 
-        filtrarGrupos() {
-            if (!this.idDpto || !this.mesAnio) {
-                this.gruposFiltrados = [];
-                return;
-            }
+      cargando: false,
+      guardando: false,
+      mensaje: '',
+      error: false,
 
-            const [anio, mes] = this.mesAnio.split('-');
+      init() {
+        if (this.$el) {
+          this.razonesSociales = JSON.parse(this.$el.dataset.razonesJson || '[]');
+          this.todosPlaces     = JSON.parse(this.$el.dataset.placesJson || '[]');
+        }
 
-            const gruposDpto = this.todosGrupos.filter(
-                g => {
+        const now = new Date();
+        const anio = now.getFullYear();
+        const mes = String(now.getMonth() + 1).padStart(2, '0');
+        this.mesAnio = `${anio}-${mes}`;
+      },
 
-                    return g.ID_Dpto !== null && g.ID_Dpto !== undefined && String(g.ID_Dpto) === String(this.idDpto);
-                }
-            );
+      get placesFiltrados() {
+        if (!this.idRazonSocial) return [];
+        return this.todosPlaces.filter(p => String(p.ID_RazonSocial) === String(this.idRazonSocial));
+      },
 
-            this.gruposFiltrados = gruposDpto.map(g => {
-                const existente = this.presupuestosExistentes.find(
-                    p => String(p.ID_GrupoPresupuestal) === String(g.ID_GrupoPresupuestal)
-                      && String(p.ID_Dpto)              === String(this.idDpto)
-                      && String(p.Anio)                 === String(anio)
-                      && String(p.Mes)                  === String(parseInt(mes))
-                );
-                return {
-                    ...g,
-                    ID_PresupuestoMensual: existente ? existente.ID_PresupuestoMensual : null,
-                    Monto_Asignado: existente ? existente.Monto_Asignado : ''
-                };
+      resetEstructura() {
+        this.departamentos = [];
+        this.mensaje = '';
+      },
+
+      async cargarEstructura() {
+        if (!this.idPlace || !this.mesAnio) {
+          this.resetEstructura();
+          return;
+        }
+
+        const [anio, mes] = this.mesAnio.split('-');
+        this.cargando = true;
+        this.departamentos = [];
+        this.mensaje = '';
+
+        try {
+          const res = await fetch(`${BASE_URL}api/presupuesto-mensual/estructura/${this.idPlace}/${anio}/${parseInt(mes)}`);
+
+          if (res.ok) {
+            const data = await res.json();
+            this.departamentos = data.departamentos || [];
+          } else {
+            this.mensaje = 'Error al cargar los datos del servidor.';
+            this.error = true;
+          }
+        } catch (e) {
+          console.error("Error cargando estructura:", e);
+          this.mensaje = 'Error de conexión.';
+          this.error = true;
+        } finally {
+          this.cargando = false;
+        }
+      },
+
+      async guardarMasivo() {
+        if (this.departamentos.length === 0) return;
+
+        const [anio, mes] = this.mesAnio.split('-');
+        this.guardando = true;
+        this.mensaje = '';
+        this.error = false;
+
+        let gruposParaGuardar = [];
+
+        this.departamentos.forEach(dpto => {
+          dpto.grupos.forEach(grupo => {
+            gruposParaGuardar.push({
+              id_dpto: dpto.ID_Dpto,
+              id_grupo: grupo.ID_GrupoPresupuestal,
+              id_existente: grupo.ID_PresupuestoMensual,
+              monto_asignado: parseFloat(grupo.Monto_Asignado) || 0
             });
-        },
+          });
+        });
 
-        async guardar() {
-            if (!this.idDpto || !this.mesAnio || this.gruposFiltrados.length === 0) return;
+        const payload = {
+          anio: parseInt(anio),
+          mes: parseInt(mes),
+          grupos: gruposParaGuardar
+        };
 
-            const [anio, mes] = this.mesAnio.split('-');
-            this.guardando    = true;
-            this.mensaje      = '';
+        try {
+          const res = await fetch(`${BASE_URL}api/presupuesto-mensual/guardar-masivo`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+          });
 
-            const payload = {
-                id_dpto: this.idDpto,
-                anio: parseInt(anio),
-                mes: parseInt(mes),
-                grupos: this.gruposFiltrados.map(g => ({
-                    id_grupo:          g.ID_GrupoPresupuestal,
-                    id_existente:      g.ID_PresupuestoMensual,
-                    monto_asignado:    parseFloat(g.Monto_Asignado) || 0
-                }))
-            };
-
-            try {
-                const res = await fetch(`${BASE_URL}api/presupuesto-mensual/guardar`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (res.ok) {
-                    const json = await res.json();
-                    this.presupuestosExistentes = json.presupuestos ?? this.presupuestosExistentes;
-                    this.filtrarGrupos();
-                    this.mensaje = 'Presupuesto guardado correctamente';
-                    this.error   = false;
-                } else {
-                    this.mensaje = 'Error al guardar el presupuesto';
-                    this.error   = true;
-                }
-            } catch (e) {
-                this.mensaje = 'Error de conexión';
-                this.error   = true;
-            } finally {
-                this.guardando = false;
-                setTimeout(() => { this.mensaje = ''; }, 3000);
-            }
+          if (res.ok) {
+            this.mensaje = 'Presupuestos guardados correctamente';
+            this.error = false;
+            await this.cargarEstructura();
+          } else {
+            this.mensaje = 'Error al guardar los presupuestos';
+            this.error = true;
+          }
+        } catch (e) {
+          this.mensaje = 'Error de conexión al guardar.';
+          this.error = true;
+        } finally {
+          this.guardando = false;
+          if (!this.error) {
+            setTimeout(() => { this.mensaje = ''; }, 4000);
+          }
         }
+      }
     };
+  });
 }
-
-function initPresupuestoMensual() {
-    const mainDiv = document.getElementById('presupuesto-mensual-main-div');
-    if (!mainDiv) return;
-
-    // Fetch data from new API endpoints
-    Promise.all([
-        fetch(`${BASE_URL}api/v1/budget-groups`).then(res => res.json()),
-        fetch(`${BASE_URL}api/v1/monthly-budgets`).then(res => res.json())
-    ])
-    .then(([gruposData, presupuestosData]) => {
-        const component = Alpine.$data(mainDiv); // Get Alpine.js component instance
-
-        if (component) {
-            component.todosGrupos = gruposData || [];
-            component.presupuestosExistentes = presupuestosData || [];
-            component.filtrarGrupos(); // Re-filter after data is loaded
-        }
-    })
-    .catch(error => {
-        console.error('Error fetching data for PresupuestoMensual:', error);
-        // Display error message in the component if possible
-        const component = Alpine.$data(mainDiv);
-        if (component) {
-            component.mensaje = 'Error al cargar datos iniciales.';
-            component.error = true;
-        }
-    });
+if (window.Alpine) {
+  registrarComponentePresupuesto();
+} else {
+  document.addEventListener('alpine:init', registrarComponentePresupuesto);
 }
 
 

@@ -7,7 +7,7 @@ use App\Models\PresupuestoMensualModel;
 use App\Models\PresupuestoAnualModel;
 use App\Models\DepartamentosModel;
 use App\Models\PlacesModel;
-use App\Libraries\HttpStatus; // Assuming HttpStatus is needed for failServerError etc.
+use App\Models\GrupoPresupuestalModel;
 
 class PresupuestoApiController extends ResourceController
 {
@@ -18,42 +18,44 @@ class PresupuestoApiController extends ResourceController
         // Any common setup for budget API can go here
     }
 
-    public function saveMonthlyBudget()
+    // NUEVA FUNCIÓN PARA GUARDAR MÚLTIPLES DEPARTAMENTOS
+    public function saveMasivo()
     {
-        $json = $this->request->getJSON(true); // Get JSON as associative array
+        $json = $this->request->getJSON(true);
 
-        // 1. Validate incoming data
-        if (!isset($json['id_dpto']) || !isset($json['anio']) || !isset($json['mes']) || !isset($json['grupos']) || !is_array($json['grupos'])) {
+        // 1. Validar datos principales (ya no pedimos id_dpto a nivel general)
+        if (!isset($json['anio']) || !isset($json['mes']) || !isset($json['grupos']) || !is_array($json['grupos'])) {
             return $this->failValidationErrors('Datos incompletos o inválidos.');
         }
 
-
-        $idDpto = (int) $json['id_dpto'];
         $anio = (int) $json['anio'];
         $mes = (int) $json['mes'];
         $grupos = $json['grupos'];
 
-        // Instantiate models
         $presupuestoMensualModel = new PresupuestoMensualModel();
         $presupuestoAnualModel = new PresupuestoAnualModel();
         $departamentosModel = new DepartamentosModel();
         $placesModel = new PlacesModel();
         $db = \Config\Database::connect();
 
-
         $db->transException(true)->transStart();
 
-
         try {
-            // 2. Save/Update PresupuestoMensual entries
+            // Arreglo para llevar registro de qué Razones Sociales fueron afectadas
+            // y así recalcular su presupuesto anual al final.
+            $razonesSocialesAfectadas = [];
+
+            // 2. Guardar o Actualizar los grupos
             foreach ($grupos as $grupo) {
-                if (!isset($grupo['id_grupo']) || !isset($grupo['monto_asignado'])) {
+                // Ahora validamos que el id_dpto venga dentro de cada iteración
+                if (!isset($grupo['id_grupo']) || !isset($grupo['monto_asignado']) || !isset($grupo['id_dpto'])) {
                     throw new \Exception('Datos de grupo presupuestal incompletos.');
                 }
 
+                $idDptoActual = (int) $grupo['id_dpto'];
 
                 $dataToSave = [
-                    'ID_Dpto' => $idDpto,
+                    'ID_Dpto' => $idDptoActual,
                     'ID_GrupoPresupuestal' => (int) $grupo['id_grupo'],
                     'Anio' => $anio,
                     'Mes' => $mes,
@@ -61,13 +63,12 @@ class PresupuestoApiController extends ResourceController
                 ];
 
                 if (!empty($grupo['id_existente'])) {
-                    // Update existing monthly budget
+                    // Actualizar registro existente
                     $presupuestoMensualModel->update((int) $grupo['id_existente'], $dataToSave);
                 } else {
-                    // Insert new monthly budget
-                    // Check if a record with the same ID_Dpto, ID_GrupoPresupuestal, Anio, Mes already exists
+                    // Si no tiene ID existente, comprobamos por seguridad en BD
                     $existingMonthlyBudget = $presupuestoMensualModel
-                        ->where('ID_Dpto', $idDpto)
+                        ->where('ID_Dpto', $idDptoActual)
                         ->where('ID_GrupoPresupuestal', (int) $grupo['id_grupo'])
                         ->where('Anio', $anio)
                         ->where('Mes', $mes)
@@ -80,64 +81,51 @@ class PresupuestoApiController extends ResourceController
                     }
                 }
 
+                // Averiguar a qué Razón Social pertenece este departamento para el cálculo anual
+                $departamento = $departamentosModel->find($idDptoActual);
+                if ($departamento && isset($departamento['ID_Place'])) {
+                    $place = $placesModel->find($departamento['ID_Place']);
+                    if ($place && isset($place['ID_RazonSocial'])) {
+                        $idRazonSocial = (int) $place['ID_RazonSocial'];
+
+                        // Lo guardamos en el arreglo si no existe aún (para no calcularlo 100 veces repetidas)
+                        if (!in_array($idRazonSocial, $razonesSocialesAfectadas)) {
+                            $razonesSocialesAfectadas[] = $idRazonSocial;
+                        }
+                    }
+                }
             }
 
+            // 3. Recalcular el Presupuesto Anual SOLO de las Razones Sociales afectadas
+            foreach ($razonesSocialesAfectadas as $idRazonSocial) {
+                $queryResult = $presupuestoMensualModel
+                    ->selectSum('PresupuestoMensual.Monto_Asignado', 'total')
+                    ->join('Departamentos d', 'd.ID_Dpto = PresupuestoMensual.ID_Dpto')
+                    ->join('Places p', 'p.ID_Place = d.ID_Place')
+                    ->where('PresupuestoMensual.Anio', $anio)
+                    ->where('p.ID_RazonSocial', $idRazonSocial)
+                    ->get()
+                    ->getRow();
 
-            // 3. Calculate and Update PresupuestoAnual
-            // Get ID_RazonSocial from ID_Dpto
-            $departamento = $departamentosModel->find($idDpto);
-            if (!$departamento) {
-                throw new \Exception('Departamento con ID ' . $idDpto . ' no encontrado.');
+                $totalMontoAnual = $queryResult ? (float) $queryResult->total : 0.0;
+
+                $presupuestoAnual = $presupuestoAnualModel
+                    ->where('Anio', $anio)
+                    ->where('ID_RazonSocial', $idRazonSocial)
+                    ->first();
+
+                $annualData = [
+                    'ID_RazonSocial' => $idRazonSocial,
+                    'Anio' => $anio,
+                    'Monto' => (float) $totalMontoAnual
+                ];
+
+                if ($presupuestoAnual) {
+                    $presupuestoAnualModel->update($presupuestoAnual['ID_PresupuestoAnual'], $annualData);
+                } else {
+                    $presupuestoAnualModel->insert($annualData);
+                }
             }
-            if (!isset($departamento['ID_Place'])) {
-                throw new \Exception('Departamento con ID ' . $idDpto . ' no tiene un ID de Place asociado.');
-            }
-
-
-            $place = $placesModel->find($departamento['ID_Place']);
-            if (!$place) {
-                throw new \Exception('Lugar con ID ' . $departamento['ID_Place'] . ' no encontrado para el departamento ' . $idDpto . '.');
-            }
-            if (!isset($place['ID_RazonSocial'])) {
-                throw new \Exception('Lugar con ID ' . $departamento['ID_Place'] . ' no tiene un ID de Razon Social asociado.');
-            }
-
-
-            $idRazonSocial = (int) $place['ID_RazonSocial'];
-
-            // Sum Monto_Asignado for the current Anio and ID_RazonSocial
-            $queryResult = $presupuestoMensualModel
-                ->selectSum('PresupuestoMensual.Monto_Asignado', 'total') // Use model's table name directly
-                ->join('Departamentos d', 'd.ID_Dpto = PresupuestoMensual.ID_Dpto')
-                ->join('Places p', 'p.ID_Place = d.ID_Place')
-                ->where('PresupuestoMensual.Anio', $anio)
-                ->where('p.ID_RazonSocial', $idRazonSocial)
-                ->get()
-                ->getRow();
-
-            $totalMontoAnual = $queryResult ? (float) $queryResult->total : 0.0;
-
-
-            // Check and update/insert PresupuestoAnual
-            $presupuestoAnual = $presupuestoAnualModel
-                ->where('Anio', $anio)
-                ->where('ID_RazonSocial', $idRazonSocial)
-                ->first();
-
-            $annualData = [
-                'ID_RazonSocial' => $idRazonSocial,
-                'Anio' => $anio,
-                'Monto' => (float) $totalMontoAnual
-            ];
-
-            if ($presupuestoAnual) {
-                // Update existing annual budget
-                $presupuestoAnualModel->update($presupuestoAnual['ID_PresupuestoAnual'], $annualData);
-            } else {
-                // Insert new annual budget
-                $presupuestoAnualModel->insert($annualData);
-            }
-
 
             $db->transComplete();
 
@@ -145,25 +133,78 @@ class PresupuestoApiController extends ResourceController
                 throw new \Exception('Falla en la transacción de base de datos para presupuesto anual.');
             }
 
-
-            // Fetch updated monthly budgets to return to frontend
-            $updatedMonthlyBudgets = $presupuestoMensualModel
-                ->where('ID_Dpto', $idDpto)
-                ->where('Anio', $anio)
-                ->where('Mes', $mes)
-                ->findAll();
-
-
             return $this->respondCreated([
                 'success' => true,
-                'message' => 'Presupuesto mensual y anual actualizados correctamente.',
-                'presupuestos' => $updatedMonthlyBudgets // Return updated monthly budgets for frontend to refresh
+                'message' => 'Presupuestos guardados correctamente.'
             ]);
 
         } catch (\Exception $e) {
             $db->transRollback();
-            log_message('error', '[saveMonthlyBudget] ' . $e->getMessage());
-            return $this->failServerError('Error al guardar el presupuesto: ' . $e->getMessage());
+            log_message('error', '[saveMasivo] ' . $e->getMessage());
+            return $this->failServerError('Error al guardar: ' . $e->getMessage());
         }
+    }
+
+    public function getEstructura($idPlace, $anio, $mes)
+    {
+        $dptoModel = new DepartamentosModel();
+        $grupoModel = new GrupoPresupuestalModel();
+        $presupuestoMensualModel = new PresupuestoMensualModel();
+
+        // 1. Traer TODOS los departamentos que pertenecen a este ID_Place
+        $departamentos = $dptoModel->where('ID_Place', $idPlace)
+            ->orderBy('Nombre', 'ASC')
+            ->findAll();
+
+        if (empty($departamentos)) {
+            return $this->respond(['departamentos' => []]);
+        }
+
+        $dptoIds = array_column($departamentos, 'ID_Dpto');
+
+        // 2. Traer TODOS los grupos presupuestales que pertenecen a esos departamentos
+        $grupos = $grupoModel->whereIn('ID_Dpto', $dptoIds)
+            ->orderBy('Nombre', 'ASC')
+            ->findAll();
+
+        // 3. Traer los presupuestos que ya han sido guardados para ese Mes/Año
+        $presupuestosGuardados = $presupuestoMensualModel->whereIn('ID_Dpto', $dptoIds)
+            ->where('Anio', $anio)
+            ->where('Mes', $mes)
+            ->findAll();
+
+        $estructura = [];
+
+        foreach ($departamentos as $dpto) {
+            $gruposDelDpto = [];
+
+            foreach ($grupos as $grupo) {
+                if ((int)$grupo['ID_Dpto'] === (int)$dpto['ID_Dpto']) {
+
+                    $montoAsignado = '';
+                    $idExistente = null;
+
+                    foreach ($presupuestosGuardados as $presupuesto) {
+                        if ((int)$presupuesto['ID_GrupoPresupuestal'] === (int)$grupo['ID_GrupoPresupuestal'] &&
+                            (int)$presupuesto['ID_Dpto'] === (int)$dpto['ID_Dpto']) {
+
+                            $montoAsignado = $presupuesto['Monto_Asignado'];
+                            $idExistente = $presupuesto['ID_PresupuestoMensual'];
+                            break;
+                        }
+                    }
+
+                    $grupo['Monto_Asignado'] = $montoAsignado;
+                    $grupo['ID_PresupuestoMensual'] = $idExistente;
+
+                    $gruposDelDpto[] = $grupo;
+                }
+            }
+
+            $dpto['grupos'] = $gruposDelDpto;
+            $estructura[] = $dpto;
+        }
+
+        return $this->respond(['departamentos' => $estructura]);
     }
 }
