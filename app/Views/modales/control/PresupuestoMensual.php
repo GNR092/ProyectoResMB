@@ -1,6 +1,5 @@
 <?php
 // Codificamos los datos iniciales enviados por el controlador
-// JSON_HEX_APOS y JSON_HEX_QUOT aseguran que no haya choques con las comillas HTML
 $razonesJson = json_encode($razones_sociales ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
@@ -11,8 +10,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
      data-razones-json='<?= esc($razonesJson) ?>'
      data-places-json='<?= esc($placesJson) ?>'>
 
-    <div class="flex flex-wrap items-center gap-x-6 gap-y-4 mb-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
-
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
         <div class="flex flex-col gap-1">
             <label for="pm-razon-social" class="text-sm font-medium text-gray-700">Razón Social</label>
             <select id="pm-razon-social"
@@ -48,6 +46,13 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                    @change="cargarEstructura()"
                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
         </div>
+    </div>
+
+    <div class="flex justify-end mb-4" x-show="!cargando && departamentos.length > 0" x-cloak>
+        <h3 class="text-lg font-semibold text-gray-800 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200 shadow-sm flex items-center gap-2">
+            Presupuesto Consecuente:
+            <span class="text-blue-700 font-bold text-xl" x-text="formatearMoneda(sumaTotal)">$0.00</span>
+        </h3>
     </div>
 
     <div class="border border-gray-300 rounded-lg overflow-hidden">

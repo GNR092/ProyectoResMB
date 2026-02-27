@@ -3165,6 +3165,30 @@ function registrarComponentePresupuesto() {
         this.mensaje = '';
       },
 
+      // NUEVO: Calcula la suma total en tiempo real
+      get sumaTotal() {
+        let total = 0;
+        this.departamentos.forEach(dpto => {
+          if (dpto.grupos) {
+            dpto.grupos.forEach(grupo => {
+              // Convertimos a número, si está vacío o es texto, lo tomamos como 0
+              let monto = parseFloat(grupo.Monto_Asignado) || 0;
+              total += monto;
+            });
+          }
+        });
+        return total;
+      },
+
+      // NUEVO: Formatea el número a moneda (ej. $ 1,500.00)
+      formatearMoneda(valor) {
+        return new Intl.NumberFormat('es-MX', {
+          style: 'currency',
+          currency: 'MXN'
+        }).format(valor);
+      },
+
+
       async cargarEstructura() {
         if (!this.idPlace || !this.mesAnio) {
           this.resetEstructura();
