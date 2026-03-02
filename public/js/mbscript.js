@@ -1480,9 +1480,49 @@ window.mostrarVerDictamen = async function(idSolicitud) {
                 const s = saldoRes.data;
                 const nombreGrupo = data.productos.find(p => p.ID_GrupoPresupuestal == idGrupo).GrupoPresupuestalNombre || 'Grupo Desconocido';
 
+                // Calcular porcentajes para la barra
+                const asignado = parseFloat(s.Monto_Asignado) || 0;
+                const ejecutado = parseFloat(s.Monto_Ejecutado) || 0;
+                const comprometido = parseFloat(s.Monto_Comprometido) || 0;
+
+                let pctEjecutado = 0;
+                let pctComprometido = 0;
+                let pctRestante = 100;
+
+                if (asignado > 0) {
+                    pctEjecutado = Math.min((ejecutado / asignado) * 100, 100);
+                    pctComprometido = Math.min((comprometido / asignado) * 100, 100 - pctEjecutado);
+                    pctRestante = 100 - pctEjecutado - pctComprometido;
+                } else if (ejecutado > 0 || comprometido > 0) {
+                    // Si no hay presupuesto asignado pero hay gasto, la barra se muestra roja/naranja
+                    const totalGasto = ejecutado + comprometido;
+                    pctEjecutado = (ejecutado / totalGasto) * 100;
+                    pctComprometido = (comprometido / totalGasto) * 100;
+                    pctRestante = 0;
+                }
+
                 resumenContainer.innerHTML += `
                   <div class="mb-4 p-4 border rounded-lg bg-gray-50 shadow-sm">
-                    <h4 class="text-sm font-bold text-gray-700 mb-2 border-b pb-1">Presupuesto: ${nombreGrupo}</h4>
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3 border-b pb-2">
+                        <h4 class="text-sm font-bold text-gray-700">Presupuesto: ${nombreGrupo}</h4>
+                        
+                        <!-- Barra de Progreso Visual -->
+                        <div class="flex-1 max-w-md h-4 bg-gray-200 rounded-full overflow-hidden flex shadow-inner border border-gray-300">
+                            <!-- Rojo: Ejecutado -->
+                            <div class="h-full bg-red-600 transition-all duration-500" 
+                                 style="width: ${pctEjecutado}%" 
+                                 title="Ejecutado: ${pctEjecutado.toFixed(1)}%"></div>
+                            <!-- Naranja: Comprometido -->
+                            <div class="h-full bg-orange-400 transition-all duration-500" 
+                                 style="width: ${pctComprometido}%" 
+                                 title="Comprometido: ${pctComprometido.toFixed(1)}%"></div>
+                            <!-- Verde: Disponible -->
+                            <div class="h-full bg-green-500 transition-all duration-500" 
+                                 style="width: ${pctRestante}%"
+                                 title="Disponible: ${pctRestante.toFixed(1)}%"></div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div class="flex flex-col items-center">
                         <span class="text-xs font-bold text-gray-500 uppercase">Monto Asignado</span>
@@ -1490,7 +1530,7 @@ window.mostrarVerDictamen = async function(idSolicitud) {
                       </div>
                       <div class="flex flex-col items-center border-l border-r border-gray-200 px-4">
                         <span class="text-xs font-bold text-gray-500 uppercase">Monto Comprometido</span>
-                        <span class="text-lg font-bold text-orange-500">${formatearMoneda(s.Monto_Comprometido)}</span>
+                        <span class="text-lg font-bold text-orange-400">${formatearMoneda(s.Monto_Comprometido)}</span>
                       </div>
                       <div class="flex flex-col items-center">
                         <span class="text-xs font-bold text-gray-500 uppercase">Monto Ejecutado</span>

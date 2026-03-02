@@ -10,5 +10,10 @@ module.exports = {
   theme: {
     extend: {},
   },
+  safelist: [
+    'bg-orange-400',
+    'bg-orange-500',
+    'bg-orange-600',
+  ],
   plugins: [],
 }
