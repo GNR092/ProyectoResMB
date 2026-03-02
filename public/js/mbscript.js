@@ -3350,6 +3350,61 @@ function registrarComponentePresupuesto() {
         }
       },
 
+      async copiarAnterior() {
+        if (!this.idPlace || !this.mesAnio) {
+          mostrarNotificacion('Seleccione un Place y una Fecha primero.', 'error');
+          return;
+        }
+
+        const [anio, mes] = this.mesAnio.split('-').map(Number);
+        
+        // Calcular mes anterior
+        let prevMes = mes - 1;
+        let prevAnio = anio;
+        if (prevMes === 0) {
+            prevMes = 12;
+            prevAnio = anio - 1;
+        }
+
+        const notif = mostrarNotificacion('Obteniendo datos del mes anterior...', 'info', 0);
+        
+        try {
+            const res = await fetch(`${BASE_URL}api/presupuesto-mensual/estructura/${this.idPlace}/${prevAnio}/${prevMes}`);
+            const data = await res.json();
+            
+            if (!data.departamentos || data.departamentos.length === 0) {
+                mostrarNotificacion('No se encontraron presupuestos en el mes anterior.', 'alert');
+                return;
+            }
+
+            // Mapear los montos encontrados a la estructura actual
+            let copiasRealizadas = 0;
+            this.departamentos.forEach(dptoActual => {
+                const dptoPrevio = data.departamentos.find(d => String(d.ID_Dpto) === String(dptoActual.ID_Dpto));
+                if (dptoPrevio && dptoPrevio.grupos) {
+                    dptoActual.grupos.forEach(grupoActual => {
+                        const grupoPrevio = dptoPrevio.grupos.find(g => String(g.ID_GrupoPresupuestal) === String(grupoActual.ID_GrupoPresupuestal));
+                        if (grupoPrevio && grupoPrevio.Monto_Asignado) {
+                            grupoActual.Monto_Asignado = grupoPrevio.Monto_Asignado;
+                            copiasRealizadas++;
+                        }
+                    });
+                }
+            });
+
+            if (copiasRealizadas > 0) {
+                mostrarNotificacion(`Se copiaron ${copiasRealizadas} montos exitosamente.`, 'success');
+            } else {
+                mostrarNotificacion('No se encontraron montos coincidentes para copiar.', 'alert');
+            }
+        } catch (error) {
+            console.error('Error al copiar presupuesto anterior:', error);
+            mostrarNotificacion('Error al intentar copiar el presupuesto.', 'error');
+        } finally {
+            if(notif) notif.click();
+        }
+      },
+
       async guardarMasivo() {
         if (this.departamentos.length === 0) return;
 

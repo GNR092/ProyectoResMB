@@ -10,7 +10,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
      data-razones-json='<?= esc($razonesJson) ?>'
      data-places-json='<?= esc($placesJson) ?>'>
 
-    <div class="flex flex-wrap items-center gap-x-6 gap-y-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+    <div class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
         <div class="flex flex-col gap-1">
             <label for="pm-razon-social" class="text-sm font-medium text-gray-700">Razón Social</label>
             <select id="pm-razon-social"
@@ -45,6 +45,13 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                    x-model="mesAnio"
                    @change="cargarEstructura()"
                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+            
+            <button @click="copiarAnterior()"
+                    x-show="!cargando && departamentos.length > 0"
+                    class="mt-1 px-1 py-0.5 border border-orange-500 text-orange-600 hover:bg-orange-50 text-[9px] font-bold uppercase rounded transition-colors w-full text-center"
+                    title="Copiar montos del mes anterior">
+                Copiar Mes Anterior
+            </button>
         </div>
     </div>
 
