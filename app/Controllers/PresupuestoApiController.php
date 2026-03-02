@@ -207,4 +207,75 @@ class PresupuestoApiController extends ResourceController
 
         return $this->respond(['departamentos' => $estructura]);
     }
+
+    /**
+     * Obtiene los saldos presupuestales para un departamento y grupo específicos.
+     * La fecha se determina por la aprobación de la solicitud o el mes actual.
+     */
+    public function getSaldos()
+    {
+        $idDpto = $this->request->getVar('id_dpto');
+        $idGrupo = $this->request->getVar('id_grupo');
+        $idSolicitud = $this->request->getVar('id_solicitud');
+
+        if (!$idDpto || !$idGrupo) {
+            return $this->failValidationErrors('id_dpto e id_grupo son requeridos.');
+        }
+
+        // Determinar Mes y Año
+        $mes = (int)date('n');
+        $anio = (int)date('Y');
+
+        if (!empty($idSolicitud)) {
+            $solicitudModel = new \App\Models\SolicitudModel();
+            $solicitud = $solicitudModel->find($idSolicitud);
+            
+            if ($solicitud && !empty($solicitud['Fecha_Aprobacion'])) {
+                $fechaAprob = strtotime($solicitud['Fecha_Aprobacion']);
+                $mes = (int)date('n', $fechaAprob);
+                $anio = (int)date('Y', $fechaAprob);
+            }
+        }
+
+        $presupuestoModel = new PresupuestoMensualModel();
+        $presupuesto = $presupuestoModel
+            ->where('ID_Dpto', $idDpto)
+            ->where('ID_GrupoPresupuestal', $idGrupo)
+            ->where('Anio', $anio)
+            ->where('Mes', $mes)
+            ->first();
+
+        if (!$presupuesto) {
+            return $this->respond([
+                'success' => true,
+                'data' => [
+                    'Monto_Asignado' => 0,
+                    'Monto_Comprometido' => 0,
+                    'Monto_Ejecutado' => 0,
+                    'Saldos_Disponibles' => 0,
+                    'Mes' => $mes,
+                    'Anio' => $anio,
+                    'found' => false
+                ]
+            ]);
+        }
+
+        $asignado = (float)$presupuesto['Monto_Asignado'];
+        $comprometido = (float)$presupuesto['Monto_Comprometido'];
+        $ejecutado = (float)$presupuesto['Monto_Ejecutado'];
+        $disponible = $asignado - ($comprometido + $ejecutado);
+
+        return $this->respond([
+            'success' => true,
+            'data' => [
+                'Monto_Asignado' => $asignado,
+                'Monto_Comprometido' => $comprometido,
+                'Monto_Ejecutado' => $ejecutado,
+                'Saldos_Disponibles' => $disponible,
+                'Mes' => $mes,
+                'Anio' => $anio,
+                'found' => true
+            ]
+        ]);
+    }
 }
