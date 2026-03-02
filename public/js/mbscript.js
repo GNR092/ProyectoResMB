@@ -1499,6 +1499,11 @@ window.mostrarVerDictamen = async function(idSolicitud) {
                   const asignado = parseFloat(s.Monto_Asignado) || 0;
                   const ejecutado = parseFloat(s.Monto_Ejecutado) || 0;
                   const comprometido = parseFloat(s.Monto_Comprometido) || 0;
+                  
+                  // Lógica de Alerta de Exceso
+                  const totalProyectado = ejecutado + comprometido + montoPotencial;
+                  const excedePresupuesto = totalProyectado > asignado;
+                  const montoExcedido = totalProyectado - asignado;
 
                   let pctEjecutado = 0, pctComprometido = 0, pctPotencial = 0, pctRestante = 100;
 
@@ -1508,7 +1513,7 @@ window.mostrarVerDictamen = async function(idSolicitud) {
                       pctPotencial = Math.min((montoPotencial / asignado) * 100, 100 - pctEjecutado - pctComprometido);
                       pctRestante = 100 - pctEjecutado - pctComprometido - pctPotencial;
                   } else {
-                      const total = ejecutado + comprometido + montoPotencial;
+                      const total = totalProyectado;
                       if (total > 0) {
                         pctEjecutado = (ejecutado / total) * 100;
                         pctComprometido = (comprometido / total) * 100;
@@ -1517,8 +1522,17 @@ window.mostrarVerDictamen = async function(idSolicitud) {
                       }
                   }
 
+                  const alertaHtml = excedePresupuesto 
+                    ? `<div class="mt-3 p-2 bg-red-100 border border-red-400 rounded flex items-center gap-2 animate-bounce">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-red-600">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                        </svg>
+                        <span class="text-xs font-bold text-red-700">¡ADVERTENCIA! Esta solicitud excede el presupuesto por ${formatearMoneda(montoExcedido)}</span>
+                       </div>` 
+                    : '';
+
                   resumenContainer.innerHTML += `
-                    <div class="mb-4 p-4 border rounded-lg bg-gray-50 shadow-sm">
+                    <div class="mb-4 p-4 border-2 ${excedePresupuesto ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50'} rounded-lg shadow-sm transition-all duration-300">
                       <div class="flex flex-col md:flex-row md:items-center gap-6 mb-3 border-b pb-2">
                           <div class="flex flex-col flex-shrink-0 min-w-[200px]">
                             <h4 class="text-sm font-bold text-gray-700">Presupuesto: ${nombreGrupo}</h4>
@@ -1554,6 +1568,7 @@ window.mostrarVerDictamen = async function(idSolicitud) {
                           <span class="text-lg font-bold text-red-600">${formatearMoneda(s.Monto_Ejecutado)}</span>
                         </div>
                       </div>
+                      ${alertaHtml}
                     </div>`;
               }
             } catch (e) {
