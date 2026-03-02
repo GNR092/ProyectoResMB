@@ -3308,6 +3308,18 @@ function registrarComponentePresupuesto() {
         return total;
       },
 
+      // Calcula la suma de un departamento específico
+      getDptoTotal(dpto) {
+        let total = 0;
+        if (dpto.grupos) {
+          dpto.grupos.forEach(grupo => {
+            let monto = parseFloat(grupo.Monto_Asignado) || 0;
+            total += monto;
+          });
+        }
+        return total;
+      },
+
       async cargarEstructura() {
         if (!this.idPlace || !this.mesAnio) {
           this.resetEstructura();

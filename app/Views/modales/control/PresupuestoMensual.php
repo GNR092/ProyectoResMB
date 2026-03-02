@@ -81,9 +81,12 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <tbody x-show="!cargando && departamentos.length > 0">
 
                 <tr class="bg-gray-100 border-y border-gray-300">
-                    <td colspan="2" class="px-6 py-3 font-bold text-gray-800">
+                    <td class="px-6 py-3 font-bold text-gray-800">
                         <span class="text-blue-600 mr-2">🏢</span>
                         <span x-text="dpto.Nombre"></span>
+                    </td>
+                    <td class="px-6 py-3 border-l border-l-gray-300 text-right font-bold text-blue-700">
+                        <span x-text="'Total: ' + formatearMoneda(getDptoTotal(dpto))"></span>
                     </td>
                 </tr>
 
