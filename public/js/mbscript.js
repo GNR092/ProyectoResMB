@@ -1463,84 +1463,101 @@ window.mostrarVerDictamen = async function(idSolicitud) {
     // --- LÓGICA DE PRESUPUESTO ---
     const resumenContainer = document.getElementById('presupuesto-resumen-container');
     if (resumenContainer) {
-      resumenContainer.innerHTML = ''; // Limpiar previo
+      resumenContainer.innerHTML = ''; 
       resumenContainer.classList.add('hidden');
 
       if (data.productos && data.productos.length > 0) {
         // 1. Obtener grupos únicos
         const gruposUnicos = [...new Set(data.productos.map(p => p.ID_GrupoPresupuestal))].filter(id => id);
-        
+
+        // 2. Calcular montos potenciales de la solicitud actual
+        const montosPotenciales = {};
+        const ivaValue = data.IVA;
+        const ivaHabilitado = (ivaValue === 't' || ivaValue === '1' || ivaValue === 1 || ivaValue === true);
+        const factorIVA = ivaHabilitado ? 1.16 : 1.0;
+
+        data.productos.forEach(p => {
+          if (p.ID_GrupoPresupuestal) {
+            const montoItem = (parseFloat(p.Cantidad) || 0) * (parseFloat(p.Importe) || 0) * factorIVA;
+            montosPotenciales[p.ID_GrupoPresupuestal] = (montosPotenciales[p.ID_GrupoPresupuestal] || 0) + montoItem;
+          }
+        });
+
         if (gruposUnicos.length > 0) {
           resumenContainer.classList.remove('hidden');
-          
+
           for (const idGrupo of gruposUnicos) {
             try {
               const saldoRes = await SendDataEnd(`api/presupuesto/saldos?id_dpto=${data.ID_Dpto}&id_grupo=${idGrupo}&id_solicitud=${idSolicitud}`);
               if (saldoRes.success && saldoRes.data) {
-                const s = saldoRes.data;
-                const nombreGrupo = data.productos.find(p => p.ID_GrupoPresupuestal == idGrupo).GrupoPresupuestalNombre || 'Grupo Desconocido';
+                  const s = saldoRes.data;
+                  const prodRef = data.productos.find(p => p.ID_GrupoPresupuestal == idGrupo);
+                  const nombreGrupo = prodRef ? prodRef.GrupoPresupuestalNombre : 'Grupo ' + idGrupo;
+                  const montoPotencial = montosPotenciales[idGrupo] || 0;
 
-                // Calcular porcentajes para la barra
-                const asignado = parseFloat(s.Monto_Asignado) || 0;
-                const ejecutado = parseFloat(s.Monto_Ejecutado) || 0;
-                const comprometido = parseFloat(s.Monto_Comprometido) || 0;
+                  // Calcular porcentajes
+                  const asignado = parseFloat(s.Monto_Asignado) || 0;
+                  const ejecutado = parseFloat(s.Monto_Ejecutado) || 0;
+                  const comprometido = parseFloat(s.Monto_Comprometido) || 0;
 
-                let pctEjecutado = 0;
-                let pctComprometido = 0;
-                let pctRestante = 100;
+                  let pctEjecutado = 0, pctComprometido = 0, pctPotencial = 0, pctRestante = 100;
 
-                if (asignado > 0) {
-                    pctEjecutado = Math.min((ejecutado / asignado) * 100, 100);
-                    pctComprometido = Math.min((comprometido / asignado) * 100, 100 - pctEjecutado);
-                    pctRestante = 100 - pctEjecutado - pctComprometido;
-                } else if (ejecutado > 0 || comprometido > 0) {
-                    // Si no hay presupuesto asignado pero hay gasto, la barra se muestra roja/naranja
-                    const totalGasto = ejecutado + comprometido;
-                    pctEjecutado = (ejecutado / totalGasto) * 100;
-                    pctComprometido = (comprometido / totalGasto) * 100;
-                    pctRestante = 0;
-                }
+                  if (asignado > 0) {
+                      pctEjecutado = Math.min((ejecutado / asignado) * 100, 100);
+                      pctComprometido = Math.min((comprometido / asignado) * 100, 100 - pctEjecutado);
+                      pctPotencial = Math.min((montoPotencial / asignado) * 100, 100 - pctEjecutado - pctComprometido);
+                      pctRestante = 100 - pctEjecutado - pctComprometido - pctPotencial;
+                  } else {
+                      const total = ejecutado + comprometido + montoPotencial;
+                      if (total > 0) {
+                        pctEjecutado = (ejecutado / total) * 100;
+                        pctComprometido = (comprometido / total) * 100;
+                        pctPotencial = (montoPotencial / total) * 100;
+                        pctRestante = 0;
+                      }
+                  }
 
-                resumenContainer.innerHTML += `
-                  <div class="mb-4 p-4 border rounded-lg bg-gray-50 shadow-sm">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3 border-b pb-2">
-                        <h4 class="text-sm font-bold text-gray-700">Presupuesto: ${nombreGrupo}</h4>
-                        
-                        <!-- Barra de Progreso Visual -->
-                        <div class="flex-1 max-w-md h-4 bg-gray-200 rounded-full overflow-hidden flex shadow-inner border border-gray-300">
-                            <!-- Rojo: Ejecutado -->
-                            <div class="h-full bg-red-600 transition-all duration-500" 
-                                 style="width: ${pctEjecutado}%" 
-                                 title="Ejecutado: ${pctEjecutado.toFixed(1)}%"></div>
-                            <!-- Naranja: Comprometido -->
-                            <div class="h-full bg-orange-400 transition-all duration-500" 
-                                 style="width: ${pctComprometido}%" 
-                                 title="Comprometido: ${pctComprometido.toFixed(1)}%"></div>
-                            <!-- Verde: Disponible -->
-                            <div class="h-full bg-green-500 transition-all duration-500" 
-                                 style="width: ${pctRestante}%"
-                                 title="Disponible: ${pctRestante.toFixed(1)}%"></div>
+                  resumenContainer.innerHTML += `
+                    <div class="mb-4 p-4 border rounded-lg bg-gray-50 shadow-sm">
+                      <div class="flex flex-col md:flex-row md:items-center gap-6 mb-3 border-b pb-2">
+                          <div class="flex flex-col flex-shrink-0 min-w-[200px]">
+                            <h4 class="text-sm font-bold text-gray-700">Presupuesto: ${nombreGrupo}</h4>
+                            <span class="text-[10px] text-gray-400 font-semibold italic">Impacto de esta solicitud: ${formatearMoneda(montoPotencial)}</span>
+                          </div>
+                          
+                          <!-- Barra de Progreso Visual - Ahora ocupa todo el ancho disponible -->
+                          <div class="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden flex shadow-inner border border-gray-300">
+                              <!-- Rojo: Ejecutado -->
+                              <div class="h-full bg-red-600" style="width: ${pctEjecutado}%" title="Ejecutado"></div>
+                              <!-- Naranja: Comprometido -->
+                              <div class="h-full bg-orange-400" style="width: ${pctComprometido}%" title="Comprometido"></div>
+                              <!-- Amarillo/Verde: Potencial (Efecto parpadeo sobre verde) -->
+                              <div class="h-full bg-green-500 relative" style="width: ${pctPotencial}%" title="Impacto de esta solicitud">
+                                  <div class="absolute inset-0 bg-yellow-400 animate-pulse"></div>
+                              </div>
+                              <!-- Verde: Disponible -->
+                              <div class="h-full bg-green-500" style="width: ${pctRestante}%" title="Disponible"></div>
+                          </div>
+                      </div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div class="flex flex-col">
+                          <span class="text-xs font-bold text-gray-500 uppercase">Monto Asignado</span>
+                          <span class="text-lg font-bold text-green-600">${formatearMoneda(s.Monto_Asignado)}</span>
                         </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div class="flex flex-col items-center">
-                        <span class="text-xs font-bold text-gray-500 uppercase">Monto Asignado</span>
-                        <span class="text-lg font-bold text-green-600">${formatearMoneda(s.Monto_Asignado)}</span>
+                        <div class="flex flex-col border-l border-r border-gray-200 px-2">
+                          <span class="text-xs font-bold text-gray-500 uppercase">Comprometido</span>
+                          <span class="text-lg font-bold text-orange-400">${formatearMoneda(s.Monto_Comprometido)}</span>
+                        </div>
+                        <div class="flex flex-col">
+                          <span class="text-xs font-bold text-gray-500 uppercase">Ejecutado</span>
+                          <span class="text-lg font-bold text-red-600">${formatearMoneda(s.Monto_Ejecutado)}</span>
+                        </div>
                       </div>
-                      <div class="flex flex-col items-center border-l border-r border-gray-200 px-4">
-                        <span class="text-xs font-bold text-gray-500 uppercase">Monto Comprometido</span>
-                        <span class="text-lg font-bold text-orange-400">${formatearMoneda(s.Monto_Comprometido)}</span>
-                      </div>
-                      <div class="flex flex-col items-center">
-                        <span class="text-xs font-bold text-gray-500 uppercase">Monto Ejecutado</span>
-                        <span class="text-lg font-bold text-red-600">${formatearMoneda(s.Monto_Ejecutado)}</span>
-                      </div>
-                    </div>
-                  </div>`;
+                    </div>`;
               }
             } catch (e) {
-              console.error("Error al obtener saldo para grupo " + idGrupo, e);
+              console.error("Error en presupuesto grupo " + idGrupo, e);
             }
           }
         }
