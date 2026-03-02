@@ -1460,6 +1460,53 @@ window.mostrarVerDictamen = async function(idSolicitud) {
     const data = await SendDataEnd(`api/cotizacion/details/${idSolicitud}`)
     if (data.error) throw new Error(data.error)
 
+    // --- LÓGICA DE PRESUPUESTO ---
+    const resumenContainer = document.getElementById('presupuesto-resumen-container');
+    if (resumenContainer) {
+      resumenContainer.innerHTML = ''; // Limpiar previo
+      resumenContainer.classList.add('hidden');
+
+      if (data.productos && data.productos.length > 0) {
+        // 1. Obtener grupos únicos
+        const gruposUnicos = [...new Set(data.productos.map(p => p.ID_GrupoPresupuestal))].filter(id => id);
+        
+        if (gruposUnicos.length > 0) {
+          resumenContainer.classList.remove('hidden');
+          
+          for (const idGrupo of gruposUnicos) {
+            try {
+              const saldoRes = await SendDataEnd(`api/presupuesto/saldos?id_dpto=${data.ID_Dpto}&id_grupo=${idGrupo}&id_solicitud=${idSolicitud}`);
+              if (saldoRes.success && saldoRes.data) {
+                const s = saldoRes.data;
+                const nombreGrupo = data.productos.find(p => p.ID_GrupoPresupuestal == idGrupo).GrupoPresupuestalNombre || 'Grupo Desconocido';
+
+                resumenContainer.innerHTML += `
+                  <div class="mb-4 p-4 border rounded-lg bg-gray-50 shadow-sm">
+                    <h4 class="text-sm font-bold text-gray-700 mb-2 border-b pb-1">Presupuesto: ${nombreGrupo}</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div class="flex flex-col items-center">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Monto Asignado</span>
+                        <span class="text-lg font-bold text-green-600">${formatearMoneda(s.Monto_Asignado)}</span>
+                      </div>
+                      <div class="flex flex-col items-center border-l border-r border-gray-200 px-4">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Monto Comprometido</span>
+                        <span class="text-lg font-bold text-orange-500">${formatearMoneda(s.Monto_Comprometido)}</span>
+                      </div>
+                      <div class="flex flex-col items-center">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Monto Ejecutado</span>
+                        <span class="text-lg font-bold text-red-600">${formatearMoneda(s.Monto_Ejecutado)}</span>
+                      </div>
+                    </div>
+                  </div>`;
+              }
+            } catch (e) {
+              console.error("Error al obtener saldo para grupo " + idGrupo, e);
+            }
+          }
+        }
+      }
+    }
+
     let html = generarDetallesSolicitudHTML(data)
 
    html += generarComentariosHtml(data)
@@ -3188,15 +3235,6 @@ function registrarComponentePresupuesto() {
         });
         return total;
       },
-
-      // NUEVO: Formatea el número a moneda (ej. $ 1,500.00)
-      formatearMoneda(valor) {
-        return new Intl.NumberFormat('es-MX', {
-          style: 'currency',
-          currency: 'MXN'
-        }).format(valor);
-      },
-
 
       async cargarEstructura() {
         if (!this.idPlace || !this.mesAnio) {

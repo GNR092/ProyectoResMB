@@ -472,8 +472,8 @@ class Rest
         ) {
             $solicitudProductModel = new SolicitudProductModel();
             $productos = $solicitudProductModel
-                ->select('Solicitud_Producto.*, Grupo_Presupuestal.Nombre as GrupoPresupuestalNombre')
-                ->join('Grupo_Presupuestal', 'Grupo_Presupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
+                ->select('Solicitud_Producto.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre')
+                ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         } else {
@@ -603,8 +603,8 @@ class Rest
         ) {
             $solicitudProductModel = new SolicitudProductModel();
             $productos = $solicitudProductModel
-                ->select('Solicitud_Producto.*, Grupo_Presupuestal.Nombre as GrupoPresupuestalNombre')
-                ->join('Grupo_Presupuestal', 'Grupo_Presupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
+                ->select('Solicitud_Producto.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre')
+                ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         } else {
@@ -713,8 +713,8 @@ class Rest
         ) {
             $solicitudProductModel = new SolicitudProductModel();
             $productos = $solicitudProductModel
-                ->select('Solicitud_Producto.*, Grupo_Presupuestal.Nombre as GrupoPresupuestalNombre')
-                ->join('Grupo_Presupuestal', 'Grupo_Presupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
+                ->select('Solicitud_Producto.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre')
+                ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         } else {

@@ -1,3 +1,16 @@
+/**
+ * Formatea un número como moneda (MXN).
+ * @param {number|string} valor - El valor a formatear.
+ * @returns {string} - El valor formateado.
+ */
+function formatearMoneda(valor) {
+  const numero = parseFloat(valor) || 0;
+  return numero.toLocaleString('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+  });
+}
+
 async function SendDataEnd(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`
 
@@ -363,10 +376,7 @@ function GetMetodoPago(metodo) {
  * @returns {string} - Cadena de texto con el HTML.
  */
 function generarDetallesSolicitudHTML(data) {
-  const montoFormateado = parseFloat(data.cotizacion?.Total || 0).toLocaleString('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-  })
+  const montoFormateado = formatearMoneda(data.cotizacion?.Total || 0)
 
   const metodoPago = GetMetodoPago(data.MetodoPago)
   const fechaAprobacionHTML = data.Fecha_Aprobacion
