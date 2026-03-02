@@ -34,6 +34,24 @@
                 </svg>
             </div>
         </div>
+        <!-- Resumen de Presupuesto (Se llenará vía JS) -->
+        <div id="presupuesto-resumen-container" class="mb-4 hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg bg-gray-50 shadow-sm">
+                <div class="flex flex-col items-center">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Monto Asignado</span>
+                    <span id="presupuesto-asignado" class="text-lg font-bold text-green-600">$0.00</span>
+                </div>
+                <div class="flex flex-col items-center border-l border-r border-gray-200 px-4">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Monto Comprometido</span>
+                    <span id="presupuesto-comprometido" class="text-lg font-bold text-orange-500">$0.00</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-xs font-bold text-gray-500 uppercase">Monto Ejecutado</span>
+                    <span id="presupuesto-ejecutado" class="text-lg font-bold text-red-600">$0.00</span>
+                </div>
+            </div>
+        </div>
+
         <div id="detallesDictamen">
             <!-- Aquí se cargarán los detalles vía JS -->
         </div>

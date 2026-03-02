@@ -401,7 +401,14 @@ class Modales extends BaseController
     //Funciones para tablas
     public function getProductTableRow()
     {
-        return view('layout/productTable');
+        $grupoModel = new GrupoPresupuestalModel();
+        $idDepto = session('id_departamento_usuario');
+        $data['grupos_presupuestales'] = $grupoModel
+            ->where('ID_Dpto', $idDepto)
+            ->orderBy('Nombre', 'ASC')
+            ->findAll();
+
+        return view('layout/productTable', $data);
     }
     public function getServiceTableRow()
     {
