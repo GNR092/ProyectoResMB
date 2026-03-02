@@ -95,9 +95,9 @@ function abrirModal(opcion) {
     lista_pagos: "Lista de pagos",
     crud_cuentas: "Cuentas de proveedores",
     correcciones: "Corregir Solicitudes",
-    GrupoPresupuestal: "Grupo Presupuestal",
+    GrupoPresupuestal: "Partidas Presupuestales",
     BancoDpto: "Cuentas Bancarias de los Departamentos",
-    PresupuestoMensual: "Partidas Presupuestales Mensuales",
+    PresupuestoMensual: "Asignar Presupuestos Mensuales",
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 

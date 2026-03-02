@@ -135,7 +135,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'GrupoPresupuestal' => [
-                'label' => 'Grupo Presupuestal',
+                'label' => 'Partidas Presupuestales',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#GrupoPresupuestal"></use></svg>',
             ],
 
@@ -145,7 +145,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'PresupuestoMensual' => [
-                'label' => 'Partidas Presupuestales',
+                'label' => 'Asignar Presupuestos',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#PresupuestoMensual"></use></svg>',
             ],
         ];

@@ -6,7 +6,7 @@
         </button>
     </div>
 
-    <h2 class="text-2xl font-semibold mb-4 text-center">Grupos Presupuestales</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Partidas Presupuestales</h2>
 
     <div id="form-filtros-grupos" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
         <div class="flex flex-1 gap-4">
@@ -87,7 +87,7 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="4" class="px-3 py-4 text-center text-gray-500">No hay grupos registrados</td>
+                    <td colspan="4" class="px-3 py-4 text-center text-gray-500">No hay partidas registrados</td>
                 </tr>
             <?php endif; ?>
             </tbody>
@@ -99,7 +99,7 @@
 
 <div id="pantalla-agregar-grupos" class="hidden p-6 bg-white rounded-xl shadow-md">
     <button id="btn-regresar-lista-grupos" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">← Regresar</button>
-    <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Grupo</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Partida</h2>
 
     <form id="form-agregar-grupos" class="space-y-4">
         <div class="grid grid-cols-1 gap-4">
@@ -135,7 +135,7 @@
 
 <div id="pantalla-editar-grupos" class="hidden p-6 bg-white rounded-xl shadow-md">
     <button id="btn-regresar-lista-editar-grupos" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">← Regresar</button>
-    <h2 class="text-2xl font-semibold mb-4 text-center">Editar Grupo</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Editar Partida</h2>
 
     <form id="form-editar-grupos" class="space-y-4">
         <input type="hidden" name="ID_GrupoPresupuestal" id="editar-ID_GrupoPresupuestal">
