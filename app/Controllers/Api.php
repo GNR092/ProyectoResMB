@@ -895,93 +895,7 @@ class Api extends ResourceController
                 'ComentarioCotizacion' => $comentarioCotizacion, // <--- CAMPO AGREGADO
             ]);
 
-            // === LÓGICA DE PRESUPUESTO (SOLO MATERIALES) ===
-            if ((int)$solicitud['Tipo'] !== (int)SolicitudTipo::Servicios) {
-                try {
-                    $productModel = new SolicitudProductModel();
-                    $presupuestoModel = new \App\Models\PresupuestoMensualModel();
-                    
-                    $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
-                    log_message('debug', "Presupuesto: " . count($productos) . " productos encontrados para la solicitud $idSolicitud.");
-                    
-                    // Agrupar montos por ID_GrupoPresupuestal
-                    $montosPorGrupo = [];
-                    // Manejo de IVA para PostgreSQL (t/f) o MySQL (1/0)
-                    $ivaValue = $solicitud['IVA'] ?? false;
-                    $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
-                    $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
-                    
-                    log_message('debug', "Presupuesto: IVA Habilitado: " . ($ivaHabilitado ? 'SI' : 'NO') . " (Valor original: " . json_encode($ivaValue) . ")");
-
-                    foreach ($productos as $p) {
-                        $idGrupo = $p['ID_GrupoPresupuestal'];
-                        // Si no tiene grupo, no podemos afectar un presupuesto específico.
-                        if (!$idGrupo) {
-                            log_message('debug', "Presupuesto: Solicitud $idSolicitud, Producto ID " . $p['ID_SolicitudProd'] . " no tiene ID_GrupoPresupuestal. Saltando.");
-                            continue;
-                        }
-
-                        $montoItem = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
-                        $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoItem;
-
-                        // === GUARDAR MONTO ORIGINAL COMPROMETIDO ===
-                        $productModel->update($p['ID_SolicitudProd'], [
-                            'Monto_Comprometido_Original' => $montoItem
-                        ]);
-                    }
-
-                    // Obtener mes y año de la solicitud
-                    $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
-                    $fechaSol = strtotime($fechaSolStr);
-                    $mes = (int)date('n', $fechaSol);
-                    $anio = (int)date('Y', $fechaSol);
-                    $idDpto = $solicitud['ID_Dpto'];
-
-                    if (empty($montosPorGrupo)) {
-                        log_message('debug', "Presupuesto: No hay productos con grupo presupuestal con montos para la solicitud $idSolicitud.");
-                    }
-
-                    foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
-                        if (!$idDpto || !$idGrupo) continue;
-
-                        log_message('debug', "Presupuesto: Procesando Grupo $idGrupo, Dpto $idDpto, Mes $mes, Anio $anio, Monto $montoAComprometer");
-
-                        // Buscar si ya existe el registro de presupuesto mensual
-                        $presupuesto = $presupuestoModel->where([
-                            'ID_Dpto' => $idDpto,
-                            'ID_GrupoPresupuestal' => $idGrupo,
-                            'Mes' => $mes,
-                            'Anio' => $anio
-                        ])->first();
-
-                        if ($presupuesto) {
-                            $nuevoComprometido = (float)$presupuesto['Monto_Comprometido'] + $montoAComprometer;
-                            $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
-                                'Monto_Comprometido' => $nuevoComprometido
-                            ]);
-                            log_message('debug', "Presupuesto Actualizado: ID " . $presupuesto['ID_PresupuestoMensual'] . " - Nuevo Comprometido: $nuevoComprometido");
-                        } else {
-                            // Si no existe, lo creamos con el monto comprometido inicial
-                            $presupuestoModel->insert([
-                                'ID_Dpto' => $idDpto,
-                                'ID_GrupoPresupuestal' => $idGrupo,
-                                'Mes' => $mes,
-                                'Anio' => $anio,
-                                'Monto_Asignado' => 0,
-                                'Monto_Comprometido' => $montoAComprometer,
-                                'Monto_Ejecutado' => 0
-                            ]);
-                            log_message('debug', "Presupuesto Creado: Dpto $idDpto, Grupo $idGrupo, Mes $mes, Anio $anio - Comprometido: $montoAComprometer");
-                        }
-                    }
-                } catch (\Exception $eBudget) {
-                    log_message('error', "Error en lógica de presupuesto: " . $eBudget->getMessage());
-                    // No detenemos el flujo principal si el presupuesto falla, pero lo registramos
-                }
-            }
-
-            // === PROCESAMIENTO DE ARCHIVOS (Igual que tu código original) ===
-// === PROCESAMIENTO DE ARCHIVOS ===
+            // === PROCESAMIENTO DE ARCHIVOS ===
             $files = $this->request->getFiles();
             $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
 
@@ -1068,7 +982,7 @@ class Api extends ResourceController
                 $idGrupo = $p['ID_GrupoPresupuestal'];
                 if (!$idGrupo) continue;
 
-                // 1. Lo que vamos a RESTAR del comprometido (el valor que se guardó al inicio)
+                // 1. Lo que vamos a RESTAR del comprometido (el valor que se guardó al aprobar)
                 $original = (float)$p['Monto_Comprometido_Original'];
                 $montosADescontar[$idGrupo] = ($montosADescontar[$idGrupo] ?? 0) + $original;
 
@@ -1112,7 +1026,7 @@ class Api extends ResourceController
                         'Monto_Ejecutado'    => $nuevoEjecutado
                     ]);
                     
-                    log_message('debug', "Presupuesto Ejecutado (Final): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Restado: $montoRestar, Sumado: $montoSumar");
+                    log_message('debug', "Presupuesto Ejecutado (Final): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Restado Comprometido: $montoRestar, Sumado Ejecutado: $montoSumar");
                 }
             }
         } catch (\Exception $e) {
@@ -1170,6 +1084,67 @@ class Api extends ResourceController
             if ($nuevoEstado === Status::Aprobada) {
                 $dataToUpdate['Fecha_Aprobacion'] = date('Y-m-d H:i:s');
                 $dataToUpdate['ID_Usuario_Autoriza'] = session('id');
+
+                // === NUEVA LÓGICA DE PRESUPUESTO COMPROMETIDO ===
+                // Solo si es de tipo Materiales
+                if ((int)$solicitud['Tipo'] !== (int)SolicitudTipo::Servicios) {
+                    $productModel = new SolicitudProductModel();
+                    $presupuestoModel = new \App\Models\PresupuestoMensualModel();
+                    
+                    $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
+                    
+                    // Manejo de IVA
+                    $ivaValue = $solicitud['IVA'] ?? false;
+                    $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
+                    $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
+
+                    $montosPorGrupo = [];
+                    foreach ($productos as $p) {
+                        $idGrupo = $p['ID_GrupoPresupuestal'];
+                        if (!$idGrupo) continue;
+
+                        $montoItem = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
+                        $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoItem;
+
+                        // Guardamos el respaldo para saber cuánto restar al pagar
+                        $productModel->update($p['ID_SolicitudProd'], [
+                            'Monto_Comprometido_Original' => $montoItem
+                        ]);
+                    }
+
+                    // Obtener mes y año actual (o de la solicitud, para este caso usaremos el de la solicitud)
+                    $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
+                    $fechaSol = strtotime($fechaSolStr);
+                    $mes = (int)date('n', $fechaSol);
+                    $anio = (int)date('Y', $fechaSol);
+                    $idDpto = $solicitud['ID_Dpto'];
+
+                    foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
+                        $presupuesto = $presupuestoModel->where([
+                            'ID_Dpto' => $idDpto,
+                            'ID_GrupoPresupuestal' => $idGrupo,
+                            'Mes' => $mes,
+                            'Anio' => $anio
+                        ])->first();
+
+                        if ($presupuesto) {
+                            $nuevoComprometido = (float)$presupuesto['Monto_Comprometido'] + $montoAComprometer;
+                            $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
+                                'Monto_Comprometido' => $nuevoComprometido
+                            ]);
+                        } else {
+                            $presupuestoModel->insert([
+                                'ID_Dpto' => $idDpto,
+                                'ID_GrupoPresupuestal' => $idGrupo,
+                                'Mes' => $mes,
+                                'Anio' => $anio,
+                                'Monto_Asignado' => 0,
+                                'Monto_Comprometido' => $montoAComprometer,
+                                'Monto_Ejecutado' => 0
+                            ]);
+                        }
+                    }
+                }
             }
             $solicitudModel->update($idSolicitud, $dataToUpdate);
             return $this->respondUpdated([
