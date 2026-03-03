@@ -408,6 +408,13 @@ function registrarComponenteReportePresupuesto() {
             razonesSociales: [],
             todosPlaces: [],
             departamentos: [],
+            totalesGenerales: {
+                asignado: 0,
+                comprometido: 0,
+                ejecutado: 0,
+                disponible: 0,
+                porcentaje: 0
+            },
 
             cargando: false,
             mensaje: '',
@@ -450,6 +457,7 @@ function registrarComponenteReportePresupuesto() {
                     if (res.ok) {
                         const data = await res.json();
                         this.departamentos = data.departamentos || [];
+                        this.totalesGenerales = data.totales_generales || null;
                     } else {
                         this.mensaje = 'Error al cargar los datos del servidor.';
                         this.error = true;

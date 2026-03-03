@@ -25,21 +25,18 @@ class PresupuestoApiController extends ResourceController
     public function getComparativo($idPlace, $anio, $mes)
     {
         $dptoModel = new DepartamentosModel();
-        $grupoModel = new GrupoPresupuestalModel();
         $presupuestoMensualModel = new PresupuestoMensualModel();
 
-        // 1. Departamentos del Place
         $departamentos = $dptoModel->where('ID_Place', $idPlace)
             ->orderBy('Nombre', 'ASC')
             ->findAll();
 
         if (empty($departamentos)) {
-            return $this->respond(['departamentos' => []]);
+            return $this->respond(['departamentos' => [], 'totales_generales' => null]);
         }
 
         $dptoIds = array_column($departamentos, 'ID_Dpto');
 
-        // 2. Traer presupuestos con montos ejecutados y comprometidos
         $presupuestos = $presupuestoMensualModel
             ->select('PresupuestoMensual.*, GrupoPresupuestal.Nombre as GrupoNombre')
             ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
@@ -49,9 +46,15 @@ class PresupuestoApiController extends ResourceController
             ->findAll();
 
         $estructura = [];
+        $granTotalAsignado = 0;
+        $granTotalComprometido = 0;
+        $granTotalEjecutado = 0;
 
         foreach ($departamentos as $dpto) {
             $analisisDpto = [];
+            $totalDptoAsignado = 0;
+            $totalDptoComprometido = 0;
+            $totalDptoEjecutado = 0;
 
             foreach ($presupuestos as $pm) {
                 if ((int)$pm['ID_Dpto'] === (int)$dpto['ID_Dpto']) {
@@ -61,9 +64,7 @@ class PresupuestoApiController extends ResourceController
                     $ejecutado    = (float)$pm['Monto_Ejecutado'];
                     $totalGasto   = $comprometido + $ejecutado;
                     $disponible   = $asignado - $totalGasto;
-                    
-                    // Cálculo de porcentaje de ejecución
-                    $porcentaje = $asignado > 0 ? ($totalGasto / $asignado) * 100 : 0;
+                    $porcentaje   = $asignado > 0 ? ($totalGasto / $asignado) * 100 : 0;
 
                     $analisisDpto[] = [
                         'grupo'        => $pm['GrupoNombre'],
@@ -73,17 +74,43 @@ class PresupuestoApiController extends ResourceController
                         'disponible'   => $disponible,
                         'porcentaje'   => round($porcentaje, 2)
                     ];
+
+                    $totalDptoAsignado += $asignado;
+                    $totalDptoComprometido += $comprometido;
+                    $totalDptoEjecutado += $ejecutado;
                 }
             }
 
-            // Solo incluimos departamentos con presupuesto registrado
             if (!empty($analisisDpto)) {
+                $totalDptoGasto = $totalDptoComprometido + $totalDptoEjecutado;
                 $dpto['analisis'] = $analisisDpto;
+                $dpto['totales'] = [
+                    'asignado'     => $totalDptoAsignado,
+                    'comprometido' => $totalDptoComprometido,
+                    'ejecutado'    => $totalDptoEjecutado,
+                    'disponible'   => $totalDptoAsignado - $totalDptoGasto,
+                    'porcentaje'   => $totalDptoAsignado > 0 ? round(($totalDptoGasto / $totalDptoAsignado) * 100, 2) : 0
+                ];
                 $estructura[] = $dpto;
+
+                $granTotalAsignado += $totalDptoAsignado;
+                $granTotalComprometido += $totalDptoComprometido;
+                $granTotalEjecutado += $totalDptoEjecutado;
             }
         }
 
-        return $this->respond(['departamentos' => $estructura]);
+        $granTotalGasto = $granTotalComprometido + $granTotalEjecutado;
+
+        return $this->respond([
+            'departamentos' => $estructura,
+            'totales_generales' => [
+                'asignado'     => $granTotalAsignado,
+                'comprometido' => $granTotalComprometido,
+                'ejecutado'    => $granTotalEjecutado,
+                'disponible'   => $granTotalAsignado - $granTotalGasto,
+                'porcentaje'   => $granTotalAsignado > 0 ? round(($granTotalGasto / $granTotalAsignado) * 100, 2) : 0
+            ]
+        ]);
     }
 
     public function getEstructuraSaldos($idPlace, $anio, $mes)

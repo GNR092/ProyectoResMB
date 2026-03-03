@@ -121,8 +121,35 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                 </td>
                             </tr>
                         </template>
+                        <!-- Fila de Total por Departamento -->
+                        <tr class="bg-gray-50 border-t-2 border-gray-200">
+                            <td class="px-6 py-3 font-bold text-gray-800 text-right uppercase text-[10px]">Total <span x-text="dpto.Nombre"></span>:</td>
+                            <td class="px-4 py-3 text-right font-bold text-gray-900" x-text="formatearMoneda(dpto.totales?.asignado)"></td>
+                            <td class="px-4 py-3 text-right font-bold text-orange-700" x-text="formatearMoneda(dpto.totales?.comprometido)"></td>
+                            <td class="px-4 py-3 text-right font-bold text-blue-800" x-text="formatearMoneda(dpto.totales?.ejecutado)"></td>
+                            <td class="px-4 py-3 text-right font-bold" :class="dpto.totales?.disponible < 0 ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(dpto.totales?.disponible)"></td>
+                            <td class="px-4 py-3 text-center">
+                                <span :class="getClaseSemaforo(dpto.totales?.porcentaje)" x-text="(dpto.totales?.porcentaje || 0) + '%'"></span>
+                            </td>
+                        </tr>
                     </tbody>
                 </template>
+
+                <!-- Pie de tabla con Gran Total -->
+                <tfoot x-show="!cargando && totalesGenerales" class="bg-gray-800 text-white">
+                    <tr>
+                        <td class="px-6 py-4 font-black uppercase tracking-widest text-right">Gran Total Place:</td>
+                        <td class="px-4 py-4 text-right font-bold text-lg" x-text="formatearMoneda(totalesGenerales?.asignado)"></td>
+                        <td class="px-4 py-4 text-right font-bold text-lg text-orange-300" x-text="formatearMoneda(totalesGenerales?.comprometido)"></td>
+                        <td class="px-4 py-4 text-right font-bold text-lg text-blue-300" x-text="formatearMoneda(totalesGenerales?.ejecutado)"></td>
+                        <td class="px-4 py-4 text-right font-bold text-lg transition-colors duration-300" 
+                            :class="totalesGenerales?.disponible < 0 ? 'text-red-400' : 'text-green-400'" 
+                            x-text="formatearMoneda(totalesGenerales?.disponible)"></td>
+                        <td class="px-4 py-4 text-center font-bold text-lg transition-colors duration-300" 
+                            :class="totalesGenerales?.porcentaje >= 100 ? 'text-red-400' : 'text-green-400'"
+                            x-text="(totalesGenerales?.porcentaje || 0) + '%'"></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
