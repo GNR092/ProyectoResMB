@@ -371,20 +371,23 @@ function ListaPagos() {
     async init() {
       this.loading = true
       this.pagos = [];
+      const root = this.$el;
       try {
         const url = `api/pagos/programados?t=${new Date().getTime()}`;
         const listpagos = await SendDataEnd(url);
 
-        if (!listpagos || listpagos.length === 0) {
+        if (!document.body.contains(root)) return;
+
+        if (!Array.isArray(listpagos) || listpagos.length === 0) {
           this.pagos = []
           return
         }
         this.pagos = listpagos
       } catch (error) {
         console.error('Error al cargar pagos programados:', error)
-        this.pagos = []
+        if (document.body.contains(root)) this.pagos = []
       } finally {
-        this.loading = false
+        if (document.body.contains(root)) this.loading = false
       }
     },
 
