@@ -345,10 +345,12 @@ class PresupuestoApiController extends ResourceController
 
             // 3. Recalcular el Presupuesto Anual SOLO de las Razones Sociales afectadas
             foreach ($razonesSocialesAfectadas as $idRazonSocial) {
+                // Modificado: Se añade join con GrupoPresupuestal para evitar sumar grupos eliminados
                 $queryResult = $presupuestoMensualModel
                     ->selectSum('PresupuestoMensual.Monto_Asignado', 'total')
                     ->join('Departamentos d', 'd.ID_Dpto = PresupuestoMensual.ID_Dpto')
                     ->join('Places p', 'p.ID_Place = d.ID_Place')
+                    ->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal') // INNER JOIN filtro
                     ->where('PresupuestoMensual.Anio', $anio)
                     ->where('p.ID_RazonSocial', $idRazonSocial)
                     ->get()
