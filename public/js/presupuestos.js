@@ -209,10 +209,202 @@ function registrarComponentePresupuesto() {
         };
     });
 }
+function registrarComponenteSaldosBancarios() {
+    Alpine.data('saldosBancariosComponent', function () {
+        return {
+            idRazonSocial: '',
+            idPlace: '',
+            mesAnio: '',
+
+            razonesSociales: [],
+            todosPlaces: [],
+            departamentos: [],
+
+            cargando: false,
+            guardando: false,
+            mensaje: '',
+            error: false,
+
+            init() {
+                if (this.$el) {
+                    this.razonesSociales = JSON.parse(this.$el.dataset.razonesJson || '[]');
+                    this.todosPlaces     = JSON.parse(this.$el.dataset.placesJson || '[]');
+                }
+
+                const now = new Date();
+                const anio = now.getFullYear();
+                const mes = String(now.getMonth() + 1).padStart(2, '0');
+                this.mesAnio = `${anio}-${mes}`;
+            },
+
+            get placesFiltrados() {
+                if (!this.idRazonSocial) return [];
+                return this.todosPlaces.filter(p => String(p.ID_RazonSocial) === String(this.idRazonSocial));
+            },
+
+            resetEstructura() {
+                this.departamentos = [];
+                this.mensaje = '';
+            },
+
+            async cargarEstructura() {
+                if (!this.idPlace || !this.mesAnio) {
+                    this.resetEstructura();
+                    return;
+                }
+
+                const [anio, mes] = this.mesAnio.split('-');
+                this.cargando = true;
+                this.departamentos = [];
+                this.mensaje = '';
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/saldos-bancarios/estructura/${this.idPlace}/${anio}/${parseInt(mes)}`);
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.departamentos = data.departamentos || [];
+                    } else {
+                        this.mensaje = 'Error al cargar los datos del servidor.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error("Error cargando estructura:", e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargando = false;
+                }
+            },
+
+            async copiarAnterior() {
+                if (!this.idPlace || !this.mesAnio) {
+                    mostrarNotificacion('Seleccione un Place y una Fecha primero.', 'error');
+                    return;
+                }
+
+                const [anio, mes] = this.mesAnio.split('-').map(Number);
+                let prevMes = mes - 1;
+                let prevAnio = anio;
+                if (prevMes === 0) {
+                    prevMes = 12;
+                    prevAnio = anio - 1;
+                }
+
+                const notif = mostrarNotificacion('Obteniendo saldos del mes anterior...', 'info', 0);
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/saldos-bancarios/estructura/${this.idPlace}/${prevAnio}/${prevMes}`);
+                    const data = await res.json();
+
+                    if (!data.departamentos || data.departamentos.length === 0) {
+                        mostrarNotificacion('No se encontraron saldos en el mes anterior.', 'alert');
+                        return;
+                    }
+
+                    let copiasRealizadas = 0;
+                    this.departamentos.forEach(dptoActual => {
+                        const dptoPrevio = data.departamentos.find(d => String(d.ID_Dpto) === String(dptoActual.ID_Dpto));
+                        if (dptoPrevio && dptoPrevio.bancos) {
+                            dptoActual.bancos.forEach(bancoActual => {
+                                const bancoPrevio = dptoPrevio.bancos.find(b => String(b.ID_BancoDpto) === String(bancoActual.ID_BancoDpto));
+                                
+                                // Copiamos Saldo Inicial del mes previo al Saldo Inicial del mes actual
+                                // Validamos que el valor exista (incluso si es 0)
+                                if (bancoPrevio && (bancoPrevio.saldo_inicial !== undefined && bancoPrevio.saldo_inicial !== null)) {
+                                    bancoActual.saldo_inicial = bancoPrevio.saldo_inicial;
+                                    copiasRealizadas++;
+                                }
+                            });
+                        }
+                    });
+
+                    if (copiasRealizadas > 0) {
+                        mostrarNotificacion(`Se actualizaron ${copiasRealizadas} saldos iniciales.`, 'success');
+                    } else {
+                        mostrarNotificacion('No se encontraron saldos finales para copiar.', 'alert');
+                    }
+                } catch (error) {
+                    console.error('Error al copiar saldos:', error);
+                    mostrarNotificacion('Error al intentar copiar los saldos.', 'error');
+                } finally {
+                    if(notif) notif.click();
+                }
+            },
+
+            async guardarSaldos() {
+                if (this.departamentos.length === 0) return;
+
+                const [anio, mes] = this.mesAnio.split('-');
+                this.guardando = true;
+                this.mensaje = '';
+                this.error = false;
+
+                let saldosParaEnviar = [];
+
+                this.departamentos.forEach(dpto => {
+                    dpto.bancos.forEach(banco => {
+                        saldosParaEnviar.push({
+                            id_bancodpto: banco.ID_BancoDpto,
+                            saldo_inicial: parseFloat(banco.saldo_inicial) || 0,
+                            saldo_final: parseFloat(banco.saldo_final) || 0,
+                            id_existente: banco.id_saldo_existente
+                        });
+                    });
+                });
+
+                const payload = {
+                    anio: parseInt(anio),
+                    mes: parseInt(mes),
+                    saldos: saldosParaEnviar
+                };
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/saldos-bancarios/guardar-masivo`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const result = await res.json();
+                        if (result.success) {
+                            this.mensaje = 'Saldos guardados correctamente';
+                            this.error = false;
+                            await this.cargarEstructura();
+                        } else {
+                            this.mensaje = result.message || 'Error al guardar';
+                            this.error = true;
+                        }
+                    } else {
+                        this.mensaje = 'Error al guardar los saldos';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    this.mensaje = 'Error de conexión al guardar.';
+                    this.error = true;
+                } finally {
+                    this.guardando = false;
+                    if (!this.error) {
+                        setTimeout(() => { this.mensaje = ''; }, 4000);
+                    }
+                }
+            }
+        };
+    });
+}
+
 if (window.Alpine) {
     registrarComponentePresupuesto();
+    registrarComponenteSaldosBancarios();
 } else {
-    document.addEventListener('alpine:init', registrarComponentePresupuesto);
+    document.addEventListener('alpine:init', () => {
+        registrarComponentePresupuesto();
+        registrarComponenteSaldosBancarios();
+    });
 }
 
 

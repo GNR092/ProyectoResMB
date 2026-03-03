@@ -8,6 +8,8 @@ use App\Models\PresupuestoAnualModel;
 use App\Models\DepartamentosModel;
 use App\Models\PlacesModel;
 use App\Models\GrupoPresupuestalModel;
+use App\Models\BancoDptoModel;
+use App\Models\SaldosBancariosModel;
 
 class PresupuestoApiController extends ResourceController
 {
@@ -17,6 +19,137 @@ class PresupuestoApiController extends ResourceController
     {
         // Any common setup for budget API can go here
     }
+
+    // --- MÉTODOS PARA SALDOS BANCARIOS ---
+
+    public function getEstructuraSaldos($idPlace, $anio, $mes)
+    {
+        $dptoModel = new DepartamentosModel();
+        $bancoModel = new BancoDptoModel();
+        $saldosModel = new SaldosBancariosModel();
+
+        // 1. Departamentos del Place
+        $departamentos = $dptoModel->where('ID_Place', $idPlace)
+            ->orderBy('Nombre', 'ASC')
+            ->findAll();
+
+        if (empty($departamentos)) {
+            return $this->respond(['departamentos' => []]);
+        }
+
+        $dptoIds = array_column($departamentos, 'ID_Dpto');
+
+        // 2. Bancos de esos departamentos
+        $bancos = $bancoModel->whereIn('ID_Dpto', $dptoIds)
+            ->orderBy('Banco', 'ASC')
+            ->findAll();
+
+        $bancoIds = array_column($bancos, 'ID_BancoDpto');
+
+        // 3. Saldos guardados
+        $saldosGuardados = [];
+        if (!empty($bancoIds)) {
+            $saldosGuardados = $saldosModel->whereIn('id_bancodpto', $bancoIds)
+                ->where('anio', $anio)
+                ->where('mes', $mes)
+                ->findAll();
+        }
+
+        $estructura = [];
+
+        foreach ($departamentos as $dpto) {
+            $bancosDelDpto = [];
+
+            foreach ($bancos as $banco) {
+                if ((int)$banco['ID_Dpto'] === (int)$dpto['ID_Dpto']) {
+                    
+                    $saldo_inicial = '';
+                    $saldo_final = '';
+                    $idExistente = null;
+
+                    foreach ($saldosGuardados as $saldo) {
+                        if ((int)$saldo['id_bancodpto'] === (int)$banco['ID_BancoDpto']) {
+                            $saldo_inicial = $saldo['saldo_inicial'];
+                            $saldo_final = $saldo['saldo_final'];
+                            $idExistente = $saldo['id'];
+                            break;
+                        }
+                    }
+
+                    $banco['saldo_inicial'] = $saldo_inicial;
+                    $banco['saldo_final'] = $saldo_final;
+                    $banco['id_saldo_existente'] = $idExistente;
+
+                    $bancosDelDpto[] = $banco;
+                }
+            }
+
+            // Solo incluimos departamentos que tengan cuentas bancarias configuradas
+            if (!empty($bancosDelDpto)) {
+                $dpto['bancos'] = $bancosDelDpto;
+                $estructura[] = $dpto;
+            }
+        }
+
+        return $this->respond(['departamentos' => $estructura]);
+    }
+
+    public function saveSaldosMasivo()
+    {
+        $json = $this->request->getJSON(true);
+
+        if (!isset($json['anio']) || !isset($json['mes']) || !isset($json['saldos']) || !is_array($json['saldos'])) {
+            return $this->failValidationErrors('Datos incompletos.');
+        }
+
+        $anio = (int) $json['anio'];
+        $mes = (int) $json['mes'];
+        $saldos = $json['saldos'];
+
+        $saldosModel = new SaldosBancariosModel();
+        $db = \Config\Database::connect();
+
+        $db->transStart();
+
+        try {
+            foreach ($saldos as $s) {
+                if (!isset($s['id_bancodpto'])) continue;
+
+                $dataToSave = [
+                    'id_bancodpto'  => (int) $s['id_bancodpto'],
+                    'mes'           => $mes,
+                    'anio'          => $anio,
+                    'saldo_inicial' => (float) ($s['saldo_inicial'] ?? 0),
+                    'saldo_final'   => (float) ($s['saldo_final'] ?? 0)
+                ];
+
+                if (!empty($s['id_existente'])) {
+                    $saldosModel->update((int) $s['id_existente'], $dataToSave);
+                } else {
+                    // Check again just in case
+                    $exists = $saldosModel->where('id_bancodpto', $s['id_bancodpto'])
+                        ->where('mes', $mes)
+                        ->where('anio', $anio)
+                        ->first();
+                    
+                    if ($exists) {
+                        $saldosModel->update($exists['id'], $dataToSave);
+                    } else {
+                        $saldosModel->insert($dataToSave);
+                    }
+                }
+            }
+
+            $db->transComplete();
+            return $this->respondCreated(['success' => true, 'message' => 'Saldos guardados correctamente.']);
+
+        } catch (\Exception $e) {
+            $db->transRollback();
+            return $this->failServerError('Error al guardar: ' . $e->getMessage());
+        }
+    }
+
+    // --- MÉTODOS EXISTENTES ---
 
     // NUEVA FUNCIÓN PARA GUARDAR MÚLTIPLES DEPARTAMENTOS
     public function saveMasivo()
