@@ -408,6 +408,9 @@ function registrarComponenteReportePresupuesto() {
             razonesSociales: [],
             todosPlaces: [],
             departamentos: [],
+            departamentosOriginales: [],
+            dptosSeleccionados: [],
+            choicesDpto: null,
             totalesGenerales: {
                 asignado: 0,
                 comprometido: 0,
@@ -434,7 +437,13 @@ function registrarComponenteReportePresupuesto() {
 
             irAPantalla(nueva) {
                 this.pantalla = nueva;
-                this.departamentos = []; // Limpiamos datos al cambiar de reporte
+                this.departamentos = [];
+                this.departamentosOriginales = [];
+                this.dptosSeleccionados = [];
+                if (this.choicesDpto) {
+                    this.choicesDpto.destroy();
+                    this.choicesDpto = null;
+                }
                 this.idPlace = '';
             },
 
@@ -449,6 +458,7 @@ function registrarComponenteReportePresupuesto() {
                 const [anio, mes] = this.mesAnio.split('-');
                 this.cargando = true;
                 this.departamentos = [];
+                this.departamentosOriginales = [];
                 this.mensaje = '';
 
                 try {
@@ -456,8 +466,11 @@ function registrarComponenteReportePresupuesto() {
 
                     if (res.ok) {
                         const data = await res.json();
-                        this.departamentos = data.departamentos || [];
-                        this.totalesGenerales = data.totales_generales || null;
+                        this.departamentosOriginales = data.departamentos || [];
+                        this.departamentos = [...this.departamentosOriginales];
+                        this.totalesGenerales = data.totales_generales || this.getTotalesCero();
+                        
+                        this.$nextTick(() => this.initChoicesDpto());
                     } else {
                         this.mensaje = 'Error al cargar los datos del servidor.';
                         this.error = true;
@@ -469,6 +482,59 @@ function registrarComponenteReportePresupuesto() {
                 } finally {
                     this.cargando = false;
                 }
+            },
+
+            initChoicesDpto() {
+                if (this.choicesDpto) this.choicesDpto.destroy();
+                
+                const selectEl = this.$refs.filtroDptos;
+                if (!selectEl) return;
+
+                this.choicesDpto = new Choices(selectEl, {
+                    removeItemButton: true,
+                    itemSelectText: '',
+                    placeholderValue: 'Todos los departamentos',
+                    searchPlaceholderValue: 'Buscar departamento...'
+                });
+
+                selectEl.addEventListener('change', () => {
+                    this.dptosSeleccionados = this.choicesDpto.getValue(true).map(String);
+                    this.aplicarFiltroLocal();
+                });
+            },
+
+            aplicarFiltroLocal() {
+                if (this.dptosSeleccionados.length === 0) {
+                    this.departamentos = [...this.departamentosOriginales];
+                } else {
+                    this.departamentos = this.departamentosOriginales.filter(d => 
+                        this.dptosSeleccionados.includes(String(d.ID_Dpto))
+                    );
+                }
+                this.recalcularTotales();
+            },
+
+            recalcularTotales() {
+                let asignado = 0, comprometido = 0, ejecutado = 0;
+
+                this.departamentos.forEach(d => {
+                    asignado += parseFloat(d.totales?.asignado || 0);
+                    comprometido += parseFloat(d.totales?.comprometido || 0);
+                    ejecutado += parseFloat(d.totales?.ejecutado || 0);
+                });
+
+                const totalGasto = comprometido + ejecutado;
+                this.totalesGenerales = {
+                    asignado,
+                    comprometido,
+                    ejecutado,
+                    disponible: asignado - totalGasto,
+                    porcentaje: asignado > 0 ? Math.round((totalGasto / asignado) * 100 * 100) / 100 : 0
+                };
+            },
+
+            getTotalesCero() {
+                return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 };
             },
 
             formatearMoneda(monto) {

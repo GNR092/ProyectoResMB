@@ -81,6 +81,18 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
             </div>
         </div>
 
+        <!-- Filtro Secundario: Selección Múltiple de Departamentos -->
+        <div x-show="departamentosOriginales.length > 0" class="mb-6 animate-fadeIn" x-cloak>
+            <div class="flex flex-col gap-1 w-full md:w-1/2">
+                <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos</label>
+                <select x-ref="filtroDptos" multiple>
+                    <template x-for="d in departamentosOriginales" :key="d.ID_Dpto">
+                        <option :value="d.ID_Dpto" x-text="d.Nombre"></option>
+                    </template>
+                </select>
+            </div>
+        </div>
+
         <!-- Tabla Comparativa -->
         <div class="border border-gray-300 rounded-lg overflow-hidden">
             <table class="min-w-full text-sm">
