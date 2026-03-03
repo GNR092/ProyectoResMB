@@ -98,8 +98,8 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
                     <tbody class="border-t-4 border-gray-300">
                         <!-- FILA DE RAZON SOCIAL: Alineada con sumatorias acumuladas -->
-                        <tr class="bg-gray-100 font-black text-[10px]">
-                            <td class="px-6 py-2 text-gray-800 uppercase tracking-wider">
+                        <tr class="bg-gray-100 font-black text-sm">
+                            <td class="px-6 py-2 text-gray-800 uppercase tracking-wider text-[10px]">
                                 <span x-text="grupoRS.nombre"></span>
                             </td>
                             <!-- Totales de la RS tomados de la suma de sus departamentos -->
