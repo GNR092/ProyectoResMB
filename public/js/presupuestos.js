@@ -403,6 +403,7 @@ function registrarComponenteReportePresupuesto() {
             pantalla: 'menu', // 'menu', 'presupuesto', 'cuentas', 'completo'
             idRazonSocial: '',
             idPlace: '',
+            verGlobal: false,
             mesAnio: '',
 
             razonesSociales: [],
@@ -440,11 +441,13 @@ function registrarComponenteReportePresupuesto() {
                 this.departamentos = [];
                 this.departamentosOriginales = [];
                 this.dptosSeleccionados = [];
+                this.verGlobal = false;
                 if (this.choicesDpto) {
                     this.choicesDpto.destroy();
                     this.choicesDpto = null;
                 }
                 this.idPlace = '';
+                this.idRazonSocial = '';
             },
 
             get placesFiltrados() {
@@ -452,8 +455,22 @@ function registrarComponenteReportePresupuesto() {
                 return this.todosPlaces.filter(p => String(p.ID_RazonSocial) === String(this.idRazonSocial));
             },
 
+            get departamentosAgrupados() {
+                const grupos = [];
+                this.departamentos.forEach(d => {
+                    const rsNombre = d.RazonSocialNombre || 'Sin Razón Social';
+                    let grupo = grupos.find(g => g.nombre === rsNombre);
+                    if (!grupo) {
+                        grupo = { nombre: rsNombre, departamentos: [] };
+                        grupos.push(grupo);
+                    }
+                    grupo.departamentos.push(d);
+                });
+                return grupos;
+            },
+
             async cargarComparativo() {
-                if (!this.idPlace || !this.mesAnio) return;
+                if (!this.verGlobal && (!this.idPlace || !this.mesAnio)) return;
 
                 const [anio, mes] = this.mesAnio.split('-');
                 this.cargando = true;
@@ -461,8 +478,11 @@ function registrarComponenteReportePresupuesto() {
                 this.departamentosOriginales = [];
                 this.mensaje = '';
 
+                // Si verGlobal es true, mandamos 0 como idPlace
+                const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
+
                 try {
-                    const res = await fetch(`${BASE_URL}api/presupuesto/comparativo/${this.idPlace}/${anio}/${parseInt(mes)}`);
+                    const res = await fetch(`${BASE_URL}api/presupuesto/comparativo/${targetPlaceId}/${anio}/${parseInt(mes)}`);
 
                     if (res.ok) {
                         const data = await res.json();
@@ -482,6 +502,22 @@ function registrarComponenteReportePresupuesto() {
                 } finally {
                     this.cargando = false;
                 }
+            },
+
+            async cargarGlobal() {
+                // Al cambiar el modo global, reseteamos selecciones locales
+                this.idRazonSocial = '';
+                this.idPlace = '';
+                this.departamentos = [];
+                this.departamentosOriginales = [];
+                
+                if (this.choicesDpto) {
+                    this.choicesDpto.destroy();
+                    this.choicesDpto = null;
+                }
+
+                // Cargamos datos (si verGlobal es true mandará 0, si es false no hará nada hasta elegir RS/Place)
+                await this.cargarComparativo();
             },
 
             initChoicesDpto() {

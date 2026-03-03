@@ -27,16 +27,28 @@ class PresupuestoApiController extends ResourceController
         $dptoModel = new DepartamentosModel();
         $presupuestoMensualModel = new PresupuestoMensualModel();
 
-        $departamentos = $dptoModel->where('ID_Place', $idPlace)
+        // 1. Configurar consulta base de departamentos
+        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial');
+
+        // Si idPlace es > 0, filtramos por ese lugar. Si es 0, traemos TODO.
+        if ($idPlace > 0) {
+            $query->where('Departamentos.ID_Place', $idPlace);
+        }
+
+        $departamentos = $query->orderBy('RazonSocialNombre', 'ASC')
+            ->orderBy('PlaceNombre', 'ASC')
             ->orderBy('Nombre', 'ASC')
             ->findAll();
 
         if (empty($departamentos)) {
-            return $this->respond(['departamentos' => [], 'totales_generales' => null]);
+            return $this->respond(['departamentos' => [], 'totales_generales' => $this->getTotalesCero()]);
         }
 
         $dptoIds = array_column($departamentos, 'ID_Dpto');
 
+        // 2. Traer presupuestos
         $presupuestos = $presupuestoMensualModel
             ->select('PresupuestoMensual.*, GrupoPresupuestal.Nombre as GrupoNombre')
             ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
@@ -111,6 +123,17 @@ class PresupuestoApiController extends ResourceController
                 'porcentaje'   => $granTotalAsignado > 0 ? round(($granTotalGasto / $granTotalAsignado) * 100, 2) : 0
             ]
         ]);
+    }
+
+    private function getTotalesCero()
+    {
+        return [
+            'asignado'     => 0,
+            'comprometido' => 0,
+            'ejecutado'    => 0,
+            'disponible'   => 0,
+            'porcentaje'   => 0
+        ];
     }
 
     public function getEstructuraSaldos($idPlace, $anio, $mes)
