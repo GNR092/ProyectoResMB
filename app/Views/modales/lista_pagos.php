@@ -45,7 +45,7 @@
                         <td colspan="7" class="text-center py-4 text-gray-500">No hay pagos programados que coincidan con el filtro.</td>
                     </tr>
                 </template>
-                <template x-for="pago in pagosFiltrados" :key="pago.ID_Solicitud">
+                <template x-for="(pago, idx) in pagosFiltrados" :key="pago.ID_Solicitud != null ? pago.ID_Solicitud : idx">
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 px-4 border-t" x-text="pago.No_Folio"></td>
                         <td class="py-2 px-4 border-t" x-text="formatDate(pago.FechaOrden)"></td>
