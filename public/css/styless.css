@@ -840,9 +840,9 @@
     border-top-style: var(--tw-border-style);
     border-top-width: 1px;
   }
-  .border-t-2 {
+  .border-t-4 {
     border-top-style: var(--tw-border-style);
-    border-top-width: 2px;
+    border-top-width: 4px;
   }
   .border-r {
     border-right-style: var(--tw-border-style);
@@ -950,12 +950,6 @@
   }
   .bg-blue-50 {
     background-color: var(--color-blue-50);
-  }
-  .bg-blue-50\/50 {
-    background-color: color-mix(in srgb, oklch(97% 0.014 254.604) 50%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      background-color: color-mix(in oklab, var(--color-blue-50) 50%, transparent);
-    }
   }
   .bg-blue-100 {
     background-color: var(--color-blue-100);

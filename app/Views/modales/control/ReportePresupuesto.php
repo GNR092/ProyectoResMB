@@ -115,16 +115,24 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                             <span x-show="index === 0">🏢 </span>
                                             <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ')') : item.grupo"></span>
                                         </td>
-                                        <!-- Columnas de datos (Solo visibles si es un grupo, o si quisiéramos totales en depto) -->
-                                        <td class="px-4 py-2 text-right" x-text="index === 0 ? '' : formatearMoneda(item.asignado)"></td>
-                                        <td class="px-4 py-2 text-right" x-text="index === 0 ? '' : formatearMoneda(item.comprometido)"></td>
-                                        <td class="px-4 py-2 text-right" x-text="index === 0 ? '' : formatearMoneda(item.ejecutado)"></td>
+                                        <!-- Asignado -->
+                                        <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.asignado) : formatearMoneda(item.asignado)"></td>
+                                        <!-- Comprometido (Negro para Depto, Naranja/Itálico para Grupo) -->
+                                        <td class="px-4 py-2 text-right" 
+                                            :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" 
+                                            x-text="index === 0 ? formatearMoneda(dpto.totales?.comprometido) : formatearMoneda(item.comprometido)"></td>
+                                        <!-- Ejecutado (Negro para Depto, Azul/Semibold para Grupo) -->
+                                        <td class="px-4 py-2 text-right" 
+                                            :class="index === 0 ? 'text-gray-900' : 'text-blue-700 font-semibold'" 
+                                            x-text="index === 0 ? formatearMoneda(dpto.totales?.ejecutado) : formatearMoneda(item.ejecutado)"></td>
+                                        <!-- Disponible (Semaforizado siempre) -->
                                         <td class="px-4 py-2 text-right font-bold" 
-                                            :class="index === 0 ? '' : (item.disponible < 0 ? 'text-red-600' : 'text-green-700')"
-                                            x-text="index === 0 ? '' : formatearMoneda(item.disponible)"></td>
+                                            :class="index === 0 ? (dpto.totales?.disponible < 0 ? 'text-red-600' : 'text-green-600') : (item.disponible < 0 ? 'text-red-600' : 'text-green-700')"
+                                            x-text="index === 0 ? formatearMoneda(dpto.totales?.disponible) : formatearMoneda(item.disponible)"></td>
+                                        <!-- % Ejecución (Semaforizado siempre) -->
                                         <td class="px-4 py-2 text-center" 
-                                            :class="index === 0 ? '' : getClaseSemaforo(item.porcentaje)"
-                                            x-text="index === 0 ? '' : item.porcentaje + '%'"></td>
+                                            :class="index === 0 ? getClaseSemaforo(dpto.totales?.porcentaje) : getClaseSemaforo(item.porcentaje)"
+                                            x-text="(index === 0 ? (dpto.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
                                     </tr>
                                 </template>
                             </template>
