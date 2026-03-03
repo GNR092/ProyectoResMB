@@ -393,6 +393,12 @@ class Modales extends BaseController
 
                 return view('modales/control/PresupuestoMensual', $data);
 
+            case 'ReportePresupuesto':
+                return view('modales/control/ReportePresupuesto');
+
+            case 'SaldosBancarios':
+                return view('modales/control/SaldosBancarios');
+
             default:
                 return 'Opción no válida';
         }

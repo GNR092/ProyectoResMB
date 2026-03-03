@@ -148,6 +148,17 @@ class MenuOptions extends BaseConfig
                 'label' => 'Asignar Presupuestos',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#PresupuestoMensual"></use></svg>',
             ],
+
+            'ReportePresupuesto' => [
+                'label' => 'Reportes de Presupuestos',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ReportePresupuestal"></use></svg>',
+            ],
+
+            'SaldosBancarios' => [
+                'label' => 'Saldos Bancarios',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SaldoBancario"></use></svg>',
+            ],
+
         ];
     }
 }
