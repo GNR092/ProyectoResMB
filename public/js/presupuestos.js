@@ -400,6 +400,7 @@ function registrarComponenteSaldosBancarios() {
 function registrarComponenteReportePresupuesto() {
     Alpine.data('reportePresupuestoComponent', function () {
         return {
+            pantalla: 'menu', // 'menu', 'presupuesto', 'cuentas', 'completo'
             idRazonSocial: '',
             idPlace: '',
             mesAnio: '',
@@ -422,6 +423,12 @@ function registrarComponenteReportePresupuesto() {
                 const anio = now.getFullYear();
                 const mes = String(now.getMonth() + 1).padStart(2, '0');
                 this.mesAnio = `${anio}-${mes}`;
+            },
+
+            irAPantalla(nueva) {
+                this.pantalla = nueva;
+                this.departamentos = []; // Limpiamos datos al cambiar de reporte
+                this.idPlace = '';
             },
 
             get placesFiltrados() {
