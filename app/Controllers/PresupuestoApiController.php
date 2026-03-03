@@ -22,6 +22,70 @@ class PresupuestoApiController extends ResourceController
 
     // --- MÉTODOS PARA SALDOS BANCARIOS ---
 
+    public function getComparativo($idPlace, $anio, $mes)
+    {
+        $dptoModel = new DepartamentosModel();
+        $grupoModel = new GrupoPresupuestalModel();
+        $presupuestoMensualModel = new PresupuestoMensualModel();
+
+        // 1. Departamentos del Place
+        $departamentos = $dptoModel->where('ID_Place', $idPlace)
+            ->orderBy('Nombre', 'ASC')
+            ->findAll();
+
+        if (empty($departamentos)) {
+            return $this->respond(['departamentos' => []]);
+        }
+
+        $dptoIds = array_column($departamentos, 'ID_Dpto');
+
+        // 2. Traer presupuestos con montos ejecutados y comprometidos
+        $presupuestos = $presupuestoMensualModel
+            ->select('PresupuestoMensual.*, GrupoPresupuestal.Nombre as GrupoNombre')
+            ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
+            ->whereIn('PresupuestoMensual.ID_Dpto', $dptoIds)
+            ->where('PresupuestoMensual.Anio', $anio)
+            ->where('PresupuestoMensual.Mes', $mes)
+            ->findAll();
+
+        $estructura = [];
+
+        foreach ($departamentos as $dpto) {
+            $analisisDpto = [];
+
+            foreach ($presupuestos as $pm) {
+                if ((int)$pm['ID_Dpto'] === (int)$dpto['ID_Dpto']) {
+                    
+                    $asignado     = (float)$pm['Monto_Asignado'];
+                    $comprometido = (float)$pm['Monto_Comprometido'];
+                    $ejecutado    = (float)$pm['Monto_Ejecutado'];
+                    $totalGasto   = $comprometido + $ejecutado;
+                    $disponible   = $asignado - $totalGasto;
+                    
+                    // Cálculo de porcentaje de ejecución
+                    $porcentaje = $asignado > 0 ? ($totalGasto / $asignado) * 100 : 0;
+
+                    $analisisDpto[] = [
+                        'grupo'        => $pm['GrupoNombre'],
+                        'asignado'     => $asignado,
+                        'comprometido' => $comprometido,
+                        'ejecutado'    => $ejecutado,
+                        'disponible'   => $disponible,
+                        'porcentaje'   => round($porcentaje, 2)
+                    ];
+                }
+            }
+
+            // Solo incluimos departamentos con presupuesto registrado
+            if (!empty($analisisDpto)) {
+                $dpto['analisis'] = $analisisDpto;
+                $estructura[] = $dpto;
+            }
+        }
+
+        return $this->respond(['departamentos' => $estructura]);
+    }
+
     public function getEstructuraSaldos($idPlace, $anio, $mes)
     {
         $dptoModel = new DepartamentosModel();

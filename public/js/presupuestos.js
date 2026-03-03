@@ -397,13 +397,90 @@ function registrarComponenteSaldosBancarios() {
     });
 }
 
+function registrarComponenteReportePresupuesto() {
+    Alpine.data('reportePresupuestoComponent', function () {
+        return {
+            idRazonSocial: '',
+            idPlace: '',
+            mesAnio: '',
+
+            razonesSociales: [],
+            todosPlaces: [],
+            departamentos: [],
+
+            cargando: false,
+            mensaje: '',
+            error: false,
+
+            init() {
+                if (this.$el) {
+                    this.razonesSociales = JSON.parse(this.$el.dataset.razonesJson || '[]');
+                    this.todosPlaces     = JSON.parse(this.$el.dataset.placesJson || '[]');
+                }
+
+                const now = new Date();
+                const anio = now.getFullYear();
+                const mes = String(now.getMonth() + 1).padStart(2, '0');
+                this.mesAnio = `${anio}-${mes}`;
+            },
+
+            get placesFiltrados() {
+                if (!this.idRazonSocial) return [];
+                return this.todosPlaces.filter(p => String(p.ID_RazonSocial) === String(this.idRazonSocial));
+            },
+
+            async cargarComparativo() {
+                if (!this.idPlace || !this.mesAnio) return;
+
+                const [anio, mes] = this.mesAnio.split('-');
+                this.cargando = true;
+                this.departamentos = [];
+                this.mensaje = '';
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/presupuesto/comparativo/${this.idPlace}/${anio}/${parseInt(mes)}`);
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.departamentos = data.departamentos || [];
+                    } else {
+                        this.mensaje = 'Error al cargar los datos del servidor.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error("Error cargando comparativo:", e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargando = false;
+                }
+            },
+
+            formatearMoneda(monto) {
+                return new Intl.NumberFormat('es-MX', {
+                    style: 'currency',
+                    currency: 'MXN'
+                }).format(monto || 0);
+            },
+
+            getClaseSemaforo(porcentaje) {
+                if (porcentaje >= 100) return 'text-red-600 font-bold';
+                if (porcentaje >= 80)  return 'text-orange-600 font-bold';
+                return 'text-green-600 font-bold';
+            }
+        };
+    });
+}
+
 if (window.Alpine) {
     registrarComponentePresupuesto();
     registrarComponenteSaldosBancarios();
+    registrarComponenteReportePresupuesto();
 } else {
     document.addEventListener('alpine:init', () => {
         registrarComponentePresupuesto();
         registrarComponenteSaldosBancarios();
+        registrarComponenteReportePresupuesto();
     });
 }
 
