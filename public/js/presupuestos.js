@@ -461,11 +461,28 @@ function registrarComponenteReportePresupuesto() {
                     const rsNombre = d.RazonSocialNombre || 'Sin Razón Social';
                     let grupo = grupos.find(g => g.nombre === rsNombre);
                     if (!grupo) {
-                        grupo = { nombre: rsNombre, departamentos: [] };
+                        grupo = { 
+                            nombre: rsNombre, 
+                            departamentos: [],
+                            totales: { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 }
+                        };
                         grupos.push(grupo);
                     }
                     grupo.departamentos.push(d);
+                    
+                    // Sumamos los totales del departamento al total de la Razón Social
+                    grupo.totales.asignado += parseFloat(d.totales?.asignado || 0);
+                    grupo.totales.comprometido += parseFloat(d.totales?.comprometido || 0);
+                    grupo.totales.ejecutado += parseFloat(d.totales?.ejecutado || 0);
                 });
+
+                // Calculamos disponible y porcentaje final para cada Razón Social
+                grupos.forEach(g => {
+                    const totalGasto = g.totales.comprometido + g.totales.ejecutado;
+                    g.totales.disponible = g.totales.asignado - totalGasto;
+                    g.totales.porcentaje = g.totales.asignado > 0 ? Math.round((totalGasto / g.totales.asignado) * 100 * 100) / 100 : 0;
+                });
+
                 return grupos;
             },
 

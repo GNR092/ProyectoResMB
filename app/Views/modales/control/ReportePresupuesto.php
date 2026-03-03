@@ -97,11 +97,21 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 
                 <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
                     <tbody class="border-t-4 border-gray-300">
-                        <!-- FILA DE RAZON SOCIAL: CENTRADA EN TODA LA TABLA -->
-                        <tr class="bg-gray-100">
-                            <td colspan="6" class="px-6 py-2 text-center">
-                                <span class="inline-block bg-gray-800 text-white px-6 py-1 rounded-full text-[10px] font-black uppercase tracking-widest" x-text="grupoRS.nombre"></span>
+                        <!-- FILA DE RAZON SOCIAL: Alineada con sumatorias acumuladas -->
+                        <tr class="bg-gray-100 font-black text-[10px]">
+                            <td class="px-6 py-2 text-gray-800 uppercase tracking-wider">
+                                <span x-text="grupoRS.nombre"></span>
                             </td>
+                            <!-- Totales de la RS tomados de la suma de sus departamentos -->
+                            <td class="px-4 py-2 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.asignado)"></td>
+                            <td class="px-4 py-2 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.comprometido)"></td>
+                            <td class="px-4 py-2 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.ejecutado)"></td>
+                            <td class="px-4 py-2 text-right" 
+                                :class="grupoRS.totales.disponible < 0 ? 'text-red-600' : 'text-green-600'"
+                                x-text="formatearMoneda(grupoRS.totales.disponible)"></td>
+                            <td class="px-4 py-2 text-center"
+                                :class="getClaseSemaforo(grupoRS.totales.porcentaje)"
+                                x-text="grupoRS.totales.porcentaje + '%'"></td>
                         </tr>
 
                         <!-- FILAS DE DEPARTAMENTOS -->
@@ -142,7 +152,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 
                 <tfoot x-show="!cargando && departamentos.length > 0" class="bg-gray-800 text-white">
                     <tr>
-                        <td class="px-6 py-4 font-black uppercase tracking-widest text-right">Gran Total:</td>
+                        <td class="px-6 py-4 font-black uppercase tracking-widest text-right">Total:</td>
                         <td class="px-4 py-4 text-right font-bold text-lg" x-text="formatearMoneda(totalesGenerales?.asignado)"></td>
                         <td class="px-4 py-4 text-right font-bold text-lg text-orange-300" x-text="formatearMoneda(totalesGenerales?.comprometido)"></td>
                         <td class="px-4 py-4 text-right font-bold text-lg text-blue-300" x-text="formatearMoneda(totalesGenerales?.ejecutado)"></td>
