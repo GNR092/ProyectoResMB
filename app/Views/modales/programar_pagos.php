@@ -58,7 +58,7 @@
                     <tr><td colspan="9" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>
                 </template>
 
-                <template x-for="orden in paginatedContado" :key="orden.ID_Solicitud">
+                <template x-for="orden in (!loading && ordenesContado.length > 0) ? paginatedContado : []" :key="orden.ID_Solicitud ?? orden.ID_Orden ?? orden.index">
                     <tr class="hover:bg-gray-50 transition">
                         <td class="px-4 py-2 border-b">
                             <input type="checkbox" :value="orden.ID_Solicitud" x-model="selectedOrdenes">
@@ -165,7 +165,7 @@
                     <tr><td colspan="9" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>
                 </template>
 
-                <template x-for="orden in paginatedCredito" :key="orden.ID_Solicitud">
+                <template x-for="orden in (!loading && ordenesCredito.length > 0) ? paginatedCredito : []" :key="orden.ID_Solicitud ?? orden.ID_Orden ?? orden.index">
                     <tr :class="orden.claseColor" class="border-b">
                         <td class="px-4 py-2">
                             <input type="checkbox" :value="orden.ID_Solicitud" x-model="selectedOrdenes">
