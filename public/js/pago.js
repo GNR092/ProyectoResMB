@@ -120,13 +120,13 @@ function Pagos() {
 
     // --- LÓGICA DE PAGINACIÓN (COMPUTADOS) ---
     get paginatedContado() {
-      if (!this.ordenesContado || this.ordenesContado.length === 0) return [];
+      if (!this.ordenesContado || !Array.isArray(this.ordenesContado) || this.ordenesContado.length === 0) return [];
       const start = (this.pageContado - 1) * this.itemsPerPage;
       return this.ordenesContado.slice(start, start + this.itemsPerPage);
     },
 
     get paginatedCredito() {
-      if (!this.ordenesCredito || this.ordenesCredito.length === 0) return [];
+      if (!this.ordenesCredito || !Array.isArray(this.ordenesCredito) || this.ordenesCredito.length === 0) return [];
       const start = (this.pageCredito - 1) * this.itemsPerPage;
       return this.ordenesCredito.slice(start, start + this.itemsPerPage);
     },
