@@ -100,6 +100,7 @@ function abrirModal(opcion) {
     PresupuestoMensual: "Asignar Presupuestos Mensuales",
     ReportePresupuesto: "Reportes De Prespuestos",
     SaldosBancarios: "Saldo De Bancos",
+    SegmentoNegocio: "Segmentos de Negocio",
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 

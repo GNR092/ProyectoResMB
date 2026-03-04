@@ -411,6 +411,9 @@ class Modales extends BaseController
 
                 return view('modales/control/SaldosBancarios', $data);
 
+            case 'SegmentoNegocio':
+                return view('modales/control/SegmentoNegocio');
+
             default:
                 return 'Opción no válida';
         }

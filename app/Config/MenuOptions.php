@@ -159,6 +159,11 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SaldoBancario"></use></svg>',
             ],
 
+            'SegmentoNegocio' => [
+                'label' => 'Segmentos de Negocio',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SegmentoNegocio"></use></svg>',
+            ],
+
         ];
     }
 }
