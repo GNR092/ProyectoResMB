@@ -1,11 +1,5 @@
 <div id="pantalla-lista-banco-dpto" class="p-6 bg-white rounded-xl shadow-md">
 
-    <div class="flex items-center mb-4">
-        <button onclick="abrirModal('ajustes')" class="text-sm text-gray-600 hover:text-gray-900 transition">
-            &larr; Regresar a Ajustes
-        </button>
-    </div>
-
     <h2 class="text-2xl font-semibold mb-4 text-center">Bancos por Departamento</h2>
 
     <div id="form-filtros-banco-dpto" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">

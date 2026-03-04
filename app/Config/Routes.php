@@ -187,6 +187,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/saldos-bancarios/guardar-masivo', 'PresupuestoApiController::saveSaldosMasivo');
         $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');
         $routes->get('api/presupuesto/comparativo/(:num)/(:num)/(:num)', 'PresupuestoApiController::getComparativo/$1/$2/$3');
+        $routes->get('api/bancos/comparativo/(:num)/(:num)/(:num)', 'PresupuestoApiController::getComparativoBancos/$1/$2/$3');
 
         //Control maestro
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');

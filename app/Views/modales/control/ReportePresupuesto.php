@@ -164,9 +164,109 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         </div>
     </div>
 
-    <!-- Otros reportes -->
-    <div x-show="pantalla === 'cuentas' || pantalla === 'completo'" x-cloak class="p-20 text-center animate-fadeIn">
-        <span class="text-4xl block mb-4">🛠️</span>
+    <!-- Pantalla 3: Reporte Cuentas Bancarias -->
+    <div x-show="pantalla === 'cuentas'" x-cloak class="animate-fadeIn">
+        <div class="flex items-center justify-between mb-6">
+            <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-green-600 flex items-center gap-1 font-medium">
+                &larr; Volver al menú
+            </button>
+            <h2 class="text-xl font-bold text-gray-800">Reporte de Saldos Bancarios</h2>
+        </div>
+
+        <!-- Filtros -->
+        <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-gray-500 uppercase">Razón Social</label>
+                <select x-model="idRazonSocial" @change="idPlace = ''; departamentosBancos = []" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 min-w-[200px] text-sm">
+                    <option value="">Seleccione Razón Social</option>
+                    <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial">
+                        <option :value="rs.ID_RazonSocial" x-text="rs.Nombre"></option>
+                    </template>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-gray-500 uppercase">Place</label>
+                <select x-model="idPlace" @change="cargarComparativoBancos()" :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 min-w-[200px] text-sm disabled:bg-gray-100">
+                    <option value="">Seleccione Place</option>
+                    <template x-for="place in placesFiltrados" :key="place.ID_Place">
+                        <option :value="place.ID_Place" x-text="place.Nombre_Corto"></option>
+                    </template>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-gray-500 uppercase">Mes y año</label>
+                <input type="month" x-model="mesAnio" @change="cargarComparativoBancos()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 text-sm">
+            </div>
+            <div class="flex flex-col gap-1 self-center ml-auto">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" x-model="verGlobal" @change="cargarGlobal()" class="sr-only peer">
+                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    <span class="ms-3 text-sm font-bold text-gray-700 uppercase tracking-tighter">🌍 Global</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="border border-gray-300 rounded-lg overflow-x-auto shadow-sm">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-800 text-white text-[10px] uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-3 text-left">Departamento / Banco</th>
+                        <th class="px-4 py-3 text-right">Saldo Inicial</th>
+                        <th class="px-4 py-3 text-right">Saldo Final</th>
+                        <th class="px-4 py-3 text-right">Diferencia (Uso)</th>
+                        <th class="px-4 py-3 text-center">% Variación</th>
+                    </tr>
+                </thead>
+
+                <tbody x-show="cargando || departamentosBancos.length === 0">
+                    <tr x-show="cargando"><td colspan="5" class="px-4 py-12 text-center text-gray-500 italic">Cargando datos bancarios...</td></tr>
+                    <tr x-show="!cargando && departamentosBancos.length === 0"><td colspan="5" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el reporte de bancos.</td></tr>
+                </tbody>
+
+                <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
+                    <tbody class="border-t-4 border-gray-300">
+                        <tr class="bg-gray-100 font-black text-sm">
+                            <td class="px-6 py-2 text-gray-800 uppercase tracking-wider text-[10px]" x-text="grupoRS.nombre"></td>
+                            <td class="px-4 py-2 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.inicial)"></td>
+                            <td class="px-4 py-2 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.final)"></td>
+                            <td class="px-4 py-2 text-right" 
+                                :class="grupoRS.totales.final < grupoRS.totales.inicial ? 'text-red-600' : 'text-green-600'"
+                                x-text="formatearMoneda(grupoRS.totales.usado)"></td>
+                            <td class="px-4 py-2 text-center font-bold" 
+                                :class="grupoRS.totales.final < grupoRS.totales.inicial ? 'text-red-600' : 'text-green-600'"
+                                x-text="grupoRS.totales.porcentaje + '%'"></td>
+                        </tr>
+
+                        <template x-for="dpto in grupoRS.departamentos" :key="dpto.ID_Dpto">
+                            <template x-for="(item, index) in [dpto, ...dpto.analisis]">
+                                <tr :class="index === 0 ? 'bg-green-50 font-bold' : 'hover:bg-gray-50 border-b border-gray-100'">
+                                    <td class="px-6 py-2" :class="index === 0 ? 'text-green-900 text-xs' : 'pl-12 text-gray-700'">
+                                        <span x-show="index === 0">🏢 </span>
+                                        <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ')') : item.banco"></span>
+                                        <div x-show="index !== 0" class="text-[10px] text-gray-400" x-text="'CLABE: ' + item.clabe"></div>
+                                    </td>
+                                    <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.inicial) : formatearMoneda(item.inicial)"></td>
+                                    <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.final) : formatearMoneda(item.final)"></td>
+                                    <td class="px-4 py-2 text-right" 
+                                        :class="(index === 0 ? dpto.totales?.final < dpto.totales?.inicial : item.final < item.inicial) ? 'text-red-600' : 'text-green-600'"
+                                        x-text="index === 0 ? formatearMoneda(dpto.totales?.usado) : formatearMoneda(item.usado)"></td>
+                                    <td class="px-4 py-2 text-center font-bold" 
+                                        :class="(index === 0 ? dpto.totales?.final < dpto.totales?.inicial : item.final < item.inicial) ? 'text-red-600' : 'text-green-600'"
+                                        x-text="(index === 0 ? (dpto.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
+                                </tr>
+                            </template>
+                        </template>
+                    </tbody>
+                </template>
+            </table>
+        </div>
+    </div>
+
+    <!-- Otros reportes (Placeholder para Completo) -->
+    <div x-show="pantalla === 'completo'" x-cloak class="p-20 text-center animate-fadeIn">
+        <span class="text-4xl block mb-4">⚙️</span>
+        <h3 class="text-purple-800 font-bold text-lg">Módulo en construcción</h3>
+        <p class="text-purple-600 text-sm mb-4">Integración completa de presupuesto, bancos y flujos de caja.</p>
         <button @click="irAPantalla('menu')" class="text-blue-600 font-bold underline">Volver al menú principal</button>
     </div>
 </div>

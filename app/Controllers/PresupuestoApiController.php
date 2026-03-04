@@ -22,6 +22,82 @@ class PresupuestoApiController extends ResourceController
 
     // --- MÉTODOS PARA SALDOS BANCARIOS ---
 
+    public function getComparativoBancos($idPlace, $anio, $mes)
+    {
+        $dptoModel = new DepartamentosModel();
+        $bancoModel = new BancoDptoModel();
+        $saldosModel = new SaldosBancariosModel();
+
+        // 1. Departamentos
+        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial');
+
+        if ($idPlace > 0) $query->where('Departamentos.ID_Place', $idPlace);
+
+        $departamentos = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('PlaceNombre', 'ASC')->findAll();
+
+        if (empty($departamentos)) return $this->respond(['departamentos' => []]);
+
+        $dptoIds = array_column($departamentos, 'ID_Dpto');
+
+        // 2. Bancos y Saldos
+        $bancos = $bancoModel->whereIn('ID_Dpto', $dptoIds)->findAll();
+        $bancoIds = array_column($bancos, 'ID_BancoDpto');
+
+        $saldos = [];
+        if (!empty($bancoIds)) {
+            $saldos = $saldosModel->whereIn('id_bancodpto', $bancoIds)
+                ->where('anio', $anio)
+                ->where('mes', $mes)
+                ->findAll();
+        }
+
+        $estructura = [];
+        foreach ($departamentos as $dpto) {
+            $analisisBancos = [];
+            $totalDptoInicial = 0;
+            $totalDptoFinal = 0;
+
+            foreach ($bancos as $b) {
+                if ((int)$b['ID_Dpto'] === (int)$dpto['ID_Dpto']) {
+                    $s = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto']))[0] ?? null;
+                    
+                    $inicial = (float)($s['saldo_inicial'] ?? 0);
+                    $final   = (float)($s['saldo_final'] ?? 0);
+                    $usado   = $inicial - $final;
+                    $porcentaje = $inicial > 0 ? ($usado / $inicial) * 100 : 0;
+
+                    $analisisBancos[] = [
+                        'banco'   => $b['Banco'],
+                        'clabe'   => $b['Clabe'],
+                        'inicial' => $inicial,
+                        'final'   => $final,
+                        'usado'   => $usado,
+                        'porcentaje' => round($porcentaje, 2)
+                    ];
+
+                    $totalDptoInicial += $inicial;
+                    $totalDptoFinal += $final;
+                }
+            }
+
+            if (!empty($analisisBancos)) {
+                $totalUsado = $totalDptoInicial - $totalDptoFinal;
+                $dpto['analisis'] = $analisisBancos;
+                $dpto['totales'] = [
+                    'inicial' => $totalDptoInicial,
+                    'final'   => $totalDptoFinal,
+                    'usado'   => $totalUsado,
+                    'porcentaje' => $totalDptoInicial > 0 ? round(($totalUsado / $totalDptoInicial) * 100, 2) : 0
+                ];
+                $estructura[] = $dpto;
+            }
+        }
+
+        return $this->respond(['departamentos' => $estructura]);
+    }
+
     public function getComparativo($idPlace, $anio, $mes)
     {
         $dptoModel = new DepartamentosModel();
