@@ -22,6 +22,103 @@ class PresupuestoApiController extends ResourceController
 
     // --- MÉTODOS PARA SALDOS BANCARIOS ---
 
+    public function getReporteCompleto($idPlace, $anio, $mes)
+    {
+        $dptoModel = new DepartamentosModel();
+        $presupuestoMensualModel = new PresupuestoMensualModel();
+        $bancoModel = new BancoDptoModel();
+        $saldosModel = new SaldosBancariosModel();
+
+        // 1. Obtener estructura base
+        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial');
+
+        if ($idPlace > 0) $query->where('Departamentos.ID_Place', $idPlace);
+        $departamentos = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('Nombre', 'ASC')->findAll();
+
+        if (empty($departamentos)) return $this->respond(['departamentos' => []]);
+        $dptoIds = array_column($departamentos, 'ID_Dpto');
+
+        // 2. Obtener Datos de Presupuesto
+        $presupuestos = $presupuestoMensualModel->whereIn('ID_Dpto', $dptoIds)->where('Anio', $anio)->where('Mes', $mes)->findAll();
+
+        // 3. Obtener Datos de Bancos
+        $bancos = $bancoModel->whereIn('ID_Dpto', $dptoIds)->findAll();
+        $bancoIds = array_column($bancos, 'ID_BancoDpto');
+        $saldos = !empty($bancoIds) ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->where('mes', $mes)->findAll() : [];
+
+        $estructura = [];
+        foreach ($departamentos as $dpto) {
+            $idDpto = (int)$dpto['ID_Dpto'];
+
+            // Consolidar Presupuesto
+            $pAsignado = 0; $pComprometido = 0; $pEjecutado = 0;
+            foreach ($presupuestos as $p) {
+                if ((int)$p['ID_Dpto'] === $idDpto) {
+                    $pAsignado += (float)$p['Monto_Asignado'];
+                    $pComprometido += (float)$p['Monto_Comprometido'];
+                    $pEjecutado += (float)$p['Monto_Ejecutado'];
+                }
+            }
+
+            // Consolidar Bancos
+            $bInicial = 0; $bFinal = 0;
+            foreach ($bancos as $b) {
+                if ((int)$b['ID_Dpto'] === $idDpto) {
+                    $s = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto']))[0] ?? null;
+                    $bInicial += (float)($s['saldo_inicial'] ?? 0);
+                    $bFinal   += (float)($s['saldo_final'] ?? 0);
+                }
+            }
+
+            $totalGasto = $pComprometido + $pEjecutado;
+            $disponible = $pAsignado - $totalGasto;
+
+            // Obtener desglose de grupos para este departamento
+            $analisisGrupos = [];
+            foreach ($presupuestos as $p) {
+                if ((int)$p['ID_Dpto'] === $idDpto) {
+                    $gAsignado = (float)$p['Monto_Asignado'];
+                    $gGastado  = (float)$p['Monto_Comprometido'] + (float)$p['Monto_Ejecutado'];
+                    
+                    // Buscar nombre del grupo
+                    $db = \Config\Database::connect();
+                    $grupoInfo = $db->table('GrupoPresupuestal')->where('ID_GrupoPresupuestal', $p['ID_GrupoPresupuestal'])->get()->getRow();
+
+                    $analisisGrupos[] = [
+                        'nombre'     => $grupoInfo ? $grupoInfo->Nombre : 'Grupo Desconocido',
+                        'asignado'   => $gAsignado,
+                        'gastado'    => $gGastado,
+                        'disponible' => $gAsignado - $gGastado
+                    ];
+                }
+            }
+
+            $estructura[] = [
+                'ID_Dpto' => $idDpto,
+                'Nombre' => $dpto['Nombre'],
+                'PlaceNombre' => $dpto['PlaceNombre'],
+                'RazonSocialNombre' => $dpto['RazonSocialNombre'],
+                'grupos' => $analisisGrupos,
+                'presupuesto' => [
+                    'asignado' => $pAsignado,
+                    'gastado' => $totalGasto,
+                    'disponible' => $disponible,
+                    'porcentaje' => $pAsignado > 0 ? round(($totalGasto / $pAsignado) * 100, 2) : 0
+                ],
+                'bancos' => [
+                    'inicial' => $bInicial,
+                    'final' => $bFinal,
+                    'uso' => $bInicial - $bFinal,
+                    'porcentaje' => $bInicial > 0 ? round((($bInicial - $bFinal) / $bInicial) * 100, 2) : 0
+                ]
+            ];
+        }
+
+        return $this->respond(['departamentos' => $estructura]);
+    }
+
     public function getComparativoBancos($idPlace, $anio, $mes)
     {
         $dptoModel = new DepartamentosModel();

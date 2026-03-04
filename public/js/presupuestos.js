@@ -45,7 +45,6 @@ function registrarComponentePresupuesto() {
                 this.departamentos.forEach(dpto => {
                     if (dpto.grupos) {
                         dpto.grupos.forEach(grupo => {
-                            // Convertimos a número, si está vacío o es texto, lo tomamos como 0
                             let monto = parseFloat(grupo.Monto_Asignado) || 0;
                             total += monto;
                         });
@@ -54,7 +53,6 @@ function registrarComponentePresupuesto() {
                 return total;
             },
 
-            // Calcula la suma de un departamento específico
             getDptoTotal(dpto) {
                 let total = 0;
                 if (dpto.grupos) {
@@ -103,8 +101,6 @@ function registrarComponentePresupuesto() {
                 }
 
                 const [anio, mes] = this.mesAnio.split('-').map(Number);
-
-                // Calcular mes anterior
                 let prevMes = mes - 1;
                 let prevAnio = anio;
                 if (prevMes === 0) {
@@ -123,7 +119,6 @@ function registrarComponentePresupuesto() {
                         return;
                     }
 
-                    // Mapear los montos encontrados a la estructura actual
                     let copiasRealizadas = 0;
                     this.departamentos.forEach(dptoActual => {
                         const dptoPrevio = data.departamentos.find(d => String(d.ID_Dpto) === String(dptoActual.ID_Dpto));
@@ -209,6 +204,7 @@ function registrarComponentePresupuesto() {
         };
     });
 }
+
 function registrarComponenteSaldosBancarios() {
     Alpine.data('saldosBancariosComponent', function () {
         return {
@@ -308,9 +304,6 @@ function registrarComponenteSaldosBancarios() {
                         if (dptoPrevio && dptoPrevio.bancos) {
                             dptoActual.bancos.forEach(bancoActual => {
                                 const bancoPrevio = dptoPrevio.bancos.find(b => String(b.ID_BancoDpto) === String(bancoActual.ID_BancoDpto));
-                                
-                                // Copiamos Saldo Inicial del mes previo al Saldo Inicial del mes actual
-                                // Validamos que el valor exista (incluso si es 0)
                                 if (bancoPrevio && (bancoPrevio.saldo_inicial !== undefined && bancoPrevio.saldo_inicial !== null)) {
                                     bancoActual.saldo_inicial = bancoPrevio.saldo_inicial;
                                     copiasRealizadas++;
@@ -409,7 +402,8 @@ function registrarComponenteReportePresupuesto() {
             razonesSociales: [],
             todosPlaces: [],
             departamentos: [],
-            departamentosBancos: [], // Nuevo para reporte de bancos
+            departamentosBancos: [],
+            departamentosCompleto: [],
             departamentosOriginales: [],
             dptosSeleccionados: [],
             choicesDpto: null,
@@ -441,6 +435,7 @@ function registrarComponenteReportePresupuesto() {
                 this.pantalla = nueva;
                 this.departamentos = [];
                 this.departamentosBancos = [];
+                this.departamentosCompleto = [];
                 this.departamentosOriginales = [];
                 this.dptosSeleccionados = [];
                 this.verGlobal = false;
@@ -458,7 +453,10 @@ function registrarComponenteReportePresupuesto() {
             },
 
             get departamentosAgrupados() {
-                const fuente = this.pantalla === 'cuentas' ? this.departamentosBancos : this.departamentos;
+                let fuente = this.departamentos;
+                if (this.pantalla === 'cuentas') fuente = this.departamentosBancos;
+                if (this.pantalla === 'completo') fuente = this.departamentosCompleto;
+
                 const grupos = [];
                 fuente.forEach(d => {
                     const rsNombre = d.RazonSocialNombre || 'Sin Razón Social';
@@ -469,7 +467,9 @@ function registrarComponenteReportePresupuesto() {
                             departamentos: [],
                             totales: this.pantalla === 'cuentas' 
                                 ? { inicial: 0, final: 0, usado: 0, porcentaje: 0 }
-                                : { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 }
+                                : (this.pantalla === 'completo' 
+                                    ? { pAsignado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0 }
+                                    : { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 })
                         };
                         grupos.push(grupo);
                     }
@@ -479,6 +479,12 @@ function registrarComponenteReportePresupuesto() {
                         grupo.totales.inicial += parseFloat(d.totales?.inicial || 0);
                         grupo.totales.final += parseFloat(d.totales?.final || 0);
                         grupo.totales.usado += parseFloat(d.totales?.usado || 0);
+                    } else if (this.pantalla === 'completo') {
+                        grupo.totales.pAsignado += parseFloat(d.presupuesto?.asignado || 0);
+                        grupo.totales.pGastado += parseFloat(d.presupuesto?.gastado || 0);
+                        grupo.totales.bInicial += parseFloat(d.bancos?.inicial || 0);
+                        grupo.totales.bFinal += parseFloat(d.bancos?.final || 0);
+                        grupo.totales.pDisponible += parseFloat(d.presupuesto?.disponible || 0);
                     } else {
                         grupo.totales.asignado += parseFloat(d.totales?.asignado || 0);
                         grupo.totales.comprometido += parseFloat(d.totales?.comprometido || 0);
@@ -489,7 +495,7 @@ function registrarComponenteReportePresupuesto() {
                 grupos.forEach(g => {
                     if (this.pantalla === 'cuentas') {
                         g.totales.porcentaje = g.totales.inicial > 0 ? Math.round((g.totales.usado / g.totales.inicial) * 100 * 100) / 100 : 0;
-                    } else {
+                    } else if (this.pantalla === 'presupuesto') {
                         const totalGasto = g.totales.comprometido + g.totales.ejecutado;
                         g.totales.disponible = g.totales.asignado - totalGasto;
                         g.totales.porcentaje = g.totales.asignado > 0 ? Math.round((totalGasto / g.totales.asignado) * 100 * 100) / 100 : 0;
@@ -501,13 +507,43 @@ function registrarComponenteReportePresupuesto() {
 
             async cargarComparativo() {
                 if (this.pantalla === 'cuentas') return this.cargarComparativoBancos();
+                if (this.pantalla === 'completo') return this.cargarReporteCompleto();
+
                 if (!this.verGlobal && (!this.idPlace || !this.mesAnio)) return;
-                // ... resto de lógica de presupuesto igual ...
+
+                const [anio, mes] = this.mesAnio.split('-');
+                this.cargando = true;
+                this.departamentos = [];
+                this.departamentosOriginales = [];
+                this.mensaje = '';
+
+                const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/presupuesto/comparativo/${targetPlaceId}/${anio}/${parseInt(mes)}`);
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.departamentosOriginales = data.departamentos || [];
+                        this.departamentos = [...this.departamentosOriginales];
+                        this.totalesGenerales = data.totales_generales || this.getTotalesCero();
+                        
+                        this.$nextTick(() => this.initChoicesDpto());
+                    } else {
+                        this.mensaje = 'Error al cargar los datos del servidor.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error("Error cargando comparativo:", e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargando = false;
+                }
             },
 
             async cargarComparativoBancos() {
                 if (!this.verGlobal && (!this.idPlace || !this.mesAnio)) return;
-
                 const [anio, mes] = this.mesAnio.split('-');
                 this.cargando = true;
                 this.departamentosBancos = [];
@@ -523,11 +559,29 @@ function registrarComponenteReportePresupuesto() {
                 finally { this.cargando = false; }
             },
 
+            async cargarReporteCompleto() {
+                if (!this.verGlobal && (!this.idPlace || !this.mesAnio)) return;
+                const [anio, mes] = this.mesAnio.split('-');
+                this.cargando = true;
+                this.departamentosCompleto = [];
+                const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/reporte/completo/${targetPlaceId}/${anio}/${parseInt(mes)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.departamentosCompleto = data.departamentos || [];
+                    }
+                } catch (e) { console.error(e); }
+                finally { this.cargando = false; }
+            },
+
             async cargarGlobal() {
-                // Al cambiar el modo global, reseteamos selecciones locales
                 this.idRazonSocial = '';
                 this.idPlace = '';
                 this.departamentos = [];
+                this.departamentosBancos = [];
+                this.departamentosCompleto = [];
                 this.departamentosOriginales = [];
                 
                 if (this.choicesDpto) {
@@ -535,13 +589,11 @@ function registrarComponenteReportePresupuesto() {
                     this.choicesDpto = null;
                 }
 
-                // Cargamos datos (si verGlobal es true mandará 0, si es false no hará nada hasta elegir RS/Place)
                 await this.cargarComparativo();
             },
 
             initChoicesDpto() {
                 if (this.choicesDpto) this.choicesDpto.destroy();
-                
                 const selectEl = this.$refs.filtroDptos;
                 if (!selectEl) return;
 
@@ -571,18 +623,14 @@ function registrarComponenteReportePresupuesto() {
 
             recalcularTotales() {
                 let asignado = 0, comprometido = 0, ejecutado = 0;
-
                 this.departamentos.forEach(d => {
                     asignado += parseFloat(d.totales?.asignado || 0);
                     comprometido += parseFloat(d.totales?.comprometido || 0);
                     ejecutado += parseFloat(d.totales?.ejecutado || 0);
                 });
-
                 const totalGasto = comprometido + ejecutado;
                 this.totalesGenerales = {
-                    asignado,
-                    comprometido,
-                    ejecutado,
+                    asignado, comprometido, ejecutado,
                     disponible: asignado - totalGasto,
                     porcentaje: asignado > 0 ? Math.round((totalGasto / asignado) * 100 * 100) / 100 : 0
                 };
@@ -705,7 +753,6 @@ function initGruposForm() {
                 pantallaAgregar?.classList.add('hidden')
                 pantallaLista?.classList.remove('hidden')
                 formAgregar.reset()
-                // Recargamos el modal para ver los cambios
                 abrirModal('GrupoPresupuestal')
             } else {
                 mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
@@ -739,16 +786,11 @@ function initGruposEditarForm() {
 
                 const fila = tabla.querySelector(`tr[data-id='${id}']`)
                 if (fila) {
-                    // Actualizar textos básicos
                     fila.querySelector('.nombre-grupo').textContent = formData.get('Nombre')
                     fila.querySelector('.descripcion-grupo').textContent = formData.get('Descripcion')
-
-                    // Actualizar el Departamento
                     const selectDpto = document.getElementById('editar-ID_Dpto');
                     const dptoTexto = selectDpto.options[selectDpto.selectedIndex].text;
                     fila.querySelector('.departamento-grupo').textContent = selectDpto.value ? dptoTexto : 'N/A';
-
-                    // Actualizar Datasets
                     fila.dataset.nombre = formData.get('Nombre')
                     fila.dataset.descripcion = formData.get('Descripcion')
                     fila.dataset.id_dpto = formData.get('ID_Dpto')
@@ -769,23 +811,12 @@ function initGruposActions(tabla) {
     if (!tabla) return
 
     tabla.addEventListener('click', async (e) => {
-        // --- ELIMINAR ---
         const btnEliminar = e.target.closest("[id^='btn-eliminar-grupos-']")
         if (btnEliminar) {
             e.preventDefault()
             const id = btnEliminar.dataset.id
-
-            if (
-                !(await Confirmar(
-                    'Eliminar Grupo?',
-                    '¿Seguro que deseas eliminar este grupo presupuestal?',
-                ))
-            )
-                return
-
-            SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${id}`, {
-                method: 'POST',
-            })
+            if (!(await Confirmar('Eliminar Grupo?', '¿Seguro que deseas eliminar este grupo presupuestal?'))) return
+            SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${id}`, { method: 'POST' })
                 .then((result) => {
                     if (result.success) {
                         mostrarNotificacion('Grupo eliminado ✅', 'success')
@@ -799,19 +830,15 @@ function initGruposActions(tabla) {
             return
         }
 
-        // --- EDITAR ---
         const btnEditar = e.target.closest("[id^='btn-editar-grupos-']")
         if (!btnEditar) return
         e.preventDefault()
-
         const fila = btnEditar.closest('tr')
         if (!fila) return
-
         document.getElementById('editar-ID_GrupoPresupuestal').value = fila.dataset.id
         document.getElementById('editar-Nombre').value = fila.dataset.nombre
         document.getElementById('editar-Descripcion').value = fila.dataset.descripcion
         document.getElementById('editar-ID_Dpto').value = fila.dataset.id_dpto || "";
-
         document.getElementById('pantalla-lista-grupos').classList.add('hidden')
         document.getElementById('pantalla-editar-grupos').classList.remove('hidden')
     })
@@ -824,7 +851,6 @@ function initGruposActions(tabla) {
 function initCrudBancoDpto() {
     const tabla = document.getElementById('tabla-banco-dpto')
     if (!tabla) return
-
     initBancoDptoTabla()
     initBancoDptoPantallas()
     initBancoDptoForm()
@@ -840,10 +866,8 @@ function initBancoDptoTabla() {
         filterFunction: (row, form) => {
             const dptoFiltro = (document.getElementById('buscar-dpto')?.value || '').toLowerCase()
             const bancoFiltro = (document.getElementById('buscar-banco')?.value || '').toLowerCase()
-
             const dpto = row.querySelector('.nombre-dpto')?.textContent.toLowerCase() || ''
             const banco = row.querySelector('.nombre-banco')?.textContent.toLowerCase() || ''
-
             return dpto.includes(dptoFiltro) && banco.includes(bancoFiltro)
         },
         rowsPerPage: 10,
@@ -854,31 +878,12 @@ function initBancoDptoPantallas() {
     const pantallaAgregar = document.getElementById('pantalla-agregar-banco-dpto')
     const pantallaEditar = document.getElementById('pantalla-editar-banco-dpto')
     const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
-
     const btnAgregar = document.getElementById('btn-agregar-banco-dpto')
     const btnRegresarAgregar = document.getElementById('btn-regresar-lista-banco-dpto')
     const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-banco-dpto')
-
-    if (btnAgregar)
-        btnAgregar.onclick = (e) => {
-            e.preventDefault()
-            pantallaLista?.classList.add('hidden')
-            pantallaAgregar?.classList.remove('hidden')
-        }
-
-    if (btnRegresarAgregar)
-        btnRegresarAgregar.onclick = (e) => {
-            e.preventDefault()
-            pantallaAgregar?.classList.add('hidden')
-            pantallaLista?.classList.remove('hidden')
-        }
-
-    if (btnRegresarEditar)
-        btnRegresarEditar.onclick = (e) => {
-            e.preventDefault()
-            pantallaEditar?.classList.add('hidden')
-            pantallaLista?.classList.remove('hidden')
-        }
+    if (btnAgregar) btnAgregar.onclick = (e) => { e.preventDefault(); pantallaLista?.classList.add('hidden'); pantallaAgregar?.classList.remove('hidden'); }
+    if (btnRegresarAgregar) btnRegresarAgregar.onclick = (e) => { e.preventDefault(); pantallaAgregar?.classList.add('hidden'); pantallaLista?.classList.remove('hidden'); }
+    if (btnRegresarEditar) btnRegresarEditar.onclick = (e) => { e.preventDefault(); pantallaEditar?.classList.add('hidden'); pantallaLista?.classList.remove('hidden'); }
 }
 
 function initBancoDptoForm() {
@@ -886,30 +891,17 @@ function initBancoDptoForm() {
     const pantallaAgregar = document.getElementById('pantalla-agregar-banco-dpto')
     const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
     if (!formAgregar) return
-
     formAgregar.onsubmit = async (e) => {
         e.preventDefault()
         const formData = new FormData(formAgregar)
-
         try {
-            const result = await SendDataEnd('modales/crud_banco_dpto/insertar', {
-                method: 'POST',
-                body: formData,
-            })
-
+            const result = await SendDataEnd('modales/crud_banco_dpto/insertar', { method: 'POST', body: formData })
             if (result.success) {
                 mostrarNotificacion('Banco agregado correctamente ✅', 'success')
-                pantallaAgregar?.classList.add('hidden')
-                pantallaLista?.classList.remove('hidden')
-                formAgregar.reset()
-                // Recargamos el modal para ver los cambios
-                abrirModal('BancoDpto')
-            } else {
-                mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
-            }
-        } catch {
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+                pantallaAgregar?.classList.add('hidden'); pantallaLista?.classList.remove('hidden');
+                formAgregar.reset(); abrirModal('BancoDpto');
+            } else { mostrarNotificacion(result.message || 'Error al guardar ❌', 'error') }
+        } catch { mostrarNotificacion('Error de conexión con el servidor ❌', 'error') }
     }
 }
 
@@ -919,97 +911,52 @@ function initBancoDptoEditarForm() {
     const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
     const tabla = document.getElementById('tabla-banco-dpto')
     if (!formEditar) return
-
     formEditar.onsubmit = async (e) => {
         e.preventDefault()
         const formData = new FormData(formEditar)
         const id = formData.get('ID_BancoDpto')
-
         try {
-            const result = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, {
-                method: 'POST',
-                body: formData,
-            })
-
+            const result = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, { method: 'POST', body: formData })
             if (result.success) {
                 mostrarNotificacion('Banco actualizado correctamente ✅', 'success')
-
                 const fila = tabla.querySelector(`tr[data-id='${id}']`)
                 if (fila) {
-                    // Actualizar textos visuales
                     fila.querySelector('.nombre-banco').textContent = formData.get('Banco')
                     fila.querySelector('.clabe-banco').textContent = formData.get('Clabe')
-
-                    // Actualizar Nombre Dpto visualmente desde el select
                     const selectDpto = document.getElementById('editar-ID_Dpto');
                     const dptoTexto = selectDpto.options[selectDpto.selectedIndex].text;
                     fila.querySelector('.nombre-dpto').textContent = dptoTexto;
-
-                    // Actualizar Datasets
-                    fila.dataset.banco = formData.get('Banco')
-                    fila.dataset.clabe = formData.get('Clabe')
-                    fila.dataset.idDpto = formData.get('ID_Dpto')
+                    fila.dataset.banco = formData.get('Banco'); fila.dataset.clabe = formData.get('Clabe'); fila.dataset.idDpto = formData.get('ID_Dpto')
                 }
-
-                pantallaEditar?.classList.add('hidden')
-                pantallaLista?.classList.remove('hidden')
-            } else {
-                mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
-            }
-        } catch {
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+                pantallaEditar?.classList.add('hidden'); pantallaLista?.classList.remove('hidden')
+            } else { mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error') }
+        } catch { mostrarNotificacion('Error de conexión con el servidor ❌', 'error') }
     }
 }
 
 function initBancoDptoActions(tabla) {
     if (!tabla) return
-
     tabla.addEventListener('click', async (e) => {
-        // --- ELIMINAR ---
         const btnEliminar = e.target.closest("[id^='btn-eliminar-banco-dpto-']")
         if (btnEliminar) {
-            e.preventDefault()
-            const id = btnEliminar.dataset.id
-
-            if (
-                !(await Confirmar(
-                    'Eliminar Banco?',
-                    '¿Seguro que deseas eliminar este registro?',
-                ))
-            )
-                return
-
-            SendDataEnd(`modales/crud_banco_dpto/eliminar/${id}`, {
-                method: 'POST',
-            })
+            e.preventDefault(); const id = btnEliminar.dataset.id
+            if (!(await Confirmar('Eliminar Banco?', '¿Seguro que deseas eliminar este registro?'))) return
+            SendDataEnd(`modales/crud_banco_dpto/eliminar/${id}`, { method: 'POST' })
                 .then((result) => {
-                    if (result.success) {
-                        mostrarNotificacion('Registro eliminado ✅', 'success')
-                        btnEliminar.closest('tr')?.remove()
-                    } else {
-                        mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-                    }
+                    if (result.success) { mostrarNotificacion('Registro eliminado ✅', 'success'); btnEliminar.closest('tr')?.remove() }
+                    else { mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error') }
                 })
                 .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
             return
         }
-
-        // --- EDITAR ---
         const btnEditar = e.target.closest("[id^='btn-editar-banco-dpto-']")
         if (!btnEditar) return
-        e.preventDefault()
-
-        const fila = btnEditar.closest('tr')
+        e.preventDefault(); const fila = btnEditar.closest('tr')
         if (!fila) return
-
-        // Cargar datos al formulario
         document.getElementById('editar-ID_BancoDpto').value = fila.dataset.id
         document.getElementById('editar-Banco').value = fila.dataset.banco
         document.getElementById('editar-Clabe').value = fila.dataset.clabe
         document.getElementById('editar-ID_Dpto').value = fila.dataset.idDpto
-
-        // Cambiar de pantalla
         document.getElementById('pantalla-lista-banco-dpto').classList.add('hidden')
         document.getElementById('pantalla-editar-banco-dpto').classList.remove('hidden')
     })
