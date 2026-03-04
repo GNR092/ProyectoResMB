@@ -445,6 +445,25 @@ function registrarComponenteReportePresupuesto() {
                 }
                 this.idPlace = '';
                 this.idRazonSocial = '';
+
+                // LÓGICA DE ANCHO DE MODAL DINÁMICO
+                const modal = document.getElementById('modal-general');
+                const modalTitle = document.getElementById('modal-title');
+                const modalBox = modalTitle ? modalTitle.parentElement : null;
+
+                if (modal && modalBox) {
+                    if (nueva === 'completo') {
+                        // Expandir modal (Lógica de mbscript.js para modales anchos)
+                        modal.classList.remove('justify-center');
+                        modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto');
+                        modalBox.classList.add('w-[95%]', 'mx-auto'); // Forzamos un ancho casi total
+                    } else {
+                        // Restaurar ancho estándar para las otras pantallas
+                        modal.classList.add('justify-center');
+                        modalBox.classList.add('max-w-4xl', 'mx-4', 'sm:mx-auto');
+                        modalBox.classList.remove('w-[95%]');
+                    }
+                }
             },
 
             get placesFiltrados() {
