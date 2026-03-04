@@ -14,6 +14,7 @@ use App\Models\PlacesModel;
 use App\Models\GrupoPresupuestalModel;
 use App\Models\BancoDptoModel;
 use App\Models\PresupuestoMensualModel;
+use App\Models\SegmentoNegocioModel;
 
 class Modales extends BaseController
 {
@@ -312,18 +313,20 @@ class Modales extends BaseController
 
             case 'crud_places':
                 $placesModel = new PlacesModel();
-                // 1. Necesitamos el modelo de Razon Social
                 $razonSocialModel = new RazonSocialModel();
+                $segmentoModel = new \App\Models\SegmentoNegocioModel();
 
-                // 2. Modificamos la consulta para traer el NOMBRE de la Razón Social
+                // 2. Modificamos la consulta para traer el NOMBRE de la Razón Social y el Segmento
                 $data['places'] = $placesModel
-                    ->select('Places.*, Razon_Social.Nombre as RazonSocial_Nombre') // Seleccionamos campos
-                    ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial', 'left') // Unimos tablas
+                    ->select('Places.*, Razon_Social.Nombre as RazonSocial_Nombre, segmento_negocio.nombre as Segmento_Nombre')
+                    ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial', 'left')
+                    ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left')
                     ->orderBy('Places.Nombre_Corto', 'ASC')
                     ->findAll();
 
-                // 3. Enviamos la lista de razones sociales para llenar los <select>
+                // 3. Enviamos las listas para llenar los <select>
                 $data['razones_sociales'] = $razonSocialModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['segmentos'] = $segmentoModel->orderBy('nombre', 'ASC')->findAll();
 
                 return view('modales/crud_places', $data);
 
@@ -412,10 +415,56 @@ class Modales extends BaseController
                 return view('modales/control/SaldosBancarios', $data);
 
             case 'SegmentoNegocio':
-                return view('modales/control/SegmentoNegocio');
+                $segmentoModel = new \App\Models\SegmentoNegocioModel();
+                $razonModel = new \App\Models\RazonSocialModel();
+
+                $data['segmentos'] = $segmentoModel->withRazonSocial()->findAll();
+                $data['razones_sociales'] = $razonModel->orderBy('Nombre', 'ASC')->findAll();
+
+                return view('modales/control/SegmentoNegocio', $data);
 
             default:
                 return 'Opción no válida';
+        }
+    }
+
+    // --- CRUD SEGMENTOS DE NEGOCIO ---
+    public function insertarSegmento()
+    {
+        $model = new SegmentoNegocioModel();
+        $data = $this->request->getPost(['nombre', 'descripcion', 'id_razon_social']);
+
+        if ($model->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al guardar', 'errors' => $model->errors()]);
+        }
+    }
+
+    public function editarSegmento($id)
+    {
+        $model = new SegmentoNegocioModel();
+        $data = $this->request->getPost(['nombre', 'descripcion', 'id_razon_social']);
+
+        try {
+            $model->update($id, $data);
+            return $this->response->setJSON(['success' => true]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function eliminarSegmento($id)
+    {
+        $model = new SegmentoNegocioModel();
+
+        if ($model->delete($id)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'No se pudo eliminar el segmento',
+            ]);
         }
     }
 
@@ -940,8 +989,8 @@ class Modales extends BaseController
     public function insertarPlace()
     {
         $model = new PlacesModel();
-        // AGREGAR 'ID_RazonSocial' al array
-        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial']);
+        // AGREGAR 'ID_RazonSocial' e 'id_segmento' al array
+        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial', 'id_segmento']);
 
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
@@ -953,8 +1002,8 @@ class Modales extends BaseController
     public function editarPlace($id)
     {
         $model = new PlacesModel();
-        // AGREGAR 'ID_RazonSocial' al array
-        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial']);
+        // AGREGAR 'ID_RazonSocial' e 'id_segmento' al array
+        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial', 'id_segmento']);
 
         try {
             $model->update($id, $data);

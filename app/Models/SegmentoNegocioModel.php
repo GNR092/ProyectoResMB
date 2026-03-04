@@ -30,7 +30,7 @@ class SegmentoNegocioModel extends Model
      */
     public function withRazonSocial()
     {
-        return $this->select('segmento_negocio.*, Razon_Social.Nombre as RazonSocial_Nombre')
-            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = segmento_negocio.id_razon_social', 'left');
+        return $this->select($this->table . '.*, Razon_Social.Nombre as RazonSocial_Nombre')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = ' . $this->table . '.id_razon_social', 'left');
     }
 }

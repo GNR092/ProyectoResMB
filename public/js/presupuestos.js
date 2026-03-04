@@ -689,8 +689,179 @@ if (window.Alpine) {
 
 
 /**
- * Lógica para el CRUD de cuentas de Grupos Presupuestales
+ * Lógica para el CRUD de Segmentos de Negocio
  */
+function initCrudSegmentos() {
+    const tabla = document.getElementById('tabla-segmentos')
+    if (!tabla) return
+
+    initSegmentosTabla()
+    initSegmentosPantallas()
+    initSegmentosForm()
+    initSegmentosEditarForm()
+    initSegmentosActions(tabla)
+}
+
+function initSegmentosTabla() {
+    setupClientSideTable({
+        rowsSelector: '#tabla-segmentos tr[data-id]',
+        paginationSelector: 'paginacion-segmentos',
+        filterFormSelector: '#form-filtros-segmentos',
+        filterFunction: (row, form) => {
+            const nombreFiltro = (document.getElementById('buscar-nombre-segmento')?.value || '').toLowerCase()
+            const nombre = row.querySelector('.nombre-segmento')?.textContent.toLowerCase() || ''
+            return nombre.includes(nombreFiltro)
+        },
+        rowsPerPage: 10,
+    })
+}
+
+function initSegmentosPantallas() {
+    const pantallaAgregar = document.getElementById('pantalla-agregar-segmentos')
+    const pantallaEditar = document.getElementById('pantalla-editar-segmentos')
+    const pantallaLista = document.getElementById('pantalla-lista-segmentos')
+
+    const btnAgregar = document.getElementById('btn-agregar-segmentos')
+    const btnRegresarAgregar = document.getElementById('btn-regresar-lista-segmentos')
+    const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-segmentos')
+
+    if (btnAgregar)
+        btnAgregar.onclick = (e) => {
+            e.preventDefault()
+            pantallaLista?.classList.add('hidden')
+            pantallaAgregar?.classList.remove('hidden')
+        }
+
+    if (btnRegresarAgregar)
+        btnRegresarAgregar.onclick = (e) => {
+            e.preventDefault()
+            pantallaAgregar?.classList.add('hidden')
+            pantallaLista?.classList.remove('hidden')
+        }
+
+    if (btnRegresarEditar)
+        btnRegresarEditar.onclick = (e) => {
+            e.preventDefault()
+            pantallaEditar?.classList.add('hidden')
+            pantallaLista?.classList.remove('hidden')
+        }
+}
+
+function initSegmentosForm() {
+    const formAgregar = document.getElementById('form-agregar-segmentos')
+    const pantallaAgregar = document.getElementById('pantalla-agregar-segmentos')
+    const pantallaLista = document.getElementById('pantalla-lista-segmentos')
+    if (!formAgregar) return
+
+    formAgregar.onsubmit = async (e) => {
+        e.preventDefault()
+        const formData = new FormData(formAgregar)
+
+        try {
+            const result = await SendDataEnd('modales/crud_segmentos/insertar', {
+                method: 'POST',
+                body: formData,
+            })
+
+            if (result.success) {
+                mostrarNotificacion('Segmento agregado correctamente ✅', 'success')
+                pantallaAgregar?.classList.add('hidden')
+                pantallaLista?.classList.remove('hidden')
+                formAgregar.reset()
+                abrirModal('SegmentoNegocio')
+            } else {
+                mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+            }
+        } catch {
+            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+        }
+    }
+}
+
+function initSegmentosEditarForm() {
+    const formEditar = document.getElementById('form-editar-segmentos')
+    const pantallaEditar = document.getElementById('pantalla-editar-segmentos')
+    const pantallaLista = document.getElementById('pantalla-lista-segmentos')
+    const tabla = document.getElementById('tabla-segmentos')
+    if (!formEditar) return
+
+    formEditar.onsubmit = async (e) => {
+        e.preventDefault()
+        const formData = new FormData(formEditar)
+        const id = formData.get('id')
+
+        try {
+            const result = await SendDataEnd(`modales/crud_segmentos/editar/${id}`, {
+                method: 'POST',
+                body: formData,
+            })
+
+            if (result.success) {
+                mostrarNotificacion('Segmento actualizado correctamente ✅', 'success')
+
+                const fila = tabla.querySelector(`tr[data-id='${id}']`)
+                if (fila) {
+                    fila.querySelector('.nombre-segmento').textContent = formData.get('nombre')
+                    fila.querySelector('.descripcion-segmento').textContent = formData.get('descripcion')
+                    
+                    const selectRS = document.getElementById('editar-id_razon_social');
+                    fila.querySelector('.razon-social-segmento').textContent = selectRS.options[selectRS.selectedIndex].text;
+
+                    fila.dataset.nombre = formData.get('nombre')
+                    fila.dataset.descripcion = formData.get('descripcion')
+                    fila.dataset.id_razon_social = formData.get('id_razon_social')
+                }
+
+                pantallaEditar?.classList.add('hidden')
+                pantallaLista?.classList.remove('hidden')
+            } else {
+                mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+            }
+        } catch {
+            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+        }
+    }
+}
+
+function initSegmentosActions(tabla) {
+    if (!tabla) return
+
+    tabla.addEventListener('click', async (e) => {
+        const btnEliminar = e.target.closest("[id^='btn-eliminar-segmentos-']")
+        if (btnEliminar) {
+            e.preventDefault()
+            const id = btnEliminar.dataset.id
+            if (!(await Confirmar('Eliminar Segmento?', '¿Seguro que deseas eliminar este segmento?'))) return
+
+            SendDataEnd(`modales/crud_segmentos/eliminar/${id}`, { method: 'POST' })
+                .then((result) => {
+                    if (result.success) {
+                        mostrarNotificacion('Segmento eliminado ✅', 'success')
+                        btnEliminar.closest('tr')?.remove()
+                    } else {
+                        mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+                    }
+                })
+                .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+            return
+        }
+
+        const btnEditar = e.target.closest("[id^='btn-editar-segmentos-']")
+        if (!btnEditar) return
+        e.preventDefault()
+
+        const fila = btnEditar.closest('tr')
+        if (!fila) return
+
+        document.getElementById('editar-id').value = fila.dataset.id
+        document.getElementById('editar-nombre').value = fila.dataset.nombre
+        document.getElementById('editar-descripcion').value = fila.dataset.descripcion
+        document.getElementById('editar-id_razon_social').value = fila.dataset.idRs
+
+        document.getElementById('pantalla-lista-segmentos').classList.add('hidden')
+        document.getElementById('pantalla-editar-segmentos').classList.remove('hidden')
+    })
+}
 function initCrudGrupos() {
     const tabla = document.getElementById('tabla-grupos')
     if (!tabla) return

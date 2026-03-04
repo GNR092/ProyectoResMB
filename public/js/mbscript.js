@@ -129,6 +129,7 @@ function abrirModal(opcion) {
         correcciones: initControlMaestro,
         GrupoPresupuestal: initCrudGrupos,
         BancoDpto: initCrudBancoDpto,
+        SegmentoNegocio: initCrudSegmentos,
         // PresupuestoMensual: initPresupuestoMensual
       }
 
@@ -1238,6 +1239,52 @@ function initCrudPlaces() {
   initPlacesForm()
   initPlacesEditarForm()
   initPlacesActions(tabla)
+
+  // Vincular filtrado dinámico para Agregar
+  vincularFiltroSegmentos('ID_RazonSocial', 'id_segmento');
+  // Vincular filtrado dinámico para Editar
+  vincularFiltroSegmentos('editar-ID_RazonSocial', 'editar-id_segmento');
+}
+
+/**
+ * Filtra las opciones de un select de segmentos basado en el valor de una Razón Social
+ */
+function vincularFiltroSegmentos(idSelectRS, idSelectSeg) {
+  const rsSelect = document.getElementById(idSelectRS);
+  const segSelect = document.getElementById(idSelectSeg);
+
+  if (!rsSelect || !segSelect) return;
+
+  const aplicarFiltro = () => {
+    const rsValue = rsSelect.value;
+    const options = segSelect.querySelectorAll('option');
+
+    let seleccionSigueSiendoValida = false;
+
+    options.forEach(opt => {
+      if (!opt.value) return; // Saltar opción vacía
+
+      const idRSAsociada = opt.dataset.idRs;
+      if (rsValue && idRSAsociada === rsValue) {
+        opt.style.display = 'block';
+        opt.disabled = false;
+        if (segSelect.value === opt.value) seleccionSigueSiendoValida = true;
+      } else {
+        opt.style.display = 'none';
+        opt.disabled = true;
+      }
+    });
+
+    // Si la selección actual ya no es válida para la nueva RS, resetear a vacío
+    if (!seleccionSigueSiendoValida && rsValue !== "") {
+        segSelect.value = "";
+    }
+  };
+
+  rsSelect.addEventListener('change', aplicarFiltro);
+  
+  // Exponer la función para poder dispararla manualmente al abrir edición
+  segSelect.dataset.fnFiltro = idSelectRS; 
 }
 
 function initPlacesTabla() {
@@ -1358,8 +1405,8 @@ function initPlacesEditarForm() {
           // Actualizar Datasets
           fila.dataset.nombreCorto = formData.get('Nombre_Corto')
           fila.dataset.nombreCompleto = formData.get('Nombre_Completo')
-          // --- NUEVO: Actualizar dataset de ID RS ---
           fila.dataset.idRazonSocial = formData.get('ID_RazonSocial')
+          fila.dataset.idSegmento = formData.get('id_segmento')
         }
 
         pantallaEditar?.classList.add('hidden')
@@ -1421,6 +1468,12 @@ function initPlacesActions(tabla) {
     // --- NUEVO: Cargar el valor de la Razón Social al select ---
     // Usamos el dataset que agregamos en la vista HTML
     document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonSocial || "";
+    
+    // Disparar el filtro manualmente para que solo salgan los segmentos de esta RS
+    const editRS = document.getElementById('editar-ID_RazonSocial');
+    if (editRS) editRS.dispatchEvent(new Event('change'));
+
+    document.getElementById('editar-id_segmento').value = fila.dataset.idSegmento || "";
 
     document.getElementById('pantalla-lista-places').classList.add('hidden')
     document.getElementById('pantalla-editar-places').classList.remove('hidden')

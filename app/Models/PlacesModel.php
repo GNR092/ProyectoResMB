@@ -12,7 +12,7 @@ class PlacesModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial'];
+    protected $allowedFields    = ['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial', 'id_segmento'];
 
     // Dates
     protected $useTimestamps = false;
