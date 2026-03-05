@@ -163,7 +163,6 @@ Tasks.md
 composer.lock
 GEMINI.md
 app/Commands/SendTestEmail.php
-/app/Commands
 agent.bat
 .gemini/settings.json
 public/js/mbscript.min.js
