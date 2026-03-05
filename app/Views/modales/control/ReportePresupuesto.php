@@ -112,7 +112,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                     <tr :class="index === 0 ? 'bg-blue-50 font-bold' : 'hover:bg-gray-50 border-b border-gray-100'">
                                         <td class="px-6 py-2" :class="index === 0 ? 'text-blue-900 text-xs' : 'pl-12 text-gray-700'">
                                             <span x-show="index === 0">🏢 </span>
-                                            <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ')') : item.grupo"></span>
+                                            <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ' - ' + (dpto.SegmentoNombre || 'S/S') + ')') : item.grupo"></span>
                                         </td>
                                         <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.asignado) : formatearMoneda(item.asignado)"></td>
                                         <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" x-text="index === 0 ? formatearMoneda(dpto.totales?.comprometido) : formatearMoneda(item.comprometido)"></td>
@@ -207,7 +207,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                 <tr :class="index === 0 ? 'bg-green-50 font-bold' : 'hover:bg-gray-50 border-b border-gray-100'">
                                     <td class="px-6 py-2" :class="index === 0 ? 'text-green-900 text-xs' : 'pl-12 text-gray-700'">
                                         <span x-show="index === 0">🏢 </span>
-                                        <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ')') : item.banco"></span>
+                                        <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ' - ' + (dpto.SegmentoNombre || 'S/S') + ')') : item.banco"></span>
                                         <div x-show="index !== 0" class="text-[10px] text-gray-400" x-text="'CLABE: ' + item.clabe"></div>
                                     </td>
                                     <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.inicial) : formatearMoneda(item.inicial)"></td>
@@ -295,7 +295,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                     <tr :class="index === 0 ? 'bg-blue-50 font-bold' : 'hover:bg-gray-50 border-b border-gray-100'">
                                         <td class="px-6 py-2" :class="index === 0 ? 'text-blue-900 text-xs' : 'pl-12 text-gray-700'">
                                             <span x-show="index === 0">🏢 </span>
-                                            <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ')') : item.nombre"></span>
+                                            <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ' - ' + (dpto.SegmentoNombre || 'S/S') + ')') : item.nombre"></span>
                                         </td>
                                         <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.asignado) : formatearMoneda(item.asignado)"></td>
                                         <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.gastado) : formatearMoneda(item.gastado)"></td>

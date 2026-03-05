@@ -306,6 +306,50 @@ class Api extends ResourceController
             ];
             $solicitudModel->update($idSolicitud, $updateData);
 
+            // --- LIBERACIÓN DE PRESUPUESTO COMPROMETIDO ---
+            // Solo si es materiales y estaba previamente aprobada (tenía presupuesto bloqueado)
+            if ((int)$solicitud['Tipo'] !== (int)SolicitudTipo::Servicios && $solicitud['Estado'] === 'Aprobada') {
+                $productModel = new SolicitudProductModel();
+                $presupuestoModel = new \App\Models\PresupuestoMensualModel();
+                
+                $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
+                
+                $montosARestar = [];
+                foreach ($productos as $p) {
+                    $idGrupo = $p['ID_GrupoPresupuestal'];
+                    if (!$idGrupo) continue;
+
+                    // Restamos lo que se comprometió originalmente
+                    $montoOriginal = (float)$p['Monto_Comprometido_Original'];
+                    $montosARestar[$idGrupo] = ($montosARestar[$idGrupo] ?? 0) + $montoOriginal;
+                }
+
+                $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
+                $fechaSol = strtotime($fechaSolStr);
+                $mes = (int)date('n', $fechaSol);
+                $anio = (int)date('Y', $fechaSol);
+                $idDpto = $solicitud['ID_Dpto'];
+
+                foreach ($montosARestar as $idGrupo => $montoRestar) {
+                    $presupuesto = $presupuestoModel->where([
+                        'ID_Dpto' => $idDpto,
+                        'ID_GrupoPresupuestal' => $idGrupo,
+                        'Mes' => $mes,
+                        'Anio' => $anio
+                    ])->first();
+
+                    if ($presupuesto) {
+                        $nuevoComprometido = (float)$presupuesto['Monto_Comprometido'] - $montoRestar;
+                        if ($nuevoComprometido < 0) $nuevoComprometido = 0;
+
+                        $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
+                            'Monto_Comprometido' => $nuevoComprometido
+                        ]);
+                        log_message('debug', "Presupuesto Liberado (Cancelación): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Monto Restado: $montoRestar");
+                    }
+                }
+            }
+
             // 3. ACTUALIZAR LA ORDEN DE COMPRA (CORREGIDO)
             $ordenModel = new OrdenCompraModel();
 

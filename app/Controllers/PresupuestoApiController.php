@@ -30,9 +30,10 @@ class PresupuestoApiController extends ResourceController
         $saldosModel = new SaldosBancariosModel();
 
         // 1. Obtener estructura base
-        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre')
+        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
-            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial');
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
+            ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
 
         if ($idPlace > 0) $query->where('Departamentos.ID_Place', $idPlace);
         $departamentos = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('Nombre', 'ASC')->findAll();
@@ -100,6 +101,7 @@ class PresupuestoApiController extends ResourceController
                 'Nombre' => $dpto['Nombre'],
                 'PlaceNombre' => $dpto['PlaceNombre'],
                 'RazonSocialNombre' => $dpto['RazonSocialNombre'],
+                'SegmentoNombre' => $dpto['SegmentoNombre'] ?? 'Sin Segmento',
                 'grupos' => $analisisGrupos,
                 'presupuesto' => [
                     'asignado' => $pAsignado,
@@ -126,9 +128,10 @@ class PresupuestoApiController extends ResourceController
         $saldosModel = new SaldosBancariosModel();
 
         // 1. Departamentos
-        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre')
+        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
-            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial');
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
+            ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
 
         if ($idPlace > 0) $query->where('Departamentos.ID_Place', $idPlace);
 
@@ -201,9 +204,10 @@ class PresupuestoApiController extends ResourceController
         $presupuestoMensualModel = new PresupuestoMensualModel();
 
         // 1. Configurar consulta base de departamentos
-        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre')
+        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
-            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial');
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
+            ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
 
         // Si idPlace es > 0, filtramos por ese lugar. Si es 0, traemos TODO.
         if ($idPlace > 0) {
