@@ -106,21 +106,51 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <td class="px-4 py-2 text-center" :class="getClaseSemaforo(grupoRS.totales.porcentaje)" x-text="grupoRS.totales.porcentaje + '%'"></td>
                         </tr>
 
-                        <template x-for="dpto in grupoRS.departamentos" :key="dpto.ID_Dpto">
+                        <template x-for="seg in grupoRS.segmentos" :key="seg.nombre">
                             <template x-if="true">
-                                <template x-for="(item, index) in [dpto, ...dpto.analisis]">
-                                    <tr :class="index === 0 ? 'bg-blue-50 font-bold' : 'hover:bg-gray-50 border-b border-gray-100'">
-                                        <td class="px-6 py-2" :class="index === 0 ? 'text-blue-900 text-xs' : 'pl-12 text-gray-700'">
-                                            <span x-show="index === 0">🏢 </span>
-                                            <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ' - ' + (dpto.SegmentoNombre || 'S/S') + ')') : item.grupo"></span>
-                                        </td>
-                                        <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.asignado) : formatearMoneda(item.asignado)"></td>
-                                        <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" x-text="index === 0 ? formatearMoneda(dpto.totales?.comprometido) : formatearMoneda(item.comprometido)"></td>
-                                        <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-blue-700 font-semibold'" x-text="index === 0 ? formatearMoneda(dpto.totales?.ejecutado) : formatearMoneda(item.ejecutado)"></td>
-                                        <td class="px-4 py-2 text-right font-bold" :class="index === 0 ? (dpto.totales?.disponible < 0 ? 'text-red-600' : 'text-green-600') : (item.disponible < 0 ? 'text-red-600' : 'text-green-700')" x-text="index === 0 ? formatearMoneda(dpto.totales?.disponible) : formatearMoneda(item.disponible)"></td>
-                                        <td class="px-4 py-2 text-center" :class="index === 0 ? getClaseSemaforo(dpto.totales?.porcentaje) : getClaseSemaforo(item.porcentaje)" x-text="(index === 0 ? (dpto.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
+                                <tbody class="contents">
+                                    <tr class="bg-blue-50/30 font-bold text-xs italic">
+                                        <td class="px-10 py-1 text-blue-800 uppercase" x-text="'📁 ' + seg.nombre"></td>
+                                        <td class="px-4 py-1 text-right text-blue-900" x-text="formatearMoneda(seg.totales.asignado)"></td>
+                                        <td class="px-4 py-1 text-right text-blue-900" x-text="formatearMoneda(seg.totales.comprometido)"></td>
+                                        <td class="px-4 py-1 text-right text-blue-900" x-text="formatearMoneda(seg.totales.ejecutado)"></td>
+                                        <td class="px-4 py-1 text-right" :class="seg.totales.disponible < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(seg.totales.disponible)"></td>
+                                        <td class="px-4 py-1 text-center font-bold" :class="getClaseSemaforo(seg.totales.porcentaje)" x-text="seg.totales.porcentaje + '%'"></td>
                                     </tr>
-                                </template>
+
+                                    <template x-for="complex in seg.complejos" :key="complex.nombre">
+                                        <template x-if="true">
+                                            <tbody class="contents">
+                                                <tr class="bg-white font-semibold text-[11px] text-gray-500 border-b border-gray-100">
+                                                    <td class="px-14 py-1 uppercase tracking-tighter" x-text="'📍 ' + complex.nombre"></td>
+                                                    <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.asignado)"></td>
+                                                    <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.comprometido)"></td>
+                                                    <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.ejecutado)"></td>
+                                                    <td class="px-4 py-1 text-right" :class="complex.totales.disponible < 0 ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.disponible)"></td>
+                                                    <td class="px-4 py-1 text-center font-bold" :class="getClaseSemaforo(complex.totales.porcentaje)" x-text="complex.totales.porcentaje + '%'"></td>
+                                                </tr>
+
+                                                <template x-for="dpto in complex.departamentos" :key="dpto.ID_Dpto">
+                                                    <template x-if="true">
+                                                        <template x-for="(item, index) in [dpto, ...dpto.analisis]">
+                                                            <tr :class="index === 0 ? 'bg-gray-50/30 font-bold' : 'hover:bg-gray-50 border-b border-gray-50'">
+                                                                <td class="px-6 py-2" :class="index === 0 ? 'text-gray-900 text-xs pl-20' : 'pl-28 text-gray-400 text-[11px]'">
+                                                                    <span x-show="index === 0">🏢 </span>
+                                                                    <span x-text="index === 0 ? dpto.Nombre : item.grupo"></span>
+                                                                </td>
+                                                                <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.asignado) : formatearMoneda(item.asignado)"></td>
+                                                                <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" x-text="index === 0 ? formatearMoneda(dpto.totales?.comprometido) : formatearMoneda(item.comprometido)"></td>
+                                                                <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-blue-700 font-semibold'" x-text="index === 0 ? formatearMoneda(dpto.totales?.ejecutado) : formatearMoneda(item.ejecutado)"></td>
+                                                                <td class="px-4 py-2 text-right font-bold" :class="index === 0 ? (dpto.totales?.disponible < 0 ? 'text-red-600' : 'text-green-600') : (item.disponible < 0 ? 'text-red-600' : 'text-green-700')" x-text="index === 0 ? formatearMoneda(dpto.totales?.disponible) : formatearMoneda(item.disponible)"></td>
+                                                                <td class="px-4 py-2 text-center" :class="index === 0 ? getClaseSemaforo(dpto.totales?.porcentaje) : getClaseSemaforo(item.porcentaje)" x-text="(index === 0 ? (dpto.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
+                                                            </tr>
+                                                        </template>
+                                                    </template>
+                                                </template>
+                                            </tbody>
+                                        </template>
+                                    </template>
+                                </tbody>
                             </template>
                         </template>
                     </tbody>
@@ -202,19 +232,47 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <td class="px-4 py-2 text-center font-bold" :class="grupoRS.totales.final < grupoRS.totales.inicial ? 'text-red-600' : 'text-green-600'" x-text="grupoRS.totales.porcentaje + '%'"></td>
                         </tr>
 
-                        <template x-for="dpto in grupoRS.departamentos" :key="dpto.ID_Dpto">
-                            <template x-for="(item, index) in [dpto, ...dpto.analisis]">
-                                <tr :class="index === 0 ? 'bg-green-50 font-bold' : 'hover:bg-gray-50 border-b border-gray-100'">
-                                    <td class="px-6 py-2" :class="index === 0 ? 'text-green-900 text-xs' : 'pl-12 text-gray-700'">
-                                        <span x-show="index === 0">🏢 </span>
-                                        <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ' - ' + (dpto.SegmentoNombre || 'S/S') + ')') : item.banco"></span>
-                                        <div x-show="index !== 0" class="text-[10px] text-gray-400" x-text="'CLABE: ' + item.clabe"></div>
-                                    </td>
-                                    <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.inicial) : formatearMoneda(item.inicial)"></td>
-                                    <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.final) : formatearMoneda(item.final)"></td>
-                                    <td class="px-4 py-2 text-right" :class="(index === 0 ? dpto.totales?.final < dpto.totales?.inicial : item.final < item.inicial) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(dpto.totales?.usado) : formatearMoneda(item.usado)"></td>
-                                    <td class="px-4 py-2 text-center font-bold" :class="(index === 0 ? dpto.totales?.final < dpto.totales?.inicial : item.final < item.inicial) ? 'text-red-600' : 'text-green-600'" x-text="(index === 0 ? (dpto.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
-                                </tr>
+                        <template x-for="seg in grupoRS.segmentos" :key="seg.nombre">
+                            <template x-if="true">
+                                <tbody class="contents">
+                                    <tr class="bg-blue-50/30 font-bold text-xs italic">
+                                        <td class="px-10 py-1 text-blue-800 uppercase" x-text="'📁 ' + seg.nombre"></td>
+                                        <td class="px-4 py-1 text-right text-blue-900" x-text="formatearMoneda(seg.totales.inicial)"></td>
+                                        <td class="px-4 py-1 text-right text-blue-900" x-text="formatearMoneda(seg.totales.final)"></td>
+                                        <td class="px-4 py-1 text-right" :class="seg.totales.final < seg.totales.inicial ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(seg.totales.usado)"></td>
+                                        <td class="px-4 py-1 text-center font-bold" :class="seg.totales.final < seg.totales.inicial ? 'text-red-600' : 'text-green-700'" x-text="seg.totales.porcentaje + '%'"></td>
+                                    </tr>
+
+                                    <template x-for="complex in seg.complejos" :key="complex.nombre">
+                                        <template x-if="true">
+                                            <tbody class="contents">
+                                                <tr class="bg-white font-semibold text-[11px] text-gray-500 border-b border-gray-100">
+                                                    <td class="px-14 py-1 uppercase tracking-tighter" x-text="'📍 ' + complex.nombre"></td>
+                                                    <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.inicial)"></td>
+                                                    <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.final)"></td>
+                                                    <td class="px-4 py-1 text-right" :class="complex.totales.final < complex.totales.inicial ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.usado)"></td>
+                                                    <td class="px-4 py-1 text-center font-bold" :class="complex.totales.final < complex.totales.inicial ? 'text-red-600' : 'text-green-600'" x-text="complex.totales.porcentaje + '%'"></td>
+                                                </tr>
+
+                                                <template x-for="dpto in complex.departamentos" :key="dpto.ID_Dpto">
+                                                    <template x-for="(item, index) in [dpto, ...dpto.analisis]">
+                                                        <tr :class="index === 0 ? 'bg-green-50/30 font-bold' : 'hover:bg-gray-50 border-b border-gray-50'">
+                                                            <td class="px-6 py-2" :class="index === 0 ? 'text-green-900 text-xs pl-20' : 'pl-28 text-gray-500 text-[11px]'">
+                                                                <span x-show="index === 0">🏢 </span>
+                                                                <span x-text="index === 0 ? dpto.Nombre : item.banco"></span>
+                                                                <div x-show="index !== 0" class="text-[10px] text-gray-400" x-text="'CLABE: ' + item.clabe"></div>
+                                                            </td>
+                                                            <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.inicial) : formatearMoneda(item.inicial)"></td>
+                                                            <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.final) : formatearMoneda(item.final)"></td>
+                                                            <td class="px-4 py-2 text-right" :class="(index === 0 ? dpto.totales?.final < dpto.totales?.inicial : item.final < item.inicial) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(dpto.totales?.usado) : formatearMoneda(item.usado)"></td>
+                                                            <td class="px-4 py-2 text-center font-bold" :class="(index === 0 ? dpto.totales?.final < dpto.totales?.inicial : item.final < item.inicial) ? 'text-red-600' : 'text-green-600'" x-text="(index === 0 ? (dpto.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
+                                                        </tr>
+                                                    </template>
+                                                </template>
+                                            </tbody>
+                                        </template>
+                                    </template>
+                                </tbody>
                             </template>
                         </template>
                     </tbody>
@@ -289,22 +347,54 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <td class="px-2 py-2 text-right" :class="grupoRS.totales.bFinal < grupoRS.totales.bInicial ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(grupoRS.totales.bInicial - grupoRS.totales.bFinal)"></td>
                         </tr>
 
-                        <template x-for="dpto in grupoRS.departamentos" :key="dpto.ID_Dpto">
+                        <template x-for="seg in grupoRS.segmentos" :key="seg.nombre">
                             <template x-if="true">
-                                <template x-for="(item, index) in [dpto, ...dpto.grupos]">
-                                    <tr :class="index === 0 ? 'bg-blue-50 font-bold' : 'hover:bg-gray-50 border-b border-gray-100'">
-                                        <td class="px-6 py-2" :class="index === 0 ? 'text-blue-900 text-xs' : 'pl-12 text-gray-700'">
-                                            <span x-show="index === 0">🏢 </span>
-                                            <span x-text="index === 0 ? (dpto.Nombre + ' (' + dpto.PlaceNombre + ' - ' + (dpto.SegmentoNombre || 'S/S') + ')') : item.nombre"></span>
-                                        </td>
-                                        <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.asignado) : formatearMoneda(item.asignado)"></td>
-                                        <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.gastado) : formatearMoneda(item.gastado)"></td>
-                                        <td class="px-2 py-2 text-right font-bold" :class="(index === 0 ? dpto.presupuesto?.disponible < 0 : item.disponible < 0) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.disponible) : formatearMoneda(item.disponible)"></td>
-                                        <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.bancos?.inicial) : ''"></td>
-                                        <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.bancos?.final) : ''"></td>
-                                        <td class="px-2 py-2 text-right font-bold" :class="index === 0 ? (dpto.bancos?.final < dpto.bancos?.inicial ? 'text-red-600' : 'text-green-600') : ''" x-text="index === 0 ? formatearMoneda(dpto.bancos?.uso) : ''"></td>
+                                <tbody class="contents">
+                                    <tr class="bg-blue-50/30 font-bold text-[11px] italic">
+                                        <td class="px-10 py-1 text-blue-800 uppercase" x-text="'📁 ' + seg.nombre"></td>
+                                        <td class="px-2 py-1 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pAsignado)"></td>
+                                        <td class="px-2 py-1 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pGastado)"></td>
+                                        <td class="px-2 py-1 text-right" :class="seg.totales.pDisponible < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(seg.totales.pDisponible)"></td>
+                                        <td class="px-2 py-1 text-right text-blue-900" x-text="formatearMoneda(seg.totales.bInicial)"></td>
+                                        <td class="px-2 py-1 text-right text-blue-900" x-text="formatearMoneda(seg.totales.bFinal)"></td>
+                                        <td class="px-2 py-1 text-right font-bold" :class="seg.totales.bFinal < seg.totales.bInicial ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(seg.totales.bInicial - seg.totales.bFinal)"></td>
                                     </tr>
-                                </template>
+
+                                    <template x-for="complex in seg.complejos" :key="complex.nombre">
+                                        <template x-if="true">
+                                            <tbody class="contents">
+                                                <tr class="bg-white font-semibold text-[10px] text-gray-500 border-b border-gray-100">
+                                                    <td class="px-14 py-1 uppercase tracking-tighter" x-text="'📍 ' + complex.nombre"></td>
+                                                    <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pAsignado)"></td>
+                                                    <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pGastado)"></td>
+                                                    <td class="px-2 py-1 text-right" :class="complex.totales.pDisponible < 0 ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.pDisponible)"></td>
+                                                    <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.bInicial)"></td>
+                                                    <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.bFinal)"></td>
+                                                    <td class="px-2 py-1 text-right" :class="complex.totales.bFinal < complex.totales.bInicial ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.bInicial - complex.totales.bFinal)"></td>
+                                                </tr>
+
+                                                <template x-for="dpto in complex.departamentos" :key="dpto.ID_Dpto">
+                                                    <template x-if="true">
+                                                        <template x-for="(item, index) in [dpto, ...dpto.grupos]">
+                                                            <tr :class="index === 0 ? 'bg-gray-50/30 font-bold' : 'hover:bg-gray-50 border-b border-gray-50'">
+                                                                <td class="px-6 py-2" :class="index === 0 ? 'text-blue-900 text-xs pl-20' : 'pl-28 text-gray-500 text-[10px]'">
+                                                                    <span x-show="index === 0">🏢 </span>
+                                                                    <span x-text="index === 0 ? dpto.Nombre : item.nombre"></span>
+                                                                </td>
+                                                                <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.asignado) : formatearMoneda(item.asignado)"></td>
+                                                                <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.gastado) : formatearMoneda(item.gastado)"></td>
+                                                                <td class="px-2 py-2 text-right font-bold" :class="(index === 0 ? dpto.presupuesto?.disponible < 0 : item.disponible < 0) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.disponible) : formatearMoneda(item.disponible)"></td>
+                                                                <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.bancos?.inicial) : ''"></td>
+                                                                <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.bancos?.final) : ''"></td>
+                                                                <td class="px-2 py-2 text-right font-bold" :class="index === 0 ? (dpto.bancos?.final < dpto.bancos?.inicial ? 'text-red-600' : 'text-green-600') : ''" x-text="index === 0 ? formatearMoneda(dpto.bancos?.uso) : ''"></td>
+                                                            </tr>
+                                                        </template>
+                                                    </template>
+                                                </template>
+                                            </tbody>
+                                        </template>
+                                    </template>
+                                </tbody>
                             </template>
                         </template>
                     </tbody>

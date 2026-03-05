@@ -476,52 +476,80 @@ function registrarComponenteReportePresupuesto() {
                 if (this.pantalla === 'cuentas') fuente = this.departamentosBancos;
                 if (this.pantalla === 'completo') fuente = this.departamentosCompleto;
 
-                const grupos = [];
+                const rsGrupos = [];
+
+                const crearTotales = () => {
+                    if (this.pantalla === 'cuentas') return { inicial: 0, final: 0, usado: 0, porcentaje: 0 };
+                    if (this.pantalla === 'completo') return { pAsignado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0 };
+                    return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 };
+                };
+
+                const sumar = (totales, d) => {
+                    if (this.pantalla === 'cuentas') {
+                        totales.inicial += parseFloat(d.totales?.inicial || 0);
+                        totales.final += parseFloat(d.totales?.final || 0);
+                        totales.usado += parseFloat(d.totales?.usado || 0);
+                    } else if (this.pantalla === 'completo') {
+                        totales.pAsignado += parseFloat(d.presupuesto?.asignado || 0);
+                        totales.pGastado += parseFloat(d.presupuesto?.gastado || 0);
+                        totales.bInicial += parseFloat(d.bancos?.inicial || 0);
+                        totales.bFinal += parseFloat(d.bancos?.final || 0);
+                        totales.pDisponible += parseFloat(d.presupuesto?.disponible || 0);
+                    } else {
+                        totales.asignado += parseFloat(d.totales?.asignado || 0);
+                        totales.comprometido += parseFloat(d.totales?.comprometido || 0);
+                        totales.ejecutado += parseFloat(d.totales?.ejecutado || 0);
+                    }
+                };
+
+                const calc = (totales) => {
+                    if (this.pantalla === 'cuentas') {
+                        totales.porcentaje = totales.inicial > 0 ? Math.round((totales.usado / totales.inicial) * 100 * 100) / 100 : 0;
+                    } else if (this.pantalla === 'presupuesto') {
+                        const totalGasto = totales.comprometido + totales.ejecutado;
+                        totales.disponible = totales.asignado - totalGasto;
+                        totales.porcentaje = totales.asignado > 0 ? Math.round((totalGasto / totales.asignado) * 100 * 100) / 100 : 0;
+                    }
+                };
+
                 fuente.forEach(d => {
                     const rsNombre = d.RazonSocialNombre || 'Sin Razón Social';
-                    let grupo = grupos.find(g => g.nombre === rsNombre);
-                    if (!grupo) {
-                        grupo = { 
-                            nombre: rsNombre, 
-                            departamentos: [],
-                            totales: this.pantalla === 'cuentas' 
-                                ? { inicial: 0, final: 0, usado: 0, porcentaje: 0 }
-                                : (this.pantalla === 'completo' 
-                                    ? { pAsignado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0 }
-                                    : { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 })
-                        };
-                        grupos.push(grupo);
+                    const segNombre = d.SegmentoNombre || 'Sin Segmento';
+                    const placeNombre = d.PlaceNombre || 'Sin Place';
+
+                    let rs = rsGrupos.find(g => g.nombre === rsNombre);
+                    if (!rs) {
+                        rs = { nombre: rsNombre, segmentos: [], totales: crearTotales() };
+                        rsGrupos.push(rs);
                     }
-                    grupo.departamentos.push(d);
-                    
-                    if (this.pantalla === 'cuentas') {
-                        grupo.totales.inicial += parseFloat(d.totales?.inicial || 0);
-                        grupo.totales.final += parseFloat(d.totales?.final || 0);
-                        grupo.totales.usado += parseFloat(d.totales?.usado || 0);
-                    } else if (this.pantalla === 'completo') {
-                        grupo.totales.pAsignado += parseFloat(d.presupuesto?.asignado || 0);
-                        grupo.totales.pGastado += parseFloat(d.presupuesto?.gastado || 0);
-                        grupo.totales.bInicial += parseFloat(d.bancos?.inicial || 0);
-                        grupo.totales.bFinal += parseFloat(d.bancos?.final || 0);
-                        grupo.totales.pDisponible += parseFloat(d.presupuesto?.disponible || 0);
-                    } else {
-                        grupo.totales.asignado += parseFloat(d.totales?.asignado || 0);
-                        grupo.totales.comprometido += parseFloat(d.totales?.comprometido || 0);
-                        grupo.totales.ejecutado += parseFloat(d.totales?.ejecutado || 0);
+                    sumar(rs.totales, d);
+
+                    let seg = rs.segmentos.find(s => s.nombre === segNombre);
+                    if (!seg) {
+                        seg = { nombre: segNombre, complejos: [], totales: crearTotales() };
+                        rs.segmentos.push(seg);
                     }
+                    sumar(seg.totales, d);
+
+                    let complex = seg.complejos.find(c => c.nombre === placeNombre);
+                    if (!complex) {
+                        complex = { nombre: placeNombre, departamentos: [], totales: crearTotales() };
+                        seg.complejos.push(complex);
+                    }
+                    sumar(complex.totales, d);
+
+                    complex.departamentos.push(d);
                 });
 
-                grupos.forEach(g => {
-                    if (this.pantalla === 'cuentas') {
-                        g.totales.porcentaje = g.totales.inicial > 0 ? Math.round((g.totales.usado / g.totales.inicial) * 100 * 100) / 100 : 0;
-                    } else if (this.pantalla === 'presupuesto') {
-                        const totalGasto = g.totales.comprometido + g.totales.ejecutado;
-                        g.totales.disponible = g.totales.asignado - totalGasto;
-                        g.totales.porcentaje = g.totales.asignado > 0 ? Math.round((totalGasto / g.totales.asignado) * 100 * 100) / 100 : 0;
-                    }
+                rsGrupos.forEach(rs => {
+                    calc(rs.totales);
+                    rs.segmentos.forEach(seg => {
+                        calc(seg.totales);
+                        seg.complejos.forEach(c => calc(c.totales));
+                    });
                 });
 
-                return grupos;
+                return rsGrupos;
             },
 
             async cargarComparativo() {
