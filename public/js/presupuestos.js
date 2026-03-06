@@ -214,7 +214,7 @@ function registrarComponenteSaldosBancarios() {
 
             razonesSociales: [],
             todosPlaces: [],
-            departamentos: [],
+            razonesData: [],
 
             cargando: false,
             guardando: false,
@@ -239,27 +239,27 @@ function registrarComponenteSaldosBancarios() {
             },
 
             resetEstructura() {
-                this.departamentos = [];
+                this.razonesData = [];
                 this.mensaje = '';
             },
 
             async cargarEstructura() {
-                if (!this.idPlace || !this.mesAnio) {
+                if (!this.idRazonSocial || !this.mesAnio) {
                     this.resetEstructura();
                     return;
                 }
 
                 const [anio, mes] = this.mesAnio.split('-');
                 this.cargando = true;
-                this.departamentos = [];
+                this.razonesData = [];
                 this.mensaje = '';
 
                 try {
-                    const res = await fetch(`${BASE_URL}api/saldos-bancarios/estructura/${this.idPlace}/${anio}/${parseInt(mes)}`);
+                    const res = await fetch(`${BASE_URL}api/saldos-bancarios/estructura/${this.idRazonSocial}/${anio}/${parseInt(mes)}`);
 
                     if (res.ok) {
                         const data = await res.json();
-                        this.departamentos = data.departamentos || [];
+                        this.razonesData = data.razones || [];
                     } else {
                         this.mensaje = 'Error al cargar los datos del servidor.';
                         this.error = true;
@@ -274,8 +274,8 @@ function registrarComponenteSaldosBancarios() {
             },
 
             async copiarAnterior() {
-                if (!this.idPlace || !this.mesAnio) {
-                    mostrarNotificacion('Seleccione un Place y una Fecha primero.', 'error');
+                if (!this.idRazonSocial || !this.mesAnio) {
+                    mostrarNotificacion('Seleccione una Razón Social y una Fecha primero.', 'error');
                     return;
                 }
 
@@ -290,20 +290,20 @@ function registrarComponenteSaldosBancarios() {
                 const notif = mostrarNotificacion('Obteniendo saldos del mes anterior...', 'info', 0);
 
                 try {
-                    const res = await fetch(`${BASE_URL}api/saldos-bancarios/estructura/${this.idPlace}/${prevAnio}/${prevMes}`);
+                    const res = await fetch(`${BASE_URL}api/saldos-bancarios/estructura/${this.idRazonSocial}/${prevAnio}/${prevMes}`);
                     const data = await res.json();
 
-                    if (!data.departamentos || data.departamentos.length === 0) {
+                    if (!data.razones || data.razones.length === 0) {
                         mostrarNotificacion('No se encontraron saldos en el mes anterior.', 'alert');
                         return;
                     }
 
                     let copiasRealizadas = 0;
-                    this.departamentos.forEach(dptoActual => {
-                        const dptoPrevio = data.departamentos.find(d => String(d.ID_Dpto) === String(dptoActual.ID_Dpto));
-                        if (dptoPrevio && dptoPrevio.bancos) {
-                            dptoActual.bancos.forEach(bancoActual => {
-                                const bancoPrevio = dptoPrevio.bancos.find(b => String(b.ID_BancoDpto) === String(bancoActual.ID_BancoDpto));
+                    this.razonesData.forEach(rsActual => {
+                        const rsPrevia = data.razones.find(r => String(r.ID_RazonSocial) === String(rsActual.ID_RazonSocial));
+                        if (rsPrevia && rsPrevia.bancos) {
+                            rsActual.bancos.forEach(bancoActual => {
+                                const bancoPrevio = rsPrevia.bancos.find(b => String(b.ID_BancoDpto) === String(bancoActual.ID_BancoDpto));
                                 if (bancoPrevio && (bancoPrevio.saldo_inicial !== undefined && bancoPrevio.saldo_inicial !== null)) {
                                     bancoActual.saldo_inicial = bancoPrevio.saldo_inicial;
                                     copiasRealizadas++;
@@ -326,7 +326,7 @@ function registrarComponenteSaldosBancarios() {
             },
 
             async guardarSaldos() {
-                if (this.departamentos.length === 0) return;
+                if (this.razonesData.length === 0) return;
 
                 const [anio, mes] = this.mesAnio.split('-');
                 this.guardando = true;
@@ -335,8 +335,8 @@ function registrarComponenteSaldosBancarios() {
 
                 let saldosParaEnviar = [];
 
-                this.departamentos.forEach(dpto => {
-                    dpto.bancos.forEach(banco => {
+                this.razonesData.forEach(rs => {
+                    rs.bancos.forEach(banco => {
                         saldosParaEnviar.push({
                             id_bancodpto: banco.ID_BancoDpto,
                             saldo_inicial: parseFloat(banco.saldo_inicial) || 0,

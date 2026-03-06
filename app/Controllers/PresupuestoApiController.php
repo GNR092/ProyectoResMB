@@ -10,6 +10,7 @@ use App\Models\PlacesModel;
 use App\Models\GrupoPresupuestalModel;
 use App\Models\BancoDptoModel;
 use App\Models\SaldosBancariosModel;
+use App\Models\RazonSocialModel;
 
 class PresupuestoApiController extends ResourceController
 {
@@ -44,14 +45,16 @@ class PresupuestoApiController extends ResourceController
         // 2. Obtener Datos de Presupuesto
         $presupuestos = $presupuestoMensualModel->whereIn('ID_Dpto', $dptoIds)->where('Anio', $anio)->where('Mes', $mes)->findAll();
 
-        // 3. Obtener Datos de Bancos
-        $bancos = $bancoModel->whereIn('ID_Dpto', $dptoIds)->findAll();
+        // 3. Obtener Datos de Bancos por Razón Social de los departamentos
+        $rsIds = array_unique(array_column($departamentos, 'ID_RazonSocial'));
+        $bancos = !empty($rsIds) ? $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll() : [];
         $bancoIds = array_column($bancos, 'ID_BancoDpto');
         $saldos = !empty($bancoIds) ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->where('mes', $mes)->findAll() : [];
 
         $estructura = [];
         foreach ($departamentos as $dpto) {
             $idDpto = (int)$dpto['ID_Dpto'];
+            $idRazonSocial = (int)$dpto['ID_RazonSocial'];
 
             // Consolidar Presupuesto
             $pAsignado = 0; $pComprometido = 0; $pEjecutado = 0;
@@ -63,10 +66,10 @@ class PresupuestoApiController extends ResourceController
                 }
             }
 
-            // Consolidar Bancos
+            // Consolidar Bancos de la Razón Social a la que pertenece el departamento
             $bInicial = 0; $bFinal = 0;
             foreach ($bancos as $b) {
-                if ((int)$b['ID_Dpto'] === $idDpto) {
+                if ((int)$b['ID_RazonSocial'] === $idRazonSocial) {
                     $s = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto']))[0] ?? null;
                     $bInicial += (float)($s['saldo_inicial'] ?? 0);
                     $bFinal   += (float)($s['saldo_final'] ?? 0);
@@ -141,8 +144,9 @@ class PresupuestoApiController extends ResourceController
 
         $dptoIds = array_column($departamentos, 'ID_Dpto');
 
-        // 2. Bancos y Saldos
-        $bancos = $bancoModel->whereIn('ID_Dpto', $dptoIds)->findAll();
+        // 2. Bancos y Saldos por Razón Social
+        $rsIds = array_unique(array_column($departamentos, 'ID_RazonSocial'));
+        $bancos = !empty($rsIds) ? $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll() : [];
         $bancoIds = array_column($bancos, 'ID_BancoDpto');
 
         $saldos = [];
@@ -158,9 +162,10 @@ class PresupuestoApiController extends ResourceController
             $analisisBancos = [];
             $totalDptoInicial = 0;
             $totalDptoFinal = 0;
+            $idRazonSocial = (int)$dpto['ID_RazonSocial'];
 
             foreach ($bancos as $b) {
-                if ((int)$b['ID_Dpto'] === (int)$dpto['ID_Dpto']) {
+                if ((int)$b['ID_RazonSocial'] === $idRazonSocial) {
                     $s = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto']))[0] ?? null;
                     
                     $inicial = (float)($s['saldo_inicial'] ?? 0);
@@ -313,78 +318,68 @@ class PresupuestoApiController extends ResourceController
         ];
     }
 
-    public function getEstructuraSaldos($idPlace, $anio, $mes)
+    public function getEstructuraSaldos($idRazonSocial, $anio, $mes)
     {
-        $dptoModel = new DepartamentosModel();
+        $rsModel = new RazonSocialModel();
         $bancoModel = new BancoDptoModel();
         $saldosModel = new SaldosBancariosModel();
 
-        // 1. Departamentos del Place
-        $departamentos = $dptoModel->where('ID_Place', $idPlace)
-            ->orderBy('Nombre', 'ASC')
-            ->findAll();
-
-        if (empty($departamentos)) {
-            return $this->respond(['departamentos' => []]);
+        // 1. Obtener la Razón Social
+        $razonSocial = $rsModel->find($idRazonSocial);
+        if (!$razonSocial) {
+            return $this->respond(['razones' => []]);
         }
 
-        $dptoIds = array_column($departamentos, 'ID_Dpto');
-
-        // 2. Bancos de esos departamentos
-        $bancos = $bancoModel->whereIn('ID_Dpto', $dptoIds)
+        // 2. Bancos de esa Razón Social
+        $bancos = $bancoModel->where('ID_RazonSocial', $idRazonSocial)
             ->orderBy('Banco', 'ASC')
             ->findAll();
 
-        $bancoIds = array_column($bancos, 'ID_BancoDpto');
-
-        // 3. Saldos guardados
-        $saldosGuardados = [];
-        if (!empty($bancoIds)) {
-            $saldosGuardados = $saldosModel->whereIn('id_bancodpto', $bancoIds)
-                ->where('anio', $anio)
-                ->where('mes', $mes)
-                ->findAll();
+        if (empty($bancos)) {
+            return $this->respond(['razones' => []]);
         }
 
-        $estructura = [];
+        $bancoIds = array_column($bancos, 'ID_BancoDpto');
 
-        foreach ($departamentos as $dpto) {
-            $bancosDelDpto = [];
+        // 3. Saldos guardados para el mes/año
+        $saldosGuardados = $saldosModel->whereIn('id_bancodpto', $bancoIds)
+            ->where('anio', $anio)
+            ->where('mes', $mes)
+            ->findAll();
 
-            foreach ($bancos as $banco) {
-                if ((int)$banco['ID_Dpto'] === (int)$dpto['ID_Dpto']) {
-                    
-                    $saldo_inicial = '';
-                    $saldo_final = '';
-                    $idExistente = null;
+        $bancosConSaldos = [];
+        foreach ($bancos as $banco) {
+            $saldo_inicial = 0;
+            $saldo_final = 0;
+            $idExistente = null;
 
-                    foreach ($saldosGuardados as $saldo) {
-                        if ((int)$saldo['id_bancodpto'] === (int)$banco['ID_BancoDpto']) {
-                            $saldo_inicial = $saldo['saldo_inicial'];
-                            $saldo_final = $saldo['saldo_final'];
-                            $idExistente = $saldo['id'];
-                            break;
-                        }
-                    }
-
-                    $banco['saldo_inicial'] = $saldo_inicial;
-                    $banco['saldo_final'] = $saldo_final;
-                    $banco['id_saldo_existente'] = $idExistente;
-
-                    $bancosDelDpto[] = $banco;
+            foreach ($saldosGuardados as $saldo) {
+                if ((int)$saldo['id_bancodpto'] === (int)$banco['ID_BancoDpto']) {
+                    $saldo_inicial = $saldo['saldo_inicial'];
+                    $saldo_final = $saldo['saldo_final'];
+                    $idExistente = $saldo['id'];
+                    break;
                 }
             }
 
-            // Solo incluimos departamentos que tengan cuentas bancarias configuradas
-            if (!empty($bancosDelDpto)) {
-                $dpto['bancos'] = $bancosDelDpto;
-                $estructura[] = $dpto;
-            }
+            $banco['saldo_inicial'] = $saldo_inicial;
+            $banco['saldo_final'] = $saldo_final;
+            $banco['id_saldo_existente'] = $idExistente;
+
+            $bancosConSaldos[] = $banco;
         }
 
-        return $this->respond(['departamentos' => $estructura]);
+        // Retornamos una estructura agrupada por Razón Social para compatibilidad
+        return $this->respond([
+            'razones' => [
+                [
+                    'ID_RazonSocial' => $razonSocial['ID_RazonSocial'],
+                    'Nombre' => $razonSocial['Nombre'],
+                    'bancos' => $bancosConSaldos
+                ]
+            ]
+        ]);
     }
-
     public function saveSaldosMasivo()
     {
         $json = $this->request->getJSON(true);
