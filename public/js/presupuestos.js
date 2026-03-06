@@ -397,7 +397,8 @@ function registrarComponenteReportePresupuesto() {
             idRazonSocial: '',
             idPlace: '',
             verGlobal: false,
-            mesAnio: '',
+            anio: '',
+            meses: [],
 
             razonesSociales: [],
             todosPlaces: [],
@@ -407,6 +408,8 @@ function registrarComponenteReportePresupuesto() {
             departamentosOriginales: [],
             dptosSeleccionados: [],
             choicesDpto: null,
+            choicesMeses: null,
+            years: [],
             totalesGenerales: {
                 asignado: 0,
                 comprometido: 0,
@@ -426,9 +429,56 @@ function registrarComponenteReportePresupuesto() {
                 }
 
                 const now = new Date();
-                const anio = now.getFullYear();
-                const mes = String(now.getMonth() + 1).padStart(2, '0');
-                this.mesAnio = `${anio}-${mes}`;
+                this.anio = String(now.getFullYear());
+                this.meses = [String(now.getMonth() + 1)];
+                
+                // Generar lista de años (5 años atrás y 2 adelante)
+                const currentYear = now.getFullYear();
+                for (let i = currentYear - 5; i <= currentYear + 2; i++) {
+                    this.years.push(String(i));
+                }
+            },
+
+            initChoicesMeses(refName) {
+                if (typeof Choices === 'undefined') {
+                    console.error('Choices.js no está cargada.');
+                    return;
+                }
+                
+                if (this.choicesMeses) {
+                    this.choicesMeses.destroy();
+                    this.choicesMeses = null;
+                }
+
+                if (!refName) return; // Salir si no hay nombre de referencia
+
+                const selectEl = this.$refs[refName];
+                if (!selectEl) {
+                    console.warn(`No se encontró el elemento x-ref="${refName}"`);
+                    return;
+                }
+
+                this.choicesMeses = new Choices(selectEl, {
+                    removeItemButton: true,
+                    itemSelectText: '',
+                    placeholderValue: 'Seleccione meses',
+                    searchEnabled: false,
+                    shouldSort: false,
+                    allowHTML: true
+                });
+
+                // Establecer valor inicial (asegurarse de que sean strings)
+                if (this.meses && this.meses.length > 0) {
+                    this.choicesMeses.removeActiveItems();
+                    this.choicesMeses.setChoiceByValue(this.meses.map(String));
+                }
+
+                selectEl.addEventListener('change', () => {
+                    this.meses = this.choicesMeses.getValue(true).map(String);
+                    if (this.pantalla === 'presupuesto') this.cargarComparativo();
+                    if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
+                    if (this.pantalla === 'completo') this.cargarReporteCompleto();
+                });
             },
 
             irAPantalla(nueva) {
@@ -439,12 +489,29 @@ function registrarComponenteReportePresupuesto() {
                 this.departamentosOriginales = [];
                 this.dptosSeleccionados = [];
                 this.verGlobal = false;
+                
                 if (this.choicesDpto) {
                     this.choicesDpto.destroy();
                     this.choicesDpto = null;
                 }
+                if (this.choicesMeses) {
+                    this.choicesMeses.destroy();
+                    this.choicesMeses = null;
+                }
+                
                 this.idPlace = '';
                 this.idRazonSocial = '';
+
+                if (nueva !== 'menu') {
+                    this.$nextTick(() => {
+                        const refMap = {
+                            'presupuesto': 'mesesSelectorPresupuesto',
+                            'cuentas': 'mesesSelectorCuentas',
+                            'completo': 'mesesSelectorCompleto'
+                        };
+                        this.initChoicesMeses(refMap[nueva]);
+                    });
+                }
 
                 // LÓGICA DE ANCHO DE MODAL DINÁMICO
                 const modal = document.getElementById('modal-general');
@@ -563,9 +630,9 @@ function registrarComponenteReportePresupuesto() {
                 if (this.pantalla === 'cuentas') return this.cargarComparativoBancos();
                 if (this.pantalla === 'completo') return this.cargarReporteCompleto();
 
-                if (!this.verGlobal && (!this.idPlace || !this.mesAnio)) return;
+                if (!this.verGlobal && (!this.idPlace || !this.anio || this.meses.length === 0)) return;
 
-                const [anio, mes] = this.mesAnio.split('-');
+                const stringMeses = this.meses.join(',');
                 this.cargando = true;
                 this.departamentos = [];
                 this.departamentosOriginales = [];
@@ -574,7 +641,7 @@ function registrarComponenteReportePresupuesto() {
                 const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
 
                 try {
-                    const res = await fetch(`${BASE_URL}api/presupuesto/comparativo/${targetPlaceId}/${anio}/${parseInt(mes)}`);
+                    const res = await fetch(`${BASE_URL}api/presupuesto/comparativo/${targetPlaceId}/${this.anio}/${stringMeses}`);
 
                     if (res.ok) {
                         const data = await res.json();
@@ -597,14 +664,14 @@ function registrarComponenteReportePresupuesto() {
             },
 
             async cargarComparativoBancos() {
-                if (!this.verGlobal && (!this.idPlace || !this.mesAnio)) return;
-                const [anio, mes] = this.mesAnio.split('-');
+                if (!this.verGlobal && (!this.idPlace || !this.anio || this.meses.length === 0)) return;
+                const stringMeses = this.meses.join(',');
                 this.cargando = true;
                 this.departamentosBancos = [];
                 const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
 
                 try {
-                    const res = await fetch(`${BASE_URL}api/bancos/comparativo/${targetPlaceId}/${anio}/${parseInt(mes)}`);
+                    const res = await fetch(`${BASE_URL}api/bancos/comparativo/${targetPlaceId}/${this.anio}/${stringMeses}`);
                     if (res.ok) {
                         const data = await res.json();
                         // Ahora la API devuelve 'razones' directamente
@@ -615,14 +682,14 @@ function registrarComponenteReportePresupuesto() {
             },
 
             async cargarReporteCompleto() {
-                if (!this.verGlobal && (!this.idPlace || !this.mesAnio)) return;
-                const [anio, mes] = this.mesAnio.split('-');
+                if (!this.verGlobal && (!this.idPlace || !this.anio || this.meses.length === 0)) return;
+                const stringMeses = this.meses.join(',');
                 this.cargando = true;
                 this.departamentosCompleto = [];
                 const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
 
                 try {
-                    const res = await fetch(`${BASE_URL}api/reporte/completo/${targetPlaceId}/${anio}/${parseInt(mes)}`);
+                    const res = await fetch(`${BASE_URL}api/reporte/completo/${targetPlaceId}/${this.anio}/${stringMeses}`);
                     if (res.ok) {
                         const data = await res.json();
                         this.departamentosCompleto = data.departamentos || [];

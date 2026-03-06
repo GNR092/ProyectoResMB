@@ -30,6 +30,9 @@ class PresupuestoApiController extends ResourceController
         $bancoModel = new BancoDptoModel();
         $saldosModel = new SaldosBancariosModel();
 
+        if (empty($mes)) return $this->respond(['departamentos' => []]);
+        $meses = array_map('intval', explode(',', $mes));
+
         // 1. Obtener estructura base (Importante: incluir ID_RazonSocial)
         $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
@@ -42,20 +45,49 @@ class PresupuestoApiController extends ResourceController
         if (empty($departamentos)) return $this->respond(['departamentos' => []]);
         $dptoIds = array_column($departamentos, 'ID_Dpto');
 
-        // 2. Obtener Datos de Presupuesto con Nombres de Grupos (Optimizado con Join)
+        // 2. Obtener Datos de Presupuesto con Nombres de Grupos (Agrupado por meses)
         $presupuestos = $presupuestoMensualModel
-            ->select('PresupuestoMensual.*, GrupoPresupuestal.Nombre as GrupoNombre')
+            ->select('PresupuestoMensual.ID_Dpto, PresupuestoMensual.ID_GrupoPresupuestal, GrupoPresupuestal.Nombre as GrupoNombre')
+            ->selectSum('PresupuestoMensual.Monto_Asignado', 'Monto_Asignado')
+            ->selectSum('PresupuestoMensual.Monto_Comprometido', 'Monto_Comprometido')
+            ->selectSum('PresupuestoMensual.Monto_Ejecutado', 'Monto_Ejecutado')
             ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
             ->whereIn('PresupuestoMensual.ID_Dpto', $dptoIds)
-            ->where('Anio', $anio)
-            ->where('Mes', $mes)
+            ->where('PresupuestoMensual.Anio', $anio)
+            ->whereIn('PresupuestoMensual.Mes', $meses)
+            ->groupBy('PresupuestoMensual.ID_Dpto, PresupuestoMensual.ID_GrupoPresupuestal, GrupoPresupuestal.Nombre')
             ->findAll();
 
-        // 3. Obtener Datos de Bancos por Razón Social
+        // Convertir resultados a PascalCase si Postgres los devolvió en minúsculas
+        $presupuestos = array_map(function($p) {
+            return [
+                'ID_Dpto' => $p['ID_Dpto'] ?? $p['id_dpto'] ?? 0,
+                'ID_GrupoPresupuestal' => $p['ID_GrupoPresupuestal'] ?? $p['id_grupopresupuestal'] ?? 0,
+                'GrupoNombre' => $p['GrupoNombre'] ?? $p['gruponombre'] ?? '',
+                'Monto_Asignado' => $p['Monto_Asignado'] ?? $p['monto_asignado'] ?? 0,
+                'Monto_Comprometido' => $p['Monto_Comprometido'] ?? $p['monto_comprometido'] ?? 0,
+                'Monto_Ejecutado' => $p['Monto_Ejecutado'] ?? $p['monto_ejecutado'] ?? 0,
+            ];
+        }, $presupuestos);
+
+        // 3. Obtener Datos de Bancos por Razón Social (Rango de meses)
         $rsIds = array_unique(array_filter(array_column($departamentos, 'ID_RazonSocial')));
         $bancos = !empty($rsIds) ? $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll() : [];
         $bancoIds = array_column($bancos, 'ID_BancoDpto');
-        $saldos = !empty($bancoIds) ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->where('mes', $mes)->findAll() : [];
+        $saldos = !empty($bancoIds) ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->whereIn('mes', $meses)->findAll() : [];
+
+        // Normalizar claves de saldos para Postgres
+        $saldos = array_map(function($s) {
+            return [
+                'id_bancodpto' => $s['id_bancodpto'] ?? $s['ID_BancoDpto'] ?? 0,
+                'mes' => $s['mes'] ?? $s['Mes'] ?? 0,
+                'saldo_inicial' => $s['saldo_inicial'] ?? $s['Saldo_Inicial'] ?? 0,
+                'saldo_final' => $s['saldo_final'] ?? $s['Saldo_Final'] ?? 0,
+            ];
+        }, $saldos);
+
+        $minMes = min($meses);
+        $maxMes = max($meses);
 
         $estructura = [];
         $rsProcesadasBancos = []; // Para evitar duplicar saldos bancarios en los totales de JS
@@ -91,9 +123,11 @@ class PresupuestoApiController extends ResourceController
             if (!in_array($idRazonSocial, $rsProcesadasBancos)) {
                 foreach ($bancos as $b) {
                     if ((int)$b['ID_RazonSocial'] === $idRazonSocial) {
-                        $s = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto']))[0] ?? null;
-                        $bInicial += (float)($s['saldo_inicial'] ?? 0);
-                        $bFinal   += (float)($s['saldo_final'] ?? 0);
+                        $sMin = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && (int)$item['mes'] === (int)$minMes))[0] ?? null;
+                        $sMax = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && (int)$item['mes'] === (int)$maxMes))[0] ?? null;
+                        
+                        $bInicial += (float)($sMin['saldo_inicial'] ?? 0);
+                        $bFinal   += (float)($sMax['saldo_final'] ?? 0);
                     }
                 }
                 $rsProcesadasBancos[] = $idRazonSocial;
@@ -133,6 +167,11 @@ class PresupuestoApiController extends ResourceController
         $bancoModel = new BancoDptoModel();
         $saldosModel = new SaldosBancariosModel();
 
+        if (empty($mes)) return $this->respond(['razones' => []]);
+        $meses = array_map('intval', explode(',', $mes));
+        $minMes = min($meses);
+        $maxMes = max($meses);
+
         // 1. Departamentos (Para saber qué RS y Places están involucrados)
         $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial, Razon_Social.Nombre as RazonSocialNombre')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
@@ -149,8 +188,18 @@ class PresupuestoApiController extends ResourceController
         $bancoIds = array_column($bancos, 'ID_BancoDpto');
         
         $saldos = !empty($bancoIds) 
-            ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->where('mes', $mes)->findAll() 
+            ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->whereIn('mes', $meses)->findAll() 
             : [];
+
+        // Normalizar saldos para Postgres (claves en minúscula)
+        $saldos = array_map(function($s) {
+            return [
+                'id_bancodpto' => $s['id_bancodpto'] ?? 0,
+                'mes' => $s['mes'] ?? 0,
+                'saldo_inicial' => $s['saldo_inicial'] ?? 0,
+                'saldo_final' => $s['saldo_final'] ?? 0
+            ];
+        }, $saldos);
 
         // 3. Estructurar por Razón Social
         $resultado = [];
@@ -162,10 +211,11 @@ class PresupuestoApiController extends ResourceController
             // Filtrar bancos de esta RS
             foreach ($bancos as $b) {
                 if ((int)$b['ID_RazonSocial'] === (int)$idRS) {
-                    $s = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto']))[0] ?? null;
+                    $sMin = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && (int)$item['mes'] === (int)$minMes))[0] ?? null;
+                    $sMax = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && (int)$item['mes'] === (int)$maxMes))[0] ?? null;
                     
-                    $inicial = (float)($s['saldo_inicial'] ?? 0);
-                    $final   = (float)($s['saldo_final'] ?? 0);
+                    $inicial = (float)($sMin['saldo_inicial'] ?? 0);
+                    $final   = (float)($sMax['saldo_final'] ?? 0);
                     $usado   = $inicial - $final;
 
                     $bancosRS[] = [
@@ -212,6 +262,9 @@ class PresupuestoApiController extends ResourceController
         $dptoModel = new DepartamentosModel();
         $presupuestoMensualModel = new PresupuestoMensualModel();
 
+        if (empty($mes)) return $this->respond(['departamentos' => [], 'totales_generales' => $this->getTotalesCero()]);
+        $meses = array_map('intval', explode(',', $mes));
+
         // 1. Configurar consulta base de departamentos (Incluir ID_RazonSocial)
         $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
@@ -234,14 +287,30 @@ class PresupuestoApiController extends ResourceController
 
         $dptoIds = array_column($departamentos, 'ID_Dpto');
 
-        // 2. Traer presupuestos
+        // 2. Traer presupuestos agrupados por meses
         $presupuestos = $presupuestoMensualModel
-            ->select('PresupuestoMensual.*, GrupoPresupuestal.Nombre as GrupoNombre')
+            ->select('PresupuestoMensual.ID_Dpto, PresupuestoMensual.ID_GrupoPresupuestal, GrupoPresupuestal.Nombre as GrupoNombre')
+            ->selectSum('PresupuestoMensual.Monto_Asignado', 'Monto_Asignado')
+            ->selectSum('PresupuestoMensual.Monto_Comprometido', 'Monto_Comprometido')
+            ->selectSum('PresupuestoMensual.Monto_Ejecutado', 'Monto_Ejecutado')
             ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
             ->whereIn('PresupuestoMensual.ID_Dpto', $dptoIds)
             ->where('PresupuestoMensual.Anio', $anio)
-            ->where('PresupuestoMensual.Mes', $mes)
+            ->whereIn('PresupuestoMensual.Mes', $meses)
+            ->groupBy('PresupuestoMensual.ID_Dpto, PresupuestoMensual.ID_GrupoPresupuestal, GrupoPresupuestal.Nombre')
             ->findAll();
+
+        // Normalizar nombres de columnas para Postgres
+        $presupuestos = array_map(function($p) {
+            return [
+                'ID_Dpto' => $p['ID_Dpto'] ?? $p['id_dpto'] ?? 0,
+                'ID_GrupoPresupuestal' => $p['ID_GrupoPresupuestal'] ?? $p['id_grupopresupuestal'] ?? 0,
+                'GrupoNombre' => $p['GrupoNombre'] ?? $p['gruponombre'] ?? '',
+                'Monto_Asignado' => $p['Monto_Asignado'] ?? $p['monto_asignado'] ?? 0,
+                'Monto_Comprometido' => $p['Monto_Comprometido'] ?? $p['monto_comprometido'] ?? 0,
+                'Monto_Ejecutado' => $p['Monto_Ejecutado'] ?? $p['monto_ejecutado'] ?? 0,
+            ];
+        }, $presupuestos);
 
         $estructura = [];
         $granTotalAsignado = 0;

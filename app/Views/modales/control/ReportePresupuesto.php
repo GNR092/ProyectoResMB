@@ -55,8 +55,27 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     </select>
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Mes y año</label>
-                    <input type="month" x-model="mesAnio" @change="cargarComparativo()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300 text-sm">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Año</label>
+                    <select x-model="anio" @change="cargarComparativo()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300 text-sm">
+                        <template x-for="a in years" :key="a"><option :value="a" x-text="a"></option></template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 min-w-[220px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
+                    <select x-ref="mesesSelectorPresupuesto" multiple>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
                 </div>
                 <div class="flex flex-col gap-1 self-center ml-auto">
                     <label class="inline-flex items-center cursor-pointer">
@@ -192,8 +211,27 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     </select>
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Mes y año</label>
-                    <input type="month" x-model="mesAnio" @change="cargarComparativoBancos()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 text-sm">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Año</label>
+                    <select x-model="anio" @change="cargarComparativoBancos()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 text-sm">
+                        <template x-for="a in years" :key="a"><option :value="a" x-text="a"></option></template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 min-w-[220px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
+                    <select x-ref="mesesSelectorCuentas" multiple>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
                 </div>
                 <div class="flex flex-col gap-1 self-center ml-auto">
                     <label class="inline-flex items-center cursor-pointer">
@@ -281,8 +319,27 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     </select>
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Mes y año</label>
-                    <input type="month" x-model="mesAnio" @change="cargarReporteCompleto()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 text-sm">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Año</label>
+                    <select x-model="anio" @change="cargarReporteCompleto()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 text-sm">
+                        <template x-for="a in years" :key="a"><option :value="a" x-text="a"></option></template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 min-w-[220px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
+                    <select x-ref="mesesSelectorCompleto" multiple>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
                 </div>
                 <div class="flex flex-col gap-1 self-center ml-auto">
                     <label class="inline-flex items-center cursor-pointer">
