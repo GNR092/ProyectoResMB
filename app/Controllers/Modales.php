@@ -376,12 +376,11 @@ class Modales extends BaseController
 
             case 'BancoDpto':
                 $bancoModel = new BancoDptoModel();
-                $dptoModel  = new DepartamentosModel();
-                $data['bancos_dpto'] = $bancoModel->withDepartamento()->findAll();
-                $data['departamentos'] = $dptoModel
-                    ->select('Departamentos.*, Places.Nombre_Completo as PlaceNombre')
-                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
-                    ->orderBy('Departamentos.Nombre', 'ASC')
+                $rsModel    = new RazonSocialModel();
+                
+                $data['bancos_dpto'] = $bancoModel->withRazonSocial()->findAll();
+                $data['razones_sociales'] = $rsModel
+                    ->orderBy('Nombre', 'ASC')
                     ->findAll();
 
                 return view('modales/BancoDpto', $data);
@@ -1201,8 +1200,8 @@ class Modales extends BaseController
     public function insertarBancoDpto()
     {
         $model = new BancoDptoModel();
-        // Recibimos ID_Dpto, Banco, Clabe
-        $data = $this->request->getPost(['ID_Dpto', 'Banco', 'Clabe']);
+        // Recibimos ID_RazonSocial, Banco, Clabe
+        $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe']);
 
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
@@ -1217,7 +1216,7 @@ class Modales extends BaseController
     public function editarBancoDpto($id)
     {
         $model = new BancoDptoModel();
-        $data = $this->request->getPost(['ID_Dpto', 'Banco', 'Clabe']);
+        $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe']);
 
         try {
             $model->update($id, $data);

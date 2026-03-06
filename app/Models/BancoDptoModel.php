@@ -26,7 +26,9 @@ class BancoDptoModel extends Model
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
 
-    // Helper para traer nombre de la razón social
+    /**
+     * Helper para traer el nombre de la razón social
+     */
     public function withRazonSocial()
     {
         return $this->select('BancoDpto.*, Razon_Social.Nombre as RazonSocial_Nombre')

@@ -1,11 +1,11 @@
 <div id="pantalla-lista-banco-dpto" class="p-6 bg-white rounded-xl shadow-md">
 
-    <h2 class="text-2xl font-semibold mb-4 text-center">Bancos por Departamento</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Bancos por Razón Social</h2>
 
     <div id="form-filtros-banco-dpto" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
         <div class="flex flex-1 gap-4">
-            <label for="buscar-dpto" class="sr-only">Buscar Departamento</label>
-            <input type="text" id="buscar-dpto" placeholder="Buscar Departamento..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+            <label for="buscar-rs" class="sr-only">Buscar Razón Social</label>
+            <input type="text" id="buscar-rs" placeholder="Buscar Razón Social..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
 
             <label for="buscar-banco" class="sr-only">Buscar Banco</label>
             <input type="text" id="buscar-banco" placeholder="Buscar Banco..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
@@ -21,7 +21,7 @@
         <table class="min-w-full border border-gray-300 rounded-lg table-fixed">
             <thead>
             <tr>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Departamento</th>
+                <th class="w-1/3 px-3 py-2 border-b text-left">Razón Social</th>
                 <th class="w-1/4 px-3 py-2 border-b text-left">Banco</th>
                 <th class="w-1/4 px-3 py-2 border-b text-left">CLABE</th>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
@@ -31,12 +31,12 @@
             <?php if (!empty($bancos_dpto)): ?>
                 <?php foreach ($bancos_dpto as $index => $item): ?>
                     <tr data-id="<?= $item['ID_BancoDpto'] ?>"
-                        data-id-dpto="<?= esc($item['ID_Dpto']) ?>"
+                        data-id-rs="<?= esc($item['ID_RazonSocial']) ?>"
                         data-banco="<?= esc($item['Banco']) ?>"
                         data-clabe="<?= esc($item['Clabe']) ?>"
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
 
-                        <td class="px-3 py-2 border-b nombre-dpto"><?= esc($item['Dpto_Nombre'] ?? 'Sin Dpto') ?></td>
+                        <td class="px-3 py-2 border-b nombre-rs"><?= esc($item['RazonSocial_Nombre'] ?? 'Sin Razón Social') ?></td>
                         <td class="px-3 py-2 border-b nombre-banco"><?= esc($item['Banco']) ?></td>
                         <td class="px-3 py-2 border-b clabe-banco font-mono text-sm"><?= esc($item['Clabe']) ?></td>
 
@@ -76,17 +76,17 @@
 
 <div id="pantalla-agregar-banco-dpto" class="hidden p-6 bg-white rounded-xl shadow-md">
     <button id="btn-regresar-lista-banco-dpto" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">← Regresar</button>
-    <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Banco a Dpto</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Banco a Razón Social</h2>
 
     <form id="form-agregar-banco-dpto" class="space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
             <div class="flex flex-col sm:col-span-2">
-                <label for="ID_Dpto" class="mb-1 font-medium">Departamento</label>
-                <select name="ID_Dpto" id="ID_Dpto" required class="w-full px-3 py-2 border rounded-lg bg-white">
-                    <option value="">-- Seleccione Departamento --</option>
-                    <?php foreach ($departamentos as $dpto): ?>
-                        <option value="<?= $dpto['ID_Dpto'] ?>"><?= esc($dpto['Nombre']) ?> (<?= esc($dpto['PlaceNombre']) ?>)</option>
+                <label for="ID_RazonSocial" class="mb-1 font-medium">Razón Social</label>
+                <select name="ID_RazonSocial" id="ID_RazonSocial" required class="w-full px-3 py-2 border rounded-lg bg-white">
+                    <option value="">-- Seleccione Razón Social --</option>
+                    <?php foreach ($razones_sociales as $rs): ?>
+                        <option value="<?= $rs['ID_RazonSocial'] ?>"><?= esc($rs['Nombre']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -116,11 +116,11 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
             <div class="flex flex-col sm:col-span-2">
-                <label for="editar-ID_Dpto" class="mb-1 font-medium">Departamento</label>
-                <select name="ID_Dpto" id="editar-ID_Dpto" required class="w-full px-3 py-2 border rounded-lg bg-white">
-                    <option value="">-- Seleccione Departamento --</option>
-                    <?php foreach ($departamentos as $dpto): ?>
-                        <option value="<?= $dpto['ID_Dpto'] ?>"><?= esc($dpto['Nombre']) ?> (<?= esc($dpto['PlaceNombre']) ?>)</option>
+                <label for="editar-ID_RazonSocial" class="mb-1 font-medium">Razón Social</label>
+                <select name="ID_RazonSocial" id="editar-ID_RazonSocial" required class="w-full px-3 py-2 border rounded-lg bg-white">
+                    <option value="">-- Seleccione Razón Social --</option>
+                    <?php foreach ($razones_sociales as $rs): ?>
+                        <option value="<?= $rs['ID_RazonSocial'] ?>"><?= esc($rs['Nombre']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
