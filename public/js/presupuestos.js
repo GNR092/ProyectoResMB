@@ -651,10 +651,10 @@ function registrarComponenteReportePresupuesto() {
                     searchPlaceholderValue: 'Buscar departamento...'
                 });
 
-                selectEl.addEventListener('change', () => {
+                selectEl.onchange = () => {
                     this.dptosSeleccionados = this.choicesDpto.getValue(true).map(String);
                     this.aplicarFiltroLocal();
-                });
+                };
             },
 
             aplicarFiltroLocal() {
