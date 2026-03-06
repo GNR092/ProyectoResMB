@@ -208,7 +208,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-800 text-white text-[10px] uppercase tracking-wider">
                         <tr>
-                            <th class="px-6 py-3 text-left">Departamento / Banco</th>
+                            <th class="px-6 py-3 text-left">Razón Social / Cuenta Bancaria</th>
                             <th class="px-4 py-3 text-right">Saldo Inicial</th>
                             <th class="px-4 py-3 text-right">Saldo Final</th>
                             <th class="px-4 py-3 text-right">Diferencia (Uso)</th>
@@ -221,59 +221,37 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                         <tr x-show="!cargando && departamentosBancos.length === 0"><td colspan="5" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el reporte de bancos.</td></tr>
                     </tbody>
 
-                    <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
+                    <template x-for="rs in departamentosBancos" :key="rs.ID_RazonSocial">
                         <tbody class="border-t-4 border-gray-500">
+                            <!-- Cabecera de Razón Social -->
                             <tr class="bg-gray-200 font-black text-sm shadow-sm">
-                                <td class="px-6 py-3 text-gray-900 uppercase tracking-wider text-[11px]" x-text="grupoRS.nombre"></td>
-                                <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.inicial)"></td>
-                                <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.final)"></td>
-                                <td class="px-4 py-3 text-right font-black" :class="grupoRS.totales.final < grupoRS.totales.inicial ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.usado)"></td>
-                                <td class="px-4 py-3 text-center font-black" :class="grupoRS.totales.final < grupoRS.totales.inicial ? 'text-red-700' : 'text-green-700'" x-text="grupoRS.totales.porcentaje + '%'"></td>
+                                <td class="px-6 py-3 text-gray-900 uppercase tracking-wider text-[11px]">
+                                    <div class="flex flex-col">
+                                        <span x-text="rs.Nombre"></span>
+                                        <span class="text-[9px] text-gray-500 font-normal normal-case" x-text="'Incluye complejos: ' + (rs.places || []).join(', ')"></span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(rs.totales.inicial)"></td>
+                                <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(rs.totales.final)"></td>
+                                <td class="px-4 py-3 text-right font-black" :class="rs.totales.final < rs.totales.inicial ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(rs.totales.usado)"></td>
+                                <td class="px-4 py-3 text-center font-black" :class="rs.totales.final < rs.totales.inicial ? 'text-red-700' : 'text-green-700'" x-text="rs.totales.porcentaje + '%'"></td>
                             </tr>
 
-                            <template x-for="seg in grupoRS.segmentos" :key="seg.nombre">
-                                <tbody class="contents">
-                                    <tr class="bg-blue-100 border-l-4 border-blue-500 font-bold text-xs">
-                                        <td class="px-10 py-2 text-blue-900 uppercase tracking-tight border-l-4 border-blue-600" x-text="'📁 ' + seg.nombre"></td>
-                                        <td class="px-4 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.inicial)"></td>
-                                        <td class="px-4 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.final)"></td>
-                                        <td class="px-4 py-2 text-right font-bold" :class="seg.totales.final < seg.totales.inicial ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(seg.totales.usado)"></td>
-                                        <td class="px-4 py-2 text-center font-black" :class="seg.totales.final < seg.totales.inicial ? 'text-red-700' : 'text-green-800'" x-text="seg.totales.porcentaje + '%'"></td>
-                                    </tr>
-
-                                    <template x-for="complex in seg.complejos" :key="complex.nombre">
-                                        <tbody class="contents">
-                                            <tr class="bg-white font-semibold text-[11px] text-gray-500 border-b border-gray-100">
-                                                <td class="px-14 py-1 uppercase tracking-tighter" x-text="'📍 ' + complex.nombre"></td>
-                                                <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.inicial)"></td>
-                                                <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.final)"></td>
-                                                <td class="px-4 py-1 text-right" :class="complex.totales.final < complex.totales.inicial ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.usado)"></td>
-                                                <td class="px-4 py-1 text-center font-bold" :class="complex.totales.final < complex.totales.inicial ? 'text-red-600' : 'text-green-600'" x-text="complex.totales.porcentaje + '%'"></td>
-                                            </tr>
-
-                                            <template x-for="dpto in complex.departamentos" :key="dpto.ID_Dpto">
-                                                <tbody class="contents">
-                                                    <template x-for="(item, index) in [dpto, ...(dpto.detalles || [])]" :key="index">
-                                                        <tr :class="index === 0 ? 'bg-green-50/30 font-bold' : 'hover:bg-gray-50 border-b border-gray-50'">
-                                                            <td class="px-6 py-2" :class="index === 0 ? 'text-green-900 text-xs pl-20' : 'pl-28 text-gray-500 text-[11px]'">
-                                                                <span x-show="index === 0">🏢 </span>
-                                                                <span x-text="index === 0 ? dpto.Nombre : item.etiqueta"></span>
-                                                                <div x-show="index !== 0" class="text-[10px] text-gray-400" x-text="'CLABE: ' + item.clabe"></div>
-                                                            </td>
-                                                            <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.inicial) : formatearMoneda(item.inicial)"></td>
-                                                            <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.final) : formatearMoneda(item.final)"></td>
-                                                            <td class="px-4 py-2 text-right" :class="(index === 0 ? dpto.totales?.final < dpto.totales?.inicial : item.final < item.inicial) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(dpto.totales?.usado) : formatearMoneda(item.usado)"></td>
-                                                            <td class="px-4 py-2 text-center font-bold" :class="(index === 0 ? dpto.totales?.final < dpto.totales?.inicial : item.final < item.inicial) ? 'text-red-600' : 'text-green-600'" x-text="(index === 0 ? (dpto.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
-                                                        </tr>
-                                                    </template>
-                                                </tbody>
-                                            </template>
-                                        </tbody>
-                                    </template>
-                                </tbody>
+                            <!-- Cuentas Bancarias -->
+                            <template x-for="banco in rs.bancos" :key="banco.clabe">
+                                <tr class="bg-white hover:bg-gray-50 border-b border-gray-100">
+                                    <td class="px-10 py-2">
+                                        <div class="font-bold text-blue-900 text-xs" x-text="banco.banco"></div>
+                                        <div class="text-[10px] text-gray-400 font-mono" x-text="'CLABE: ' + banco.clabe"></div>
+                                    </td>
+                                    <td class="px-4 py-2 text-right text-gray-600" x-text="formatearMoneda(banco.inicial)"></td>
+                                    <td class="px-4 py-2 text-right text-gray-600" x-text="formatearMoneda(banco.final)"></td>
+                                    <td class="px-4 py-2 text-right font-semibold" :class="banco.final < banco.inicial ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(banco.usado)"></td>
+                                    <td class="px-4 py-2 text-center font-medium text-gray-500" x-text="banco.porcentaje + '%'"></td>
+                                </tr>
                             </template>
-                        </template>
-                    </tbody>
+                        </tbody>
+                    </template>
                 </table>
             </div>
         </div>
@@ -325,7 +303,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <th class="px-2 py-3 text-right">P. Disponible</th>
                             <th class="px-2 py-3 text-right">B. Inicial</th>
                             <th class="px-2 py-3 text-right">B. Final</th>
-                            <th class="px-2 py-3 text-right">B. Diferencia</th>
+                            <th class="px-4 py-3 text-right">B. Diferencia</th>
                         </tr>
                     </thead>
 
@@ -343,7 +321,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                 <td class="px-2 py-3 text-right font-black" :class="grupoRS.totales.pDisponible < 0 ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.pDisponible)"></td>
                                 <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.bInicial)"></td>
                                 <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.bFinal)"></td>
-                                <td class="px-2 py-3 text-right font-black" :class="grupoRS.totales.bFinal < grupoRS.totales.bInicial ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.bInicial - grupoRS.totales.bFinal)"></td>
+                                <td class="px-4 py-3 text-right font-black" :class="grupoRS.totales.bFinal < grupoRS.totales.bInicial ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.bInicial - grupoRS.totales.bFinal)"></td>
                             </tr>
 
                             <template x-for="seg in grupoRS.segmentos" :key="seg.nombre">
@@ -355,7 +333,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                         <td class="px-2 py-2 text-right font-bold" :class="seg.totales.pDisponible < 0 ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(seg.totales.pDisponible)"></td>
                                         <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.bInicial)"></td>
                                         <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.bFinal)"></td>
-                                        <td class="px-2 py-2 text-right font-black" :class="seg.totales.bFinal < seg.totales.bInicial ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(seg.totales.bInicial - seg.totales.bFinal)"></td>
+                                        <td class="px-4 py-2 text-right font-black" :class="seg.totales.bFinal < seg.totales.bInicial ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(seg.totales.bInicial - seg.totales.bFinal)"></td>
                                     </tr>
 
                                     <template x-for="complex in seg.complejos" :key="complex.nombre">
@@ -367,7 +345,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                 <td class="px-2 py-1 text-right" :class="complex.totales.pDisponible < 0 ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.pDisponible)"></td>
                                                 <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.bInicial)"></td>
                                                 <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.bFinal)"></td>
-                                                <td class="px-2 py-1 text-right" :class="complex.totales.bFinal < complex.totales.bInicial ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.bInicial - complex.totales.bFinal)"></td>
+                                                <td class="px-4 py-1 text-right" :class="complex.totales.bFinal < complex.totales.bInicial ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.bInicial - complex.totales.bFinal)"></td>
                                             </tr>
 
                                             <template x-for="dpto in complex.departamentos" :key="dpto.ID_Dpto">
@@ -383,7 +361,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                             <td class="px-2 py-2 text-right font-bold" :class="(index === 0 ? dpto.presupuesto?.disponible < 0 : item.disponible < 0) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.disponible) : formatearMoneda(item.disponible)"></td>
                                                             <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.bancos?.inicial) : ''"></td>
                                                             <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.bancos?.final) : ''"></td>
-                                                            <td class="px-2 py-2 text-right font-bold" :class="index === 0 ? (dpto.bancos?.final < dpto.bancos?.inicial ? 'text-red-600' : 'text-green-600') : ''" x-text="index === 0 ? formatearMoneda(dpto.bancos?.uso) : ''"></td>
+                                                            <td class="px-4 py-2 text-right font-bold" :class="index === 0 ? (dpto.bancos?.final < dpto.bancos?.inicial ? 'text-red-600' : 'text-green-600') : ''" x-text="index === 0 ? formatearMoneda(dpto.bancos?.uso) : ''"></td>
                                                         </tr>
                                                     </template>
                                                 </tbody>
@@ -392,10 +370,10 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                     </template>
                                 </tbody>
                             </template>
-                        </template>
-                    </tbody>
-                </template>
-            </table>
+                        </tbody>
+                    </template>
+                </table>
+            </div>
         </div>
     </template>
 </div>

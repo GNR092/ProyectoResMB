@@ -600,7 +600,8 @@ function registrarComponenteReportePresupuesto() {
                     const res = await fetch(`${BASE_URL}api/bancos/comparativo/${targetPlaceId}/${anio}/${parseInt(mes)}`);
                     if (res.ok) {
                         const data = await res.json();
-                        this.departamentosBancos = data.departamentos || [];
+                        // Ahora la API devuelve 'razones' directamente
+                        this.departamentosBancos = data.razones || [];
                     }
                 } catch (e) { console.error(e); }
                 finally { this.cargando = false; }
