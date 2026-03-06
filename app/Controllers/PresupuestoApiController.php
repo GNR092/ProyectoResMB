@@ -40,9 +40,23 @@ class PresupuestoApiController extends ResourceController
             ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
 
         if ($idPlace > 0) $query->where('Departamentos.ID_Place', $idPlace);
-        $departamentos = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('Nombre', 'ASC')->findAll();
+        $departamentosRaw = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('Nombre', 'ASC')->findAll();
 
-        if (empty($departamentos)) return $this->respond(['departamentos' => []]);
+        if (empty($departamentosRaw)) return $this->respond(['departamentos' => []]);
+
+        // Normalizar departamentos para Postgres
+        $departamentos = array_map(function($d) {
+            return [
+                'ID_Dpto' => $d['ID_Dpto'] ?? $d['id_dpto'] ?? 0,
+                'Nombre' => $d['Nombre'] ?? $d['nombre'] ?? '',
+                'ID_Place' => $d['ID_Place'] ?? $d['id_place'] ?? 0,
+                'ID_RazonSocial' => $d['ID_RazonSocial'] ?? $d['id_razonsocial'] ?? 0,
+                'PlaceNombre' => $d['PlaceNombre'] ?? $d['placenombre'] ?? '',
+                'RazonSocialNombre' => $d['RazonSocialNombre'] ?? $d['razonsocialnombre'] ?? '',
+                'SegmentoNombre' => $d['SegmentoNombre'] ?? $d['segmentonombre'] ?? 'Sin Segmento',
+            ];
+        }, $departamentosRaw);
+
         $dptoIds = array_column($departamentos, 'ID_Dpto');
 
         // 2. Obtener Datos de Presupuesto con Nombres de Grupos (Agrupado por meses)
@@ -72,9 +86,20 @@ class PresupuestoApiController extends ResourceController
 
         // 3. Obtener Datos de Bancos por Razón Social (Rango de meses)
         $rsIds = array_unique(array_filter(array_column($departamentos, 'ID_RazonSocial')));
-        $bancos = !empty($rsIds) ? $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll() : [];
+        $bancosRaw = !empty($rsIds) ? $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll() : [];
+        
+        // Normalizar bancos
+        $bancos = array_map(function($b) {
+            return [
+                'ID_BancoDpto' => $b['ID_BancoDpto'] ?? $b['id_bancodpto'] ?? 0,
+                'ID_RazonSocial' => $b['ID_RazonSocial'] ?? $b['id_razonsocial'] ?? 0,
+                'Banco' => $b['Banco'] ?? $b['banco'] ?? '',
+                'Clabe' => $b['Clabe'] ?? $b['clabe'] ?? '',
+            ];
+        }, $bancosRaw);
+
         $bancoIds = array_column($bancos, 'ID_BancoDpto');
-        $saldos = !empty($bancoIds) ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->whereIn('mes', $meses)->findAll() : [];
+        $saldosRaw = !empty($bancoIds) ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->whereIn('mes', $meses)->findAll() : [];
 
         // Normalizar claves de saldos para Postgres
         $saldos = array_map(function($s) {
@@ -84,7 +109,7 @@ class PresupuestoApiController extends ResourceController
                 'saldo_inicial' => $s['saldo_inicial'] ?? $s['Saldo_Inicial'] ?? 0,
                 'saldo_final' => $s['saldo_final'] ?? $s['Saldo_Final'] ?? 0,
             ];
-        }, $saldos);
+        }, $saldosRaw);
 
         $minMes = min($meses);
         $maxMes = max($meses);
@@ -123,11 +148,25 @@ class PresupuestoApiController extends ResourceController
             if (!in_array($idRazonSocial, $rsProcesadasBancos)) {
                 foreach ($bancos as $b) {
                     if ((int)$b['ID_RazonSocial'] === $idRazonSocial) {
-                        $sMin = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && (int)$item['mes'] === (int)$minMes))[0] ?? null;
-                        $sMax = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && (int)$item['mes'] === (int)$maxMes))[0] ?? null;
-                        
-                        $bInicial += (float)($sMin['saldo_inicial'] ?? 0);
-                        $bFinal   += (float)($sMax['saldo_final'] ?? 0);
+                        $saldosEsteBanco = array_filter($saldos, fn($item) => 
+                            (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && 
+                            in_array((int)$item['mes'], $meses)
+                        );
+
+                        if (!empty($saldosEsteBanco)) {
+                            usort($saldosEsteBanco, fn($a, $b) => (int)$a['mes'] <=> (int)$b['mes']);
+                            $sMin = reset($saldosEsteBanco);
+                            $sMax = end($saldosEsteBanco);
+                            
+                            $bInicial += (float)($sMin['saldo_inicial'] ?? 0);
+                            
+                            $fVal = (float)($sMax['saldo_final'] ?? 0);
+                            // Fallback: si el mes más reciente no tiene saldo final (es 0), usamos su inicial como saldo actual
+                            if ($fVal == 0 && (float)($sMax['saldo_inicial'] ?? 0) != 0) {
+                                $fVal = (float)$sMax['saldo_inicial'];
+                            }
+                            $bFinal += $fVal;
+                        }
                     }
                 }
                 $rsProcesadasBancos[] = $idRazonSocial;
@@ -178,28 +217,49 @@ class PresupuestoApiController extends ResourceController
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial');
 
         if ($idPlace > 0) $query->where('Departamentos.ID_Place', $idPlace);
-        $departamentos = $query->orderBy('RazonSocialNombre', 'ASC')->findAll();
+        $departamentosRaw = $query->orderBy('RazonSocialNombre', 'ASC')->findAll();
 
-        if (empty($departamentos)) return $this->respond(['razones' => []]);
+        if (empty($departamentosRaw)) return $this->respond(['razones' => []]);
+
+        // Normalizar departamentos
+        $departamentos = array_map(function($d) {
+            return [
+                'ID_Dpto' => $d['ID_Dpto'] ?? $d['id_dpto'] ?? 0,
+                'ID_RazonSocial' => $d['ID_RazonSocial'] ?? $d['id_razonsocial'] ?? 0,
+                'PlaceNombre' => $d['PlaceNombre'] ?? $d['placenombre'] ?? '',
+                'RazonSocialNombre' => $d['RazonSocialNombre'] ?? $d['razonsocialnombre'] ?? '',
+            ];
+        }, $departamentosRaw);
 
         // 2. Obtener Bancos y Saldos de las Razones Sociales encontradas
         $rsIds = array_unique(array_column($departamentos, 'ID_RazonSocial'));
-        $bancos = $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll();
+        $bancosRaw = $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll();
+        
+        // Normalizar bancos
+        $bancos = array_map(function($b) {
+            return [
+                'ID_BancoDpto' => $b['ID_BancoDpto'] ?? $b['id_bancodpto'] ?? 0,
+                'ID_RazonSocial' => $b['ID_RazonSocial'] ?? $b['id_razonsocial'] ?? 0,
+                'Banco' => $b['Banco'] ?? $b['banco'] ?? '',
+                'Clabe' => $b['Clabe'] ?? $b['clabe'] ?? '',
+            ];
+        }, $bancosRaw);
+
         $bancoIds = array_column($bancos, 'ID_BancoDpto');
         
-        $saldos = !empty($bancoIds) 
+        $saldosRaw = !empty($bancoIds) 
             ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->whereIn('mes', $meses)->findAll() 
             : [];
 
         // Normalizar saldos para Postgres (claves en minúscula)
         $saldos = array_map(function($s) {
             return [
-                'id_bancodpto' => $s['id_bancodpto'] ?? 0,
-                'mes' => $s['mes'] ?? 0,
-                'saldo_inicial' => $s['saldo_inicial'] ?? 0,
-                'saldo_final' => $s['saldo_final'] ?? 0
+                'id_bancodpto' => $s['id_bancodpto'] ?? $s['ID_BancoDpto'] ?? 0,
+                'mes' => $s['mes'] ?? $s['Mes'] ?? 0,
+                'saldo_inicial' => $s['saldo_inicial'] ?? $s['Saldo_Inicial'] ?? 0,
+                'saldo_final' => $s['saldo_final'] ?? $s['Saldo_Final'] ?? 0
             ];
-        }, $saldos);
+        }, $saldosRaw);
 
         // 3. Estructurar por Razón Social
         $resultado = [];
@@ -211,23 +271,37 @@ class PresupuestoApiController extends ResourceController
             // Filtrar bancos de esta RS
             foreach ($bancos as $b) {
                 if ((int)$b['ID_RazonSocial'] === (int)$idRS) {
-                    $sMin = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && (int)$item['mes'] === (int)$minMes))[0] ?? null;
-                    $sMax = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && (int)$item['mes'] === (int)$maxMes))[0] ?? null;
-                    
-                    $inicial = (float)($sMin['saldo_inicial'] ?? 0);
-                    $final   = (float)($sMax['saldo_final'] ?? 0);
-                    $usado   = $inicial - $final;
+                    $saldosEsteBanco = array_filter($saldos, fn($item) => 
+                        (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && 
+                        in_array((int)$item['mes'], $meses)
+                    );
 
-                    $bancosRS[] = [
-                        'banco'   => $b['Banco'],
-                        'clabe'   => $b['Clabe'],
-                        'inicial' => $inicial,
-                        'final'   => $final,
-                        'usado'   => $usado,
-                        'porcentaje' => $inicial > 0 ? round(($usado / $inicial) * 100, 2) : 0
-                    ];
-                    $totalInicial += $inicial;
-                    $totalFinal += $final;
+                    if (!empty($saldosEsteBanco)) {
+                        usort($saldosEsteBanco, fn($a, $b) => (int)$a['mes'] <=> (int)$b['mes']);
+                        $sMin = reset($saldosEsteBanco);
+                        $sMax = end($saldosEsteBanco);
+                        
+                        $inicial = (float)($sMin['saldo_inicial'] ?? 0);
+                        $final = (float)($sMax['saldo_final'] ?? 0);
+                        
+                        // Fallback para meses en curso sin saldo final cerrado
+                        if ($final == 0 && (float)($sMax['saldo_inicial'] ?? 0) != 0) {
+                            $final = (float)$sMax['saldo_inicial'];
+                        }
+                        
+                        $usado = $inicial - $final;
+
+                        $bancosRS[] = [
+                            'banco'   => $b['Banco'],
+                            'clabe'   => $b['Clabe'],
+                            'inicial' => $inicial,
+                            'final'   => $final,
+                            'usado'   => $usado,
+                            'porcentaje' => $inicial > 0 ? round(($usado / $inicial) * 100, 2) : 0
+                        ];
+                        $totalInicial += $inicial;
+                        $totalFinal += $final;
+                    }
                 }
             }
 
@@ -276,14 +350,27 @@ class PresupuestoApiController extends ResourceController
             $query->where('Departamentos.ID_Place', $idPlace);
         }
 
-        $departamentos = $query->orderBy('RazonSocialNombre', 'ASC')
+        $departamentosRaw = $query->orderBy('RazonSocialNombre', 'ASC')
             ->orderBy('PlaceNombre', 'ASC')
             ->orderBy('Nombre', 'ASC')
             ->findAll();
 
-        if (empty($departamentos)) {
+        if (empty($departamentosRaw)) {
             return $this->respond(['departamentos' => [], 'totales_generales' => $this->getTotalesCero()]);
         }
+
+        // Normalizar departamentos
+        $departamentos = array_map(function($d) {
+            return [
+                'ID_Dpto' => $d['ID_Dpto'] ?? $d['id_dpto'] ?? 0,
+                'Nombre' => $d['Nombre'] ?? $d['nombre'] ?? '',
+                'ID_Place' => $d['ID_Place'] ?? $d['id_place'] ?? 0,
+                'ID_RazonSocial' => $d['ID_RazonSocial'] ?? $d['id_razonsocial'] ?? 0,
+                'PlaceNombre' => $d['PlaceNombre'] ?? $d['placenombre'] ?? '',
+                'RazonSocialNombre' => $d['RazonSocialNombre'] ?? $d['razonsocialnombre'] ?? '',
+                'SegmentoNombre' => $d['SegmentoNombre'] ?? $d['segmentonombre'] ?? 'Sin Segmento',
+            ];
+        }, $departamentosRaw);
 
         $dptoIds = array_column($departamentos, 'ID_Dpto');
 
@@ -398,27 +485,50 @@ class PresupuestoApiController extends ResourceController
         $saldosModel = new SaldosBancariosModel();
 
         // 1. Obtener la Razón Social
-        $razonSocial = $rsModel->find($idRazonSocial);
-        if (!$razonSocial) {
+        $razonSocialRaw = $rsModel->find($idRazonSocial);
+        if (!$razonSocialRaw) {
             return $this->respond(['razones' => []]);
         }
+        
+        $razonSocial = [
+            'ID_RazonSocial' => $razonSocialRaw['ID_RazonSocial'] ?? $razonSocialRaw['id_razonsocial'] ?? $idRazonSocial,
+            'Nombre' => $razonSocialRaw['Nombre'] ?? $razonSocialRaw['nombre'] ?? '',
+        ];
 
         // 2. Bancos de esa Razón Social
-        $bancos = $bancoModel->where('ID_RazonSocial', $idRazonSocial)
+        $bancosRaw = $bancoModel->where('ID_RazonSocial', $idRazonSocial)
             ->orderBy('Banco', 'ASC')
             ->findAll();
 
-        if (empty($bancos)) {
+        if (empty($bancosRaw)) {
             return $this->respond(['razones' => []]);
         }
+
+        $bancos = array_map(function($b) {
+            return [
+                'ID_BancoDpto' => $b['ID_BancoDpto'] ?? $b['id_bancodpto'] ?? 0,
+                'ID_RazonSocial' => $b['ID_RazonSocial'] ?? $b['id_razonsocial'] ?? 0,
+                'Banco' => $b['Banco'] ?? $b['banco'] ?? '',
+                'Clabe' => $b['Clabe'] ?? $b['clabe'] ?? '',
+            ];
+        }, $bancosRaw);
 
         $bancoIds = array_column($bancos, 'ID_BancoDpto');
 
         // 3. Saldos guardados para el mes/año
-        $saldosGuardados = $saldosModel->whereIn('id_bancodpto', $bancoIds)
+        $saldosGuardadosRaw = $saldosModel->whereIn('id_bancodpto', $bancoIds)
             ->where('anio', $anio)
             ->where('mes', $mes)
             ->findAll();
+
+        $saldosGuardados = array_map(function($s) {
+            return [
+                'id' => $s['id'] ?? $s['ID'] ?? 0,
+                'id_bancodpto' => $s['id_bancodpto'] ?? $s['ID_BancoDpto'] ?? 0,
+                'saldo_inicial' => $s['saldo_inicial'] ?? $s['Saldo_Inicial'] ?? 0,
+                'saldo_final' => $s['saldo_final'] ?? $s['Saldo_Final'] ?? 0,
+            ];
+        }, $saldosGuardadosRaw);
 
         $bancosConSaldos = [];
         foreach ($bancos as $banco) {
