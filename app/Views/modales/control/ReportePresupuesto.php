@@ -331,9 +331,10 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                         <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pAsignado)"></td>
                                         <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pGastado)"></td>
                                         <td class="px-2 py-2 text-right font-bold" :class="seg.totales.pDisponible < 0 ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(seg.totales.pDisponible)"></td>
-                                        <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.bInicial)"></td>
-                                        <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.bFinal)"></td>
-                                        <td class="px-4 py-2 text-right font-black" :class="seg.totales.bFinal < seg.totales.bInicial ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(seg.totales.bInicial - seg.totales.bFinal)"></td>
+                                        <!-- Bancos vacíos en Segmentos -->
+                                        <td class="px-2 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-2 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-4 py-2 text-right text-gray-400">-</td>
                                     </tr>
 
                                     <template x-for="complex in seg.complejos" :key="complex.nombre">
@@ -343,9 +344,10 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                 <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pAsignado)"></td>
                                                 <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pGastado)"></td>
                                                 <td class="px-2 py-1 text-right" :class="complex.totales.pDisponible < 0 ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.pDisponible)"></td>
-                                                <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.bInicial)"></td>
-                                                <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.bFinal)"></td>
-                                                <td class="px-4 py-1 text-right" :class="complex.totales.bFinal < complex.totales.bInicial ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.bInicial - complex.totales.bFinal)"></td>
+                                                <!-- Bancos vacíos en Places -->
+                                                <td class="px-2 py-1 text-right text-gray-300">-</td>
+                                                <td class="px-2 py-1 text-right text-gray-300">-</td>
+                                                <td class="px-4 py-1 text-right text-gray-300">-</td>
                                             </tr>
 
                                             <template x-for="dpto in complex.departamentos" :key="dpto.ID_Dpto">
@@ -359,9 +361,10 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                             <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.asignado) : formatearMoneda(item.asignado)"></td>
                                                             <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.gastado) : formatearMoneda(item.gastado)"></td>
                                                             <td class="px-2 py-2 text-right font-bold" :class="(index === 0 ? dpto.presupuesto?.disponible < 0 : item.disponible < 0) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.disponible) : formatearMoneda(item.disponible)"></td>
-                                                            <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.bancos?.inicial) : ''"></td>
-                                                            <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.bancos?.final) : ''"></td>
-                                                            <td class="px-4 py-2 text-right font-bold" :class="index === 0 ? (dpto.bancos?.final < dpto.bancos?.inicial ? 'text-red-600' : 'text-green-600') : ''" x-text="index === 0 ? formatearMoneda(dpto.bancos?.uso) : ''"></td>
+                                                            <!-- Bancos vacíos en Departamentos y Grupos -->
+                                                            <td class="px-2 py-2 text-right text-gray-200">-</td>
+                                                            <td class="px-2 py-2 text-right text-gray-200">-</td>
+                                                            <td class="px-4 py-2 text-right text-gray-200">-</td>
                                                         </tr>
                                                     </template>
                                                 </tbody>

@@ -490,11 +490,12 @@ function registrarComponenteReportePresupuesto() {
                         totales.final += parseFloat(d.totales?.final || 0);
                         totales.usado += parseFloat(d.totales?.usado || 0);
                     } else if (this.pantalla === 'completo') {
+                        // Presupuesto: Sumar en todos los niveles
                         totales.pAsignado += parseFloat(d.presupuesto?.asignado || 0);
                         totales.pGastado += parseFloat(d.presupuesto?.gastado || 0);
-                        totales.bInicial += parseFloat(d.bancos?.inicial || 0);
-                        totales.bFinal += parseFloat(d.bancos?.final || 0);
                         totales.pDisponible += parseFloat(d.presupuesto?.disponible || 0);
+                        // Bancos: NO sumamos aquí para niveles inferiores (Segmento/Place), 
+                        // lo haremos directamente en el objeto RS abajo.
                     } else {
                         totales.asignado += parseFloat(d.totales?.asignado || 0);
                         totales.comprometido += parseFloat(d.totales?.comprometido || 0);
@@ -523,6 +524,12 @@ function registrarComponenteReportePresupuesto() {
                         rsGrupos.push(rs);
                     }
                     sumar(rs.totales, d);
+                    
+                    // Bancos: Sumar SOLO al nivel de RS (Pantalla Completo)
+                    if (this.pantalla === 'completo') {
+                        rs.totales.bInicial += parseFloat(d.bancos?.inicial || 0);
+                        rs.totales.bFinal += parseFloat(d.bancos?.final || 0);
+                    }
 
                     let seg = rs.segmentos.find(s => s.nombre === segNombre);
                     if (!seg) {

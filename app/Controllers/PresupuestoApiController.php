@@ -30,8 +30,8 @@ class PresupuestoApiController extends ResourceController
         $bancoModel = new BancoDptoModel();
         $saldosModel = new SaldosBancariosModel();
 
-        // 1. Obtener estructura base
-        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
+        // 1. Obtener estructura base (Importante: incluir ID_RazonSocial)
+        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
             ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
@@ -42,56 +42,43 @@ class PresupuestoApiController extends ResourceController
         if (empty($departamentos)) return $this->respond(['departamentos' => []]);
         $dptoIds = array_column($departamentos, 'ID_Dpto');
 
-        // 2. Obtener Datos de Presupuesto
-        $presupuestos = $presupuestoMensualModel->whereIn('ID_Dpto', $dptoIds)->where('Anio', $anio)->where('Mes', $mes)->findAll();
+        // 2. Obtener Datos de Presupuesto con Nombres de Grupos (Optimizado con Join)
+        $presupuestos = $presupuestoMensualModel
+            ->select('PresupuestoMensual.*, GrupoPresupuestal.Nombre as GrupoNombre')
+            ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
+            ->whereIn('PresupuestoMensual.ID_Dpto', $dptoIds)
+            ->where('Anio', $anio)
+            ->where('Mes', $mes)
+            ->findAll();
 
-        // 3. Obtener Datos de Bancos por Razón Social de los departamentos
-        $rsIds = array_unique(array_column($departamentos, 'ID_RazonSocial'));
+        // 3. Obtener Datos de Bancos por Razón Social
+        $rsIds = array_unique(array_filter(array_column($departamentos, 'ID_RazonSocial')));
         $bancos = !empty($rsIds) ? $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll() : [];
         $bancoIds = array_column($bancos, 'ID_BancoDpto');
         $saldos = !empty($bancoIds) ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->where('mes', $mes)->findAll() : [];
 
         $estructura = [];
+        $rsProcesadasBancos = []; // Para evitar duplicar saldos bancarios en los totales de JS
+
         foreach ($departamentos as $dpto) {
             $idDpto = (int)$dpto['ID_Dpto'];
             $idRazonSocial = (int)$dpto['ID_RazonSocial'];
 
-            // Consolidar Presupuesto
-            $pAsignado = 0; $pComprometido = 0; $pEjecutado = 0;
-            foreach ($presupuestos as $p) {
-                if ((int)$p['ID_Dpto'] === $idDpto) {
-                    $pAsignado += (float)$p['Monto_Asignado'];
-                    $pComprometido += (float)$p['Monto_Comprometido'];
-                    $pEjecutado += (float)$p['Monto_Ejecutado'];
-                }
-            }
-
-            // Consolidar Bancos de la Razón Social a la que pertenece el departamento
-            $bInicial = 0; $bFinal = 0;
-            foreach ($bancos as $b) {
-                if ((int)$b['ID_RazonSocial'] === $idRazonSocial) {
-                    $s = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto']))[0] ?? null;
-                    $bInicial += (float)($s['saldo_inicial'] ?? 0);
-                    $bFinal   += (float)($s['saldo_final'] ?? 0);
-                }
-            }
-
-            $totalGasto = $pComprometido + $pEjecutado;
-            $disponible = $pAsignado - $totalGasto;
-
             // Obtener desglose de grupos para este departamento
             $analisisGrupos = [];
+            $pAsignado = 0; $pComprometido = 0; $pEjecutado = 0;
+
             foreach ($presupuestos as $p) {
                 if ((int)$p['ID_Dpto'] === $idDpto) {
                     $gAsignado = (float)$p['Monto_Asignado'];
                     $gGastado  = (float)$p['Monto_Comprometido'] + (float)$p['Monto_Ejecutado'];
                     
-                    // Buscar nombre del grupo
-                    $db = \Config\Database::connect();
-                    $grupoInfo = $db->table('GrupoPresupuestal')->where('ID_GrupoPresupuestal', $p['ID_GrupoPresupuestal'])->get()->getRow();
+                    $pAsignado += $gAsignado;
+                    $pComprometido += (float)$p['Monto_Comprometido'];
+                    $pEjecutado += (float)$p['Monto_Ejecutado'];
 
                     $analisisGrupos[] = [
-                        'nombre'     => $grupoInfo ? $grupoInfo->Nombre : 'Grupo Desconocido',
+                        'etiqueta'   => $p['GrupoNombre'] ?? 'Grupo Desconocido',
                         'asignado'   => $gAsignado,
                         'gastado'    => $gGastado,
                         'disponible' => $gAsignado - $gGastado
@@ -99,13 +86,29 @@ class PresupuestoApiController extends ResourceController
                 }
             }
 
+            // Consolidar Bancos (Solo para el primer departamento de cada Razón Social que encontremos)
+            $bInicial = 0; $bFinal = 0;
+            if (!in_array($idRazonSocial, $rsProcesadasBancos)) {
+                foreach ($bancos as $b) {
+                    if ((int)$b['ID_RazonSocial'] === $idRazonSocial) {
+                        $s = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto']))[0] ?? null;
+                        $bInicial += (float)($s['saldo_inicial'] ?? 0);
+                        $bFinal   += (float)($s['saldo_final'] ?? 0);
+                    }
+                }
+                $rsProcesadasBancos[] = $idRazonSocial;
+            }
+
+            $totalGasto = $pComprometido + $pEjecutado;
+            $disponible = $pAsignado - $totalGasto;
+
             $estructura[] = [
                 'ID_Dpto' => $idDpto,
                 'Nombre' => $dpto['Nombre'],
                 'PlaceNombre' => $dpto['PlaceNombre'],
                 'RazonSocialNombre' => $dpto['RazonSocialNombre'],
                 'SegmentoNombre' => $dpto['SegmentoNombre'] ?? 'Sin Segmento',
-                'grupos' => $analisisGrupos,
+                'detalles' => $analisisGrupos,
                 'presupuesto' => [
                     'asignado' => $pAsignado,
                     'gastado' => $totalGasto,
@@ -130,77 +133,78 @@ class PresupuestoApiController extends ResourceController
         $bancoModel = new BancoDptoModel();
         $saldosModel = new SaldosBancariosModel();
 
-        // 1. Departamentos
-        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
+        // 1. Departamentos (Para saber qué RS y Places están involucrados)
+        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial, Razon_Social.Nombre as RazonSocialNombre')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
-            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
-            ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial');
 
         if ($idPlace > 0) $query->where('Departamentos.ID_Place', $idPlace);
+        $departamentos = $query->orderBy('RazonSocialNombre', 'ASC')->findAll();
 
-        $departamentos = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('PlaceNombre', 'ASC')->findAll();
+        if (empty($departamentos)) return $this->respond(['razones' => []]);
 
-        if (empty($departamentos)) return $this->respond(['departamentos' => []]);
-
-        $dptoIds = array_column($departamentos, 'ID_Dpto');
-
-        // 2. Bancos y Saldos por Razón Social
+        // 2. Obtener Bancos y Saldos de las Razones Sociales encontradas
         $rsIds = array_unique(array_column($departamentos, 'ID_RazonSocial'));
-        $bancos = !empty($rsIds) ? $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll() : [];
+        $bancos = $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll();
         $bancoIds = array_column($bancos, 'ID_BancoDpto');
+        
+        $saldos = !empty($bancoIds) 
+            ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->where('mes', $mes)->findAll() 
+            : [];
 
-        $saldos = [];
-        if (!empty($bancoIds)) {
-            $saldos = $saldosModel->whereIn('id_bancodpto', $bancoIds)
-                ->where('anio', $anio)
-                ->where('mes', $mes)
-                ->findAll();
-        }
+        // 3. Estructurar por Razón Social
+        $resultado = [];
+        foreach ($rsIds as $idRS) {
+            $nombreRS = '';
+            $bancosRS = [];
+            $totalInicial = 0; $totalFinal = 0;
 
-        $estructura = [];
-        foreach ($departamentos as $dpto) {
-            $analisisBancos = [];
-            $totalDptoInicial = 0;
-            $totalDptoFinal = 0;
-            $idRazonSocial = (int)$dpto['ID_RazonSocial'];
-
+            // Filtrar bancos de esta RS
             foreach ($bancos as $b) {
-                if ((int)$b['ID_RazonSocial'] === $idRazonSocial) {
+                if ((int)$b['ID_RazonSocial'] === (int)$idRS) {
                     $s = array_values(array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto']))[0] ?? null;
                     
                     $inicial = (float)($s['saldo_inicial'] ?? 0);
                     $final   = (float)($s['saldo_final'] ?? 0);
                     $usado   = $inicial - $final;
-                    $porcentaje = $inicial > 0 ? ($usado / $inicial) * 100 : 0;
 
-                    $analisisBancos[] = [
+                    $bancosRS[] = [
                         'banco'   => $b['Banco'],
                         'clabe'   => $b['Clabe'],
                         'inicial' => $inicial,
                         'final'   => $final,
                         'usado'   => $usado,
-                        'porcentaje' => round($porcentaje, 2)
+                        'porcentaje' => $inicial > 0 ? round(($usado / $inicial) * 100, 2) : 0
                     ];
-
-                    $totalDptoInicial += $inicial;
-                    $totalDptoFinal += $final;
+                    $totalInicial += $inicial;
+                    $totalFinal += $final;
                 }
             }
 
-            if (!empty($analisisBancos)) {
-                $totalUsado = $totalDptoInicial - $totalDptoFinal;
-                $dpto['analisis'] = $analisisBancos;
-                $dpto['totales'] = [
-                    'inicial' => $totalDptoInicial,
-                    'final'   => $totalDptoFinal,
-                    'usado'   => $totalUsado,
-                    'porcentaje' => $totalDptoInicial > 0 ? round(($totalUsado / $totalDptoInicial) * 100, 2) : 0
-                ];
-                $estructura[] = $dpto;
+            // Obtener nombre de la RS y sus complejos (Places) para contexto
+            $placesContexto = [];
+            foreach ($departamentos as $d) {
+                if ((int)$d['ID_RazonSocial'] === (int)$idRS) {
+                    $nombreRS = $d['RazonSocialNombre'];
+                    $placesContexto[] = $d['PlaceNombre'];
+                }
             }
+
+            $resultado[] = [
+                'ID_RazonSocial' => $idRS,
+                'Nombre' => $nombreRS,
+                'bancos' => $bancosRS,
+                'places' => array_values(array_unique($placesContexto)),
+                'totales' => [
+                    'inicial' => $totalInicial,
+                    'final'   => $totalFinal,
+                    'usado'   => $totalInicial - $totalFinal,
+                    'porcentaje' => $totalInicial > 0 ? round((($totalInicial - $totalFinal) / $totalInicial) * 100, 2) : 0
+                ]
+            ];
         }
 
-        return $this->respond(['departamentos' => $estructura]);
+        return $this->respond(['razones' => $resultado]);
     }
 
     public function getComparativo($idPlace, $anio, $mes)
@@ -208,8 +212,8 @@ class PresupuestoApiController extends ResourceController
         $dptoModel = new DepartamentosModel();
         $presupuestoMensualModel = new PresupuestoMensualModel();
 
-        // 1. Configurar consulta base de departamentos
-        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
+        // 1. Configurar consulta base de departamentos (Incluir ID_RazonSocial)
+        $query = $dptoModel->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
             ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
@@ -261,7 +265,7 @@ class PresupuestoApiController extends ResourceController
                     $porcentaje   = $asignado > 0 ? ($totalGasto / $asignado) * 100 : 0;
 
                     $analisisDpto[] = [
-                        'grupo'        => $pm['GrupoNombre'],
+                        'etiqueta'     => $pm['GrupoNombre'],
                         'asignado'     => $asignado,
                         'comprometido' => $comprometido,
                         'ejecutado'    => $ejecutado,
@@ -277,7 +281,7 @@ class PresupuestoApiController extends ResourceController
 
             if (!empty($analisisDpto)) {
                 $totalDptoGasto = $totalDptoComprometido + $totalDptoEjecutado;
-                $dpto['analisis'] = $analisisDpto;
+                $dpto['detalles'] = $analisisDpto;
                 $dpto['totales'] = [
                     'asignado'     => $totalDptoAsignado,
                     'comprometido' => $totalDptoComprometido,
