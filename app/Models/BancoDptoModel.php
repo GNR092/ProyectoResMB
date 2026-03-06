@@ -14,7 +14,7 @@ class BancoDptoModel extends Model
     protected $protectFields    = true;
 
     protected $allowedFields    = [
-        'ID_Dpto',
+        'ID_RazonSocial',
         'Clabe',
         'Banco'
     ];
@@ -26,10 +26,10 @@ class BancoDptoModel extends Model
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
 
-    // Helper para traer nombre del departamento
-    public function withDepartamento()
+    // Helper para traer nombre de la razón social
+    public function withRazonSocial()
     {
-        return $this->select('BancoDpto.*, Departamentos.Nombre as Dpto_Nombre')
-            ->join('Departamentos', 'Departamentos.ID_Dpto = BancoDpto.ID_Dpto', 'left');
+        return $this->select('BancoDpto.*, Razon_Social.Nombre as RazonSocial_Nombre')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = BancoDpto.ID_RazonSocial', 'left');
     }
 }

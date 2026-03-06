@@ -13,7 +13,6 @@ class OrdenCompraModel extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
 
-    // CAMBIO AQUÍ: Se agrega 'ID_GrupoPresupuestal'
     protected $allowedFields    = [
         'ID_Cotizacion',
         'ID_Proveedor',

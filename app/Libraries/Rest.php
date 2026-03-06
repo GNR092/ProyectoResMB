@@ -3,7 +3,6 @@ namespace App\Libraries;
 use App\Models\CotizacionModel;
 use App\Models\CuentasModel;
 use App\Models\DepartamentosModel;
-use App\Models\DetalleModel;
 use App\Models\OrdenCompraModel;
 use App\Models\PagoModel;
 use App\Models\PlacesModel;
