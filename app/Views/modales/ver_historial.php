@@ -71,7 +71,7 @@
             <tbody>
             </tbody>
         </table>
-        <div id="paginacion-historial" class="flex justify-center mt-4 space-x-2"></div>
+        <div id="paginacion-historial" class="flex flex-wrap justify-center mt-4 gap-2"></div>
     </div>
 </div>
 

@@ -35,17 +35,13 @@
                 </tr>
                 </thead>
                 <tbody id="tablaListaPagos">
-                <template x-if="loading">
-                    <tr>
-                        <td colspan="7" class="text-center py-4">Cargando pagos...</td>
-                    </tr>
-                </template>
-                <template x-if="!loading && pagosFiltrados.length === 0">
-                    <tr>
-                        <td colspan="7" class="text-center py-4 text-gray-500">No hay pagos programados que coincidan con el filtro.</td>
-                    </tr>
-                </template>
-                <template x-for="pago in pagosFiltrados" :key="pago.ID_Solicitud">
+                <tr x-show="loading">
+                    <td colspan="9" class="text-center py-4">Cargando pagos...</td>
+                </tr>
+                <tr x-show="!loading && pagosFiltrados.length === 0">
+                    <td colspan="9" class="text-center py-4 text-gray-500">No hay pagos programados que coincidan con el filtro.</td>
+                </tr>
+                <template x-for="(pago, idx) in pagosFiltrados" :key="`pago-${idx}`">
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 px-4 border-t" x-text="pago.No_Folio"></td>
                         <td class="py-2 px-4 border-t" x-text="formatDate(pago.FechaOrden)"></td>

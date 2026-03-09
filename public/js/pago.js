@@ -351,69 +351,6 @@ function Pagos() {
   };
 }
 
-function ListaPagos() {
-  return {
-    pagos: [],
-    loading: true,
-    filtroMetodoPago: 'todos',
-
-    get pagosFiltrados() {
-      if (this.filtroMetodoPago === 'todos') {
-        return this.pagos
-      }
-      return this.pagos.filter((p) => p.MetodoPago === this.filtroMetodoPago)
-    },
-
-    async init() {
-      this.loading = true
-      this.pagos = [];
-      try {
-        const url = `api/pagos/programados?t=${new Date().getTime()}`;
-        const listpagos = await SendDataEnd(url);
-
-        if (!listpagos || listpagos.length === 0) {
-          this.pagos = []
-          return
-        }
-        this.pagos = listpagos
-      } catch (error) {
-        console.error('Error al cargar pagos programados:', error)
-        this.pagos = []
-      } finally {
-        this.loading = false
-      }
-    },
-
-    formatCurrency(value) {
-      if (value === null || isNaN(value)) return 'N/A'
-      return parseFloat(value).toLocaleString('es-MX', {
-        style: 'currency',
-        currency: 'MXN',
-      })
-    },
-
-    formatDate(dateString) {
-      if (!dateString) return 'N/A';
-      // Crea fecha y formatea a DD/MM/AAAA
-      const date = new Date(dateString);
-      return date.toLocaleDateString('es-MX', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-    },
-
-    exportarExcel() {
-      let url = `${BASE_URL}api/pagos/exportar`
-      if (this.filtroMetodoPago !== 'todos') {
-        url += `?metodo_pago=${this.filtroMetodoPago}`
-      }
-      window.location.href = url
-    },
-  }
-}
-
-
 /**
  * Lógica para el modal "Lista de pagos pendientes"
  */
@@ -434,20 +371,23 @@ function ListaPagos() {
     async init() {
       this.loading = true
       this.pagos = [];
+      const root = this.$el;
       try {
         const url = `api/pagos/programados?t=${new Date().getTime()}`;
         const listpagos = await SendDataEnd(url);
 
-        if (!listpagos || listpagos.length === 0) {
+        if (!document.body.contains(root)) return;
+
+        if (!Array.isArray(listpagos) || listpagos.length === 0) {
           this.pagos = []
           return
         }
         this.pagos = listpagos
       } catch (error) {
         console.error('Error al cargar pagos programados:', error)
-        this.pagos = []
+        if (document.body.contains(root)) this.pagos = []
       } finally {
-        this.loading = false
+        if (document.body.contains(root)) this.loading = false
       }
     },
 
@@ -479,26 +419,6 @@ function ListaPagos() {
       window.location.href = url
     },
   }
-}
-
-async function initListaPagos() {
-  createPaginatedTable({
-    tableSelector: '#tablaListaPagos',
-    paginationSelector: 'paginacion-lista-pagos',
-    endpoint: 'api/pagos/all',
-    renderRow: (p) => `
-      <tr class="hover:bg-gray-50">
-          <td class="py-3 px-6 text-left">${p.Folio || 'N/A'}</td>
-          <td class="py-3 px-6 text-left">${p.Proveedor || 'N/A'}</td>
-          <td class="py-3 px-6 text-right">$${parseFloat(p.Total).toFixed(2)}</td>
-          <td class="py-3 px-6 text-left">${p.Estado || 'N/A'}</td>
-          <td class="py-3 px-6 text-center">
-              <button onclick="mostrarDetallePago(${p.ID_Pago || p.ID_Solicitud})" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">Ver</button>
-          </td>
-      </tr>
-    `,
-    noResultsMessage: 'No hay pagos registrados.',
-  })
 }
 
 function renderComprobanteUploader(idSolicitud) {

@@ -163,7 +163,6 @@ Tasks.md
 composer.lock
 GEMINI.md
 app/Commands/SendTestEmail.php
-/app/Commands
 agent.bat
 .gemini/settings.json
 public/js/mbscript.min.js
@@ -171,4 +170,7 @@ public/js/reportesScript.min.js
 /writable/temp
 [Tt]est.txt
 /Updates
-/Pruebas
+.claude/settings.local.json
+AGENTS.md
+CLAUDE.md
+Pruebas/PresupuestoMensual.png
