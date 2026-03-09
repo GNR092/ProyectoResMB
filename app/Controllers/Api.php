@@ -298,6 +298,11 @@ class Api extends ResourceController
         $db->transException(true)->transStart();
 
         try {
+            // 1. PROTECCIÓN: No cancelar solicitudes PAGADAS
+            if ($solicitud['Estado'] === Status::Pagada || $solicitud['Estado'] === 'Pagada') {
+                return $this->failValidationErrors('No se puede cancelar una solicitud que ya ha sido pagada (movimiento bancario realizado).');
+            }
+
             // 2. ACTUALIZAR LA SOLICITUD
             $updateData = [
                 'Estado' => 'Cancelada',
@@ -306,51 +311,10 @@ class Api extends ResourceController
             ];
             $solicitudModel->update($idSolicitud, $updateData);
 
-            // --- LIBERACIÓN DE PRESUPUESTO COMPROMETIDO ---
-            // Solo si es materiales y estaba previamente aprobada (tenía presupuesto bloqueado)
-            if ((int)$solicitud['Tipo'] !== (int)SolicitudTipo::Servicios && $solicitud['Estado'] === 'Aprobada') {
-                $productModel = new SolicitudProductModel();
-                $presupuestoModel = new \App\Models\PresupuestoMensualModel();
-                
-                $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
-                
-                $montosARestar = [];
-                foreach ($productos as $p) {
-                    $idGrupo = $p['ID_GrupoPresupuestal'];
-                    if (!$idGrupo) continue;
+            // 3. LIBERACIÓN INTEGRAL DE PRESUPUESTO
+            $this->liberarPresupuestoIntegral($idSolicitud, $solicitud['Estado']);
 
-                    // Restamos lo que se comprometió originalmente
-                    $montoOriginal = (float)$p['Monto_Comprometido_Original'];
-                    $montosARestar[$idGrupo] = ($montosARestar[$idGrupo] ?? 0) + $montoOriginal;
-                }
-
-                $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
-                $fechaSol = strtotime($fechaSolStr);
-                $mes = (int)date('n', $fechaSol);
-                $anio = (int)date('Y', $fechaSol);
-                $idDpto = $solicitud['ID_Dpto'];
-
-                foreach ($montosARestar as $idGrupo => $montoRestar) {
-                    $presupuesto = $presupuestoModel->where([
-                        'ID_Dpto' => $idDpto,
-                        'ID_GrupoPresupuestal' => $idGrupo,
-                        'Mes' => $mes,
-                        'Anio' => $anio
-                    ])->first();
-
-                    if ($presupuesto) {
-                        $nuevoComprometido = (float)$presupuesto['Monto_Comprometido'] - $montoRestar;
-                        if ($nuevoComprometido < 0) $nuevoComprometido = 0;
-
-                        $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
-                            'Monto_Comprometido' => $nuevoComprometido
-                        ]);
-                        log_message('debug', "Presupuesto Liberado (Cancelación): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Monto Restado: $montoRestar");
-                    }
-                }
-            }
-
-            // 3. ACTUALIZAR LA ORDEN DE COMPRA (CORREGIDO)
+            // 4. ACTUALIZAR LA ORDEN DE COMPRA
             $ordenModel = new OrdenCompraModel();
 
             // Usamos 'Cotizacion' en singular (como en tu base de datos)
@@ -1075,6 +1039,79 @@ class Api extends ResourceController
             }
         } catch (\Exception $e) {
             log_message('error', "Error al actualizar presupuesto ejecutado: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Libera el presupuesto (Comprometido o Ejecutado) según el estado de la solicitud al cancelar.
+     * @param int $idSolicitud
+     * @param string $estadoAnterior
+     */
+    private function liberarPresupuestoIntegral($idSolicitud, $estadoAnterior)
+    {
+        try {
+            $solicitudModel = new SolicitudModel();
+            $solicitud = $solicitudModel->find($idSolicitud);
+
+            if (!$solicitud || (int)$solicitud['Tipo'] === (int)SolicitudTipo::Servicios) {
+                return; // Solo materiales manejan presupuesto automático por ahora
+            }
+
+            // Definir qué campos afectar según el estado en que estaba la solicitud
+            $estadosComprometidos = ['Aprobada', 'En espera', 'Cotizando', 'En revision', 'Por Pagar', 'En Proceso de Pago', Status::En_Espera, Status::Cotizando, Status::En_Revision, Status::Por_Pagar, Status::En_Proceso_Pago];
+            $esEjecutado = ($estadoAnterior === 'Pagada' || $estadoAnterior === Status::Pagada);
+            $esComprometido = in_array($estadoAnterior, $estadosComprometidos);
+
+            if (!$esComprometido && !$esEjecutado) {
+                return; // Estaba en un estado inicial que no bloqueaba dinero
+            }
+
+            $productModel = new SolicitudProductModel();
+            $presupuestoModel = new \App\Models\PresupuestoMensualModel();
+            $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
+
+            $montosPorGrupo = [];
+            foreach ($productos as $p) {
+                $idGrupo = $p['ID_GrupoPresupuestal'];
+                if (!$idGrupo) continue;
+
+                // Si era comprometido, usamos el respaldo original. 
+                $montoAReversar = (float)$p['Monto_Comprometido_Original'];
+                $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoAReversar;
+            }
+
+            $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
+            $fechaSol = strtotime($fechaSolStr);
+            $mes = (int)date('n', $fechaSol);
+            $anio = (int)date('Y', $fechaSol);
+            $idDpto = $solicitud['ID_Dpto'];
+
+            foreach ($montosPorGrupo as $idGrupo => $monto) {
+                $presupuesto = $presupuestoModel->where([
+                    'ID_Dpto' => $idDpto,
+                    'ID_GrupoPresupuestal' => $idGrupo,
+                    'Mes' => $mes,
+                    'Anio' => $anio
+                ])->first();
+
+                if ($presupuesto) {
+                    $updateData = [];
+                    if ($esEjecutado) {
+                        $nuevoVal = (float)$presupuesto['Monto_Ejecutado'] - $monto;
+                        $updateData['Monto_Ejecutado'] = ($nuevoVal < 0) ? 0 : $nuevoVal;
+                    } else {
+                        $nuevoVal = (float)$presupuesto['Monto_Comprometido'] - $monto;
+                        $updateData['Monto_Comprometido'] = ($nuevoVal < 0) ? 0 : $nuevoVal;
+                    }
+
+                    if (!empty($updateData)) {
+                        $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], $updateData);
+                        log_message('debug', "Presupuesto Liberado (Integral): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Monto Reversado: $monto (" . ($esEjecutado ? 'Ejecutado' : 'Comprometido') . ")");
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            log_message('error', '[liberarPresupuestoIntegral] ' . $e->getMessage());
         }
     }
 
