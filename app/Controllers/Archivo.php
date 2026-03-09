@@ -82,6 +82,28 @@ class Archivo extends BaseController
         $fecha = $post['fecha'];
         $comentariosuser = isset($post['comentariosuser']) ? $post['comentariosuser'] : null;
 
+        // --- NUEVA LÓGICA DE INTEGRIDAD PRESUPUESTAL ---
+        // Buscamos el ID_Dpto en la Razón Social seleccionada que tenga el mismo NOMBRE que el del usuario.
+        $idDptoFinal = $user['ID_Dpto']; // Por defecto
+        if (!empty($razon_social_id)) {
+            $departamentoModel = new DepartamentosModel();
+            $deptoUsuario = $departamentoModel->find($user['ID_Dpto']);
+            $nombreDepto = $deptoUsuario['Nombre'] ?? '';
+
+            if ($nombreDepto) {
+                $deptoDestino = $departamentoModel
+                    ->select('Departamentos.ID_Dpto')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
+                    ->where('Places.ID_RazonSocial', $razon_social_id)
+                    ->where('Departamentos.Nombre', $nombreDepto)
+                    ->first();
+
+                if ($deptoDestino) {
+                    $idDptoFinal = $deptoDestino['ID_Dpto'];
+                }
+            }
+        }
+
         $estadoInicial = Status::Aprobacion_pendiente;
 
         if (session('login_type') === 'boss') {
@@ -94,7 +116,7 @@ class Archivo extends BaseController
 
         $datosSolicitud = [
             'ID_Usuario' => $user['ID_Usuario'],
-            'ID_Dpto' => $user['ID_Dpto'],
+            'ID_Dpto' => $idDptoFinal,
             'ID_Proveedor' => $proveedor['ID_Proveedor'] ?? null,
             'ID_Cuenta' => $cuenta_id,
             'ID_RazonSocial' => $razon['ID_RazonSocial'] ?? null,

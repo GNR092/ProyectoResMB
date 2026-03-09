@@ -47,27 +47,35 @@ class Modales extends BaseController
                 $proveedorModel = new ProveedorModel();
                 $razonSocialModel = new RazonSocialModel();
                 $grupoModel = new GrupoPresupuestalModel();
+                $departamentoModel = new DepartamentosModel();
 
-                // Obtener proveedores
+                // 1. Obtener el nombre del departamento del usuario actual
+                $idDeptoUsuario = session('id_departamento_usuario');
+                $deptoActual = $departamentoModel->find($idDeptoUsuario);
+                $nombreDepto = $deptoActual['Nombre'] ?? '';
+
+                // 2. Obtener proveedores
                 $data['proveedores'] = $proveedorModel
                     ->select('ID_Proveedor, RazonSocial, Tel_Contacto, RFC, Servicio')
                     ->orderBy('RazonSocial', 'ASC')
                     ->findAll();
 
-                // Obtener razones sociales
+                // 3. Obtener SOLO las razones sociales que tienen este mismo departamento (por nombre)
                 $data['razones_sociales'] = $razonSocialModel
-                    ->select('ID_RazonSocial, Nombre')
-                    ->orderBy('Nombre', 'ASC')
+                    ->select('Razon_Social.ID_RazonSocial, Razon_Social.Nombre')
+                    ->distinct()
+                    ->join('Places', 'Places.ID_RazonSocial = Razon_Social.ID_RazonSocial')
+                    ->join('Departamentos', 'Departamentos.ID_Place = Places.ID_Place')
+                    ->where('Departamentos.Nombre', $nombreDepto)
+                    ->orderBy('Razon_Social.Nombre', 'ASC')
                     ->findAll();
 
-                // Obtener grupos presupuestales filtrados por el departamento del usuario
-                $idDepto = session('id_departamento_usuario');
+                // 4. Obtener grupos presupuestales filtrados por el departamento del usuario
                 $data['grupos_presupuestales'] = $grupoModel
-                    ->where('ID_Dpto', $idDepto)
+                    ->where('ID_Dpto', $idDeptoUsuario)
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
 
-                // Cargar la vista única que contiene las tres pantallas
                 return view('modales/solicitar_material', $data);
 
             case 'revisar_solicitudes':
