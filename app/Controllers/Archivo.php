@@ -9,6 +9,8 @@ use App\Models\SolicitudModel;
 use App\Models\CotizacionModel;
 use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
+use App\Models\DepartamentosModel;
+use App\Models\PlacesModel;
 use App\Libraries\Status;
 use App\Libraries\HttpStatus;
 use App\Libraries\Rest;
@@ -31,202 +33,205 @@ class Archivo extends BaseController
 
     public function subir()
     {
-        $post = $this->request->getPost();
+        try {
+            $post = $this->request->getPost();
 
-        $codigos = [];
-        $productos = [];
-        $cantidades = [];
-        $importes = [];
-        $grupos_presupuestales = [];
-        $tipo = null;
-        $comentariosuser = null;
+            $codigos = [];
+            $productos = [];
+            $cantidades = [];
+            $importes = [];
+            $grupos_presupuestales = [];
+            $tipo = null;
+            $comentariosuser = null;
 
-        // Determina el tipo de solicitud y prepara los arrays de datos
-        if (isset($post['servicio'])) {
-            $tipo = SolicitudTipo::Servicios;
-            $productos = $post['servicio'];
-            $importes = $post['importe'];
-            $cantidades = array_fill(0, count($productos), 1);
-            $codigos = array_fill(0, count($productos), null);
-        } elseif (isset($post['sin_cotizar'])) {
-            $tipo = SolicitudTipo::NoCotizacion;
-            $productos = $post['producto'];
-            $cantidades = $post['cantidad'];
-            $grupos_presupuestales = $post['id_grupo_presupuestal'] ?? [];
-            $codigos = array_fill(0, count($productos), null);
-            $importes = array_fill(0, count($productos), 0);
-        } else {
-            $tipo = SolicitudTipo::Cotizacion;
-            $codigos = $post['codigo'];
-            $productos = $post['producto'];
-            $cantidades = $post['cantidad'];
-            $importes = $post['importe'];
-            $grupos_presupuestales = $post['id_grupo_presupuestal'] ?? [];
-        }
+            // Determina el tipo de solicitud y prepara los arrays de datos
+            if (isset($post['servicio'])) {
+                $tipo = SolicitudTipo::Servicios;
+                $productos = $post['servicio'];
+                $importes = $post['importe'];
+                $cantidades = array_fill(0, count($productos), 1);
+                $codigos = array_fill(0, count($productos), null);
+            } elseif (isset($post['sin_cotizar'])) {
+                $tipo = SolicitudTipo::NoCotizacion;
+                $productos = $post['producto'];
+                $cantidades = $post['cantidad'];
+                $grupos_presupuestales = $post['id_grupo_presupuestal'] ?? [];
+                $codigos = array_fill(0, count($productos), null);
+                $importes = array_fill(0, count($productos), 0);
+            } else {
+                $tipo = SolicitudTipo::Cotizacion;
+                $codigos = $post['codigo'];
+                $productos = $post['producto'];
+                $cantidades = $post['cantidad'];
+                $importes = $post['importe'];
+                $grupos_presupuestales = $post['id_grupo_presupuestal'] ?? [];
+            }
 
-        $user = $this->api->getUserById(session('id'));
+            $user = $this->api->getUserById((int)session('id'));
 
-        $razon_social_id = isset($post['razon_social']) ? $post['razon_social'] : null;
-        $proveedor_id = isset($post['ID_Proveedor']) ? $post['ID_Proveedor'] : null;
-        $cuenta_id = $post['cuenta_proveedor'] ?? ($post['ID_Cuenta'] ?? null);
+            if (empty($user)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Sesión expirada o usuario no encontrado. Por favor, inicie sesión de nuevo.',
+                ]);
+            }
 
-        $razon = null;
-        $proveedor = null;
-        if (!empty($razon_social_id)) {
-            $razon = $this->api->getRazonSocialByID((int) $razon_social_id);
-        }
-        if (!empty($proveedor_id)) {
-            $proveedor = $this->api->getProveedorById((int) $proveedor_id);
-        }
+            $razon_social_id = isset($post['razon_social']) ? $post['razon_social'] : null;
+            $proveedor_id = isset($post['ID_Proveedor']) ? $post['ID_Proveedor'] : null;
+            $cuenta_id = $post['cuenta_proveedor'] ?? ($post['ID_Cuenta'] ?? null);
 
-        $fecha = $post['fecha'];
-        $comentariosuser = isset($post['comentariosuser']) ? $post['comentariosuser'] : null;
+            $razon = null;
+            $proveedor = null;
+            if (!empty($razon_social_id)) {
+                $razon = $this->api->getRazonSocialByID((int) $razon_social_id);
+            }
+            if (!empty($proveedor_id)) {
+                $proveedor = $this->api->getProveedorById((int) $proveedor_id);
+            }
 
-        // --- NUEVA LÓGICA DE INTEGRIDAD PRESUPUESTAL ---
-        // Buscamos el ID_Dpto en la Razón Social seleccionada que tenga el mismo NOMBRE que el del usuario.
-        $idDptoFinal = $user['ID_Dpto']; // Por defecto
-        if (!empty($razon_social_id)) {
+            $fecha = $post['fecha'];
+            $comentariosuser = isset($post['comentariosuser']) ? $post['comentariosuser'] : null;
+
+            // --- NUEVA LÓGICA DE INTEGRIDAD PRESUPUESTAL Y TRAZABILIDAD ---
+            $idDptoFinal = $user['ID_Dpto'] ?? null;
+            $etiquetaTrazabilidad = "";
+
+            // 1. Obtener datos del origen del usuario (independientemente de a dónde cargue)
             $departamentoModel = new DepartamentosModel();
-            $deptoUsuario = $departamentoModel->find($user['ID_Dpto']);
-            $nombreDepto = $deptoUsuario['Nombre'] ?? '';
+            $idDptoOriginal = $user['ID_Dpto'] ?? null;
+            $idRSOriginal = $user['ID_RazonSocial'] ?? null;
+            $deptoUsuario = $idDptoOriginal ? $departamentoModel->find($idDptoOriginal) : null;
+            
+            if ($deptoUsuario) {
+                $nombreDeptoOrig = $deptoUsuario['Nombre'] ?? 'Desconocido';
+                
+                $razonSocialModel = new RazonSocialModel();
+                $placeModel = new PlacesModel();
+                $placeOrig = $placeModel->find($deptoUsuario['ID_Place'] ?? 0);
+                
+                $nombreRSOrig = 'RS Desconocida';
+                if ($placeOrig) {
+                    $razonOrig = $razonSocialModel->find($placeOrig['ID_RazonSocial'] ?? 0);
+                    $nombreRSOrig = $razonOrig['Nombre'] ?? 'RS Desconocida';
+                    // Actualizamos la RS original del usuario si no la teníamos
+                    if (!$idRSOriginal) $idRSOriginal = $placeOrig['ID_RazonSocial'] ?? null;
+                }
 
-            if ($nombreDepto) {
-                $deptoDestino = $departamentoModel
-                    ->select('Departamentos.ID_Dpto')
-                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
-                    ->where('Places.ID_RazonSocial', $razon_social_id)
-                    ->where('Departamentos.Nombre', $nombreDepto)
-                    ->first();
+                // SOLO generamos etiqueta si la RS seleccionada es DISTINTA a la del usuario
+                if (!empty($razon_social_id) && $razon_social_id != $idRSOriginal) {
+                    $etiquetaTrazabilidad = "Solicitud originada por: [$nombreDeptoOrig - $nombreRSOrig].";
+                }
 
-                if ($deptoDestino) {
-                    $idDptoFinal = $deptoDestino['ID_Dpto'];
+                // 2. Buscar el ID_Dpto en la Razón Social seleccionada (Destino)
+                if (!empty($razon_social_id)) {
+                    $deptoDestino = $departamentoModel
+                        ->select('Departamentos.ID_Dpto')
+                        ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
+                        ->where('Places.ID_RazonSocial', $razon_social_id)
+                        ->where('Departamentos.Nombre', $nombreDeptoOrig)
+                        ->first();
+
+                    if ($deptoDestino) {
+                        $idDptoFinal = $deptoDestino['ID_Dpto'];
+                    }
                 }
             }
-        }
 
-        $estadoInicial = Status::Aprobacion_pendiente;
+            // 3. Inyectar trazabilidad en los comentarios (Solo si existe etiqueta)
+            $comentariosFinal = $etiquetaTrazabilidad 
+                ? ($etiquetaTrazabilidad . ($comentariosuser ? " | Comentario: " . $comentariosuser : ""))
+                : $comentariosuser;
 
-        if (session('login_type') === 'boss') {
-            if ($tipo == SolicitudTipo::Servicios) {
-                $estadoInicial = Status::Cotizando;
-            } else {
-                $estadoInicial = Status::En_espera;
+            $estadoInicial = Status::Aprobacion_pendiente;
+
+            if (session('login_type') === 'boss') {
+                if ($tipo == SolicitudTipo::Servicios) {
+                    $estadoInicial = Status::Cotizando;
+                } else {
+                    $estadoInicial = Status::En_espera;
+                }
             }
-        }
 
-        $datosSolicitud = [
-            'ID_Usuario' => $user['ID_Usuario'],
-            'ID_Dpto' => $idDptoFinal,
-            'ID_Proveedor' => $proveedor['ID_Proveedor'] ?? null,
-            'ID_Cuenta' => $cuenta_id,
-            'ID_RazonSocial' => $razon['ID_RazonSocial'] ?? null,
-            'IVA' => isset($post['iva']) ? true : false,
-            'Fecha' => $fecha,
-            'Estado' => $estadoInicial,
-            'No_Folio' => null,
-            'Tipo' => $tipo,
-            'ComentariosUser' => $comentariosuser,
-            'MetodoPago' => MetodoPago::EnEspera,
-        ];
+            $datosSolicitud = [
+                'ID_Usuario' => $user['ID_Usuario'],
+                'ID_Dpto' => $idDptoFinal,
+                'ID_Proveedor' => $proveedor['ID_Proveedor'] ?? null,
+                'ID_Cuenta' => $cuenta_id,
+                'ID_RazonSocial' => $razon['ID_RazonSocial'] ?? null,
+                'IVA' => isset($post['iva']) ? true : false,
+                'Fecha' => $fecha,
+                'Estado' => $estadoInicial,
+                'No_Folio' => null,
+                'Tipo' => $tipo,
+                'ComentariosUser' => $comentariosFinal,
+                'MetodoPago' => MetodoPago::EnEspera,
+            ];
 
-        $datosProductos = [];
-
-        try {
             $solicitud = new SolicitudModel();
-            $solicitud->insert($datosSolicitud);
+            if (!$solicitud->insert($datosSolicitud)) {
+                throw new \Exception('No se pudo insertar la solicitud: ' . json_encode($solicitud->errors()));
+            }
+            
             $solicitudId = $solicitud->insertID();
             $solicitud->update($solicitudId, [
                 'No_Folio' => 'MBSP-' . $solicitudId,
             ]);
 
+            $datosProductos = [];
             if ($tipo == SolicitudTipo::Cotizacion || $tipo == SolicitudTipo::NoCotizacion) {
                 $solicitudProduct = new SolicitudProductModel();
 
                 for ($i = 0; $i < count($productos); $i++) {
-                    $datosProductos[] = [
+                    $item = [
+                        'ID_Solicitud' => $solicitudId,
                         'Codigo' => $codigos[$i] ?? null,
                         'Nombre' => $productos[$i],
                         'Cantidad' => $cantidades[$i],
                         'Importe' => $importes[$i],
                         'ID_GrupoPresupuestal' => $grupos_presupuestales[$i] ?? null,
                     ];
-                }
-
-                foreach ($datosProductos as $solproducto) {
-                    $solproducto['ID_Solicitud'] = $solicitudId;
-                    $solicitudProduct->insert($solproducto);
+                    $solicitudProduct->insert($item);
+                    $datosProductos[] = $item;
                 }
             } else {
                 $solicitudServicio = new SolicitudServiciosModel();
                 for ($i = 0; $i < count($productos); $i++) {
-                    $datosProductos[] = [
+                    $item = [
+                        'ID_Solicitud' => $solicitudId,
                         'Nombre' => $productos[$i],
                         'Importe' => $importes[$i],
                     ];
-                }
-                foreach ($datosProductos as $solproducto) {
-                    $solproducto['ID_Solicitud'] = $solicitudId;
-                    $solicitudServicio->insert($solproducto);
+                    $solicitudServicio->insert($item);
+                    $datosProductos[] = $item;
                 }
             }
 
             // CORRECCIÓN 1: Aseguramos la evaluación del estado
             if ($estadoInicial === Status::Cotizando || $estadoInicial === 'Cotizando') {
                 $cotizacionModel = new CotizacionModel();
-
-                // Calculamos el total
                 $total = 0;
-
-                // CORRECCIÓN 2: Cálculo total más seguro
                 foreach ($datosProductos as $p) {
                     $cantidad = isset($p['Cantidad']) ? (float)$p['Cantidad'] : 1;
                     $importe = isset($p['Importe']) ? (float)$p['Importe'] : 0;
                     $total += ($cantidad * $importe);
                 }
 
-                // ==========================================
-                // PASO A: CREACIÓN GARANTIZADA DE COTIZACIÓN
-                // ==========================================
                 if (!empty($proveedor_id)) {
-                    $razonSocialModel = new RazonSocialModel();
-                    $proveedorModel = new ProveedorModel();
-
-                    $solicitudData = $solicitud->find($solicitudId);
-                    $razon = $razonSocialModel->find($solicitudData['ID_RazonSocial']);
-                    $razonNombre = $razon['Nombre'] ?? '';
-
-                    // CORRECCIÓN 3: Aislar el PDF. Si falla por permisos en Linux, NO detiene la BD
+                    $pdf = new GenerarPDF();
                     try {
-                        $pdf = new GenerarPDF();
                         $pdf->generarYGuardarRequisicion($solicitudId);
                     } catch (\Exception $e) {
-                        log_message('error', '[PDF Error] Fallo al crear la requisición PDF: ' . $e->getMessage());
+                        log_message('error', '[PDF Error] ' . $e->getMessage());
                     }
 
-                    $mail = new MBSMail();
                     $idProveedores = is_array($proveedor_id) ? $proveedor_id : [$proveedor_id];
-
-                    // CORRECCIÓN 4: Inserción directa sin transacción frágil y con reporte de errores
                     foreach ($idProveedores as $idProv) {
-                        $idProveedor = (int) $idProv;
-
-                        $cotizacionData = [
+                        $cotizacionModel->insert([
                             'ID_Solicitud' => $solicitudId,
                             'ID_Proveedor' => (int) $idProv,
                             'Total' => $total,
                             'ID_Usuario_Cotiza' => $user['ID_Usuario'],
-                        ];
-
-                        $inserted = $cotizacionModel->insert($cotizacionData);
-
-                        if (!$inserted) {
-                            return $this->response->setStatusCode(400)->setJSON([
-                                'success' => false,
-                                'message' => 'Error de Base de Datos al guardar la cotización',
-                                'errores' => $cotizacionModel->errors(),
-                                'error_db' => $cotizacionModel->db->error()
-                            ]);
-                        }
+                        ]);
                     }
                 }
             }
@@ -240,21 +245,22 @@ class Archivo extends BaseController
                 $solicitud->update($solicitudId, ['Archivo' => $nuevoNombre]);
             }
 
-            return $this->response->setStatusCode(HttpStatus::OK)->setJSON([
+            return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Solicitud registrada correctamente',
+                'message' => 'Solicitud registrada correctamente.',
+                'id' => $solicitudId,
             ]);
 
         } catch (\Exception $e) {
+            log_message('error', '[Archivo::subir] ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->response->setJSON([
                 'success' => false,
-                'errors' => $e->getMessage(),
+                'message' => 'Error al registrar la solicitud: ' . $e->getMessage(),
             ]);
         }
     }
 
     public function descargar($idSolicitud)
-
     {
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel->find($idSolicitud);
@@ -265,8 +271,7 @@ class Archivo extends BaseController
             );
         }
 
-        $filePath =
-            WRITEPATH . 'uploads/solicitud/' . $solicitud['Fecha'] . '/' . $solicitud['Archivo'];
+        $filePath = WRITEPATH . 'uploads/solicitud/' . $solicitud['Fecha'] . '/' . $solicitud['Archivo'];
 
         if (!file_exists($filePath)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(
@@ -274,9 +279,9 @@ class Archivo extends BaseController
             );
         }
 
-        // Envía el archivo al navegador para su descarga
         return $this->response->download($filePath, null);
     }
+
     public function descargarCotizacion($idSolicitud, $file)
     {
         $solicitud = $this->api->getSolicitudWithCotizacion($idSolicitud);
@@ -295,7 +300,6 @@ class Archivo extends BaseController
             );
         }
 
-        // Envía el archivo al navegador para su descarga
         return $this->response->download($filePath, null);
     }
 }

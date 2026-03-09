@@ -51,8 +51,13 @@ class Modales extends BaseController
 
                 // 1. Obtener el nombre del departamento del usuario actual
                 $idDeptoUsuario = session('id_departamento_usuario');
-                $deptoActual = $departamentoModel->find($idDeptoUsuario);
+                $deptoActual = $idDeptoUsuario ? $departamentoModel->find($idDeptoUsuario) : null;
                 $nombreDepto = $deptoActual['Nombre'] ?? '';
+
+                if (empty($nombreDepto)) {
+                    // Si no hay departamento en sesión, fallamos con mensaje
+                    return "<p class='text-red-500 p-4'>No se pudo identificar su departamento. Por favor, cierre sesión e ingrese de nuevo.</p>";
+                }
 
                 // 2. Obtener proveedores
                 $data['proveedores'] = $proveedorModel
