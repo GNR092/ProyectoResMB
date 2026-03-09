@@ -2922,7 +2922,30 @@ function initDepartamentosForm() {
   const formAgregar = document.getElementById('form-agregar-departamento')
   const pantallaAgregar = document.getElementById('pantalla-agregar-departamento')
   const pantallaLista = document.getElementById('pantalla-lista-departamentos')
+  const selectPlaces = document.getElementById('ID_Place')
+  const btnSelectAll = document.getElementById('btn-seleccionar-todos-places')
+
   if (!formAgregar) return
+
+  // Inicializar Choices.js para selección múltiple
+  let choicesPlaces = null
+  if (selectPlaces && typeof Choices !== 'undefined') {
+    choicesPlaces = new Choices(selectPlaces, {
+      removeItemButton: true,
+      noChoicesText: 'No hay más opciones para elegir',
+      itemSelectText: 'Presiona para elegir',
+      placeholder: true,
+      placeholderValue: 'Seleccione uno o más lugares'
+    })
+  }
+
+  // Lógica de "Seleccionar todos"
+  if (btnSelectAll && choicesPlaces) {
+    btnSelectAll.addEventListener('click', () => {
+      const allValues = Array.from(selectPlaces.options).map(opt => opt.value)
+      choicesPlaces.setChoiceByValue(allValues)
+    })
+  }
 
   formAgregar.onsubmit = async (e) => {
     e.preventDefault()
@@ -2935,7 +2958,13 @@ function initDepartamentosForm() {
       })
 
       if (result.success) {
-        mostrarNotificacion('Departamento agregado correctamente ✅', 'success')
+        mostrarNotificacion(result.message || 'Departamento(s) agregado(s) correctamente ✅', 'success')
+        
+        // Limpiar Choices si existe
+        if (choicesPlaces) {
+          choicesPlaces.removeActiveItems()
+        }
+
         pantallaAgregar?.classList.add('hidden')
         pantallaLista?.classList.remove('hidden')
         formAgregar.reset()

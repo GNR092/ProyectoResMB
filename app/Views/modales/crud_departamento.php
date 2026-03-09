@@ -101,9 +101,13 @@
             </div>
 
             <div class="flex flex-col">
-                <label for="ID_Place" class="mb-1 font-medium">Lugar</label>
-                <select name="ID_Place" id="ID_Place" required class="w-full px-3 py-2 border rounded-lg bg-white">
-                    <option value="">Seleccione un lugar</option>
+                <div class="flex justify-between items-center mb-1">
+                    <label for="ID_Place" class="font-medium">Lugar(es)</label>
+                    <button type="button" id="btn-seleccionar-todos-places" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition">
+                        Seleccionar todos
+                    </button>
+                </div>
+                <select name="ID_Place[]" id="ID_Place" required multiple class="w-full px-3 py-2 border rounded-lg bg-white">
                     <?php if (!empty($places)): ?>
                         <?php foreach ($places as $place): ?>
                             <option value="<?= $place['ID_Place'] ?>">
@@ -112,6 +116,7 @@
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </select>
+                <p class="text-xs text-gray-500 mt-1">Puedes seleccionar uno o varios lugares para crear el departamento en todos ellos.</p>
             </div>
         </div>
         <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">Guardar</button>

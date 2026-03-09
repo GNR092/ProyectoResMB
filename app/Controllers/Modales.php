@@ -1039,18 +1039,45 @@ class Modales extends BaseController
     public function insertarDepartamento()
     {
         $model = new DepartamentosModel();
-        $data = $this->request->getPost(['Nombre', 'ID_Place']);
+        $nombre = $this->request->getPost('Nombre');
+        $places = $this->request->getPost('ID_Place'); // Puede ser un array si es múltiple
 
-        if ($model->insert($data)) {
-            return $this->response->setJSON(['success' => true]);
+        if (empty($nombre) || empty($places)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'El nombre y al menos un lugar son obligatorios',
+            ]);
+        }
+
+        // Si es un solo valor, lo convertimos a array para el loop
+        if (!is_array($places)) {
+            $places = [$places];
+        }
+
+        $successCount = 0;
+        foreach ($places as $placeId) {
+            $data = [
+                'Nombre'   => $nombre,
+                'ID_Place' => $placeId,
+            ];
+            if ($model->insert($data)) {
+                $successCount++;
+            }
+        }
+
+        if ($successCount > 0) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => "Se crearon $successCount departamento(s) correctamente.",
+            ]);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo insertar el departamento',
-                'errors' => $model->errors()
+                'message' => 'No se pudo insertar ningún departamento',
             ]);
         }
     }
+
     public function editarDepartamento($id)
     {
         $model = new DepartamentosModel();
