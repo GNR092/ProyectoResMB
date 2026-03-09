@@ -224,7 +224,9 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     const classFinanciero    = reglas.financiero ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white';
     const disabledControl    = reglas.control ? 'disabled' : '';
     const classControl       = reglas.control ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white';
-    const classArchivos      = 'grid';
+    
+    // Si es financiero (Pagada), ocultamos la fila de carga de archivos
+    const classArchivos      = reglas.financiero ? 'hidden' : 'grid';
 
     // ------------------------------------------------------------------------
     // CANDADO DE SEGURIDAD PARA FECHAS DE ORDEN
@@ -271,9 +273,9 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
 
     // VARIABLES DE FECHAS
     const fechaRegistroVista = sol.Fecha ? sol.Fecha.split(' ')[0] : '';
-    const valorFechaAprobacion = orden.Fecha ? orden.Fecha.split(' ')[0] : '';
-    const valorFechaRefPago = orden.FechaRefPago ? orden.FechaRefPago.split(' ')[0] : '';
-    const valorFechaPagoReal = orden.FechaPagoRealizado ? orden.FechaPagoRealizado.split(' ')[0] : '';
+    const valorFechaAprobacion = (orden.Fecha || sol.FechaOrden) ? (orden.Fecha || sol.FechaOrden).split(' ')[0] : '';
+    const valorFechaRefPago = (orden.FechaRefPago || sol.FechaRefPago) ? (orden.FechaRefPago || sol.FechaRefPago).split(' ')[0] : '';
+    const valorFechaPagoReal = (orden.FechaPagoRealizado || sol.FechaPagoRealizado) ? (orden.FechaPagoRealizado || sol.FechaPagoRealizado).split(' ')[0] : '';
 
     const baseInputClass = "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xs text-gray-700";
     const labelClass = "block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide";
@@ -294,6 +296,16 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     const existeFactura    = (orden.File_Factura || data.File_Factura) ? '1' : '0';
 
     container.innerHTML = `
+    <div id="advertencia-presupuesto-maestro" class="hidden mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded shadow-sm">
+        <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            <p class="font-bold text-sm">AVISO DE IMPACTO PRESUPUESTAL</p>
+        </div>
+        <p class="text-xs mt-1 ml-7">Los cambios realizados (estado o montos) se verán reflejados automáticamente en el presupuesto mensual del departamento.</p>
+    </div>
+
     <div class="${sectionClass}">
         <div class="flex justify-between items-center border-b pb-2 mb-4">
             <h4 class="text-sm font-bold text-gray-800">Control del Sistema</h4>
@@ -302,7 +314,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
                 <label class="block text-xs font-bold text-red-600 mb-1">Estado</label>
-                <select name="Estado" class="${baseInputClass} bg-red-50 border-red-300 text-red-900 font-bold">
+                <select name="Estado" id="select-estado-maestro" onchange="window.verificarImpactoPresupuestal()" class="${baseInputClass} bg-red-50 border-red-300 text-red-900 font-bold">
                     <option value="${estadoVisual}" selected>➡ ${estadoVisual}</option>
                     <option value="En espera">En espera</option>
                     <option value="Aprobada">Aprobada</option>
@@ -508,6 +520,35 @@ window.removeFile = function(type) {
     }
 }
 
+window.verificarImpactoPresupuestal = function() {
+    const banner = document.getElementById('advertencia-presupuesto-maestro');
+    if (!banner) return;
+
+    // Detectar tipo de solicitud (1 = Materiales)
+    // El tipo se puede sacar del select de productos o de un hidden si lo agregamos
+    // Por simplicidad, si hay inputs de "cantidad", es materiales.
+    const esMateriales = document.querySelector('.input-cantidad') !== null;
+    if (!esMateriales) return;
+
+    const selectEstado = document.getElementById('select-estado-maestro');
+    const estadoNuevo = selectEstado.value;
+    
+    // Mapa de niveles local para el JS
+    const NIVELES = {
+        'En espera': 1, 'Cotizando': 2, 'En revision': 3, 'Aprobacion pendiente': 3,
+        'Aprobada': 4, 'Espera_Programacion': 5, 'Programada': 6, 'Por Pagar': 7, 'Pagada': 8
+    };
+
+    const nivelNuevo = NIVELES[estadoNuevo] || 0;
+    
+    // Si el nivel nuevo es 4 o superior, mostramos el aviso
+    if (nivelNuevo >= 4) {
+        banner.classList.remove('hidden');
+    } else {
+        banner.classList.add('hidden');
+    }
+}
+
 function calcularTotalesUI() {
     const filas = document.querySelectorAll('#tabla-productos-editor tbody tr');
     const chkIva = document.getElementById('chk_iva_maestro');
@@ -540,6 +581,9 @@ function calcularTotalesUI() {
     if (spanTotal) {
         spanTotal.innerText = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalFinal);
     }
+
+    // Al recular totales, también verificamos impacto si estamos en nivel presupuestal
+    window.verificarImpactoPresupuestal();
 }
 
 /**
@@ -637,8 +681,15 @@ async function guardarCambiosMaestros() {
         return;
     }
 
+    // --- NUEVA CONFIRMACIÓN DE PRESUPUESTO ---
+    if (nivelDestino >= 4) {
+        if (!confirm("🚨 ADVERTENCIA DE PRESUPUESTO:\n\nHas realizado cambios que afectan directamente al presupuesto del departamento.\n\n¿Estás seguro de que deseas proceder con el ajuste financiero automático?")) {
+            return;
+        }
+    }
+
     // Confirmación final
-    if(!confirm(`¿Confirmar cambios y establecer estado como: ${estadoSeleccionado}?`)) return;
+    if(!confirm(`¿Confirmar todos los cambios y establecer estado como: ${estadoSeleccionado}?`)) return;
 
     // ENVÍO
     const btnGuardar = document.querySelector('#div-editor-maestro button.bg-blue-600');

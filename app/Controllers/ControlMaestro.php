@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Controllers\GenerarPDF;
+use App\Libraries\Status;
 use CodeIgniter\API\ResponseTrait;
 
 class ControlMaestro extends BaseController
@@ -36,13 +37,27 @@ class ControlMaestro extends BaseController
         // 0. PRE-LECTURA
         $solicitudOriginal = $this->db->table('Solicitud')
             // AGREGAR 'No_Folio' AL SELECT
-            ->select('ID_Proveedor, Tipo, ID_RazonSocial, MetodoPago, Fecha, IVA, Estado, No_Folio')
+            ->select('ID_Solicitud, ID_Dpto, ID_Proveedor, Tipo, ID_RazonSocial, MetodoPago, Fecha, IVA, Estado, No_Folio')
             ->where('ID_Solicitud', $id_solicitud)
             ->get()
             ->getRow();
 
         if (!$solicitudOriginal) {
             return $this->failNotFound('La solicitud no existe.');
+        }
+
+        // --- SNAPSHOT PRESUPUESTAL PREVIO ---
+        $nivelAnterior = $niveles[$solicitudOriginal->Estado] ?? 0;
+        $esMateriales = (int)$solicitudOriginal->Tipo === 1;
+        $montosViejosPorGrupo = [];
+        
+        if ($esMateriales && $nivelAnterior >= 4) {
+            $prodsPrevios = $this->db->table('Solicitud_Producto')->where('ID_Solicitud', $id_solicitud)->get()->getResultArray();
+            foreach ($prodsPrevios as $pp) {
+                if ($pp['ID_GrupoPresupuestal']) {
+                    $montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] = ($montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] ?? 0) + (float)$pp['Monto_Comprometido_Original'];
+                }
+            }
         }
 
         $this->db->transException(true)->transStart();
@@ -81,9 +96,9 @@ class ControlMaestro extends BaseController
             }
 
             $idRazonSocial = (isset($post['ID_RazonSocial']) && is_numeric($post['ID_RazonSocial'])) ? intval($post['ID_RazonSocial']) : $solicitudOriginal->ID_RazonSocial;
+            $idDptoActual = $solicitudOriginal->ID_Dpto ?? null; // Nota: si se permitiera cambiar depto, habría que manejarlo aquí.
             $metodoPago = isset($post['MetodoPago']) ? $post['MetodoPago'] : $solicitudOriginal->MetodoPago;
             $fechaRegistro = $solicitudOriginal->Fecha;
-            $fechaRefPago = (!empty($post['Fecha_Pago_Programado'])) ? $post['Fecha_Pago_Programado'] : date('Y-m-d');
             $fechaRefPago       = empty($post['FechaRefPago']) ? null : $post['FechaRefPago'];
             $fechaPagoRealizado = empty($post['FechaPagoRealizado']) ? null : $post['FechaPagoRealizado'];
 
@@ -99,21 +114,16 @@ class ControlMaestro extends BaseController
             }
 
             // CASO A: Bajamos de nivel "Espera Programación" (5) -> Eliminamos la Orden completa
-            // CASO A: Bajamos de nivel "Espera Programación" (5) -> Eliminamos la Orden completa
             if ($nivelNuevo < 5 && $rowOrd) {
                 // Borramos Factura y Ficha
                 if (!empty($rowOrd->File_Factura)) @unlink(WRITEPATH . 'uploads/facturas/' . $rowOrd->File_Factura);
                 if (!empty($rowOrd->File_Comprobante)) @unlink(WRITEPATH . 'uploads/comprobantes/' . $rowOrd->File_Comprobante);
 
-                // --- NUEVO: DESTRUIR EL PDF FÍSICO DE LA ORDEN ---
                 $folioPdf = $solicitudOriginal->No_Folio;
                 $pathOrdenPdf = WRITEPATH . 'uploads/pdf_ordenes/OrdenCompra-' . $folioPdf . '.pdf';
                 if (file_exists($pathOrdenPdf)) {
                     @unlink($pathOrdenPdf);
                 }
-
-                // NOTA: La Requisición de pago no la borramos físicamente porque tu API
-                // api/requisicionpago/pdf/ la genera al vuelo (o no deja basura estática).
 
                 $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $rowOrd->ID_OrdenCompra)->delete();
                 $rowOrd = null;
@@ -121,27 +131,20 @@ class ControlMaestro extends BaseController
 
             // CASO B: Fase de Orden (Nivel >= 5)
             elseif ($rowOrd) {
-                // Limpieza Factura
+                // Limpieza Factura si bajamos de Pagada
                 if (!empty($rowOrd->File_Factura)) {
                     if ($cambioProveedor || ($nivelNuevo > 0 && $nivelNuevo < 8)) {
                         @unlink(WRITEPATH . 'uploads/facturas/' . $rowOrd->File_Factura);
                         $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $rowOrd->ID_OrdenCompra)->update(['File_Factura' => null]);
                     }
                 }
-                // Limpieza Ficha
+                // Limpieza Ficha si bajamos de Por Pagar
                 if (!empty($rowOrd->File_Comprobante)) {
                     if ($cambioProveedor || ($nivelNuevo > 0 && $nivelNuevo < 7)) {
                         @unlink(WRITEPATH . 'uploads/comprobantes/' . $rowOrd->File_Comprobante);
                         $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $rowOrd->ID_OrdenCompra)->update(['File_Comprobante' => null]);
                     }
                 }
-                // NOTA: Si bajamos a Nivel 5 (Espera Prog), la Requisición (File_ReqPag) podría quedar "huerfana"
-                // Si quieres ser estricto y borrarla si bajas de Programada a Espera:
-                /*
-                if ($nivelNuevo < 6 && !empty($rowOrd->File_ReqPag)) {
-                     // Lógica opcional para borrar PDF de Requi si regresas a Espera Programacion
-                }
-                */
             }
 
             // Limpieza Cotización
@@ -154,12 +157,11 @@ class ControlMaestro extends BaseController
             // ---------------------------------------------------------
             // 4. ACTUALIZAR BD
             // ---------------------------------------------------------
-            $dbPlatform = $this->db->getPlatform();
             $ivaState = $solicitudOriginal->IVA;
             $sePuedenEditarProductos = isset($post['productos']) && is_array($post['productos']);
             if ($sePuedenEditarProductos) {
                 $isIvaChecked = isset($post['IVA']);
-                $ivaState = ($dbPlatform === 'Postgre') ? ($isIvaChecked ? 't' : 'f') : ($isIvaChecked ? 1 : 0);
+                $ivaState = ($this->db->getPlatform() === 'Postgre') ? ($isIvaChecked ? 't' : 'f') : ($isIvaChecked ? 1 : 0);
             }
 
             $this->db->table('Solicitud')->where('ID_Solicitud', $id_solicitud)->update([
@@ -168,31 +170,40 @@ class ControlMaestro extends BaseController
             ]);
 
             // Actualizar Productos
-            $esServicio = ($solicitudOriginal->Tipo == 2);
-            $nuevoTotalGlobal = 0; $productosActualizados = false; $items = $post['productos'] ?? [];
+            $factorIva = ($ivaState === 't' || $ivaState === 1 || $ivaState === true) ? 1.16 : 1.0;
+            $items = $post['productos'] ?? [];
             if (!empty($items)) {
                 foreach ($items as $item) {
                     if(!isset($item['id']) || !isset($item['precio'])) continue;
-                    $productosActualizados = true; $id_fila = $item['id']; $precio = floatval($item['precio']); $nombre = $item['nombre'] ?? '';
-                    if ($esServicio) {
+                    $id_fila = $item['id']; $precio = floatval($item['precio']); $nombre = $item['nombre'] ?? '';
+                    if ($solicitudOriginal->Tipo == 2) {
                         $this->db->table('Solicitud_Servicios')->where('ID_SolicitudServ', $id_fila)->update(['Importe' => $precio, 'Nombre' => $nombre]);
-                        $nuevoTotalGlobal += $precio;
                     } else {
                         $cantidad = isset($item['cantidad']) ? floatval($item['cantidad']) : 1;
-                        $this->db->table('Solicitud_Producto')->where('ID_SolicitudProd', $id_fila)->update(['Cantidad' => $cantidad, 'Importe' => $precio, 'Nombre' => $nombre]);
-                        $nuevoTotalGlobal += ($cantidad * $precio);
+                        $nuevoMontoComprometido = $cantidad * $precio * $factorIva;
+                        
+                        $updateProd = ['Cantidad' => $cantidad, 'Importe' => $precio, 'Nombre' => $nombre];
+                        // Si ya está en niveles presupuestales, actualizamos el respaldo
+                        if ($nivelNuevo >= 4) {
+                            $updateProd['Monto_Comprometido_Original'] = $nuevoMontoComprometido;
+                        }
+                        
+                        $this->db->table('Solicitud_Producto')->where('ID_SolicitudProd', $id_fila)->update($updateProd);
                     }
                 }
             }
+
+            // Recalcular total para Cotización
             $totalFinal = 0;
-            if ($productosActualizados) {
-                $totalFinal = ($ivaState === 't' || $ivaState === 1 || $ivaState === true) ? ($nuevoTotalGlobal * 1.16) : $nuevoTotalGlobal;
+            if ($solicitudOriginal->Tipo == 2) {
+                $totalRow = $this->db->table('Solicitud_Servicios')->selectSum('Importe', 'total')->where('ID_Solicitud', $id_solicitud)->get()->getRow();
+                $totalFinal = $totalRow ? (float)$totalRow->total : 0;
             } else {
-                $rowCotTotal = $this->db->table('Cotizacion')->select('Total')->where('ID_Solicitud', $id_solicitud)->get()->getRow();
-                $totalFinal = $rowCotTotal ? $rowCotTotal->Total : 0;
+                $totalRow = $this->db->table('Solicitud_Producto')->select('Cantidad, Importe')->where('ID_Solicitud', $id_solicitud)->get()->getResultArray();
+                foreach($totalRow as $tr) $totalFinal += ((float)$tr['Cantidad'] * (float)$tr['Importe']);
+                $totalFinal = ($ivaState === 't' || $ivaState === 1 || $ivaState === true) ? ($totalFinal * 1.16) : $totalFinal;
             }
 
-            // Actualizar Cotización
             if ($idCotizacion) {
                 $this->db->table('Cotizacion')->where('ID_Cotizacion', $idCotizacion)->update(['Total' => $totalFinal, 'ID_Proveedor' => $idProveedor]);
             } else if (!empty($idProveedor)) {
@@ -200,7 +211,87 @@ class ControlMaestro extends BaseController
                 $idCotizacion = $this->db->insertID();
             }
 
-            // 5. ORDEN DE COMPRA Y ARCHIVOS
+            // ---------------------------------------------------------
+            // 5. SINCRONIZACIÓN DE PRESUPUESTO (EL CEREBRO)
+            // ---------------------------------------------------------
+            if ($esMateriales) {
+                $montosNuevosPorGrupo = [];
+                $prodsNuevos = $this->db->table('Solicitud_Producto')->where('ID_Solicitud', $id_solicitud)->get()->getResultArray();
+                foreach ($prodsNuevos as $pn) {
+                    if ($pn['ID_GrupoPresupuestal']) {
+                        $montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] = ($montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] ?? 0) + (float)$pn['Monto_Comprometido_Original'];
+                    }
+                }
+
+                $fechaSol = strtotime($solicitudOriginal->Fecha);
+                $mes = (int)date('n', $fechaSol);
+                $anio = (int)date('Y', $fechaSol);
+                $idDpto = $solicitudOriginal->ID_Dpto;
+
+                $todosLosGrupos = array_unique(array_merge(array_keys($montosViejosPorGrupo), array_keys($montosNuevosPorGrupo)));
+
+                foreach ($todosLosGrupos as $idGrupo) {
+                    $montoViejo = $montosViejosPorGrupo[$idGrupo] ?? 0;
+                    $montoNuevo = $montosNuevosPorGrupo[$idGrupo] ?? 0;
+
+                    $presupuesto = $this->db->table('PresupuestoMensual')->where(['ID_Dpto' => $idDpto, 'ID_GrupoPresupuestal' => $idGrupo, 'Mes' => $mes, 'Anio' => $anio])->get()->getRow();
+
+                    if ($presupuesto) {
+                        $nuevoComprometido = (float)$presupuesto->Monto_Comprometido;
+                        $nuevoEjecutado = (float)$presupuesto->Monto_Ejecutado;
+
+                        // REGLA 1: Se mantiene en Comprometido (4-7)
+                        if ($nivelAnterior >= 4 && $nivelAnterior <= 7 && $nivelNuevo >= 4 && $nivelNuevo <= 7) {
+                            $nuevoComprometido += ($montoNuevo - $montoViejo);
+                        }
+                        // REGLA 2: Sube de Pre-presupuesto a Comprometido (<4 -> 4-7)
+                        elseif ($nivelAnterior < 4 && $nivelNuevo >= 4 && $nivelNuevo <= 7) {
+                            $nuevoComprometido += $montoNuevo;
+                        }
+                        // REGLA 3: Sube de Comprometido a Ejecutado (4-7 -> 8)
+                        elseif ($nivelAnterior >= 4 && $nivelAnterior <= 7 && $nivelNuevo == 8) {
+                            $nuevoComprometido -= $montoViejo;
+                            $nuevoEjecutado += $montoNuevo;
+                        }
+                        // REGLA 4: Se mantiene en Ejecutado (8 -> 8)
+                        elseif ($nivelAnterior == 8 && $nivelNuevo == 8) {
+                            $nuevoEjecutado += ($montoNuevo - $montoViejo);
+                        }
+                        // REGLA 5: Baja de Comprometido a Pre-presupuesto (4-7 -> <4)
+                        elseif ($nivelAnterior >= 4 && $nivelAnterior <= 7 && $nivelNuevo < 4) {
+                            $nuevoComprometido -= $montoViejo;
+                        }
+                        // REGLA 6: Baja de Ejecutado a Comprometido (8 -> 4-7)
+                        elseif ($nivelAnterior == 8 && $nivelNuevo >= 4 && $nivelNuevo <= 7) {
+                            $nuevoEjecutado -= $montoViejo;
+                            $nuevoComprometido += $montoNuevo;
+                        }
+                        // REGLA 7: Baja de Ejecutado a Pre-presupuesto (8 -> <4)
+                        elseif ($nivelAnterior == 8 && $nivelNuevo < 4) {
+                            $nuevoEjecutado -= $montoViejo;
+                        }
+
+                        if ($nuevoComprometido < 0) $nuevoComprometido = 0;
+                        if ($nuevoEjecutado < 0) $nuevoEjecutado = 0;
+
+                        $this->db->table('PresupuestoMensual')->where('ID_PresupuestoMensual', $presupuesto->ID_PresupuestoMensual)->update([
+                            'Monto_Comprometido' => $nuevoComprometido,
+                            'Monto_Ejecutado' => $nuevoEjecutado
+                        ]);
+                    } 
+                    // Si no existe presupuesto y estamos entrando a nivel comprometido, lo creamos
+                    elseif ($nivelNuevo >= 4) {
+                        $comp = ($nivelNuevo == 8) ? 0 : $montoNuevo;
+                        $ejec = ($nivelNuevo == 8) ? $montoNuevo : 0;
+                        $this->db->table('PresupuestoMensual')->insert([
+                            'ID_Dpto' => $idDpto, 'ID_GrupoPresupuestal' => $idGrupo, 'Mes' => $mes, 'Anio' => $anio,
+                            'Monto_Asignado' => 0, 'Monto_Comprometido' => $comp, 'Monto_Ejecutado' => $ejec
+                        ]);
+                    }
+                }
+            }
+
+            // 6. ORDEN DE COMPRA Y ARCHIVOS
             if ($idCotizacion && !empty($idProveedor)) {
                 $orden = $this->db->table('OrdenCompra')->where('ID_Cotizacion', $idCotizacion)->get()->getRowArray();
 
@@ -297,8 +388,14 @@ class ControlMaestro extends BaseController
             $this->db->transComplete();
             return $this->respond(['success' => true, 'message' => 'Actualizado.']);
         } catch (\Exception $e) {
-            $this->db->transRollback();
-            return $this->failServerError($e->getMessage());
+            if ($this->db->transStatus() === false) {
+                $this->db->transRollback();
+            }
+            log_message('error', '[ControlMaestro::update_master] ERROR: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Error interno en el servidor: ' . $e->getMessage()
+            ]);
         }
     }
 }
