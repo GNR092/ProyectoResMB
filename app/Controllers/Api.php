@@ -404,6 +404,23 @@ class Api extends ResourceController
 
             // Actualización de productos (Lógica idéntica a la anterior)
             $esServicio = (int) $solicitud['Tipo'] === 2;
+            
+            // --- NUEVA LÓGICA DE SINCRONIZACIÓN DE PRESUPUESTO ---
+            // Solo si es materiales y ya está en un estado que afectó presupuesto
+            $estadosFinancieros = ['Aprobada', 'Por Pagar', 'En Proceso de Pago', Status::Pagada, 'Pagada'];
+            $afectaPresupuesto = (!$esServicio && in_array($solicitud['Estado'], $estadosFinancieros));
+            $montosViejosPorGrupo = [];
+            
+            if ($afectaPresupuesto) {
+                $productModel = new SolicitudProductModel();
+                $productosPrevios = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
+                foreach ($productosPrevios as $pp) {
+                    if ($pp['ID_GrupoPresupuestal']) {
+                        $montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] = ($montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] ?? 0) + (float)$pp['Monto_Comprometido_Original'];
+                    }
+                }
+            }
+
             if ($esServicio) {
                 $solicitudServiciosModel = new SolicitudServiciosModel();
                 $solicitudItemsDB = $solicitudServiciosModel->where('ID_Solicitud', $idSolicitud)->findAll();
@@ -418,14 +435,72 @@ class Api extends ResourceController
             } else {
                 $solicitudProductModel = new SolicitudProductModel();
                 $solicitudItemsDB = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
+                
+                $factorIvaActual = ($iva === true) ? 1.16 : 1.0;
+
                 foreach ($itemsPayload as $index => $p) {
                     if(isset($solicitudItemsDB[$index])) {
+                        $nuevoMontoComprometido = (float)$p->cantidad * (float)$p->importe * $factorIvaActual;
+                        
                         $solicitudProductModel->update($solicitudItemsDB[$index]['ID_SolicitudProd'], [
                             'Codigo' => (string) $p->codigo,
                             'Nombre' => (string) $p->nombre,
                             'Cantidad' => (int) $p->cantidad,
                             'Importe' => (float) $p->importe,
+                            'Monto_Comprometido_Original' => $nuevoMontoComprometido // Actualizamos el respaldo
                         ]);
+                    }
+                }
+            }
+
+            // --- APLICAR AJUSTE AL PRESUPUESTO ---
+            if ($afectaPresupuesto) {
+                $presupuestoModel = new \App\Models\PresupuestoMensualModel();
+                $solicitudProductModel = new SolicitudProductModel();
+                $productosNuevos = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
+                
+                $montosNuevosPorGrupo = [];
+                foreach ($productosNuevos as $pn) {
+                    if ($pn['ID_GrupoPresupuestal']) {
+                        $montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] = ($montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] ?? 0) + (float)$pn['Monto_Comprometido_Original'];
+                    }
+                }
+
+                // Obtener mes y año de la solicitud
+                $fechaSol = strtotime($solicitud['Fecha'] ?? date('Y-m-d'));
+                $mes = (int)date('n', $fechaSol);
+                $anio = (int)date('Y', $fechaSol);
+                $idDpto = $solicitud['ID_Dpto'];
+
+                // Comparar y ajustar por cada grupo presupuestal afectado
+                $todosLosGrupos = array_unique(array_merge(array_keys($montosViejosPorGrupo), array_keys($montosNuevosPorGrupo)));
+                
+                foreach ($todosLosGrupos as $idGrupo) {
+                    $viejo = $montosViejosPorGrupo[$idGrupo] ?? 0;
+                    $nuevo = $montosNuevosPorGrupo[$idGrupo] ?? 0;
+                    $diferencia = $nuevo - $viejo;
+
+                    if ($diferencia != 0) {
+                        $presupuesto = $presupuestoModel->where([
+                            'ID_Dpto' => $idDpto,
+                            'ID_GrupoPresupuestal' => $idGrupo,
+                            'Mes' => $mes,
+                            'Anio' => $anio
+                        ])->first();
+
+                        if ($presupuesto) {
+                            // Si la solicitud está pagada, ajustamos el Ejecutado. Si no, el Comprometido.
+                            $campoAjustar = ($solicitud['Estado'] === 'Pagada' || $solicitud['Estado'] === Status::Pagada) ? 'Monto_Ejecutado' : 'Monto_Comprometido';
+                            
+                            $nuevoValorPresupuesto = (float)$presupuesto[$campoAjustar] + $diferencia;
+                            if ($nuevoValorPresupuesto < 0) $nuevoValorPresupuesto = 0;
+
+                            $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
+                                $campoAjustar => $nuevoValorPresupuesto
+                            ]);
+                            
+                            log_message('debug', "Presupuesto Ajustado por Edición (IVA/Precio): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Diferencia: $diferencia en $campoAjustar");
+                        }
                     }
                 }
             }
