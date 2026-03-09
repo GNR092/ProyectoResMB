@@ -163,6 +163,11 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/crud_places/editar/(:num)', 'Modales::editarPlace/$1');
         $routes->post('modales/crud_places/eliminar/(:num)', 'Modales::eliminarPlace/$1');
 
+        //crud departamentos
+        $routes->post('modales/crud_departamentos/insertar', 'Modales::insertarDepartamento');
+        $routes->post('modales/crud_departamentos/editar/(:num)', 'Modales::editarDepartamento/$1');
+        $routes->post('modales/crud_departamentos/eliminar/(:num)', 'Modales::eliminarDepartamento/$1');
+
         // CRUD Segmentos de Negocio
         $routes->post('modales/crud_segmentos/insertar', 'Modales::insertarSegmento');
         $routes->post('modales/crud_segmentos/editar/(:num)', 'Modales::editarSegmento/$1');
