@@ -45,7 +45,7 @@
             </table>
         </div>
         <!-- Paginación -->
-        <div id="paginacion-enviar-revision" class="flex justify-center mt-4 space-x-2"></div>
+        <div id="paginacion-enviar-revision" class="flex flex-wrap justify-center mt-4 gap-2"></div>
     </div>
 
     <!-- Div VER -->

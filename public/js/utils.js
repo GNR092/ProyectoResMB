@@ -683,6 +683,9 @@ function setupClientSideTable(config) {
     }
 
     pagination.style.display = 'flex'
+    pagination.style.flexWrap = 'wrap'
+    pagination.style.justifyContent = 'center'
+    pagination.style.gap = '0.5rem'
 
     for (let i = 1; i <= totalPages; i++) {
       const button = document.createElement('button')
