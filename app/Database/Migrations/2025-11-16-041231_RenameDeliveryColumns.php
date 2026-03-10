@@ -60,3 +60,4 @@ class RenameDeliveryColumns extends Migration
         $this->forge->dropColumn('Entregas', 'NombreEntrega');
     }
 }
+

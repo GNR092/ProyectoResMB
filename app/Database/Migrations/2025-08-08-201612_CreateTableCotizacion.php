@@ -46,6 +46,7 @@ class CreateTableCotizacion extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Cotizacion');
+        $this->forge->dropTable('Cotizacion', true);
     }
 }
+

@@ -31,6 +31,6 @@ class CreateGrupoPresupuestal extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('GrupoPresupuestal');
+        $this->forge->dropTable('GrupoPresupuestal', true);
     }
 }

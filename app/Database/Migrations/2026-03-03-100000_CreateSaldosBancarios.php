@@ -65,6 +65,7 @@ class CreateSaldosBancarios extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('SaldosBancarios');
+        $this->forge->dropTable('SaldosBancarios', true);
     }
 }
+

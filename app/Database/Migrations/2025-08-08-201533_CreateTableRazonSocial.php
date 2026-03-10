@@ -33,6 +33,6 @@ class CreateRazonSocialTable extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Razon_Social');
+        $this->forge->dropTable('Razon_Social', true);
     }
 }

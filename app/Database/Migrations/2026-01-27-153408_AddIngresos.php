@@ -64,6 +64,6 @@ class AddIngresos extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Ingresos');
+        $this->forge->dropTable('Ingresos', true);
     }
 }

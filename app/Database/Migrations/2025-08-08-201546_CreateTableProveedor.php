@@ -89,6 +89,6 @@ class CreateTableProveedor extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Proveedor');
+        $this->forge->dropTable('Proveedor', true);
     }
 }

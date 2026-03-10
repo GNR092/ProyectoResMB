@@ -55,6 +55,6 @@ class AddMapeoProductos extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('MapeoProductos');
+        $this->forge->dropTable('MapeoProductos', true);
     }
 }

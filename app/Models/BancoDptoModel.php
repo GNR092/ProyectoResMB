@@ -31,7 +31,7 @@ class BancoDptoModel extends Model
      */
     public function withRazonSocial()
     {
-        return $this->select('BancoDpto.*, Razon_Social.Nombre as RazonSocial_Nombre')
+        return $this->select('BancoDpto.*, Razon_Social.Nombre as razonsocial_nombre')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = BancoDpto.ID_RazonSocial', 'left');
     }
 }

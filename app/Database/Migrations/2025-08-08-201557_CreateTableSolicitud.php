@@ -96,6 +96,6 @@ class CreateTableSolicitudProd extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Solicitud');
+        $this->forge->dropTable('Solicitud', true);
     }
 }

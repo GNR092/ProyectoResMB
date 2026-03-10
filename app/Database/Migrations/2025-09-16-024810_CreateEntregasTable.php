@@ -55,6 +55,7 @@ class CreateEntregasTable extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Entregas');
+        $this->forge->dropTable('Entregas', true);
     }
 }
+

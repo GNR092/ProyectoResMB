@@ -60,6 +60,7 @@ class CreateTableApiToken extends Migration
      */
     public function down()
     {
-        $this->forge->dropTable('User_Tokens');
+        $this->forge->dropTable('User_Tokens', true);
     }
 }
+

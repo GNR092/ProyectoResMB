@@ -27,7 +27,7 @@ class AddRazonSocialToPlaces extends Migration
 
     public function down()
     {
-        $this->forge->dropForeignKey('Places', 'places_id_razonsocial_fk');
+        try { $this->forge->dropForeignKey('Places', 'places_id_razonsocial_fk'); } catch (\Throwable $e) {}
 
         $this->forge->dropColumn('Places', 'ID_RazonSocial');
     }

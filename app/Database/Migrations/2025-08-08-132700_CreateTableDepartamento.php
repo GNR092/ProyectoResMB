@@ -36,6 +36,6 @@ class CreateDepartamentosTable extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Departamentos');
+        $this->forge->dropTable('Departamentos', true);
     }
 }

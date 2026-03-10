@@ -37,8 +37,12 @@ class AddGrupoToOrdenCompra extends Migration
 
     public function down()
     {
-        // Borrar FK primero usando el nombre específico
-        $this->forge->dropForeignKey('OrdenCompra', 'ordencompra_grupo_fk');
+        // Borrar FK primero usando el nombre específico (con try-catch por si no existe)
+        try {
+            $this->forge->dropForeignKey('OrdenCompra', 'ordencompra_grupo_fk');
+        } catch (\Throwable $e) {
+            // Ignoramos si no existe
+        }
 
         // Borrar columna después
         $this->forge->dropColumn('OrdenCompra', 'ID_GrupoPresupuestal');

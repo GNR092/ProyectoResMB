@@ -31,3 +31,4 @@ class AddCuentaToSolicitud extends Migration
         $this->forge->dropColumn('Solicitud', 'ID_Cuenta');
     }
 }
+

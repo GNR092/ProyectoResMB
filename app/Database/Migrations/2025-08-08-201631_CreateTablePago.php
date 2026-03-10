@@ -65,6 +65,7 @@ class CreateTablePago extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Pago');
+        $this->forge->dropTable('Pago', true);
     }
 }
+

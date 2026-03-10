@@ -39,7 +39,7 @@ class AddIdDptoToGrupoPresupuestal extends Migration
     public function down()
     {
         // IMPORTANTE: Primero borrar la FK, luego la columna
-        $this->forge->dropForeignKey('GrupoPresupuestal', 'grupopresupuestal_id_dpto_fk');
+        try { $this->forge->dropForeignKey('GrupoPresupuestal', 'grupopresupuestal_id_dpto_fk'); } catch (\Throwable $e) {}
         $this->forge->dropColumn('GrupoPresupuestal', 'ID_Dpto');
     }
 }

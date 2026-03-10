@@ -52,6 +52,7 @@ class CreateSolicitudProductoTable extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Solicitud_Producto');
+        $this->forge->dropTable('Solicitud_Producto', true);
     }
 }
+

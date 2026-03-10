@@ -25,3 +25,4 @@ class AddMontoComprometidoOriginalToSolicitudProducto extends Migration
         $this->forge->dropColumn('Solicitud_Producto', 'Monto_Comprometido_Original');
     }
 }
+

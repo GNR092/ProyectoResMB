@@ -48,6 +48,6 @@ class CreateBancoDpto extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('BancoDpto');
+        $this->forge->dropTable('BancoDpto', true);
     }
 }

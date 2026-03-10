@@ -31,14 +31,14 @@
             <?php if (!empty($bancos_dpto)): ?>
                 <?php foreach ($bancos_dpto as $index => $item): ?>
                     <tr data-id="<?= $item['ID_BancoDpto'] ?>"
-                        data-id-rs="<?= esc($item['ID_RazonSocial']) ?>"
-                        data-banco="<?= esc($item['Banco']) ?>"
-                        data-clabe="<?= esc($item['Clabe']) ?>"
+                        data-id-rs="<?= esc($item['ID_RazonSocial'] ?? $item['id_razonsocial'] ?? '') ?>"
+                        data-banco="<?= esc($item['Banco'] ?? $item['banco'] ?? '') ?>"
+                        data-clabe="<?= esc($item['Clabe'] ?? $item['clabe'] ?? '') ?>"
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
 
-                        <td class="px-3 py-2 border-b nombre-rs"><?= esc($item['RazonSocial_Nombre'] ?? 'Sin Razón Social') ?></td>
-                        <td class="px-3 py-2 border-b nombre-banco"><?= esc($item['Banco']) ?></td>
-                        <td class="px-3 py-2 border-b clabe-banco font-mono text-sm"><?= esc($item['Clabe']) ?></td>
+                        <td class="px-3 py-2 border-b nombre-rs"><?= esc($item['razonsocial_nombre'] ?? 'Sin Razón Social') ?></td>
+                        <td class="px-3 py-2 border-b nombre-banco"><?= esc($item['Banco'] ?? $item['banco'] ?? '') ?></td>
+                        <td class="px-3 py-2 border-b clabe-banco font-mono text-sm"><?= esc($item['Clabe'] ?? $item['clabe'] ?? '') ?></td>
 
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">

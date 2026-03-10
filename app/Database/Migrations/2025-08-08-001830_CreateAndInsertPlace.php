@@ -43,6 +43,7 @@ class CreateAndInsertPlace extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Places');
+        $this->forge->dropTable('Places', true);
     }
 }
+

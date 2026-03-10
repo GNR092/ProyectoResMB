@@ -80,6 +80,7 @@ class CreateHistorialProductosTable extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('HistorialProductos');
+        $this->forge->dropTable('HistorialProductos', true);
     }
 }
+

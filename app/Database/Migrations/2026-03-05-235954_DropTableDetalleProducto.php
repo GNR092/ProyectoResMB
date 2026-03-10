@@ -19,3 +19,4 @@ class DropTableDetalleProducto extends Migration
         // a menos que se desee reconstruir la estructura exacta antigua.
     }
 }
+

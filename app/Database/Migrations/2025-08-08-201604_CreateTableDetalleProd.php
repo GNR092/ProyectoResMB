@@ -45,6 +45,7 @@ class CreateTableDetalle_Prodcutos extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Detalle_Producto');
+        $this->forge->dropTable('Detalle_Producto', true);
     }
 }
+

@@ -22,3 +22,4 @@ class AddUbicacionToRazonSocial extends Migration
         $this->forge->dropColumn('Razon_Social', 'Ubicacion');
     }
 }
+

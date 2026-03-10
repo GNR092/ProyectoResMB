@@ -42,8 +42,9 @@ class AddGrupoPresupuestalToSolicitudProducto extends Migration
                     ->get();
 
         if ($query->getRow()) {
-            $this->forge->dropForeignKey('Solicitud_Producto', 'solicitudproducto_grupo_fk');
+            try { $this->forge->dropForeignKey('Solicitud_Producto', 'solicitudproducto_grupo_fk'); } catch (\Throwable $e) {}
         }
         $this->forge->dropColumn('Solicitud_Producto', 'ID_GrupoPresupuestal');
     }
 }
+

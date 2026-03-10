@@ -39,6 +39,6 @@ class CreateDetalleServicioTable extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Detalle_Servicio');
+        $this->forge->dropTable('Detalle_Servicio', true);
     }
 }

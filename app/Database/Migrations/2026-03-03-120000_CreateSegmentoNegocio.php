@@ -55,6 +55,7 @@ class CreateSegmentoNegocio extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('segmento_negocio');
+        $this->forge->dropTable('segmento_negocio', true);
     }
 }
+

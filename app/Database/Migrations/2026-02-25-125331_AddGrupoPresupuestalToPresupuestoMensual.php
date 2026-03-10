@@ -42,8 +42,9 @@ class AddGrupoPresupuestalToPresupuestoMensual extends Migration
                     ->get();
 
         if ($query->getRow()) {
-            $this->forge->dropForeignKey('PresupuestoMensual', 'presupuestomensual_grupo_fk');
+            try { $this->forge->dropForeignKey('PresupuestoMensual', 'presupuestomensual_grupo_fk'); } catch (\Throwable $e) {}
         }
         $this->forge->dropColumn('PresupuestoMensual', 'ID_GrupoPresupuestal');
     }
 }
+

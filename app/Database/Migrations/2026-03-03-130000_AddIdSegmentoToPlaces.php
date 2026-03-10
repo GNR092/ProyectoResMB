@@ -34,7 +34,8 @@ class AddIdSegmentoToPlaces extends Migration
 
     public function down()
     {
-        $this->forge->dropForeignKey('Places', 'places_segmento_fk');
+        try { $this->forge->dropForeignKey('Places', 'places_segmento_fk'); } catch (\Throwable $e) {}
         $this->forge->dropColumn('Places', 'id_segmento');
     }
 }
+

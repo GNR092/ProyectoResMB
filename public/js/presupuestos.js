@@ -561,12 +561,13 @@ function registrarComponenteReportePresupuesto() {
                         totales.pAsignado += parseFloat(d.presupuesto?.asignado || 0);
                         totales.pGastado += parseFloat(d.presupuesto?.gastado || 0);
                         totales.pDisponible += parseFloat(d.presupuesto?.disponible || 0);
-                        // Bancos: NO sumamos aquí para niveles inferiores (Segmento/Place), 
-                        // lo haremos directamente en el objeto RS abajo.
                     } else {
-                        totales.asignado += parseFloat(d.totales?.asignado || 0);
-                        totales.comprometido += parseFloat(d.totales?.comprometido || 0);
-                        totales.ejecutado += parseFloat(d.totales?.ejecutado || 0);
+                        // Pantalla Presupuesto vs Ejecutado
+                        // d.totales existe cuando viene de la API, pero d.detalles (grupos) son planos
+                        const src = d.totales || d;
+                        totales.asignado += parseFloat(src.asignado || 0);
+                        totales.comprometido += parseFloat(src.comprometido || 0);
+                        totales.ejecutado += parseFloat(src.ejecutado || 0);
                     }
                 };
 

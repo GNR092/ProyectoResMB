@@ -435,22 +435,20 @@ class PresupuestoApiController extends ResourceController
                 }
             }
 
-            if (!empty($analisisDpto)) {
-                $totalDptoGasto = $totalDptoComprometido + $totalDptoEjecutado;
-                $dpto['detalles'] = $analisisDpto;
-                $dpto['totales'] = [
-                    'asignado'     => $totalDptoAsignado,
-                    'comprometido' => $totalDptoComprometido,
-                    'ejecutado'    => $totalDptoEjecutado,
-                    'disponible'   => $totalDptoAsignado - $totalDptoGasto,
-                    'porcentaje'   => $totalDptoAsignado > 0 ? round(($totalDptoGasto / $totalDptoAsignado) * 100, 2) : 0
-                ];
-                $estructura[] = $dpto;
+            $totalDptoGasto = $totalDptoComprometido + $totalDptoEjecutado;
+            $dpto['detalles'] = $analisisDpto;
+            $dpto['totales'] = [
+                'asignado'     => $totalDptoAsignado,
+                'comprometido' => $totalDptoComprometido,
+                'ejecutado'    => $totalDptoEjecutado,
+                'disponible'   => $totalDptoAsignado - $totalDptoGasto,
+                'porcentaje'   => $totalDptoAsignado > 0 ? round(($totalDptoGasto / $totalDptoAsignado) * 100, 2) : 0
+            ];
+            $estructura[] = $dpto;
 
-                $granTotalAsignado += $totalDptoAsignado;
-                $granTotalComprometido += $totalDptoComprometido;
-                $granTotalEjecutado += $totalDptoEjecutado;
-            }
+            $granTotalAsignado += $totalDptoAsignado;
+            $granTotalComprometido += $totalDptoComprometido;
+            $granTotalEjecutado += $totalDptoEjecutado;
         }
 
         $granTotalGasto = $granTotalComprometido + $granTotalEjecutado;

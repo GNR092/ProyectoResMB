@@ -61,6 +61,6 @@ class CreatePresupuestoAnual extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('PresupuestoAnual');
+        $this->forge->dropTable('PresupuestoAnual', true);
     }
 }

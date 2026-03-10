@@ -13,6 +13,7 @@ use App\Models\CuentasModel;
 use App\Models\PlacesModel;
 use App\Models\GrupoPresupuestalModel;
 use App\Models\BancoDptoModel;
+use CodeIgniter\Database\Exceptions\DatabaseException;
 use App\Models\PresupuestoMensualModel;
 use App\Models\SegmentoNegocioModel;
 
@@ -331,7 +332,7 @@ class Modales extends BaseController
 
                 // 2. Modificamos la consulta para traer el NOMBRE de la Razón Social y el Segmento
                 $data['places'] = $placesModel
-                    ->select('Places.*, Razon_Social.Nombre as RazonSocial_Nombre, segmento_negocio.nombre as Segmento_Nombre')
+                    ->select('Places.*, Razon_Social.Nombre as razonsocial_nombre, segmento_negocio.nombre as segmento_nombre')
                     ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial', 'left')
                     ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left')
                     ->orderBy('Places.Nombre_Corto', 'ASC')
@@ -1029,12 +1030,25 @@ class Modales extends BaseController
     {
         $model = new PlacesModel();
 
-        if ($model->delete($id)) {
-            return $this->response->setJSON(['success' => true]);
-        } else {
+        try {
+            if ($model->delete($id)) {
+                return $this->response->setJSON(['success' => true]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se pudo eliminar el lugar',
+                ]);
+            }
+        } catch (DatabaseException $e) {
+            if (strpos($e->getMessage(), '1451') !== false) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se puede eliminar este complejo porque tiene departamentos, presupuestos o solicitudes asociados. 🚫',
+                ]);
+            }
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo eliminar el lugar',
+                'message' => 'Error de base de datos al intentar eliminar.',
             ]);
         }
     }
@@ -1102,12 +1116,25 @@ class Modales extends BaseController
     {
         $model = new DepartamentosModel();
 
-        if ($model->delete($id)) {
-            return $this->response->setJSON(['success' => true]);
-        } else {
+        try {
+            if ($model->delete($id)) {
+                return $this->response->setJSON(['success' => true]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se pudo eliminar el departamento',
+                ]);
+            }
+        } catch (DatabaseException $e) {
+            if (strpos($e->getMessage(), '1451') !== false) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se puede eliminar este departamento porque tiene presupuestos o solicitudes asociados. 🚫',
+                ]);
+            }
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo eliminar el departamento',
+                'message' => 'Error de base de datos al intentar eliminar.',
             ]);
         }
     }

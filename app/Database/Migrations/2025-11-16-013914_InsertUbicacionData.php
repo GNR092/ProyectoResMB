@@ -18,3 +18,4 @@ class InsertUbicacionData extends Migration
             ->update(['Ubicacion' => null]);
     }
 }
+

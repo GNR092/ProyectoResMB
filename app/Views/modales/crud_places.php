@@ -49,8 +49,8 @@
 
                         <td class="px-3 py-2 border-b nombre-corto"><?= esc($place['Nombre_Corto']) ?></td>
                         <td class="px-3 py-2 border-b nombre-completo"><?= esc($place['Nombre_Completo']) ?></td>
-                        <td class="px-3 py-2 border-b razon-social-nombre"><?= esc($place['RazonSocial_Nombre'] ?? '-') ?></td>
-                        <td class="px-3 py-2 border-b segmento-nombre"><?= esc($place['Segmento_Nombre'] ?? '-') ?></td>
+                        <td class="px-3 py-2 border-b razon-social-nombre"><?= esc($place['razonsocial_nombre'] ?? '-') ?></td>
+                        <td class="px-3 py-2 border-b segmento-nombre"><?= esc($place['segmento_nombre'] ?? '-') ?></td>
 
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">

@@ -37,6 +37,6 @@ class CreateTableOrdenCompra extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('OrdenCompra');
+        $this->forge->dropTable('OrdenCompra', true);
     }
 }
