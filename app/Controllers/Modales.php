@@ -357,21 +357,24 @@ class Modales extends BaseController
             case 'crud_departamento':
                 $deptosModel = new DepartamentosModel();
                 $unidadesModel = new UnidadOperativaModel();
+                $placesModel = new PlacesModel();
 
-                // Obtenemos los departamentos junto con el nombre de la unidad operativa
+                // Obtenemos los departamentos junto con el nombre de la unidad operativa y el lugar
                 $data['departamentos'] = $deptosModel
                     ->select('Departamentos.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
                     ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
-                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();
 
-                // Obtenemos las unidades operativas para llenar el select
+                // Obtenemos las unidades operativas y los lugares para llenar los selects
                 $data['unidades_operativas'] = $unidadesModel
                     ->select('UnidadOperativa.*, Places.Nombre_Corto as PlaceNombre')
                     ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
                     ->orderBy('UnidadOperativa.Nombre', 'ASC')
                     ->findAll();
+
+                $data['places'] = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
 
                 return view('modales/crud_departamento', $data);
 
@@ -1051,8 +1054,10 @@ class Modales extends BaseController
     public function editarPlace($id)
     {
         $model = new PlacesModel();
-        // AGREGAR 'ID_RazonSocial' e 'id_segmento' al array
-        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial', 'id_segmento']);
+        $postData = $this->request->getPost();
+        
+        $placeActual = $model->find($id);
+        if (!$placeActual) return $this->response->setJSON(['success' => false, 'message' => 'Lugar no encontrado']);
 
         try {
             $model->update($id, $data);
@@ -1094,19 +1099,23 @@ class Modales extends BaseController
     public function insertarDepartamento()
     {
         $model = new DepartamentosModel();
+        $unidadModel = new UnidadOperativaModel();
+        
         $nombre = $this->request->getPost('Nombre');
         $unidadId = $this->request->getPost('ID_UnidadOperativa');
+        $placeId = $this->request->getPost('ID_Place'); // Capturamos el lugar elegido
 
-        if (empty($nombre) || empty($unidadId)) {
+        if (empty($nombre) || empty($unidadId) || empty($placeId)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'El nombre y la unidad operativa son obligatorios',
+                'message' => 'El nombre, el complejo y la unidad operativa son obligatorios',
             ]);
         }
 
         $data = [
             'Nombre'             => $nombre,
             'ID_UnidadOperativa' => $unidadId,
+            'ID_Place'           => $placeId,
         ];
 
         if ($model->insert($data)) {
@@ -1125,7 +1134,12 @@ class Modales extends BaseController
     public function editarDepartamento($id)
     {
         $model = new DepartamentosModel();
-        $data = $this->request->getPost(['Nombre', 'ID_UnidadOperativa']);
+        
+        $data = [
+            'Nombre'             => $this->request->getPost('Nombre'),
+            'ID_UnidadOperativa' => $this->request->getPost('ID_UnidadOperativa'),
+            'ID_Place'           => $this->request->getPost('ID_Place')
+        ];
 
         try {
             $model->update($id, $data);
@@ -1273,25 +1287,63 @@ class Modales extends BaseController
         $model = new GrupoPresupuestalModel();
         $postData = $this->request->getPost();
         
-        // Captura booleana robusta: el navegador envía 'on' o '1' si está marcado
+        // 1. Obtener el estado actual del grupo
+        $grupoActual = $model->find($id);
+        if (!$grupoActual) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Grupo no encontrado']);
+        }
+
+        // 2. Captura booleana robusta
         $valPost = $this->request->getPost('activo');
-        $esActivo = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
+        $esActivoPost = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
+        
+        $nuevaUnidad = !empty($postData['ID_UnidadOperativa']) ? (int)$postData['ID_UnidadOperativa'] : null;
+        $unidadAnterior = (int)($grupoActual['ID_UnidadOperativa'] ?? 0);
 
-        $data = [
-            'Nombre'             => $postData['Nombre'] ?? '',
-            'Descripcion'        => $postData['Descripcion'] ?? '',
-            'ID_UnidadOperativa' => !empty($postData['ID_UnidadOperativa']) ? $postData['ID_UnidadOperativa'] : null,
-            'activo'             => $esActivo
-        ];
+        // 3. LÓGICA DE CAMBIO DE UNIDAD
+        if ($nuevaUnidad !== $unidadAnterior && $unidadAnterior !== 0) {
+            // Caso A: Cambió la unidad operativa. 
+            // Desactivamos el viejo y creamos uno nuevo para integridad histórica.
+            
+            $db = \Config\Database::connect();
+            $db->transStart();
 
-        try {
-            if ($model->update($id, $data)) {
-                return $this->response->setJSON(['success' => true]);
-            } else {
-                return $this->response->setJSON(['success' => false, 'message' => 'No se pudo actualizar', 'errors' => $model->errors()]);
+            // Desactivar el actual
+            $model->update($id, ['activo' => false]);
+
+            // Crear el nuevo
+            $model->insert([
+                'Nombre'             => $postData['Nombre'] ?? $grupoActual['Nombre'],
+                'Descripcion'        => $postData['Descripcion'] ?? $grupoActual['Descripcion'],
+                'ID_UnidadOperativa' => $nuevaUnidad,
+                'activo'             => true // El nuevo nace activo
+            ]);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Error al procesar el cambio de unidad']);
             }
-        } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+
+            return $this->response->setJSON(['success' => true, 'message' => 'Se ha creado un nuevo grupo para la unidad seleccionada y se ha desactivado el anterior.']);
+        } else {
+            // Caso B: Solo cambió nombre, descripción o estado activo en la misma unidad.
+            $data = [
+                'Nombre'             => $postData['Nombre'] ?? '',
+                'Descripcion'        => $postData['Descripcion'] ?? '',
+                'ID_UnidadOperativa' => $nuevaUnidad,
+                'activo'             => $esActivoPost
+            ];
+
+            try {
+                if ($model->update($id, $data)) {
+                    return $this->response->setJSON(['success' => true]);
+                } else {
+                    return $this->response->setJSON(['success' => false, 'message' => 'No se pudo actualizar', 'errors' => $model->errors()]);
+                }
+            } catch (\Exception $e) {
+                return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+            }
         }
     }
     public function eliminarGrupo($id)

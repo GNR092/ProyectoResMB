@@ -478,12 +478,9 @@ class Api extends ResourceController
                 $fechaSol = strtotime($solicitud['Fecha'] ?? date('Y-m-d'));
                 $mes = (int)date('n', $fechaSol);
                 $anio = (int)date('Y', $fechaSol);
-                $idDpto = $solicitud['ID_Dpto'];
-
-                // Obtener la unidad operativa del departamento
-                $dModel = new \App\Models\DepartamentosModel();
-                $depObj = $dModel->find($idDpto);
-                $idUnidad = $depObj['ID_UnidadOperativa'] ?? 0;
+                
+                // USAR LA UNIDAD GUARDADA EN LA SOLICITUD (Snapshot de creación)
+                $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
 
                 // Comparar y ajustar por cada grupo presupuestal afectado
                 $todosLosGrupos = array_unique(array_merge(array_keys($montosViejosPorGrupo), array_keys($montosNuevosPorGrupo)));
@@ -1092,12 +1089,9 @@ class Api extends ResourceController
             $fechaSol = strtotime($fechaSolStr);
             $mes = (int)date('n', $fechaSol);
             $anio = (int)date('Y', $fechaSol);
-            $idDpto = $solicitud['ID_Dpto'];
 
-            // Resolver Unidad Operativa
-            $dModel = new \App\Models\DepartamentosModel();
-            $depObj = $dModel->find($idDpto);
-            $idUnidad = $depObj['ID_UnidadOperativa'] ?? 0;
+            // USAR LA UNIDAD GUARDADA EN LA SOLICITUD
+            $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
 
             // Combinar las llaves de ambos arrays para asegurar que procesamos todos los grupos
             $todosLosGrupos = array_unique(array_merge(array_keys($montosADescontar), array_keys($montosAEjecutar)));
@@ -1177,12 +1171,9 @@ class Api extends ResourceController
             $fechaSol = strtotime($fechaSolStr);
             $mes = (int)date('n', $fechaSol);
             $anio = (int)date('Y', $fechaSol);
-            $idDpto = $solicitud['ID_Dpto'];
 
-            // Resolver Unidad Operativa
-            $dModel = new \App\Models\DepartamentosModel();
-            $depObj = $dModel->find($idDpto);
-            $idUnidad = $depObj['ID_UnidadOperativa'] ?? 0;
+            // USAR LA UNIDAD GUARDADA EN LA SOLICITUD
+            $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
 
             foreach ($montosPorGrupo as $idGrupo => $monto) {
                 $presupuesto = $presupuestoModel->where([
@@ -1296,12 +1287,9 @@ class Api extends ResourceController
                     $fechaSol = strtotime($fechaSolStr);
                     $mes = (int)date('n', $fechaSol);
                     $anio = (int)date('Y', $fechaSol);
-                    $idDpto = $solicitud['ID_Dpto'];
 
-                    // Resolver Unidad Operativa
-                    $dModel = new \App\Models\DepartamentosModel();
-                    $depObj = $dModel->find($idDpto);
-                    $idUnidad = $depObj['ID_UnidadOperativa'] ?? 0;
+                    // USAR LA UNIDAD GUARDADA EN LA SOLICITUD
+                    $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
 
                     foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
                         $presupuesto = $presupuestoModel->where([

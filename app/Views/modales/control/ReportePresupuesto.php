@@ -57,7 +57,9 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Año</label>
                     <select x-model="anio" @change="cargarComparativo()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300 text-sm">
-                        <template x-for="a in years" :key="a"><option :value="a" x-text="a"></option></template>
+                        <template x-for="a in years" :key="a">
+                            <option :value="a" x-text="a" :selected="a === anio"></option>
+                        </template>
                     </select>
                 </div>
                 <div class="flex flex-col gap-1 min-w-[220px]">
@@ -213,7 +215,9 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Año</label>
                     <select x-model="anio" @change="cargarComparativoBancos()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 text-sm">
-                        <template x-for="a in years" :key="a"><option :value="a" x-text="a"></option></template>
+                        <template x-for="a in years" :key="a">
+                            <option :value="a" x-text="a" :selected="a === anio"></option>
+                        </template>
                     </select>
                 </div>
                 <div class="flex flex-col gap-1 min-w-[220px]">
@@ -321,7 +325,9 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Año</label>
                     <select x-model="anio" @change="cargarReporteCompleto()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 text-sm">
-                        <template x-for="a in years" :key="a"><option :value="a" x-text="a"></option></template>
+                        <template x-for="a in years" :key="a">
+                            <option :value="a" x-text="a" :selected="a === anio"></option>
+                        </template>
                     </select>
                 </div>
                 <div class="flex flex-col gap-1 min-w-[220px]">

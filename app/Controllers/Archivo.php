@@ -159,6 +159,7 @@ class Archivo extends BaseController
             $datosSolicitud = [
                 'ID_Usuario' => $user['ID_Usuario'],
                 'ID_Dpto' => $idDptoFinal,
+                'ID_UnidadOperativa' => $deptoUsuario['ID_UnidadOperativa'] ?? null,
                 'ID_Proveedor' => $proveedor['ID_Proveedor'] ?? null,
                 'ID_Cuenta' => $cuenta_id,
                 'ID_RazonSocial' => $razon['ID_RazonSocial'] ?? null,

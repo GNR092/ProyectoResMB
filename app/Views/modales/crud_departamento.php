@@ -29,8 +29,9 @@
             <thead class="bg-gray-100">
             <tr>
                 <th class="w-1/3 px-3 py-2 border-b text-left">Departamento</th>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Unidad Operativa (Lugar)</th>
-                <th class="w-1/3 px-3 py-2 border-b text-center">Acciones</th>
+                <th class="w-1/3 px-3 py-2 border-b text-left">Lugar</th>
+                <th class="w-1/3 px-3 py-2 border-b text-left">Unidad Operativa</th>
+                <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
             </tr>
             </thead>
             <tbody id="tabla-departamentos">
@@ -38,11 +39,13 @@
                 <?php foreach ($departamentos as $index => $depto): ?>
                     <tr data-id="<?= $depto['ID_Dpto'] ?>"
                         data-nombre="<?= esc($depto['Nombre']) ?>"
+                        data-id-place="<?= esc($depto['ID_Place']) ?>"
                         data-id-unidad="<?= esc($depto['ID_UnidadOperativa']) ?>"
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
 
                         <td class="px-3 py-2 border-b nombre-depto"><?= esc($depto['Nombre']) ?></td>
-                        <td class="px-3 py-2 border-b unidad-depto"><?= esc($depto['UnidadNombre'] ?? 'N/A') ?> (<?= esc($depto['PlaceNombre'] ?? 'N/A') ?>)</td>
+                        <td class="px-3 py-2 border-b lugar-depto"><?= esc($depto['PlaceNombre'] ?? 'N/A') ?></td>
+                        <td class="px-3 py-2 border-b unidad-depto"><?= esc($depto['UnidadNombre'] ?? 'N/A') ?></td>
 
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
@@ -68,7 +71,7 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="3" class="px-3 py-4 text-center text-gray-500">No hay departamentos registrados</td>
+                    <td colspan="4" class="px-3 py-4 text-center text-gray-500">No hay departamentos registrados</td>
                 </tr>
             <?php endif; ?>
             </tbody>
@@ -87,16 +90,28 @@
         <div class="grid grid-cols-1 gap-4">
             <div class="flex flex-col">
                 <label for="Nombre" class="mb-1 font-medium">Nombre del Departamento</label>
-                <input type="text" name="Nombre" id="Nombre" placeholder="Ej. Ventas" required class="w-full px-3 py-2 border rounded-lg">
+                <input type="text" name="Nombre" id="Nombre" placeholder="Ej. Ventas" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400">
+            </div>
+
+            <div class="flex flex-col">
+                <label for="ID_Place" class="font-medium mb-1">Lugar (Complejo)</label>
+                <select name="ID_Place" id="ID_Place" required class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
+                    <option value="">Seleccione Lugar</option>
+                    <?php if (!empty($places)): ?>
+                        <?php foreach ($places as $place): ?>
+                            <option value="<?= $place['ID_Place'] ?>"><?= esc($place['Nombre_Corto']) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
             </div>
 
             <div class="flex flex-col">
                 <label for="ID_UnidadOperativa" class="font-medium mb-1">Unidad Operativa</label>
-                <select name="ID_UnidadOperativa" id="ID_UnidadOperativa" required class="w-full px-3 py-2 border rounded-lg bg-white">
+                <select name="ID_UnidadOperativa" id="ID_UnidadOperativa" required class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
                     <option value="">Seleccione Unidad Operativa</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $unidad): ?>
-                            <option value="<?= $unidad['ID_UnidadOperativa'] ?>">
+                            <option value="<?= $unidad['ID_UnidadOperativa'] ?>" data-place="<?= $unidad['ID_Place'] ?>">
                                 <?= esc($unidad['Nombre']) ?> (<?= esc($unidad['PlaceNombre']) ?>)
                             </option>
                         <?php endforeach; ?>
@@ -119,16 +134,28 @@
         <div class="grid grid-cols-1 gap-4">
             <div class="flex flex-col">
                 <label for="editar-Nombre" class="mb-1 font-medium">Nombre del Departamento</label>
-                <input type="text" name="Nombre" id="editar-Nombre" required class="w-full px-3 py-2 border rounded-lg">
+                <input type="text" name="Nombre" id="editar-Nombre" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400">
+            </div>
+
+            <div class="flex flex-col">
+                <label for="editar-ID_Place" class="font-medium mb-1">Lugar (Complejo)</label>
+                <select name="ID_Place" id="editar-ID_Place" required class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
+                    <option value="">Seleccione Lugar</option>
+                    <?php if (!empty($places)): ?>
+                        <?php foreach ($places as $place): ?>
+                            <option value="<?= $place['ID_Place'] ?>"><?= esc($place['Nombre_Corto']) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
             </div>
 
             <div class="flex flex-col">
                 <label for="editar-ID_UnidadOperativa" class="mb-1 font-medium">Unidad Operativa</label>
-                <select name="ID_UnidadOperativa" id="editar-ID_UnidadOperativa" required class="w-full px-3 py-2 border rounded-lg bg-white">
+                <select name="ID_UnidadOperativa" id="editar-ID_UnidadOperativa" required class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
                     <option value="">Seleccione Unidad Operativa</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $unidad): ?>
-                            <option value="<?= $unidad['ID_UnidadOperativa'] ?>">
+                            <option value="<?= $unidad['ID_UnidadOperativa'] ?>" data-place="<?= $unidad['ID_Place'] ?>">
                                 <?= esc($unidad['Nombre']) ?> (<?= esc($unidad['PlaceNombre']) ?>)
                             </option>
                         <?php endforeach; ?>

@@ -327,7 +327,11 @@ class PresupuestoApiController extends ResourceController
                             break;
                         }
                     }
-                    if (!filter_var($grupo['activo'], FILTER_VALIDATE_BOOLEAN) && empty($idExistente)) continue;
+                    // Validación robusta para Postgres ('t'), MySQL (1) y PHP (true)
+                    $valActivo = $grupo['activo'];
+                    $esActivo = ($valActivo === true || $valActivo === 't' || $valActivo === 1 || $valActivo === '1');
+
+                    if (!$esActivo && empty($idExistente)) continue;
                     $grupo['Monto_Asignado'] = $montoAsignado;
                     $grupo['ID_PresupuestoMensual'] = $idExistente;
                     $gruposDeLaUnidad[] = $grupo;

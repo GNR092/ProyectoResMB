@@ -429,14 +429,17 @@ function registrarComponenteReportePresupuesto() {
                 }
 
                 const now = new Date();
-                this.anio = String(now.getFullYear());
-                this.meses = [String(now.getMonth() + 1)];
-                
-                // Generar lista de años (5 años atrás y 2 adelante)
                 const currentYear = now.getFullYear();
-                for (let i = currentYear - 5; i <= currentYear + 2; i++) {
+                
+                // 1. Generar lista de años primero
+                this.years = [];
+                for (let i = currentYear + 2; i >= currentYear - 5; i--) {
                     this.years.push(String(i));
                 }
+
+                // 2. Establecer valores por defecto al final para asegurar el vínculo reactivo
+                this.anio = String(currentYear);
+                this.meses = [String(now.getMonth() + 1)];
             },
 
             initChoicesMeses(refName) {
@@ -974,11 +977,46 @@ function initCrudDepartamento() {
     document.getElementById('btn-regresar-lista').onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); };
     document.getElementById('btn-regresar-lista-editar').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
 
+    // --- SINCRONIZACIÓN AGREGAR ---
+    const sPAdd = document.getElementById('ID_Place'), sUAdd = document.getElementById('ID_UnidadOperativa');
+    if (sPAdd && sUAdd) {
+        sPAdd.onchange = () => {
+            const pid = sPAdd.value;
+            Array.from(sUAdd.options).forEach(o => { if(o.value==="") return; o.hidden = o.dataset.place !== pid; });
+            sUAdd.value = "";
+        };
+        sUAdd.onchange = () => {
+            const opt = sUAdd.options[sUAdd.selectedIndex];
+            if (opt && opt.dataset.place) {
+                sPAdd.value = opt.dataset.place;
+                Array.from(sUAdd.options).forEach(o => { if(o.value==="") return; o.hidden = o.dataset.place !== opt.dataset.place; });
+            }
+        };
+    }
+
+    // --- SINCRONIZACIÓN EDITAR ---
+    const sPEdi = document.getElementById('editar-ID_Place'), sUEdi = document.getElementById('editar-ID_UnidadOperativa');
+    if (sPEdi && sUEdi) {
+        sPEdi.onchange = () => {
+            const pid = sPEdi.value;
+            Array.from(sUEdi.options).forEach(o => { if(o.value==="") return; o.hidden = o.dataset.place !== pid; });
+            sUEdi.value = "";
+        };
+        sUEdi.onchange = () => {
+            const opt = sUEdi.options[sUEdi.selectedIndex];
+            if (opt && opt.dataset.place) {
+                sPEdi.value = opt.dataset.place;
+                Array.from(sUEdi.options).forEach(o => { if(o.value==="") return; o.hidden = o.dataset.place !== opt.dataset.place; });
+            }
+        };
+    }
+
     document.getElementById('form-agregar-departamento').onsubmit = async (e) => {
         e.preventDefault(); try {
             const res = await SendDataEnd('modales/crud_departamentos/insertar', { method: 'POST', body: new FormData(e.target) });
             if (res.success) { mostrarNotificacion('Depto agregado ✅', 'success'); abrirModal('crud_departamento'); }
-        } catch { mostrarNotificacion('Error ❌', 'error'); }
+            else { mostrarNotificacion(res.message || 'Error ❌', 'error'); }
+        } catch { mostrarNotificacion('Error de conexión ❌', 'error'); }
     };
 
     document.getElementById('form-editar-departamento').onsubmit = async (e) => {
@@ -986,21 +1024,27 @@ function initCrudDepartamento() {
         try {
             const res = await SendDataEnd(`modales/crud_departamentos/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { mostrarNotificacion('Depto actualizado ✅', 'success'); abrirModal('crud_departamento'); }
-        } catch { mostrarNotificacion('Error ❌', 'error'); }
+            else { mostrarNotificacion(res.message || 'Error ❌', 'error'); }
+        } catch { mostrarNotificacion('Error de conexión ❌', 'error'); }
     };
 
     tabla.addEventListener('click', async (e) => {
-        const bE = e.target.closest("[id^='btn-editar-departamento-']"), bD = e.target.closest("[id^='btn-eliminar-departamento-']");
-        if (bE) {
-            e.preventDefault(); const f = bE.closest('tr');
+        const btnE = e.target.closest("[id^='btn-editar-departamento-']"), btnD = e.target.closest("[id^='btn-eliminar-departamento-']");
+        if (btnE) {
+            e.preventDefault(); const f = btnE.closest('tr');
             document.getElementById('editar-ID_Dpto').value = f.dataset.id;
             document.getElementById('editar-Nombre').value = f.dataset.nombre;
-            document.getElementById('editar-ID_UnidadOperativa').value = f.dataset.idUnidad;
+            
+            if (sPEdi && sUEdi) {
+                sPEdi.value = f.dataset.idPlace;
+                Array.from(sUEdi.options).forEach(o => { if(o.value==="") return; o.hidden = o.dataset.place !== f.dataset.idPlace; });
+                sUEdi.value = f.dataset.idUnidad;
+            }
             pLis.classList.add('hidden'); pEdi.classList.remove('hidden');
         }
-        if (bD) {
+        if (btnD) {
             e.preventDefault(); if (!(await Confirmar('¿Eliminar?', '¿Seguro?'))) return;
-            const res = await SendDataEnd(`modales/crud_departamentos/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            const res = await SendDataEnd(`modales/crud_departamentos/eliminar/${btnD.dataset.id}`, { method: 'POST' });
             if (res.success) { mostrarNotificacion('Eliminado ✅', 'success'); abrirModal('crud_departamento'); }
         }
     });

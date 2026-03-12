@@ -15,6 +15,7 @@ class SolicitudModel extends Model
     protected $allowedFields = [
         'ID_Usuario',
         'ID_Dpto',
+        'ID_UnidadOperativa',
         'ID_Proveedor',
         'ID_Cuenta',
         'ID_RazonSocial',

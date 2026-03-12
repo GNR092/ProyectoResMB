@@ -30,10 +30,10 @@ class PresupuestoMensualModel extends Model
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
 
-    // Helper para obtener datos del departamento
-    public function withDepartamento()
+    // Helper para obtener datos de la unidad operativa
+    public function withUnidad()
     {
-        return $this->select('PresupuestoMensual.*, Departamentos.Nombre as Dpto_Nombre')
-            ->join('Departamentos', 'Departamentos.ID_Dpto = PresupuestoMensual.ID_Dpto', 'left');
+        return $this->select('PresupuestoMensual.*, UnidadOperativa.Nombre as Unidad_Nombre')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = PresupuestoMensual.ID_UnidadOperativa', 'left');
     }
 }
