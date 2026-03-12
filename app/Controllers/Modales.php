@@ -1059,12 +1059,73 @@ class Modales extends BaseController
         $placeActual = $model->find($id);
         if (!$placeActual) return $this->response->setJSON(['success' => false, 'message' => 'Lugar no encontrado']);
 
-        try {
-            $model->update($id, $data);
-            return $this->response->setJSON(['success' => true]);
-        } catch (\Exception $e) {
-            // ... resto del código igual
-            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        $valPost = $this->request->getPost('activo');
+        $esActivoPost = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
+
+        $nuevoSegmento = !empty($postData['id_segmento']) ? (int)$postData['id_segmento'] : null;
+        $segmentoAnterior = (int)($placeActual['id_segmento'] ?? 0);
+
+        if ($nuevoSegmento !== $segmentoAnterior && $segmentoAnterior !== 0) {
+            // CAMBIO DE SEGMENTO: Clonación en cascada
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            // 1. Desactivar lugar viejo
+            $model->update($id, ['activo' => false]);
+
+            // 2. Crear nuevo lugar
+            $idNuevoPlace = $model->insert([
+                'Nombre_Corto'    => $postData['Nombre_Corto'] ?? $placeActual['Nombre_Corto'],
+                'Nombre_Completo' => $postData['Nombre_Completo'] ?? $placeActual['Nombre_Completo'],
+                'ID_RazonSocial'  => $postData['ID_RazonSocial'] ?? $placeActual['ID_RazonSocial'],
+                'id_segmento'     => $nuevoSegmento,
+                'activo'          => true
+            ], true);
+
+            // 3. Clonar Unidades Operativas y sus Grupos
+            $unidadModel = new \App\Models\UnidadOperativaModel();
+            $grupoModel = new \App\Models\GrupoPresupuestalModel();
+            $deptoModel = new \App\Models\DepartamentosModel();
+
+            $unidadesViejas = $unidadModel->where('ID_Place', $id)->findAll();
+            foreach ($unidadesViejas as $uv) {
+                $idNuevaUni = $unidadModel->insert([
+                    'Nombre'   => $uv['Nombre'],
+                    'ID_Place' => $idNuevoPlace,
+                    'activo'   => filter_var($uv['activo'], FILTER_VALIDATE_BOOLEAN)
+                ], true);
+
+                // Clonar Grupos de esta unidad
+                $gruposViejos = $grupoModel->where('ID_UnidadOperativa', $uv['ID_UnidadOperativa'])->findAll();
+                foreach ($gruposViejos as $gv) {
+                    $grupoModel->insert([
+                        'Nombre'             => $gv['Nombre'],
+                        'Descripcion'        => $gv['Descripcion'],
+                        'ID_UnidadOperativa' => $idNuevaUni,
+                        'activo'             => filter_var($gv['activo'], FILTER_VALIDATE_BOOLEAN)
+                    ]);
+                }
+
+                // Mover Departamentos a la nueva unidad y lugar
+                $deptoModel->where('ID_UnidadOperativa', $uv['ID_UnidadOperativa'])
+                           ->update(null, ['ID_UnidadOperativa' => $idNuevaUni, 'ID_Place' => $idNuevoPlace]);
+            }
+
+            $db->transComplete();
+            if ($db->transStatus() === false) return $this->response->setJSON(['success' => false, 'message' => 'Error al migrar complejo']);
+
+            return $this->response->setJSON(['success' => true, 'message' => 'Complejo migrado al nuevo segmento. El historial permanece en el segmento anterior.']);
+        } else {
+            // Actualización normal
+            $data = [
+                'Nombre_Corto'    => $postData['Nombre_Corto'] ?? '',
+                'Nombre_Completo' => $postData['Nombre_Completo'] ?? '',
+                'ID_RazonSocial'  => $postData['ID_RazonSocial'] ?? '',
+                'id_segmento'     => $nuevoSegmento,
+                'activo'          => $esActivoPost
+            ];
+            if ($model->update($id, $data)) return $this->response->setJSON(['success' => true]);
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al actualizar']);
         }
     }
     public function eliminarPlace($id)
