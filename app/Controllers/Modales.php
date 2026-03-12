@@ -79,6 +79,7 @@ class Modales extends BaseController
                 // 4. Obtener grupos presupuestales filtrados por el departamento del usuario
                 $data['grupos_presupuestales'] = $grupoModel
                     ->where('ID_Dpto', $idDeptoUsuario)
+                    ->where('activo', true)
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
 
@@ -488,6 +489,7 @@ class Modales extends BaseController
         $idDepto = session('id_departamento_usuario');
         $data['grupos_presupuestales'] = $grupoModel
             ->where('ID_Dpto', $idDepto)
+            ->where('activo', true)
             ->orderBy('Nombre', 'ASC')
             ->findAll();
 
@@ -1228,8 +1230,14 @@ class Modales extends BaseController
     public function insertarGrupo()
     {
         $model = new GrupoPresupuestalModel();
-        // Recibimos Nombre, Descripcion y ID_Dpto
-        $data = $this->request->getPost(['Nombre', 'Descripcion', 'ID_Dpto']);
+        $postData = $this->request->getPost();
+        
+        $data = [
+            'Nombre'      => $postData['Nombre'] ?? '',
+            'Descripcion' => $postData['Descripcion'] ?? '',
+            'ID_Dpto'     => !empty($postData['ID_Dpto']) ? $postData['ID_Dpto'] : null,
+            'activo'      => true // Booleano nativo para compatibilidad universal
+        ];
 
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
@@ -1240,11 +1248,25 @@ class Modales extends BaseController
     public function editarGrupo($id)
     {
         $model = new GrupoPresupuestalModel();
-        $data = $this->request->getPost(['Nombre', 'Descripcion', 'ID_Dpto']);
+        $postData = $this->request->getPost();
+        
+        // Captura booleana robusta: el navegador envía 'on' o '1' si está marcado
+        $valPost = $this->request->getPost('activo');
+        $esActivo = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
+
+        $data = [
+            'Nombre'      => $postData['Nombre'] ?? '',
+            'Descripcion' => $postData['Descripcion'] ?? '',
+            'ID_Dpto'     => !empty($postData['ID_Dpto']) ? $postData['ID_Dpto'] : null,
+            'activo'      => $esActivo
+        ];
 
         try {
-            $model->update($id, $data);
-            return $this->response->setJSON(['success' => true]);
+            if ($model->update($id, $data)) {
+                return $this->response->setJSON(['success' => true]);
+            } else {
+                return $this->response->setJSON(['success' => false, 'message' => 'No se pudo actualizar', 'errors' => $model->errors()]);
+            }
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -1253,12 +1275,13 @@ class Modales extends BaseController
     {
         $model = new GrupoPresupuestalModel();
 
-        if ($model->delete($id)) {
-            return $this->response->setJSON(['success' => true]);
+        // En lugar de eliminar, desactivamos usando booleano nativo para mantener integridad histórica
+        if ($model->update($id, ['activo' => false])) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Grupo desactivado correctamente.']);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo eliminar el grupo presupuestal',
+                'message' => 'No se pudo desactivar el grupo presupuestal',
             ]);
         }
     }

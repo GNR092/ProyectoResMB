@@ -1088,10 +1088,26 @@ function initGruposEditarForm() {
                     fila.dataset.nombre = formData.get('Nombre')
                     fila.dataset.descripcion = formData.get('Descripcion')
                     fila.dataset.id_dpto = formData.get('ID_Dpto')
+                    fila.dataset.activo = formData.get('activo') ? '1' : '0'
+                    
+                    // Actualizar badge visualmente sin recargar todo de inmediato
+                    const tdEstado = fila.querySelector('td:nth-child(4)');
+                    if (tdEstado) {
+                        const esActivo = formData.get('activo') == '1';
+                        tdEstado.innerHTML = esActivo 
+                            ? '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">Activo</span>'
+                            : '<span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">Inactivo</span>';
+                        
+                        if (!esActivo) fila.classList.add('opacity-60');
+                        else fila.classList.remove('opacity-60');
+                    }
                 }
 
                 pantallaEditar?.classList.add('hidden')
                 pantallaLista?.classList.remove('hidden')
+
+                // Recargar el modal después de un breve delay para refrescar estado real
+                setTimeout(() => abrirModal('GrupoPresupuestal'), 1000);
             } else {
                 mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
             }
@@ -1109,15 +1125,14 @@ function initGruposActions(tabla) {
         if (btnEliminar) {
             e.preventDefault()
             const id = btnEliminar.dataset.id
-            if (!(await Confirmar('Eliminar Grupo?', '¿Seguro que deseas eliminar este grupo presupuestal?'))) return
+            if (!(await Confirmar('Desactivar Grupo?', '¿Seguro que deseas desactivar este grupo presupuestal? Esto evitará que se use en nuevos presupuestos.'))) return
             SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${id}`, { method: 'POST' })
                 .then((result) => {
                     if (result.success) {
-                        mostrarNotificacion('Grupo eliminado ✅', 'success')
-                        btnEliminar.closest('tr')?.remove()
+                        mostrarNotificacion('Grupo desactivado ✅', 'success')
                         abrirModal('GrupoPresupuestal')
                     } else {
-                        mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+                        mostrarNotificacion(result.message || 'No se pudo desactivar ❌', 'error')
                     }
                 })
                 .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
@@ -1133,6 +1148,12 @@ function initGruposActions(tabla) {
         document.getElementById('editar-Nombre').value = fila.dataset.nombre
         document.getElementById('editar-Descripcion').value = fila.dataset.descripcion
         document.getElementById('editar-ID_Dpto').value = fila.dataset.id_dpto || "";
+
+        const checkActivo = document.getElementById('editar-activo');
+        if (checkActivo) {
+            checkActivo.checked = fila.dataset.activo == '1';
+        }
+
         document.getElementById('pantalla-lista-grupos').classList.add('hidden')
         document.getElementById('pantalla-editar-grupos').classList.remove('hidden')
     })

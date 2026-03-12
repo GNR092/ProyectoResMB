@@ -764,15 +764,25 @@ class PresupuestoApiController extends ResourceController
 
         $dptoIds = array_column($departamentos, 'ID_Dpto');
 
-        // 2. Traer TODOS los grupos presupuestales que pertenecen a esos departamentos
-        $grupos = $grupoModel->whereIn('ID_Dpto', $dptoIds)
-            ->orderBy('Nombre', 'ASC')
-            ->findAll();
-
-        // 3. Traer los presupuestos que ya han sido guardados para ese Mes/Año
+        // 2. Traer los presupuestos que ya han sido guardados para ese Mes/Año
         $presupuestosGuardados = $presupuestoMensualModel->whereIn('ID_Dpto', $dptoIds)
             ->where('Anio', $anio)
             ->where('Mes', $mes)
+            ->findAll();
+
+        $idsGruposConPresupuesto = array_column($presupuestosGuardados, 'ID_GrupoPresupuestal');
+
+        // 3. Traer grupos que estén ACTIVOS o que ya tengan presupuesto en este mes/año
+        $queryGrupos = $grupoModel->whereIn('ID_Dpto', $dptoIds)
+            ->groupStart()
+                ->where('activo', true);
+        
+        if (!empty($idsGruposConPresupuesto)) {
+            $queryGrupos->orWhereIn('ID_GrupoPresupuestal', $idsGruposConPresupuesto);
+        }
+        
+        $grupos = $queryGrupos->groupEnd()
+            ->orderBy('Nombre', 'ASC')
             ->findAll();
 
         $estructura = [];
@@ -794,6 +804,11 @@ class PresupuestoApiController extends ResourceController
                             $idExistente = $presupuesto['ID_PresupuestoMensual'];
                             break;
                         }
+                    }
+
+                    // Si el grupo está inactivo y no tiene monto, lo saltamos (doble validación)
+                    if (!(bool)$grupo['activo'] && empty($idExistente)) {
+                        continue;
                     }
 
                     $grupo['Monto_Asignado'] = $montoAsignado;

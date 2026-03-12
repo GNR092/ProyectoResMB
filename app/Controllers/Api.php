@@ -135,6 +135,7 @@ class Api extends ResourceController
         $grupoModel = new \App\Models\GrupoPresupuestalModel();
         $results = $grupoModel
             ->select('ID_GrupoPresupuestal, Nombre, ID_Dpto')
+            ->where('activo', true)
             ->orderBy('Nombre', 'ASC')
             ->findAll();
         return $this->respond($results, HttpStatus::OK);
