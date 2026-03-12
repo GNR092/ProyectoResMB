@@ -107,7 +107,10 @@ class Archivo extends BaseController
                 
                 $razonSocialModel = new RazonSocialModel();
                 $placeModel = new PlacesModel();
-                $placeOrig = $placeModel->find($deptoUsuario['ID_Place'] ?? 0);
+                $idUnidadOrig = $deptoUsuario['ID_UnidadOperativa'] ?? 0;
+                $uniModel = new \App\Models\UnidadOperativaModel();
+                $unidadOrig = $uniModel->find($idUnidadOrig);
+                $placeOrig = $placeModel->find($unidadOrig['ID_Place'] ?? 0);
                 
                 $nombreRSOrig = 'RS Desconocida';
                 if ($placeOrig) {
@@ -126,7 +129,8 @@ class Archivo extends BaseController
                 if (!empty($razon_social_id)) {
                     $deptoDestino = $departamentoModel
                         ->select('Departamentos.ID_Dpto')
-                        ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
+                        ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa')
+                        ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')
                         ->where('Places.ID_RazonSocial', $razon_social_id)
                         ->where('Departamentos.Nombre', $nombreDeptoOrig)
                         ->first();

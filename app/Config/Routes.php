@@ -173,6 +173,11 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/crud_segmentos/editar/(:num)', 'Modales::editarSegmento/$1');
         $routes->post('modales/crud_segmentos/eliminar/(:num)', 'Modales::eliminarSegmento/$1');
 
+        // CRUD Unidades Operativas
+        $routes->post('modales/crud_unidades_operativas/insertar', 'Modales::insertarUnidadOperativa');
+        $routes->post('modales/crud_unidades_operativas/editar/(:num)', 'Modales::editarUnidadOperativa/$1');
+        $routes->post('modales/crud_unidades_operativas/eliminar/(:num)', 'Modales::eliminarUnidadOperativa/$1');
+
 
         //Bancos de Dpto
         $routes->post('modales/crud_banco_dpto/insertar', 'Modales::insertarBancoDpto');

@@ -16,6 +16,7 @@ use App\Models\BancoDptoModel;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 use App\Models\PresupuestoMensualModel;
 use App\Models\SegmentoNegocioModel;
+use App\Models\UnidadOperativaModel;
 
 class Modales extends BaseController
 {
@@ -39,7 +40,8 @@ class Modales extends BaseController
                 $departamentoModel = new DepartamentosModel();
                 $data['departamentos'] = $departamentoModel
                     ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
-                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();
                 return view('modales/ver_historial', $data);
@@ -71,14 +73,20 @@ class Modales extends BaseController
                     ->select('Razon_Social.ID_RazonSocial, Razon_Social.Nombre')
                     ->distinct()
                     ->join('Places', 'Places.ID_RazonSocial = Razon_Social.ID_RazonSocial')
-                    ->join('Departamentos', 'Departamentos.ID_Place = Places.ID_Place')
+                    ->join('UnidadOperativa', 'UnidadOperativa.ID_Place = Places.ID_Place')
+                    ->join('Departamentos', 'Departamentos.ID_UnidadOperativa = UnidadOperativa.ID_UnidadOperativa')
                     ->where('Departamentos.Nombre', $nombreDepto)
                     ->orderBy('Razon_Social.Nombre', 'ASC')
                     ->findAll();
 
-                // 4. Obtener grupos presupuestales filtrados por el departamento del usuario
+                // 4. Obtener grupos presupuestales filtrados por la Unidad Operativa del departamento del usuario
+                $deptoModel = new DepartamentosModel();
+                $idDepto = session('id_departamento_usuario');
+                $deptoObj = $deptoModel->find($idDepto);
+                $idUnidad = $deptoObj['ID_UnidadOperativa'] ?? 0;
+
                 $data['grupos_presupuestales'] = $grupoModel
-                    ->where('ID_Dpto', $idDeptoUsuario)
+                    ->where('ID_UnidadOperativa', $idUnidad)
                     ->where('activo', true)
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
@@ -117,7 +125,8 @@ class Modales extends BaseController
 
                 $data['departamentos'] = $departamentoModel
                     ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
-                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();
 
@@ -347,17 +356,22 @@ class Modales extends BaseController
 
             case 'crud_departamento':
                 $deptosModel = new DepartamentosModel();
-                $placesModel = new PlacesModel();
+                $unidadesModel = new UnidadOperativaModel();
 
-                // Obtenemos los departamentos junto con el nombre del lugar
+                // Obtenemos los departamentos junto con el nombre de la unidad operativa
                 $data['departamentos'] = $deptosModel
-                    ->select('Departamentos.*, Places.Nombre_Completo as PlaceNombre')
-                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                    ->select('Departamentos.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
+                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();
 
-                // Obtenemos los lugares para llenar el select
-                $data['places'] = $placesModel->orderBy('Nombre_Completo', 'ASC')->findAll();
+                // Obtenemos las unidades operativas para llenar el select
+                $data['unidades_operativas'] = $unidadesModel
+                    ->select('UnidadOperativa.*, Places.Nombre_Corto as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+                    ->orderBy('UnidadOperativa.Nombre', 'ASC')
+                    ->findAll();
 
                 return view('modales/crud_departamento', $data);
 
@@ -373,21 +387,36 @@ class Modales extends BaseController
 
             case 'GrupoPresupuestal':
                 $grupoModel = new GrupoPresupuestalModel();
-                $departamentosModel = new DepartamentosModel();
-                $placesModel = new PlacesModel();
+                $unidadesModel = new UnidadOperativaModel();
 
                 $data['grupos'] = $grupoModel
+                    ->select('GrupoPresupuestal.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
+                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
+                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
 
-                // Fetch departments with their associated place names
-                $data['departamentos'] = $departamentosModel
-                    ->select('Departamentos.ID_Dpto, Departamentos.Nombre, Places.Nombre_Corto as PlaceNombre')
-                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
-                    ->orderBy('Departamentos.Nombre', 'ASC')
+                $data['unidades_operativas'] = $unidadesModel
+                    ->select('UnidadOperativa.*, Places.Nombre_Corto as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+                    ->orderBy('UnidadOperativa.Nombre', 'ASC')
                     ->findAll();
 
                 return view('modales/CrudGrupos', $data);
+
+            case 'UnidadOperativa':
+                $unidadesModel = new UnidadOperativaModel();
+                $placesModel = new PlacesModel();
+
+                $data['unidades'] = $unidadesModel
+                    ->select('UnidadOperativa.*, Places.Nombre_Corto as PlaceNombre')
+                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+
+                $data['places'] = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
+
+                return view('modales/CrudUnidades', $data);
 
             case 'BancoDpto':
                 $bancoModel = new BancoDptoModel();
@@ -486,9 +515,14 @@ class Modales extends BaseController
     public function getProductTableRow()
     {
         $grupoModel = new GrupoPresupuestalModel();
+        $dptoModel = new DepartamentosModel();
+        
         $idDepto = session('id_departamento_usuario');
+        $deptoObj = $idDepto ? $deptoModel->find($idDepto) : null;
+        $idUnidad = $deptoObj['ID_UnidadOperativa'] ?? 0;
+
         $data['grupos_presupuestales'] = $grupoModel
-            ->where('ID_Dpto', $idDepto)
+            ->where('ID_UnidadOperativa', $idUnidad)
             ->where('activo', true)
             ->orderBy('Nombre', 'ASC')
             ->findAll();
@@ -942,7 +976,7 @@ class Modales extends BaseController
             $data['Dias_Credito'] = null;
             $data['Monto_Credito'] = null;
         }
-        //return Rest::ShowDebug($data);
+
         try {
             $model->update($id, $data);
             return $this->response->setJSON(['success' => true]);
@@ -1061,40 +1095,29 @@ class Modales extends BaseController
     {
         $model = new DepartamentosModel();
         $nombre = $this->request->getPost('Nombre');
-        $places = $this->request->getPost('ID_Place'); // Puede ser un array si es múltiple
+        $unidadId = $this->request->getPost('ID_UnidadOperativa');
 
-        if (empty($nombre) || empty($places)) {
+        if (empty($nombre) || empty($unidadId)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'El nombre y al menos un lugar son obligatorios',
+                'message' => 'El nombre y la unidad operativa son obligatorios',
             ]);
         }
 
-        // Si es un solo valor, lo convertimos a array para el loop
-        if (!is_array($places)) {
-            $places = [$places];
-        }
+        $data = [
+            'Nombre'             => $nombre,
+            'ID_UnidadOperativa' => $unidadId,
+        ];
 
-        $successCount = 0;
-        foreach ($places as $placeId) {
-            $data = [
-                'Nombre'   => $nombre,
-                'ID_Place' => $placeId,
-            ];
-            if ($model->insert($data)) {
-                $successCount++;
-            }
-        }
-
-        if ($successCount > 0) {
+        if ($model->insert($data)) {
             return $this->response->setJSON([
                 'success' => true,
-                'message' => "Se crearon $successCount departamento(s) correctamente.",
+                'message' => "Departamento creado correctamente.",
             ]);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo insertar ningún departamento',
+                'message' => 'No se pudo insertar el departamento',
             ]);
         }
     }
@@ -1102,7 +1125,7 @@ class Modales extends BaseController
     public function editarDepartamento($id)
     {
         $model = new DepartamentosModel();
-        $data = $this->request->getPost(['Nombre', 'ID_Place']);
+        $data = $this->request->getPost(['Nombre', 'ID_UnidadOperativa']);
 
         try {
             $model->update($id, $data);
@@ -1233,10 +1256,10 @@ class Modales extends BaseController
         $postData = $this->request->getPost();
         
         $data = [
-            'Nombre'      => $postData['Nombre'] ?? '',
-            'Descripcion' => $postData['Descripcion'] ?? '',
-            'ID_Dpto'     => !empty($postData['ID_Dpto']) ? $postData['ID_Dpto'] : null,
-            'activo'      => true // Booleano nativo para compatibilidad universal
+            'Nombre'             => $postData['Nombre'] ?? '',
+            'Descripcion'        => $postData['Descripcion'] ?? '',
+            'ID_UnidadOperativa' => !empty($postData['ID_UnidadOperativa']) ? $postData['ID_UnidadOperativa'] : null,
+            'activo'             => true // Booleano nativo para compatibilidad universal
         ];
 
         if ($model->insert($data)) {
@@ -1255,10 +1278,10 @@ class Modales extends BaseController
         $esActivo = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
 
         $data = [
-            'Nombre'      => $postData['Nombre'] ?? '',
-            'Descripcion' => $postData['Descripcion'] ?? '',
-            'ID_Dpto'     => !empty($postData['ID_Dpto']) ? $postData['ID_Dpto'] : null,
-            'activo'      => $esActivo
+            'Nombre'             => $postData['Nombre'] ?? '',
+            'Descripcion'        => $postData['Descripcion'] ?? '',
+            'ID_UnidadOperativa' => !empty($postData['ID_UnidadOperativa']) ? $postData['ID_UnidadOperativa'] : null,
+            'activo'             => $esActivo
         ];
 
         try {
@@ -1328,5 +1351,54 @@ class Modales extends BaseController
             ]);
         }
     }
-}
 
+    // ----------- Unidades Operativas ------------
+    public function insertarUnidadOperativa()
+    {
+        $model = new UnidadOperativaModel();
+        $data = $this->request->getPost(['Nombre', 'ID_Place']);
+        $data['activo'] = true;
+
+        if ($model->insert($data)) {
+            return $this->response->setJSON(['success' => true]);
+        } else {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al guardar', 'errors' => $model->errors()]);
+        }
+    }
+
+    public function editarUnidadOperativa($id)
+    {
+        $model = new UnidadOperativaModel();
+        $postData = $this->request->getPost();
+        
+        // Captura booleana robusta
+        $valPost = $this->request->getPost('activo');
+        $esActivo = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
+
+        $data = [
+            'Nombre'   => $postData['Nombre'] ?? '',
+            'ID_Place' => !empty($postData['ID_Place']) ? $postData['ID_Place'] : null,
+            'activo'   => $esActivo
+        ];
+
+        try {
+            if ($model->update($id, $data)) {
+                return $this->response->setJSON(['success' => true]);
+            } else {
+                return $this->response->setJSON(['success' => false, 'message' => 'No se pudo actualizar', 'errors' => $model->errors()]);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function eliminarUnidadOperativa($id)
+    {
+        $model = new UnidadOperativaModel();
+        if ($model->update($id, ['activo' => false])) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Unidad desactivada.']);
+        } else {
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al desactivar']);
+        }
+    }
+}

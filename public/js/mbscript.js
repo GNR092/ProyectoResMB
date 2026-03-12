@@ -91,7 +91,8 @@ function abrirModal(opcion) {
     recepcion_material: 'Recepción de Material',
     bajas_destruccion: 'Bajas por Destrucción',
     crud_places: 'Complejos',
-    crud_departamento:"Departametos",
+    crud_departamento:"Departamentos",
+    UnidadOperativa: "Unidades Operativas",
     lista_pagos: "Lista de pagos",
     crud_cuentas: "Cuentas de proveedores",
     correcciones: "Corregir Solicitudes",
@@ -124,13 +125,13 @@ function abrirModal(opcion) {
         recepcion_material: initRecepcionMaterial,
         bajas_destruccion: initBajasDestruccion,
         crud_places: initCrudPlaces,
-        crud_departamento: initCrudDepartamentos,
+        crud_departamento: initCrudDepartamento,
         crud_cuentas: initCrudCuentas,
         correcciones: initControlMaestro,
         GrupoPresupuestal: initCrudGrupos,
         BancoDpto: initCrudBancoDpto,
         SegmentoNegocio: initCrudSegmentos,
-        // PresupuestoMensual: initPresupuestoMensual
+        UnidadOperativa: initCrudUnidades,
       }
 
       const inicializador = inicializadores[opcion]

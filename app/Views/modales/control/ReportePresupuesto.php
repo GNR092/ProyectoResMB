@@ -88,10 +88,10 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 
             <div x-show="departamentosOriginales.length > 0" class="mb-6 animate-fadeIn" x-cloak>
                 <div class="flex flex-col gap-1 w-full md:w-1/2">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos</label>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Unidades</label>
                     <select x-ref="filtroDptos" multiple>
-                        <template x-for="d in departamentosOriginales" :key="d.ID_Dpto">
-                            <option :value="d.ID_Dpto" x-text="(verGlobal ? d.RazonSocialNombre + ' > ' + d.PlaceNombre + ' > ' : '') + d.Nombre"></option>
+                        <template x-for="d in departamentosOriginales" :key="d.ID_UnidadOperativa">
+                            <option :value="d.ID_UnidadOperativa" x-text="(verGlobal ? d.RazonSocialNombre + ' > ' + d.PlaceNombre + ' > ' : '') + d.Nombre"></option>
                         </template>
                     </select>
                 </div>
@@ -101,7 +101,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-800 text-white text-[10px] uppercase tracking-wider">
                         <tr>
-                            <th class="px-6 py-3 text-left">Departamento / Grupo</th>
+                            <th class="px-6 py-3 text-left">Unidad / Partida</th>
                             <th class="px-4 py-3 text-right">Presp. Asignado</th>
                             <th class="px-4 py-3 text-right">Comprometido</th>
                             <th class="px-4 py-3 text-right">Ejecutado</th>
@@ -148,19 +148,19 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                 <td class="px-4 py-1 text-center font-bold" :class="getClaseSemaforo(complex.totales.porcentaje)" x-text="complex.totales.porcentaje + '%'"></td>
                                             </tr>
 
-                                            <template x-for="dpto in complex.departamentos" :key="dpto.ID_Dpto">
+                                            <template x-for="uni in complex.departamentos" :key="uni.ID_UnidadOperativa">
                                                 <tbody class="contents">
-                                                    <template x-for="(item, index) in [dpto, ...(dpto.detalles || [])]" :key="index">
-                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold' : 'hover:bg-gray-50 border-b border-gray-50'">
+                                                    <template x-for="(item, index) in [uni, ...(uni.detalles || [])]" :key="index">
+                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold border-l-2 border-gray-300' : 'hover:bg-gray-50 border-b border-gray-50'">
                                                             <td class="px-6 py-2" :class="index === 0 ? 'text-gray-900 text-xs pl-20' : 'pl-28 text-gray-400 text-[11px]'">
-                                                                <span x-show="index === 0">🏢 </span>
-                                                                <span x-text="index === 0 ? dpto.Nombre : item.etiqueta"></span>
+                                                                <span x-show="index === 0">⚙️ </span>
+                                                                <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                             </td>
-                                                            <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.totales?.asignado) : formatearMoneda(item.asignado)"></td>
-                                                            <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" x-text="index === 0 ? formatearMoneda(dpto.totales?.comprometido) : formatearMoneda(item.comprometido)"></td>
-                                                            <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-blue-700 font-semibold'" x-text="index === 0 ? formatearMoneda(dpto.totales?.ejecutado) : formatearMoneda(item.ejecutado)"></td>
-                                                            <td class="px-4 py-2 text-right font-bold" :class="index === 0 ? (dpto.totales?.disponible < 0 ? 'text-red-600' : 'text-green-600') : (item.disponible < 0 ? 'text-red-600' : 'text-green-700')" x-text="index === 0 ? formatearMoneda(dpto.totales?.disponible) : formatearMoneda(item.disponible)"></td>
-                                                            <td class="px-4 py-2 text-center" :class="index === 0 ? getClaseSemaforo(dpto.totales?.porcentaje) : getClaseSemaforo(item.porcentaje)" x-text="(index === 0 ? (dpto.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
+                                                            <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.totales?.asignado) : formatearMoneda(item.asignado)"></td>
+                                                            <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" x-text="index === 0 ? formatearMoneda(uni.totales?.comprometido) : formatearMoneda(item.comprometido)"></td>
+                                                            <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-blue-700 font-semibold'" x-text="index === 0 ? formatearMoneda(uni.totales?.ejecutado) : formatearMoneda(item.ejecutado)"></td>
+                                                            <td class="px-4 py-2 text-right font-bold" :class="index === 0 ? (uni.totales?.disponible < 0 ? 'text-red-600' : 'text-green-600') : (item.disponible < 0 ? 'text-red-600' : 'text-green-700')" x-text="index === 0 ? formatearMoneda(uni.totales?.disponible) : formatearMoneda(item.disponible)"></td>
+                                                            <td class="px-4 py-2 text-center" :class="index === 0 ? getClaseSemaforo(uni.totales?.porcentaje) : getClaseSemaforo(item.porcentaje)" x-text="(index === 0 ? (uni.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
                                                         </tr>
                                                     </template>
                                                 </tbody>
@@ -354,7 +354,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-800 text-white text-[9px] uppercase tracking-wider">
                         <tr>
-                            <th class="px-4 py-3 text-left">Departamento / Grupo</th>
+                            <th class="px-4 py-3 text-left">Unidad / Partida</th>
                             <th class="px-2 py-3 text-right">P. Asignado</th>
                             <th class="px-2 py-3 text-right">P. Gastado</th>
                             <th class="px-2 py-3 text-right">P. Disponible</th>
@@ -407,18 +407,18 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                 <td class="px-4 py-1 text-right text-gray-300">-</td>
                                             </tr>
 
-                                            <template x-for="dpto in complex.departamentos" :key="dpto.ID_Dpto">
+                                            <template x-for="uni in complex.departamentos" :key="uni.ID_UnidadOperativa">
                                                 <tbody class="contents">
-                                                    <template x-for="(item, index) in [dpto, ...(dpto.detalles || [])]" :key="index">
-                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold' : 'hover:bg-gray-50 border-b border-gray-50'">
+                                                    <template x-for="(item, index) in [uni, ...(uni.detalles || [])]" :key="index">
+                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold border-l-2 border-gray-300' : 'hover:bg-gray-50 border-b border-gray-50'">
                                                             <td class="px-6 py-2" :class="index === 0 ? 'text-blue-900 text-xs pl-20' : 'pl-28 text-gray-500 text-[10px]'">
-                                                                <span x-show="index === 0">🏢 </span>
-                                                                <span x-text="index === 0 ? dpto.Nombre : item.etiqueta"></span>
+                                                                <span x-show="index === 0">⚙️ </span>
+                                                                <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                             </td>
-                                                            <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.asignado) : formatearMoneda(item.asignado)"></td>
-                                                            <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.gastado) : formatearMoneda(item.gastado)"></td>
-                                                            <td class="px-2 py-2 text-right font-bold" :class="(index === 0 ? dpto.presupuesto?.disponible < 0 : item.disponible < 0) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(dpto.presupuesto?.disponible) : formatearMoneda(item.disponible)"></td>
-                                                            <!-- Bancos vacíos en Departamentos y Grupos -->
+                                                            <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.asignado) : formatearMoneda(item.asignado)"></td>
+                                                            <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.gastado) : formatearMoneda(item.gastado)"></td>
+                                                            <td class="px-2 py-2 text-right font-bold" :class="(index === 0 ? uni.presupuesto?.disponible < 0 : item.disponible < 0) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.disponible) : formatearMoneda(item.disponible)"></td>
+                                                            <!-- Bancos vacíos en Unidades y Grupos -->
                                                             <td class="px-2 py-2 text-right text-gray-200">-</td>
                                                             <td class="px-2 py-2 text-right text-gray-200">-</td>
                                                             <td class="px-4 py-2 text-right text-gray-200">-</td>

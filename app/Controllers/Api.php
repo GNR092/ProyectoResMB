@@ -133,8 +133,15 @@ class Api extends ResourceController
     public function getBudgetGroups()
     {
         $grupoModel = new \App\Models\GrupoPresupuestalModel();
+        $dptoModel = new \App\Models\DepartamentosModel();
+        
+        $idDpto = session('id_departamento_usuario');
+        $dpto = $dptoModel->find($idDpto);
+        $idUnidad = $dpto['ID_UnidadOperativa'] ?? 0;
+
         $results = $grupoModel
-            ->select('ID_GrupoPresupuestal, Nombre, ID_Dpto')
+            ->select('ID_GrupoPresupuestal, Nombre, ID_UnidadOperativa')
+            ->where('ID_UnidadOperativa', $idUnidad)
             ->where('activo', true)
             ->orderBy('Nombre', 'ASC')
             ->findAll();
@@ -473,6 +480,11 @@ class Api extends ResourceController
                 $anio = (int)date('Y', $fechaSol);
                 $idDpto = $solicitud['ID_Dpto'];
 
+                // Obtener la unidad operativa del departamento
+                $dModel = new \App\Models\DepartamentosModel();
+                $depObj = $dModel->find($idDpto);
+                $idUnidad = $depObj['ID_UnidadOperativa'] ?? 0;
+
                 // Comparar y ajustar por cada grupo presupuestal afectado
                 $todosLosGrupos = array_unique(array_merge(array_keys($montosViejosPorGrupo), array_keys($montosNuevosPorGrupo)));
                 
@@ -483,7 +495,7 @@ class Api extends ResourceController
 
                     if ($diferencia != 0) {
                         $presupuesto = $presupuestoModel->where([
-                            'ID_Dpto' => $idDpto,
+                            'ID_UnidadOperativa' => $idUnidad,
                             'ID_GrupoPresupuestal' => $idGrupo,
                             'Mes' => $mes,
                             'Anio' => $anio
@@ -1082,17 +1094,22 @@ class Api extends ResourceController
             $anio = (int)date('Y', $fechaSol);
             $idDpto = $solicitud['ID_Dpto'];
 
+            // Resolver Unidad Operativa
+            $dModel = new \App\Models\DepartamentosModel();
+            $depObj = $dModel->find($idDpto);
+            $idUnidad = $depObj['ID_UnidadOperativa'] ?? 0;
+
             // Combinar las llaves de ambos arrays para asegurar que procesamos todos los grupos
             $todosLosGrupos = array_unique(array_merge(array_keys($montosADescontar), array_keys($montosAEjecutar)));
 
             foreach ($todosLosGrupos as $idGrupo) {
-                if (!$idDpto || !$idGrupo) continue;
+                if (!$idUnidad || !$idGrupo) continue;
 
                 $montoRestar = $montosADescontar[$idGrupo] ?? 0;
                 $montoSumar = $montosAEjecutar[$idGrupo] ?? 0;
 
                 $presupuesto = $presupuestoModel->where([
-                    'ID_Dpto' => $idDpto,
+                    'ID_UnidadOperativa' => $idUnidad,
                     'ID_GrupoPresupuestal' => $idGrupo,
                     'Mes' => $mes,
                     'Anio' => $anio
@@ -1162,9 +1179,14 @@ class Api extends ResourceController
             $anio = (int)date('Y', $fechaSol);
             $idDpto = $solicitud['ID_Dpto'];
 
+            // Resolver Unidad Operativa
+            $dModel = new \App\Models\DepartamentosModel();
+            $depObj = $dModel->find($idDpto);
+            $idUnidad = $depObj['ID_UnidadOperativa'] ?? 0;
+
             foreach ($montosPorGrupo as $idGrupo => $monto) {
                 $presupuesto = $presupuestoModel->where([
-                    'ID_Dpto' => $idDpto,
+                    'ID_UnidadOperativa' => $idUnidad,
                     'ID_GrupoPresupuestal' => $idGrupo,
                     'Mes' => $mes,
                     'Anio' => $anio
@@ -1276,9 +1298,14 @@ class Api extends ResourceController
                     $anio = (int)date('Y', $fechaSol);
                     $idDpto = $solicitud['ID_Dpto'];
 
+                    // Resolver Unidad Operativa
+                    $dModel = new \App\Models\DepartamentosModel();
+                    $depObj = $dModel->find($idDpto);
+                    $idUnidad = $depObj['ID_UnidadOperativa'] ?? 0;
+
                     foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
                         $presupuesto = $presupuestoModel->where([
-                            'ID_Dpto' => $idDpto,
+                            'ID_UnidadOperativa' => $idUnidad,
                             'ID_GrupoPresupuestal' => $idGrupo,
                             'Mes' => $mes,
                             'Anio' => $anio
@@ -1291,7 +1318,7 @@ class Api extends ResourceController
                             ]);
                         } else {
                             $presupuestoModel->insert([
-                                'ID_Dpto' => $idDpto,
+                                'ID_UnidadOperativa' => $idUnidad,
                                 'ID_GrupoPresupuestal' => $idGrupo,
                                 'Mes' => $mes,
                                 'Anio' => $anio,
@@ -2574,7 +2601,8 @@ class Api extends ResourceController
             $builder = $solicitudModel
                 ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as EmpresaNombre, Proveedor.RazonSocial as ProveedorNombre, Cotizacion.Total as MontoOficial')
                 ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+                ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
                 ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
                 ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
                 ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left');

@@ -121,7 +121,7 @@ function registrarComponentePresupuesto() {
 
                     let copiasRealizadas = 0;
                     this.departamentos.forEach(dptoActual => {
-                        const dptoPrevio = data.departamentos.find(d => String(d.ID_Dpto) === String(dptoActual.ID_Dpto));
+                        const dptoPrevio = data.departamentos.find(d => String(d.ID_UnidadOperativa) === String(dptoActual.ID_UnidadOperativa));
                         if (dptoPrevio && dptoPrevio.grupos) {
                             dptoActual.grupos.forEach(grupoActual => {
                                 const grupoPrevio = dptoPrevio.grupos.find(g => String(g.ID_GrupoPresupuestal) === String(grupoActual.ID_GrupoPresupuestal));
@@ -156,10 +156,10 @@ function registrarComponentePresupuesto() {
 
                 let gruposParaGuardar = [];
 
-                this.departamentos.forEach(dpto => {
-                    dpto.grupos.forEach(grupo => {
+                this.departamentos.forEach(uni => {
+                    uni.grupos.forEach(grupo => {
                         gruposParaGuardar.push({
-                            id_dpto: dpto.ID_Dpto,
+                            id_unidad: uni.ID_UnidadOperativa,
                             id_grupo: grupo.ID_GrupoPresupuestal,
                             id_existente: grupo.ID_PresupuestoMensual,
                             monto_asignado: parseFloat(grupo.Monto_Asignado) || 0
@@ -402,7 +402,7 @@ function registrarComponenteReportePresupuesto() {
 
             razonesSociales: [],
             todosPlaces: [],
-            departamentos: [],
+            departamentos: [], // Representa Unidades Operativas ahora en el reporte
             departamentosBancos: [],
             departamentosCompleto: [],
             departamentosOriginales: [],
@@ -562,8 +562,6 @@ function registrarComponenteReportePresupuesto() {
                         totales.pGastado += parseFloat(d.presupuesto?.gastado || 0);
                         totales.pDisponible += parseFloat(d.presupuesto?.disponible || 0);
                     } else {
-                        // Pantalla Presupuesto vs Ejecutado
-                        // d.totales existe cuando viene de la API, pero d.detalles (grupos) son planos
                         const src = d.totales || d;
                         totales.asignado += parseFloat(src.asignado || 0);
                         totales.comprometido += parseFloat(src.comprometido || 0);
@@ -593,7 +591,6 @@ function registrarComponenteReportePresupuesto() {
                     }
                     sumar(rs.totales, d);
                     
-                    // Bancos: Sumar SOLO al nivel de RS (Pantalla Completo)
                     if (this.pantalla === 'completo') {
                         rs.totales.bInicial += parseFloat(d.bancos?.inicial || 0);
                         rs.totales.bFinal += parseFloat(d.bancos?.final || 0);
@@ -675,7 +672,6 @@ function registrarComponenteReportePresupuesto() {
                     const res = await fetch(`${BASE_URL}api/bancos/comparativo/${targetPlaceId}/${this.anio}/${stringMeses}`);
                     if (res.ok) {
                         const data = await res.json();
-                        // Ahora la API devuelve 'razones' directamente
                         this.departamentosBancos = data.razones || [];
                     }
                 } catch (e) { console.error(e); }
@@ -723,8 +719,8 @@ function registrarComponenteReportePresupuesto() {
                 this.choicesDpto = new Choices(selectEl, {
                     removeItemButton: true,
                     itemSelectText: '',
-                    placeholderValue: 'Todos los departamentos',
-                    searchPlaceholderValue: 'Buscar departamento...'
+                    placeholderValue: 'Todas las Unidades',
+                    searchPlaceholderValue: 'Buscar unidad...'
                 });
 
                 selectEl.onchange = () => {
@@ -738,7 +734,7 @@ function registrarComponenteReportePresupuesto() {
                     this.departamentos = [...this.departamentosOriginales];
                 } else {
                     this.departamentos = this.departamentosOriginales.filter(d => 
-                        this.dptosSeleccionados.includes(String(d.ID_Dpto))
+                        this.dptosSeleccionados.includes(String(d.ID_UnidadOperativa))
                     );
                 }
                 this.recalcularTotales();
@@ -796,17 +792,7 @@ if (window.Alpine) {
  * Lógica para el CRUD de Segmentos de Negocio
  */
 function initCrudSegmentos() {
-    const tabla = document.getElementById('tabla-segmentos')
-    if (!tabla) return
-
-    initSegmentosTabla()
-    initSegmentosPantallas()
-    initSegmentosForm()
-    initSegmentosEditarForm()
-    initSegmentosActions(tabla)
-}
-
-function initSegmentosTabla() {
+    const tabla = document.getElementById('tabla-segmentos'); if (!tabla) return;
     setupClientSideTable({
         rowsSelector: '#tabla-segmentos tr[data-id]',
         paginationSelector: 'paginacion-segmentos',
@@ -817,464 +803,263 @@ function initSegmentosTabla() {
             return nombre.includes(nombreFiltro)
         },
         rowsPerPage: 10,
-    })
+    });
+    initSegmentosPantallas(); initSegmentosForm(); initSegmentosEditarForm(); initSegmentosActions(tabla);
 }
 
 function initSegmentosPantallas() {
-    const pantallaAgregar = document.getElementById('pantalla-agregar-segmentos')
-    const pantallaEditar = document.getElementById('pantalla-editar-segmentos')
-    const pantallaLista = document.getElementById('pantalla-lista-segmentos')
-
-    const btnAgregar = document.getElementById('btn-agregar-segmentos')
-    const btnRegresarAgregar = document.getElementById('btn-regresar-lista-segmentos')
-    const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-segmentos')
-
-    if (btnAgregar)
-        btnAgregar.onclick = (e) => {
-            e.preventDefault()
-            pantallaLista?.classList.add('hidden')
-            pantallaAgregar?.classList.remove('hidden')
-        }
-
-    if (btnRegresarAgregar)
-        btnRegresarAgregar.onclick = (e) => {
-            e.preventDefault()
-            pantallaAgregar?.classList.add('hidden')
-            pantallaLista?.classList.remove('hidden')
-        }
-
-    if (btnRegresarEditar)
-        btnRegresarEditar.onclick = (e) => {
-            e.preventDefault()
-            pantallaEditar?.classList.add('hidden')
-            pantallaLista?.classList.remove('hidden')
-        }
+    const pLis = document.getElementById('pantalla-lista-segmentos'), pAdd = document.getElementById('pantalla-agregar-segmentos'), pEdi = document.getElementById('pantalla-editar-segmentos');
+    const bAdd = document.getElementById('btn-agregar-segmentos'), bRA = document.getElementById('btn-regresar-lista-segmentos'), bRE = document.getElementById('btn-regresar-lista-editar-segmentos');
+    if (bAdd) bAdd.onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); }
+    if (bRA) bRA.onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); }
+    if (bRE) bRE.onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); }
 }
 
 function initSegmentosForm() {
-    const formAgregar = document.getElementById('form-agregar-segmentos')
-    const pantallaAgregar = document.getElementById('pantalla-agregar-segmentos')
-    const pantallaLista = document.getElementById('pantalla-lista-segmentos')
-    if (!formAgregar) return
-
-    formAgregar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formAgregar)
-
-        try {
-            const result = await SendDataEnd('modales/crud_segmentos/insertar', {
-                method: 'POST',
-                body: formData,
-            })
-
-            if (result.success) {
-                mostrarNotificacion('Segmento agregado correctamente ✅', 'success')
-                pantallaAgregar?.classList.add('hidden')
-                pantallaLista?.classList.remove('hidden')
-                formAgregar.reset()
-                abrirModal('SegmentoNegocio')
-            } else {
-                mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
-            }
-        } catch {
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+    const fAdd = document.getElementById('form-agregar-segmentos'); if (!fAdd) return;
+    fAdd.onsubmit = async (e) => {
+        e.preventDefault(); try {
+            const res = await SendDataEnd('modales/crud_segmentos/insertar', { method: 'POST', body: new FormData(fAdd) });
+            if (res.success) { mostrarNotificacion('Agregado ✅', 'success'); abrirModal('SegmentoNegocio'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
 
 function initSegmentosEditarForm() {
-    const formEditar = document.getElementById('form-editar-segmentos')
-    const pantallaEditar = document.getElementById('pantalla-editar-segmentos')
-    const pantallaLista = document.getElementById('pantalla-lista-segmentos')
-    const tabla = document.getElementById('tabla-segmentos')
-    if (!formEditar) return
-
-    formEditar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formEditar)
-        const id = formData.get('id')
-
+    const fEdi = document.getElementById('form-editar-segmentos'); if (!fEdi) return;
+    fEdi.onsubmit = async (e) => {
+        e.preventDefault(); const fd = new FormData(fEdi); const id = fd.get('id');
         try {
-            const result = await SendDataEnd(`modales/crud_segmentos/editar/${id}`, {
-                method: 'POST',
-                body: formData,
-            })
-
-            if (result.success) {
-                mostrarNotificacion('Segmento actualizado correctamente ✅', 'success')
-
-                const fila = tabla.querySelector(`tr[data-id='${id}']`)
-                if (fila) {
-                    fila.querySelector('.nombre-segmento').textContent = formData.get('nombre')
-                    fila.querySelector('.descripcion-segmento').textContent = formData.get('descripcion')
-                    
-                    const selectRS = document.getElementById('editar-id_razon_social');
-                    fila.querySelector('.razon-social-segmento').textContent = selectRS.options[selectRS.selectedIndex].text;
-
-                    fila.dataset.nombre = formData.get('nombre')
-                    fila.dataset.descripcion = formData.get('descripcion')
-                    fila.dataset.id_razon_social = formData.get('id_razon_social')
-                }
-
-                pantallaEditar?.classList.add('hidden')
-                pantallaLista?.classList.remove('hidden')
-            } else {
-                mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
-            }
-        } catch {
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+            const res = await SendDataEnd(`modales/crud_segmentos/editar/${id}`, { method: 'POST', body: fd });
+            if (res.success) { mostrarNotificacion('Actualizado ✅', 'success'); abrirModal('SegmentoNegocio'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
 
 function initSegmentosActions(tabla) {
-    if (!tabla) return
-
     tabla.addEventListener('click', async (e) => {
-        const btnEliminar = e.target.closest("[id^='btn-eliminar-segmentos-']")
-        if (btnEliminar) {
-            e.preventDefault()
-            const id = btnEliminar.dataset.id
-            if (!(await Confirmar('Eliminar Segmento?', '¿Seguro que deseas eliminar este segmento?'))) return
-
-            SendDataEnd(`modales/crud_segmentos/eliminar/${id}`, { method: 'POST' })
-                .then((result) => {
-                    if (result.success) {
-                        mostrarNotificacion('Segmento eliminado ✅', 'success')
-                        btnEliminar.closest('tr')?.remove()
-                    } else {
-                        mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-                    }
-                })
-                .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
-            return
+        const bE = e.target.closest("[id^='btn-editar-segmentos-']"), bD = e.target.closest("[id^='btn-eliminar-segmentos-']");
+        if (bD) {
+            e.preventDefault(); if (!(await Confirmar('¿Eliminar?', '¿Seguro?'))) return;
+            const res = await SendDataEnd(`modales/crud_segmentos/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            if (res.success) { mostrarNotificacion('Eliminado ✅', 'success'); bD.closest('tr').remove(); }
         }
-
-        const btnEditar = e.target.closest("[id^='btn-editar-segmentos-']")
-        if (!btnEditar) return
-        e.preventDefault()
-
-        const fila = btnEditar.closest('tr')
-        if (!fila) return
-
-        document.getElementById('editar-id').value = fila.dataset.id
-        document.getElementById('editar-nombre').value = fila.dataset.nombre
-        document.getElementById('editar-descripcion').value = fila.dataset.descripcion
-        document.getElementById('editar-id_razon_social').value = fila.dataset.idRs
-
-        document.getElementById('pantalla-lista-segmentos').classList.add('hidden')
-        document.getElementById('pantalla-editar-segmentos').classList.remove('hidden')
-    })
+        if (bE) {
+            e.preventDefault(); const f = bE.closest('tr');
+            document.getElementById('editar-id').value = f.dataset.id;
+            document.getElementById('editar-nombre').value = f.dataset.nombre;
+            document.getElementById('editar-descripcion').value = f.dataset.descripcion;
+            document.getElementById('editar-id_razon_social').value = f.dataset.idRs;
+            document.getElementById('pantalla-lista-segmentos').classList.add('hidden');
+            document.getElementById('pantalla-editar-segmentos').classList.remove('hidden');
+        }
+    });
 }
+
 function initCrudGrupos() {
-    const tabla = document.getElementById('tabla-grupos')
-    if (!tabla) return
-
-    initGruposTabla()
-    initGruposPantallas()
-    initGruposForm()
-    initGruposEditarForm()
-    initGruposActions(tabla)
-}
-
-function initGruposTabla() {
-    setupClientSideTable({
-        rowsSelector: '#tabla-grupos tr[data-id]',
-        paginationSelector: 'paginacion-grupos',
-        filterFormSelector: '#form-filtros-grupos',
-        filterFunction: (row, form) => {
-            const nombreFiltro = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase()
-            const descFiltro = (document.getElementById('buscar-descripcion-grupo')?.value || '').toLowerCase()
-
-            const nombre = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || ''
-            const descripcion = row.querySelector('.descripcion-grupo')?.textContent.toLowerCase() || ''
-
-            return nombre.includes(nombreFiltro) && descripcion.includes(descFiltro)
-        },
-        rowsPerPage: 10,
-    })
+    const tabla = document.getElementById('tabla-grupos'); if (!tabla) return;
+    setupClientSideTable({ rowsSelector: '#tabla-grupos tr[data-id]', paginationSelector: 'paginacion-grupos', filterFormSelector: '#form-filtros-grupos', filterFunction: (row) => {
+        const nom = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase();
+        const des = (document.getElementById('buscar-descripcion-grupo')?.value || '').toLowerCase();
+        return row.querySelector('.nombre-grupo')?.textContent.toLowerCase().includes(nom) && row.querySelector('.descripcion-grupo')?.textContent.toLowerCase().includes(des);
+    }, rowsPerPage: 10 });
+    initGruposPantallas(); initGruposForm(); initGruposEditarForm(); initGruposActions(tabla);
 }
 
 function initGruposPantallas() {
-    const pantallaAgregar = document.getElementById('pantalla-agregar-grupos')
-    const pantallaEditar = document.getElementById('pantalla-editar-grupos')
-    const pantallaLista = document.getElementById('pantalla-lista-grupos')
-
-    const btnAgregar = document.getElementById('btn-agregar-grupos')
-    const btnRegresarAgregar = document.getElementById('btn-regresar-lista-grupos')
-    const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-grupos')
-
-    if (btnAgregar)
-        btnAgregar.onclick = (e) => {
-            e.preventDefault()
-            pantallaLista?.classList.add('hidden')
-            pantallaAgregar?.classList.remove('hidden')
-        }
-
-    if (btnRegresarAgregar)
-        btnRegresarAgregar.onclick = (e) => {
-            e.preventDefault()
-            pantallaAgregar?.classList.add('hidden')
-            pantallaLista?.classList.remove('hidden')
-        }
-
-    if (btnRegresarEditar)
-        btnRegresarEditar.onclick = (e) => {
-            e.preventDefault()
-            pantallaEditar?.classList.add('hidden')
-            pantallaLista?.classList.remove('hidden')
-        }
+    const pLis = document.getElementById('pantalla-lista-grupos'), pAdd = document.getElementById('pantalla-agregar-grupos'), pEdi = document.getElementById('pantalla-editar-grupos');
+    document.getElementById('btn-agregar-grupos').onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
+    document.getElementById('btn-regresar-lista-grupos').onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); };
+    document.getElementById('btn-regresar-lista-editar-grupos').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
 }
 
 function initGruposForm() {
-    const formAgregar = document.getElementById('form-agregar-grupos')
-    const pantallaAgregar = document.getElementById('pantalla-agregar-grupos')
-    const pantallaLista = document.getElementById('pantalla-lista-grupos')
-    if (!formAgregar) return
-
-    formAgregar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formAgregar)
-
-        try {
-            const result = await SendDataEnd('modales/crud_grupos_presupuestales/insertar', {
-                method: 'POST',
-                body: formData,
-            })
-
-            if (result.success) {
-                mostrarNotificacion('Grupo agregado correctamente ✅', 'success')
-                pantallaAgregar?.classList.add('hidden')
-                pantallaLista?.classList.remove('hidden')
-                formAgregar.reset()
-                abrirModal('GrupoPresupuestal')
-            } else {
-                mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
-            }
-        } catch {
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+    const fAdd = document.getElementById('form-agregar-grupos'); if (!fAdd) return;
+    fAdd.onsubmit = async (e) => {
+        e.preventDefault(); try {
+            const res = await SendDataEnd('modales/crud_grupos_presupuestales/insertar', { method: 'POST', body: new FormData(fAdd) });
+            if (res.success) { mostrarNotificacion('Agregado ✅', 'success'); abrirModal('GrupoPresupuestal'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
 
 function initGruposEditarForm() {
-    const formEditar = document.getElementById('form-editar-grupos')
-    const pantallaEditar = document.getElementById('pantalla-editar-grupos')
-    const pantallaLista = document.getElementById('pantalla-lista-grupos')
-    const tabla = document.getElementById('tabla-grupos')
-    if (!formEditar) return
-
-    formEditar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formEditar)
-        const id = formData.get('ID_GrupoPresupuestal')
-
+    const fEdi = document.getElementById('form-editar-grupos'); if (!fEdi) return;
+    fEdi.onsubmit = async (e) => {
+        e.preventDefault(); const fd = new FormData(fEdi); const id = fd.get('ID_GrupoPresupuestal');
         try {
-            const result = await SendDataEnd(`modales/crud_grupos_presupuestales/editar/${id}`, {
-                method: 'POST',
-                body: formData,
-            })
-
-            if (result.success) {
-                mostrarNotificacion('Grupo actualizado correctamente ✅', 'success')
-
-                const fila = tabla.querySelector(`tr[data-id='${id}']`)
-                if (fila) {
-                    fila.querySelector('.nombre-grupo').textContent = formData.get('Nombre')
-                    fila.querySelector('.descripcion-grupo').textContent = formData.get('Descripcion')
-                    const selectDpto = document.getElementById('editar-ID_Dpto');
-                    const dptoTexto = selectDpto.options[selectDpto.selectedIndex].text;
-                    fila.querySelector('.departamento-grupo').textContent = selectDpto.value ? dptoTexto : 'N/A';
-                    fila.dataset.nombre = formData.get('Nombre')
-                    fila.dataset.descripcion = formData.get('Descripcion')
-                    fila.dataset.id_dpto = formData.get('ID_Dpto')
-                    fila.dataset.activo = formData.get('activo') ? '1' : '0'
-                    
-                    // Actualizar badge visualmente sin recargar todo de inmediato
-                    const tdEstado = fila.querySelector('td:nth-child(4)');
-                    if (tdEstado) {
-                        const esActivo = formData.get('activo') == '1';
-                        tdEstado.innerHTML = esActivo 
-                            ? '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">Activo</span>'
-                            : '<span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">Inactivo</span>';
-                        
-                        if (!esActivo) fila.classList.add('opacity-60');
-                        else fila.classList.remove('opacity-60');
-                    }
-                }
-
-                pantallaEditar?.classList.add('hidden')
-                pantallaLista?.classList.remove('hidden')
-
-                // Recargar el modal después de un breve delay para refrescar estado real
-                setTimeout(() => abrirModal('GrupoPresupuestal'), 1000);
-            } else {
-                mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
-            }
-        } catch {
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+            const res = await SendDataEnd(`modales/crud_grupos_presupuestales/editar/${id}`, { method: 'POST', body: fd });
+            if (res.success) { mostrarNotificacion('Actualizado ✅', 'success'); abrirModal('GrupoPresupuestal'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
 
 function initGruposActions(tabla) {
-    if (!tabla) return
+    tabla.addEventListener('click', async (e) => {
+        const bE = e.target.closest("[id^='btn-editar-grupos-']"), bD = e.target.closest("[id^='btn-eliminar-grupos-']");
+        if (bD) {
+            e.preventDefault(); if (!(await Confirmar('¿Desactivar?', '¿Seguro?'))) return;
+            const res = await SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            if (res.success) { mostrarNotificacion('Desactivado ✅', 'success'); abrirModal('GrupoPresupuestal'); }
+        }
+        if (bE) {
+            e.preventDefault(); const f = bE.closest('tr');
+            document.getElementById('editar-ID_GrupoPresupuestal').value = f.dataset.id;
+            document.getElementById('editar-Nombre').value = f.dataset.nombre;
+            document.getElementById('editar-Descripcion').value = f.dataset.descripcion;
+            document.getElementById('editar-ID_UnidadOperativa').value = f.dataset.idUnidad;
+            document.getElementById('editar-activo').checked = f.dataset.activo == '1';
+            document.getElementById('pantalla-lista-grupos').classList.add('hidden');
+            document.getElementById('pantalla-editar-grupos').classList.remove('hidden');
+        }
+    });
+}
+
+function initCrudUnidades() {
+    const tabla = document.getElementById('tabla-unidades'); if (!tabla) return;
+    setupClientSideTable({ rowsSelector: '#tabla-unidades tr[data-id]', paginationSelector: 'paginacion-unidades', filterFormSelector: '#form-filtros-unidades', filterFunction: (row) => {
+        const nom = (document.getElementById('buscar-nombre-unidad')?.value || '').toLowerCase();
+        const lug = (document.getElementById('buscar-lugar-unidad')?.value || '').toLowerCase();
+        return row.querySelector('.nombre-unidad')?.textContent.toLowerCase().includes(nom) && row.querySelector('.lugar-unidad')?.textContent.toLowerCase().includes(lug);
+    }, rowsPerPage: 10 });
+
+    const pLis = document.getElementById('pantalla-lista-unidades'), pAdd = document.getElementById('pantalla-agregar-unidad'), pEdi = document.getElementById('pantalla-editar-unidad');
+    document.getElementById('btn-agregar-unidad').onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
+    document.getElementById('btn-regresar-lista-unidad').onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); };
+    document.getElementById('btn-regresar-lista-editar-unidad').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
+
+    document.getElementById('form-agregar-unidad').onsubmit = async (e) => {
+        e.preventDefault(); try {
+            const res = await SendDataEnd('modales/crud_unidades_operativas/insertar', { method: 'POST', body: new FormData(e.target) });
+            if (res.success) { mostrarNotificacion('Unidad agregada ✅', 'success'); abrirModal('UnidadOperativa'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
+    };
+
+    document.getElementById('form-editar-unidad').onsubmit = async (e) => {
+        e.preventDefault(); const fd = new FormData(e.target); const id = fd.get('ID_UnidadOperativa');
+        try {
+            const res = await SendDataEnd(`modales/crud_unidades_operativas/editar/${id}`, { method: 'POST', body: fd });
+            if (res.success) { mostrarNotificacion('Unidad actualizada ✅', 'success'); abrirModal('UnidadOperativa'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
+    };
 
     tabla.addEventListener('click', async (e) => {
-        const btnEliminar = e.target.closest("[id^='btn-eliminar-grupos-']")
-        if (btnEliminar) {
-            e.preventDefault()
-            const id = btnEliminar.dataset.id
-            if (!(await Confirmar('Desactivar Grupo?', '¿Seguro que deseas desactivar este grupo presupuestal? Esto evitará que se use en nuevos presupuestos.'))) return
-            SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${id}`, { method: 'POST' })
-                .then((result) => {
-                    if (result.success) {
-                        mostrarNotificacion('Grupo desactivado ✅', 'success')
-                        abrirModal('GrupoPresupuestal')
-                    } else {
-                        mostrarNotificacion(result.message || 'No se pudo desactivar ❌', 'error')
-                    }
-                })
-                .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
-            return
+        const bE = e.target.closest("[id^='btn-editar-unidad-']"), bD = e.target.closest("[id^='btn-eliminar-unidad-']");
+        if (bE) {
+            e.preventDefault(); const f = bE.closest('tr');
+            document.getElementById('editar-ID_UnidadOperativa').value = f.dataset.id;
+            document.getElementById('editar-Nombre-unidad').value = f.dataset.nombre;
+            document.getElementById('editar-ID_Place-unidad').value = f.dataset.idPlace;
+            document.getElementById('editar-activo-unidad').checked = f.dataset.activo == '1';
+            pLis.classList.add('hidden'); pEdi.classList.remove('hidden');
         }
-
-        const btnEditar = e.target.closest("[id^='btn-editar-grupos-']")
-        if (!btnEditar) return
-        e.preventDefault()
-        const fila = btnEditar.closest('tr')
-        if (!fila) return
-        document.getElementById('editar-ID_GrupoPresupuestal').value = fila.dataset.id
-        document.getElementById('editar-Nombre').value = fila.dataset.nombre
-        document.getElementById('editar-Descripcion').value = fila.dataset.descripcion
-        document.getElementById('editar-ID_Dpto').value = fila.dataset.id_dpto || "";
-
-        const checkActivo = document.getElementById('editar-activo');
-        if (checkActivo) {
-            checkActivo.checked = fila.dataset.activo == '1';
+        if (bD) {
+            e.preventDefault(); if (!(await Confirmar('¿Desactivar?', '¿Seguro?'))) return;
+            const res = await SendDataEnd(`modales/crud_unidades_operativas/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            if (res.success) { mostrarNotificacion('Desactivada ✅', 'success'); abrirModal('UnidadOperativa'); }
         }
-
-        document.getElementById('pantalla-lista-grupos').classList.add('hidden')
-        document.getElementById('pantalla-editar-grupos').classList.remove('hidden')
-    })
+    });
 }
 
+function initCrudDepartamento() {
+    const tabla = document.getElementById('tabla-departamentos'); if (!tabla) return;
+    setupClientSideTable({ rowsSelector: '#tabla-departamentos tr[data-id]', paginationSelector: 'paginacion-departamentos', filterFormSelector: '#form-filtros-departamentos', filterFunction: (row) => {
+        const nom = (document.getElementById('buscar-nombre-depto')?.value || '').toLowerCase();
+        const uni = (document.getElementById('buscar-unidad-depto')?.value || '').toLowerCase();
+        return row.querySelector('.nombre-depto')?.textContent.toLowerCase().includes(nom) && row.querySelector('.unidad-depto')?.textContent.toLowerCase().includes(uni);
+    }, rowsPerPage: 10 });
 
-/**
- * Lógica para el CRUD de cuentas Bancos Dpto
- */
+    const pLis = document.getElementById('pantalla-lista-departamentos'), pAdd = document.getElementById('pantalla-agregar-departamento'), pEdi = document.getElementById('pantalla-editar-departamento');
+    document.getElementById('btn-agregar-departamento').onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
+    document.getElementById('btn-regresar-lista').onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); };
+    document.getElementById('btn-regresar-lista-editar').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
+
+    document.getElementById('form-agregar-departamento').onsubmit = async (e) => {
+        e.preventDefault(); try {
+            const res = await SendDataEnd('modales/crud_departamentos/insertar', { method: 'POST', body: new FormData(e.target) });
+            if (res.success) { mostrarNotificacion('Depto agregado ✅', 'success'); abrirModal('crud_departamento'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
+    };
+
+    document.getElementById('form-editar-departamento').onsubmit = async (e) => {
+        e.preventDefault(); const fd = new FormData(e.target); const id = fd.get('ID_Dpto');
+        try {
+            const res = await SendDataEnd(`modales/crud_departamentos/editar/${id}`, { method: 'POST', body: fd });
+            if (res.success) { mostrarNotificacion('Depto actualizado ✅', 'success'); abrirModal('crud_departamento'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
+    };
+
+    tabla.addEventListener('click', async (e) => {
+        const bE = e.target.closest("[id^='btn-editar-departamento-']"), bD = e.target.closest("[id^='btn-eliminar-departamento-']");
+        if (bE) {
+            e.preventDefault(); const f = bE.closest('tr');
+            document.getElementById('editar-ID_Dpto').value = f.dataset.id;
+            document.getElementById('editar-Nombre').value = f.dataset.nombre;
+            document.getElementById('editar-ID_UnidadOperativa').value = f.dataset.idUnidad;
+            pLis.classList.add('hidden'); pEdi.classList.remove('hidden');
+        }
+        if (bD) {
+            e.preventDefault(); if (!(await Confirmar('¿Eliminar?', '¿Seguro?'))) return;
+            const res = await SendDataEnd(`modales/crud_departamentos/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            if (res.success) { mostrarNotificacion('Eliminado ✅', 'success'); abrirModal('crud_departamento'); }
+        }
+    });
+}
+
 function initCrudBancoDpto() {
-    const tabla = document.getElementById('tabla-banco-dpto')
-    if (!tabla) return
-    initBancoDptoTabla()
-    initBancoDptoPantallas()
-    initBancoDptoForm()
-    initBancoDptoEditarForm()
-    initBancoDptoActions(tabla)
-}
-
-function initBancoDptoTabla() {
-    setupClientSideTable({
-        rowsSelector: '#tabla-banco-dpto tr[data-id]',
-        paginationSelector: 'paginacion-banco-dpto',
-        filterFormSelector: '#form-filtros-banco-dpto',
-        filterFunction: (row, form) => {
-            const rsFiltro = (document.getElementById('buscar-rs')?.value || '').toLowerCase()
-            const bancoFiltro = (document.getElementById('buscar-banco')?.value || '').toLowerCase()
-            const rs = row.querySelector('.nombre-rs')?.textContent.toLowerCase() || ''
-            const banco = row.querySelector('.nombre-banco')?.textContent.toLowerCase() || ''
-            return rs.includes(rsFiltro) && banco.includes(bancoFiltro)
-        },
-        rowsPerPage: 10,
-    })
+    const tabla = document.getElementById('tabla-banco-dpto'); if (!tabla) return;
+    setupClientSideTable({ rowsSelector: '#tabla-banco-dpto tr[data-id]', paginationSelector: 'paginacion-banco-dpto', filterFormSelector: '#form-filtros-banco-dpto', filterFunction: (row) => {
+        const rs = (document.getElementById('buscar-rs')?.value || '').toLowerCase();
+        const ban = (document.getElementById('buscar-banco')?.value || '').toLowerCase();
+        return row.querySelector('.nombre-rs')?.textContent.toLowerCase().includes(rs) && row.querySelector('.nombre-banco')?.textContent.toLowerCase().includes(ban);
+    }, rowsPerPage: 10 });
+    initBancoDptoPantallas(); initBancoDptoForm(); initBancoDptoEditarForm(); initBancoDptoActions(tabla);
 }
 
 function initBancoDptoPantallas() {
-    const pantallaAgregar = document.getElementById('pantalla-agregar-banco-dpto')
-    const pantallaEditar = document.getElementById('pantalla-editar-banco-dpto')
-    const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
-    const btnAgregar = document.getElementById('btn-agregar-banco-dpto')
-    const btnRegresarAgregar = document.getElementById('btn-regresar-lista-banco-dpto')
-    const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-banco-dpto')
-    if (btnAgregar) btnAgregar.onclick = (e) => { e.preventDefault(); pantallaLista?.classList.add('hidden'); pantallaAgregar?.classList.remove('hidden'); }
-    if (btnRegresarAgregar) btnRegresarAgregar.onclick = (e) => { e.preventDefault(); pantallaAgregar?.classList.add('hidden'); pantallaLista?.classList.remove('hidden'); }
-    if (btnRegresarEditar) btnRegresarEditar.onclick = (e) => { e.preventDefault(); pantallaEditar?.classList.add('hidden'); pantallaLista?.classList.remove('hidden'); }
+    const pLis = document.getElementById('pantalla-lista-banco-dpto'), pAdd = document.getElementById('pantalla-agregar-banco-dpto'), pEdi = document.getElementById('pantalla-editar-banco-dpto');
+    document.getElementById('btn-agregar-banco-dpto').onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
+    document.getElementById('btn-regresar-lista-banco-dpto').onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); };
+    document.getElementById('btn-regresar-lista-editar-banco-dpto').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
 }
 
 function initBancoDptoForm() {
-    const formAgregar = document.getElementById('form-agregar-banco-dpto')
-    const pantallaAgregar = document.getElementById('pantalla-agregar-banco-dpto')
-    const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
-    if (!formAgregar) return
-    formAgregar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formAgregar)
-        try {
-            const result = await SendDataEnd('modales/crud_banco_dpto/insertar', { method: 'POST', body: formData })
-            if (result.success) {
-                mostrarNotificacion('Banco agregado correctamente ✅', 'success')
-                pantallaAgregar?.classList.add('hidden'); pantallaLista?.classList.remove('hidden');
-                formAgregar.reset(); abrirModal('BancoDpto');
-            } else { mostrarNotificacion(result.message || 'Error al guardar ❌', 'error') }
-        } catch { mostrarNotificacion('Error de conexión con el servidor ❌', 'error') }
+    const fAdd = document.getElementById('form-agregar-banco-dpto'); if (!fAdd) return;
+    fAdd.onsubmit = async (e) => {
+        e.preventDefault(); try {
+            const res = await SendDataEnd('modales/crud_banco_dpto/insertar', { method: 'POST', body: new FormData(fAdd) });
+            if (res.success) { mostrarNotificacion('Agregado ✅', 'success'); abrirModal('BancoDpto'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
 
 function initBancoDptoEditarForm() {
-    const formEditar = document.getElementById('form-editar-banco-dpto')
-    const pantallaEditar = document.getElementById('pantalla-editar-banco-dpto')
-    const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
-    const tabla = document.getElementById('tabla-banco-dpto')
-    if (!formEditar) return
-    formEditar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formEditar)
-        const id = formData.get('ID_BancoDpto')
+    const fEdi = document.getElementById('form-editar-banco-dpto'); if (!fEdi) return;
+    fEdi.onsubmit = async (e) => {
+        e.preventDefault(); const fd = new FormData(fEdi); const id = fd.get('ID_BancoDpto');
         try {
-            const result = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, { method: 'POST', body: formData })
-            if (result.success) {
-                mostrarNotificacion('Banco actualizado correctamente ✅', 'success')
-                const fila = tabla.querySelector(`tr[data-id='${id}']`)
-                if (fila) {
-                    fila.querySelector('.nombre-banco').textContent = formData.get('Banco')
-                    fila.querySelector('.clabe-banco').textContent = formData.get('Clabe')
-                    const selectRS = document.getElementById('editar-ID_RazonSocial');
-                    const rsTexto = selectRS.options[selectRS.selectedIndex].text;
-                    fila.querySelector('.nombre-rs').textContent = rsTexto;
-                    fila.dataset.banco = formData.get('Banco'); 
-                    fila.dataset.clabe = formData.get('Clabe'); 
-                    fila.dataset.idRs = formData.get('ID_RazonSocial')
-                }
-                pantallaEditar?.classList.add('hidden'); pantallaLista?.classList.remove('hidden')
-            } else { mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error') }
-        } catch { mostrarNotificacion('Error de conexión con el servidor ❌', 'error') }
+            const res = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, { method: 'POST', body: fd });
+            if (res.success) { mostrarNotificacion('Actualizado ✅', 'success'); abrirModal('BancoDpto'); }
+        } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
 
 function initBancoDptoActions(tabla) {
-    if (!tabla) return
     tabla.addEventListener('click', async (e) => {
-        const btnEliminar = e.target.closest("[id^='btn-eliminar-banco-dpto-']")
-        if (btnEliminar) {
-            e.preventDefault(); const id = btnEliminar.dataset.id
-            if (!(await Confirmar('Eliminar Banco?', '¿Seguro que deseas eliminar este registro?'))) return
-            SendDataEnd(`modales/crud_banco_dpto/eliminar/${id}`, { method: 'POST' })
-                .then((result) => {
-                    if (result.success) { mostrarNotificacion('Registro eliminado ✅', 'success'); btnEliminar.closest('tr')?.remove() }
-                    else { mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error') }
-                })
-                .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
-            return
+        const bE = e.target.closest("[id^='btn-editar-banco-dpto-']"), bD = e.target.closest("[id^='btn-eliminar-banco-dpto-']");
+        if (bD) {
+            e.preventDefault(); if (!(await Confirmar('¿Eliminar?', '¿Seguro?'))) return;
+            const res = await SendDataEnd(`modales/crud_banco_dpto/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            if (res.success) { mostrarNotificacion('Eliminado ✅', 'success'); abrirModal('BancoDpto'); }
         }
-        const btnEditar = e.target.closest("[id^='btn-editar-banco-dpto-']")
-        if (!btnEditar) return
-        e.preventDefault(); const fila = btnEditar.closest('tr')
-        if (!fila) return
-        document.getElementById('editar-ID_BancoDpto').value = fila.dataset.id
-        document.getElementById('editar-Banco').value = fila.dataset.banco
-        document.getElementById('editar-Clabe').value = fila.dataset.clabe
-        document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRs
-        document.getElementById('pantalla-lista-banco-dpto').classList.add('hidden')
-        document.getElementById('pantalla-editar-banco-dpto').classList.remove('hidden')
-    })
+        if (bE) {
+            e.preventDefault(); const f = bE.closest('tr');
+            document.getElementById('editar-ID_BancoDpto').value = f.dataset.id;
+            document.getElementById('editar-Banco').value = f.dataset.banco;
+            document.getElementById('editar-Clabe').value = f.dataset.clabe;
+            document.getElementById('editar-ID_RazonSocial').value = f.dataset.idRs;
+            document.getElementById('pantalla-lista-banco-dpto').classList.add('hidden');
+            document.getElementById('pantalla-editar-banco-dpto').classList.remove('hidden');
+        }
+    });
 }

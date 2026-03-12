@@ -66,7 +66,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         <table class="min-w-full text-sm">
             <thead class="bg-blue-50">
             <tr>
-                <th class="w-2/3 px-6 py-3 border-b border-gray-300 text-left font-semibold text-gray-700">Departamento / Grupo Presupuestal</th>
+                <th class="w-2/3 px-6 py-3 border-b border-gray-300 text-left font-semibold text-gray-700">Unidad Operativa / Grupo Presupuestal</th>
                 <th class="w-1/3 px-6 py-3 border-b border-gray-300 text-right font-semibold text-gray-700 border-l border-l-gray-300">Monto Asignado</th>
             </tr>
             </thead>
@@ -74,30 +74,30 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
             <tbody x-show="cargando || departamentos.length === 0">
             <tr x-show="cargando">
                 <td colspan="2" class="px-4 py-12 text-center text-gray-500">
-                    <span class="inline-block animate-pulse">Cargando datos de la estructura...</span>
+                    <span class="inline-block animate-pulse">Cargando estructura financiera...</span>
                 </td>
             </tr>
             <tr x-show="!cargando && departamentos.length === 0">
                 <td colspan="2" class="px-4 py-12 text-center text-gray-400">
-                    Seleccione una Razón Social, un Place y una Fecha para visualizar los grupos presupuestales.
+                    Seleccione una Razón Social, un Place y una Fecha para visualizar las unidades operativas.
                 </td>
             </tr>
             </tbody>
 
-            <template x-for="dpto in departamentos" :key="dpto.ID_Dpto">
+            <template x-for="uni in departamentos" :key="uni.ID_UnidadOperativa">
                 <tbody x-show="!cargando && departamentos.length > 0">
 
                 <tr class="bg-gray-100 border-y border-gray-300">
                     <td class="px-6 py-3 font-bold text-gray-800">
-                        <span class="text-blue-600 mr-2">🏢</span>
-                        <span x-text="dpto.Nombre"></span>
+                        <span class="text-blue-600 mr-2">⚙️</span>
+                        <span x-text="uni.Nombre"></span>
                     </td>
                     <td class="px-6 py-3 border-l border-l-gray-300 text-right font-bold text-blue-700">
-                        <span x-text="'Total: ' + formatearMoneda(getDptoTotal(dpto))"></span>
+                        <span x-text="'Total: ' + formatearMoneda(getDptoTotal(uni))"></span>
                     </td>
                 </tr>
 
-                <template x-for="grupo in dpto.grupos" :key="grupo.ID_GrupoPresupuestal">
+                <template x-for="grupo in uni.grupos" :key="grupo.ID_GrupoPresupuestal">
                     <tr class="bg-white hover:bg-gray-50 transition-colors duration-150">
                         <td class="px-6 py-2 border-b border-gray-200 text-gray-600 pl-12" x-text="grupo.Nombre"></td>
                         <td class="px-6 py-2 border-b border-gray-200 border-l border-l-gray-200">

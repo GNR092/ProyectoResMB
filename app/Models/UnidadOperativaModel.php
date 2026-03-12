@@ -4,17 +4,16 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class DepartamentosModel extends Model
+class UnidadOperativaModel extends Model
 {
-    protected $table            = 'Departamentos';
-    protected $primaryKey       = 'ID_Dpto';
+    protected $table            = 'UnidadOperativa';
+    protected $primaryKey       = 'ID_UnidadOperativa';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_UnidadOperativa', 'Nombre'];
+    protected $allowedFields    = ['Nombre', 'ID_Place', 'activo'];
 
-    // Dates
     protected $useTimestamps = false;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
