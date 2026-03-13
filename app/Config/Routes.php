@@ -28,8 +28,6 @@ if (!file_exists($installerLockFile)) {
     // Login
     $routes->get('auth', 'Auth::index');
     $routes->post('auth/login', 'Auth::login');
-    // API Token Generation
-    $routes->post('api/gentoken', 'Api::gentoken');
 
     /*
      **

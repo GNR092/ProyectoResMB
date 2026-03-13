@@ -226,66 +226,76 @@ class ControlMaestro extends BaseController
                 $fechaSol = strtotime($solicitudOriginal->Fecha);
                 $mes = (int)date('n', $fechaSol);
                 $anio = (int)date('Y', $fechaSol);
+                
+                // --- CORRECCIÓN: Obtener ID_UnidadOperativa del departamento ---
                 $idDpto = $solicitudOriginal->ID_Dpto;
+                $rowUnidad = $this->db->table('Departamentos')->select('ID_UnidadOperativa')->where('ID_Departamento', $idDpto)->get()->getRow();
+                $idUnidad = $rowUnidad ? $rowUnidad->ID_UnidadOperativa : null;
 
                 $todosLosGrupos = array_unique(array_merge(array_keys($montosViejosPorGrupo), array_keys($montosNuevosPorGrupo)));
 
                 foreach ($todosLosGrupos as $idGrupo) {
-                    $montoViejo = $montosViejosPorGrupo[$idGrupo] ?? 0;
-                    $montoNuevo = $montosNuevosPorGrupo[$idGrupo] ?? 0;
+                    if (!$idUnidad) continue;
 
-                    $presupuesto = $this->db->table('PresupuestoMensual')->where(['ID_Dpto' => $idDpto, 'ID_GrupoPresupuestal' => $idGrupo, 'Mes' => $mes, 'Anio' => $anio])->get()->getRow();
+                    $montoViejo = (float)($montosViejosPorGrupo[$idGrupo] ?? 0);
+                    $montoNuevo = (float)($montosNuevosPorGrupo[$idGrupo] ?? 0);
+
+                    // Buscamos el presupuesto usando ID_UnidadOperativa
+                    $presupuesto = $this->db->table('PresupuestoMensual')
+                        ->where(['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => $idGrupo, 'Mes' => $mes, 'Anio' => $anio])
+                        ->get()->getRow();
 
                     if ($presupuesto) {
-                        $nuevoComprometido = (float)$presupuesto->Monto_Comprometido;
-                        $nuevoEjecutado = (float)$presupuesto->Monto_Ejecutado;
+                        $builder = $this->db->table('PresupuestoMensual');
+                        $builder->where('ID_PresupuestoMensual', $presupuesto->ID_PresupuestoMensual);
 
                         // REGLA 1: Se mantiene en Comprometido (4-7)
                         if ($nivelAnterior >= 4 && $nivelAnterior <= 7 && $nivelNuevo >= 4 && $nivelNuevo <= 7) {
-                            $nuevoComprometido += ($montoNuevo - $montoViejo);
+                            $diff = $montoNuevo - $montoViejo;
+                            $builder->set('Monto_Comprometido', "Monto_Comprometido + ($diff)", false);
                         }
                         // REGLA 2: Sube de Pre-presupuesto a Comprometido (<4 -> 4-7)
                         elseif ($nivelAnterior < 4 && $nivelNuevo >= 4 && $nivelNuevo <= 7) {
-                            $nuevoComprometido += $montoNuevo;
+                            $builder->set('Monto_Comprometido', "Monto_Comprometido + $montoNuevo", false);
                         }
                         // REGLA 3: Sube de Comprometido a Ejecutado (4-7 -> 8)
                         elseif ($nivelAnterior >= 4 && $nivelAnterior <= 7 && $nivelNuevo == 8) {
-                            $nuevoComprometido -= $montoViejo;
-                            $nuevoEjecutado += $montoNuevo;
+                            $builder->set('Monto_Comprometido', "GREATEST(0, Monto_Comprometido - $montoViejo)", false);
+                            $builder->set('Monto_Ejecutado', "Monto_Ejecutado + $montoNuevo", false);
                         }
                         // REGLA 4: Se mantiene en Ejecutado (8 -> 8)
                         elseif ($nivelAnterior == 8 && $nivelNuevo == 8) {
-                            $nuevoEjecutado += ($montoNuevo - $montoViejo);
+                            $diff = $montoNuevo - $montoViejo;
+                            $builder->set('Monto_Ejecutado', "Monto_Ejecutado + ($diff)", false);
                         }
                         // REGLA 5: Baja de Comprometido a Pre-presupuesto (4-7 -> <4)
                         elseif ($nivelAnterior >= 4 && $nivelAnterior <= 7 && $nivelNuevo < 4) {
-                            $nuevoComprometido -= $montoViejo;
+                            $builder->set('Monto_Comprometido', "GREATEST(0, Monto_Comprometido - $montoViejo)", false);
                         }
                         // REGLA 6: Baja de Ejecutado a Comprometido (8 -> 4-7)
                         elseif ($nivelAnterior == 8 && $nivelNuevo >= 4 && $nivelNuevo <= 7) {
-                            $nuevoEjecutado -= $montoViejo;
-                            $nuevoComprometido += $montoNuevo;
+                            $builder->set('Monto_Ejecutado', "GREATEST(0, Monto_Ejecutado - $montoViejo)", false);
+                            $builder->set('Monto_Comprometido', "Monto_Comprometido + $montoNuevo", false);
                         }
                         // REGLA 7: Baja de Ejecutado a Pre-presupuesto (8 -> <4)
                         elseif ($nivelAnterior == 8 && $nivelNuevo < 4) {
-                            $nuevoEjecutado -= $montoViejo;
+                            $builder->set('Monto_Ejecutado', "GREATEST(0, Monto_Ejecutado - $montoViejo)", false);
                         }
 
-                        if ($nuevoComprometido < 0) $nuevoComprometido = 0;
-                        if ($nuevoEjecutado < 0) $nuevoEjecutado = 0;
-
-                        $this->db->table('PresupuestoMensual')->where('ID_PresupuestoMensual', $presupuesto->ID_PresupuestoMensual)->update([
-                            'Monto_Comprometido' => $nuevoComprometido,
-                            'Monto_Ejecutado' => $nuevoEjecutado
-                        ]);
+                        $builder->update();
                     } 
                     // Si no existe presupuesto y estamos entrando a nivel comprometido, lo creamos
                     elseif ($nivelNuevo >= 4) {
                         $comp = ($nivelNuevo == 8) ? 0 : $montoNuevo;
                         $ejec = ($nivelNuevo == 8) ? $montoNuevo : 0;
                         $this->db->table('PresupuestoMensual')->insert([
-                            'ID_Dpto' => $idDpto, 'ID_GrupoPresupuestal' => $idGrupo, 'Mes' => $mes, 'Anio' => $anio,
-                            'Monto_Asignado' => 0, 'Monto_Comprometido' => $comp, 'Monto_Ejecutado' => $ejec
+                            'ID_UnidadOperativa' => $idUnidad, 
+                            'ID_GrupoPresupuestal' => $idGrupo, 
+                            'Mes' => $mes, 
+                            'Anio' => $anio,
+                            'Monto_Asignado' => 0, 
+                            'Monto_Comprometido' => $comp, 
+                            'Monto_Ejecutado' => $ejec
                         ]);
                     }
                 }

@@ -450,20 +450,25 @@ class Api extends ResourceController
                     if(isset($solicitudItemsDB[$index])) {
                         $nuevoMontoComprometido = (float)$p->cantidad * (float)$p->importe * $factorIvaActual;
                         
-                        $solicitudProductModel->update($solicitudItemsDB[$index]['ID_SolicitudProd'], [
+                        $updateProd = [
                             'Codigo' => (string) $p->codigo,
                             'Nombre' => (string) $p->nombre,
                             'Cantidad' => (int) $p->cantidad,
                             'Importe' => (float) $p->importe,
                             'Monto_Comprometido_Original' => $nuevoMontoComprometido // Actualizamos el respaldo
-                        ]);
+                        ];
+
+                        if (isset($p->id_grupo_presupuestal)) {
+                            $updateProd['ID_GrupoPresupuestal'] = (int) $p->id_grupo_presupuestal;
+                        }
+
+                        $solicitudProductModel->update($solicitudItemsDB[$index]['ID_SolicitudProd'], $updateProd);
                     }
                 }
             }
 
-            // --- APLICAR AJUSTE AL PRESUPUESTO ---
+            // --- APLICAR AJUSTE AL PRESUPUESTO ATÓMICO Y CORRECTO ---
             if ($afectaPresupuesto) {
-                $presupuestoModel = new \App\Models\PresupuestoMensualModel();
                 $solicitudProductModel = new SolicitudProductModel();
                 $productosNuevos = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
                 
@@ -474,8 +479,9 @@ class Api extends ResourceController
                     }
                 }
 
-                // Obtener mes y año de la solicitud
-                $fechaSol = strtotime($solicitud['Fecha'] ?? date('Y-m-d'));
+                // USAR LA FECHA DE APROBACIÓN PARA ENCONTRAR EL PRESUPUESTO CORRECTO
+                $fechaSolStr = $solicitud['Fecha_Aprobacion'] ?? $solicitud['Fecha'] ?? date('Y-m-d');
+                $fechaSol = strtotime($fechaSolStr);
                 $mes = (int)date('n', $fechaSol);
                 $anio = (int)date('Y', $fechaSol);
                 
@@ -486,31 +492,24 @@ class Api extends ResourceController
                 $todosLosGrupos = array_unique(array_merge(array_keys($montosViejosPorGrupo), array_keys($montosNuevosPorGrupo)));
                 
                 foreach ($todosLosGrupos as $idGrupo) {
-                    $viejo = $montosViejosPorGrupo[$idGrupo] ?? 0;
-                    $nuevo = $montosNuevosPorGrupo[$idGrupo] ?? 0;
+                    $viejo = (float)($montosViejosPorGrupo[$idGrupo] ?? 0);
+                    $nuevo = (float)($montosNuevosPorGrupo[$idGrupo] ?? 0);
                     $diferencia = $nuevo - $viejo;
 
-                    if ($diferencia != 0) {
-                        $presupuesto = $presupuestoModel->where([
-                            'ID_UnidadOperativa' => $idUnidad,
-                            'ID_GrupoPresupuestal' => $idGrupo,
-                            'Mes' => $mes,
-                            'Anio' => $anio
-                        ])->first();
-
-                        if ($presupuesto) {
-                            // Si la solicitud está pagada, ajustamos el Ejecutado. Si no, el Comprometido.
-                            $campoAjustar = ($solicitud['Estado'] === 'Pagada' || $solicitud['Estado'] === Status::Pagada) ? 'Monto_Ejecutado' : 'Monto_Comprometido';
-                            
-                            $nuevoValorPresupuesto = (float)$presupuesto[$campoAjustar] + $diferencia;
-                            if ($nuevoValorPresupuesto < 0) $nuevoValorPresupuesto = 0;
-
-                            $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
-                                $campoAjustar => $nuevoValorPresupuesto
-                            ]);
-                            
-                            log_message('debug', "Presupuesto Ajustado por Edición (IVA/Precio): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Diferencia: $diferencia en $campoAjustar");
-                        }
+                    if (abs($diferencia) > 0.0001) { // Evitar micro-diferencias por coma flotante
+                        $campoAjustar = ($solicitud['Estado'] === 'Pagada' || $solicitud['Estado'] === Status::Pagada) ? 'Monto_Ejecutado' : 'Monto_Comprometido';
+                        
+                        $db->table('PresupuestoMensual')
+                           ->set($campoAjustar, "$campoAjustar + ($diferencia)", false)
+                           ->where([
+                                'ID_UnidadOperativa' => $idUnidad,
+                                'ID_GrupoPresupuestal' => $idGrupo,
+                                'Mes' => $mes,
+                                'Anio' => $anio
+                           ])
+                           ->update();
+                        
+                        log_message('debug', "Presupuesto Ajustado Atómico por Edición: Grupo $idGrupo - Diferencia: $diferencia en $campoAjustar");
                     }
                 }
             }
@@ -1035,6 +1034,7 @@ class Api extends ResourceController
      */
     private function actualizarPresupuestoEjecucion($idSolicitud)
     {
+        $db = \Config\Database::connect();
         try {
             $solicitudModel = new SolicitudModel();
             $solicitud = $solicitudModel->find($idSolicitud);
@@ -1049,23 +1049,17 @@ class Api extends ResourceController
             $cot = $cotModel->where('ID_Solicitud', $idSolicitud)->first();
             if ($cot) {
                 $ordenExistente = $ordenModel->where('ID_Cotizacion', $cot['ID_Cotizacion'])->first();
-                // Si la orden ya está "Por Pagar" o "Pagada", significa que el presupuesto YA se movió anteriormente.
                 if ($ordenExistente && in_array($ordenExistente['Estado'], [Status::Por_Pagar, Status::Pagada, 'Por Pagar', 'Pagada'])) {
                     log_message('debug', "Presupuesto: Solicitud $idSolicitud ya ejecutada anteriormente (Estado: {$ordenExistente['Estado']}). Saltando.");
                     return;
                 }
             }
-            // -------------------------------------------------------------------------
 
             $productModel = new SolicitudProductModel();
-            $presupuestoModel = new \App\Models\PresupuestoMensualModel();
-            
             $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
             
-            // Agrupar montos por ID_GrupoPresupuestal
-            // Necesitamos dos valores: el original (para restar del comprometido) y el actual (para sumar al ejecutado)
-            $montosADescontar = []; // Monto_Comprometido_Original
-            $montosAEjecutar = [];   // Cantidad * Importe (actual)
+            $montosADescontar = []; 
+            $montosAEjecutar = [];   
 
             $ivaValue = $solicitud['IVA'] ?? false;
             $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
@@ -1075,56 +1069,44 @@ class Api extends ResourceController
                 $idGrupo = $p['ID_GrupoPresupuestal'];
                 if (!$idGrupo) continue;
 
-                // 1. Lo que vamos a RESTAR del comprometido (el valor que se guardó al aprobar)
                 $original = (float)$p['Monto_Comprometido_Original'];
                 $montosADescontar[$idGrupo] = ($montosADescontar[$idGrupo] ?? 0) + $original;
 
-                // 2. Lo que vamos a SUMAR al ejecutado (el valor real actual)
                 $actual = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
                 $montosAEjecutar[$idGrupo] = ($montosAEjecutar[$idGrupo] ?? 0) + $actual;
             }
 
-            // Obtener mes y año de la solicitud
-            $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
+            // USAR LA FECHA DE APROBACIÓN PARA ENCONTRAR EL PRESUPUESTO CORRECTO
+            $fechaSolStr = $solicitud['Fecha_Aprobacion'] ?? $solicitud['Fecha'] ?? date('Y-m-d');
             $fechaSol = strtotime($fechaSolStr);
             $mes = (int)date('n', $fechaSol);
             $anio = (int)date('Y', $fechaSol);
-
-            // USAR LA UNIDAD GUARDADA EN LA SOLICITUD
             $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
 
-            // Combinar las llaves de ambos arrays para asegurar que procesamos todos los grupos
             $todosLosGrupos = array_unique(array_merge(array_keys($montosADescontar), array_keys($montosAEjecutar)));
 
+            $db->transStart();
             foreach ($todosLosGrupos as $idGrupo) {
                 if (!$idUnidad || !$idGrupo) continue;
 
-                $montoRestar = $montosADescontar[$idGrupo] ?? 0;
-                $montoSumar = $montosAEjecutar[$idGrupo] ?? 0;
+                $montoRestar = (float)($montosADescontar[$idGrupo] ?? 0);
+                $montoSumar = (float)($montosAEjecutar[$idGrupo] ?? 0);
 
-                $presupuesto = $presupuestoModel->where([
-                    'ID_UnidadOperativa' => $idUnidad,
-                    'ID_GrupoPresupuestal' => $idGrupo,
-                    'Mes' => $mes,
-                    'Anio' => $anio
-                ])->first();
-
-                if ($presupuesto) {
-                    $nuevoComprometido = (float)$presupuesto['Monto_Comprometido'] - $montoRestar;
-                    $nuevoEjecutado = (float)$presupuesto['Monto_Ejecutado'] + $montoSumar;
-
-                    // Evitar que el comprometido sea negativo
-                    if ($nuevoComprometido < 0) $nuevoComprometido = 0;
-
-                    $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
-                        'Monto_Comprometido' => $nuevoComprometido,
-                        'Monto_Ejecutado'    => $nuevoEjecutado
-                    ]);
-                    
-                    log_message('debug', "Presupuesto Ejecutado (Final): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Restado Comprometido: $montoRestar, Sumado Ejecutado: $montoSumar");
-                }
+                $db->table('PresupuestoMensual')
+                   ->set('Monto_Comprometido', "GREATEST(0, Monto_Comprometido - $montoRestar)", false)
+                   ->set('Monto_Ejecutado', "Monto_Ejecutado + $montoSumar", false)
+                   ->where([
+                        'ID_UnidadOperativa' => $idUnidad,
+                        'ID_GrupoPresupuestal' => $idGrupo,
+                        'Mes' => $mes,
+                        'Anio' => $anio
+                   ])
+                   ->update();
             }
+            $db->transComplete();
+
         } catch (\Exception $e) {
+            if ($db->transStatus() === false) $db->transRollback();
             log_message('error', "Error al actualizar presupuesto ejecutado: " . $e->getMessage());
         }
     }
@@ -1136,6 +1118,7 @@ class Api extends ResourceController
      */
     private function liberarPresupuestoIntegral($idSolicitud, $estadoAnterior)
     {
+        $db = \Config\Database::connect();
         try {
             $solicitudModel = new SolicitudModel();
             $solicitud = $solicitudModel->find($idSolicitud);
@@ -1154,7 +1137,6 @@ class Api extends ResourceController
             }
 
             $productModel = new SolicitudProductModel();
-            $presupuestoModel = new \App\Models\PresupuestoMensualModel();
             $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
 
             $montosPorGrupo = [];
@@ -1162,44 +1144,37 @@ class Api extends ResourceController
                 $idGrupo = $p['ID_GrupoPresupuestal'];
                 if (!$idGrupo) continue;
 
-                // Si era comprometido, usamos el respaldo original. 
                 $montoAReversar = (float)$p['Monto_Comprometido_Original'];
                 $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoAReversar;
             }
 
-            $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
+            // USAR LA FECHA DE APROBACIÓN PARA ENCONTRAR EL PRESUPUESTO CORRECTO
+            $fechaSolStr = $solicitud['Fecha_Aprobacion'] ?? $solicitud['Fecha'] ?? date('Y-m-d');
             $fechaSol = strtotime($fechaSolStr);
             $mes = (int)date('n', $fechaSol);
             $anio = (int)date('Y', $fechaSol);
-
-            // USAR LA UNIDAD GUARDADA EN LA SOLICITUD
             $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
 
+            $db->transStart();
             foreach ($montosPorGrupo as $idGrupo => $monto) {
-                $presupuesto = $presupuestoModel->where([
-                    'ID_UnidadOperativa' => $idUnidad,
-                    'ID_GrupoPresupuestal' => $idGrupo,
-                    'Mes' => $mes,
-                    'Anio' => $anio
-                ])->first();
+                $campo = $esEjecutado ? 'Monto_Ejecutado' : 'Monto_Comprometido';
 
-                if ($presupuesto) {
-                    $updateData = [];
-                    if ($esEjecutado) {
-                        $nuevoVal = (float)$presupuesto['Monto_Ejecutado'] - $monto;
-                        $updateData['Monto_Ejecutado'] = ($nuevoVal < 0) ? 0 : $nuevoVal;
-                    } else {
-                        $nuevoVal = (float)$presupuesto['Monto_Comprometido'] - $monto;
-                        $updateData['Monto_Comprometido'] = ($nuevoVal < 0) ? 0 : $nuevoVal;
-                    }
-
-                    if (!empty($updateData)) {
-                        $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], $updateData);
-                        log_message('debug', "Presupuesto Liberado (Integral): ID " . $presupuesto['ID_PresupuestoMensual'] . " - Monto Reversado: $monto (" . ($esEjecutado ? 'Ejecutado' : 'Comprometido') . ")");
-                    }
-                }
+                $db->table('PresupuestoMensual')
+                   ->set($campo, "GREATEST(0, $campo - $monto)", false)
+                   ->where([
+                        'ID_UnidadOperativa' => $idUnidad,
+                        'ID_GrupoPresupuestal' => $idGrupo,
+                        'Mes' => $mes,
+                        'Anio' => $anio
+                   ])
+                   ->update();
+                
+                log_message('debug', "Presupuesto Liberado Atómico: Grupo $idGrupo - Monto: $monto ($campo)");
             }
+            $db->transComplete();
+
         } catch (\Exception $e) {
+            if ($db->transStatus() === false) $db->transRollback();
             log_message('error', '[liberarPresupuestoIntegral] ' . $e->getMessage());
         }
     }
@@ -1244,6 +1219,9 @@ class Api extends ResourceController
         }
 
         try {
+            $db = \Config\Database::connect();
+            $db->transStart();
+
             $dataToUpdate = ['Estado' => $nuevoEstado, 'ComentariosAdmin' => $comentarios];
             if ($nuevoEstado === Status::Rechazada) {
                 $dataToUpdate['TipoComentarioAdmin'] = 'Rechazo';
@@ -1252,18 +1230,16 @@ class Api extends ResourceController
             }
 
             if ($nuevoEstado === Status::Aprobada) {
-                $dataToUpdate['Fecha_Aprobacion'] = date('Y-m-d H:i:s');
+                $fechaAprobacionActual = date('Y-m-d H:i:s');
+                $dataToUpdate['Fecha_Aprobacion'] = $fechaAprobacionActual;
                 $dataToUpdate['ID_Usuario_Autoriza'] = session('id');
 
-                // === NUEVA LÓGICA DE PRESUPUESTO COMPROMETIDO ===
-                // Solo si es de tipo Materiales
+                // === LÓGICA DE PRESUPUESTO COMPROMETIDO ATÓMICA ===
                 if ((int)$solicitud['Tipo'] !== (int)SolicitudTipo::Servicios) {
                     $productModel = new SolicitudProductModel();
                     $presupuestoModel = new \App\Models\PresupuestoMensualModel();
-                    
                     $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
                     
-                    // Manejo de IVA
                     $ivaValue = $solicitud['IVA'] ?? false;
                     $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
                     $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
@@ -1275,21 +1251,40 @@ class Api extends ResourceController
 
                         $montoItem = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
                         $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoItem;
+                    }
 
-                        // Guardamos el respaldo para saber cuánto restar al pagar
+                    // --- USAR EL MES Y AÑO DE LA APROBACIÓN, NO DE LA SOLICITUD ---
+                    $mes = (int)date('n');
+                    $anio = (int)date('Y');
+                    $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
+
+                    // --- VALIDACIÓN DE PRESUPUESTO EXISTENTE Y ASIGNADO ---
+                    foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
+                        $presupuesto = $presupuestoModel->where([
+                            'ID_UnidadOperativa' => $idUnidad,
+                            'ID_GrupoPresupuestal' => $idGrupo,
+                            'Mes' => $mes,
+                            'Anio' => $anio
+                        ])->first();
+
+                        if (!$presupuesto || (float)$presupuesto['Monto_Asignado'] <= 0) {
+                            $db->transRollback(); // Revertimos antes de salir
+                            $grupoInfo = (new \App\Models\GrupoPresupuestalModel())->find($idGrupo);
+                            $nombreGrupo = $grupoInfo ? $grupoInfo['Nombre'] : "ID $idGrupo";
+                            return $this->failValidationErrors("No se puede aprobar la solicitud porque el grupo presupuestal '$nombreGrupo' no tiene presupuesto mensual asignado para " . date('F Y') . ".");
+                        }
+                    }
+
+                    // Si la validación pasa, guardamos los respaldos y aplicamos el compromiso
+                    foreach ($productos as $p) {
+                        $idGrupo = $p['ID_GrupoPresupuestal'];
+                        if (!$idGrupo) continue;
+                        
+                        $montoItem = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
                         $productModel->update($p['ID_SolicitudProd'], [
                             'Monto_Comprometido_Original' => $montoItem
                         ]);
                     }
-
-                    // Obtener mes y año actual (o de la solicitud, para este caso usaremos el de la solicitud)
-                    $fechaSolStr = $solicitud['Fecha'] ?? date('Y-m-d');
-                    $fechaSol = strtotime($fechaSolStr);
-                    $mes = (int)date('n', $fechaSol);
-                    $anio = (int)date('Y', $fechaSol);
-
-                    // USAR LA UNIDAD GUARDADA EN LA SOLICITUD
-                    $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
 
                     foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
                         $presupuesto = $presupuestoModel->where([
@@ -1300,32 +1295,30 @@ class Api extends ResourceController
                         ])->first();
 
                         if ($presupuesto) {
-                            $nuevoComprometido = (float)$presupuesto['Monto_Comprometido'] + $montoAComprometer;
-                            $presupuestoModel->update($presupuesto['ID_PresupuestoMensual'], [
-                                'Monto_Comprometido' => $nuevoComprometido
-                            ]);
-                        } else {
-                            $presupuestoModel->insert([
-                                'ID_UnidadOperativa' => $idUnidad,
-                                'ID_GrupoPresupuestal' => $idGrupo,
-                                'Mes' => $mes,
-                                'Anio' => $anio,
-                                'Monto_Asignado' => 0,
-                                'Monto_Comprometido' => $montoAComprometer,
-                                'Monto_Ejecutado' => 0
-                            ]);
+                            $db->table('PresupuestoMensual')
+                               ->set('Monto_Comprometido', "Monto_Comprometido + $montoAComprometer", false)
+                               ->where('ID_PresupuestoMensual', $presupuesto['ID_PresupuestoMensual'])
+                               ->update();
                         }
                     }
                 }
             }
+
             $solicitudModel->update($idSolicitud, $dataToUpdate);
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Error al completar la transacción de dictamen.');
+            }
+
             return $this->respondUpdated([
                 'success' => true,
                 'message' => 'El dictamen de la solicitud se ha guardado correctamente.',
             ]);
         } catch (\Exception $e) {
+            if (isset($db) && $db->transStatus() === false) $db->transRollback();
             log_message('error', '[dictaminarSolicitud] ' . $e->getMessage());
-            return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen.');
+            return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen: ' . $e->getMessage());
         }
     }
 

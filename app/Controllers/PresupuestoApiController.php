@@ -388,18 +388,30 @@ class PresupuestoApiController extends ResourceController
             }
 
             foreach (array_unique($rsAfectadas) as $idRS) {
-                $q = $pmModel->selectSum('PresupuestoMensual.Monto_Asignado', 'total')
+                // IMPORTANTE: Usar un nuevo builder en cada iteración para evitar acumulaciones
+                $q = $db->table('PresupuestoMensual')
+                    ->selectSum('PresupuestoMensual.Monto_Asignado', 'total')
                     ->join('UnidadOperativa u', 'u.ID_UnidadOperativa = PresupuestoMensual.ID_UnidadOperativa')
                     ->join('Places p', 'p.ID_Place = u.ID_Place')
                     ->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
-                    ->where(['PresupuestoMensual.Anio' => $anio, 'p.ID_RazonSocial' => $idRS])
+                    ->where([
+                        'PresupuestoMensual.Anio' => $anio,
+                        'p.ID_RazonSocial' => $idRS,
+                        'gp.activo' => true // Postgres requiere boolean nativo (true)
+                    ])
                     ->get()->getRow();
 
                 $total = $q ? (float) $q->total : 0.0;
-                $pa = $paModel->where(['Anio' => $anio, 'ID_RazonSocial' => $idRS])->first();
+                
+                // Usamos una nueva instancia del modelo o reseteamos el builder para el presupuesto anual
+                $pa = (new PresupuestoAnualModel())->where(['Anio' => $anio, 'ID_RazonSocial' => $idRS])->first();
                 $paData = ['ID_RazonSocial' => $idRS, 'Anio' => $anio, 'Monto' => $total];
-                if ($pa) $paModel->update($pa['ID_PresupuestoAnual'], $paData);
-                else $paModel->insert($paData);
+                
+                if ($pa) {
+                    (new PresupuestoAnualModel())->update($pa['ID_PresupuestoAnual'], $paData);
+                } else {
+                    (new PresupuestoAnualModel())->insert($paData);
+                }
             }
             $db->transComplete();
             return $this->respondCreated(['success' => true, 'message' => 'Presupuestos guardados.']);
