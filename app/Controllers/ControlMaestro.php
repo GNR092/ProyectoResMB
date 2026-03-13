@@ -223,13 +223,15 @@ class ControlMaestro extends BaseController
                     }
                 }
 
-                $fechaSol = strtotime($solicitudOriginal->Fecha);
+                // --- CORRECCIÓN: Usar la fecha de aprobación para el periodo presupuestal ---
+                $fechaPresupuestoStr = $solicitudOriginal->Fecha_Aprobacion ?? $solicitudOriginal->Fecha;
+                $fechaSol = strtotime($fechaPresupuestoStr);
                 $mes = (int)date('n', $fechaSol);
                 $anio = (int)date('Y', $fechaSol);
                 
                 // --- CORRECCIÓN: Obtener ID_UnidadOperativa del departamento ---
                 $idDpto = $solicitudOriginal->ID_Dpto;
-                $rowUnidad = $this->db->table('Departamentos')->select('ID_UnidadOperativa')->where('ID_Departamento', $idDpto)->get()->getRow();
+                $rowUnidad = $this->db->table('Departamentos')->select('ID_UnidadOperativa')->where('ID_Dpto', $idDpto)->get()->getRow();
                 $idUnidad = $rowUnidad ? $rowUnidad->ID_UnidadOperativa : null;
 
                 $todosLosGrupos = array_unique(array_merge(array_keys($montosViejosPorGrupo), array_keys($montosNuevosPorGrupo)));

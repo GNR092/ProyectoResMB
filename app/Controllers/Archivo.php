@@ -94,6 +94,7 @@ class Archivo extends BaseController
 
             // --- NUEVA LÓGICA DE INTEGRIDAD PRESUPUESTAL Y TRAZABILIDAD ---
             $idDptoFinal = $user['ID_Dpto'] ?? null;
+            $idUnidadFinal = null;
             $etiquetaTrazabilidad = "";
 
             // 1. Obtener datos del origen del usuario (independientemente de a dónde cargue)
@@ -104,13 +105,14 @@ class Archivo extends BaseController
             
             if ($deptoUsuario) {
                 $nombreDeptoOrig = $deptoUsuario['Nombre'] ?? 'Desconocido';
+                $idUnidadFinal = $deptoUsuario['ID_UnidadOperativa'] ?? null; // Por defecto es la del usuario
                 
                 $razonSocialModel = new RazonSocialModel();
                 $placeModel = new PlacesModel();
                 $idUnidadOrig = $deptoUsuario['ID_UnidadOperativa'] ?? 0;
                 $uniModel = new \App\Models\UnidadOperativaModel();
                 $unidadOrig = $uniModel->find($idUnidadOrig);
-                $placeOrig = $placeModel->find($unidadOrig['ID_Place'] ?? 0);
+                $placeOrig = $unidadOrig ? $placeModel->find($unidadOrig['ID_Place'] ?? 0) : null;
                 
                 $nombreRSOrig = 'RS Desconocida';
                 if ($placeOrig) {
@@ -128,7 +130,7 @@ class Archivo extends BaseController
                 // 2. Buscar el ID_Dpto en la Razón Social seleccionada (Destino)
                 if (!empty($razon_social_id)) {
                     $deptoDestino = $departamentoModel
-                        ->select('Departamentos.ID_Dpto')
+                        ->select('Departamentos.ID_Dpto, Departamentos.ID_UnidadOperativa')
                         ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa')
                         ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')
                         ->where('Places.ID_RazonSocial', $razon_social_id)
@@ -137,6 +139,7 @@ class Archivo extends BaseController
 
                     if ($deptoDestino) {
                         $idDptoFinal = $deptoDestino['ID_Dpto'];
+                        $idUnidadFinal = $deptoDestino['ID_UnidadOperativa'];
                     }
                 }
             }
@@ -159,7 +162,7 @@ class Archivo extends BaseController
             $datosSolicitud = [
                 'ID_Usuario' => $user['ID_Usuario'],
                 'ID_Dpto' => $idDptoFinal,
-                'ID_UnidadOperativa' => $deptoUsuario['ID_UnidadOperativa'] ?? null,
+                'ID_UnidadOperativa' => $idUnidadFinal,
                 'ID_Proveedor' => $proveedor['ID_Proveedor'] ?? null,
                 'ID_Cuenta' => $cuenta_id,
                 'ID_RazonSocial' => $razon['ID_RazonSocial'] ?? null,
