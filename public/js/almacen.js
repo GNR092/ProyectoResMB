@@ -42,8 +42,6 @@ function Almacen(productosIniciales = []) {
     },
 
     init() {
-      console.log('Componente Almacen inicializado.')
-
       this.$watch('terminoBusqueda', () => {
         this.currentPage = 1
       })
@@ -536,7 +534,6 @@ function RecepcionMateriales() {
     },
     notificacion: { show: false, mensaje: '', tipo: 'info' },
     async init() {
-      console.log('Iniciando Recepción de Materiales...');
       await this.cargarCatalogos();
     },
 

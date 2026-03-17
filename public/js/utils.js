@@ -756,7 +756,6 @@ async function loadDepartamentos() {
   const departamentosSelect = document.getElementById('departamento')
   try {
     const data = await SendDataEnd('api/departments/all')
-    console.log('Departamentos cargados: ', data)
     if (data.length > 0) {
       departamentosSelect.innerHTML = '<option value="">Seleccione un departamento</option>'
       data.forEach((departaments) => {

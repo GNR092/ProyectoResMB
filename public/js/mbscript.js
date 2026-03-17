@@ -2757,9 +2757,6 @@ window.initLimpiarAlmacenamiento = function () {
         : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`
 
     if (confirm(mensaje)) {
-      console.group('🚀 EJECUTANDO ACCIÓN: ' + tipo.toUpperCase())
-      console.log('Rutas a procesar:', listaParaEnviar)
-      console.groupEnd()
       alert(`Acción "${tipo}" simulada. Revisa la consola.`)
     }
   }
@@ -3511,9 +3508,6 @@ window.initLimpiarAlmacenamiento = function () {
         : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`
 
     if (confirm(mensaje)) {
-      console.group('🚀 EJECUTANDO ACCIÓN: ' + tipo.toUpperCase())
-      console.log('Rutas a procesar:', listaParaEnviar)
-      console.groupEnd()
       alert(`Acción "${tipo}" simulada. Revisa la consola.`)
     }
   }

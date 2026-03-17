@@ -161,7 +161,6 @@ async function cargarEditorMaestro(idSolicitud, folio) {
 
         // Inyectamos el objeto limpio (NO array) en la solicitud
         if (ordenObjeto) {
-            console.log("Orden detectada y procesada:", ordenObjeto); // Para depuración
             dataSolicitud.OrdenCompra = ordenObjeto;
 
             // Inyectamos cotización si viene dentro de la orden
