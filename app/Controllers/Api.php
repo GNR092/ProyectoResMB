@@ -979,6 +979,30 @@ class Api extends ResourceController
                 return $this->failNotFound('No se pudo identificar el proveedor ganador.');
             }
 
+            // === VALIDACIÓN Y ACTUALIZACIÓN DE PARTIDAS PRESUPUESTALES ===
+            if ((int)$solicitud['Tipo'] !== (int)SolicitudTipo::Servicios) {
+                $solicitudProductModel = new SolicitudProductModel();
+                $productosActuales = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
+                
+                $nuevosGrupos = $request['id_grupo_presupuestal'] ?? [];
+
+                foreach ($productosActuales as $prod) {
+                    $idProd = $prod['ID_SolicitudProd'];
+                    $grupoAsignado = $nuevosGrupos[$idProd] ?? $prod['ID_GrupoPresupuestal'];
+
+                    if (empty($grupoAsignado)) {
+                        return $this->fail('Todos los productos deben tener una partida presupuestal asignada.', HttpStatus::BAD_REQUEST);
+                    }
+
+                    // Actualizar si viene en el request
+                    if (isset($nuevosGrupos[$idProd])) {
+                        $solicitudProductModel->update((int)$idProd, [
+                            'ID_GrupoPresupuestal' => (int)$nuevosGrupos[$idProd]
+                        ]);
+                    }
+                }
+            }
+
             // === ACTUALIZAR LA SOLICITUD ===
             $this->api->updateSolicitudById($idSolicitud, [
                 'Estado'               => 'En revision',

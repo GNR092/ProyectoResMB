@@ -297,12 +297,27 @@ function RevisionX() {
                       ? '<th class="py-2 px-4 text-right">Costo Total</th>'
                       : ''
               }
+                                ${!isServicio ? '<th class="py-2 px-4 text-left">Partida Presupuestal</th>' : ''}
                             </tr>
                         </thead>
                         <tbody>
             `
               data.productos.forEach((p) => {
                   const costoTotal = !isServicio ? (p.Cantidad * p.Importe).toFixed(2) : ''
+
+                  let gruposHtml = '';
+                  if (!isServicio) {
+                      gruposHtml = `<select name="id_grupo_presupuestal[${p.ID_SolicitudProd}]" class="w-full border rounded px-2 py-1 text-sm grupo-presupuestal-select" required>`
+                      gruposHtml += `<option value="">Seleccione grupo</option>`
+                      if (data.grupos_presupuestales) {
+                          data.grupos_presupuestales.forEach((grupo) => {
+                              const selected = p.ID_GrupoPresupuestal == grupo.ID_GrupoPresupuestal ? 'selected' : ''
+                              gruposHtml += `<option value="${grupo.ID_GrupoPresupuestal}" ${selected}>${grupo.Nombre}</option>`
+                          })
+                      }
+                      gruposHtml += `</select>`
+                  }
+
                   html += `
                     <tr class="hover:bg-gray-50">
                         ${
@@ -322,6 +337,7 @@ function RevisionX() {
                           ? `<td class="py-2 px-4 border-t text-right">${costoTotal}</td>`
                           : ''
                   }
+                        ${!isServicio ? `<td class="py-2 px-4 border-t">${gruposHtml}</td>` : ''}
                     </tr>
                 `
               })
@@ -469,6 +485,26 @@ function RevisionX() {
                   const comentarioCotizacionVal = document.getElementById('input-comentario-cotizacion-main')?.value || '';
                   formData.append('ComentarioCotizacion', comentarioCotizacionVal);
                   // ============================
+
+                  // === CAPTURAR PARTIDAS PRESUPUESTALES ===
+                  const selectGrupos = document.querySelectorAll('.grupo-presupuestal-select');
+                  let todasPartidasSeleccionadas = true;
+
+                  selectGrupos.forEach(select => {
+                      if (!select.value || select.value === "") {
+                          todasPartidasSeleccionadas = false;
+                          select.classList.add('border-red-500'); // Resaltar el error visualmente
+                      } else {
+                          select.classList.remove('border-red-500');
+                      }
+                      formData.append(select.name, select.value);
+                  });
+
+                  if (!isServicio && !todasPartidasSeleccionadas) {
+                      mostrarNotificacion('Por favor, asigne una partida presupuestal a todos los productos.', 'error');
+                      return;
+                  }
+                  // ========================================
 
                   const adjuntarSoloSolicitante =
                       document.getElementById('adjuntar-solicitante-check')?.checked || false

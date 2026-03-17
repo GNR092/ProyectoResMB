@@ -3,6 +3,7 @@ namespace App\Libraries;
 use App\Models\CotizacionModel;
 use App\Models\CuentasModel;
 use App\Models\DepartamentosModel;
+use App\Models\GrupoPresupuestalModel;
 use App\Models\OrdenCompraModel;
 use App\Models\PagoModel;
 use App\Models\PlacesModel;
@@ -445,6 +446,7 @@ class Rest
                 'Solicitud.*',
                 'Usuarios.Nombre as UsuarioNombre',
                 'Departamentos.Nombre as DepartamentoNombre',
+                'Departamentos.ID_UnidadOperativa',
                 'Proveedor.RazonSocial as RazonSocialNombre',
                 'Razon_Social.Nombre as Complejo',
                 'Places.Nombre_Corto as ID_Place',
@@ -466,6 +468,16 @@ class Rest
         }
 
         $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
+
+        // Obtener grupos presupuestales asociados a la Unidad Operativa del departamento de la solicitud
+        $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
+        $grupoModel = new GrupoPresupuestalModel();
+        $solicitud['grupos_presupuestales'] = $grupoModel
+            ->where('ID_UnidadOperativa', $idUnidad)
+            ->where('activo', true)
+            ->orderBy('Nombre', 'ASC')
+            ->findAll();
+
         $productos = [];
 
         if (
