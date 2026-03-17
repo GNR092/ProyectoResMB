@@ -77,3 +77,23 @@ defined('EXIT_USER_INPUT')     || define('EXIT_USER_INPUT', 7);     // invalid u
 defined('EXIT_DATABASE')       || define('EXIT_DATABASE', 8);       // database error
 defined('EXIT__AUTO_MIN')      || define('EXIT__AUTO_MIN', 9);      // lowest automatically-assigned error code
 defined('EXIT__AUTO_MAX')      || define('EXIT__AUTO_MAX', 125);    // highest automatically-assigned error code
+
+function getAppVersion(): string
+{
+    static $version = null;
+
+    if ($version !== null) {
+        return $version;
+    }
+
+    $packageJsonPath = ROOTPATH . 'package.json';
+
+    if (!file_exists($packageJsonPath)) {
+        return '1.0.0';
+    }
+
+    $content = file_get_contents($packageJsonPath);
+    $data = json_decode($content, true);
+
+    return $data['version'] ?? '1.0.0';
+}
