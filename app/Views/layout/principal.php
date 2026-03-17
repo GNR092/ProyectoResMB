@@ -90,6 +90,10 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             </div>
         </div>
     </main>
+
+    <footer class="py-2 text-center text-xs text-gray-500 border-t border-gray-300 bg-white">
+        Versión <?= getAppVersion() ?>
+    </footer>
 </div>
 
 <script>
