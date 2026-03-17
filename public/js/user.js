@@ -238,6 +238,16 @@ function crudUsuarios() {
       })
     },
 
+    actualizarRazonSocial(event, prefix) {
+      const select = event.target
+      const selectedOption = select.options[select.selectedIndex]
+      const idRazonSocial = selectedOption.dataset.idRazonsocial
+
+      if (idRazonSocial) {
+        document.getElementById(`${prefix}-ID_RazonSocial`).value = idRazonSocial
+      }
+    },
+
     editarUsuario(id) {
       const fila = document.querySelector(`#tablaCrudUsuarios tr[data-id='${id}']`)
       if (!fila) return

@@ -1420,7 +1420,7 @@ class Rest
         $departamentosModel = new DepartamentosModel();
         $results = $departamentosModel
             ->select(
-                'Departamentos.ID_Dpto, Departamentos.Nombre, Departamentos.ID_UnidadOperativa, Places.Nombre_Corto as Place',
+                'Departamentos.ID_Dpto, Departamentos.Nombre, Departamentos.ID_UnidadOperativa, Places.Nombre_Corto as Place, Places.ID_RazonSocial',
             )
             ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')

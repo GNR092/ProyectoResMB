@@ -103,11 +103,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
             <div>
                 <label for="crear-ID_Dpto" class="block text-sm font-medium text-gray-700">Departamento</label>
-                <select id="crear-ID_Dpto" name="ID_Dpto" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <select id="crear-ID_Dpto" name="ID_Dpto" required @change="actualizarRazonSocial($event, 'crear')" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="">Seleccione un departamento</option>
                     <?php if (!empty($departamentos)) : ?>
                         <?php foreach ($departamentos as $depto) : ?>
-                            <option value="<?= $depto['ID_Dpto'] ?>"><?= esc($depto['Nombre']) ?> (<?= esc($depto['Place']) ?>)</option>
+                            <option value="<?= $depto['ID_Dpto'] ?>" data-id-razonsocial="<?= esc($depto['ID_RazonSocial']) ?>"><?= esc($depto['Nombre']) ?> (<?= esc($depto['Place']) ?>)</option>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </select>
@@ -115,7 +115,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
             <div>
                 <label for="crear-ID_RazonSocial" class="block text-sm font-medium text-gray-700">Razón Social</label>
-                <select id="crear-ID_RazonSocial" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <select id="crear-ID_RazonSocial" name="ID_RazonSocial" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="">Seleccione una razón social</option>
                     <?php if (!empty($razones_sociales)) : ?>
                         <?php foreach ($razones_sociales as $rs) : ?>
@@ -191,11 +191,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
             <div>
                 <label for="editar-ID_Dpto" class="block text-sm font-medium text-gray-700">Departamento</label>
-                <select id="editar-ID_Dpto" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <select id="editar-ID_Dpto" required @change="actualizarRazonSocial($event, 'editar')" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="">Seleccione un departamento</option>
                     <?php if (!empty($departamentos)) : ?>
                         <?php foreach ($departamentos as $depto) : ?>
-                            <option value="<?= $depto['ID_Dpto'] ?>"><?= esc($depto['Nombre']) ?> (<?= esc($depto['Place']) ?>)</option>
+                            <option value="<?= $depto['ID_Dpto'] ?>" data-id-razonsocial="<?= esc($depto['ID_RazonSocial']) ?>"><?= esc($depto['Nombre']) ?> (<?= esc($depto['Place']) ?>)</option>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </select>
@@ -203,7 +203,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
             <div>
                 <label for="editar-ID_RazonSocial" class="block text-sm font-medium text-gray-700">Razón Social</label>
-                <select id="editar-ID_RazonSocial" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                <select id="editar-ID_RazonSocial" name="ID_RazonSocial" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="">Seleccione una razón social</option>
                     <?php if (!empty($razones_sociales)) : ?>
                         <?php foreach ($razones_sociales as $rs) : ?>

@@ -1561,6 +1561,7 @@ window.mostrarVerDictamen = async function(idSolicitud) {
                   const totalProyectado = ejecutado + comprometido + montoPotencial;
                   const excedePresupuesto = totalProyectado > asignado;
                   const montoExcedido = totalProyectado - asignado;
+                  const noAsignado = asignado <= 0;
 
                   let pctEjecutado = 0, pctComprometido = 0, pctPotencial = 0, pctRestante = 100;
 
@@ -1570,32 +1571,44 @@ window.mostrarVerDictamen = async function(idSolicitud) {
                       pctPotencial = Math.min((montoPotencial / asignado) * 100, 100 - pctEjecutado - pctComprometido);
                       pctRestante = 100 - pctEjecutado - pctComprometido - pctPotencial;
                   } else {
-                      const total = totalProyectado;
-                      if (total > 0) {
-                        pctEjecutado = (ejecutado / total) * 100;
-                        pctComprometido = (comprometido / total) * 100;
-                        pctPotencial = (montoPotencial / total) * 100;
-                        pctRestante = 0;
-                      }
+                     const total = totalProyectado;
+                     if (total > 0) {
+                       pctEjecutado = (ejecutado / total) * 100;
+                       pctComprometido = (comprometido / total) * 100;
+                       pctPotencial = (montoPotencial / total) * 100;
+                       pctRestante = 0;
+                     }
                   }
 
-                  const alertaHtml = excedePresupuesto 
-                    ? `<div class="mt-3 p-2 bg-red-100 border border-red-400 rounded flex items-center gap-2 animate-bounce">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-red-600">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                        </svg>
-                        <span class="text-xs font-bold text-red-700">¡ADVERTENCIA! Esta solicitud excede el presupuesto por ${formatearMoneda(montoExcedido)}</span>
-                       </div>` 
-                    : '';
+                  let alertaHtml = '';
+                  if (noAsignado) {
+                     alertaHtml = `
+                       <div class="mt-3 p-3 bg-red-200 border-2 border-red-600 rounded-lg flex items-center gap-3 animate-pulse">
+                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-red-700">
+                               <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.72 6.97a.75.75 0 1 0-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06L12 13.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L13.06 12l1.72-1.72a.75.75 0 1 0-1.06-1.06L12 10.94l-1.72-1.72Z" clip-rule="evenodd" />
+                           </svg>
+                           <div>
+                               <p class="text-sm font-black text-red-900 uppercase">Bloqueo de Aprobación</p>
+                               <p class="text-xs font-bold text-red-800">Esta partida NO tiene presupuesto asignado para este mes. La aprobación será rechazada por el sistema.</p>
+                           </div>
+                       </div>`;
+                  } else if (excedePresupuesto) {
+                     alertaHtml = `
+                       <div class="mt-3 p-2 bg-red-100 border border-red-400 rounded flex items-center gap-2 animate-bounce">
+                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-red-600">
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                           </svg>
+                           <span class="text-xs font-bold text-red-700">¡ADVERTENCIA! Esta solicitud excede el presupuesto por ${formatearMoneda(montoExcedido)}</span>
+                       </div>`;
+                  }
 
                   resumenContainer.innerHTML += `
-                    <div class="mb-4 p-4 border-2 ${excedePresupuesto ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50'} rounded-lg shadow-sm transition-all duration-300">
-                      <div class="flex flex-col md:flex-row md:items-center gap-6 mb-3 border-b pb-2">
-                          <div class="flex flex-col flex-shrink-0 min-w-[200px]">
-                            <h4 class="text-sm font-bold text-gray-700">Presupuesto: ${nombreGrupo}</h4>
-                            <span class="text-[10px] text-gray-400 font-semibold italic">Impacto de esta solicitud: ${formatearMoneda(montoPotencial)}</span>
-                          </div>
-                          
+                   <div class="mb-4 p-4 border-2 ${noAsignado ? 'border-red-700 bg-red-100' : (excedePresupuesto ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50')} rounded-lg shadow-sm transition-all duration-300">
+                     <div class="flex flex-col md:flex-row md:items-center gap-6 mb-3 border-b pb-2">
+                         <div class="flex flex-col flex-shrink-0 min-w-[200px]">
+                           <h4 class="text-sm font-bold text-gray-700">Presupuesto: ${nombreGrupo}</h4>
+                           <span class="text-[10px] text-gray-400 font-semibold italic">Impacto de esta solicitud: ${formatearMoneda(montoPotencial)} ${noAsignado ? '(SIN ASIGNACIÓN)' : ''}</span>
+                         </div>                          
                           <!-- Barra de Progreso Visual - Ahora ocupa todo el ancho disponible -->
                           <div class="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden flex shadow-inner border border-gray-300">
                               <!-- Rojo: Ejecutado -->
@@ -1699,6 +1712,16 @@ window.regresarTablaDictamen = function() {
 
 window.dictaminarDictamen = async function(idSolicitud, nuevoEstado) {
   const esAprobacion = nuevoEstado === 'Aprobada'
+  
+  // Verificación visual previa de bloqueo por presupuesto
+  if (esAprobacion) {
+    const resumenContainer = document.getElementById('presupuesto-resumen-container');
+    if (resumenContainer && !resumenContainer.classList.contains('hidden') && resumenContainer.innerHTML.includes('Bloqueo de Aprobación')) {
+      mostrarNotificacion('Acción rechazada: Una o más partidas presupuestales no tienen presupuesto asignado para este mes.', 'error');
+      return;
+    }
+  }
+
   const title = esAprobacion ? 'Aprobar Solicitud' : 'Rechazar Solicitud'
   const message = esAprobacion
       ? 'Puede agregar observaciones (opcional):'
@@ -1736,7 +1759,15 @@ window.dictaminarDictamen = async function(idSolicitud, nuevoEstado) {
     }
   } catch (error) {
     procesandoNotif.click()
-    mostrarNotificacion('Error de red al procesar el dictamen.', 'error')
+    let msg = 'Error de red al procesar el dictamen.'
+    if (error.data) {
+        if (typeof error.data === 'object') {
+            msg = error.data.messages?.error || error.data.message || msg
+        } else if (typeof error.data === 'string') {
+            msg = error.data
+        }
+    }
+    mostrarNotificacion(msg, 'error')
   }
 }
 
@@ -2475,7 +2506,15 @@ async function dictaminarSolicitud(idSolicitud, accion) {
     }
   } catch (error) {
     procesandoNotif.click()
-    mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error')
+    let msg = `Error de red al intentar ${accion} la solicitud.`
+    if (error.data) {
+        if (typeof error.data === 'object') {
+            msg = error.data.messages?.error || error.data.message || msg
+        } else if (typeof error.data === 'string') {
+            msg = error.data
+        }
+    }
+    mostrarNotificacion(msg, 'error')
   }
 }
 

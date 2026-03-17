@@ -500,7 +500,7 @@ class Api extends ResourceController
                         $campoAjustar = ($solicitud['Estado'] === 'Pagada' || $solicitud['Estado'] === Status::Pagada) ? 'Monto_Ejecutado' : 'Monto_Comprometido';
                         
                         $db->table('PresupuestoMensual')
-                           ->set($campoAjustar, "$campoAjustar + ($diferencia)", false)
+                           ->set($campoAjustar, "\"$campoAjustar\" + ($diferencia)", false)
                            ->where([
                                 'ID_UnidadOperativa' => $idUnidad,
                                 'ID_GrupoPresupuestal' => $idGrupo,
@@ -1093,10 +1093,9 @@ class Api extends ResourceController
                 $montoSumar = (float)($montosAEjecutar[$idGrupo] ?? 0);
 
                 $db->table('PresupuestoMensual')
-                   ->set('Monto_Comprometido', "GREATEST(0, Monto_Comprometido - $montoRestar)", false)
-                   ->set('Monto_Ejecutado', "Monto_Ejecutado + $montoSumar", false)
-                   ->where([
-                        'ID_UnidadOperativa' => $idUnidad,
+                   ->set('Monto_Comprometido', "GREATEST(0, \"Monto_Comprometido\" - $montoRestar)", false)
+                   ->set('Monto_Ejecutado', "\"Monto_Ejecutado\" + $montoSumar", false)
+                   ->where([                        'ID_UnidadOperativa' => $idUnidad,
                         'ID_GrupoPresupuestal' => $idGrupo,
                         'Mes' => $mes,
                         'Anio' => $anio
@@ -1128,7 +1127,7 @@ class Api extends ResourceController
             }
 
             // Definir qué campos afectar según el estado en que estaba la solicitud
-            $estadosComprometidos = ['Aprobada', 'En espera', 'Cotizando', 'En revision', 'Por Pagar', 'En Proceso de Pago', Status::En_Espera, Status::Cotizando, Status::En_Revision, Status::Por_Pagar, Status::En_Proceso_Pago];
+            $estadosComprometidos = ['Aprobada', 'En espera', 'Cotizando', 'En revision', 'Por Pagar', 'En Proceso de Pago', Status::En_espera, Status::Cotizando, Status::En_Revision, Status::Por_Pagar, Status::En_Proceso_Pago];
             $esEjecutado = ($estadoAnterior === 'Pagada' || $estadoAnterior === Status::Pagada);
             $esComprometido = in_array($estadoAnterior, $estadosComprometidos);
 
@@ -1160,9 +1159,8 @@ class Api extends ResourceController
                 $campo = $esEjecutado ? 'Monto_Ejecutado' : 'Monto_Comprometido';
 
                 $db->table('PresupuestoMensual')
-                   ->set($campo, "GREATEST(0, $campo - $monto)", false)
-                   ->where([
-                        'ID_UnidadOperativa' => $idUnidad,
+                   ->set($campo, "GREATEST(0, \"$campo\" - $monto)", false)
+                   ->where([                        'ID_UnidadOperativa' => $idUnidad,
                         'ID_GrupoPresupuestal' => $idGrupo,
                         'Mes' => $mes,
                         'Anio' => $anio
@@ -1271,7 +1269,10 @@ class Api extends ResourceController
                             $db->transRollback(); // Revertimos antes de salir
                             $grupoInfo = (new \App\Models\GrupoPresupuestalModel())->find($idGrupo);
                             $nombreGrupo = $grupoInfo ? $grupoInfo['Nombre'] : "ID $idGrupo";
-                            return $this->failValidationErrors("No se puede aprobar la solicitud porque el grupo presupuestal '$nombreGrupo' no tiene presupuesto mensual asignado para " . date('F Y') . ".");
+                            return $this->respond([
+                                'success' => false,
+                                'message' => "No se puede aprobar la solicitud porque el grupo presupuestal '$nombreGrupo' no tiene presupuesto mensual asignado para " . date('F Y') . "."
+                            ]);
                         }
                     }
 
@@ -1296,9 +1297,8 @@ class Api extends ResourceController
 
                         if ($presupuesto) {
                             $db->table('PresupuestoMensual')
-                               ->set('Monto_Comprometido', "Monto_Comprometido + $montoAComprometer", false)
-                               ->where('ID_PresupuestoMensual', $presupuesto['ID_PresupuestoMensual'])
-                               ->update();
+                               ->set('Monto_Comprometido', "\"Monto_Comprometido\" + $montoAComprometer", false)
+                               ->where('ID_PresupuestoMensual', $presupuesto['ID_PresupuestoMensual'])                               ->update();
                         }
                     }
                 }
