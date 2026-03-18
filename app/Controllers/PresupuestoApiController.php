@@ -303,8 +303,25 @@ class PresupuestoApiController extends ResourceController
         $grupoModel = new GrupoPresupuestalModel();
         $presupuestoMensualModel = new PresupuestoMensualModel();
 
-        $unidades = $unidadModel->where('ID_Place', $idPlace)->orderBy('Nombre', 'ASC')->findAll();
-        if (empty($unidades)) return $this->respond(['departamentos' => []]);
+        // Convertir string de comas a array de IDs para permitir múltiples complejos
+        $placeIds = array_map('intval', explode(',', $idPlace));
+
+        $unidadesRaw = $unidadModel->select('UnidadOperativa.*, Places.Nombre_Corto as PlaceNombre')
+            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')
+            ->whereIn('UnidadOperativa.ID_Place', $placeIds)
+            ->orderBy('PlaceNombre', 'ASC')
+            ->orderBy('UnidadOperativa.Nombre', 'ASC')
+            ->findAll();
+
+        if (empty($unidadesRaw)) return $this->respond(['departamentos' => []]);
+
+        // Asegurar que incluimos el nombre del complejo en la unidad para claridad
+        $unidades = array_map(function($u) use ($placeIds) {
+            if (count($placeIds) > 1) {
+                $u['Nombre'] = "({$u['PlaceNombre']}) {$u['Nombre']}";
+            }
+            return $u;
+        }, $unidadesRaw);
 
         $unidadIds = array_column($unidades, 'ID_UnidadOperativa');
         $presupuestosGuardados = $presupuestoMensualModel->whereIn('ID_UnidadOperativa', $unidadIds)->where('Anio', $anio)->where('Mes', $mes)->findAll();

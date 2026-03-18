@@ -15,7 +15,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
             <label for="pm-razon-social" class="text-sm font-medium text-gray-700">Razón Social</label>
             <select id="pm-razon-social"
                     x-model="idRazonSocial"
-                    @change="idPlace = ''; resetEstructura()"
+                    @change="actualizarChoicesPlace()"
                     class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300 min-w-[200px]">
                 <option value="">Seleccione Razón Social</option>
                 <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial">
@@ -24,17 +24,13 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
             </select>
         </div>
 
-        <div class="flex flex-col gap-1">
-            <label for="pm-place" class="text-sm font-medium text-gray-700">Place</label>
+        <div class="flex flex-col gap-1 min-w-[300px]">
+            <label for="pm-place" class="text-sm font-medium text-gray-700">Places (Complejos)</label>
             <select id="pm-place"
-                    x-model="idPlace"
-                    @change="cargarEstructura()"
-                    :disabled="!idRazonSocial"
-                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300 min-w-[200px] disabled:bg-gray-100 disabled:cursor-not-allowed">
-                <option value="">Seleccione Place</option>
-                <template x-for="place in placesFiltrados" :key="place.ID_Place">
-                    <option :value="place.ID_Place" x-text="place.Nombre_Corto"></option>
-                </template>
+                    x-ref="filtroPlace"
+                    multiple
+                    class="disabled:bg-gray-100 disabled:cursor-not-allowed">
+                <!-- Las opciones se inyectan dinámicamente vía JS -->
             </select>
         </div>
 

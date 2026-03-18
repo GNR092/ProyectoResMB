@@ -5,7 +5,7 @@ function registrarComponentePresupuesto() {
     Alpine.data('presupuestoEscalonado', function () {
         return {
             idRazonSocial: '',
-            idPlace: '',
+            idsPlaces: [],
             mesAnio: '',
 
             razonesSociales: [],
@@ -15,6 +15,7 @@ function registrarComponentePresupuesto() {
             gruposUnicos: [],
             unidadesSeleccionadas: [],
             gruposSeleccionados: [],
+            choicesPlace: null,
             choicesUnidad: null,
             choicesGrupo: null,
 
@@ -33,6 +34,9 @@ function registrarComponentePresupuesto() {
                 const anio = now.getFullYear();
                 const mes = String(now.getMonth() + 1).padStart(2, '0');
                 this.mesAnio = `${anio}-${mes}`;
+
+                // Esperamos al DOM para inicializar el primer Choice de Place
+                this.$nextTick(() => this.initChoicesPlace());
             },
 
             get placesFiltrados() {
@@ -48,6 +52,48 @@ function registrarComponentePresupuesto() {
                 if (this.choicesUnidad) { this.choicesUnidad.destroy(); this.choicesUnidad = null; }
                 if (this.choicesGrupo) { this.choicesGrupo.destroy(); this.choicesGrupo = null; }
                 this.mensaje = '';
+            },
+
+            initChoicesPlace() {
+                if (typeof Choices === 'undefined') return;
+                const ref = this.$refs.filtroPlace;
+                if (!ref) return;
+
+                if (this.choicesPlace) this.choicesPlace.destroy();
+
+                this.choicesPlace = new Choices(ref, {
+                    removeItemButton: true,
+                    itemSelectText: '',
+                    placeholderValue: 'Seleccione Places',
+                    searchPlaceholderValue: 'Buscar complejo...'
+                });
+
+                ref.addEventListener('change', () => {
+                    this.idsPlaces = this.choicesPlace.getValue(true).map(String);
+                    this.cargarEstructura();
+                });
+            },
+
+            actualizarChoicesPlace() {
+                if (!this.choicesPlace) return;
+
+                // Limpiar selecciones previas y datos
+                this.idsPlaces = [];
+                this.resetEstructura();
+
+                // Refrescar opciones basadas en Razón Social
+                this.choicesPlace.clearChoices();
+                const opciones = this.placesFiltrados.map(p => ({
+                    value: String(p.ID_Place),
+                    label: p.Nombre_Corto
+                }));
+
+                if (opciones.length > 0) {
+                    this.choicesPlace.setChoices(opciones, 'value', 'label', true);
+                    this.choicesPlace.enable();
+                } else {
+                    this.choicesPlace.disable();
+                }
             },
 
             // NUEVO: Calcula la suma total en tiempo real
@@ -76,19 +122,20 @@ function registrarComponentePresupuesto() {
             },
 
             async cargarEstructura() {
-                if (!this.idPlace || !this.mesAnio) {
+                if (this.idsPlaces.length === 0 || !this.mesAnio) {
                     this.resetEstructura();
                     return;
                 }
 
                 const [anio, mes] = this.mesAnio.split('-');
+                const idsParam = this.idsPlaces.join(',');
                 this.cargando = true;
                 this.departamentos = [];
                 this.departamentosOriginales = [];
                 this.mensaje = '';
 
                 try {
-                    const res = await fetch(`${BASE_URL}api/presupuesto-mensual/estructura/${this.idPlace}/${anio}/${parseInt(mes)}`);
+                    const res = await fetch(`${BASE_URL}api/presupuesto-mensual/estructura/${idsParam}/${anio}/${parseInt(mes)}`);
 
                     if (res.ok) {
                         const data = await res.json();

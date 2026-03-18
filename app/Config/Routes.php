@@ -189,7 +189,7 @@ if (!file_exists($installerLockFile)) {
 
         //Rutas para presupuestos mensuales
         $routes->post('api/presupuesto-mensual/guardar-masivo', 'PresupuestoApiController::saveMasivo');
-        $routes->get('api/presupuesto-mensual/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructura/$1/$2/$3');
+        $routes->get('api/presupuesto-mensual/estructura/(:any)/(:num)/(:num)', 'PresupuestoApiController::getEstructura/$1/$2/$3');
         $routes->get('api/presupuesto/saldos', 'PresupuestoApiController::getSaldos');
 
         //Rutas para saldos bancarios
