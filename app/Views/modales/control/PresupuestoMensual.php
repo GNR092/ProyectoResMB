@@ -55,6 +55,31 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         </div>
     </div>
 
+    <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm" x-cloak>
+        <div class="flex flex-col gap-1 w-full md:w-[45%]">
+            <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Unidades Operativas</label>
+            <select x-ref="filtroUnidad" multiple>
+                <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
+                    <option :value="uni.ID_UnidadOperativa" x-text="uni.Nombre"></option>
+                </template>
+            </select>
+        </div>
+        <div class="flex flex-col gap-1 w-full md:w-[40%]">
+            <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Partidas </label>
+            <select x-ref="filtroGrupo" multiple>
+                <template x-for="g in gruposUnicos" :key="g.id">
+                    <option :value="g.id" x-text="g.nombre"></option>
+                </template>
+            </select>
+        </div>
+        <div class="flex flex-col gap-1 self-end mb-1">
+            <button @click="limpiarFiltros()" 
+                    class="px-4 py-2 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors uppercase">
+                Limpiar Filtros
+            </button>
+        </div>
+    </div>
+
     <div class="flex justify-end mb-4" x-show="!cargando && departamentos.length > 0" x-cloak>
         <h3 class="text-lg font-semibold text-gray-800 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200 shadow-sm flex items-center gap-2">
             Presupuesto Consecuente:

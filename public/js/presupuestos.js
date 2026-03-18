@@ -11,6 +11,12 @@ function registrarComponentePresupuesto() {
             razonesSociales: [],
             todosPlaces: [],
             departamentos: [],
+            departamentosOriginales: [],
+            gruposUnicos: [],
+            unidadesSeleccionadas: [],
+            gruposSeleccionados: [],
+            choicesUnidad: null,
+            choicesGrupo: null,
 
             cargando: false,
             guardando: false,
@@ -36,6 +42,11 @@ function registrarComponentePresupuesto() {
 
             resetEstructura() {
                 this.departamentos = [];
+                this.departamentosOriginales = [];
+                this.unidadesSeleccionadas = [];
+                this.gruposSeleccionados = [];
+                if (this.choicesUnidad) { this.choicesUnidad.destroy(); this.choicesUnidad = null; }
+                if (this.choicesGrupo) { this.choicesGrupo.destroy(); this.choicesGrupo = null; }
                 this.mensaje = '';
             },
 
@@ -73,6 +84,7 @@ function registrarComponentePresupuesto() {
                 const [anio, mes] = this.mesAnio.split('-');
                 this.cargando = true;
                 this.departamentos = [];
+                this.departamentosOriginales = [];
                 this.mensaje = '';
 
                 try {
@@ -80,7 +92,10 @@ function registrarComponentePresupuesto() {
 
                     if (res.ok) {
                         const data = await res.json();
+                        this.departamentosOriginales = JSON.parse(JSON.stringify(data.departamentos || []));
                         this.departamentos = data.departamentos || [];
+                        this.extraerGruposUnicos();
+                        this.$nextTick(() => this.initChoicesFiltros());
                     } else {
                         this.mensaje = 'Error al cargar los datos del servidor.';
                         this.error = true;
@@ -92,6 +107,119 @@ function registrarComponentePresupuesto() {
                 } finally {
                     this.cargando = false;
                 }
+            },
+
+            extraerGruposUnicos() {
+                const map = new Map();
+                this.departamentosOriginales.forEach(uni => {
+                    // Si hay unidades seleccionadas, solo extraemos grupos de esas unidades
+                    if (this.unidadesSeleccionadas.length > 0 && !this.unidadesSeleccionadas.includes(String(uni.ID_UnidadOperativa))) {
+                        return;
+                    }
+
+                    if (uni.grupos) {
+                        uni.grupos.forEach(g => {
+                            if (!map.has(g.ID_GrupoPresupuestal)) {
+                                map.set(g.ID_GrupoPresupuestal, g.Nombre);
+                            }
+                        });
+                    }
+                });
+                this.gruposUnicos = Array.from(map, ([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+            },
+
+            actualizarOpcionesGrupo() {
+                if (!this.choicesGrupo) return;
+
+                // Guardar selección actual para intentar mantenerla si sigue siendo válida
+                const seleccionActual = this.choicesGrupo.getValue(true).map(String);
+
+                this.choicesGrupo.clearChoices();
+                const nuevasOpciones = this.gruposUnicos.map(g => ({
+                    value: String(g.id),
+                    label: g.nombre,
+                    selected: seleccionActual.includes(String(g.id))
+                }));
+
+                this.choicesGrupo.setChoices(nuevasOpciones, 'value', 'label', true);
+                
+                // Sincronizar el array de Alpine con lo que realmente quedó seleccionado
+                this.gruposSeleccionados = this.choicesGrupo.getValue(true).map(String);
+            },
+
+            initChoicesFiltros() {
+                if (typeof Choices === 'undefined') return;
+
+                if (this.choicesUnidad) { this.choicesUnidad.destroy(); this.choicesUnidad = null; }
+                if (this.choicesGrupo) { this.choicesGrupo.destroy(); this.choicesGrupo = null; }
+
+                const refUnidad = this.$refs.filtroUnidad;
+                const refGrupo = this.$refs.filtroGrupo;
+
+                if (refUnidad) {
+                    this.choicesUnidad = new Choices(refUnidad, {
+                        removeItemButton: true,
+                        itemSelectText: '',
+                        placeholderValue: 'Todas las Unidades',
+                        searchPlaceholderValue: 'Buscar unidad...'
+                    });
+                    refUnidad.addEventListener('change', () => {
+                        this.unidadesSeleccionadas = this.choicesUnidad.getValue(true).map(String);
+                        
+                        // Dinamismo: Recalcular grupos disponibles y refrescar el selector
+                        this.extraerGruposUnicos();
+                        this.actualizarOpcionesGrupo();
+                        
+                        this.aplicarFiltrosLocales();
+                    });
+                }
+
+                if (refGrupo) {
+                    this.choicesGrupo = new Choices(refGrupo, {
+                        removeItemButton: true,
+                        itemSelectText: '',
+                        placeholderValue: 'Todas las Partidas',
+                        searchPlaceholderValue: 'Buscar partida...'
+                    });
+                    refGrupo.addEventListener('change', () => {
+                        this.gruposSeleccionados = this.choicesGrupo.getValue(true).map(String);
+                        this.aplicarFiltrosLocales();
+                    });
+                }
+            },
+
+            aplicarFiltrosLocales() {
+                let filtrados = [];
+                this.departamentosOriginales.forEach(uni => {
+                    if (this.unidadesSeleccionadas.length > 0 && !this.unidadesSeleccionadas.includes(String(uni.ID_UnidadOperativa))) {
+                        return; // Omitir unidad
+                    }
+
+                    // Clonar para no modificar original
+                    let uniClon = JSON.parse(JSON.stringify(uni));
+
+                    if (this.gruposSeleccionados.length > 0 && uniClon.grupos) {
+                        uniClon.grupos = uniClon.grupos.filter(g => this.gruposSeleccionados.includes(String(g.ID_GrupoPresupuestal)));
+                    }
+
+                    if (uniClon.grupos && uniClon.grupos.length > 0) {
+                        filtrados.push(uniClon);
+                    }
+                });
+
+                this.departamentos = filtrados;
+            },
+
+            limpiarFiltros() {
+                if (this.choicesUnidad) this.choicesUnidad.removeActiveItems();
+                if (this.choicesGrupo) this.choicesGrupo.removeActiveItems();
+                
+                this.unidadesSeleccionadas = [];
+                this.gruposSeleccionados = [];
+                
+                this.extraerGruposUnicos();
+                this.actualizarOpcionesGrupo();
+                this.aplicarFiltrosLocales();
             },
 
             async copiarAnterior() {
