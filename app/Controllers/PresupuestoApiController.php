@@ -360,6 +360,177 @@ class PresupuestoApiController extends ResourceController
         return $this->respond(['departamentos' => $estructura]);
     }
 
+    public function getCambiosPendientes()
+    {
+        $model = new \App\Models\SolicitudesCambioPresupuestoModel();
+        return $this->respond($model->getPendientes());
+    }
+
+    public function dictaminarCambio()
+    {
+        $json = $this->request->getJSON(true);
+        $idSolicitud = $json['ID_SolicitudCambio'] ?? null;
+        $estado = $json['Estado'] ?? null;
+        $comentarios = $json['Comentarios'] ?? null;
+
+        if (!$idSolicitud || !in_array($estado, ['Aprobado', 'Rechazado'])) {
+            return $this->failValidationErrors('Datos de dictamen inválidos.');
+        }
+
+        $solicitudModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) return $this->failNotFound('Solicitud no encontrada.');
+        if ($solicitud['Estado'] !== 'Pendiente') return $this->fail('La solicitud ya fue procesada.');
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            if ($estado === 'Aprobado') {
+                $payload = json_decode($solicitud['Datos_Payload'], true);
+                $modulo = $solicitud['Modulo'];
+                $accion = $solicitud['Accion'];
+                $idAfectado = $solicitud['ID_Afectado'];
+
+                switch ($modulo) {
+                    case 'SegmentoNegocio':
+                        $model = new \App\Models\SegmentoNegocioModel();
+                        if ($accion === 'Insertar') $model->insert($payload);
+                        elseif ($accion === 'Editar') $model->update($idAfectado, $payload);
+                        elseif ($accion === 'Eliminar') $model->delete($idAfectado);
+                        break;
+                    
+                    case 'BancoDpto':
+                        $model = new \App\Models\BancoDptoModel();
+                        if ($accion === 'Insertar') $model->insert($payload);
+                        elseif ($accion === 'Editar') $model->update($idAfectado, $payload);
+                        elseif ($accion === 'Eliminar') $model->delete($idAfectado);
+                        break;
+
+                    case 'UnidadOperativa':
+                        $model = new \App\Models\UnidadOperativaModel();
+                        if ($accion === 'Insertar') $model->insert($payload);
+                        elseif ($accion === 'Editar') $model->update($idAfectado, $payload);
+                        elseif ($accion === 'Eliminar') $model->update($idAfectado, $payload); // payload tiene ['activo' => false]
+                        break;
+
+                    case 'GrupoPresupuestal':
+                        $model = new \App\Models\GrupoPresupuestalModel();
+                        if ($accion === 'Insertar') {
+                            $model->insert($payload);
+                        } elseif ($accion === 'Editar') {
+                            // Replicar lógica de clonación si cambia la unidad
+                            $grupoActual = $model->find($idAfectado);
+                            $nuevaUnidad = $payload['ID_UnidadOperativa'] ?? null;
+                            $unidadAnterior = $grupoActual['ID_UnidadOperativa'] ?? 0;
+                            
+                            if ($nuevaUnidad != $unidadAnterior && $unidadAnterior != 0) {
+                                $model->update($idAfectado, ['activo' => false]);
+                                $payload['Nombre'] = $payload['Nombre'] ?: $grupoActual['Nombre'];
+                                $payload['Descripcion'] = $payload['Descripcion'] ?: $grupoActual['Descripcion'];
+                                $payload['activo'] = true;
+                                $model->insert($payload);
+                            } else {
+                                $model->update($idAfectado, $payload);
+                            }
+                        } elseif ($accion === 'Eliminar') {
+                            $model->update($idAfectado, $payload); // payload tiene ['activo' => false]
+                        }
+                        break;
+
+                    case 'PresupuestoMensual':
+                        $pmModel = new PresupuestoMensualModel();
+                        $paModel = new PresupuestoAnualModel();
+                        $uniModel = new UnidadOperativaModel();
+                        $placesModel = new PlacesModel();
+                        
+                        $anio = (int) $payload['anio'];
+                        $mes = (int) $payload['mes'];
+                        $grupos = $payload['grupos'];
+                        $rsAfectadas = [];
+
+                        foreach ($grupos as $g) {
+                            $idUnidad = (int) ($g['id_unidad'] ?? $g['id_dpto']);
+                            $data = [
+                                'ID_UnidadOperativa' => $idUnidad,
+                                'ID_GrupoPresupuestal' => (int) $g['id_grupo'],
+                                'Anio' => $anio, 'Mes' => $mes,
+                                'Monto_Asignado' => (float) $g['monto_asignado']
+                            ];
+
+                            if (!empty($g['id_existente'])) {
+                                $pmModel->update((int) $g['id_existente'], $data);
+                            } else {
+                                $exists = $pmModel->where(['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => (int)$g['id_grupo'], 'Anio' => $anio, 'Mes' => $mes])->first();
+                                if ($exists) $pmModel->update($exists['ID_PresupuestoMensual'], $data);
+                                else $pmModel->insert($data);
+                            }
+
+                            $unidad = $uniModel->find($idUnidad);
+                            if ($unidad) {
+                                $place = $placesModel->find($unidad['ID_Place']);
+                                if ($place) $rsAfectadas[] = (int) $place['ID_RazonSocial'];
+                            }
+                        }
+
+                        foreach (array_unique($rsAfectadas) as $idRS) {
+                            $q = $db->table('PresupuestoMensual')
+                                ->selectSum('PresupuestoMensual.Monto_Asignado', 'total')
+                                ->join('UnidadOperativa u', 'u.ID_UnidadOperativa = PresupuestoMensual.ID_UnidadOperativa')
+                                ->join('Places p', 'p.ID_Place = u.ID_Place')
+                                ->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
+                                ->where(['PresupuestoMensual.Anio' => $anio, 'p.ID_RazonSocial' => $idRS, 'gp.activo' => true])
+                                ->get()->getRow();
+                            $total = $q ? (float) $q->total : 0.0;
+                            
+                            $pa = (new PresupuestoAnualModel())->where(['Anio' => $anio, 'ID_RazonSocial' => $idRS])->first();
+                            $paData = ['ID_RazonSocial' => $idRS, 'Anio' => $anio, 'Monto' => $total];
+                            if ($pa) (new PresupuestoAnualModel())->update($pa['ID_PresupuestoAnual'], $paData);
+                            else (new PresupuestoAnualModel())->insert($paData);
+                        }
+                        break;
+
+                    case 'SaldosBancarios':
+                        $sModel = new SaldosBancariosModel();
+                        $anio = (int) $payload['anio'];
+                        $mes = (int) $payload['mes'];
+                        
+                        foreach ($payload['saldos'] as $s) {
+                            $data = [
+                                'id_bancodpto' => (int)$s['id_bancodpto'], 
+                                'mes' => $mes, 
+                                'anio' => $anio, 
+                                'saldo_inicial' => (float)$s['saldo_inicial'], 
+                                'saldo_final' => (float)$s['saldo_final']
+                            ];
+                            if (!empty($s['id_existente'])) $sModel->update((int)$s['id_existente'], $data);
+                            else $sModel->insert($data);
+                        }
+                        break;
+                }
+            }
+
+            // Actualizar la solicitud
+            $solicitudModel->update($idSolicitud, [
+                'Estado' => $estado,
+                'Comentarios_Revisor' => $comentarios
+            ]);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->failServerError('Error al aplicar los cambios en la base de datos.');
+            }
+
+            return $this->respond(['success' => true, 'message' => "Solicitud de cambio $estado correctamente."]);
+
+        } catch (\Exception $e) {
+            $db->transRollback();
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
     public function saveMasivo()
     {
         $json = $this->request->getJSON(true);
@@ -369,72 +540,24 @@ class PresupuestoApiController extends ResourceController
 
         $anio = (int) $json['anio'];
         $mes = (int) $json['mes'];
-        $grupos = $json['grupos'];
 
-        $pmModel = new PresupuestoMensualModel();
-        $paModel = new PresupuestoAnualModel();
-        $uniModel = new UnidadOperativaModel();
-        $placesModel = new PlacesModel();
-        $db = \Config\Database::connect();
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-        $db->transStart();
-        try {
-            $rsAfectadas = [];
-            foreach ($grupos as $g) {
-                $idUnidad = (int) ($g['id_unidad'] ?? $g['id_dpto']); // Soporte para ambos nombres durante transición
-                $data = [
-                    'ID_UnidadOperativa' => $idUnidad,
-                    'ID_GrupoPresupuestal' => (int) $g['id_grupo'],
-                    'Anio' => $anio, 'Mes' => $mes,
-                    'Monto_Asignado' => (float) $g['monto_asignado']
-                ];
-
-                if (!empty($g['id_existente'])) {
-                    $pmModel->update((int) $g['id_existente'], $data);
-                } else {
-                    $exists = $pmModel->where(['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => (int)$g['id_grupo'], 'Anio' => $anio, 'Mes' => $mes])->first();
-                    if ($exists) $pmModel->update($exists['ID_PresupuestoMensual'], $data);
-                    else $pmModel->insert($data);
-                }
-
-                $unidad = $uniModel->find($idUnidad);
-                if ($unidad) {
-                    $place = $placesModel->find($unidad['ID_Place']);
-                    if ($place) $rsAfectadas[] = (int) $place['ID_RazonSocial'];
-                }
-            }
-
-            foreach (array_unique($rsAfectadas) as $idRS) {
-                // IMPORTANTE: Usar un nuevo builder en cada iteración para evitar acumulaciones
-                $q = $db->table('PresupuestoMensual')
-                    ->selectSum('PresupuestoMensual.Monto_Asignado', 'total')
-                    ->join('UnidadOperativa u', 'u.ID_UnidadOperativa = PresupuestoMensual.ID_UnidadOperativa')
-                    ->join('Places p', 'p.ID_Place = u.ID_Place')
-                    ->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
-                    ->where([
-                        'PresupuestoMensual.Anio' => $anio,
-                        'p.ID_RazonSocial' => $idRS,
-                        'gp.activo' => true // Postgres requiere boolean nativo (true)
-                    ])
-                    ->get()->getRow();
-
-                $total = $q ? (float) $q->total : 0.0;
-                
-                // Usamos una nueva instancia del modelo o reseteamos el builder para el presupuesto anual
-                $pa = (new PresupuestoAnualModel())->where(['Anio' => $anio, 'ID_RazonSocial' => $idRS])->first();
-                $paData = ['ID_RazonSocial' => $idRS, 'Anio' => $anio, 'Monto' => $total];
-                
-                if ($pa) {
-                    (new PresupuestoAnualModel())->update($pa['ID_PresupuestoAnual'], $paData);
-                } else {
-                    (new PresupuestoAnualModel())->insert($paData);
-                }
-            }
-            $db->transComplete();
-            return $this->respondCreated(['success' => true, 'message' => 'Presupuestos guardados.']);
-        } catch (\Exception $e) {
-            $db->transRollback();
-            return $this->failServerError($e->getMessage());
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'PresupuestoMensual',
+            'Accion'        => 'Masivo',
+            'ID_Afectado'   => "{$anio}-{$mes}",
+            'Datos_Payload' => json_encode($json),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->respondCreated([
+                'success' => true, 
+                'pending_review' => true, 
+                'message' => 'Cambios de presupuesto enviados a Dirección para su autorización.'
+            ]);
+        } else {
+            return $this->failServerError('Error al enviar la solicitud de cambios.');
         }
     }
 
@@ -485,14 +608,28 @@ class PresupuestoApiController extends ResourceController
     public function saveSaldosMasivo() {
         $json = $this->request->getJSON(true);
         if (!isset($json['saldos'])) return $this->failValidationErrors('Datos incompletos.');
-        $sModel = new SaldosBancariosModel(); $db = \Config\Database::connect();
-        $db->transStart();
-        foreach ($json['saldos'] as $s) {
-            $data = ['id_bancodpto' => (int)$s['id_bancodpto'], 'mes' => (int)$json['mes'], 'anio' => (int)$json['anio'], 'saldo_inicial' => (float)$s['saldo_inicial'], 'saldo_final' => (float)$s['saldo_final']];
-            if (!empty($s['id_existente'])) $sModel->update((int)$s['id_existente'], $data);
-            else $sModel->insert($data);
+
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+        
+        $anio = (int) ($json['anio'] ?? 0);
+        $mes = (int) ($json['mes'] ?? 0);
+
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'SaldosBancarios',
+            'Accion'        => 'Masivo',
+            'ID_Afectado'   => "{$anio}-{$mes}",
+            'Datos_Payload' => json_encode($json),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->respondCreated([
+                'success' => true, 
+                'pending_review' => true, 
+                'message' => 'Actualización de saldos enviada a Dirección para su autorización.'
+            ]);
+        } else {
+            return $this->failServerError('Error al enviar la solicitud de saldos.');
         }
-        $db->transComplete(); return $this->respondCreated(['success' => true]);
     }
 
     public function getComparativoBancos($idPlace, $anio, $mes) {

@@ -391,6 +391,7 @@ class Modales extends BaseController
             case 'GrupoPresupuestal':
                 $grupoModel = new GrupoPresupuestalModel();
                 $unidadesModel = new UnidadOperativaModel();
+                $solicitudesCambioModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
                 $data['grupos'] = $grupoModel
                     ->select('GrupoPresupuestal.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
@@ -405,11 +406,14 @@ class Modales extends BaseController
                     ->orderBy('UnidadOperativa.Nombre', 'ASC')
                     ->findAll();
 
+                $data['registros_bloqueados'] = $solicitudesCambioModel->where('Estado', 'Pendiente')->where('Modulo', 'GrupoPresupuestal')->findColumn('ID_Afectado') ?? [];
+
                 return view('modales/CrudGrupos', $data);
 
             case 'UnidadOperativa':
                 $unidadesModel = new UnidadOperativaModel();
                 $placesModel = new PlacesModel();
+                $solicitudesCambioModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
                 $data['unidades'] = $unidadesModel
                     ->select('UnidadOperativa.*, Places.Nombre_Corto as PlaceNombre')
@@ -418,17 +422,20 @@ class Modales extends BaseController
                     ->findAll();
 
                 $data['places'] = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
+                $data['registros_bloqueados'] = $solicitudesCambioModel->where('Estado', 'Pendiente')->where('Modulo', 'UnidadOperativa')->findColumn('ID_Afectado') ?? [];
 
                 return view('modales/CrudUnidades', $data);
 
             case 'BancoDpto':
                 $bancoModel = new BancoDptoModel();
                 $rsModel    = new RazonSocialModel();
+                $solicitudesCambioModel = new \App\Models\SolicitudesCambioPresupuestoModel();
                 
                 $data['bancos_dpto'] = $bancoModel->withRazonSocial()->findAll();
                 $data['razones_sociales'] = $rsModel
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
+                $data['registros_bloqueados'] = $solicitudesCambioModel->where('Estado', 'Pendiente')->where('Modulo', 'BancoDpto')->findColumn('ID_Afectado') ?? [];
 
                 return view('modales/BancoDpto', $data);
 
@@ -463,9 +470,11 @@ class Modales extends BaseController
             case 'SegmentoNegocio':
                 $segmentoModel = new \App\Models\SegmentoNegocioModel();
                 $razonModel = new \App\Models\RazonSocialModel();
+                $solicitudesCambioModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
                 $data['segmentos'] = $segmentoModel->withRazonSocial()->findAll();
                 $data['razones_sociales'] = $razonModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['registros_bloqueados'] = $solicitudesCambioModel->where('Estado', 'Pendiente')->where('Modulo', 'SegmentoNegocio')->findColumn('ID_Afectado') ?? [];
 
                 return view('modales/control/SegmentoNegocio', $data);
 
@@ -486,24 +495,38 @@ class Modales extends BaseController
     // --- CRUD SEGMENTOS DE NEGOCIO ---
     public function insertarSegmento()
     {
-        $model = new SegmentoNegocioModel();
         $data = $this->request->getPost(['nombre', 'descripcion', 'id_razon_social']);
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-        if ($model->insert($data)) {
-            return $this->response->setJSON(['success' => true]);
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'SegmentoNegocio',
+            'Accion'        => 'Insertar',
+            'ID_Afectado'   => null,
+            'Datos_Payload' => json_encode($data),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al guardar', 'errors' => $model->errors()]);
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al enviar a revisión', 'errors' => $solicitudesModel->errors()]);
         }
     }
 
     public function editarSegmento($id)
     {
-        $model = new SegmentoNegocioModel();
         $data = $this->request->getPost(['nombre', 'descripcion', 'id_razon_social']);
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
         try {
-            $model->update($id, $data);
-            return $this->response->setJSON(['success' => true]);
+            $solicitudesModel->insert([
+                'ID_Usuario'    => session('id'),
+                'Modulo'        => 'SegmentoNegocio',
+                'Accion'        => 'Editar',
+                'ID_Afectado'   => $id,
+                'Datos_Payload' => json_encode($data),
+                'Estado'        => 'Pendiente'
+            ]);
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -511,14 +534,21 @@ class Modales extends BaseController
 
     public function eliminarSegmento($id)
     {
-        $model = new SegmentoNegocioModel();
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-        if ($model->delete($id)) {
-            return $this->response->setJSON(['success' => true]);
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'SegmentoNegocio',
+            'Accion'        => 'Eliminar',
+            'ID_Afectado'   => $id,
+            'Datos_Payload' => json_encode(['id' => $id]),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Solicitud de eliminación enviada a Dirección para su autorización.']);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo eliminar el segmento',
+                'message' => 'No se pudo enviar la solicitud de eliminación a revisión',
             ]);
         }
     }
@@ -1336,7 +1366,6 @@ class Modales extends BaseController
     // ----------- Grupos Presupuestales ------------
     public function insertarGrupo()
     {
-        $model = new GrupoPresupuestalModel();
         $postData = $this->request->getPost();
         
         $data = [
@@ -1346,87 +1375,74 @@ class Modales extends BaseController
             'activo'             => true // Booleano nativo para compatibilidad universal
         ];
 
-        if ($model->insert($data)) {
-            return $this->response->setJSON(['success' => true]);
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'GrupoPresupuestal',
+            'Accion'        => 'Insertar',
+            'ID_Afectado'   => null,
+            'Datos_Payload' => json_encode($data),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al guardar', 'errors' => $model->errors()]);
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al enviar a revisión', 'errors' => $solicitudesModel->errors()]);
         }
     }
+    
     public function editarGrupo($id)
     {
-        $model = new GrupoPresupuestalModel();
         $postData = $this->request->getPost();
         
-        // 1. Obtener el estado actual del grupo
-        $grupoActual = $model->find($id);
-        if (!$grupoActual) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Grupo no encontrado']);
-        }
-
-        // 2. Captura booleana robusta
+        // 1. Captura booleana robusta
         $valPost = $this->request->getPost('activo');
         $esActivoPost = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
         
         $nuevaUnidad = !empty($postData['ID_UnidadOperativa']) ? (int)$postData['ID_UnidadOperativa'] : null;
-        $unidadAnterior = (int)($grupoActual['ID_UnidadOperativa'] ?? 0);
 
-        // 3. LÓGICA DE CAMBIO DE UNIDAD
-        if ($nuevaUnidad !== $unidadAnterior && $unidadAnterior !== 0) {
-            // Caso A: Cambió la unidad operativa. 
-            // Desactivamos el viejo y creamos uno nuevo para integridad histórica.
-            
-            $db = \Config\Database::connect();
-            $db->transStart();
+        $data = [
+            'Nombre'             => $postData['Nombre'] ?? '',
+            'Descripcion'        => $postData['Descripcion'] ?? '',
+            'ID_UnidadOperativa' => $nuevaUnidad,
+            'activo'             => $esActivoPost
+        ];
 
-            // Desactivar el actual
-            $model->update($id, ['activo' => false]);
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-            // Crear el nuevo
-            $model->insert([
-                'Nombre'             => $postData['Nombre'] ?? $grupoActual['Nombre'],
-                'Descripcion'        => $postData['Descripcion'] ?? $grupoActual['Descripcion'],
-                'ID_UnidadOperativa' => $nuevaUnidad,
-                'activo'             => true // El nuevo nace activo
+        try {
+            $solicitudesModel->insert([
+                'ID_Usuario'    => session('id'),
+                'Modulo'        => 'GrupoPresupuestal',
+                'Accion'        => 'Editar',
+                'ID_Afectado'   => $id,
+                'Datos_Payload' => json_encode($data),
+                'Estado'        => 'Pendiente'
             ]);
-
-            $db->transComplete();
-
-            if ($db->transStatus() === false) {
-                return $this->response->setJSON(['success' => false, 'message' => 'Error al procesar el cambio de unidad']);
-            }
-
-            return $this->response->setJSON(['success' => true, 'message' => 'Se ha creado un nuevo grupo para la unidad seleccionada y se ha desactivado el anterior.']);
-        } else {
-            // Caso B: Solo cambió nombre, descripción o estado activo en la misma unidad.
-            $data = [
-                'Nombre'             => $postData['Nombre'] ?? '',
-                'Descripcion'        => $postData['Descripcion'] ?? '',
-                'ID_UnidadOperativa' => $nuevaUnidad,
-                'activo'             => $esActivoPost
-            ];
-
-            try {
-                if ($model->update($id, $data)) {
-                    return $this->response->setJSON(['success' => true]);
-                } else {
-                    return $this->response->setJSON(['success' => false, 'message' => 'No se pudo actualizar', 'errors' => $model->errors()]);
-                }
-            } catch (\Exception $e) {
-                return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
-            }
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
+    
     public function eliminarGrupo($id)
     {
-        $model = new GrupoPresupuestalModel();
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-        // En lugar de eliminar, desactivamos usando booleano nativo para mantener integridad histórica
-        if ($model->update($id, ['activo' => false])) {
-            return $this->response->setJSON(['success' => true, 'message' => 'Grupo desactivado correctamente.']);
+        // En lugar de eliminar, solicitamos desactivar
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'GrupoPresupuestal',
+            'Accion'        => 'Eliminar', // Se manejará como desactivación en el dictamen
+            'ID_Afectado'   => $id,
+            'Datos_Payload' => json_encode(['activo' => false]),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Solicitud de desactivación enviada a Dirección para su autorización.']);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo desactivar el grupo presupuestal',
+                'message' => 'No se pudo enviar la solicitud de desactivación',
             ]);
         }
     }
@@ -1434,42 +1450,63 @@ class Modales extends BaseController
     //-----Bancos de Dpto -------------
     public function insertarBancoDpto()
     {
-        $model = new BancoDptoModel();
         // Recibimos ID_RazonSocial, Banco, Clabe
         $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe']);
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-        if ($model->insert($data)) {
-            return $this->response->setJSON(['success' => true]);
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'BancoDpto',
+            'Accion'        => 'Insertar',
+            'ID_Afectado'   => null,
+            'Datos_Payload' => json_encode($data),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Error al guardar',
-                'errors' => $model->errors()
+                'message' => 'Error al enviar a revisión',
+                'errors' => $solicitudesModel->errors()
             ]);
         }
     }
     public function editarBancoDpto($id)
     {
-        $model = new BancoDptoModel();
         $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe']);
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
         try {
-            $model->update($id, $data);
-            return $this->response->setJSON(['success' => true]);
+            $solicitudesModel->insert([
+                'ID_Usuario'    => session('id'),
+                'Modulo'        => 'BancoDpto',
+                'Accion'        => 'Editar',
+                'ID_Afectado'   => $id,
+                'Datos_Payload' => json_encode($data),
+                'Estado'        => 'Pendiente'
+            ]);
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
     public function eliminarBancoDpto($id)
     {
-        $model = new BancoDptoModel();
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-        if ($model->delete($id)) {
-            return $this->response->setJSON(['success' => true]);
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'BancoDpto',
+            'Accion'        => 'Eliminar',
+            'ID_Afectado'   => $id,
+            'Datos_Payload' => json_encode(['id' => $id]),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Solicitud de eliminación enviada a Dirección para su autorización.']);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'No se pudo eliminar el registro',
+                'message' => 'No se pudo enviar la solicitud de eliminación a revisión',
             ]);
         }
     }
@@ -1477,20 +1514,26 @@ class Modales extends BaseController
     // ----------- Unidades Operativas ------------
     public function insertarUnidadOperativa()
     {
-        $model = new UnidadOperativaModel();
         $data = $this->request->getPost(['Nombre', 'ID_Place']);
         $data['activo'] = true;
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-        if ($model->insert($data)) {
-            return $this->response->setJSON(['success' => true]);
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'UnidadOperativa',
+            'Accion'        => 'Insertar',
+            'ID_Afectado'   => null,
+            'Datos_Payload' => json_encode($data),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al guardar', 'errors' => $model->errors()]);
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al enviar a revisión', 'errors' => $solicitudesModel->errors()]);
         }
     }
 
     public function editarUnidadOperativa($id)
     {
-        $model = new UnidadOperativaModel();
         $postData = $this->request->getPost();
         
         // Captura booleana robusta
@@ -1502,13 +1545,19 @@ class Modales extends BaseController
             'ID_Place' => !empty($postData['ID_Place']) ? $postData['ID_Place'] : null,
             'activo'   => $esActivo
         ];
+        
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
         try {
-            if ($model->update($id, $data)) {
-                return $this->response->setJSON(['success' => true]);
-            } else {
-                return $this->response->setJSON(['success' => false, 'message' => 'No se pudo actualizar', 'errors' => $model->errors()]);
-            }
+            $solicitudesModel->insert([
+                'ID_Usuario'    => session('id'),
+                'Modulo'        => 'UnidadOperativa',
+                'Accion'        => 'Editar',
+                'ID_Afectado'   => $id,
+                'Datos_Payload' => json_encode($data),
+                'Estado'        => 'Pendiente'
+            ]);
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -1516,11 +1565,19 @@ class Modales extends BaseController
 
     public function eliminarUnidadOperativa($id)
     {
-        $model = new UnidadOperativaModel();
-        if ($model->update($id, ['activo' => false])) {
-            return $this->response->setJSON(['success' => true, 'message' => 'Unidad desactivada.']);
+        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+        
+        if ($solicitudesModel->insert([
+            'ID_Usuario'    => session('id'),
+            'Modulo'        => 'UnidadOperativa',
+            'Accion'        => 'Eliminar',
+            'ID_Afectado'   => $id,
+            'Datos_Payload' => json_encode(['activo' => false]),
+            'Estado'        => 'Pendiente'
+        ])) {
+            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Solicitud de desactivación enviada a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al desactivar']);
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al enviar a revisión']);
         }
     }
 }

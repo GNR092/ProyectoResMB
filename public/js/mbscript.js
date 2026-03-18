@@ -133,6 +133,7 @@ function abrirModal(opcion) {
         BancoDpto: initCrudBancoDpto,
         SegmentoNegocio: initCrudSegmentos,
         UnidadOperativa: initCrudUnidades,
+        AjustesPresupuesto: initAjustesPresupuesto,
       }
 
       const inicializador = inicializadores[opcion]

@@ -40,13 +40,14 @@
                     <?php 
                         $valActivo = $grupo['activo'];
                         $esActivo = ($valActivo === true || $valActivo === 't' || $valActivo === 1 || $valActivo === '1'); 
+                        $enRevision = isset($registros_bloqueados) && in_array($grupo['ID_GrupoPresupuestal'], $registros_bloqueados);
                     ?>
                     <tr data-id="<?= $grupo['ID_GrupoPresupuestal'] ?>"
                         data-nombre="<?= esc($grupo['Nombre']) ?>"
                         data-descripcion="<?= esc($grupo['Descripcion']) ?>"
                         data-id-unidad="<?= esc($grupo['ID_UnidadOperativa'] ?? '') ?>"
                         data-activo="<?= $esActivo ? '1' : '0' ?>"
-                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= !$esActivo ? 'opacity-60' : '' ?>">
+                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= !$esActivo ? 'opacity-60' : '' ?> <?= $enRevision ? 'bg-yellow-50 opacity-80' : '' ?>">
 
                         <td class="px-3 py-2 border-b nombre-grupo"><?= esc($grupo['Nombre']) ?></td>
                         <td class="px-3 py-2 border-b descripcion-grupo"><?= esc($grupo['Descripcion']) ?></td>
@@ -60,6 +61,11 @@
                         </td>
 
                         <td class="px-2 py-2 border-b align-top text-center acciones">
+                            <?php if ($enRevision): ?>
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-300">
+                                    ⏳ En Revisión
+                                </span>
+                            <?php else: ?>
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <a href="#"
                                    id="btn-editar-grupos-<?= $grupo['ID_GrupoPresupuestal'] ?>"
@@ -81,6 +87,7 @@
                                 </a>
                                 <?php endif; ?>
                             </div>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>

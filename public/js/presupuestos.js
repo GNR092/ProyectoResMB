@@ -359,9 +359,15 @@ function registrarComponentePresupuesto() {
                     });
 
                     if (res.ok) {
-                        this.mensaje = 'Presupuestos guardados correctamente';
-                        this.error = false;
-                        await this.cargarEstructura();
+                        const result = await res.json();
+                        if (result.pending_review) {
+                            this.mensaje = result.message || 'Presupuestos enviados a revisión.';
+                            this.error = false;
+                        } else {
+                            this.mensaje = 'Presupuestos guardados correctamente';
+                            this.error = false;
+                            await this.cargarEstructura();
+                        }
                     } else {
                         this.mensaje = 'Error al guardar los presupuestos';
                         this.error = true;
@@ -540,9 +546,14 @@ function registrarComponenteSaldosBancarios() {
                     if (res.ok) {
                         const result = await res.json();
                         if (result.success) {
-                            this.mensaje = 'Saldos guardados correctamente';
-                            this.error = false;
-                            await this.cargarEstructura();
+                            if (result.pending_review) {
+                                this.mensaje = result.message || 'Saldos enviados a revisión.';
+                                this.error = false;
+                            } else {
+                                this.mensaje = 'Saldos guardados correctamente';
+                                this.error = false;
+                                await this.cargarEstructura();
+                            }
                         } else {
                             this.mensaje = result.message || 'Error al guardar';
                             this.error = true;
@@ -998,7 +1009,14 @@ function initSegmentosForm() {
     fAdd.onsubmit = async (e) => {
         e.preventDefault(); try {
             const res = await SendDataEnd('modales/crud_segmentos/insertar', { method: 'POST', body: new FormData(fAdd) });
-            if (res.success) { mostrarNotificacion('Agregado ✅', 'success'); abrirModal('SegmentoNegocio'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Agregado ✅', 'success'); 
+                }
+                abrirModal('SegmentoNegocio'); 
+            }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
@@ -1009,7 +1027,14 @@ function initSegmentosEditarForm() {
         e.preventDefault(); const fd = new FormData(fEdi); const id = fd.get('id');
         try {
             const res = await SendDataEnd(`modales/crud_segmentos/editar/${id}`, { method: 'POST', body: fd });
-            if (res.success) { mostrarNotificacion('Actualizado ✅', 'success'); abrirModal('SegmentoNegocio'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Edición enviada a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Actualizado ✅', 'success'); 
+                }
+                abrirModal('SegmentoNegocio'); 
+            }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
@@ -1020,7 +1045,15 @@ function initSegmentosActions(tabla) {
         if (bD) {
             e.preventDefault(); if (!(await Confirmar('¿Eliminar?', '¿Seguro?'))) return;
             const res = await SendDataEnd(`modales/crud_segmentos/eliminar/${bD.dataset.id}`, { method: 'POST' });
-            if (res.success) { mostrarNotificacion('Eliminado ✅', 'success'); bD.closest('tr').remove(); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Eliminación enviada a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Eliminado ✅', 'success'); 
+                    bD.closest('tr').remove(); 
+                }
+                abrirModal('SegmentoNegocio');
+            }
         }
         if (bE) {
             e.preventDefault(); const f = bE.closest('tr');
@@ -1056,7 +1089,14 @@ function initGruposForm() {
     fAdd.onsubmit = async (e) => {
         e.preventDefault(); try {
             const res = await SendDataEnd('modales/crud_grupos_presupuestales/insertar', { method: 'POST', body: new FormData(fAdd) });
-            if (res.success) { mostrarNotificacion('Agregado ✅', 'success'); abrirModal('GrupoPresupuestal'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Agregado ✅', 'success'); 
+                }
+                abrirModal('GrupoPresupuestal'); 
+            }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
@@ -1067,7 +1107,14 @@ function initGruposEditarForm() {
         e.preventDefault(); const fd = new FormData(fEdi); const id = fd.get('ID_GrupoPresupuestal');
         try {
             const res = await SendDataEnd(`modales/crud_grupos_presupuestales/editar/${id}`, { method: 'POST', body: fd });
-            if (res.success) { mostrarNotificacion('Actualizado ✅', 'success'); abrirModal('GrupoPresupuestal'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Edición enviada a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Actualizado ✅', 'success'); 
+                }
+                abrirModal('GrupoPresupuestal'); 
+            }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
@@ -1078,7 +1125,14 @@ function initGruposActions(tabla) {
         if (bD) {
             e.preventDefault(); if (!(await Confirmar('¿Desactivar?', '¿Seguro?'))) return;
             const res = await SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${bD.dataset.id}`, { method: 'POST' });
-            if (res.success) { mostrarNotificacion('Desactivado ✅', 'success'); abrirModal('GrupoPresupuestal'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Desactivación enviada a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Desactivado ✅', 'success'); 
+                }
+                abrirModal('GrupoPresupuestal'); 
+            }
         }
         if (bE) {
             e.preventDefault(); const f = bE.closest('tr');
@@ -1109,7 +1163,14 @@ function initCrudUnidades() {
     document.getElementById('form-agregar-unidad').onsubmit = async (e) => {
         e.preventDefault(); try {
             const res = await SendDataEnd('modales/crud_unidades_operativas/insertar', { method: 'POST', body: new FormData(e.target) });
-            if (res.success) { mostrarNotificacion('Unidad agregada ✅', 'success'); abrirModal('UnidadOperativa'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Unidad agregada ✅', 'success'); 
+                }
+                abrirModal('UnidadOperativa'); 
+            }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
     };
 
@@ -1117,7 +1178,14 @@ function initCrudUnidades() {
         e.preventDefault(); const fd = new FormData(e.target); const id = fd.get('ID_UnidadOperativa');
         try {
             const res = await SendDataEnd(`modales/crud_unidades_operativas/editar/${id}`, { method: 'POST', body: fd });
-            if (res.success) { mostrarNotificacion('Unidad actualizada ✅', 'success'); abrirModal('UnidadOperativa'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Edición enviada a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Unidad actualizada ✅', 'success'); 
+                }
+                abrirModal('UnidadOperativa'); 
+            }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
     };
 
@@ -1134,7 +1202,14 @@ function initCrudUnidades() {
         if (bD) {
             e.preventDefault(); if (!(await Confirmar('¿Desactivar?', '¿Seguro?'))) return;
             const res = await SendDataEnd(`modales/crud_unidades_operativas/eliminar/${bD.dataset.id}`, { method: 'POST' });
-            if (res.success) { mostrarNotificacion('Desactivada ✅', 'success'); abrirModal('UnidadOperativa'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Desactivación enviada a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Desactivada ✅', 'success'); 
+                }
+                abrirModal('UnidadOperativa'); 
+            }
         }
     });
 }
@@ -1247,7 +1322,14 @@ function initBancoDptoForm() {
     fAdd.onsubmit = async (e) => {
         e.preventDefault(); try {
             const res = await SendDataEnd('modales/crud_banco_dpto/insertar', { method: 'POST', body: new FormData(fAdd) });
-            if (res.success) { mostrarNotificacion('Agregado ✅', 'success'); abrirModal('BancoDpto'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Agregado ✅', 'success'); 
+                }
+                abrirModal('BancoDpto'); 
+            }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
@@ -1258,7 +1340,14 @@ function initBancoDptoEditarForm() {
         e.preventDefault(); const fd = new FormData(fEdi); const id = fd.get('ID_BancoDpto');
         try {
             const res = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, { method: 'POST', body: fd });
-            if (res.success) { mostrarNotificacion('Actualizado ✅', 'success'); abrirModal('BancoDpto'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Edición enviada a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Actualizado ✅', 'success'); 
+                }
+                abrirModal('BancoDpto'); 
+            }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
     }
 }
@@ -1269,7 +1358,14 @@ function initBancoDptoActions(tabla) {
         if (bD) {
             e.preventDefault(); if (!(await Confirmar('¿Eliminar?', '¿Seguro?'))) return;
             const res = await SendDataEnd(`modales/crud_banco_dpto/eliminar/${bD.dataset.id}`, { method: 'POST' });
-            if (res.success) { mostrarNotificacion('Eliminado ✅', 'success'); abrirModal('BancoDpto'); }
+            if (res.success) { 
+                if (res.pending_review) {
+                    mostrarNotificacion(res.message || 'Eliminación enviada a revisión ⏳', 'info');
+                } else {
+                    mostrarNotificacion('Eliminado ✅', 'success'); 
+                }
+                abrirModal('BancoDpto'); 
+            }
         }
         if (bE) {
             e.preventDefault(); const f = bE.closest('tr');
@@ -1281,4 +1377,107 @@ function initBancoDptoActions(tabla) {
             document.getElementById('pantalla-editar-banco-dpto').classList.remove('hidden');
         }
     });
+}
+
+// --- LOGICA DICTAMEN AJUSTES PRESUPUESTO ---
+function initAjustesPresupuesto() {
+  if (!document.getElementById('tablaAjustesPresupuesto')) return;
+
+  createPaginatedTable({
+    tableSelector: '#tablaAjustesPresupuesto',
+    paginationSelector: 'paginacion-ajustes-presupuesto',
+    endpoint: 'api/presupuesto/cambios',
+    noResultsMessage: 'No hay solicitudes de cambio de presupuesto pendientes.',
+    renderRow: (s) => {
+      let accionClass = 'bg-yellow-100 text-yellow-800';
+      if (s.Accion === 'Insertar' || s.Accion === 'Masivo') accionClass = 'bg-green-100 text-green-800';
+      else if (s.Accion === 'Eliminar') accionClass = 'bg-red-100 text-red-800';
+
+      return `
+      <tr class='hover:bg-gray-50' data-id='${s.ID_SolicitudCambio}'>
+          <td class='py-3 px-6 text-left font-medium text-gray-800'>${s.ID_SolicitudCambio}</td>
+          <td class='py-3 px-6 text-left'>${s.NombreUsuario || 'Desconocido'}</td>
+          <td class='py-3 px-6 text-left font-semibold text-blue-600'>${s.Modulo}</td>
+          <td class='py-3 px-6 text-left'>
+             <span class='px-2 py-1 text-xs font-bold rounded-full ${accionClass}'>${s.Accion}</span>
+          </td>
+          <td class='py-3 px-6 text-left'>${s.created_at}</td>
+          <td class='py-3 px-6 text-center'>
+              <button onclick='mostrarDetalleAjuste(${s.ID_SolicitudCambio})' class='px-4 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-600 hover:text-white transition-colors text-sm font-semibold'>Revisar</button>
+          </td>
+      </tr>`;
+    }
+  });
+}
+
+window.mostrarDetalleAjuste = async function(id) {
+  document.getElementById('div-tabla-ajustes').classList.add('hidden');
+  const divVer = document.getElementById('div-ver-detalle-ajuste');
+  divVer.classList.remove('hidden');
+
+  const container = document.getElementById('detalles-ajuste-contenido');
+  container.innerHTML = '<p class="text-center text-gray-500 py-10">Cargando detalles...</p>';
+
+  try {
+    const req = await fetch(`${BASE_URL}api/presupuesto/cambios`);
+    const allData = await req.json();
+    const data = allData.find(d => parseInt(d.ID_SolicitudCambio) === parseInt(id));
+
+    if (!data) throw new Error('No se encontró la solicitud.');
+
+    let payloadHtml = '<div class="p-4 bg-gray-50 rounded-lg border border-gray-200 font-mono text-sm overflow-x-auto whitespace-pre-wrap">' + JSON.stringify(JSON.parse(data.Datos_Payload), null, 2) + '</div>';
+
+    let html = `
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div><span class="block text-xs font-bold text-gray-500 uppercase">Módulo</span><span class="text-lg font-semibold text-gray-800">${data.Modulo}</span></div>
+            <div><span class="block text-xs font-bold text-gray-500 uppercase">Acción Solicitada</span><span class="text-lg font-semibold text-gray-800">${data.Accion}</span></div>
+            <div><span class="block text-xs font-bold text-gray-500 uppercase">Solicitante</span><span class="text-gray-800">${data.NombreUsuario}</span></div>
+            <div><span class="block text-xs font-bold text-gray-500 uppercase">Fecha</span><span class="text-gray-800">${data.created_at}</span></div>
+        </div>
+        <div class="mb-6">
+            <h4 class="font-bold text-gray-700 mb-2">Datos del Cambio (Payload):</h4>
+            ${payloadHtml}
+        </div>
+        <div class="flex justify-end space-x-4 border-t border-gray-200 pt-6">
+            <button onclick="dictaminarAjuste(${id}, 'Rechazado')" class="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition">Rechazar</button>
+            <button onclick="dictaminarAjuste(${id}, 'Aprobado')" class="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">Aprobar y Ejecutar</button>
+        </div>
+    `;
+    container.innerHTML = html;
+  } catch (error) {
+    container.innerHTML = `<p class="text-center text-red-500 py-10">Error: ${error.message}</p>`;
+  }
+}
+
+window.regresarTablaAjustes = function() {
+  document.getElementById('div-ver-detalle-ajuste').classList.add('hidden');
+  document.getElementById('div-tabla-ajustes').classList.remove('hidden');
+}
+
+window.dictaminarAjuste = async function(id, decision) {
+  const esAprobacion = decision === 'Aprobado';
+  const title = esAprobacion ? 'Aprobar Ajuste' : 'Rechazar Ajuste';
+  const msg = esAprobacion ? 'Agrega un comentario (Opcional):' : 'Indica el motivo del rechazo (Obligatorio):';
+  
+  const comentarios = await InputPrompt(title, msg, !esAprobacion);
+  if (comentarios === null) return;
+
+  const notif = mostrarNotificacion('Procesando dictamen...', 'info', 999999);
+
+  try {
+    const res = await SendDataEnd('api/presupuesto/dictaminar', {
+      method: 'POST',
+      body: { ID_SolicitudCambio: id, Estado: decision, Comentarios: comentarios }
+    });
+    notif.click();
+    if (res.success) {
+        mostrarNotificacion(res.message, 'success');
+        abrirModal('AjustesPresupuesto');
+    } else {
+        mostrarNotificacion(res.message || 'Error al procesar', 'error');
+    }
+  } catch (error) {
+    notif.click();
+    mostrarNotificacion('Error de conexión', 'error');
+  }
 }

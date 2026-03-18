@@ -52,6 +52,10 @@ if (!file_exists($installerLockFile)) {
         $routes->post('proveedores/eliminarProveedor/(:num)', 'Modales::eliminarProveedor/$1');
         $routes->post('proveedores/editar/(:num)', 'Modales::editarProveedor/$1');
         
+        // Rutas para dictaminar ajustes de presupuesto
+        $routes->get('api/presupuesto/cambios', 'PresupuestoApiController::getCambiosPendientes');
+        $routes->post('api/presupuesto/dictaminar', 'PresupuestoApiController::dictaminarCambio');
+
         // Solicitudes y Cotizaciones
         $routes->post('api/cotizacion/crear', 'Api::crearCotizacion');
         $routes->post('api/solicitud/update', 'Api::actualizarMontos');

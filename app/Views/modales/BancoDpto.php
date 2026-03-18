@@ -30,17 +30,25 @@
             <tbody id="tabla-banco-dpto">
             <?php if (!empty($bancos_dpto)): ?>
                 <?php foreach ($bancos_dpto as $index => $item): ?>
+                    <?php 
+                        $enRevision = isset($registros_bloqueados) && in_array($item['ID_BancoDpto'], $registros_bloqueados);
+                    ?>
                     <tr data-id="<?= $item['ID_BancoDpto'] ?>"
                         data-id-rs="<?= esc($item['ID_RazonSocial'] ?? $item['id_razonsocial'] ?? '') ?>"
                         data-banco="<?= esc($item['Banco'] ?? $item['banco'] ?? '') ?>"
                         data-clabe="<?= esc($item['Clabe'] ?? $item['clabe'] ?? '') ?>"
-                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
+                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= $enRevision ? 'bg-yellow-50 opacity-80' : '' ?>">
 
                         <td class="px-3 py-2 border-b nombre-rs"><?= esc($item['razonsocial_nombre'] ?? 'Sin Razón Social') ?></td>
                         <td class="px-3 py-2 border-b nombre-banco"><?= esc($item['Banco'] ?? $item['banco'] ?? '') ?></td>
                         <td class="px-3 py-2 border-b clabe-banco font-mono text-sm"><?= esc($item['Clabe'] ?? $item['clabe'] ?? '') ?></td>
 
                         <td class="px-2 py-2 border-b align-top text-center acciones">
+                            <?php if ($enRevision): ?>
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-300">
+                                    ⏳ En Revisión
+                                </span>
+                            <?php else: ?>
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <a href="#"
                                    id="btn-editar-banco-dpto-<?= $item['ID_BancoDpto'] ?>"
@@ -59,6 +67,7 @@
                                     </svg>
                                 </a>
                             </div>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
