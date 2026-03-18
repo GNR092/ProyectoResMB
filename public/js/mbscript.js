@@ -55,7 +55,7 @@ function abrirModal(opcion) {
   const modalBox = titulo.parentElement
 
 
-  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos']
+  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'AjustesPresupuesto']
 
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
@@ -102,6 +102,7 @@ function abrirModal(opcion) {
     ReportePresupuesto: "Reportes De Prespuestos",
     SaldosBancarios: "Saldo De Bancos",
     SegmentoNegocio: "Segmentos de Negocio",
+    AjustesPresupuesto: "Ajustes de Presupuesto",
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 

@@ -44,6 +44,7 @@ class Home extends BaseController
                 'TituloDireccion',
                 'dictamen_solicitudes',
                 'programar_pagos',
+                'AjustesPresupuesto',
                 'ver_historial',
             ],
 
@@ -180,6 +181,7 @@ class Home extends BaseController
                 // Dirección
                 'dictamen_solicitudes' => 'TituloDireccion',
                 'programar_pagos'      => 'TituloDireccion',
+                'AjustesPresupuesto'   => 'TituloDireccion',
 
                 // Tesorería
                 'lista_pagos'          => 'TituloTesoreria',

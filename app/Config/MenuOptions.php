@@ -90,6 +90,11 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar_pagos"></use></svg>',
             ],
 
+            'AjustesPresupuesto' => [
+                'label' => 'Ajustes de Presupuesto',
+                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#CambiosPresupuesto"></use></svg>',
+            ],
+
             // ********** COMPRAS Y TESORERIA ************ //
             'crud_cuentas' => [
                 'label' => 'Cuentas',
@@ -153,7 +158,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'BancoDpto' => [
-                'label' => 'Bancos de Departamento',
+                'label' => 'Bancos de Razón Social',
                 'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#BancoDpto"></use></svg>',
             ],
 
