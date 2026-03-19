@@ -84,4 +84,4 @@
     </div>
 
 </div>
-<script src="public/js/pago.js"></script>
+<script src="<?= base_url() ?>js/pago.js?v=<?= filemtime(FCPATH . 'js/pago.js') ?>"></script>
