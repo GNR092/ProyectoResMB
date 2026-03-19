@@ -41,7 +41,7 @@
                 <tr x-show="!loading && pagosFiltrados.length === 0">
                     <td colspan="9" class="text-center py-4 text-gray-500">No hay pagos programados que coincidan con el filtro.</td>
                 </tr>
-                <template x-for="(pago, idx) in pagosFiltrados" :key="`pago-${idx}`">
+                <template x-for="(pago, idx) in paginatedPagos" :key="`pago-${idx}`">
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 px-4 border-t" x-text="pago.No_Folio"></td>
                         <td class="py-2 px-4 border-t" x-text="formatDate(pago.FechaOrden)"></td>
@@ -66,7 +66,43 @@
             </table>
         </div>
 
-        <div id="paginacion-lista-pagos" class="flex justify-center mt-4 space-x-2"></div>
+        <!-- Paginación Estilo Google -->
+        <div id="paginacion-lista-pagos" class="flex justify-center items-center mt-4" x-show="totalPages > 1">
+            <div class="flex items-center gap-1">
+                <template x-for="item in pageNumbers" :key="item.value || item.type">
+                    <button x-show="item.type === 'first'" @click="firstPage()"
+                        :disabled="currentPage === 1"
+                        class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Primera página">
+                        &laquo;
+                    </button>
+                    <button x-show="item.type === 'prev'" @click="prevPage()"
+                        :disabled="currentPage === 1"
+                        class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Página anterior">
+                        &lsaquo;
+                    </button>
+                    <span x-show="item.type === '...'" class="px-2 text-gray-400 cursor-default">...</span>
+                    <button x-show="item.type === 'number'" @click="goToPage(item.value)"
+                        :class="item.active ? 'bg-blue-500 text-white' : 'bg-white text-black hover:bg-gray-100'"
+                        class="px-3 py-1 border rounded">
+                        <span x-text="item.value"></span>
+                    </button>
+                    <button x-show="item.type === 'next'" @click="nextPage()"
+                        :disabled="currentPage === totalPages"
+                        class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Página siguiente">
+                        &rsaquo;
+                    </button>
+                    <button x-show="item.type === 'last'" @click="lastPage()"
+                        :disabled="currentPage === totalPages"
+                        class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Última página">
+                        &raquo;
+                    </button>
+                </template>
+            </div>
+        </div>
     </div>
 
     <!-- ================== CONTENEDOR 2: DETALLES (Nuevo, Oculto) ================== -->

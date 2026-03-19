@@ -15,7 +15,7 @@ async function SendDataEnd(endpoint, options = {}) {
 
   // New: Introduce a delay if specified
   if (options.delay && typeof options.delay === 'number' && options.delay > 0) {
-    await new Promise(resolve => setTimeout(resolve, options.delay));
+    await new Promise((resolve) => setTimeout(resolve, options.delay))
   }
 
   if (config.body) {
@@ -29,7 +29,7 @@ async function SendDataEnd(endpoint, options = {}) {
     }
   }
 
-  const csrfHeaderName = 'X-CSRF-TOKEN'; 
+  const csrfHeaderName = 'X-CSRF-TOKEN'
   const csrfTokenHash = document.querySelector('meta[name="csrf-token-hash"]')?.content
   const method = (config.method || 'GET').toUpperCase()
 
@@ -399,27 +399,27 @@ function generarComentariosHtml(data) {
   let html = ''
 
   if (data.ComentariosAdmin) {
-    let rawComment = data.ComentariosAdmin;
-    let mensajeMostrar = rawComment;
-    let nombreAutor = null;
+    let rawComment = data.ComentariosAdmin
+    let mensajeMostrar = rawComment
+    let nombreAutor = null
 
     // --- CORRECCIÓN AQUÍ ---
     // 1. Intentamos detectar el formato [Nombre]: Comentario
-    const match = rawComment.match(/^\[(.*?)\]:\s*([\s\S]*)/);
+    const match = rawComment.match(/^\[(.*?)\]:\s*([\s\S]*)/)
 
     if (match) {
       // Si match[1] está vacío (el error de tu captura "[]"), forzamos 'Admin'
       // Si tiene texto, usamos el nombre real.
-      nombreAutor = match[1].trim() ? match[1] : 'Admin';
-      mensajeMostrar = match[2]; // El mensaje limpio
+      nombreAutor = match[1].trim() ? match[1] : 'Admin'
+      mensajeMostrar = match[2] // El mensaje limpio
     }
     // -----------------------
 
     // BLOQUE 1: RECHAZO
     if (data.TipoComentarioAdmin === 'Rechazo') {
       const titulo = nombreAutor
-          ? `Rechazado por ${nombreAutor}, motivo:`
-          : 'Comentarios / Motivo del Rechazo';
+        ? `Rechazado por ${nombreAutor}, motivo:`
+        : 'Comentarios / Motivo del Rechazo'
 
       html += `
               <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
@@ -429,9 +429,7 @@ function generarComentariosHtml(data) {
 
       // BLOQUE 2: OBSERVACIÓN
     } else if (data.TipoComentarioAdmin === 'Observacion') {
-      const titulo = nombreAutor
-          ? `Observación de ${nombreAutor}:`
-          : 'Observación';
+      const titulo = nombreAutor ? `Observación de ${nombreAutor}:` : 'Observación'
 
       html += `
               <div class="mb-6 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
@@ -441,9 +439,7 @@ function generarComentariosHtml(data) {
 
       // BLOQUE 3: CANCELACIÓN (Aquí es donde tenías el problema visual)
     } else if (data.TipoComentarioAdmin === 'Cancelacion') {
-      const titulo = nombreAutor
-          ? `Cancelado por ${nombreAutor}, motivo:`
-          : 'Motivo de Cancelación';
+      const titulo = nombreAutor ? `Cancelado por ${nombreAutor}, motivo:` : 'Motivo de Cancelación'
 
       html += `
               <div class="mb-6 p-4 border rounded-lg bg-red-50 border-red-200">
@@ -502,6 +498,59 @@ function generarProductosServiciosHTML(data) {
             </div>
         `
   return html
+}
+
+/**
+ * Genera array para paginación estilo Google con botones de navegación
+ * @param {number} currentPage - Página actual (1-indexed)
+ * @param {number} totalPages - Total de páginas
+ * @param {number} maxVisible - Máximo números visibles (default 7)
+ * @returns {Array} Array con objetos: {type: 'number'|'first'|'prev'|'next'|'last'|'...', value: number|null, active: boolean}
+ */
+function generatePaginationNumbers(currentPage, totalPages, maxVisible = 7) {
+  if (totalPages <= 1) return []
+
+  const pages = []
+
+  if (totalPages <= maxVisible) {
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push({ type: 'number', value: i, active: i === currentPage })
+    }
+    return pages
+  }
+
+  const half = Math.floor(maxVisible / 2)
+  let start = Math.max(2, currentPage - half)
+  let end = Math.min(totalPages - 1, currentPage + half)
+
+  if (currentPage <= half + 1) {
+    start = 2
+    end = maxVisible - 1
+  }
+  if (currentPage > totalPages - half - 1) {
+    start = totalPages - maxVisible + 2
+    end = totalPages - 1
+  }
+
+  pages.push({ type: 'first', value: 1 })
+  pages.push({ type: 'prev', value: currentPage > 1 ? currentPage - 1 : null })
+
+  pages.push({ type: 'number', value: 1, active: currentPage === 1 })
+
+  if (start > 2) pages.push({ type: '...' })
+
+  for (let i = start; i <= end; i++) {
+    pages.push({ type: 'number', value: i, active: i === currentPage })
+  }
+
+  if (end < totalPages - 1) pages.push({ type: '...' })
+
+  pages.push({ type: 'number', value: totalPages, active: currentPage === totalPages })
+
+  pages.push({ type: 'next', value: currentPage < totalPages ? currentPage + 1 : null })
+  pages.push({ type: 'last', value: totalPages })
+
+  return pages
 }
 
 /**
@@ -582,15 +631,58 @@ async function createPaginatedTable(config) {
     paginacion.style.justifyContent = 'center'
     paginacion.style.gap = '0.5rem'
 
-    for (let i = 1; i <= totalPages; i++) {
+    const pageData = generatePaginationNumbers(currentPage, totalPages, 7)
+
+    pageData.forEach((item) => {
       const button = document.createElement('button')
-      button.textContent = i
-      button.className = `px-3 py-1 border rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-black'}`
-      button.addEventListener('click', () => {
-        showPage(i, getFilteredData())
-      })
+
+      switch (item.type) {
+        case 'first':
+          button.innerHTML = '&laquo;'
+          button.title = 'Primera página'
+          button.disabled = currentPage === 1
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (!button.disabled) button.onclick = () => showPage(1, getFilteredData())
+          break
+        case 'prev':
+          button.innerHTML = '&lsaquo;'
+          button.title = 'Página anterior'
+          button.disabled = !item.value
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (item.value) button.onclick = () => showPage(item.value, getFilteredData())
+          break
+        case 'next':
+          button.innerHTML = '&rsaquo;'
+          button.title = 'Página siguiente'
+          button.disabled = !item.value
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (item.value) button.onclick = () => showPage(item.value, getFilteredData())
+          break
+        case 'last':
+          button.innerHTML = '&raquo;'
+          button.title = 'Última página'
+          button.disabled = currentPage === totalPages
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (!button.disabled) button.onclick = () => showPage(totalPages, getFilteredData())
+          break
+        case '...':
+          button.textContent = '...'
+          button.className = 'px-2 text-gray-400 cursor-default'
+          button.disabled = true
+          break
+        case 'number':
+          button.textContent = item.value
+          button.className = `px-3 py-1 border rounded ${item.active ? 'bg-blue-500 text-white' : 'bg-white text-black hover:bg-gray-100'}`
+          button.onclick = () => showPage(item.value, getFilteredData())
+          break
+      }
+
       paginacion.appendChild(button)
-    }
+    })
   }
 
   function showPage(page, filteredData) {
@@ -925,97 +1017,116 @@ function getStatusSVG(status) {
   return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
 }
 function getMetodoPago(metodo) {
-    switch (metodo){
-      case '0':
-        return 'Contado'
-      case '1':
-        return 'Credito'
-      default:
-        return 'No asignado'
-    }
+  switch (metodo) {
+    case '0':
+      return 'Contado'
+    case '1':
+      return 'Credito'
+    default:
+      return 'No asignado'
+  }
 }
 
 //*** Función del manejador de archivos (mostrar archivos adjuntos)  ***//
 
 function generarSeccionAdjuntos(data) {
-  const sol = data.solicitud || data;
-  const ordenObj = data.OrdenCompra || data.orden_compra || data.orden || {};
-  const cotizacionObj = data.cotizacion || {};
-  const folio = sol.No_Folio || data.No_Folio || data.ID_Solicitud;
-  const cotizacionFile = cotizacionObj.Cotizacion_Files || data.Cotizacion_Files;
-  const comprobanteFile = ordenObj.File_Comprobante || data.File_Comprobante || ordenObj.comprobante || data.comprobante;
-  const facturaFile = ordenObj.File_Factura || data.File_Factura || ordenObj.factura || data.factura;
-  const idSolicitud = sol.ID_Solicitud || data.ID_Solicitud;
+  const sol = data.solicitud || data
+  const ordenObj = data.OrdenCompra || data.orden_compra || data.orden || {}
+  const cotizacionObj = data.cotizacion || {}
+  const folio = sol.No_Folio || data.No_Folio || data.ID_Solicitud
+  const cotizacionFile = cotizacionObj.Cotizacion_Files || data.Cotizacion_Files
+  const comprobanteFile =
+    ordenObj.File_Comprobante || data.File_Comprobante || ordenObj.comprobante || data.comprobante
+  const facturaFile = ordenObj.File_Factura || data.File_Factura || ordenObj.factura || data.factura
+  const idSolicitud = sol.ID_Solicitud || data.ID_Solicitud
 
   // VALIDACIÓN UNIVERSAL:
   // ¿El objeto de la orden de compra tiene contenido real?
   // Si tiene llaves (keys), significa que existe en la BD. Si no, es un objeto vacío {}.
-  const existeOrden = (ordenObj && Object.keys(ordenObj).length > 0);
+  const existeOrden = ordenObj && Object.keys(ordenObj).length > 0
 
   return `
     <div class="mt-6">
         <h4 class="text-md font-bold mb-3 text-gray-700">Adjuntos</h4>
         <div class="flex flex-col space-y-2 mb-6 p-4 border rounded-lg bg-gray-50 text-sm text-left">
             
-            ${ /* 1. REQUISICIÓN (SOLICITUD) */
-      folio ? `
+            ${
+              /* 1. REQUISICIÓN (SOLICITUD) */
+              folio
+                ? `
             <div>
                 <strong>Solicitud:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=pdf_solicitudes/Requisicion-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
                     Requisicion-${folio}.pdf
                 </a>
-            </div>` : ''
-  }
+            </div>`
+                : ''
+            }
 
-            ${ /* 2. COTIZACIÓN */
-      cotizacionFile ? `
+            ${
+              /* 2. COTIZACIÓN */
+              cotizacionFile
+                ? `
             <div>
                 <strong>Cotizacion:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=cotizaciones/${sol.Fecha ? sol.Fecha.split(' ')[0] : data.Fecha}/${cotizacionFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
                     ${cotizacionFile}
                 </a>
-            </div>` : '<div class="text-gray-400"><strong>Cotizacion:</strong> No adjuntada</div>'
-  }
+            </div>`
+                : '<div class="text-gray-400"><strong>Cotizacion:</strong> No adjuntada</div>'
+            }
 
-            ${ /* 3. ORDEN DE COMPRA (Se oculta si no existe la orden en BD) */
-      (folio && existeOrden) ? `
+            ${
+              /* 3. ORDEN DE COMPRA (Se oculta si no existe la orden en BD) */
+              folio && existeOrden
+                ? `
             <div>
                 <strong>Orden de Compra:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=pdf_ordenes/OrdenCompra-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
                     OrdenCompra-${folio}.pdf
                 </a>
-            </div>` : ''
-  }
+            </div>`
+                : ''
+            }
 
-            ${ /* 4. REQUISICIÓN DE PAGO (Se oculta si no existe la orden en BD) */
-      (idSolicitud && existeOrden) ? `
+            ${
+              /* 4. REQUISICIÓN DE PAGO (Se oculta si no existe la orden en BD) */
+              idSolicitud && existeOrden
+                ? `
             <div>
                 <strong>Requisición de Pago:</strong> 
                 <a href="${BASE_URL}api/requisicionpago/pdf/${idSolicitud}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
                     RequisicionPago-${folio}.pdf
                 </a>
-            </div>` : ''
-  }
+            </div>`
+                : ''
+            }
 
-            ${ /* 5. FICHA DE PAGO */
-      comprobanteFile ? `
+            ${
+              /* 5. FICHA DE PAGO */
+              comprobanteFile
+                ? `
             <div>
                 <strong>Ficha de pago:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=comprobantes/${comprobanteFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
                     ${comprobanteFile}
                 </a>
-            </div>` : '<div class="text-gray-400"><strong>Ficha de pago:</strong> No adjuntada</div>'
-  }
+            </div>`
+                : '<div class="text-gray-400"><strong>Ficha de pago:</strong> No adjuntada</div>'
+            }
 
-            ${ /* 6. FACTURA */
-      facturaFile ? `
+            ${
+              /* 6. FACTURA */
+              facturaFile
+                ? `
             <div>
                 <strong>Factura:</strong> 
                 <a href="${BASE_URL}api/storage/serve?path=facturas/${facturaFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
                     ${facturaFile}
                 </a>
-            </div>` : '<div class="text-gray-400"><strong>Factura:</strong> No adjuntada</div>'
-  }
+            </div>`
+                : '<div class="text-gray-400"><strong>Factura:</strong> No adjuntada</div>'
+            }
 
         </div>
         
@@ -1025,5 +1136,5 @@ function generarSeccionAdjuntos(data) {
             </a>
         </div>
     </div>
-    `;
+    `
 }

@@ -19,78 +19,80 @@ function Pagos() {
 
     get totalSeleccionado() {
       // 1. Detectamos qué lista estamos viendo
-      const listaActual = this.screen === 'contado' ? this.ordenesContado : this.ordenesCredito;
+      const listaActual = this.screen === 'contado' ? this.ordenesContado : this.ordenesCredito
 
-      if (!listaActual || listaActual.length === 0) return 0;
+      if (!listaActual || listaActual.length === 0) return 0
 
       // 2. Filtramos solo las órdenes que están en 'selectedOrdenes'
-      const ordenesSeleccionadas = listaActual.filter(o => this.selectedOrdenes.includes(o.ID_Solicitud));
+      const ordenesSeleccionadas = listaActual.filter((o) =>
+        this.selectedOrdenes.includes(o.ID_Solicitud),
+      )
 
       // 3. Sumamos los totales (asegurando que sea número)
       const suma = ordenesSeleccionadas.reduce((acumulado, orden) => {
-        return acumulado + parseFloat(orden.Total || 0);
-      }, 0);
+        return acumulado + parseFloat(orden.Total || 0)
+      }, 0)
 
-      return suma;
+      return suma
     },
 
     async cargardatos() {
-      this.loading = true;
-      this.selectedOrdenes = [];
+      this.loading = true
+      this.selectedOrdenes = []
       try {
-        const data = await SendDataEnd('api/ordenes-programar');
+        const data = await SendDataEnd('api/ordenes-programar')
 
         if (!data || data.length === 0) {
-          this.ordenesContado = [];
-          this.ordenesCredito = [];
-          return;
+          this.ordenesContado = []
+          this.ordenesCredito = []
+          return
         }
 
         // --- PRE-PROCESAMOS TODOS LOS DATOS PARA ASIGNAR LA FECHA ---
-        const datosProcesados = data.map(orden => {
+        const datosProcesados = data.map((orden) => {
           return {
             ...orden,
             // Prioridad: FechaRefPago -> FechaOrden -> Fecha
-            FechaAprobacion: orden.FechaRefPago || orden.FechaOrden || orden.Fecha
-          };
-        });
+            FechaAprobacion: orden.FechaRefPago || orden.FechaOrden || orden.Fecha,
+          }
+        })
 
         // 1. Filtrar Contado usando los datos ya procesados
-        this.ordenesContado = datosProcesados.filter((o) => o.MetodoPago == '0');
+        this.ordenesContado = datosProcesados.filter((o) => o.MetodoPago == '0')
 
         // 2. Filtrar y Procesar Crédito
-        const rawCredito = datosProcesados.filter((o) => o.MetodoPago == '1');
+        const rawCredito = datosProcesados.filter((o) => o.MetodoPago == '1')
 
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
+        const hoy = new Date()
+        hoy.setHours(0, 0, 0, 0)
 
-        this.ordenesCredito = rawCredito.map(orden => {
-          let claseColor = 'hover:bg-gray-50 transition';
-          let diasRestantes = 9999;
+        this.ordenesCredito = rawCredito.map((orden) => {
+          let claseColor = 'hover:bg-gray-50 transition'
+          let diasRestantes = 9999
 
           // Usamos la variable que acabamos de crear arriba
           if (orden.FechaAprobacion) {
-            const fechaSimple = orden.FechaAprobacion.split(" ")[0];
-            const partes = fechaSimple.split("-");
+            const fechaSimple = orden.FechaAprobacion.split(' ')[0]
+            const partes = fechaSimple.split('-')
 
             if (partes.length === 3) {
-              const anio = parseInt(partes[0]);
-              const mes = parseInt(partes[1]) - 1;
-              const dia = parseInt(partes[2]);
+              const anio = parseInt(partes[0])
+              const mes = parseInt(partes[1]) - 1
+              const dia = parseInt(partes[2])
 
-              const fechaVencimiento = new Date(anio, mes, dia);
-              const diasCredito = parseInt(orden.Dias_Credito) || 0;
-              fechaVencimiento.setDate(fechaVencimiento.getDate() + diasCredito);
+              const fechaVencimiento = new Date(anio, mes, dia)
+              const diasCredito = parseInt(orden.Dias_Credito) || 0
+              fechaVencimiento.setDate(fechaVencimiento.getDate() + diasCredito)
 
-              const diffTime = fechaVencimiento.getTime() - hoy.getTime();
-              diasRestantes = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              const diffTime = fechaVencimiento.getTime() - hoy.getTime()
+              diasRestantes = Math.floor(diffTime / (1000 * 60 * 60 * 24))
 
               if (diasRestantes < 0) {
-                claseColor = 'bg-gray-800 text-white hover:bg-gray-700 transition';
+                claseColor = 'bg-gray-800 text-white hover:bg-gray-700 transition'
               } else if (diasRestantes < 5) {
-                claseColor = 'bg-red-100 hover:bg-red-200 transition';
+                claseColor = 'bg-red-100 hover:bg-red-200 transition'
               } else if (diasRestantes < 15) {
-                claseColor = 'bg-yellow-100 hover:bg-yellow-200 transition';
+                claseColor = 'bg-yellow-100 hover:bg-yellow-200 transition'
               }
             }
           }
@@ -98,199 +100,240 @@ function Pagos() {
           return {
             ...orden,
             claseColor: claseColor,
-            _sortValue: diasRestantes
-          };
-        });
+            _sortValue: diasRestantes,
+          }
+        })
 
         // 3. ORDENAR Crédito
-        this.ordenesCredito.sort((a, b) => a._sortValue - b._sortValue);
+        this.ordenesCredito.sort((a, b) => a._sortValue - b._sortValue)
 
-        this.pageContado = 1;
-        this.pageCredito = 1;
-
+        this.pageContado = 1
+        this.pageCredito = 1
       } catch (error) {
-        console.error('Error al cargar las órdenes:', error);
-        mostrarNotificacion('Error de conexión.', 'error');
-        this.ordenesContado = [];
-        this.ordenesCredito = [];
+        console.error('Error al cargar las órdenes:', error)
+        mostrarNotificacion('Error de conexión.', 'error')
+        this.ordenesContado = []
+        this.ordenesCredito = []
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
 
     // --- LÓGICA DE PAGINACIÓN (COMPUTADOS) ---
     get paginatedContado() {
-      if (!this.ordenesContado || !Array.isArray(this.ordenesContado) || this.ordenesContado.length === 0) return [];
-      const start = (this.pageContado - 1) * this.itemsPerPage;
-      return this.ordenesContado.slice(start, start + this.itemsPerPage);
+      if (
+        !this.ordenesContado ||
+        !Array.isArray(this.ordenesContado) ||
+        this.ordenesContado.length === 0
+      )
+        return []
+      const start = (this.pageContado - 1) * this.itemsPerPage
+      return this.ordenesContado.slice(start, start + this.itemsPerPage)
     },
 
     get paginatedCredito() {
-      if (!this.ordenesCredito || !Array.isArray(this.ordenesCredito) || this.ordenesCredito.length === 0) return [];
-      const start = (this.pageCredito - 1) * this.itemsPerPage;
-      return this.ordenesCredito.slice(start, start + this.itemsPerPage);
+      if (
+        !this.ordenesCredito ||
+        !Array.isArray(this.ordenesCredito) ||
+        this.ordenesCredito.length === 0
+      )
+        return []
+      const start = (this.pageCredito - 1) * this.itemsPerPage
+      return this.ordenesCredito.slice(start, start + this.itemsPerPage)
     },
 
     get totalPagesContado() {
-      return Math.ceil(this.ordenesContado.length / this.itemsPerPage) || 1;
+      return Math.ceil(this.ordenesContado.length / this.itemsPerPage) || 1
     },
 
     get totalPagesCredito() {
-      return Math.ceil(this.ordenesCredito.length / this.itemsPerPage) || 1;
+      return Math.ceil(this.ordenesCredito.length / this.itemsPerPage) || 1
+    },
+
+    get pageNumbersContado() {
+      return generatePaginationNumbers(this.pageContado, this.totalPagesContado, 7)
+    },
+
+    get pageNumbersCredito() {
+      return generatePaginationNumbers(this.pageCredito, this.totalPagesCredito, 7)
+    },
+
+    goToPageContado(page) {
+      if (page < 1 || page > this.totalPagesContado) return
+      this.pageContado = page
+    },
+
+    goToPageCredito(page) {
+      if (page < 1 || page > this.totalPagesCredito) return
+      this.pageCredito = page
+    },
+
+    firstPageContado() {
+      this.goToPageContado(1)
+    },
+    lastPageContado() {
+      this.goToPageContado(this.totalPagesContado)
+    },
+    firstPageCredito() {
+      this.goToPageCredito(1)
+    },
+    lastPageCredito() {
+      this.goToPageCredito(this.totalPagesCredito)
     },
 
     changePage(type, direction) {
       if (type === 'contado') {
-        if (direction === 'next' && this.pageContado < this.totalPagesContado) this.pageContado++;
-        if (direction === 'prev' && this.pageContado > 1) this.pageContado--;
+        if (direction === 'next' && this.pageContado < this.totalPagesContado) this.pageContado++
+        if (direction === 'prev' && this.pageContado > 1) this.pageContado--
       } else {
-        if (direction === 'next' && this.pageCredito < this.totalPagesCredito) this.pageCredito++;
-        if (direction === 'prev' && this.pageCredito > 1) this.pageCredito--;
+        if (direction === 'next' && this.pageCredito < this.totalPagesCredito) this.pageCredito++
+        if (direction === 'prev' && this.pageCredito > 1) this.pageCredito--
       }
     },
 
     toggleSelectAll(event, type) {
       // para obtener SOLO los 10 elementos visibles.
-      const list = type === 'contado' ? this.paginatedContado : this.paginatedCredito;
+      const list = type === 'contado' ? this.paginatedContado : this.paginatedCredito
 
       // Obtenemos los IDs
-      const pageIds = list.map((o) => o.ID_Solicitud);
+      const pageIds = list.map((o) => o.ID_Solicitud)
 
       if (event.target.checked) {
         // Agregamos los IDs
-        this.selectedOrdenes = [...new Set([...this.selectedOrdenes, ...pageIds])];
+        this.selectedOrdenes = [...new Set([...this.selectedOrdenes, ...pageIds])]
       } else {
         // Removemos los IDs
-        this.selectedOrdenes = this.selectedOrdenes.filter((id) => !pageIds.includes(id));
+        this.selectedOrdenes = this.selectedOrdenes.filter((id) => !pageIds.includes(id))
       }
     },
 
     // Agrega esto dentro del objeto Pagos()
     isPageSelected(type) {
-      const list = type === 'contado' ? this.paginatedContado : this.paginatedCredito;
-      if (list.length === 0) return false;
+      const list = type === 'contado' ? this.paginatedContado : this.paginatedCredito
+      if (list.length === 0) return false
       // Verifica si TODOS los elementos visibles están en la lista de seleccionados
-      return list.every(o => this.selectedOrdenes.includes(o.ID_Solicitud));
+      return list.every((o) => this.selectedOrdenes.includes(o.ID_Solicitud))
     },
 
     async programarPago() {
       if (this.selectedOrdenes.length === 0) {
-        mostrarNotificacion('Debe seleccionar al menos una orden para programar.', 'warning');
-        return;
+        mostrarNotificacion('Debe seleccionar al menos una orden para programar.', 'warning')
+        return
       }
 
       const confirmacion = await Confirmar(
-          'Programar Pagos',
-          `¿Está seguro de que desea programar ${this.selectedOrdenes.length} pago(s)?`
-      );
+        'Programar Pagos',
+        `¿Está seguro de que desea programar ${this.selectedOrdenes.length} pago(s)?`,
+      )
 
-      if (!confirmacion) return;
+      if (!confirmacion) return
 
       try {
         const result = await SendDataEnd('api/orden/programar-pagos', {
           method: 'POST',
           body: { ids: this.selectedOrdenes },
-        });
+        })
 
         if (result.success) {
-          mostrarNotificacion(result.message, 'success');
-          await this.cargardatos();
+          mostrarNotificacion(result.message, 'success')
+          await this.cargardatos()
         } else {
-          mostrarNotificacion(result.message || 'No se pudieron programar los pagos.', 'error');
+          mostrarNotificacion(result.message || 'No se pudieron programar los pagos.', 'error')
         }
       } catch (error) {
-        console.error('Error al programar pagos:', error);
-        mostrarNotificacion('Ocurrió un error de red.', 'error');
+        console.error('Error al programar pagos:', error)
+        mostrarNotificacion('Ocurrió un error de red.', 'error')
       }
     },
 
     mostrarDetalle(id, metodoPago) {
-      this.loadingDetalle = true;
-      this.previousScreen = metodoPago == '0' ? 'contado' : 'credito';
-      this.screen = 'detalle';
+      this.loadingDetalle = true
+      this.previousScreen = metodoPago == '0' ? 'contado' : 'credito'
+      this.screen = 'detalle'
 
       SendDataEnd(`api/orden-compra/details/${id}`)
-          .then((data) => {
-            this.detalleOrden = data;
-            this.loadingDetalle = false;
-          })
-          .catch((error) => {
-            console.error('Error al cargar detalle:', error);
-            mostrarNotificacion('No se pudo cargar el detalle.', 'error');
-            this.loadingDetalle = false;
-            this.screen = this.previousScreen;
-          });
+        .then((data) => {
+          this.detalleOrden = data
+          this.loadingDetalle = false
+        })
+        .catch((error) => {
+          console.error('Error al cargar detalle:', error)
+          mostrarNotificacion('No se pudo cargar el detalle.', 'error')
+          this.loadingDetalle = false
+          this.screen = this.previousScreen
+        })
     },
 
     async volverATabla() {
-      this.screen = this.previousScreen;
-      this.detalleOrden = null;
+      this.screen = this.previousScreen
+      this.detalleOrden = null
       // Agregamos esto para refrescar la lista y que desaparezca lo cancelado
-      await this.cargardatos();
+      await this.cargardatos()
     },
 
     formatCurrency(value) {
-      if (value === null || isNaN(value)) return 'N/A';
-      return parseFloat(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+      if (value === null || isNaN(value)) return 'N/A'
+      return parseFloat(value).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
     },
 
     formatDate(dateString) {
-      if (!dateString) return '-';
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '-';
+      if (!dateString) return '-'
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return '-'
       return date.toLocaleDateString('es-MX', {
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit'
-      });
+        day: '2-digit',
+      })
     },
 
     // --- AGREGADO: ESTO FALTABA PARA QUE SE VIERAN LOS DETALLES ---
     generarDetalleHtml() {
-      if (!this.detalleOrden) return '';
+      if (!this.detalleOrden) return ''
 
-      const data = this.detalleOrden;
-      const prov = data.proveedor || {};
+      const data = this.detalleOrden
+      const prov = data.proveedor || {}
 
       // Formateador
-      const format = (val) => parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+      const format = (val) =>
+        parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 
-      const totalFormateado = format(data.cotizacion?.Total);
-      const metodoPagoTexto = data.MetodoPago == 0 ? 'Efectivo' : 'Crédito';
+      const totalFormateado = format(data.cotizacion?.Total)
+      const metodoPagoTexto = data.MetodoPago == 0 ? 'Efectivo' : 'Crédito'
 
       // DETECTAR IVA (Soporta 1, 't', true)
-      const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
-      const isServicio = data.Tipo == 2;
+      const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true
+      const isServicio = data.Tipo == 2
 
-      let productosHtml = '';
+      let productosHtml = ''
       if (data.productos && data.productos.length > 0) {
         data.productos.forEach((p) => {
-          const cantidad = isServicio ? 1 : (parseFloat(p.Cantidad) || 0);
-          const importeBase = parseFloat(p.Importe) || 0;
+          const cantidad = isServicio ? 1 : parseFloat(p.Cantidad) || 0
+          const importeBase = parseFloat(p.Importe) || 0
 
-          const subtotalFila = cantidad * importeBase;
-          const ivaFila = tieneIVA ? (subtotalFila * 0.16) : 0;
-          const totalFila = subtotalFila + ivaFila;
+          const subtotalFila = cantidad * importeBase
+          const ivaFila = tieneIVA ? subtotalFila * 0.16 : 0
+          const totalFila = subtotalFila + ivaFila
 
           productosHtml += `
             <tr class="hover:bg-gray-50">
-                <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? (p.Codigo || '') : 'N/A'}</td>
+                <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? p.Codigo || '' : 'N/A'}</td>
                 <td class="py-2 px-4 border-t text-sm text-gray-900">${p.Nombre}</td>
                 <td class="py-2 px-4 border-t text-right text-sm">${cantidad}</td>
                 <td class="py-2 px-4 border-t text-right text-sm">${format(importeBase)}</td>
                 <td class="py-2 px-4 border-t text-right text-sm">${format(ivaFila)}</td>
                 <td class="py-2 px-4 border-t text-right text-sm font-bold">${format(totalFila)}</td>
-            </tr>`;
-        });
+            </tr>`
+        })
       } else {
-        productosHtml = `<tr><td colspan="6" class="text-center py-3 text-gray-500">No hay productos en esta orden.</td></tr>`;
+        productosHtml = `<tr><td colspan="6" class="text-center py-3 text-gray-500">No hay productos en esta orden.</td></tr>`
       }
 
-      let proveedorCreditoHtml = '';
+      let proveedorCreditoHtml = ''
       if (data.MetodoPago == 1) {
         proveedorCreditoHtml = `
             <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
-            <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${format(prov.Monto_Credito)}</div>`;
+            <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${format(prov.Monto_Credito)}</div>`
       }
 
       // Generar el HTML completo
@@ -328,13 +371,13 @@ function Pagos() {
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">${productosHtml}</tbody>
             </table>
-        </div>`;
+        </div>`
 
       // Carga la sección de adjuntos
       if (typeof generarSeccionAdjuntos === 'function') {
         // Aseguramos que data tenga ID_Solicitud para que el link funcione
-        if(!data.ID_Solicitud && data.ID_Orden) data.ID_Solicitud = data.ID_Orden; // Fallback por si acaso
-        html += generarSeccionAdjuntos(data);
+        if (!data.ID_Solicitud && data.ID_Orden) data.ID_Solicitud = data.ID_Orden // Fallback por si acaso
+        html += generarSeccionAdjuntos(data)
       }
 
       html += `
@@ -344,11 +387,11 @@ function Pagos() {
                 Rechazar / Cancelar Pago
             </button>
         </div>
-      `;
+      `
 
-      return html;
-    }
-  };
+      return html
+    },
+  }
 }
 
 /**
@@ -360,6 +403,8 @@ function ListaPagos() {
     pagos: [],
     loading: true,
     filtroMetodoPago: 'todos',
+    currentPage: 1,
+    rowsPerPage: 10,
 
     get pagosFiltrados() {
       if (this.filtroMetodoPago === 'todos') {
@@ -368,15 +413,50 @@ function ListaPagos() {
       return this.pagos.filter((p) => p.MetodoPago === this.filtroMetodoPago)
     },
 
+    get totalPages() {
+      return Math.ceil(this.pagosFiltrados.length / this.rowsPerPage) || 1
+    },
+
+    get paginatedPagos() {
+      const start = (this.currentPage - 1) * this.rowsPerPage
+      return this.pagosFiltrados.slice(start, start + this.rowsPerPage)
+    },
+
+    get pageNumbers() {
+      return generatePaginationNumbers(this.currentPage, this.totalPages, 7)
+    },
+
+    goToPage(page) {
+      if (page < 1 || page > this.totalPages) return
+      this.currentPage = page
+    },
+
+    prevPage() {
+      this.goToPage(this.currentPage - 1)
+    },
+
+    nextPage() {
+      this.goToPage(this.currentPage + 1)
+    },
+
+    firstPage() {
+      this.goToPage(1)
+    },
+
+    lastPage() {
+      this.goToPage(this.totalPages)
+    },
+
     async init() {
       this.loading = true
-      this.pagos = [];
-      const root = this.$el;
+      this.pagos = []
+      this.currentPage = 1
+      const root = this.$el
       try {
-        const url = `api/pagos/programados?t=${new Date().getTime()}`;
-        const listpagos = await SendDataEnd(url);
+        const url = `api/pagos/programados?t=${new Date().getTime()}`
+        const listpagos = await SendDataEnd(url)
 
-        if (!document.body.contains(root)) return;
+        if (!document.body.contains(root)) return
 
         if (!Array.isArray(listpagos) || listpagos.length === 0) {
           this.pagos = []
@@ -400,15 +480,15 @@ function ListaPagos() {
     },
 
     formatDate(dateString) {
-      if (!dateString) return 'N/A';
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'N/A';
+      if (!dateString) return 'N/A'
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) return 'N/A'
 
       return date.toLocaleDateString('es-MX', {
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit'
-      });
+        day: '2-digit',
+      })
     },
 
     exportarExcel() {
@@ -422,8 +502,8 @@ function ListaPagos() {
 }
 
 function renderComprobanteUploader(idSolicitud) {
-  const container = document.getElementById('comprobante-uploader-container');
-  if (!container) return;
+  const container = document.getElementById('comprobante-uploader-container')
+  if (!container) return
 
   container.innerHTML = `
         <div id="file-preview-comprobante" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div> 
@@ -431,30 +511,30 @@ function renderComprobanteUploader(idSolicitud) {
         <button id="btn-upload-comprobante" onclick="document.getElementById('archivo-comprobante').click()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition"> 
             Subir Comprobante
         </button>
-    `;
+    `
 }
 
 function handleComprobanteFileSelect(input, idSolicitud) {
-  const file = input.files[0];
+  const file = input.files[0]
   if (!file) {
-    removeComprobanteFile(idSolicitud);
-    return;
+    removeComprobanteFile(idSolicitud)
+    return
   }
 
-  const previewContainer = document.getElementById('file-preview-comprobante');
-  const uploadButton = document.getElementById('btn-upload-comprobante');
+  const previewContainer = document.getElementById('file-preview-comprobante')
+  const uploadButton = document.getElementById('btn-upload-comprobante')
 
   // Simple file type icon logic
-  let icon = '📄';
+  let icon = '📄'
   if (file.type.startsWith('image/')) {
-    icon = '🖼️';
+    icon = '🖼️'
   } else if (file.type === 'application/pdf') {
-    icon = '📕';
+    icon = '📕'
   } else if (file.type === 'text/xml' || file.type === 'application/xml') {
-    icon = '🔗';
+    icon = '🔗'
   }
 
-  const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+  const fileSize = (file.size / 1024).toFixed(2) + ' KB'
 
   previewContainer.innerHTML = `
         <div class="flex items-center justify-between">
@@ -467,43 +547,43 @@ function handleComprobanteFileSelect(input, idSolicitud) {
             </div>
             <button onclick="removeComprobanteFile(${idSolicitud})" class="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button> 
         </div>
-    `;
-  previewContainer.classList.remove('hidden');
+    `
+  previewContainer.classList.remove('hidden')
 
-  uploadButton.innerText = 'Confirmar y Subir Comprobante';
-  uploadButton.onclick = () => uploadComprobante(idSolicitud);
+  uploadButton.innerText = 'Confirmar y Subir Comprobante'
+  uploadButton.onclick = () => uploadComprobante(idSolicitud)
 }
 
 function removeComprobanteFile(idSolicitud) {
-  const fileInput = document.getElementById('archivo-comprobante');
+  const fileInput = document.getElementById('archivo-comprobante')
   if (fileInput) {
-    fileInput.value = '';
+    fileInput.value = ''
   }
 
-  const previewContainer = document.getElementById('file-preview-comprobante');
+  const previewContainer = document.getElementById('file-preview-comprobante')
   if (previewContainer) {
-    previewContainer.innerHTML = '';
-    previewContainer.classList.add('hidden');
+    previewContainer.innerHTML = ''
+    previewContainer.classList.add('hidden')
   }
 
-  const uploadButton = document.getElementById('btn-upload-comprobante');
-  if(uploadButton) {
-    uploadButton.innerText = 'Subir Comprobante';
-    uploadButton.onclick = () => document.getElementById('archivo-comprobante').click();
+  const uploadButton = document.getElementById('btn-upload-comprobante')
+  if (uploadButton) {
+    uploadButton.innerText = 'Subir Comprobante'
+    uploadButton.onclick = () => document.getElementById('archivo-comprobante').click()
   }
 }
 
 async function uploadComprobante(idSolicitud) {
-  const fileInput = document.getElementById('archivo-comprobante');
-  const file = fileInput.files[0];
+  const fileInput = document.getElementById('archivo-comprobante')
+  const file = fileInput.files[0]
 
   if (!file) {
-    mostrarNotificacion('No se ha seleccionado ningún archivo.', 'warning');
-    return;
+    mostrarNotificacion('No se ha seleccionado ningún archivo.', 'warning')
+    return
   }
 
-  const previewContainer = document.getElementById('file-preview-comprobante');
-  const uploadButton = document.getElementById('btn-upload-comprobante');
+  const previewContainer = document.getElementById('file-preview-comprobante')
+  const uploadButton = document.getElementById('btn-upload-comprobante')
 
   previewContainer.innerHTML = `
         <div class="flex items-center justify-center gap-2">
@@ -513,69 +593,74 @@ async function uploadComprobante(idSolicitud) {
             </svg>
             <span class="text-sm text-gray-600">Subiendo comprobante...</span> 
         </div>
-    `;
-  uploadButton.disabled = true;
+    `
+  uploadButton.disabled = true
 
-  const formData = new FormData();
-  formData.append('ficha', file);
+  const formData = new FormData()
+  formData.append('ficha', file)
 
   try {
     const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
       method: 'POST',
       body: formData,
-    });
+    })
 
     if (result.success) {
-      mostrarNotificacion('Comprobante subido con éxito.', 'success');
-      removeComprobanteFile(idSolicitud);
+      mostrarNotificacion('Comprobante subido con éxito.', 'success')
+      removeComprobanteFile(idSolicitud)
 
       // Recargar la vista de detalles
-      await mostrarDetallePago(idSolicitud);
-
+      await mostrarDetallePago(idSolicitud)
     } else {
-      throw new Error(result.message || 'Error desconocido del servidor.');
+      throw new Error(result.message || 'Error desconocido del servidor.')
     }
   } catch (error) {
-    console.error('Error al subir comprobante:', error);
-    mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error');
-    handleComprobanteFileSelect(fileInput, idSolicitud);
+    console.error('Error al subir comprobante:', error)
+    mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error')
+    handleComprobanteFileSelect(fileInput, idSolicitud)
   } finally {
-    uploadButton.disabled = false;
+    uploadButton.disabled = false
   }
 }
 
 async function mostrarDetallePago(id) {
-  const divLista = document.getElementById('div-lista-pagos');
-  const divDetalle = document.getElementById('div-detalle-pago');
-  const contenedorDetalle = document.getElementById('contenido-detalle-pago');
+  const divLista = document.getElementById('div-lista-pagos')
+  const divDetalle = document.getElementById('div-detalle-pago')
+  const contenedorDetalle = document.getElementById('contenido-detalle-pago')
 
-  divLista.classList.add('hidden');
-  divDetalle.classList.remove('hidden');
+  divLista.classList.add('hidden')
+  divDetalle.classList.remove('hidden')
 
-  contenedorDetalle.innerHTML = `<p class="text-center text-gray-500 py-8">Cargando detalles...</p>`;
+  contenedorDetalle.innerHTML = `<p class="text-center text-gray-500 py-8">Cargando detalles...</p>`
 
   try {
-    const data = await SendDataEnd(`api/orden-compra/details/${id}`);
+    const data = await SendDataEnd(`api/orden-compra/details/${id}`)
 
-    if (!data) throw new Error("No se recibieron datos del servidor.");
+    if (!data) throw new Error('No se recibieron datos del servidor.')
 
-    const fechaAprobacion = (data.OrdenCompra && data.OrdenCompra.Fecha)
+    const fechaAprobacion =
+      data.OrdenCompra && data.OrdenCompra.Fecha
         ? new Date(data.OrdenCompra.Fecha).toLocaleDateString('es-MX')
-        : 'Pendiente';
+        : 'Pendiente'
 
-    const prov = data.proveedor || {};
+    const prov = data.proveedor || {}
 
-    const format = (val) => parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+    const format = (val) =>
+      parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 
-    const totalFormateado = format(data.cotizacion?.Total);
+    const totalFormateado = format(data.cotizacion?.Total)
 
     const metodoPagoTexto =
-        data.MetodoPago == 0 ? 'Contado' :
-            data.MetodoPago == 1 ? 'Crédito' :
-                data.MetodoPago == 9 ? 'En Espera' : 'N/A';
+      data.MetodoPago == 0
+        ? 'Contado'
+        : data.MetodoPago == 1
+          ? 'Crédito'
+          : data.MetodoPago == 9
+            ? 'En Espera'
+            : 'N/A'
 
-    const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
-    const isServicio = data.Tipo == 2;
+    const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true
+    const isServicio = data.Tipo == 2
 
     let html = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
@@ -594,15 +679,16 @@ async function mostrarDetallePago(id) {
                 <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
                 <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
                 <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
-                ${data.cuenta_details
-        ? `<div><strong>Cuenta seleccionada:</strong> ${data.cuenta_details.Cuenta}</div>`
-        : `<div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+                ${
+                  data.cuenta_details
+                    ? `<div><strong>Cuenta seleccionada:</strong> ${data.cuenta_details.Cuenta}</div>`
+                    : `<div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
            <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>`
-    }
+                }
                 <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
                 <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
-        prov.Monto_Credito ? format(prov.Monto_Credito) : 'N/A'
-    }</div>
+                  prov.Monto_Credito ? format(prov.Monto_Credito) : 'N/A'
+                }</div>
             </div>
 
             <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2">PRODUCTOS DE LA ORDEN</h3>
@@ -620,37 +706,37 @@ async function mostrarDetallePago(id) {
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-        `;
+        `
 
     if (data.productos && data.productos.length > 0) {
       data.productos.forEach((p) => {
-        const cantidad = isServicio ? 1 : (parseFloat(p.Cantidad) || 0);
-        const importeBase = parseFloat(p.Importe) || 0;
+        const cantidad = isServicio ? 1 : parseFloat(p.Cantidad) || 0
+        const importeBase = parseFloat(p.Importe) || 0
 
-        const subtotalFila = cantidad * importeBase;
-        const ivaFila = tieneIVA ? (subtotalFila * 0.16) : 0;
-        const totalFila = subtotalFila + ivaFila;
+        const subtotalFila = cantidad * importeBase
+        const ivaFila = tieneIVA ? subtotalFila * 0.16 : 0
+        const totalFila = subtotalFila + ivaFila
 
         html += `
                     <tr class="hover:bg-gray-50">
-                        <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? (p.Codigo || '') : 'N/A'}</td>
+                        <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? p.Codigo || '' : 'N/A'}</td>
                         <td class="py-2 px-4 border-t text-sm text-gray-900">${p.Nombre}</td>
                         <td class="py-2 px-4 border-t text-right text-sm">${cantidad}</td>
                         <td class="py-2 px-4 border-t text-right text-sm">${format(importeBase)}</td>
                         <td class="py-2 px-4 border-t text-right text-sm">${format(ivaFila)}</td>
                         <td class="py-2 px-4 border-t text-right text-sm font-bold text-gray-900">${format(totalFila)}</td>
                     </tr>
-                `;
-      });
+                `
+      })
     } else {
-      html += `<tr><td colspan="6" class="text-center py-3 text-gray-500">No hay productos en esta orden.</td></tr>`;
+      html += `<tr><td colspan="6" class="text-center py-3 text-gray-500">No hay productos en esta orden.</td></tr>`
     }
 
-    html += `</tbody></table></div>`;
+    html += `</tbody></table></div>`
 
     if (typeof generarSeccionAdjuntos === 'function') {
-      if(!data.ID_Solicitud && data.ID_Orden) data.ID_Solicitud = data.ID_Orden;
-      html += generarSeccionAdjuntos(data);
+      if (!data.ID_Solicitud && data.ID_Orden) data.ID_Solicitud = data.ID_Orden
+      html += generarSeccionAdjuntos(data)
     }
 
     html += `
@@ -668,75 +754,73 @@ async function mostrarDetallePago(id) {
                   </button>
               </div>
           </div>
-      `;
+      `
 
-    contenedorDetalle.innerHTML = html;
+    contenedorDetalle.innerHTML = html
 
-    renderComprobanteUploader(id);
-
+    renderComprobanteUploader(id)
   } catch (error) {
-    console.error('Error al cargar detalle:', error);
-    contenedorDetalle.innerHTML = `<p class="text-center text-red-500 py-8">Error al cargar los detalles: ${error.message}</p>`;
+    console.error('Error al cargar detalle:', error)
+    contenedorDetalle.innerHTML = `<p class="text-center text-red-500 py-8">Error al cargar los detalles: ${error.message}</p>`
   }
 }
 
 async function guardarEstadoPorPagar(idSolicitud) {
   // Verificación del comprobante
   try {
-    const orderDetails = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`);
+    const orderDetails = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`)
     if (!orderDetails || !orderDetails.OrdenCompra || !orderDetails.OrdenCompra.File_Comprobante) {
-      mostrarNotificacion('No se puede guardar. Primero debe subir el comprobante.', 'warning');
-      return;
+      mostrarNotificacion('No se puede guardar. Primero debe subir el comprobante.', 'warning')
+      return
     }
   } catch (error) {
-    console.error('Error al verificar comprobante:', error);
-    mostrarNotificacion('Error al verificar el estado del comprobante. Intente de nuevo.', 'error');
-    return;
+    console.error('Error al verificar comprobante:', error)
+    mostrarNotificacion('Error al verificar el estado del comprobante. Intente de nuevo.', 'error')
+    return
   }
 
   const confirmacion = await Confirmar(
-      'Guardar Estado',
-      '¿Está seguro de que desea cambiar el estado de esta solicitud a "Por Pagar"?'
-  );
+    'Guardar Estado',
+    '¿Está seguro de que desea cambiar el estado de esta solicitud a "Por Pagar"?',
+  )
 
-  if (!confirmacion) return;
+  if (!confirmacion) return
 
   try {
     const apiResult = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
       method: 'POST',
       body: { nuevoEstado: 'Por Pagar' },
-    });
+    })
 
     if (apiResult.success) {
-      mostrarNotificacion('Guardado con éxito.', 'success');
+      mostrarNotificacion('Guardado con éxito.', 'success')
 
-      regresarListaPagos();
+      regresarListaPagos()
       //Disparador para recarga de vista
-      window.dispatchEvent(new CustomEvent('reload-pagos'));
-
+      window.dispatchEvent(new CustomEvent('reload-pagos'))
     } else {
-      mostrarNotificacion(apiResult.message || 'No se pudo guardar.', 'error');
+      mostrarNotificacion(apiResult.message || 'No se pudo guardar.', 'error')
     }
   } catch (error) {
-    console.error('Error al guardar estado:', error);
-    mostrarNotificacion(`Ocurrió un error al intentar guardar: ${error.message}`, 'error');
+    console.error('Error al guardar estado:', error)
+    mostrarNotificacion(`Ocurrió un error al intentar guardar: ${error.message}`, 'error')
   }
 }
 
 function regresarListaPagos() {
-  const divLista = document.getElementById('div-lista-pagos');
-  const divDetalle = document.getElementById('div-detalle-pago');
-  const contenedor = document.getElementById('contenido-detalle-pago');
+  const divLista = document.getElementById('div-lista-pagos')
+  const divDetalle = document.getElementById('div-detalle-pago')
+  const contenedor = document.getElementById('contenido-detalle-pago')
 
-  contenedor.innerHTML = '';
+  contenedor.innerHTML = ''
 
-  divDetalle.classList.add('hidden');
-  divLista.classList.remove('hidden');
+  divDetalle.classList.add('hidden')
+  divLista.classList.remove('hidden')
 }
 
 function verRequisicionPago(id) {
-  const url = `${BASE_URL}api/requisicionpago/pdf/${id}`;
-  window.open(url, '_blank');
+  const url = `${BASE_URL}api/requisicionpago/pdf/${id}`
+  window.open(url, '_blank')
 }
 
 /**
@@ -744,85 +828,92 @@ function verRequisicionPago(id) {
  */
 
 async function initFichasPago() {
-  const tbodyContado = document.getElementById('body-contado');
-  const tbodyCredito = document.getElementById('body-credito');
+  const tbodyContado = document.getElementById('body-contado')
+  const tbodyCredito = document.getElementById('body-credito')
 
   // Referencias a los textos del contador en el menú
-  const badgeContado = document.getElementById('count-contado-fichas');
-  const badgeCredito = document.getElementById('count-credito-fichas');
+  const badgeContado = document.getElementById('count-contado-fichas')
+  const badgeCredito = document.getElementById('count-credito-fichas')
 
   // Estado inicial
-  if(badgeContado) badgeContado.textContent = 'Cargando...';
-  if(badgeCredito) badgeCredito.textContent = 'Cargando...';
+  if (badgeContado) badgeContado.textContent = 'Cargando...'
+  if (badgeCredito) badgeCredito.textContent = 'Cargando...'
 
-  tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>';
-  tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>';
+  tbodyContado.innerHTML =
+    '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
+  tbodyCredito.innerHTML =
+    '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
   // --- Funciones auxiliares conservadas ---
   function calcularFechaVencimiento(fechaStr, diasStr) {
-    if (!fechaStr) return new Date('2999-12-31');
-    const fechaSimple = fechaStr.split(' ')[0];
-    const partes = fechaSimple.split('-');
-    if (partes.length !== 3) return new Date('2999-12-31');
+    if (!fechaStr) return new Date('2999-12-31')
+    const fechaSimple = fechaStr.split(' ')[0]
+    const partes = fechaSimple.split('-')
+    if (partes.length !== 3) return new Date('2999-12-31')
 
-    const anio = parseInt(partes[0]);
-    const mes = parseInt(partes[1]) - 1;
-    const dia = parseInt(partes[2]);
+    const anio = parseInt(partes[0])
+    const mes = parseInt(partes[1]) - 1
+    const dia = parseInt(partes[2])
 
-    const fechaAprobacion = new Date(anio, mes, dia);
-    const diasCredito = parseInt(diasStr) || 0;
+    const fechaAprobacion = new Date(anio, mes, dia)
+    const diasCredito = parseInt(diasStr) || 0
 
-    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito);
-    return fechaAprobacion;
+    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito)
+    return fechaAprobacion
   }
 
   function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
-    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime();
-    const diasDiferencia = Math.floor(diffMs / 86400000);
+    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime()
+    const diasDiferencia = Math.floor(diffMs / 86400000)
 
-    if (diasDiferencia < 0) return 'bg-gray-900 text-white hover:bg-gray-800';
-    if (diasDiferencia < 5) return 'bg-red-100 text-red-800 hover:bg-red-200';
-    if (diasDiferencia < 15) return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-    return 'hover:bg-gray-50';
+    if (diasDiferencia < 0) return 'bg-gray-900 text-white hover:bg-gray-800'
+    if (diasDiferencia < 5) return 'bg-red-100 text-red-800 hover:bg-red-200'
+    if (diasDiferencia < 15) return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+    return 'hover:bg-gray-50'
   }
 
   try {
     // 1. PETICIÓN OPTIMIZADA (Una sola llamada)
-    const ordenes = await SendDataEnd('api/facturas-por-pagar');
+    const ordenes = await SendDataEnd('api/facturas-por-pagar')
 
     if (!ordenes || ordenes.length === 0) {
-      if(badgeContado) badgeContado.textContent = '0 pendientes';
-      if(badgeCredito) badgeCredito.textContent = '0 pendientes';
-      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>';
-      tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>';
-      return;
+      if (badgeContado) badgeContado.textContent = '0 pendientes'
+      if (badgeCredito) badgeCredito.textContent = '0 pendientes'
+      tbodyContado.innerHTML =
+        '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
+      tbodyCredito.innerHTML =
+        '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
+      return
     }
 
     // 2. Filtrado en memoria
-    let ordenesContado = ordenes.filter(o => o.MetodoPago == '0');
-    let ordenesCredito = ordenes.filter(o => o.MetodoPago == '1');
+    let ordenesContado = ordenes.filter((o) => o.MetodoPago == '0')
+    let ordenesCredito = ordenes.filter((o) => o.MetodoPago == '1')
 
     // Actualizar contenedores del menu
-    if(badgeContado) badgeContado.textContent = `${ordenesContado.length} pendientes`;
-    if(badgeCredito) badgeCredito.textContent = `${ordenesCredito.length} pendientes`;
+    if (badgeContado) badgeContado.textContent = `${ordenesContado.length} pendientes`
+    if (badgeCredito) badgeCredito.textContent = `${ordenesCredito.length} pendientes`
 
     // Ordenar Crédito por fecha
     ordenesCredito.sort((a, b) => {
-      const fechaA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.Dias_Credito);
-      const fechaB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.Dias_Credito);
-      return fechaA - fechaB;
-    });
+      const fechaA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.Dias_Credito)
+      const fechaB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.Dias_Credito)
+      return fechaA - fechaB
+    })
 
     // Limpiar tablas
-    tbodyContado.innerHTML = '';
-    tbodyCredito.innerHTML = '';
+    tbodyContado.innerHTML = ''
+    tbodyCredito.innerHTML = ''
 
     // --- RENDERIZADO TABLA CONTADO ---
     if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>';
+      tbodyContado.innerHTML =
+        '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>'
     } else {
       ordenesContado.forEach((det) => {
         // Nota: Usamos det.Total y det.RazonSocial directamente (ya no det.cotizacion.Total)
-        const total = det.Total ? parseFloat(det.Total).toLocaleString('es-MX', {style: 'currency', currency: 'MXN'}) : '-';
+        const total = det.Total
+          ? parseFloat(det.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+          : '-'
 
         const fila = `
           <tr class="hover:bg-gray-50 transition border-b">
@@ -838,31 +929,35 @@ async function initFichasPago() {
                 VER
               </button>
             </td>
-          </tr>`;
-        tbodyContado.insertAdjacentHTML('beforeend', fila);
-      });
+          </tr>`
+        tbodyContado.insertAdjacentHTML('beforeend', fila)
+      })
     }
 
     // --- RENDERIZADO TABLA CRÉDITO ---
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0)
 
     if (ordenesCredito.length === 0) {
-      tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>';
+      tbodyCredito.innerHTML =
+        '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>'
     } else {
       ordenesCredito.forEach((det) => {
-        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.Dias_Credito);
-        const claseFila = getClaseSemaforo(fechaVencimiento, hoy);
+        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.Dias_Credito)
+        const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
 
-        const diffTime = fechaVencimiento.getTime() - hoy.getTime();
-        const diffDays = Math.floor(diffTime / 86400000);
+        const diffTime = fechaVencimiento.getTime() - hoy.getTime()
+        const diffDays = Math.floor(diffTime / 86400000)
 
-        let diasTexto = '';
-        if (diffDays < 0) diasTexto = `<span class="font-bold">Vencido (${Math.abs(diffDays)} días)</span>`;
-        else if (diffDays === 0) diasTexto = `<span class="font-bold">Vence hoy</span>`;
-        else diasTexto = `${diffDays} días`;
+        let diasTexto = ''
+        if (diffDays < 0)
+          diasTexto = `<span class="font-bold">Vencido (${Math.abs(diffDays)} días)</span>`
+        else if (diffDays === 0) diasTexto = `<span class="font-bold">Vence hoy</span>`
+        else diasTexto = `${diffDays} días`
 
-        const total = det.Total ? parseFloat(det.Total).toLocaleString('es-MX', {style: 'currency', currency: 'MXN'}) : '-';
+        const total = det.Total
+          ? parseFloat(det.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+          : '-'
 
         const fila = `
           <tr class="${claseFila} transition border-b">
@@ -879,27 +974,28 @@ async function initFichasPago() {
                 VER
               </button>
             </td>
-          </tr>`;
-        tbodyCredito.insertAdjacentHTML('beforeend', fila);
-      });
+          </tr>`
+        tbodyCredito.insertAdjacentHTML('beforeend', fila)
+      })
     }
-
   } catch (error) {
-    console.error(error);
-    tbodyContado.innerHTML = '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>';
-    tbodyCredito.innerHTML = '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>';
+    console.error(error)
+    tbodyContado.innerHTML =
+      '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>'
+    tbodyCredito.innerHTML =
+      '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>'
   }
 }
 
 async function mostrarDetalleFicha(id, metodoPago) {
   const detalleDiv =
-      metodoPago == '0'
-          ? document.getElementById('detalle-contado')
-          : document.getElementById('detalle-credito')
+    metodoPago == '0'
+      ? document.getElementById('detalle-contado')
+      : document.getElementById('detalle-credito')
   const tablaDiv =
-      metodoPago == '0'
-          ? document.getElementById('tabla-contado')
-          : document.getElementById('tabla-credito')
+    metodoPago == '0'
+      ? document.getElementById('tabla-contado')
+      : document.getElementById('tabla-credito')
 
   tablaDiv.classList.add('hidden')
   detalleDiv.classList.remove('hidden')
@@ -912,22 +1008,23 @@ async function mostrarDetalleFicha(id, metodoPago) {
     const prov = data.proveedor || {}
 
     // Helper para moneda
-    const format = (val) => parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+    const format = (val) =>
+      parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 
-    const totalFormateado = format(data.cotizacion?.Total);
+    const totalFormateado = format(data.cotizacion?.Total)
 
     const metodoPagoTexto =
-        data.MetodoPago == 0
-            ? 'Efectivo'
-            : data.MetodoPago == 1
-                ? 'Crédito'
-                : data.MetodoPago == 9
-                    ? 'En Espera'
-                    : 'N/A'
+      data.MetodoPago == 0
+        ? 'Efectivo'
+        : data.MetodoPago == 1
+          ? 'Crédito'
+          : data.MetodoPago == 9
+            ? 'En Espera'
+            : 'N/A'
 
     // 1. DETECTAR IVA Y TIPO
-    const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
-    const isServicio = data.Tipo == 2;
+    const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true
+    const isServicio = data.Tipo == 2
 
     let html = `
       <div class="flex justify-between items-center mb-4">
@@ -954,8 +1051,8 @@ async function mostrarDetalleFicha(id, metodoPago) {
         <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
         <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
         <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
-        prov.Monto_Credito ? format(prov.Monto_Credito) : 'N/A'
-    }</div>
+          prov.Monto_Credito ? format(prov.Monto_Credito) : 'N/A'
+        }</div>
       </div>
 
       <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2">PRODUCTOS DE LA ORDEN</h3>
@@ -978,16 +1075,16 @@ async function mostrarDetalleFicha(id, metodoPago) {
     if (data.productos && data.productos.length > 0) {
       data.productos.forEach((p) => {
         // 2. CÁLCULOS POR FILA
-        const cantidad = isServicio ? 1 : (parseFloat(p.Cantidad) || 0);
-        const importeBase = parseFloat(p.Importe) || 0;
+        const cantidad = isServicio ? 1 : parseFloat(p.Cantidad) || 0
+        const importeBase = parseFloat(p.Importe) || 0
 
-        const subtotalFila = cantidad * importeBase;
-        const ivaFila = tieneIVA ? (subtotalFila * 0.16) : 0;
-        const totalFila = subtotalFila + ivaFila;
+        const subtotalFila = cantidad * importeBase
+        const ivaFila = tieneIVA ? subtotalFila * 0.16 : 0
+        const totalFila = subtotalFila + ivaFila
 
         html += `
             <tr class="hover:bg-gray-50">
-                <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? (p.Codigo || '') : 'N/A'}</td>
+                <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? p.Codigo || '' : 'N/A'}</td>
                 <td class="py-2 px-4 border-t text-sm text-gray-900">${p.Nombre}</td>
                 <td class="py-2 px-4 border-t text-right text-sm">${cantidad}</td>
                 <td class="py-2 px-4 border-t text-right text-sm">${format(importeBase)}</td>
@@ -1009,8 +1106,8 @@ async function mostrarDetalleFicha(id, metodoPago) {
     // Sección de Adjuntos
     if (typeof generarSeccionAdjuntos === 'function') {
       // Asegurar ID
-      if(!data.ID_Solicitud && data.ID_Orden) data.ID_Solicitud = data.ID_Orden;
-      html += generarSeccionAdjuntos(data);
+      if (!data.ID_Solicitud && data.ID_Orden) data.ID_Solicitud = data.ID_Orden
+      html += generarSeccionAdjuntos(data)
     }
 
     html += `
@@ -1023,70 +1120,76 @@ async function mostrarDetalleFicha(id, metodoPago) {
     `
 
     detalleDiv.innerHTML = html
-    renderFacturaUploader(id, metodoPago);
-
+    renderFacturaUploader(id, metodoPago)
   } catch (error) {
-    console.error('Error al cargar detalle:', error);
-    detalleDiv.innerHTML = `<p class="text-center text-red-500 py-8">Error al cargar los detalles: ${error.message}</p>`;
+    console.error('Error al cargar detalle:', error)
+    detalleDiv.innerHTML = `<p class="text-center text-red-500 py-8">Error al cargar los detalles: ${error.message}</p>`
   }
 }
 
 async function CerrarOrden(idSolicitud, metodoPago, callbackVolver, callbackRefrescar) {
   try {
-    const orderDetails = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`);
+    const orderDetails = await SendDataEnd(`api/orden-compra/details/${idSolicitud}`)
 
     if (!orderDetails || !orderDetails.OrdenCompra || !orderDetails.OrdenCompra.File_Factura) {
-      mostrarNotificacion('No se puede cerrar la requisición. Primero debe subir la factura.', 'warning');
-      return;
+      mostrarNotificacion(
+        'No se puede cerrar la requisición. Primero debe subir la factura.',
+        'warning',
+      )
+      return
     }
   } catch (error) {
-    console.error('Error al verificar la factura:', error);
-    mostrarNotificacion('Error al verificar el estado de la factura. Intente de nuevo.', 'error');
-    return;
+    console.error('Error al verificar la factura:', error)
+    mostrarNotificacion('Error al verificar el estado de la factura. Intente de nuevo.', 'error')
+    return
   }
 
   const confirmacion = await Confirmar(
-      'Cerrar Requisición',
-      '¿Está seguro de que desea cerrar esta requisición como "Pagada"? Esta acción no se puede deshacer.'
-  );
+    'Cerrar Requisición',
+    '¿Está seguro de que desea cerrar esta requisición como "Pagada"? Esta acción no se puede deshacer.',
+  )
 
   if (!confirmacion) {
-    return;
+    return
   }
 
   try {
     const apiResult = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
       method: 'POST',
       body: { nuevoEstado: 'Pagada' },
-    });
+    })
 
     if (apiResult.success) {
-      mostrarNotificacion('Requisición cerrada con éxito.', 'success');
+      mostrarNotificacion('Requisición cerrada con éxito.', 'success')
       if (typeof callbackVolver === 'function') {
-        callbackVolver(metodoPago);
+        callbackVolver(metodoPago)
       }
       if (typeof callbackRefrescar === 'function') {
-        callbackRefrescar();
+        callbackRefrescar()
       }
     } else {
-      const errorMessage = apiResult.messages?.error || apiResult.message || 'No se pudo cerrar la requisición.';
-      mostrarNotificacion(errorMessage, 'error');
+      const errorMessage =
+        apiResult.messages?.error || apiResult.message || 'No se pudo cerrar la requisición.'
+      mostrarNotificacion(errorMessage, 'error')
     }
   } catch (error) {
-    console.error('Error al cerrar la requisición:', error);
-    mostrarNotificacion(`Ocurrió un error al intentar cerrar la requisición: ${error.message}`, 'error');
+    console.error('Error al cerrar la requisición:', error)
+    mostrarNotificacion(
+      `Ocurrió un error al intentar cerrar la requisición: ${error.message}`,
+      'error',
+    )
   }
 }
 
 function volverAFichas(metodoPago) {
   const detalleDiv =
-      metodoPago == '0'
-          ? document.getElementById('detalle-contado')
-          : document.getElementById('detalle-credito')
+    metodoPago == '0'
+      ? document.getElementById('detalle-contado')
+      : document.getElementById('detalle-credito')
   const tablaDiv =
-      metodoPago == '0'
-          ? document.getElementById('tabla-contado')
-          : document.getElementById('tabla-credito')
+    metodoPago == '0'
+      ? document.getElementById('tabla-contado')
+      : document.getElementById('tabla-credito')
 
   detalleDiv.classList.add('hidden')
   tablaDiv.classList.remove('hidden')
@@ -1109,8 +1212,8 @@ function regresarFichaMenu() {
 }
 
 function renderFacturaUploader(idSolicitud, metodoPago) {
-  const container = document.getElementById('factura-uploader-container');
-  if (!container) return;
+  const container = document.getElementById('factura-uploader-container')
+  if (!container) return
 
   container.innerHTML = `
         <div id="file-preview-factura" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div> 
@@ -1118,29 +1221,29 @@ function renderFacturaUploader(idSolicitud, metodoPago) {
         <button id="btn-upload-factura" onclick="document.getElementById('archivo-factura').click()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition"> 
             Subir Factura
         </button>
-    `;
+    `
 }
 
 function handleFacturaFileSelect(input, idSolicitud, metodoPago) {
-  const file = input.files[0];
+  const file = input.files[0]
   if (!file) {
-    removeFacturaFile(idSolicitud);
-    return;
+    removeFacturaFile(idSolicitud)
+    return
   }
 
-  const previewContainer = document.getElementById('file-preview-factura');
-  const uploadButton = document.getElementById('btn-upload-factura');
+  const previewContainer = document.getElementById('file-preview-factura')
+  const uploadButton = document.getElementById('btn-upload-factura')
 
-  let icon = '📄';
+  let icon = '📄'
   if (file.type.startsWith('image/')) {
-    icon = '🖼️';
+    icon = '🖼️'
   } else if (file.type === 'application/pdf') {
-    icon = '📕';
+    icon = '📕'
   } else if (file.type === 'text/xml' || file.type === 'application/xml') {
-    icon = '🔗';
+    icon = '🔗'
   }
 
-  const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+  const fileSize = (file.size / 1024).toFixed(2) + ' KB'
 
   previewContainer.innerHTML = `
         <div class="flex items-center justify-between">
@@ -1153,45 +1256,45 @@ function handleFacturaFileSelect(input, idSolicitud, metodoPago) {
             </div>
             <button onclick="removeFacturaFile(${idSolicitud})" class="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button> 
         </div>
-    `;
-  previewContainer.classList.remove('hidden');
+    `
+  previewContainer.classList.remove('hidden')
 
-  uploadButton.innerText = 'Confirmar y Subir Factura';
-  uploadButton.onclick = () => uploadFactura(idSolicitud, metodoPago);
+  uploadButton.innerText = 'Confirmar y Subir Factura'
+  uploadButton.onclick = () => uploadFactura(idSolicitud, metodoPago)
 }
 
-function removeFacturaFile(idSolicitud) { 
-    const fileInput = document.getElementById('archivo-factura'); 
-    if (fileInput) {
-        fileInput.value = '';
-    }
+function removeFacturaFile(idSolicitud) {
+  const fileInput = document.getElementById('archivo-factura')
+  if (fileInput) {
+    fileInput.value = ''
+  }
 
-    const previewContainer = document.getElementById('file-preview-factura'); 
-    if (previewContainer) {
-        previewContainer.innerHTML = '';
-        previewContainer.classList.add('hidden');
-    }
-    
-    const uploadButton = document.getElementById('btn-upload-factura'); 
-    if(uploadButton) {
-        uploadButton.innerText = 'Subir Factura'; 
-        uploadButton.onclick = () => document.getElementById('archivo-factura').click(); 
-    }
+  const previewContainer = document.getElementById('file-preview-factura')
+  if (previewContainer) {
+    previewContainer.innerHTML = ''
+    previewContainer.classList.add('hidden')
+  }
+
+  const uploadButton = document.getElementById('btn-upload-factura')
+  if (uploadButton) {
+    uploadButton.innerText = 'Subir Factura'
+    uploadButton.onclick = () => document.getElementById('archivo-factura').click()
+  }
 }
 
 async function uploadFactura(idSolicitud, metodoPago) {
-    const fileInput = document.getElementById('archivo-factura');
-    const file = fileInput.files[0];
+  const fileInput = document.getElementById('archivo-factura')
+  const file = fileInput.files[0]
 
-    if (!file) {
-        mostrarNotificacion('No se ha seleccionado ningún archivo.', 'warning');
-        return;
-    }
+  if (!file) {
+    mostrarNotificacion('No se ha seleccionado ningún archivo.', 'warning')
+    return
+  }
 
-    const previewContainer = document.getElementById('file-preview-factura');
-    const uploadButton = document.getElementById('btn-upload-factura');
+  const previewContainer = document.getElementById('file-preview-factura')
+  const uploadButton = document.getElementById('btn-upload-factura')
 
-    previewContainer.innerHTML = `
+  previewContainer.innerHTML = `
         <div class="flex items-center justify-center gap-2">
             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1199,34 +1302,33 @@ async function uploadFactura(idSolicitud, metodoPago) {
             </svg>
             <span class="text-sm text-gray-600">Subiendo factura...</span> 
         </div>
-    `;
-    uploadButton.disabled = true;
+    `
+  uploadButton.disabled = true
 
-    const formData = new FormData();
-    formData.append('factura', file); // 'factura' es el nombre esperado en el backend
+  const formData = new FormData()
+  formData.append('factura', file) // 'factura' es el nombre esperado en el backend
 
-    try {
-        const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
-            method: 'POST',
-            body: formData,
-        });
+  try {
+    const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
+      method: 'POST',
+      body: formData,
+    })
 
-        if (result.success) {
-            mostrarNotificacion('Factura subida con éxito.', 'success');
-            removeFacturaFile(idSolicitud);
+    if (result.success) {
+      mostrarNotificacion('Factura subida con éxito.', 'success')
+      removeFacturaFile(idSolicitud)
 
-          // --- RECARGA DE VISTAS
-          if (typeof initFichasPago === 'function') initFichasPago();
-          await mostrarDetalleFicha(idSolicitud, metodoPago);
-
-        } else {
-            throw new Error(result.message || 'Error desconocido del servidor.');
-        }
-    } catch (error) {
-        console.error('Error al subir factura:', error);
-        mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error');
-        handleFacturaFileSelect(fileInput, idSolicitud, metodoPago);
-    } finally {
-        uploadButton.disabled = false;
+      // --- RECARGA DE VISTAS
+      if (typeof initFichasPago === 'function') initFichasPago()
+      await mostrarDetalleFicha(idSolicitud, metodoPago)
+    } else {
+      throw new Error(result.message || 'Error desconocido del servidor.')
     }
+  } catch (error) {
+    console.error('Error al subir factura:', error)
+    mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error')
+    handleFacturaFileSelect(fileInput, idSolicitud, metodoPago)
+  } finally {
+    uploadButton.disabled = false
+  }
 }
