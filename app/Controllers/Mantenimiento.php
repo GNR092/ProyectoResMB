@@ -14,7 +14,11 @@ class Mantenimiento extends BaseController
             return redirect()->to('/');
         }
 
-        return view('mantenimiento/index');
+        $data = [
+            'mensaje' => $config['mensaje'] ?? 'Estamos trabajando para mejorar tu experiencia',
+        ];
+
+        return view('mantenimiento/index', $data);
     }
 
     private function getConfig(): ?array
