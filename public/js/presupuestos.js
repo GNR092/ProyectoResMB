@@ -21,6 +21,7 @@ function registrarComponentePresupuesto() {
 
             cargando: false,
             guardando: false,
+            bloqueadoPorRevision: false,
             mensaje: '',
             error: false,
 
@@ -51,6 +52,7 @@ function registrarComponentePresupuesto() {
                 this.gruposSeleccionados = [];
                 if (this.choicesUnidad) { this.choicesUnidad.destroy(); this.choicesUnidad = null; }
                 if (this.choicesGrupo) { this.choicesGrupo.destroy(); this.choicesGrupo = null; }
+                this.bloqueadoPorRevision = false;
                 this.mensaje = '';
             },
 
@@ -141,6 +143,7 @@ function registrarComponentePresupuesto() {
                         const data = await res.json();
                         this.departamentosOriginales = JSON.parse(JSON.stringify(data.departamentos || []));
                         this.departamentos = data.departamentos || [];
+                        this.bloqueadoPorRevision = data.bloqueadoPorRevision || false;
                         this.extraerGruposUnicos();
                         this.$nextTick(() => this.initChoicesFiltros());
                     } else {
@@ -270,8 +273,8 @@ function registrarComponentePresupuesto() {
             },
 
             async copiarAnterior() {
-                if (!this.idPlace || !this.mesAnio) {
-                    mostrarNotificacion('Seleccione un Complejo y una Fecha primero.', 'error');
+                if (this.idsPlaces.length === 0 || !this.mesAnio) {
+                    mostrarNotificacion('Seleccione al menos un Complejo y una Fecha primero.', 'error');
                     return;
                 }
 
@@ -283,10 +286,11 @@ function registrarComponentePresupuesto() {
                     prevAnio = anio - 1;
                 }
 
+                const idsParam = this.idsPlaces.join(',');
                 const notif = mostrarNotificacion('Obteniendo datos del mes anterior...', 'info', 0);
 
                 try {
-                    const res = await fetch(`${BASE_URL}api/presupuesto-mensual/estructura/${this.idPlace}/${prevAnio}/${prevMes}`);
+                    const res = await fetch(`${BASE_URL}api/presupuesto-mensual/estructura/${idsParam}/${prevAnio}/${prevMes}`);
                     const data = await res.json();
 
                     if (!data.departamentos || data.departamentos.length === 0) {
@@ -394,6 +398,8 @@ function registrarComponentePresupuesto() {
                         if (result.pending_review) {
                             this.mensaje = result.message || 'Presupuestos enviados a revisión.';
                             this.error = false;
+                            this.bloqueadoPorRevision = true; // Bloqueo inmediato en el frontend
+                            await this.cargarEstructura();    // Sincronizar con el servidor
                         } else {
                             this.mensaje = 'Presupuestos guardados correctamente';
                             this.error = false;

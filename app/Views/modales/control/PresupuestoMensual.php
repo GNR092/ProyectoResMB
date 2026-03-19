@@ -43,7 +43,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
             
             <button @click="copiarAnterior()"
-                    x-show="!cargando && departamentos.length > 0"
+                    x-show="!cargando && departamentos.length > 0 && !bloqueadoPorRevision"
                     class="mt-1 px-1 py-0.5 border border-orange-500 text-orange-600 hover:bg-orange-50 text-[9px] font-bold uppercase rounded transition-colors w-full text-center"
                     title="Copiar montos del mes anterior">
                 Copiar Mes Anterior
@@ -127,6 +127,8 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                 <input type="number"
                                        min="0" step="0.01"
                                        x-model="grupo.Monto_Asignado"
+                                       :disabled="bloqueadoPorRevision"
+                                       :class="bloqueadoPorRevision ? 'bg-gray-100 cursor-not-allowed' : ''"
                                        placeholder="0.00"
                                        class="w-32 px-2 py-1.5 border border-gray-300 rounded-md text-right focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent">
                             </div>
@@ -139,6 +141,18 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         </table>
     </div>
 
+    <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded" x-show="bloqueadoPorRevision" x-cloak>
+        <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 15.667c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+                <p class="text-sm font-bold text-amber-800">Atención: Edición Bloqueada</p>
+                <p class="text-xs text-amber-700">Existe una solicitud de cambio pendiente para este periodo y complejo(s). Debe esperar a que sea procesada para realizar nuevos ajustes.</p>
+            </div>
+        </div>
+    </div>
+
     <div class="flex items-center justify-between mt-6">
         <p class="text-sm font-medium px-2 py-1 rounded"
            x-show="mensaje !== ''"
@@ -149,7 +163,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 
         <button x-show="departamentos.length > 0"
                 @click="guardarMasivo()"
-                :disabled="guardando"
+                :disabled="guardando || bloqueadoPorRevision"
                 class="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
 
             <svg x-show="guardando" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

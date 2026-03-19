@@ -357,7 +357,39 @@ class PresupuestoApiController extends ResourceController
             $uni['grupos'] = $gruposDeLaUnidad;
             $estructura[] = $uni;
         }
-        return $this->respond(['departamentos' => $estructura]);
+
+        // Verificar si hay solicitudes de revisión pendientes para este periodo
+        $solicitudModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+        $revisionesPendientes = $solicitudModel->where([
+            'Modulo' => 'PresupuestoMensual',
+            'Estado' => 'Pendiente',
+            'ID_Afectado' => "{$anio}-{$mes}"
+        ])->findAll();
+
+        $bloqueado = false;
+        if (!empty($revisionesPendientes)) {
+            // Extraer todos los IDs de Unidades Operativas que están seleccionadas actualmente
+            $idsUnidadesCargadas = array_column($unidadesRaw, 'ID_UnidadOperativa');
+
+            foreach ($revisionesPendientes as $revision) {
+                $payload = json_decode($revision['Datos_Payload'], true);
+                if (isset($payload['grupos']) && is_array($payload['grupos'])) {
+                    foreach ($payload['grupos'] as $g) {
+                        $idUniRevision = (int)($g['id_unidad'] ?? $g['id_dpto']);
+                        // Si la unidad de esta revisión está entre las unidades que el usuario está viendo, bloqueamos
+                        if (in_array($idUniRevision, $idsUnidadesCargadas)) {
+                            $bloqueado = true;
+                            break 2; // Salir de ambos bucles
+                        }
+                    }
+                }
+            }
+        }
+
+        return $this->respond([
+            'departamentos' => $estructura,
+            'bloqueadoPorRevision' => $bloqueado
+        ]);
     }
 
     public function getCambiosPendientes()

@@ -55,7 +55,7 @@ function abrirModal(opcion) {
   const modalBox = titulo.parentElement
 
 
-  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'AjustesPresupuesto']
+  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos']
 
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
