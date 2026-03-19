@@ -25,9 +25,12 @@ if (!file_exists($installerLockFile)) {
     // Estas rutas solo están disponibles si el archivo de bloqueo YA existe.
     $routes->get('installer/success', 'Installer::success');
     $routes->get('/', 'Home::index');
+    $routes->get('mantenimiento', 'Mantenimiento::index');
     // Login
     $routes->get('auth', 'Auth::index');
     $routes->post('auth/login', 'Auth::login');
+    // Auth
+    $routes->get('auth/logout', 'Auth::logout');
     // API Token Generation
     $routes->post('api/gentoken', 'Api::gentoken');
 
@@ -36,7 +39,7 @@ if (!file_exists($installerLockFile)) {
      * Proteccion de rutas para evitar que se mande o filtre información sensible
      * Agregar nuevas rutas despues del $routes->group('/', ['filter' => 'auth'], function ($routes)
      */
-    $routes->group('/', ['filter' => 'auth'], function ($routes) {
+    $routes->group('/', ['filter' => ['auth', 'mantenimiento']], function ($routes) {
         //Registrar usuarios
         $routes->post('modales/actualizarUsuario/(:num)', 'Modales::actualizarUsuario/$1');
         $routes->post('modales/eliminarUsuario/(:num)', 'Modales::eliminarUsuario/$1');
@@ -53,7 +56,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('proveedores/insertar', 'Modales::insertarProveedor');
         $routes->post('proveedores/eliminarProveedor/(:num)', 'Modales::eliminarProveedor/$1');
         $routes->post('proveedores/editar/(:num)', 'Modales::editarProveedor/$1');
-        
+
         // Solicitudes y Cotizaciones
         $routes->post('api/cotizacion/crear', 'Api::crearCotizacion');
         $routes->post('api/solicitud/update', 'Api::actualizarMontos');
@@ -164,7 +167,10 @@ if (!file_exists($installerLockFile)) {
         //crud departamentos
         $routes->post('modales/crud_departamentos/insertar', 'Modales::insertarDepartamento');
         $routes->post('modales/crud_departamentos/editar/(:num)', 'Modales::editarDepartamento/$1');
-        $routes->post('modales/crud_departamentos/eliminar/(:num)', 'Modales::eliminarDepartamento/$1');
+        $routes->post(
+            'modales/crud_departamentos/eliminar/(:num)',
+            'Modales::eliminarDepartamento/$1',
+        );
         //Bancos de Dpto
         $routes->post('modales/crud_banco_dpto/insertar', 'Modales::insertarBancoDpto');
         $routes->post('modales/crud_banco_dpto/editar/(:num)', 'Modales::editarBancoDpto/$1');
@@ -172,8 +178,14 @@ if (!file_exists($installerLockFile)) {
 
         // Rutas para CRUD Grupo Presupuestal
         $routes->post('modales/crud_grupos_presupuestales/insertar', 'Modales::insertarGrupo');
-        $routes->post('modales/crud_grupos_presupuestales/editar/(:num)', 'Modales::editarGrupo/$1');
-        $routes->post('modales/crud_grupos_presupuestales/eliminar/(:num)', 'Modales::eliminarGrupo/$1');
+        $routes->post(
+            'modales/crud_grupos_presupuestales/editar/(:num)',
+            'Modales::editarGrupo/$1',
+        );
+        $routes->post(
+            'modales/crud_grupos_presupuestales/eliminar/(:num)',
+            'Modales::eliminarGrupo/$1',
+        );
 
         //Control maestro
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');
@@ -182,8 +194,6 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/user/update', 'Api::updateUser');
         $routes->post('api/user/upload_signature', 'Api::upload_signature');
 
-        // Auth
-        $routes->get('auth/logout', 'Auth::logout');
         //PDF
         $routes->get('api/solicitud/pdf/(:num)', 'GenerarPDF::GenerarRequisicion/$1');
         $routes->get('api/solicitud/pdf/(:num)/(:num)', 'GenerarPDF::GenerarRequisicion/$1/$2');
@@ -195,6 +205,5 @@ if (!file_exists($installerLockFile)) {
 
         $routes->get('dev', 'Dev::index');
         $routes->get('api/test-email', 'Api::testEmailConnection');
-
     });
 }
