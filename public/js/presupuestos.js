@@ -427,7 +427,6 @@ function registrarComponenteSaldosBancarios() {
     Alpine.data('saldosBancariosComponent', function () {
         return {
             idRazonSocial: '',
-            idPlace: '',
             mesAnio: '',
 
             razonesSociales: [],
@@ -437,6 +436,7 @@ function registrarComponenteSaldosBancarios() {
 
             cargando: false,
             guardando: false,
+            bloqueadoPorRevision: false,
             mensaje: '',
             error: false,
 
@@ -460,6 +460,7 @@ function registrarComponenteSaldosBancarios() {
             resetEstructura() {
                 this.razonesData = [];
                 this.razonesDataOriginales = [];
+                this.bloqueadoPorRevision = false;
                 this.mensaje = '';
             },
 
@@ -482,6 +483,7 @@ function registrarComponenteSaldosBancarios() {
                         const data = await res.json();
                         this.razonesData = data.razones || [];
                         this.razonesDataOriginales = JSON.parse(JSON.stringify(this.razonesData));
+                        this.bloqueadoPorRevision = data.bloqueadoPorRevision || false;
                     } else {
                         this.mensaje = 'Error al cargar los datos del servidor.';
                         this.error = true;
@@ -626,6 +628,8 @@ function registrarComponenteSaldosBancarios() {
                             if (result.pending_review) {
                                 this.mensaje = result.message || 'Saldos enviados a revisión.';
                                 this.error = false;
+                                this.bloqueadoPorRevision = true;
+                                await this.cargarEstructura();
                             } else {
                                 this.mensaje = 'Saldos guardados correctamente';
                                 this.error = false;

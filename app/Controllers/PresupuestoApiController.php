@@ -630,6 +630,30 @@ class PresupuestoApiController extends ResourceController
         if (empty($bancosRaw)) return $this->respond(['razones' => []]);
         $bancoIds = array_column($bancosRaw, 'ID_BancoDpto');
         $saldosRaw = $saldosModel->whereIn('id_bancodpto', $bancoIds)->where(['anio' => $anio, 'mes' => $mes])->findAll();
+        
+        // Verificar revisiones pendientes
+        $solicitudModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+        $revisionesPendientes = $solicitudModel->where([
+            'Modulo' => 'SaldosBancarios',
+            'Estado' => 'Pendiente',
+            'ID_Afectado' => "{$anio}-{$mes}"
+        ])->findAll();
+
+        $bloqueado = false;
+        if (!empty($revisionesPendientes)) {
+            foreach ($revisionesPendientes as $revision) {
+                $payload = json_decode($revision['Datos_Payload'], true);
+                if (isset($payload['saldos']) && is_array($payload['saldos'])) {
+                    foreach ($payload['saldos'] as $s) {
+                        if (in_array((int)$s['id_bancodpto'], $bancoIds)) {
+                            $bloqueado = true;
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+
         $bancosConSaldos = [];
         foreach ($bancosRaw as $b) {
             $si = 0; $sf = 0; $idEx = null;
@@ -637,7 +661,10 @@ class PresupuestoApiController extends ResourceController
             $b['saldo_inicial'] = $si; $b['saldo_final'] = $sf; $b['id_saldo_existente'] = $idEx;
             $bancosConSaldos[] = $b;
         }
-        return $this->respond(['razones' => [['ID_RazonSocial' => $idRazonSocial, 'Nombre' => $rsRaw['Nombre'], 'bancos' => $bancosConSaldos]]]);
+        return $this->respond([
+            'razones' => [['ID_RazonSocial' => $idRazonSocial, 'Nombre' => $rsRaw['Nombre'], 'bancos' => $bancosConSaldos]],
+            'bloqueadoPorRevision' => $bloqueado
+        ]);
     }
 
     public function saveSaldosMasivo() {
