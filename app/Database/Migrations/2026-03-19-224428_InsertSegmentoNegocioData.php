@@ -10,6 +10,7 @@ class InsertSegmentoNegocioData extends Migration
     {
         $data = [
             [
+                'id'              => 1,
                 'id_razon_social' => 2,
                 'nombre'          => 'Arrendamiento',
                 'descripcion'     => "Segmento de negocio arrendamiento para la razón social de MBSP Rentas\r\n ",
@@ -17,6 +18,7 @@ class InsertSegmentoNegocioData extends Migration
                 'updated_at'      => '2026-03-10 16:49:15',
             ],
             [
+                'id'              => 2,
                 'id_razon_social' => 2,
                 'nombre'          => 'Transporte',
                 'descripcion'     => 'Segmento de transporte',
@@ -24,13 +26,15 @@ class InsertSegmentoNegocioData extends Migration
                 'updated_at'      => '2026-03-10 16:56:08',
             ],
             [
-                'id_razon_social' => 5,
+                'id'              => 3,
+                'id_razon_social' => 8,
                 'nombre'          => 'Hotel',
                 'descripcion'     => 'Segmento de Hotel de la Razon social MBSP Rentas',
                 'created_at'      => '2026-03-10 17:03:56',
                 'updated_at'      => '2026-03-10 23:57:53',
             ],
             [
+                'id'              => 4,
                 'id_razon_social' => 1,
                 'nombre'          => 'Gastos generale',
                 'descripcion'     => 'Gastos',
@@ -39,20 +43,13 @@ class InsertSegmentoNegocioData extends Migration
             ]
         ];
 
-        // Insertamos los datos usando Query Builder
         $this->db->table('segmento_negocio')->insertBatch($data);
     }
 
     public function down()
     {
-        // Revertimos la migración eliminando por el campo 'nombre'
-        $nombresInsertados = [
-            'Arrendamiento',
-            'Transporte',
-            'Hotel',
-            'Gastos generale'
-        ];
+        $insertedIds = [1, 2, 3, 4];
 
-        $this->db->table('segmento_negocio')->whereIn('nombre', $nombresInsertados)->delete();
+        $this->db->table('segmento_negocio')->whereIn('id', $insertedIds)->delete();
     }
 }
