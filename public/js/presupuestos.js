@@ -64,7 +64,7 @@ function registrarComponentePresupuesto() {
                 this.choicesPlace = new Choices(ref, {
                     removeItemButton: true,
                     itemSelectText: '',
-                    placeholderValue: 'Seleccione Places',
+                    placeholderValue: 'Seleccione Complejos',
                     searchPlaceholderValue: 'Buscar complejo...'
                 });
 
@@ -271,7 +271,7 @@ function registrarComponentePresupuesto() {
 
             async copiarAnterior() {
                 if (!this.idPlace || !this.mesAnio) {
-                    mostrarNotificacion('Seleccione un Place y una Fecha primero.', 'error');
+                    mostrarNotificacion('Seleccione un Complejo y una Fecha primero.', 'error');
                     return;
                 }
 
@@ -324,9 +324,6 @@ function registrarComponentePresupuesto() {
             async guardarMasivo() {
                 if (this.departamentos.length === 0) return;
 
-                const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe brevemente el motivo de esta asignación (Obligatorio):', true);
-                if (comentarios === null) return;
-
                 const [anio, mes] = this.mesAnio.split('-');
                 this.guardando = true;
                 this.mensaje = '';
@@ -336,14 +333,44 @@ function registrarComponentePresupuesto() {
 
                 this.departamentos.forEach(uni => {
                     uni.grupos.forEach(grupo => {
-                        gruposParaGuardar.push({
-                            id_unidad: uni.ID_UnidadOperativa,
-                            id_grupo: grupo.ID_GrupoPresupuestal,
-                            id_existente: grupo.ID_PresupuestoMensual,
-                            monto_asignado: parseFloat(grupo.Monto_Asignado) || 0
-                        });
+                        const nuevoMonto = parseFloat(grupo.Monto_Asignado) || 0;
+                        
+                        // Buscar el monto original
+                        let montoOriginal = 0;
+                        const dptoOrig = this.departamentosOriginales.find(d => String(d.ID_UnidadOperativa) === String(uni.ID_UnidadOperativa));
+                        if (dptoOrig && dptoOrig.grupos) {
+                            const grupoOrig = dptoOrig.grupos.find(g => String(g.ID_GrupoPresupuestal) === String(grupo.ID_GrupoPresupuestal));
+                            if (grupoOrig) {
+                                montoOriginal = parseFloat(grupoOrig.Monto_Asignado) || 0;
+                            }
+                        }
+
+                        // Solo agregar si hubo un cambio real
+                        if (nuevoMonto !== montoOriginal) {
+                            gruposParaGuardar.push({
+                                id_unidad: uni.ID_UnidadOperativa,
+                                nombre_unidad: uni.Nombre,
+                                id_grupo: grupo.ID_GrupoPresupuestal,
+                                nombre_grupo: grupo.Nombre,
+                                id_existente: grupo.ID_PresupuestoMensual,
+                                monto_asignado: nuevoMonto,
+                                monto_anterior: montoOriginal
+                            });
+                        }
                     });
                 });
+
+                if (gruposParaGuardar.length === 0) {
+                    mostrarNotificacion('No se detectaron cambios en los montos para guardar.', 'info');
+                    this.guardando = false;
+                    return;
+                }
+
+                const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe brevemente el motivo de esta asignación (Obligatorio):', true);
+                if (comentarios === null) {
+                    this.guardando = false;
+                    return;
+                }
 
                 const payload = {
                     anio: parseInt(anio),
@@ -400,6 +427,7 @@ function registrarComponenteSaldosBancarios() {
             razonesSociales: [],
             todosPlaces: [],
             razonesData: [],
+            razonesDataOriginales: [],
 
             cargando: false,
             guardando: false,
@@ -425,6 +453,7 @@ function registrarComponenteSaldosBancarios() {
 
             resetEstructura() {
                 this.razonesData = [];
+                this.razonesDataOriginales = [];
                 this.mensaje = '';
             },
 
@@ -437,6 +466,7 @@ function registrarComponenteSaldosBancarios() {
                 const [anio, mes] = this.mesAnio.split('-');
                 this.cargando = true;
                 this.razonesData = [];
+                this.razonesDataOriginales = [];
                 this.mensaje = '';
 
                 try {
@@ -445,6 +475,7 @@ function registrarComponenteSaldosBancarios() {
                     if (res.ok) {
                         const data = await res.json();
                         this.razonesData = data.razones || [];
+                        this.razonesDataOriginales = JSON.parse(JSON.stringify(this.razonesData));
                     } else {
                         this.mensaje = 'Error al cargar los datos del servidor.';
                         this.error = true;
@@ -513,9 +544,6 @@ function registrarComponenteSaldosBancarios() {
             async guardarSaldos() {
                 if (this.razonesData.length === 0) return;
 
-                const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta actualización de saldos (Obligatorio):', true);
-                if (comentarios === null) return;
-
                 const [anio, mes] = this.mesAnio.split('-');
                 this.guardando = true;
                 this.mensaje = '';
@@ -525,14 +553,49 @@ function registrarComponenteSaldosBancarios() {
 
                 this.razonesData.forEach(rs => {
                     rs.bancos.forEach(banco => {
-                        saldosParaEnviar.push({
-                            id_bancodpto: banco.ID_BancoDpto,
-                            saldo_inicial: parseFloat(banco.saldo_inicial) || 0,
-                            saldo_final: parseFloat(banco.saldo_final) || 0,
-                            id_existente: banco.id_saldo_existente
-                        });
+                        const nuevoInicial = parseFloat(banco.saldo_inicial) || 0;
+                        const nuevoFinal = parseFloat(banco.saldo_final) || 0;
+
+                        // Buscar saldos originales
+                        let originalInicial = 0;
+                        let originalFinal = 0;
+                        
+                        const rsOrig = this.razonesDataOriginales.find(r => String(r.ID_RazonSocial) === String(rs.ID_RazonSocial));
+                        if (rsOrig && rsOrig.bancos) {
+                            const bancoOrig = rsOrig.bancos.find(b => String(b.ID_BancoDpto) === String(banco.ID_BancoDpto));
+                            if (bancoOrig) {
+                                originalInicial = parseFloat(bancoOrig.saldo_inicial) || 0;
+                                originalFinal = parseFloat(bancoOrig.saldo_final) || 0;
+                            }
+                        }
+
+                        // Solo enviar si hubo un cambio real
+                        if (nuevoInicial !== originalInicial || nuevoFinal !== originalFinal) {
+                            saldosParaEnviar.push({
+                                id_bancodpto: banco.ID_BancoDpto,
+                                nombre_banco: banco.Banco, // Añadido para UI
+                                clabe_banco: banco.Clabe, // Añadido para UI
+                                saldo_inicial: nuevoInicial,
+                                saldo_final: nuevoFinal,
+                                saldo_inicial_anterior: originalInicial,
+                                saldo_final_anterior: originalFinal,
+                                id_existente: banco.id_saldo_existente
+                            });
+                        }
                     });
                 });
+
+                if (saldosParaEnviar.length === 0) {
+                    mostrarNotificacion('No se detectaron cambios en los saldos para guardar.', 'info');
+                    this.guardando = false;
+                    return;
+                }
+
+                const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta actualización de saldos (Obligatorio):', true);
+                if (comentarios === null) {
+                    this.guardando = false;
+                    return;
+                }
 
                 const payload = {
                     anio: parseInt(anio),
@@ -1534,17 +1597,24 @@ window.mostrarDetalleAjuste = async function(id) {
             htmlDiff += `<table class="min-w-full bg-white border border-gray-200 text-sm">
                             <thead class="bg-gray-100">
                                 <tr>
-                                    <th class="py-2 px-3 border-b text-left">ID Grupo</th>
-                                    <th class="py-2 px-3 border-b text-left">ID Unidad</th>
-                                    <th class="py-2 px-3 border-b text-right">Nuevo Monto Asignado</th>
+                                    <th class="py-2 px-3 border-b text-left">Unidad / Partida</th>
+                                    <th class="py-2 px-3 border-b text-right">Monto Anterior</th>
+                                    <th class="py-2 px-3 border-b text-right">Nuevo Monto</th>
                                 </tr>
                             </thead>
                             <tbody>`;
             payloadNew.grupos.forEach(g => {
-                htmlDiff += `<tr>
-                                <td class="py-2 px-3 border-b font-mono">${g.id_grupo}</td>
-                                <td class="py-2 px-3 border-b font-mono">${g.id_unidad || g.id_dpto}</td>
-                                <td class="py-2 px-3 border-b text-right font-bold text-green-700">$${parseFloat(g.monto_asignado).toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                htmlDiff += `<tr class="hover:bg-gray-50 transition-colors">
+                                <td class="py-2 px-3 border-b">
+                                    <span class="block font-bold text-gray-700">${g.nombre_unidad || 'Unidad ' + (g.id_unidad || g.id_dpto)}</span>
+                                    <span class="block text-xs text-gray-500">${g.nombre_grupo || 'Grupo ' + g.id_grupo}</span>
+                                </td>
+                                <td class="py-2 px-3 border-b text-right text-red-600 line-through">
+                                    $${parseFloat(g.monto_anterior || 0).toLocaleString('es-MX', {minimumFractionDigits:2})}
+                                </td>
+                                <td class="py-2 px-3 border-b text-right font-bold text-green-700">
+                                    $${parseFloat(g.monto_asignado).toLocaleString('es-MX', {minimumFractionDigits:2})}
+                                </td>
                              </tr>`;
             });
             htmlDiff += `</tbody></table>`;
@@ -1553,18 +1623,41 @@ window.mostrarDetalleAjuste = async function(id) {
             htmlDiff += `<table class="min-w-full bg-white border border-gray-200 text-sm">
                             <thead class="bg-gray-100">
                                 <tr>
-                                    <th class="py-2 px-3 border-b text-left">ID Banco</th>
-                                    <th class="py-2 px-3 border-b text-right">Saldo Inicial</th>
-                                    <th class="py-2 px-3 border-b text-right">Saldo Final</th>
+                                    <th class="py-2 px-3 border-b text-left">Banco / Cuenta</th>
+                                    <th class="py-2 px-3 border-b text-center">Tipo de Saldo</th>
+                                    <th class="py-2 px-3 border-b text-right">Monto Anterior</th>
+                                    <th class="py-2 px-3 border-b text-right">Nuevo Monto</th>
                                 </tr>
                             </thead>
                             <tbody>`;
             payloadNew.saldos.forEach(s => {
-                htmlDiff += `<tr>
-                                <td class="py-2 px-3 border-b font-mono">${s.id_bancodpto}</td>
-                                <td class="py-2 px-3 border-b text-right font-bold text-blue-700">$${parseFloat(s.saldo_inicial).toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
-                                <td class="py-2 px-3 border-b text-right font-bold text-green-700">$${parseFloat(s.saldo_final).toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
-                             </tr>`;
+                const sIniNuevo = parseFloat(s.saldo_inicial);
+                const sIniViejo = parseFloat(s.saldo_inicial_anterior || 0);
+                const sFinNuevo = parseFloat(s.saldo_final);
+                const sFinViejo = parseFloat(s.saldo_final_anterior || 0);
+                
+                if (sIniNuevo !== sIniViejo) {
+                    htmlDiff += `<tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="py-2 px-3 border-b">
+                                        <span class="block font-bold text-gray-700">${s.nombre_banco || 'Banco ' + s.id_bancodpto}</span>
+                                        <span class="block text-xs text-gray-500 font-mono">${s.clabe_banco || ''}</span>
+                                    </td>
+                                    <td class="py-2 px-3 border-b text-center text-gray-600 font-medium">INICIAL</td>
+                                    <td class="py-2 px-3 border-b text-right text-red-600 line-through">$${sIniViejo.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                                    <td class="py-2 px-3 border-b text-right font-bold text-green-700">$${sIniNuevo.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                                 </tr>`;
+                }
+                if (sFinNuevo !== sFinViejo) {
+                    htmlDiff += `<tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="py-2 px-3 border-b">
+                                        <span class="block font-bold text-gray-700">${s.nombre_banco || 'Banco ' + s.id_bancodpto}</span>
+                                        <span class="block text-xs text-gray-500 font-mono">${s.clabe_banco || ''}</span>
+                                    </td>
+                                    <td class="py-2 px-3 border-b text-center text-gray-600 font-medium">FINAL</td>
+                                    <td class="py-2 px-3 border-b text-right text-red-600 line-through">$${sFinViejo.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                                    <td class="py-2 px-3 border-b text-right font-bold text-green-700">$${sFinNuevo.toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                                 </tr>`;
+                }
             });
             htmlDiff += `</tbody></table>`;
         }
@@ -1662,9 +1755,9 @@ window.regresarTablaAjustes = function() {
 window.dictaminarAjuste = async function(id, decision) {
   const esAprobacion = decision === 'Aprobado';
   const title = esAprobacion ? 'Aprobar Ajuste' : 'Rechazar Ajuste';
-  const msg = esAprobacion ? 'Agrega un comentario (Opcional):' : 'Indica el motivo del rechazo (Obligatorio):';
+  const msg = esAprobacion ? 'Agrega un comentario (Obligatorio):' : 'Indica el motivo del rechazo (Obligatorio):';
   
-  const comentarios = await InputPrompt(title, msg, !esAprobacion);
+  const comentarios = await InputPrompt(title, msg, true); // Changed to true to make it mandatory
   if (comentarios === null) return;
 
   const notif = mostrarNotificacion('Procesando dictamen...', 'info', 999999);

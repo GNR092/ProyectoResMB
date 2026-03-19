@@ -25,7 +25,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         </div>
 
         <div class="flex flex-col gap-1 min-w-[300px]">
-            <label for="pm-place" class="text-sm font-medium text-gray-700">Places (Complejos)</label>
+            <label for="pm-place" class="text-sm font-medium text-gray-700">Complejos</label>
             <select id="pm-place"
                     x-ref="filtroPlace"
                     multiple

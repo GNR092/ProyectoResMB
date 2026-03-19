@@ -50,7 +50,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Place</label>
                     <select x-model="idPlace" @change="cargarComparativo()" :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300 min-w-[200px] text-sm disabled:bg-gray-100">
-                        <option value="">Seleccione Place</option>
+                        <option value="">Seleccione Complejo</option>
                         <template x-for="place in placesFiltrados" :key="place.ID_Place"><option :value="place.ID_Place" x-text="place.Nombre_Corto"></option></template>
                     </select>
                 </div>
@@ -208,7 +208,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Place</label>
                     <select x-model="idPlace" @change="cargarComparativoBancos()" :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 min-w-[200px] text-sm disabled:bg-gray-100">
-                        <option value="">Seleccione Place</option>
+                        <option value="">Seleccione Complejo</option>
                         <template x-for="place in placesFiltrados" :key="place.ID_Place"><option :value="place.ID_Place" x-text="place.Nombre_Corto"></option></template>
                     </select>
                 </div>
@@ -318,7 +318,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Place</label>
                     <select x-model="idPlace" @change="cargarReporteCompleto()" :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 min-w-[200px] text-sm disabled:bg-gray-100">
-                        <option value="">Seleccione Place</option>
+                        <option value="">Seleccione Complejo</option>
                         <template x-for="place in placesFiltrados" :key="place.ID_Place"><option :value="place.ID_Place" x-text="place.Nombre_Corto"></option></template>
                     </select>
                 </div>
