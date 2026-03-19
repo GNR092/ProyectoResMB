@@ -324,6 +324,9 @@ function registrarComponentePresupuesto() {
             async guardarMasivo() {
                 if (this.departamentos.length === 0) return;
 
+                const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe brevemente el motivo de esta asignación (Obligatorio):', true);
+                if (comentarios === null) return;
+
                 const [anio, mes] = this.mesAnio.split('-');
                 this.guardando = true;
                 this.mensaje = '';
@@ -345,7 +348,8 @@ function registrarComponentePresupuesto() {
                 const payload = {
                     anio: parseInt(anio),
                     mes: parseInt(mes),
-                    grupos: gruposParaGuardar
+                    grupos: gruposParaGuardar,
+                    comentarios: comentarios
                 };
 
                 try {
@@ -509,6 +513,9 @@ function registrarComponenteSaldosBancarios() {
             async guardarSaldos() {
                 if (this.razonesData.length === 0) return;
 
+                const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta actualización de saldos (Obligatorio):', true);
+                if (comentarios === null) return;
+
                 const [anio, mes] = this.mesAnio.split('-');
                 this.guardando = true;
                 this.mensaje = '';
@@ -530,7 +537,8 @@ function registrarComponenteSaldosBancarios() {
                 const payload = {
                     anio: parseInt(anio),
                     mes: parseInt(mes),
-                    saldos: saldosParaEnviar
+                    saldos: saldosParaEnviar,
+                    comentarios: comentarios
                 };
 
                 try {
@@ -1007,8 +1015,16 @@ function initSegmentosPantallas() {
 function initSegmentosForm() {
     const fAdd = document.getElementById('form-agregar-segmentos'); if (!fAdd) return;
     fAdd.onsubmit = async (e) => {
-        e.preventDefault(); try {
-            const res = await SendDataEnd('modales/crud_segmentos/insertar', { method: 'POST', body: new FormData(fAdd) });
+        e.preventDefault(); 
+        
+        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de este cambio (Obligatorio):', true);
+        if (comentarios === null) return;
+        
+        const fd = new FormData(fAdd);
+        fd.append('comentarios', comentarios);
+
+        try {
+            const res = await SendDataEnd('modales/crud_segmentos/insertar', { method: 'POST', body: fd });
             if (res.success) { 
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
@@ -1024,7 +1040,15 @@ function initSegmentosForm() {
 function initSegmentosEditarForm() {
     const fEdi = document.getElementById('form-editar-segmentos'); if (!fEdi) return;
     fEdi.onsubmit = async (e) => {
-        e.preventDefault(); const fd = new FormData(fEdi); const id = fd.get('id');
+        e.preventDefault(); 
+        
+        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta edición (Obligatorio):', true);
+        if (comentarios === null) return;
+
+        const fd = new FormData(fEdi); 
+        fd.append('comentarios', comentarios);
+        const id = fd.get('id');
+        
         try {
             const res = await SendDataEnd(`modales/crud_segmentos/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { 
@@ -1043,8 +1067,14 @@ function initSegmentosActions(tabla) {
     tabla.addEventListener('click', async (e) => {
         const bE = e.target.closest("[id^='btn-editar-segmentos-']"), bD = e.target.closest("[id^='btn-eliminar-segmentos-']");
         if (bD) {
-            e.preventDefault(); if (!(await Confirmar('¿Eliminar?', '¿Seguro?'))) return;
-            const res = await SendDataEnd(`modales/crud_segmentos/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            e.preventDefault(); 
+            const comentarios = await InputPrompt('Confirmar Eliminación', 'Describe el motivo de la eliminación (Obligatorio):', true);
+            if (comentarios === null) return;
+            
+            const fd = new FormData();
+            fd.append('comentarios', comentarios);
+            
+            const res = await SendDataEnd(`modales/crud_segmentos/eliminar/${bD.dataset.id}`, { method: 'POST', body: fd });
             if (res.success) { 
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Eliminación enviada a revisión ⏳', 'info');
@@ -1087,8 +1117,16 @@ function initGruposPantallas() {
 function initGruposForm() {
     const fAdd = document.getElementById('form-agregar-grupos'); if (!fAdd) return;
     fAdd.onsubmit = async (e) => {
-        e.preventDefault(); try {
-            const res = await SendDataEnd('modales/crud_grupos_presupuestales/insertar', { method: 'POST', body: new FormData(fAdd) });
+        e.preventDefault(); 
+        
+        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de este cambio (Obligatorio):', true);
+        if (comentarios === null) return;
+        
+        const fd = new FormData(fAdd);
+        fd.append('comentarios', comentarios);
+        
+        try {
+            const res = await SendDataEnd('modales/crud_grupos_presupuestales/insertar', { method: 'POST', body: fd });
             if (res.success) { 
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
@@ -1104,7 +1142,15 @@ function initGruposForm() {
 function initGruposEditarForm() {
     const fEdi = document.getElementById('form-editar-grupos'); if (!fEdi) return;
     fEdi.onsubmit = async (e) => {
-        e.preventDefault(); const fd = new FormData(fEdi); const id = fd.get('ID_GrupoPresupuestal');
+        e.preventDefault(); 
+        
+        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta edición (Obligatorio):', true);
+        if (comentarios === null) return;
+        
+        const fd = new FormData(fEdi); 
+        fd.append('comentarios', comentarios);
+        const id = fd.get('ID_GrupoPresupuestal');
+        
         try {
             const res = await SendDataEnd(`modales/crud_grupos_presupuestales/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { 
@@ -1123,8 +1169,14 @@ function initGruposActions(tabla) {
     tabla.addEventListener('click', async (e) => {
         const bE = e.target.closest("[id^='btn-editar-grupos-']"), bD = e.target.closest("[id^='btn-eliminar-grupos-']");
         if (bD) {
-            e.preventDefault(); if (!(await Confirmar('¿Desactivar?', '¿Seguro?'))) return;
-            const res = await SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            e.preventDefault(); 
+            const comentarios = await InputPrompt('Confirmar Desactivación', 'Describe el motivo de la desactivación (Obligatorio):', true);
+            if (comentarios === null) return;
+            
+            const fd = new FormData();
+            fd.append('comentarios', comentarios);
+            
+            const res = await SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${bD.dataset.id}`, { method: 'POST', body: fd });
             if (res.success) { 
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Desactivación enviada a revisión ⏳', 'info');
@@ -1161,8 +1213,16 @@ function initCrudUnidades() {
     document.getElementById('btn-regresar-lista-editar-unidad').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
 
     document.getElementById('form-agregar-unidad').onsubmit = async (e) => {
-        e.preventDefault(); try {
-            const res = await SendDataEnd('modales/crud_unidades_operativas/insertar', { method: 'POST', body: new FormData(e.target) });
+        e.preventDefault(); 
+        
+        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de este cambio (Obligatorio):', true);
+        if (comentarios === null) return;
+        
+        const fd = new FormData(e.target);
+        fd.append('comentarios', comentarios);
+        
+        try {
+            const res = await SendDataEnd('modales/crud_unidades_operativas/insertar', { method: 'POST', body: fd });
             if (res.success) { 
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
@@ -1175,7 +1235,15 @@ function initCrudUnidades() {
     };
 
     document.getElementById('form-editar-unidad').onsubmit = async (e) => {
-        e.preventDefault(); const fd = new FormData(e.target); const id = fd.get('ID_UnidadOperativa');
+        e.preventDefault(); 
+        
+        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta edición (Obligatorio):', true);
+        if (comentarios === null) return;
+        
+        const fd = new FormData(e.target); 
+        fd.append('comentarios', comentarios);
+        const id = fd.get('ID_UnidadOperativa');
+        
         try {
             const res = await SendDataEnd(`modales/crud_unidades_operativas/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { 
@@ -1200,8 +1268,14 @@ function initCrudUnidades() {
             pLis.classList.add('hidden'); pEdi.classList.remove('hidden');
         }
         if (bD) {
-            e.preventDefault(); if (!(await Confirmar('¿Desactivar?', '¿Seguro?'))) return;
-            const res = await SendDataEnd(`modales/crud_unidades_operativas/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            e.preventDefault(); 
+            const comentarios = await InputPrompt('Confirmar Desactivación', 'Describe el motivo de la desactivación (Obligatorio):', true);
+            if (comentarios === null) return;
+            
+            const fd = new FormData();
+            fd.append('comentarios', comentarios);
+            
+            const res = await SendDataEnd(`modales/crud_unidades_operativas/eliminar/${bD.dataset.id}`, { method: 'POST', body: fd });
             if (res.success) { 
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Desactivación enviada a revisión ⏳', 'info');
@@ -1320,8 +1394,16 @@ function initBancoDptoPantallas() {
 function initBancoDptoForm() {
     const fAdd = document.getElementById('form-agregar-banco-dpto'); if (!fAdd) return;
     fAdd.onsubmit = async (e) => {
-        e.preventDefault(); try {
-            const res = await SendDataEnd('modales/crud_banco_dpto/insertar', { method: 'POST', body: new FormData(fAdd) });
+        e.preventDefault(); 
+        
+        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de este registro (Obligatorio):', true);
+        if (comentarios === null) return;
+        
+        const fd = new FormData(fAdd);
+        fd.append('comentarios', comentarios);
+        
+        try {
+            const res = await SendDataEnd('modales/crud_banco_dpto/insertar', { method: 'POST', body: fd });
             if (res.success) { 
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
@@ -1337,7 +1419,15 @@ function initBancoDptoForm() {
 function initBancoDptoEditarForm() {
     const fEdi = document.getElementById('form-editar-banco-dpto'); if (!fEdi) return;
     fEdi.onsubmit = async (e) => {
-        e.preventDefault(); const fd = new FormData(fEdi); const id = fd.get('ID_BancoDpto');
+        e.preventDefault(); 
+        
+        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta edición (Obligatorio):', true);
+        if (comentarios === null) return;
+        
+        const fd = new FormData(fEdi); 
+        fd.append('comentarios', comentarios);
+        const id = fd.get('ID_BancoDpto');
+        
         try {
             const res = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { 
@@ -1356,8 +1446,14 @@ function initBancoDptoActions(tabla) {
     tabla.addEventListener('click', async (e) => {
         const bE = e.target.closest("[id^='btn-editar-banco-dpto-']"), bD = e.target.closest("[id^='btn-eliminar-banco-dpto-']");
         if (bD) {
-            e.preventDefault(); if (!(await Confirmar('¿Eliminar?', '¿Seguro?'))) return;
-            const res = await SendDataEnd(`modales/crud_banco_dpto/eliminar/${bD.dataset.id}`, { method: 'POST' });
+            e.preventDefault(); 
+            const comentarios = await InputPrompt('Confirmar Eliminación', 'Describe el motivo de la eliminación (Obligatorio):', true);
+            if (comentarios === null) return;
+            
+            const fd = new FormData();
+            fd.append('comentarios', comentarios);
+            
+            const res = await SendDataEnd(`modales/crud_banco_dpto/eliminar/${bD.dataset.id}`, { method: 'POST', body: fd });
             if (res.success) { 
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Eliminación enviada a revisión ⏳', 'info');
@@ -1425,27 +1521,136 @@ window.mostrarDetalleAjuste = async function(id) {
 
     if (!data) throw new Error('No se encontró la solicitud.');
 
-    let payloadHtml = '<div class="p-4 bg-gray-50 rounded-lg border border-gray-200 font-mono text-sm overflow-x-auto whitespace-pre-wrap">' + JSON.stringify(JSON.parse(data.Datos_Payload), null, 2) + '</div>';
+    const payloadNew = JSON.parse(data.Datos_Payload || '{}');
+    const payloadOld = JSON.parse(data.Datos_Antiguos || '{}');
+    
+    let htmlDiff = '';
+
+    // Lógica para comparar Masivos (Presupuestos o Saldos)
+    if (data.Accion === 'Masivo') {
+        htmlDiff = `<p class="text-sm text-gray-600 mb-4">Este es un cambio masivo de <b>${data.Modulo}</b> para el periodo <b>${data.ID_Afectado}</b>.</p>`;
+        
+        if (data.Modulo === 'PresupuestoMensual' && payloadNew.grupos) {
+            htmlDiff += `<table class="min-w-full bg-white border border-gray-200 text-sm">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="py-2 px-3 border-b text-left">ID Grupo</th>
+                                    <th class="py-2 px-3 border-b text-left">ID Unidad</th>
+                                    <th class="py-2 px-3 border-b text-right">Nuevo Monto Asignado</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+            payloadNew.grupos.forEach(g => {
+                htmlDiff += `<tr>
+                                <td class="py-2 px-3 border-b font-mono">${g.id_grupo}</td>
+                                <td class="py-2 px-3 border-b font-mono">${g.id_unidad || g.id_dpto}</td>
+                                <td class="py-2 px-3 border-b text-right font-bold text-green-700">$${parseFloat(g.monto_asignado).toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                             </tr>`;
+            });
+            htmlDiff += `</tbody></table>`;
+        } 
+        else if (data.Modulo === 'SaldosBancarios' && payloadNew.saldos) {
+            htmlDiff += `<table class="min-w-full bg-white border border-gray-200 text-sm">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="py-2 px-3 border-b text-left">ID Banco</th>
+                                    <th class="py-2 px-3 border-b text-right">Saldo Inicial</th>
+                                    <th class="py-2 px-3 border-b text-right">Saldo Final</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+            payloadNew.saldos.forEach(s => {
+                htmlDiff += `<tr>
+                                <td class="py-2 px-3 border-b font-mono">${s.id_bancodpto}</td>
+                                <td class="py-2 px-3 border-b text-right font-bold text-blue-700">$${parseFloat(s.saldo_inicial).toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                                <td class="py-2 px-3 border-b text-right font-bold text-green-700">$${parseFloat(s.saldo_final).toLocaleString('es-MX', {minimumFractionDigits:2})}</td>
+                             </tr>`;
+            });
+            htmlDiff += `</tbody></table>`;
+        }
+    } 
+    // Lógica para CRUDs Individuales (Insertar, Editar, Eliminar)
+    else {
+        htmlDiff += `<table class="min-w-full bg-white border border-gray-200 text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="py-2 px-4 border-b text-left font-semibold text-gray-700">Campo</th>
+                                <th class="py-2 px-4 border-b text-left font-semibold text-gray-700">Valor Anterior</th>
+                                <th class="py-2 px-4 border-b text-left font-semibold text-gray-700">Valor Solicitado</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+        
+        const allKeys = new Set([...Object.keys(payloadNew), ...Object.keys(payloadOld)]);
+        
+        allKeys.forEach(key => {
+            // Ignorar campos ruidosos
+            if (['comentarios', 'id', 'created_at', 'updated_at'].includes(key)) return;
+
+            let oldVal = payloadOld[key] !== undefined ? payloadOld[key] : '<i>N/A</i>';
+            let newVal = payloadNew[key] !== undefined ? payloadNew[key] : '<i>N/A</i>';
+            
+            // Transformar booleanos para lectura fácil
+            if (oldVal === true || oldVal === 't' || oldVal === '1' || oldVal === 1) oldVal = 'Sí (Activo)';
+            if (oldVal === false || oldVal === 'f' || oldVal === '0' || oldVal === 0) oldVal = 'No (Inactivo)';
+            if (newVal === true || newVal === 't' || newVal === '1' || newVal === 1 || newVal === 'on') newVal = 'Sí (Activo)';
+            if (newVal === false || newVal === 'f' || newVal === '0' || newVal === 0 || newVal === '') newVal = 'No (Inactivo)';
+
+            // Solo mostrar si hubo un cambio real o si es inserción
+            if (String(oldVal) !== String(newVal) || data.Accion === 'Insertar') {
+                htmlDiff += `<tr class="hover:bg-gray-50">
+                                <td class="py-2 px-4 border-b font-semibold text-gray-800 capitalize">${key.replace(/_/g, ' ')}</td>
+                                <td class="py-2 px-4 border-b text-red-600 line-through">${data.Accion === 'Insertar' ? '-' : oldVal}</td>
+                                <td class="py-2 px-4 border-b text-green-700 font-bold">${data.Accion === 'Eliminar' ? '-' : newVal}</td>
+                             </tr>`;
+            }
+        });
+        htmlDiff += `</tbody></table>`;
+    }
+
+    let comentariosHtml = '';
+    if (data.Comentarios_Solicitante) {
+        comentariosHtml = `
+            <div class="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <h4 class="font-bold text-blue-800 mb-1 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd" />
+                    </svg>
+                    Justificación del Solicitante:
+                </h4>
+                <p class="text-blue-900 text-sm italic">"${data.Comentarios_Solicitante}"</p>
+            </div>
+        `;
+    }
 
     let html = `
-        <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
             <div><span class="block text-xs font-bold text-gray-500 uppercase">Módulo</span><span class="text-lg font-semibold text-gray-800">${data.Modulo}</span></div>
             <div><span class="block text-xs font-bold text-gray-500 uppercase">Acción Solicitada</span><span class="text-lg font-semibold text-gray-800">${data.Accion}</span></div>
             <div><span class="block text-xs font-bold text-gray-500 uppercase">Solicitante</span><span class="text-gray-800">${data.NombreUsuario}</span></div>
             <div><span class="block text-xs font-bold text-gray-500 uppercase">Fecha</span><span class="text-gray-800">${data.created_at}</span></div>
         </div>
+        
+        ${comentariosHtml}
+
         <div class="mb-6">
-            <h4 class="font-bold text-gray-700 mb-2">Datos del Cambio (Payload):</h4>
-            ${payloadHtml}
+            <h4 class="font-bold text-gray-700 mb-3 text-lg">Comparativa de Datos:</h4>
+            ${htmlDiff}
         </div>
         <div class="flex justify-end space-x-4 border-t border-gray-200 pt-6">
-            <button onclick="dictaminarAjuste(${id}, 'Rechazado')" class="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition">Rechazar</button>
-            <button onclick="dictaminarAjuste(${id}, 'Aprobado')" class="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition">Aprobar y Ejecutar</button>
+            <button onclick="dictaminarAjuste(${id}, 'Rechazado')" class="px-6 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                Rechazar
+            </button>
+            <button onclick="dictaminarAjuste(${id}, 'Aprobado')" class="px-6 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 shadow transition flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                Aprobar y Ejecutar
+            </button>
         </div>
     `;
     container.innerHTML = html;
   } catch (error) {
-    container.innerHTML = `<p class="text-center text-red-500 py-10">Error: ${error.message}</p>`;
+    container.innerHTML = `<p class="text-center text-red-500 py-10 font-bold">Error: ${error.message}</p>`;
   }
 }
 

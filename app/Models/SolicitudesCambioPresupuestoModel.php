@@ -18,7 +18,9 @@ class SolicitudesCambioPresupuestoModel extends Model
         'Accion',
         'ID_Afectado',
         'Datos_Payload',
+        'Datos_Antiguos',
         'Estado',
+        'Comentarios_Solicitante',
         'Comentarios_Revisor',
         'created_at',
         'updated_at'

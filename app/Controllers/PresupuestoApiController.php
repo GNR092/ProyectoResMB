@@ -540,6 +540,7 @@ class PresupuestoApiController extends ResourceController
 
         $anio = (int) $json['anio'];
         $mes = (int) $json['mes'];
+        $comentarios = $json['comentarios'] ?? null;
 
         $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
@@ -549,7 +550,9 @@ class PresupuestoApiController extends ResourceController
             'Accion'        => 'Masivo',
             'ID_Afectado'   => "{$anio}-{$mes}",
             'Datos_Payload' => json_encode($json),
-            'Estado'        => 'Pendiente'
+            'Datos_Antiguos'=> null, // En masivo, calcular el diff dinámico es mejor en UI
+            'Estado'        => 'Pendiente',
+            'Comentarios_Solicitante' => $comentarios
         ])) {
             return $this->respondCreated([
                 'success' => true, 
@@ -613,6 +616,7 @@ class PresupuestoApiController extends ResourceController
         
         $anio = (int) ($json['anio'] ?? 0);
         $mes = (int) ($json['mes'] ?? 0);
+        $comentarios = $json['comentarios'] ?? null;
 
         if ($solicitudesModel->insert([
             'ID_Usuario'    => session('id'),
@@ -620,7 +624,9 @@ class PresupuestoApiController extends ResourceController
             'Accion'        => 'Masivo',
             'ID_Afectado'   => "{$anio}-{$mes}",
             'Datos_Payload' => json_encode($json),
-            'Estado'        => 'Pendiente'
+            'Datos_Antiguos'=> null,
+            'Estado'        => 'Pendiente',
+            'Comentarios_Solicitante' => $comentarios
         ])) {
             return $this->respondCreated([
                 'success' => true, 
