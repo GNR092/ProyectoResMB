@@ -3,7 +3,6 @@
  * y la inicialización de su contenido dinámico.
  */
 function abrirModal(opcion) {
-
   const titulosHeaders = [
     'TituloOperacion',
     'TituloCompras',
@@ -11,12 +10,11 @@ function abrirModal(opcion) {
     'TituloTesoreria',
     'TituloAlmacen',
     'TituloContador',
-  ];
+  ]
 
   if (titulosHeaders.includes(opcion)) {
-    return;
+    return
   }
-
 
   const parentModals = {
     registrar_productos: 'almacen',
@@ -30,7 +28,7 @@ function abrirModal(opcion) {
     razonsocial: 'ajustes',
     micuenta: 'ajustes',
     programar_pagos: 'programar_pagos',
-    crud_departamento :'crud_departamento',
+    crud_departamento: 'crud_departamento',
   }
 
   const highlightOpcion = parentModals[opcion] || opcion
@@ -53,7 +51,6 @@ function abrirModal(opcion) {
   const titulo = document.getElementById('modal-title')
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
-
 
   const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos']
 
@@ -91,12 +88,12 @@ function abrirModal(opcion) {
     recepcion_material: 'Recepción de Material',
     bajas_destruccion: 'Bajas por Destrucción',
     crud_places: 'Complejos',
-    crud_departamento:"Departametos",
-    lista_pagos: "Lista de pagos",
-    crud_cuentas: "Cuentas de proveedores",
-    correcciones: "Corregir Solicitudes",
-    GrupoPresupuestal: "Grupo Presupuestal",
-    BancoDpto: "Cuentas Bancarias de los Departamentos",
+    crud_departamento: 'Departametos',
+    lista_pagos: 'Lista de pagos',
+    crud_cuentas: 'Cuentas de proveedores',
+    correcciones: 'Corregir Solicitudes',
+    GrupoPresupuestal: 'Grupo Presupuestal',
+    BancoDpto: 'Cuentas Bancarias de los Departamentos',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -124,7 +121,7 @@ function abrirModal(opcion) {
         crud_cuentas: initCrudCuentas,
         correcciones: initControlMaestro,
         GrupoPresupuestal: initCrudGrupos,
-        BancoDpto: initCrudBancoDpto
+        BancoDpto: initCrudBancoDpto,
       }
 
       const inicializador = inicializadores[opcion]
@@ -260,27 +257,27 @@ async function initSolicitarMaterial() {
 
   if (agregarBtn) {
     // Clonamos para limpiar eventos previos (manteniendo tu lógica actual)
-    const nuevoBtn = agregarBtn.cloneNode(true);
-    agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn);
+    const nuevoBtn = agregarBtn.cloneNode(true)
+    agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn)
 
     nuevoBtn.addEventListener('click', async () => {
-      const rowHtml = await getProductRowHtml();
+      const rowHtml = await getProductRowHtml()
 
       // Usamos insertAdjacentHTML para meter el HTML directamente al final del body
       // Esto evita errores de "firstChild" con espacios en blanco
-      tabla.insertAdjacentHTML('beforeend', rowHtml.trim());
+      tabla.insertAdjacentHTML('beforeend', rowHtml.trim())
 
       // Ahora obtenemos la última fila insertada para asignarle eventos
-      const nuevasFilas = tabla.querySelectorAll('tr');
-      const nuevaFila = nuevasFilas[nuevasFilas.length - 1];
+      const nuevasFilas = tabla.querySelectorAll('tr')
+      const nuevaFila = nuevasFilas[nuevasFilas.length - 1]
 
       if (nuevaFila) {
-        asignarEventosFila(nuevaFila);
-        actualizarNumeros();
-        actualizarBotonesEliminar();
-        actualizarTotal();
+        asignarEventosFila(nuevaFila)
+        actualizarNumeros()
+        actualizarBotonesEliminar()
+        actualizarTotal()
       }
-    });
+    })
   }
 
   loadRazonSocialProv('ProvSelect')
@@ -418,7 +415,7 @@ async function initSolicitarServicio() {
       } catch (error) {
         console.error(error)
         serviceRowHtml =
-            '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
+          '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
       }
     }
     return serviceRowHtml
@@ -506,39 +503,41 @@ async function initSolicitarServicio() {
   loadRazonSocialProv('razonSocialServicioSelect')
 
   // Cargar lista de Cuentas del proveedor seleccionado
-  const proveedorSelect = document.getElementById('razonSocialServicioSelect');
-  const cuentaSelect = document.getElementById('cuentaProveedorSelect');
+  const proveedorSelect = document.getElementById('razonSocialServicioSelect')
+  const cuentaSelect = document.getElementById('cuentaProveedorSelect')
 
   if (proveedorSelect && cuentaSelect) {
     proveedorSelect.addEventListener('change', async () => {
-      const idProveedor = proveedorSelect.value;
+      const idProveedor = proveedorSelect.value
 
       // Limpiar opciones anteriores
-      cuentaSelect.innerHTML = '<option value="">Seleccione una cuenta</option>';
+      cuentaSelect.innerHTML = '<option value="">Seleccione una cuenta</option>'
 
-      if (!idProveedor) return;
+      if (!idProveedor) return
 
       try {
         // Ruta para obtener datos de la tabla "Cuentas"
-        const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, { method: 'GET' });
+        const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, {
+          method: 'GET',
+        })
 
         if (cuentas && cuentas.length > 0) {
-          cuentas.forEach(c => {
-            const option = document.createElement('option');
-            option.value = c.ID_Cuenta; // El valor será el ID
-            option.textContent = c.Cuenta; // El texto visible será el número de cuenta/CLABE
-            cuentaSelect.appendChild(option);
-          });
+          cuentas.forEach((c) => {
+            const option = document.createElement('option')
+            option.value = c.ID_Cuenta // El valor será el ID
+            option.textContent = c.Cuenta // El texto visible será el número de cuenta/CLABE
+            cuentaSelect.appendChild(option)
+          })
         } else {
-          const option = document.createElement('option');
-          option.textContent = "(Este proveedor no tiene cuentas registradas)";
-          option.disabled = true;
-          cuentaSelect.appendChild(option);
+          const option = document.createElement('option')
+          option.textContent = '(Este proveedor no tiene cuentas registradas)'
+          option.disabled = true
+          cuentaSelect.appendChild(option)
         }
       } catch (error) {
-        console.error("Error al cargar cuentas bancarias:", error);
+        console.error('Error al cargar cuentas bancarias:', error)
       }
-    });
+    })
   }
 
   const formulario = document.getElementById('form-servicio-upload')
@@ -611,36 +610,41 @@ function regresarSubmenuMaterial() {
 /**
  * Lógica para el modal "Ver Historial"
  */
-let choicesDepartamento = null;
+let choicesDepartamento = null
 function initPaginacionHistorial() {
   const tabla = document.getElementById('tabla-historial')
   if (!tabla) return
 
-
-  const filtroEl = document.getElementById('filtroDepartamento');
+  const filtroEl = document.getElementById('filtroDepartamento')
   if (filtroEl) {
-      choicesDepartamento = new Choices(filtroEl, {
-          removeItemButton: true,
-          placeholder: true,
-          placeholderValue: 'Todos los departamentos',
-          searchPlaceholderValue: 'Buscar...',
-          itemSelectText: 'Seleccionar',
-          noResultsText: 'No se encontraron resultados',
-          noChoicesText: 'No hay más opciones para elegir',
-      });
+    choicesDepartamento = new Choices(filtroEl, {
+      removeItemButton: true,
+      placeholder: true,
+      placeholderValue: 'Todos los departamentos',
+      searchPlaceholderValue: 'Buscar...',
+      itemSelectText: 'Seleccionar',
+      noResultsText: 'No se encontraron resultados',
+      noChoicesText: 'No hay más opciones para elegir',
+    })
   }
-
 
   //Filtro para la casilla de departamentos
   function validarFiltroDepartamento() {
     const filtro = document.getElementById('filtroDepartamento')
     if (!filtro) return
-    const deptosPermitidos = ['Administración', 'Compras', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría']
+    const deptosPermitidos = [
+      'Administración',
+      'Compras',
+      'Direccion',
+      'Tesoreria',
+      'Direccion Campus',
+      'Contaduría',
+    ]
 
     const miDepto = typeof USER_DEPT_NAME !== 'undefined' ? USER_DEPT_NAME : ''
 
     if (!deptosPermitidos.includes(miDepto)) {
-      filtro.parentElement.style.display = 'none';
+      filtro.parentElement.style.display = 'none'
     }
   }
 
@@ -701,7 +705,14 @@ function initPaginacionHistorial() {
     return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
   }
 
-  const exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría']
+  const exceptions = [
+    'Compras',
+    'Administración',
+    'Direccion',
+    'Tesoreria',
+    'Direccion Campus',
+    'Contaduría',
+  ]
   let url = 'api/historic'
   if (
     typeof USER_DEPT_NAME !== 'undefined' &&
@@ -719,18 +730,18 @@ function initPaginacionHistorial() {
     filterFormSelector: '#modal-contenido', // Container for filters, used to attach events
 
     renderRow: (item) => {
-      const status = getStatusText(item.Estado);
-      const svg = getStatusSVG(item.Estado);
-      const MetodoPag = getMetodoPago(item.MetodoPago);
+      const status = getStatusText(item.Estado)
+      const svg = getStatusSVG(item.Estado)
+      const MetodoPag = getMetodoPago(item.MetodoPago)
 
       // El valor que viene del backend (item.MontoTotal) ya es el 'Total' de la tabla Cotizacion
-      const totalRaw = parseFloat(item.MontoTotal) || 0;
+      const totalRaw = parseFloat(item.MontoTotal) || 0
 
       // Formateo de moneda
       const montoFormateado = new Intl.NumberFormat('es-MX', {
         style: 'currency',
-        currency: 'MXN'
-      }).format(totalRaw);
+        currency: 'MXN',
+      }).format(totalRaw)
 
       return `
     <tr class="text-center hover:bg-gray-50 transition">
@@ -758,43 +769,52 @@ function initPaginacionHistorial() {
             </button>
         </td>
     </tr>
-  `;
+  `
     },
 
     filterFunction: (allData, form) => {
       const fechaFiltro = document.getElementById('filtro-fecha').value
       const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
       const estadoFiltro = document.getElementById('filtro-estado').value
-      const departamentosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : [];
+      const proveedorFiltro = document.getElementById('filtro-proveedor')?.value.toLowerCase() || ''
+      const departamentosSeleccionados = choicesDepartamento
+        ? choicesDepartamento.getValue(true)
+        : []
 
       return allData.filter((item) => {
-        const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
+        const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
 
-        let coincideDepartamento = true; 
+        const coincideProveedor =
+          !proveedorFiltro ||
+          (item.ProveedorNombre && item.ProveedorNombre.toLowerCase().includes(proveedorFiltro))
+
+        let coincideDepartamento = true
         if (departamentosSeleccionados.length > 0) {
-            const itemDepartamentoCompleto = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`;
-            coincideDepartamento = departamentosSeleccionados.includes(itemDepartamentoCompleto);
+          const itemDepartamentoCompleto = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`
+          coincideDepartamento = departamentosSeleccionados.includes(itemDepartamentoCompleto)
         } else {
-          // If the multi-select is empty, all departments should match
-          coincideDepartamento = true;
+          coincideDepartamento = true
         }
 
-        // Fix for when the array is empty after clearing the selection
         if (choicesDepartamento && choicesDepartamento.getValue(true).length === 0) {
-            coincideDepartamento = true;
+          coincideDepartamento = true
         }
 
         if (!fechaFiltro) {
-          return coincideEstado && coincideDepartamento
+          return coincideEstado && coincideDepartamento && coincideProveedor
         }
 
-        const fechaItem = item.Fecha // formato esperado: "2025-10-08"
+        const fechaItem = item.Fecha
         if (filtrarPorMes) {
           const mesFiltro = fechaFiltro.slice(0, 7)
           const mesItem = fechaItem.slice(0, 7)
-          return mesItem === mesFiltro && coincideEstado && coincideDepartamento
+          return (
+            mesItem === mesFiltro && coincideEstado && coincideDepartamento && coincideProveedor
+          )
         } else {
-          return fechaItem === fechaFiltro && coincideEstado && coincideDepartamento
+          return (
+            fechaItem === fechaFiltro && coincideEstado && coincideDepartamento && coincideProveedor
+          )
         }
       })
     },
@@ -838,7 +858,7 @@ async function mostrarVerHistorial(idSolicitud) {
             </div>`
     }
 
-    html += generarSeccionAdjuntos(data);
+    html += generarSeccionAdjuntos(data)
 
     detallesContainer.innerHTML = html
   } catch (error) {
@@ -853,7 +873,6 @@ function regresarHistorial() {
 
   const divHistorial = document.getElementById('div-historial')
   if (divHistorial) divHistorial.classList.remove('hidden')
-
 }
 
 /**
@@ -872,24 +891,23 @@ function exportarRequisicionesExcel() {
 }
 
 function exportarHistorialExcel() {
-  const fecha = document.getElementById('filtro-fecha').value;
-  const porMes = document.getElementById('filtrar-por-mes').checked;
-  const estado = document.getElementById('filtro-estado').value;
+  const fecha = document.getElementById('filtro-fecha').value
+  const porMes = document.getElementById('filtrar-por-mes').checked
+  const estado = document.getElementById('filtro-estado').value
 
   // Obtener valores de Choices.js
-  const deptosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : [];
+  const deptosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : []
 
-  const params = new URLSearchParams();
-  if (fecha) params.append('fecha', fecha);
-  if (porMes) params.append('por_mes', '1');
-  if (estado) params.append('estado', estado);
+  const params = new URLSearchParams()
+  if (fecha) params.append('fecha', fecha)
+  if (porMes) params.append('por_mes', '1')
+  if (estado) params.append('estado', estado)
   if (deptosSeleccionados.length > 0) {
-    params.append('dpto', deptosSeleccionados.join(','));
+    params.append('dpto', deptosSeleccionados.join(','))
   }
 
-  window.location.href = `api/historial/exportar?${params.toString()}`;
+  window.location.href = `api/historial/exportar?${params.toString()}`
 }
-
 
 async function mostrarVer(idSolicitud) {
   document.getElementById('btn-exportar-requisiciones').classList.add('hidden') // Ocultar el botón de exportar
@@ -1140,47 +1158,44 @@ async function mostrarCotizar(idSolicitud, idUsuario) {
 
 async function cancelarReq(idSolicitud) {
   if (
-    !(await Confirmar(
-      'Cancelar solicitud',
-      '¿Está seguro de que desea cancelar la solicitud?',
-    ))
+    !(await Confirmar('Cancelar solicitud', '¿Está seguro de que desea cancelar la solicitud?'))
   ) {
-    return;
+    return
   }
 
   const comentarios = await InputPrompt(
     'Cancelar Solicitud',
     'Por favor, ingrese el motivo de la cancelación (obligatorio):',
     true,
-  );
+  )
 
   if (comentarios === null) {
-    return; 
+    return
   }
 
-  const procesandoNotif = mostrarNotificacion('Cancelando solicitud...', 'info', 999999);
+  const procesandoNotif = mostrarNotificacion('Cancelando solicitud...', 'info', 999999)
 
   try {
     const result = await SendDataEnd('api/solicitud/cancelar', {
       method: 'POST',
-      body: { 
+      body: {
         ID_Solicitud: idSolicitud,
-        ComentariosAdmin: comentarios 
+        ComentariosAdmin: comentarios,
       },
-    });
+    })
 
-    procesandoNotif.click();
+    procesandoNotif.click()
 
     if (result.success) {
-      mostrarNotificacion(result.message || 'Solicitud cancelada correctamente.', 'success');
-      abrirModal('revisar_solicitudes');
+      mostrarNotificacion(result.message || 'Solicitud cancelada correctamente.', 'success')
+      abrirModal('revisar_solicitudes')
     } else {
-      mostrarNotificacion(result.message || 'No se pudo cancelar la solicitud.', 'error');
+      mostrarNotificacion(result.message || 'No se pudo cancelar la solicitud.', 'error')
     }
   } catch (error) {
-    procesandoNotif.click();
-    console.error('Error al cancelar solicitud:', error);
-    mostrarNotificacion(error.data.messages.error || error.message, 'error');
+    procesandoNotif.click()
+    console.error('Error al cancelar solicitud:', error)
+    mostrarNotificacion(error.data.messages.error || error.message, 'error')
   }
 }
 
@@ -1191,25 +1206,24 @@ function regresarTabla() {
   document.getElementById('btn-exportar-requisiciones').classList.remove('hidden') // Mostrar el botón de exportar
 
   // Reset the state of the cotizar view
-  const inputBusqueda = document.getElementById('buscar-proveedor');
+  const inputBusqueda = document.getElementById('buscar-proveedor')
   if (inputBusqueda) {
-    inputBusqueda.value = '';
+    inputBusqueda.value = ''
   }
-  const tbody = document.querySelector('#div-cotizar tbody');
+  const tbody = document.querySelector('#div-cotizar tbody')
   if (tbody) {
-    tbody.innerHTML = '';
+    tbody.innerHTML = ''
   }
-  const paginacionDiv = document.querySelector('#div-cotizar #paginacion-proveedores');
+  const paginacionDiv = document.querySelector('#div-cotizar #paginacion-proveedores')
   if (paginacionDiv) {
-    paginacionDiv.innerHTML = '';
+    paginacionDiv.innerHTML = ''
   }
-  const btnGenerar = document.getElementById('btn-generar-cotizacion');
+  const btnGenerar = document.getElementById('btn-generar-cotizacion')
   if (btnGenerar) {
-    btnGenerar.onclick = null; // Remove listener
-    btnGenerar.disabled = true; // Disable button
+    btnGenerar.onclick = null // Remove listener
+    btnGenerar.disabled = true // Disable button
   }
 }
-
 
 /**
  * Lógica para el modal CRUD Places
@@ -1232,8 +1246,12 @@ function initPlacesTabla() {
     paginationSelector: 'paginacion-places',
     filterFormSelector: '#form-filtros-places',
     filterFunction: (row, form) => {
-      const cortoFiltro = (document.getElementById('buscar-nombre-corto')?.value || '').toLowerCase()
-      const completoFiltro = (document.getElementById('buscar-nombre-completo')?.value || '').toLowerCase()
+      const cortoFiltro = (
+        document.getElementById('buscar-nombre-corto')?.value || ''
+      ).toLowerCase()
+      const completoFiltro = (
+        document.getElementById('buscar-nombre-completo')?.value || ''
+      ).toLowerCase()
 
       const nombreCorto = row.querySelector('.nombre-corto')?.textContent.toLowerCase() || ''
       const nombreCompleto = row.querySelector('.nombre-completo')?.textContent.toLowerCase() || ''
@@ -1335,11 +1353,11 @@ function initPlacesEditarForm() {
           fila.querySelector('.nombre-completo').textContent = formData.get('Nombre_Completo')
 
           // --- NUEVO: Actualizar Razón Social visualmente ---
-          const selectRS = document.getElementById('editar-ID_RazonSocial');
+          const selectRS = document.getElementById('editar-ID_RazonSocial')
           // Obtenemos el texto de la opción seleccionada para mostrarlo en la tabla
-          const rsTexto = selectRS.options[selectRS.selectedIndex].text;
+          const rsTexto = selectRS.options[selectRS.selectedIndex].text
           // Si el value es vacío (no seleccionó nada), ponemos un guion, si no, el nombre
-          fila.querySelector('.razon-social-nombre').textContent = selectRS.value ? rsTexto : '-';
+          fila.querySelector('.razon-social-nombre').textContent = selectRS.value ? rsTexto : '-'
 
           // Actualizar Datasets
           fila.dataset.nombreCorto = formData.get('Nombre_Corto')
@@ -1369,26 +1387,20 @@ function initPlacesActions(tabla) {
       e.preventDefault()
       const id = btnEliminar.dataset.id
 
-      if (
-          !(await Confirmar(
-              'Eliminar Lugar?',
-              '¿Seguro que deseas eliminar este lugar?',
-          ))
-      )
-        return
+      if (!(await Confirmar('Eliminar Lugar?', '¿Seguro que deseas eliminar este lugar?'))) return
 
       SendDataEnd(`modales/crud_places/eliminar/${id}`, {
         method: 'POST',
       })
-          .then((result) => {
-            if (result.success) {
-              mostrarNotificacion('Lugar eliminado ✅', 'success')
-              btnEliminar.closest('tr')?.remove()
-            } else {
-              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-            }
-          })
-          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+        .then((result) => {
+          if (result.success) {
+            mostrarNotificacion('Lugar eliminado ✅', 'success')
+            btnEliminar.closest('tr')?.remove()
+          } else {
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+          }
+        })
+        .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
       return
     }
 
@@ -1406,7 +1418,7 @@ function initPlacesActions(tabla) {
 
     // --- NUEVO: Cargar el valor de la Razón Social al select ---
     // Usamos el dataset que agregamos en la vista HTML
-    document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonSocial || "";
+    document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonSocial || ''
 
     document.getElementById('pantalla-lista-places').classList.add('hidden')
     document.getElementById('pantalla-editar-places').classList.remove('hidden')
@@ -1437,7 +1449,7 @@ async function initDictamenSolicitudes() {
   })
 }
 
-window.mostrarVerDictamen = async function(idSolicitud) {
+window.mostrarVerDictamen = async function (idSolicitud) {
   document.getElementById('div-tabla').classList.add('hidden')
   const divVer = document.getElementById('div-ver-dictamen')
   divVer.classList.remove('hidden')
@@ -1451,7 +1463,7 @@ window.mostrarVerDictamen = async function(idSolicitud) {
 
     let html = generarDetallesSolicitudHTML(data)
 
-   html += generarComentariosHtml(data)
+    html += generarComentariosHtml(data)
 
     html += generarProductosServiciosHTML(data)
 
@@ -1476,7 +1488,7 @@ window.mostrarVerDictamen = async function(idSolicitud) {
             </div>`
     }
 
-    html += generarSeccionAdjuntos(data);
+    html += generarSeccionAdjuntos(data)
 
     // Solo mostrar botones de acción si la solicitud está 'En revision'
     if (data.Estado === 'En revision') {
@@ -1505,17 +1517,17 @@ window.mostrarVerDictamen = async function(idSolicitud) {
   }
 }
 
-window.regresarTablaDictamen = function() {
+window.regresarTablaDictamen = function () {
   document.getElementById('div-ver-dictamen').classList.add('hidden')
   document.getElementById('div-tabla').classList.remove('hidden')
 }
 
-window.dictaminarDictamen = async function(idSolicitud, nuevoEstado) {
+window.dictaminarDictamen = async function (idSolicitud, nuevoEstado) {
   const esAprobacion = nuevoEstado === 'Aprobada'
   const title = esAprobacion ? 'Aprobar Solicitud' : 'Rechazar Solicitud'
   const message = esAprobacion
-      ? 'Puede agregar observaciones (opcional):'
-      : 'Por favor, ingrese el motivo del rechazo (obligatorio):'
+    ? 'Puede agregar observaciones (opcional):'
+    : 'Por favor, ingrese el motivo del rechazo (obligatorio):'
   const isRequired = !esAprobacion
 
   const comentarios = await InputPrompt(title, message, isRequired)
@@ -1553,8 +1565,6 @@ window.dictaminarDictamen = async function(idSolicitud, nuevoEstado) {
   }
 }
 
-
-
 /**
  * Lógica para el modal "Órdenes de Compra"
  */
@@ -1568,47 +1578,44 @@ function initOrdenesCompra() {
 
 async function cancelarReqOrden(idSolicitud) {
   if (
-      !(await Confirmar(
-          'Cancelar solicitud',
-          '¿Está seguro de que desea cancelar la solicitud?',
-      ))
+    !(await Confirmar('Cancelar solicitud', '¿Está seguro de que desea cancelar la solicitud?'))
   ) {
-    return;
+    return
   }
 
   const comentarios = await InputPrompt(
-      'Cancelar Solicitud',
-      'Por favor, ingrese el motivo de la cancelación (obligatorio):',
-      true,
-  );
+    'Cancelar Solicitud',
+    'Por favor, ingrese el motivo de la cancelación (obligatorio):',
+    true,
+  )
 
   if (comentarios === null) {
-    return;
+    return
   }
 
-  const procesandoNotif = mostrarNotificacion('Cancelando solicitud...', 'info', 999999);
+  const procesandoNotif = mostrarNotificacion('Cancelando solicitud...', 'info', 999999)
 
   try {
     const result = await SendDataEnd('api/solicitud/cancelar', {
       method: 'POST',
       body: {
         ID_Solicitud: idSolicitud,
-        ComentariosAdmin: comentarios
+        ComentariosAdmin: comentarios,
       },
-    });
+    })
 
-    procesandoNotif.click();
+    procesandoNotif.click()
 
     if (result.success) {
-      mostrarNotificacion(result.message || 'Solicitud cancelada correctamente.', 'success');
-      abrirModal('ordenes_compra');
+      mostrarNotificacion(result.message || 'Solicitud cancelada correctamente.', 'success')
+      abrirModal('ordenes_compra')
     } else {
-      mostrarNotificacion(result.message || 'No se pudo cancelar la solicitud.', 'error');
+      mostrarNotificacion(result.message || 'No se pudo cancelar la solicitud.', 'error')
     }
   } catch (error) {
-    procesandoNotif.click();
-    console.error('Error al cancelar solicitud:', error);
-    mostrarNotificacion(error.data.messages.error || error.message, 'error');
+    procesandoNotif.click()
+    console.error('Error al cancelar solicitud:', error)
+    mostrarNotificacion(error.data.messages.error || error.message, 'error')
   }
 }
 
@@ -1631,10 +1638,10 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
 
     // --- NUEVO: CHECKBOX DE CORRECCIÓN DE IVA ---
     // Solo permitimos corregir si está aprobada (antes de enviarse o pagarse)
-// En la función mostrarVerOrdenCompra...
+    // En la función mostrarVerOrdenCompra...
 
     if (data.Estado === 'Aprobada') {
-      const tieneIva = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
+      const tieneIva = data.IVA == 1 || data.IVA === 't' || data.IVA === true
 
       // CORRECCIÓN AQUÍ: Pasamos $idsession como 3er argumento
       html += `
@@ -1651,7 +1658,7 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
                 </label>
                 <div id="loading-iva-${idOrden}" class="hidden ml-3">
                    </div>
-            </div>`;
+            </div>`
     }
 
     html += generarProductosServiciosHTML(data)
@@ -1667,7 +1674,7 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
     }
 
     if (typeof generarSeccionAdjuntos === 'function') {
-      html += generarSeccionAdjuntos(data);
+      html += generarSeccionAdjuntos(data)
     }
 
     // Solo mostrar botones de acción si la solicitud está 'Aprobada'
@@ -1686,58 +1693,61 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
     }
     detallesContainer.innerHTML = html
   } catch (error) {
-    console.error(error);
+    console.error(error)
     detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
   }
 }
 
 async function toggleIvaOrden(idSolicitud, nuevoEstadoIva, idSession) {
-  const loadingIcon = document.getElementById(`loading-iva-${idSolicitud}`);
-  const checkbox = document.getElementById(`chk-iva-correction-${idSolicitud}`);
+  const loadingIcon = document.getElementById(`loading-iva-${idSolicitud}`)
+  const checkbox = document.getElementById(`chk-iva-correction-${idSolicitud}`)
 
   // UI: Mostrar carga y bloquear checkbox
-  if(loadingIcon) loadingIcon.classList.remove('hidden');
-  if(checkbox) checkbox.disabled = true;
+  if (loadingIcon) loadingIcon.classList.remove('hidden')
+  if (checkbox) checkbox.disabled = true
 
   try {
     // 1. Obtener datos actuales para no perder información (proveedor, cuenta, productos base)
-    const currentData = await SendDataEnd(`api/cotizacion/details/${idSolicitud}`);
+    const currentData = await SendDataEnd(`api/cotizacion/details/${idSolicitud}`)
 
-    if(!currentData || currentData.error) {
-      throw new Error("No se pudieron obtener los datos de la orden para actualizar.");
+    if (!currentData || currentData.error) {
+      throw new Error('No se pudieron obtener los datos de la orden para actualizar.')
     }
 
-    const isServicio = currentData.Tipo == 2;
+    const isServicio = currentData.Tipo == 2
 
     // 2. Preparar el array de productos para la API de update
     // IMPORTANTE: Enviamos el "Importe" tal cual viene de la BD (Precio Base).
     // Al cambiar el flag "iva", el backend hará la matemática (Base * 1.16) o dejará la Base sola.
-    let productosPayload = [];
+    let productosPayload = []
 
     if (currentData.productos && currentData.productos.length > 0) {
-      productosPayload = currentData.productos.map(p => {
+      productosPayload = currentData.productos.map((p) => {
         // Parseamos a float para evitar errores de string
-        const importeBase = parseFloat(p.Importe) || 0;
+        const importeBase = parseFloat(p.Importe) || 0
 
         if (isServicio) {
           return {
             nombre: p.Nombre,
-            importe: importeBase
-          };
+            importe: importeBase,
+          }
         } else {
           return {
             codigo: p.Codigo,
             nombre: p.Nombre,
             cantidad: parseFloat(p.Cantidad) || 1,
-            importe: importeBase
-          };
+            importe: importeBase,
+          }
         }
-      });
+      })
     }
 
     // 3. Determinar ID Cotización (si existe)
-    const idCotizacion = currentData.ID_Cotizacion ||
-        (currentData.cotizaciones && currentData.cotizaciones.length > 0 ? currentData.cotizaciones[0].ID_Cotizacion : null);
+    const idCotizacion =
+      currentData.ID_Cotizacion ||
+      (currentData.cotizaciones && currentData.cotizaciones.length > 0
+        ? currentData.cotizaciones[0].ID_Cotizacion
+        : null)
 
     // 4. Construir Payload
     const payload = {
@@ -1745,39 +1755,37 @@ async function toggleIvaOrden(idSolicitud, nuevoEstadoIva, idSession) {
       id_cotizacion_seleccionada: idCotizacion,
       productos: productosPayload,
       comentarios: currentData.ComentariosAdmin || null, // Mantenemos comentarios del admin
-      id_cuenta: currentData.ID_Cuenta || null,         // Mantenemos la cuenta bancaria seleccionada
-      iva: nuevoEstadoIva ? 1 : 0                        // <--- AQUÍ CAMBIAMOS EL ESTADO DEL IMPUESTO
-    };
+      id_cuenta: currentData.ID_Cuenta || null, // Mantenemos la cuenta bancaria seleccionada
+      iva: nuevoEstadoIva ? 1 : 0, // <--- AQUÍ CAMBIAMOS EL ESTADO DEL IMPUESTO
+    }
 
     // 5. Enviar Actualización
     const result = await SendDataEnd('api/solicitud/update', {
       method: 'POST',
-      body: payload
-    });
+      body: payload,
+    })
 
     if (result.success) {
-      mostrarNotificacion('IVA actualizado y PDF regenerado correctamente.', 'success');
+      mostrarNotificacion('IVA actualizado y PDF regenerado correctamente.', 'success')
 
       // 6. Recargar la vista para ver los nuevos totales
       // Pasamos idSolicitud y el idSession que recibimos como argumento
-      await mostrarVerOrdenCompra(idSolicitud, idSession);
-
+      await mostrarVerOrdenCompra(idSolicitud, idSession)
     } else {
-      throw new Error(result.message || 'Error desconocido al actualizar la orden.');
+      throw new Error(result.message || 'Error desconocido al actualizar la orden.')
     }
-
   } catch (error) {
-    console.error('Error en toggleIvaOrden:', error);
-    mostrarNotificacion(`Error: ${error.message}`, 'error');
+    console.error('Error en toggleIvaOrden:', error)
+    mostrarNotificacion(`Error: ${error.message}`, 'error')
 
     // Revertir el checkbox visualmente si falló la operación
-    if(checkbox) {
-      checkbox.checked = !nuevoEstadoIva; // Volver al estado anterior
+    if (checkbox) {
+      checkbox.checked = !nuevoEstadoIva // Volver al estado anterior
     }
   } finally {
     // UI: Ocultar carga y desbloquear
-    if(loadingIcon) loadingIcon.classList.add('hidden');
-    if(checkbox) checkbox.disabled = false;
+    if (loadingIcon) loadingIcon.classList.add('hidden')
+    if (checkbox) checkbox.disabled = false
   }
 }
 
@@ -2181,7 +2189,6 @@ function aprobarSolicitudes() {
             `
         }
 
-
         html += `
             <div class="mt-8 flex justify-end space-x-4 border-t pt-6">
                 <!-- Botón Rechazar -->
@@ -2206,7 +2213,7 @@ function aprobarSolicitudes() {
     regresarATabla: function () {
       document.getElementById('div-ver-aprobacion').classList.add('hidden')
       document.getElementById('div-tabla-aprobacion').classList.remove('hidden')
-    }
+    },
   }
 }
 
@@ -2243,9 +2250,9 @@ async function dictaminarSolicitud(idSolicitud, accion) {
 
   if (esRechazo) {
     comentarios = await InputPrompt(
-        'Rechazar Solicitud',
-        'Por favor, ingrese el motivo del rechazo (obligatorio):',
-        true,
+      'Rechazar Solicitud',
+      'Por favor, ingrese el motivo del rechazo (obligatorio):',
+      true,
     )
     if (comentarios === null) {
       return // El usuario canceló el modal
@@ -2253,8 +2260,8 @@ async function dictaminarSolicitud(idSolicitud, accion) {
   } else {
     // Caso de aprobación directa
     const confirmado = await Confirmar(
-        'Aprobar Solicitud',
-        '¿Está seguro de que desea aprobar esta solicitud?',
+      'Aprobar Solicitud',
+      '¿Está seguro de que desea aprobar esta solicitud?',
     )
     if (!confirmado) {
       return
@@ -2349,59 +2356,59 @@ function initRazonSocialPantallas() {
 }
 
 function initRazonSocialForm() {
-    const formAgregar = document.getElementById('form-agregar-razonsocial')
-    if (!formAgregar) return
+  const formAgregar = document.getElementById('form-agregar-razonsocial')
+  if (!formAgregar) return
 
-    formAgregar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formAgregar)
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formAgregar)
 
-        try {
-            const result = await SendDataEnd('modales/razonsocial/insertar', {
-                method: 'POST',
-                body: formData,
-            })
+    try {
+      const result = await SendDataEnd('modales/razonsocial/insertar', {
+        method: 'POST',
+        body: formData,
+      })
 
-            if (result.success) {
-                mostrarNotificacion('Razón social agregada correctamente ✅', 'success')
-                formAgregar.reset()
-                abrirModal('razonsocial') // Recargar el modal para ver los cambios
-            } else {
-                mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
-            }
-        } catch (error) {
-            console.error('Error al agregar razón social:', error)
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+      if (result.success) {
+        mostrarNotificacion('Razón social agregada correctamente ✅', 'success')
+        formAgregar.reset()
+        abrirModal('razonsocial') // Recargar el modal para ver los cambios
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch (error) {
+      console.error('Error al agregar razón social:', error)
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
     }
+  }
 }
 
 function initRazonSocialEditarForm() {
-    const formEditar = document.getElementById('form-editar-razonsocial')
-    if (!formEditar) return
+  const formEditar = document.getElementById('form-editar-razonsocial')
+  if (!formEditar) return
 
-    formEditar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formEditar)
-        const id = formData.get('ID_RazonSocial')
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
+    const id = formData.get('ID_RazonSocial')
 
-        try {
-            const result = await SendDataEnd(`modales/razonsocial/editar/${id}`, {
-                method: 'POST',
-                body: formData,
-            })
+    try {
+      const result = await SendDataEnd(`modales/razonsocial/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
 
-            if (result.success) {
-                mostrarNotificacion('Razón social actualizada correctamente ✅', 'success')
-                abrirModal('razonsocial') // Recargar el modal para ver los cambios
-            } else {
-                mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
-            }
-        } catch (error) {
-            console.error('Error al editar razón social:', error)
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+      if (result.success) {
+        mostrarNotificacion('Razón social actualizada correctamente ✅', 'success')
+        abrirModal('razonsocial') // Recargar el modal para ver los cambios
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch (error) {
+      console.error('Error al editar razón social:', error)
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
     }
+  }
 }
 
 function initRazonSocialActions(tabla) {
@@ -2429,7 +2436,9 @@ function initRazonSocialActions(tabla) {
 
     // --- ELIMINAR ---
     if (btn.classList.contains('btn-eliminar')) {
-      if (!(await Confirmar('Eliminar Razón Social', '¿Seguro que deseas eliminar este registro?'))) {
+      if (
+        !(await Confirmar('Eliminar Razón Social', '¿Seguro que deseas eliminar este registro?'))
+      ) {
         return
       }
 
@@ -2689,7 +2698,9 @@ function initDepartamentosTabla() {
     paginationSelector: 'paginacion-departamentos',
     filterFormSelector: '#form-filtros-departamentos',
     filterFunction: (row, form) => {
-      const nombreFiltro = (document.getElementById('buscar-nombre-depto')?.value || '').toLowerCase()
+      const nombreFiltro = (
+        document.getElementById('buscar-nombre-depto')?.value || ''
+      ).toLowerCase()
       const lugarFiltro = (document.getElementById('buscar-lugar-depto')?.value || '').toLowerCase()
 
       const nombre = row.querySelector('.nombre-depto')?.textContent.toLowerCase() || ''
@@ -2791,9 +2802,9 @@ function initDepartamentosEditarForm() {
           fila.querySelector('.nombre-depto').textContent = formData.get('Nombre')
 
           // Places
-          const selectLugar = document.getElementById('editar-ID_Place');
-          const lugarTexto = selectLugar.options[selectLugar.selectedIndex].text;
-          fila.querySelector('.lugar-depto').textContent = lugarTexto;
+          const selectLugar = document.getElementById('editar-ID_Place')
+          const lugarTexto = selectLugar.options[selectLugar.selectedIndex].text
+          fila.querySelector('.lugar-depto').textContent = lugarTexto
 
           fila.dataset.nombre = formData.get('Nombre')
           fila.dataset.idPlace = formData.get('ID_Place')
@@ -2822,25 +2833,25 @@ function initDepartamentosActions(tabla) {
       const id = btnEliminar.dataset.id
 
       if (
-          !(await Confirmar(
-              'Eliminar Departamento?',
-              '¿Seguro que deseas eliminar este departamento?',
-          ))
+        !(await Confirmar(
+          'Eliminar Departamento?',
+          '¿Seguro que deseas eliminar este departamento?',
+        ))
       )
         return
 
       SendDataEnd(`modales/crud_departamentos/eliminar/${id}`, {
         method: 'POST',
       })
-          .then((result) => {
-            if (result.success) {
-              mostrarNotificacion('Departamento eliminado ✅', 'success')
-              btnEliminar.closest('tr')?.remove()
-            } else {
-              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-            }
-          })
-          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+        .then((result) => {
+          if (result.success) {
+            mostrarNotificacion('Departamento eliminado ✅', 'success')
+            btnEliminar.closest('tr')?.remove()
+          } else {
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+          }
+        })
+        .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
       return
     }
 
@@ -2862,7 +2873,6 @@ function initDepartamentosActions(tabla) {
   })
 }
 
-
 /**
  * Lógica para el CRUD de cuentas de proveedor
  */
@@ -2883,7 +2893,9 @@ function initCuentasTabla() {
     paginationSelector: 'paginacion-cuentas',
     filterFormSelector: '#form-filtros-cuentas',
     filterFunction: (row, form) => {
-      const razonSocialFiltro = (document.getElementById('buscar-razonsocial-cuenta')?.value || '').toLowerCase()
+      const razonSocialFiltro = (
+        document.getElementById('buscar-razonsocial-cuenta')?.value || ''
+      ).toLowerCase()
       const rfcFiltro = (document.getElementById('buscar-rfc-cuenta')?.value || '').toLowerCase()
 
       const razonSocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || ''
@@ -2910,140 +2922,139 @@ function initCuentasPantallas() {
 }
 
 function initSubPantallasCuentas() {
-  const vistaTabla = document.getElementById('vista-tabla-cuentas-detalle');
-  const vistaForm = document.getElementById('vista-form-nueva-cuenta');
-  const tablaDetalle = document.getElementById('tabla-cuentas-detalle');
+  const vistaTabla = document.getElementById('vista-tabla-cuentas-detalle')
+  const vistaForm = document.getElementById('vista-form-nueva-cuenta')
+  const tablaDetalle = document.getElementById('tabla-cuentas-detalle')
 
-  const btnAgregar = document.getElementById('btn-agregar-cuenta-detalle');
-  const btnCancelar = document.getElementById('btn-cancelar-nueva-cuenta');
-  const btnConfirmar = document.getElementById('btn-confirmar-nueva-cuenta');
+  const btnAgregar = document.getElementById('btn-agregar-cuenta-detalle')
+  const btnCancelar = document.getElementById('btn-cancelar-nueva-cuenta')
+  const btnConfirmar = document.getElementById('btn-confirmar-nueva-cuenta')
 
-  const inputCuenta = document.getElementById('nueva-cuenta-input');
-  const inputIdRef = document.getElementById('editar-ID_Ref');
-  const inputIdEdicion = document.getElementById('id_cuenta_edicion');
-  const tituloForm = document.getElementById('titulo-form-cuenta');
+  const inputCuenta = document.getElementById('nueva-cuenta-input')
+  const inputIdRef = document.getElementById('editar-ID_Ref')
+  const inputIdEdicion = document.getElementById('id_cuenta_edicion')
+  const tituloForm = document.getElementById('titulo-form-cuenta')
 
   // 1. Botón "AGREGAR"
   if (btnAgregar) {
     btnAgregar.onclick = () => {
-      if(inputCuenta) inputCuenta.value = '';
-      if(inputIdEdicion) inputIdEdicion.value = '';
-      if(tituloForm) tituloForm.textContent = 'Nueva Cuenta';
+      if (inputCuenta) inputCuenta.value = ''
+      if (inputIdEdicion) inputIdEdicion.value = ''
+      if (tituloForm) tituloForm.textContent = 'Nueva Cuenta'
 
-      vistaTabla.classList.add('hidden');
-      vistaForm.classList.remove('hidden');
-      if(inputCuenta) inputCuenta.focus();
-    };
+      vistaTabla.classList.add('hidden')
+      vistaForm.classList.remove('hidden')
+      if (inputCuenta) inputCuenta.focus()
+    }
   }
 
   // Eventos de eliminar y editar
   if (tablaDetalle) {
     tablaDetalle.addEventListener('click', async (e) => {
-
       // Botón "EDITAR"
-      const btnEditar = e.target.closest('.btn-editar-detalle');
+      const btnEditar = e.target.closest('.btn-editar-detalle')
       if (btnEditar) {
-        e.preventDefault();
-        const idCuenta = btnEditar.dataset.id;
-        const numeroCuenta = btnEditar.dataset.cuenta;
+        e.preventDefault()
+        const idCuenta = btnEditar.dataset.id
+        const numeroCuenta = btnEditar.dataset.cuenta
 
-        if(inputIdEdicion) inputIdEdicion.value = idCuenta;
-        if(inputCuenta) inputCuenta.value = numeroCuenta;
-        if(tituloForm) tituloForm.textContent = 'Editar Cuenta';
+        if (inputIdEdicion) inputIdEdicion.value = idCuenta
+        if (inputCuenta) inputCuenta.value = numeroCuenta
+        if (tituloForm) tituloForm.textContent = 'Editar Cuenta'
 
-        vistaTabla.classList.add('hidden');
-        vistaForm.classList.remove('hidden');
-        if(inputCuenta) inputCuenta.focus();
-        return;
+        vistaTabla.classList.add('hidden')
+        vistaForm.classList.remove('hidden')
+        if (inputCuenta) inputCuenta.focus()
+        return
       }
 
       // Botón "ELIMINAR"
-      const btnEliminar = e.target.closest('.btn-eliminar-detalle');
+      const btnEliminar = e.target.closest('.btn-eliminar-detalle')
       if (btnEliminar) {
-        e.preventDefault();
-        const idCuenta = btnEliminar.dataset.id;
+        e.preventDefault()
+        const idCuenta = btnEliminar.dataset.id
 
-        if (!(await Confirmar('Eliminar Cuenta', '¿Seguro que deseas eliminar esta cuenta bancaria?'))) {
-          return;
+        if (
+          !(await Confirmar('Eliminar Cuenta', '¿Seguro que deseas eliminar esta cuenta bancaria?'))
+        ) {
+          return
         }
 
         try {
           const result = await SendDataEnd(`modales/cuentas/eliminar/${idCuenta}`, {
-            method: 'POST'
-          });
+            method: 'POST',
+          })
 
           if (result.success) {
-            mostrarNotificacion('Cuenta eliminada correctamente ✅', 'success');
+            mostrarNotificacion('Cuenta eliminada correctamente ✅', 'success')
             // Recargar la tabla usando el ID del proveedor actual
-            cargarCuentasDeProveedor(inputIdRef.value);
+            cargarCuentasDeProveedor(inputIdRef.value)
           } else {
-            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error');
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
           }
         } catch (error) {
-          console.error(error);
-          mostrarNotificacion('Error de conexión al eliminar.', 'error');
+          console.error(error)
+          mostrarNotificacion('Error de conexión al eliminar.', 'error')
         }
       }
-    });
+    })
   }
 
   // Botón "Cancelar"
   if (btnCancelar) {
     btnCancelar.onclick = () => {
-      vistaForm.classList.add('hidden');
-      vistaTabla.classList.remove('hidden');
-    };
+      vistaForm.classList.add('hidden')
+      vistaTabla.classList.remove('hidden')
+    }
   }
 
   // Botón "Confirmar" (Guardar)
   if (btnConfirmar) {
     btnConfirmar.onclick = async () => {
-      const valor = inputCuenta.value.trim();
-      const idProveedor = inputIdRef.value;
-      const idCuenta = inputIdEdicion.value;
+      const valor = inputCuenta.value.trim()
+      const idProveedor = inputIdRef.value
+      const idCuenta = inputIdEdicion.value
 
       if (!valor) {
-        mostrarNotificacion("Por favor ingrese una cuenta.", "warning");
-        return;
+        mostrarNotificacion('Por favor ingrese una cuenta.', 'warning')
+        return
       }
       if (valor.length < 16 || valor.length > 20) {
-        mostrarNotificacion("La cuenta debe tener entre 16 y 20 caracteres.", "warning");
-        return;
+        mostrarNotificacion('La cuenta debe tener entre 16 y 20 caracteres.', 'warning')
+        return
       }
 
-      const formData = new FormData();
-      formData.append('Cuenta', valor);
-      formData.append('ID_Proveedor', idProveedor);
+      const formData = new FormData()
+      formData.append('Cuenta', valor)
+      formData.append('ID_Proveedor', idProveedor)
 
-      const url = idCuenta
-          ? `modales/cuentas/editar/${idCuenta}`
-          : `modales/cuentas/insertar`;
+      const url = idCuenta ? `modales/cuentas/editar/${idCuenta}` : `modales/cuentas/insertar`
 
       try {
         const result = await SendDataEnd(url, {
           method: 'POST',
-          body: formData
-        });
+          body: formData,
+        })
 
         if (result.success) {
-          const mensaje = idCuenta ? 'Cuenta actualizada ✅' : 'Cuenta agregada ✅';
-          mostrarNotificacion(mensaje, 'success');
+          const mensaje = idCuenta ? 'Cuenta actualizada ✅' : 'Cuenta agregada ✅'
+          mostrarNotificacion(mensaje, 'success')
 
-          inputCuenta.value = '';
-          if(inputIdEdicion) inputIdEdicion.value = '';
+          inputCuenta.value = ''
+          if (inputIdEdicion) inputIdEdicion.value = ''
 
-          vistaForm.classList.add('hidden');
-          vistaTabla.classList.remove('hidden');
+          vistaForm.classList.add('hidden')
+          vistaTabla.classList.remove('hidden')
 
-          cargarCuentasDeProveedor(idProveedor);
+          cargarCuentasDeProveedor(idProveedor)
         } else {
-          mostrarNotificacion(result.message || 'Error al guardar ❌', 'error');
+          mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
         }
       } catch (error) {
-        console.error(error);
-        mostrarNotificacion('Error de conexión al guardar.', 'error');
+        console.error(error)
+        mostrarNotificacion('Error de conexión al guardar.', 'error')
       }
-    };
+    }
   }
 }
 
@@ -3058,16 +3069,16 @@ function initCuentasActions(tabla) {
     const fila = btnEditar.closest('tr')
     if (!fila) return
 
-    const idProveedor = fila.dataset.id;
+    const idProveedor = fila.dataset.id
     document.getElementById('editar-ID_Ref').value = idProveedor
     document.getElementById('editar-RazonSocial').value = fila.dataset.razonsocial || ''
     document.getElementById('editar-RFC').value = fila.dataset.rfc || ''
 
     // Resetear vistas internas: Siempre mostrar tabla primero al entrar
-    document.getElementById('vista-tabla-cuentas-detalle').classList.remove('hidden');
-    document.getElementById('vista-form-nueva-cuenta').classList.add('hidden');
+    document.getElementById('vista-tabla-cuentas-detalle').classList.remove('hidden')
+    document.getElementById('vista-form-nueva-cuenta').classList.add('hidden')
 
-    cargarCuentasDeProveedor(idProveedor);
+    cargarCuentasDeProveedor(idProveedor)
 
     document.getElementById('pantalla-lista-cuentas').classList.add('hidden')
     document.getElementById('pantalla-editar-cuenta').classList.remove('hidden')
@@ -3075,15 +3086,16 @@ function initCuentasActions(tabla) {
 }
 
 async function cargarCuentasDeProveedor(idProveedor) {
-  const tbody = document.getElementById('tabla-cuentas-detalle');
-  tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">Cargando cuentas...</td></tr>';
+  const tbody = document.getElementById('tabla-cuentas-detalle')
+  tbody.innerHTML =
+    '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">Cargando cuentas...</td></tr>'
 
   try {
-    const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, { method: 'GET' });
+    const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, { method: 'GET' })
 
     if (cuentas && cuentas.length > 0) {
-      let html = '';
-      cuentas.forEach(c => {
+      let html = ''
+      cuentas.forEach((c) => {
         html += `
                     <tr class="border-t hover:bg-gray-50">
                         <td class="px-4 py-2 text-sm text-gray-700 align-middle">${c.Cuenta}</td>
@@ -3109,18 +3121,19 @@ async function cargarCuentasDeProveedor(idProveedor) {
                             </div>
                         </td>
                     </tr>
-                `;
-      });
-      tbody.innerHTML = html;
+                `
+      })
+      tbody.innerHTML = html
     } else {
-      tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">No hay cuentas registradas para este proveedor.</td></tr>';
+      tbody.innerHTML =
+        '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">No hay cuentas registradas para este proveedor.</td></tr>'
     }
   } catch (error) {
-    console.error('Error al cargar cuentas:', error);
-    tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-red-500 text-sm">Error al cargar datos.</td></tr>';
+    console.error('Error al cargar cuentas:', error)
+    tbody.innerHTML =
+      '<tr><td colspan="2" class="px-4 py-3 text-center text-red-500 text-sm">Error al cargar datos.</td></tr>'
   }
 }
-
 
 /**
  * Lógica para el CRUD de cuentas de Grupos Presupuestales
@@ -3142,8 +3155,12 @@ function initGruposTabla() {
     paginationSelector: 'paginacion-grupos',
     filterFormSelector: '#form-filtros-grupos',
     filterFunction: (row, form) => {
-      const nombreFiltro = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase()
-      const descFiltro = (document.getElementById('buscar-descripcion-grupo')?.value || '').toLowerCase()
+      const nombreFiltro = (
+        document.getElementById('buscar-nombre-grupo')?.value || ''
+      ).toLowerCase()
+      const descFiltro = (
+        document.getElementById('buscar-descripcion-grupo')?.value || ''
+      ).toLowerCase()
 
       const nombre = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || ''
       const descripcion = row.querySelector('.descripcion-grupo')?.textContent.toLowerCase() || ''
@@ -3271,26 +3288,26 @@ function initGruposActions(tabla) {
       const id = btnEliminar.dataset.id
 
       if (
-          !(await Confirmar(
-              'Eliminar Grupo?',
-              '¿Seguro que deseas eliminar este grupo presupuestal?',
-          ))
+        !(await Confirmar(
+          'Eliminar Grupo?',
+          '¿Seguro que deseas eliminar este grupo presupuestal?',
+        ))
       )
         return
 
       SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${id}`, {
         method: 'POST',
       })
-          .then((result) => {
-            if (result.success) {
-              mostrarNotificacion('Grupo eliminado ✅', 'success')
-              btnEliminar.closest('tr')?.remove()
-              abrirModal('GrupoPresupuestal')
-            } else {
-              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-            }
-          })
-          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+        .then((result) => {
+          if (result.success) {
+            mostrarNotificacion('Grupo eliminado ✅', 'success')
+            btnEliminar.closest('tr')?.remove()
+            abrirModal('GrupoPresupuestal')
+          } else {
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+          }
+        })
+        .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
       return
     }
 
@@ -3310,7 +3327,6 @@ function initGruposActions(tabla) {
     document.getElementById('pantalla-editar-grupos').classList.remove('hidden')
   })
 }
-
 
 /**
  * Lógica para el CRUD de cuentas Bancos Dpto
@@ -3435,9 +3451,9 @@ function initBancoDptoEditarForm() {
           fila.querySelector('.clabe-banco').textContent = formData.get('Clabe')
 
           // Actualizar Nombre Dpto visualmente desde el select
-          const selectDpto = document.getElementById('editar-ID_Dpto');
-          const dptoTexto = selectDpto.options[selectDpto.selectedIndex].text;
-          fila.querySelector('.nombre-dpto').textContent = dptoTexto;
+          const selectDpto = document.getElementById('editar-ID_Dpto')
+          const dptoTexto = selectDpto.options[selectDpto.selectedIndex].text
+          fila.querySelector('.nombre-dpto').textContent = dptoTexto
 
           // Actualizar Datasets
           fila.dataset.banco = formData.get('Banco')
@@ -3466,26 +3482,21 @@ function initBancoDptoActions(tabla) {
       e.preventDefault()
       const id = btnEliminar.dataset.id
 
-      if (
-          !(await Confirmar(
-              'Eliminar Banco?',
-              '¿Seguro que deseas eliminar este registro?',
-          ))
-      )
+      if (!(await Confirmar('Eliminar Banco?', '¿Seguro que deseas eliminar este registro?')))
         return
 
       SendDataEnd(`modales/crud_banco_dpto/eliminar/${id}`, {
         method: 'POST',
       })
-          .then((result) => {
-            if (result.success) {
-              mostrarNotificacion('Registro eliminado ✅', 'success')
-              btnEliminar.closest('tr')?.remove()
-            } else {
-              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-            }
-          })
-          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+        .then((result) => {
+          if (result.success) {
+            mostrarNotificacion('Registro eliminado ✅', 'success')
+            btnEliminar.closest('tr')?.remove()
+          } else {
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+          }
+        })
+        .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
       return
     }
 
@@ -3508,7 +3519,6 @@ function initBancoDptoActions(tabla) {
     document.getElementById('pantalla-editar-banco-dpto').classList.remove('hidden')
   })
 }
-
 
 //==================================================================================================================
 /**
@@ -3560,7 +3570,6 @@ async function GenerarOrden(id, button) {
     button.textContent = originalText
   }
 }
-
 
 /**
  * Lógica para limpiar almacenamiento
@@ -3835,39 +3844,39 @@ async function GenerarOrden(id, button) {
  * @param {number} idSolicitud - El ID de la base de datos
  * @param {function} callback - Función a ejecutar tras el éxito (opcional)
  */
-window.globalCancelarSolicitud = async function(idSolicitud, callbackExito) {
-  const title = 'Rechazar/Cancelar Solicitud';
-  const message = 'Por favor, ingrese el motivo (obligatorio):';
+window.globalCancelarSolicitud = async function (idSolicitud, callbackExito) {
+  const title = 'Rechazar/Cancelar Solicitud'
+  const message = 'Por favor, ingrese el motivo (obligatorio):'
 
   // Tu función existente de prompt
-  const comentarios = await InputPrompt(title, message, true);
+  const comentarios = await InputPrompt(title, message, true)
 
-  if (!comentarios) return; // Si cancela o está vacío
+  if (!comentarios) return // Si cancela o está vacío
 
   const payload = {
     ID_Solicitud: idSolicitud,
-    ComentariosAdmin: comentarios
-  };
+    ComentariosAdmin: comentarios,
+  }
 
-  const notif = mostrarNotificacion('Procesando solicitud...', 'info', 9999);
+  const notif = mostrarNotificacion('Procesando solicitud...', 'info', 9999)
 
   try {
     // Aquí usamos la ruta de la API que modificamos en el paso anterior
     const result = await SendDataEnd('api/solicitud/cancelar', {
       method: 'POST',
-      body: payload
-    });
+      body: payload,
+    })
 
-    if (notif.click) notif.click();
+    if (notif.click) notif.click()
 
     if (result.success) {
-      mostrarNotificacion(result.message, 'success');
-      if (callbackExito) callbackExito(); // Aquí recargamos la vista actual
+      mostrarNotificacion(result.message, 'success')
+      if (callbackExito) callbackExito() // Aquí recargamos la vista actual
     } else {
-      mostrarNotificacion(result.message || 'Error al procesar', 'error');
+      mostrarNotificacion(result.message || 'Error al procesar', 'error')
     }
   } catch (error) {
-    if (notif.click) notif.click();
-    mostrarNotificacion('Error de conexión', 'error');
+    if (notif.click) notif.click()
+    mostrarNotificacion('Error de conexión', 'error')
   }
 }

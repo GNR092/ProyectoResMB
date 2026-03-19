@@ -23,12 +23,14 @@
             <option value="Cotizando">🔵 Cotizando</option>
             <option value="Aprobacion pendiente" id="filtro-pendiente-aprobacion" class="hidden">🟠 Aprobación Pendiente</option>
             <option value="En revision">🔵 En revisión</option>
-            <!-- Nuevas opciones -->
             <option value="Espera_Programacion">🟠 Espera Programación</option>
             <option value="Programada">🔵 Programada</option>
             <option value="Por Pagar">⚪ En espera de factura</option>
             <option value="Pagada">🟢Pagada </option>
         </select>
+
+        <!-- Filtro por Proveedor -->
+        <input type="text" id="filtro-proveedor" placeholder="Buscar proveedor..." class="border p-2 rounded w-full md:w-auto">
 
         <!-- Filtro por Departamento -->
          <?php if (session('login_type') === 'boss'): ?>
@@ -36,7 +38,9 @@
             <option value="">Todos los departamentos</option>
             <?php if (isset($departamentos) && !empty($departamentos)): ?>
                 <?php foreach ($departamentos as $dpto): ?>
-                    <option value="<?= esc($dpto['Nombre']) ?>|<?= esc($dpto['PlaceNombre'] ?? '') ?>">
+                    <option value="<?= esc($dpto['Nombre']) ?>|<?= esc(
+    $dpto['PlaceNombre'] ?? '',
+) ?>">
                         <?= esc($dpto['Nombre']) ?> - <?= esc($dpto['PlaceNombre'] ?? '') ?>
                     </option>
                 <?php endforeach; ?>
