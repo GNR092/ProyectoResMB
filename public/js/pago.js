@@ -410,7 +410,7 @@ function ListaPagos() {
       if (this.filtroMetodoPago === 'todos') {
         return this.pagos
       }
-      return this.pagos.filter((p) => p.MetodoPago === this.filtroMetodoPago)
+      return this.pagos.filter((p) => p.MetodoPago == this.filtroMetodoPago)
     },
 
     get totalPages() {
