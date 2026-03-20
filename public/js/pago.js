@@ -406,6 +406,14 @@ function ListaPagos() {
     currentPage: 1,
     rowsPerPage: 5,
 
+    get conteoContado() {
+      return this.pagos.filter((p) => String(p.MetodoPago) === '0').length
+    },
+
+    get conteoCredito() {
+      return this.pagos.filter((p) => String(p.MetodoPago) === '1').length
+    },
+
     get pagosFiltrados() {
       console.log('filtroMetodoPago:', this.filtroMetodoPago, 'tipo:', typeof this.filtroMetodoPago, 'total pagos:', this.pagos.length)
       if (this.filtroMetodoPago === 'todos') {

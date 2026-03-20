@@ -8,9 +8,9 @@
                 <div>
                     <label for="filtro-metodo" class="text-sm font-medium text-gray-700">Filtrar por: <span x-text="filtroMetodoPago"></span></label>
                     <select id="filtro-metodo" x-model="filtroMetodoPago" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                        <option value="todos">Todos</option>
-                        <option value="0">Contado</option>
-                        <option value="1">Crédito</option>
+                        <option value="todos" x-text="'Todos (' + pagos.length + ')'"></option>
+                        <option value="0" x-text="'Contado (' + conteoContado + ')'"></option>
+                        <option value="1" x-text="'Crédito (' + conteoCredito + ')'"></option>
                     </select>
                 </div>
                 <button @click="exportarExcel()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition self-end">Exportar a Excel</button>
@@ -69,37 +69,39 @@
         <!-- Paginación Estilo Google -->
         <div id="paginacion-lista-pagos" class="flex justify-center items-center mt-4" x-show="totalPages > 1">
             <div class="flex items-center gap-1">
-                <template x-for="item in pageNumbers" :key="'page-' + item.type + '-' + item.value">
-                    <button x-show="item.type === 'first'" @click="firstPage()"
-                        :disabled="currentPage === 1"
-                        class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Primera página">
-                        &laquo;
-                    </button>
-                    <button x-show="item.type === 'prev'" @click="prevPage()"
-                        :disabled="currentPage === 1"
-                        class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Página anterior">
-                        &lsaquo;
-                    </button>
-                    <span x-show="item.type === '...'" class="px-2 text-gray-400 cursor-default">...</span>
-                    <button x-show="item.type === 'number'" @click="goToPage(item.value)"
-                        :class="item.active ? 'bg-blue-500 text-white' : 'bg-white text-black hover:bg-gray-100'"
-                        class="px-3 py-1 border rounded">
-                        <span x-text="item.value"></span>
-                    </button>
-                    <button x-show="item.type === 'next'" @click="nextPage()"
-                        :disabled="currentPage === totalPages"
-                        class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Página siguiente">
-                        &rsaquo;
-                    </button>
-                    <button x-show="item.type === 'last'" @click="lastPage()"
-                        :disabled="currentPage === totalPages"
-                        class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Última página">
-                        &raquo;
-                    </button>
+                <template x-for="(item, i) in pageNumbers" :key="i">
+                    <span class="inline-flex">
+                        <button x-show="item.type === 'first'" @click="firstPage()"
+                            :disabled="currentPage === 1"
+                            class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Primera página">
+                            &laquo;
+                        </button>
+                        <button x-show="item.type === 'prev'" @click="prevPage()"
+                            :disabled="currentPage === 1"
+                            class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Página anterior">
+                            &lsaquo;
+                        </button>
+                        <span x-show="item.type === '...'" class="px-2 text-gray-400 cursor-default">...</span>
+                        <button x-show="item.type === 'number'" @click="goToPage(item.value)"
+                            :class="item.active ? 'bg-blue-500 text-white' : 'bg-white text-black hover:bg-gray-100'"
+                            class="px-3 py-1 border rounded">
+                            <span x-text="item.value"></span>
+                        </button>
+                        <button x-show="item.type === 'next'" @click="nextPage()"
+                            :disabled="currentPage === totalPages"
+                            class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Página siguiente">
+                            &rsaquo;
+                        </button>
+                        <button x-show="item.type === 'last'" @click="lastPage()"
+                            :disabled="currentPage === totalPages"
+                            class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Última página">
+                            &raquo;
+                        </button>
+                    </span>
                 </template>
             </div>
         </div>
