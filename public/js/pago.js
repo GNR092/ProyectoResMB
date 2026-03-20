@@ -404,7 +404,7 @@ function ListaPagos() {
     loading: true,
     filtroMetodoPago: 'todos',
     currentPage: 1,
-    rowsPerPage: 10,
+    rowsPerPage: 5,
 
     get pagosFiltrados() {
       if (this.filtroMetodoPago === 'todos') {

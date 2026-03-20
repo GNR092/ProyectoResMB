@@ -41,7 +41,7 @@
                 <tr x-show="!loading && pagosFiltrados.length === 0">
                     <td colspan="9" class="text-center py-4 text-gray-500">No hay pagos programados que coincidan con el filtro.</td>
                 </tr>
-                <template x-for="(pago, idx) in paginatedPagos" :key="`pago-${idx}`">
+                <template x-for="(pago, idx) in paginatedPagos" :key="'pago-' + idx">
                     <tr class="hover:bg-gray-50">
                         <td class="py-2 px-4 border-t" x-text="pago.No_Folio"></td>
                         <td class="py-2 px-4 border-t" x-text="formatDate(pago.FechaOrden)"></td>
@@ -69,7 +69,7 @@
         <!-- Paginación Estilo Google -->
         <div id="paginacion-lista-pagos" class="flex justify-center items-center mt-4" x-show="totalPages > 1">
             <div class="flex items-center gap-1">
-                <template x-for="item in pageNumbers" :key="item.value || item.type">
+                <template x-for="item in pageNumbers" :key="'page-' + item.type + '-' + item.value">
                     <button x-show="item.type === 'first'" @click="firstPage()"
                         :disabled="currentPage === 1"
                         class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"

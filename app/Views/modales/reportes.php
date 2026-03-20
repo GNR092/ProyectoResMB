@@ -148,7 +148,7 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
 
         <!-- Botones de Paginación Estilo Google -->
         <div class="flex items-center gap-1">
-            <template x-for="item in pageNumbers" :key="item.value || item.type">
+            <template x-for="item in pageNumbers" :key="'page-' + item.type + '-' + item.value">
                 <button x-show="item.type === 'first'" @click="firstPage()"
                     :disabled="currentPage === 1"
                     class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
