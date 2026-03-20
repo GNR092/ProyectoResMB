@@ -407,6 +407,7 @@ function ListaPagos() {
     rowsPerPage: 5,
 
     get pagosFiltrados() {
+      console.log('filtroMetodoPago:', this.filtroMetodoPago, 'tipo:', typeof this.filtroMetodoPago, 'total pagos:', this.pagos.length)
       if (this.filtroMetodoPago === 'todos') {
         return this.pagos
       }
@@ -463,6 +464,7 @@ function ListaPagos() {
           return
         }
         this.pagos = listpagos
+        console.log('Pagos cargados:', listpagos.length, 'primeros 3:', listpagos.slice(0, 3))
       } catch (error) {
         console.error('Error al cargar pagos programados:', error)
         if (document.body.contains(root)) this.pagos = []

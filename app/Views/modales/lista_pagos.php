@@ -51,7 +51,7 @@
 
                         <td class="py-2 px-4 border-t" x-text="pago.Proveedor"></td>
                         <td class="py-2 px-4 border-t text-right" x-text="formatCurrency(pago.Total)"></td>
-                        <td class="py-2 px-4 border-t" x-text="pago.MetodoPago == '0' ? 'Contado' : 'Crédito'"></td>
+                        <td class="py-2 px-4 border-t" x-text="pago.MetodoPago == 0 ? 'Contado' : 'Crédito'"></td>
                         <td class="py-2 px-4 border-t">
                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" x-text="pago.Estado"></span>
                         </td>
