@@ -179,3 +179,4 @@ Pruebas/PresupuestoMensual.png
 # db
 #-------------------------
 *.sql
+writable/mantenimiento.json

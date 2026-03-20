@@ -526,8 +526,8 @@ class Rest
                 'Departamentos.Nombre as DepartamentoNombre',
                 'Proveedor.RazonSocial as ProveedorRazonSocial',
                 'Proveedor.RFC as ProveedorRFC',
-                'Proveedor.Direccion as ProveedorDireccion',
-                'Proveedor.MetodoPago as ProveedorMetodoPago', // Para forma de pago
+                // 'Proveedor.Direccion as ProveedorDireccion',
+                // 'Proveedor.MetodoPago as ProveedorMetodoPago', // Para forma de pago
                 'Razon_Social.Nombre as Complejo',
                 'Solicitud.Fecha_Aprobacion', // Necesario para la fecha de la factura
                 'Places.Nombre_Corto as ID_Place',
