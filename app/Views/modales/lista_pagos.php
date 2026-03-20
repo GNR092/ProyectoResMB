@@ -6,7 +6,7 @@
             <h2 class="text-lg font-bold">Lista de Pagos</h2>
             <div class="flex items-center space-x-4">
                 <div>
-                    <label for="filtro-metodo" class="text-sm font-medium text-gray-700">Filtrar por:</label>
+                    <label for="filtro-metodo" class="text-sm font-medium text-gray-700">Filtrar por: <span x-text="filtroMetodoPago"></span></label>
                     <select id="filtro-metodo" x-model="filtroMetodoPago" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                         <option value="todos">Todos</option>
                         <option value="0">Contado</option>
