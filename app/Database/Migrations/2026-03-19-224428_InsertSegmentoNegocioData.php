@@ -15,7 +15,7 @@ class InsertSegmentoNegocioData extends Migration
                 'nombre'          => 'Arrendamiento',
                 'descripcion'     => "Segmento de negocio arrendamiento para la razón social de MBSP Rentas\r\n ",
                 'created_at'      => '2026-03-10 16:49:15',
-                'updated_at'      => '2026-03-10 16:49:15',
+                'updated_at'      => '2026-03-20 12:24:02',
             ],
             [
                 'id'              => 2,
@@ -33,14 +33,6 @@ class InsertSegmentoNegocioData extends Migration
                 'created_at'      => '2026-03-10 17:03:56',
                 'updated_at'      => '2026-03-10 23:57:53',
             ],
-            [
-                'id'              => 4,
-                'id_razon_social' => 1,
-                'nombre'          => 'Gastos generale',
-                'descripcion'     => 'Gastos',
-                'created_at'      => '2026-03-17 16:52:31',
-                'updated_at'      => '2026-03-17 16:52:31',
-            ]
         ];
 
         $this->db->table('segmento_negocio')->insertBatch($data);
@@ -48,7 +40,7 @@ class InsertSegmentoNegocioData extends Migration
 
     public function down()
     {
-        $insertedIds = [1, 2, 3, 4];
+        $insertedIds = [1, 2, 3];
 
         $this->db->table('segmento_negocio')->whereIn('id', $insertedIds)->delete();
     }

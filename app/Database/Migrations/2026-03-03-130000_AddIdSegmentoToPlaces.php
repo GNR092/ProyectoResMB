@@ -30,6 +30,21 @@ class AddIdSegmentoToPlaces extends Migration
 
         // Procesar cambios pendientes (algunos drivers requieren esto para llaves foráneas en addColumn)
         $this->forge->processIndexes('Places');
+
+        // --- MIGRACIÓN DE DATOS (Asociar segmentos existentes) ---
+        $db = \Config\Database::connect();
+        
+        $mapeo = [
+            'Campus'            => 1, // Arrendamiento
+            'Transporte Campus' => 2, // Transporte
+            'BSHotel'           => 3, // Hotel
+        ];
+
+        foreach ($mapeo as $nombreCorto => $idSegmento) {
+            $db->table('Places')
+               ->where('Nombre_Corto', $nombreCorto)
+               ->update(['id_segmento' => $idSegmento]);
+        }
     }
 
     public function down()
