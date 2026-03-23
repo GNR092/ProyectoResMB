@@ -5,6 +5,7 @@ use App\Libraries\PDF;
 use App\Libraries\Rest;
 use App\Libraries\FPath;
 use CodeIgniter\I18n\Time;
+use App\Libraries\SolicitudTipo;
 
 class GenerarPDF extends BaseController
 {
