@@ -3,7 +3,6 @@
  * y la inicialización de su contenido dinámico.
  */
 function abrirModal(opcion) {
-
   const titulosHeaders = [
     'TituloOperacion',
     'TituloCompras',
@@ -11,12 +10,11 @@ function abrirModal(opcion) {
     'TituloTesoreria',
     'TituloAlmacen',
     'TituloContador',
-  ];
+  ]
 
   if (titulosHeaders.includes(opcion)) {
-    return;
+    return
   }
-
 
   const parentModals = {
     registrar_productos: 'almacen',
@@ -30,7 +28,7 @@ function abrirModal(opcion) {
     razonsocial: 'ajustes',
     micuenta: 'ajustes',
     programar_pagos: 'programar_pagos',
-    crud_departamento :'crud_departamento',
+    crud_departamento: 'crud_departamento',
   }
 
   const highlightOpcion = parentModals[opcion] || opcion
@@ -53,7 +51,6 @@ function abrirModal(opcion) {
   const titulo = document.getElementById('modal-title')
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
-
 
   const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos']
 
@@ -91,18 +88,12 @@ function abrirModal(opcion) {
     recepcion_material: 'Recepción de Material',
     bajas_destruccion: 'Bajas por Destrucción',
     crud_places: 'Complejos',
-    crud_departamento:"Departamentos",
-    UnidadOperativa: "Unidades Operativas",
-    lista_pagos: "Lista de pagos",
-    crud_cuentas: "Cuentas de proveedores",
-    correcciones: "Corregir Solicitudes",
-    GrupoPresupuestal: "Partidas Presupuestales",
-    BancoDpto: "Cuentas Bancarias de los Departamentos",
-    PresupuestoMensual: "Asignar Presupuestos Mensuales",
-    ReportePresupuesto: "Reportes De Prespuestos",
-    SaldosBancarios: "Saldo De Bancos",
-    SegmentoNegocio: "Segmentos de Negocio",
-    AjustesPresupuesto: "Ajustes de Presupuesto",
+    crud_departamento: 'Departametos',
+    lista_pagos: 'Lista de pagos',
+    crud_cuentas: 'Cuentas de proveedores',
+    correcciones: 'Corregir Solicitudes',
+    GrupoPresupuestal: 'Grupo Presupuestal',
+    BancoDpto: 'Cuentas Bancarias de los Departamentos',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -126,14 +117,11 @@ function abrirModal(opcion) {
         recepcion_material: initRecepcionMaterial,
         bajas_destruccion: initBajasDestruccion,
         crud_places: initCrudPlaces,
-        crud_departamento: initCrudDepartamento,
+        crud_departamento: initCrudDepartamentos,
         crud_cuentas: initCrudCuentas,
         correcciones: initControlMaestro,
         GrupoPresupuestal: initCrudGrupos,
         BancoDpto: initCrudBancoDpto,
-        SegmentoNegocio: initCrudSegmentos,
-        UnidadOperativa: initCrudUnidades,
-        AjustesPresupuesto: initAjustesPresupuesto,
       }
 
       const inicializador = inicializadores[opcion]
@@ -269,27 +257,27 @@ async function initSolicitarMaterial() {
 
   if (agregarBtn) {
     // Clonamos para limpiar eventos previos (manteniendo tu lógica actual)
-    const nuevoBtn = agregarBtn.cloneNode(true);
-    agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn);
+    const nuevoBtn = agregarBtn.cloneNode(true)
+    agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn)
 
     nuevoBtn.addEventListener('click', async () => {
-      const rowHtml = await getProductRowHtml();
+      const rowHtml = await getProductRowHtml()
 
       // Usamos insertAdjacentHTML para meter el HTML directamente al final del body
       // Esto evita errores de "firstChild" con espacios en blanco
-      tabla.insertAdjacentHTML('beforeend', rowHtml.trim());
+      tabla.insertAdjacentHTML('beforeend', rowHtml.trim())
 
       // Ahora obtenemos la última fila insertada para asignarle eventos
-      const nuevasFilas = tabla.querySelectorAll('tr');
-      const nuevaFila = nuevasFilas[nuevasFilas.length - 1];
+      const nuevasFilas = tabla.querySelectorAll('tr')
+      const nuevaFila = nuevasFilas[nuevasFilas.length - 1]
 
       if (nuevaFila) {
-        asignarEventosFila(nuevaFila);
-        actualizarNumeros();
-        actualizarBotonesEliminar();
-        actualizarTotal();
+        asignarEventosFila(nuevaFila)
+        actualizarNumeros()
+        actualizarBotonesEliminar()
+        actualizarTotal()
       }
-    });
+    })
   }
 
   loadRazonSocialProv('ProvSelect')
@@ -427,7 +415,7 @@ async function initSolicitarServicio() {
       } catch (error) {
         console.error(error)
         serviceRowHtml =
-            '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
+          '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
       }
     }
     return serviceRowHtml
@@ -515,39 +503,41 @@ async function initSolicitarServicio() {
   loadRazonSocialProv('razonSocialServicioSelect')
 
   // Cargar lista de Cuentas del proveedor seleccionado
-  const proveedorSelect = document.getElementById('razonSocialServicioSelect');
-  const cuentaSelect = document.getElementById('cuentaProveedorSelect');
+  const proveedorSelect = document.getElementById('razonSocialServicioSelect')
+  const cuentaSelect = document.getElementById('cuentaProveedorSelect')
 
   if (proveedorSelect && cuentaSelect) {
     proveedorSelect.addEventListener('change', async () => {
-      const idProveedor = proveedorSelect.value;
+      const idProveedor = proveedorSelect.value
 
       // Limpiar opciones anteriores
-      cuentaSelect.innerHTML = '<option value="">Seleccione una cuenta</option>';
+      cuentaSelect.innerHTML = '<option value="">Seleccione una cuenta</option>'
 
-      if (!idProveedor) return;
+      if (!idProveedor) return
 
       try {
         // Ruta para obtener datos de la tabla "Cuentas"
-        const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, { method: 'GET' });
+        const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, {
+          method: 'GET',
+        })
 
         if (cuentas && cuentas.length > 0) {
-          cuentas.forEach(c => {
-            const option = document.createElement('option');
-            option.value = c.ID_Cuenta; // El valor será el ID
-            option.textContent = c.Cuenta; // El texto visible será el número de cuenta/CLABE
-            cuentaSelect.appendChild(option);
-          });
+          cuentas.forEach((c) => {
+            const option = document.createElement('option')
+            option.value = c.ID_Cuenta // El valor será el ID
+            option.textContent = c.Cuenta // El texto visible será el número de cuenta/CLABE
+            cuentaSelect.appendChild(option)
+          })
         } else {
-          const option = document.createElement('option');
-          option.textContent = "(Este proveedor no tiene cuentas registradas)";
-          option.disabled = true;
-          cuentaSelect.appendChild(option);
+          const option = document.createElement('option')
+          option.textContent = '(Este proveedor no tiene cuentas registradas)'
+          option.disabled = true
+          cuentaSelect.appendChild(option)
         }
       } catch (error) {
-        console.error("Error al cargar cuentas bancarias:", error);
+        console.error('Error al cargar cuentas bancarias:', error)
       }
-    });
+    })
   }
 
   const formulario = document.getElementById('form-servicio-upload')
@@ -620,36 +610,41 @@ function regresarSubmenuMaterial() {
 /**
  * Lógica para el modal "Ver Historial"
  */
-let choicesDepartamento = null;
+let choicesDepartamento = null
 function initPaginacionHistorial() {
   const tabla = document.getElementById('tabla-historial')
   if (!tabla) return
 
-
-  const filtroEl = document.getElementById('filtroDepartamento');
+  const filtroEl = document.getElementById('filtroDepartamento')
   if (filtroEl) {
-      choicesDepartamento = new Choices(filtroEl, {
-          removeItemButton: true,
-          placeholder: true,
-          placeholderValue: 'Todos los departamentos',
-          searchPlaceholderValue: 'Buscar...',
-          itemSelectText: 'Seleccionar',
-          noResultsText: 'No se encontraron resultados',
-          noChoicesText: 'No hay más opciones para elegir',
-      });
+    choicesDepartamento = new Choices(filtroEl, {
+      removeItemButton: true,
+      placeholder: true,
+      placeholderValue: 'Todos los departamentos',
+      searchPlaceholderValue: 'Buscar...',
+      itemSelectText: 'Seleccionar',
+      noResultsText: 'No se encontraron resultados',
+      noChoicesText: 'No hay más opciones para elegir',
+    })
   }
-
 
   //Filtro para la casilla de departamentos
   function validarFiltroDepartamento() {
     const filtro = document.getElementById('filtroDepartamento')
     if (!filtro) return
-    const deptosPermitidos = ['Administración', 'Compras', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría']
+    const deptosPermitidos = [
+      'Administración',
+      'Compras',
+      'Direccion',
+      'Tesoreria',
+      'Direccion Campus',
+      'Contaduría',
+    ]
 
     const miDepto = typeof USER_DEPT_NAME !== 'undefined' ? USER_DEPT_NAME : ''
 
     if (!deptosPermitidos.includes(miDepto)) {
-      filtro.parentElement.style.display = 'none';
+      filtro.parentElement.style.display = 'none'
     }
   }
 
@@ -710,7 +705,14 @@ function initPaginacionHistorial() {
     return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
   }
 
-  const exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría']
+  const exceptions = [
+    'Compras',
+    'Administración',
+    'Direccion',
+    'Tesoreria',
+    'Direccion Campus',
+    'Contaduría',
+  ]
   let url = 'api/historic'
   if (
     typeof USER_DEPT_NAME !== 'undefined' &&
@@ -728,18 +730,18 @@ function initPaginacionHistorial() {
     filterFormSelector: '#modal-contenido', // Container for filters, used to attach events
 
     renderRow: (item) => {
-      const status = getStatusText(item.Estado);
-      const svg = getStatusSVG(item.Estado);
-      const MetodoPag = getMetodoPago(item.MetodoPago);
+      const status = getStatusText(item.Estado)
+      const svg = getStatusSVG(item.Estado)
+      const MetodoPag = getMetodoPago(item.MetodoPago)
 
       // El valor que viene del backend (item.MontoTotal) ya es el 'Total' de la tabla Cotizacion
-      const totalRaw = parseFloat(item.MontoTotal) || 0;
+      const totalRaw = parseFloat(item.MontoTotal) || 0
 
       // Formateo de moneda
       const montoFormateado = new Intl.NumberFormat('es-MX', {
         style: 'currency',
-        currency: 'MXN'
-      }).format(totalRaw);
+        currency: 'MXN',
+      }).format(totalRaw)
 
       return `
     <tr class="text-center hover:bg-gray-50 transition">
@@ -767,43 +769,52 @@ function initPaginacionHistorial() {
             </button>
         </td>
     </tr>
-  `;
+  `
     },
 
     filterFunction: (allData, form) => {
       const fechaFiltro = document.getElementById('filtro-fecha').value
       const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
       const estadoFiltro = document.getElementById('filtro-estado').value
-      const departamentosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : [];
+      const proveedorFiltro = document.getElementById('filtro-proveedor')?.value.toLowerCase() || ''
+      const departamentosSeleccionados = choicesDepartamento
+        ? choicesDepartamento.getValue(true)
+        : []
 
       return allData.filter((item) => {
-        const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
+        const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
 
-        let coincideDepartamento = true; 
+        const coincideProveedor =
+          !proveedorFiltro ||
+          (item.ProveedorNombre && item.ProveedorNombre.toLowerCase().includes(proveedorFiltro))
+
+        let coincideDepartamento = true
         if (departamentosSeleccionados.length > 0) {
-            const itemDepartamentoCompleto = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`;
-            coincideDepartamento = departamentosSeleccionados.includes(itemDepartamentoCompleto);
+          const itemDepartamentoCompleto = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`
+          coincideDepartamento = departamentosSeleccionados.includes(itemDepartamentoCompleto)
         } else {
-          // If the multi-select is empty, all departments should match
-          coincideDepartamento = true;
+          coincideDepartamento = true
         }
 
-        // Fix for when the array is empty after clearing the selection
         if (choicesDepartamento && choicesDepartamento.getValue(true).length === 0) {
-            coincideDepartamento = true;
+          coincideDepartamento = true
         }
 
         if (!fechaFiltro) {
-          return coincideEstado && coincideDepartamento
+          return coincideEstado && coincideDepartamento && coincideProveedor
         }
 
-        const fechaItem = item.Fecha // formato esperado: "2025-10-08"
+        const fechaItem = item.Fecha
         if (filtrarPorMes) {
           const mesFiltro = fechaFiltro.slice(0, 7)
           const mesItem = fechaItem.slice(0, 7)
-          return mesItem === mesFiltro && coincideEstado && coincideDepartamento
+          return (
+            mesItem === mesFiltro && coincideEstado && coincideDepartamento && coincideProveedor
+          )
         } else {
-          return fechaItem === fechaFiltro && coincideEstado && coincideDepartamento
+          return (
+            fechaItem === fechaFiltro && coincideEstado && coincideDepartamento && coincideProveedor
+          )
         }
       })
     },
@@ -847,7 +858,7 @@ async function mostrarVerHistorial(idSolicitud) {
             </div>`
     }
 
-    html += generarSeccionAdjuntos(data);
+    html += generarSeccionAdjuntos(data)
 
     detallesContainer.innerHTML = html
   } catch (error) {
@@ -862,7 +873,6 @@ function regresarHistorial() {
 
   const divHistorial = document.getElementById('div-historial')
   if (divHistorial) divHistorial.classList.remove('hidden')
-
 }
 
 /**
@@ -881,24 +891,23 @@ function exportarRequisicionesExcel() {
 }
 
 function exportarHistorialExcel() {
-  const fecha = document.getElementById('filtro-fecha').value;
-  const porMes = document.getElementById('filtrar-por-mes').checked;
-  const estado = document.getElementById('filtro-estado').value;
+  const fecha = document.getElementById('filtro-fecha').value
+  const porMes = document.getElementById('filtrar-por-mes').checked
+  const estado = document.getElementById('filtro-estado').value
 
   // Obtener valores de Choices.js
-  const deptosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : [];
+  const deptosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : []
 
-  const params = new URLSearchParams();
-  if (fecha) params.append('fecha', fecha);
-  if (porMes) params.append('por_mes', '1');
-  if (estado) params.append('estado', estado);
+  const params = new URLSearchParams()
+  if (fecha) params.append('fecha', fecha)
+  if (porMes) params.append('por_mes', '1')
+  if (estado) params.append('estado', estado)
   if (deptosSeleccionados.length > 0) {
-    params.append('dpto', deptosSeleccionados.join(','));
+    params.append('dpto', deptosSeleccionados.join(','))
   }
 
-  window.location.href = `api/historial/exportar?${params.toString()}`;
+  window.location.href = `api/historial/exportar?${params.toString()}`
 }
-
 
 async function mostrarVer(idSolicitud) {
   document.getElementById('btn-exportar-requisiciones').classList.add('hidden') // Ocultar el botón de exportar
@@ -1149,47 +1158,44 @@ async function mostrarCotizar(idSolicitud, idUsuario) {
 
 async function cancelarReq(idSolicitud) {
   if (
-    !(await Confirmar(
-      'Cancelar solicitud',
-      '¿Está seguro de que desea cancelar la solicitud?',
-    ))
+    !(await Confirmar('Cancelar solicitud', '¿Está seguro de que desea cancelar la solicitud?'))
   ) {
-    return;
+    return
   }
 
   const comentarios = await InputPrompt(
     'Cancelar Solicitud',
     'Por favor, ingrese el motivo de la cancelación (obligatorio):',
     true,
-  );
+  )
 
   if (comentarios === null) {
-    return; 
+    return
   }
 
-  const procesandoNotif = mostrarNotificacion('Cancelando solicitud...', 'info', 999999);
+  const procesandoNotif = mostrarNotificacion('Cancelando solicitud...', 'info', 999999)
 
   try {
     const result = await SendDataEnd('api/solicitud/cancelar', {
       method: 'POST',
-      body: { 
+      body: {
         ID_Solicitud: idSolicitud,
-        ComentariosAdmin: comentarios 
+        ComentariosAdmin: comentarios,
       },
-    });
+    })
 
-    procesandoNotif.click();
+    procesandoNotif.click()
 
     if (result.success) {
-      mostrarNotificacion(result.message || 'Solicitud cancelada correctamente.', 'success');
-      abrirModal('revisar_solicitudes');
+      mostrarNotificacion(result.message || 'Solicitud cancelada correctamente.', 'success')
+      abrirModal('revisar_solicitudes')
     } else {
-      mostrarNotificacion(result.message || 'No se pudo cancelar la solicitud.', 'error');
+      mostrarNotificacion(result.message || 'No se pudo cancelar la solicitud.', 'error')
     }
   } catch (error) {
-    procesandoNotif.click();
-    console.error('Error al cancelar solicitud:', error);
-    mostrarNotificacion(error.data.messages.error || error.message, 'error');
+    procesandoNotif.click()
+    console.error('Error al cancelar solicitud:', error)
+    mostrarNotificacion(error.data.messages.error || error.message, 'error')
   }
 }
 
@@ -1200,25 +1206,24 @@ function regresarTabla() {
   document.getElementById('btn-exportar-requisiciones').classList.remove('hidden') // Mostrar el botón de exportar
 
   // Reset the state of the cotizar view
-  const inputBusqueda = document.getElementById('buscar-proveedor');
+  const inputBusqueda = document.getElementById('buscar-proveedor')
   if (inputBusqueda) {
-    inputBusqueda.value = '';
+    inputBusqueda.value = ''
   }
-  const tbody = document.querySelector('#div-cotizar tbody');
+  const tbody = document.querySelector('#div-cotizar tbody')
   if (tbody) {
-    tbody.innerHTML = '';
+    tbody.innerHTML = ''
   }
-  const paginacionDiv = document.querySelector('#div-cotizar #paginacion-proveedores');
+  const paginacionDiv = document.querySelector('#div-cotizar #paginacion-proveedores')
   if (paginacionDiv) {
-    paginacionDiv.innerHTML = '';
+    paginacionDiv.innerHTML = ''
   }
-  const btnGenerar = document.getElementById('btn-generar-cotizacion');
+  const btnGenerar = document.getElementById('btn-generar-cotizacion')
   if (btnGenerar) {
-    btnGenerar.onclick = null; // Remove listener
-    btnGenerar.disabled = true; // Disable button
+    btnGenerar.onclick = null // Remove listener
+    btnGenerar.disabled = true // Disable button
   }
 }
-
 
 /**
  * Lógica para el modal CRUD Places
@@ -1233,52 +1238,6 @@ function initCrudPlaces() {
   initPlacesForm()
   initPlacesEditarForm()
   initPlacesActions(tabla)
-
-  // Vincular filtrado dinámico para Agregar
-  vincularFiltroSegmentos('ID_RazonSocial', 'id_segmento');
-  // Vincular filtrado dinámico para Editar
-  vincularFiltroSegmentos('editar-ID_RazonSocial', 'editar-id_segmento');
-}
-
-/**
- * Filtra las opciones de un select de segmentos basado en el valor de una Razón Social
- */
-function vincularFiltroSegmentos(idSelectRS, idSelectSeg) {
-  const rsSelect = document.getElementById(idSelectRS);
-  const segSelect = document.getElementById(idSelectSeg);
-
-  if (!rsSelect || !segSelect) return;
-
-  const aplicarFiltro = () => {
-    const rsValue = rsSelect.value;
-    const options = segSelect.querySelectorAll('option');
-
-    let seleccionSigueSiendoValida = false;
-
-    options.forEach(opt => {
-      if (!opt.value) return; // Saltar opción vacía
-
-      const idRSAsociada = opt.dataset.idRs;
-      if (rsValue && idRSAsociada === rsValue) {
-        opt.style.display = 'block';
-        opt.disabled = false;
-        if (segSelect.value === opt.value) seleccionSigueSiendoValida = true;
-      } else {
-        opt.style.display = 'none';
-        opt.disabled = true;
-      }
-    });
-
-    // Si la selección actual ya no es válida para la nueva RS, resetear a vacío
-    if (!seleccionSigueSiendoValida && rsValue !== "") {
-        segSelect.value = "";
-    }
-  };
-
-  rsSelect.addEventListener('change', aplicarFiltro);
-  
-  // Exponer la función para poder dispararla manualmente al abrir edición
-  segSelect.dataset.fnFiltro = idSelectRS; 
 }
 
 function initPlacesTabla() {
@@ -1287,8 +1246,12 @@ function initPlacesTabla() {
     paginationSelector: 'paginacion-places',
     filterFormSelector: '#form-filtros-places',
     filterFunction: (row, form) => {
-      const cortoFiltro = (document.getElementById('buscar-nombre-corto')?.value || '').toLowerCase()
-      const completoFiltro = (document.getElementById('buscar-nombre-completo')?.value || '').toLowerCase()
+      const cortoFiltro = (
+        document.getElementById('buscar-nombre-corto')?.value || ''
+      ).toLowerCase()
+      const completoFiltro = (
+        document.getElementById('buscar-nombre-completo')?.value || ''
+      ).toLowerCase()
 
       const nombreCorto = row.querySelector('.nombre-corto')?.textContent.toLowerCase() || ''
       const nombreCompleto = row.querySelector('.nombre-completo')?.textContent.toLowerCase() || ''
@@ -1390,17 +1353,17 @@ function initPlacesEditarForm() {
           fila.querySelector('.nombre-completo').textContent = formData.get('Nombre_Completo')
 
           // --- NUEVO: Actualizar Razón Social visualmente ---
-          const selectRS = document.getElementById('editar-ID_RazonSocial');
+          const selectRS = document.getElementById('editar-ID_RazonSocial')
           // Obtenemos el texto de la opción seleccionada para mostrarlo en la tabla
-          const rsTexto = selectRS.options[selectRS.selectedIndex].text;
+          const rsTexto = selectRS.options[selectRS.selectedIndex].text
           // Si el value es vacío (no seleccionó nada), ponemos un guion, si no, el nombre
-          fila.querySelector('.razon-social-nombre').textContent = selectRS.value ? rsTexto : '-';
+          fila.querySelector('.razon-social-nombre').textContent = selectRS.value ? rsTexto : '-'
 
           // Actualizar Datasets
           fila.dataset.nombreCorto = formData.get('Nombre_Corto')
           fila.dataset.nombreCompleto = formData.get('Nombre_Completo')
+          // --- NUEVO: Actualizar dataset de ID RS ---
           fila.dataset.idRazonSocial = formData.get('ID_RazonSocial')
-          fila.dataset.idSegmento = formData.get('id_segmento')
         }
 
         pantallaEditar?.classList.add('hidden')
@@ -1424,26 +1387,20 @@ function initPlacesActions(tabla) {
       e.preventDefault()
       const id = btnEliminar.dataset.id
 
-      if (
-          !(await Confirmar(
-              'Eliminar Lugar?',
-              '¿Seguro que deseas eliminar este lugar?',
-          ))
-      )
-        return
+      if (!(await Confirmar('Eliminar Lugar?', '¿Seguro que deseas eliminar este lugar?'))) return
 
       SendDataEnd(`modales/crud_places/eliminar/${id}`, {
         method: 'POST',
       })
-          .then((result) => {
-            if (result.success) {
-              mostrarNotificacion('Lugar eliminado ✅', 'success')
-              btnEliminar.closest('tr')?.remove()
-            } else {
-              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-            }
-          })
-          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+        .then((result) => {
+          if (result.success) {
+            mostrarNotificacion('Lugar eliminado ✅', 'success')
+            btnEliminar.closest('tr')?.remove()
+          } else {
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+          }
+        })
+        .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
       return
     }
 
@@ -1461,13 +1418,7 @@ function initPlacesActions(tabla) {
 
     // --- NUEVO: Cargar el valor de la Razón Social al select ---
     // Usamos el dataset que agregamos en la vista HTML
-    document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonSocial || "";
-    
-    // Disparar el filtro manualmente para que solo salgan los segmentos de esta RS
-    const editRS = document.getElementById('editar-ID_RazonSocial');
-    if (editRS) editRS.dispatchEvent(new Event('change'));
-
-    document.getElementById('editar-id_segmento').value = fila.dataset.idSegmento || "";
+    document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonSocial || ''
 
     document.getElementById('pantalla-lista-places').classList.add('hidden')
     document.getElementById('pantalla-editar-places').classList.remove('hidden')
@@ -1498,7 +1449,7 @@ async function initDictamenSolicitudes() {
   })
 }
 
-window.mostrarVerDictamen = async function(idSolicitud) {
+window.mostrarVerDictamen = async function (idSolicitud) {
   document.getElementById('div-tabla').classList.add('hidden')
   const divVer = document.getElementById('div-ver-dictamen')
   divVer.classList.remove('hidden')
@@ -1510,141 +1461,9 @@ window.mostrarVerDictamen = async function(idSolicitud) {
     const data = await SendDataEnd(`api/cotizacion/details/${idSolicitud}`)
     if (data.error) throw new Error(data.error)
 
-    // --- LÓGICA DE PRESUPUESTO ---
-    const resumenContainer = document.getElementById('presupuesto-resumen-container');
-    if (resumenContainer) {
-      resumenContainer.innerHTML = ''; 
-      resumenContainer.classList.add('hidden');
-
-      if (data.productos && data.productos.length > 0) {
-        // 1. Obtener grupos únicos
-        const gruposUnicos = [...new Set(data.productos.map(p => p.ID_GrupoPresupuestal))].filter(id => id);
-
-        // 2. Calcular montos potenciales de la solicitud actual
-        const montosPotenciales = {};
-        const ivaValue = data.IVA;
-        const ivaHabilitado = (ivaValue === 't' || ivaValue === '1' || ivaValue === 1 || ivaValue === true);
-        const factorIVA = ivaHabilitado ? 1.16 : 1.0;
-
-        data.productos.forEach(p => {
-          if (p.ID_GrupoPresupuestal) {
-            const montoItem = (parseFloat(p.Cantidad) || 0) * (parseFloat(p.Importe) || 0) * factorIVA;
-            montosPotenciales[p.ID_GrupoPresupuestal] = (montosPotenciales[p.ID_GrupoPresupuestal] || 0) + montoItem;
-          }
-        });
-
-        if (gruposUnicos.length > 0) {
-          resumenContainer.classList.remove('hidden');
-
-          for (const idGrupo of gruposUnicos) {
-            try {
-              const saldoRes = await SendDataEnd(`api/presupuesto/saldos?id_dpto=${data.ID_Dpto}&id_grupo=${idGrupo}&id_solicitud=${idSolicitud}`);
-              if (saldoRes.success && saldoRes.data) {
-                  const s = saldoRes.data;
-                  const prodRef = data.productos.find(p => p.ID_GrupoPresupuestal == idGrupo);
-                  const nombreGrupo = prodRef ? prodRef.GrupoPresupuestalNombre : 'Grupo ' + idGrupo;
-                  const montoPotencial = montosPotenciales[idGrupo] || 0;
-
-                  // Calcular porcentajes
-                  const asignado = parseFloat(s.Monto_Asignado) || 0;
-                  const ejecutado = parseFloat(s.Monto_Ejecutado) || 0;
-                  const comprometido = parseFloat(s.Monto_Comprometido) || 0;
-                  
-                  // Lógica de Alerta de Exceso
-                  const totalProyectado = ejecutado + comprometido + montoPotencial;
-                  const excedePresupuesto = totalProyectado > asignado;
-                  const montoExcedido = totalProyectado - asignado;
-                  const noAsignado = asignado <= 0;
-
-                  let pctEjecutado = 0, pctComprometido = 0, pctPotencial = 0, pctRestante = 100;
-
-                  if (asignado > 0) {
-                      pctEjecutado = Math.min((ejecutado / asignado) * 100, 100);
-                      pctComprometido = Math.min((comprometido / asignado) * 100, 100 - pctEjecutado);
-                      pctPotencial = Math.min((montoPotencial / asignado) * 100, 100 - pctEjecutado - pctComprometido);
-                      pctRestante = 100 - pctEjecutado - pctComprometido - pctPotencial;
-                  } else {
-                     const total = totalProyectado;
-                     if (total > 0) {
-                       pctEjecutado = (ejecutado / total) * 100;
-                       pctComprometido = (comprometido / total) * 100;
-                       pctPotencial = (montoPotencial / total) * 100;
-                       pctRestante = 0;
-                     }
-                  }
-
-                  let alertaHtml = '';
-                  if (noAsignado) {
-                     alertaHtml = `
-                       <div class="mt-3 p-3 bg-red-200 border-2 border-red-600 rounded-lg flex items-center gap-3 animate-pulse">
-                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-red-700">
-                               <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.72 6.97a.75.75 0 1 0-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06L12 13.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L13.06 12l1.72-1.72a.75.75 0 1 0-1.06-1.06L12 10.94l-1.72-1.72Z" clip-rule="evenodd" />
-                           </svg>
-                           <div>
-                               <p class="text-sm font-black text-red-900 uppercase">Bloqueo de Aprobación</p>
-                               <p class="text-xs font-bold text-red-800">Esta partida NO tiene presupuesto asignado para este mes. La aprobación será rechazada por el sistema.</p>
-                           </div>
-                       </div>`;
-                  } else if (excedePresupuesto) {
-                     alertaHtml = `
-                       <div class="mt-3 p-2 bg-red-100 border border-red-400 rounded flex items-center gap-2 animate-bounce">
-                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-red-600">
-                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                           </svg>
-                           <span class="text-xs font-bold text-red-700">¡ADVERTENCIA! Esta solicitud excede el presupuesto por ${formatearMoneda(montoExcedido)}</span>
-                       </div>`;
-                  }
-
-                  resumenContainer.innerHTML += `
-                   <div class="mb-4 p-4 border-2 ${noAsignado ? 'border-red-700 bg-red-100' : (excedePresupuesto ? 'border-red-500 bg-red-50' : 'border-gray-200 bg-gray-50')} rounded-lg shadow-sm transition-all duration-300">
-                     <div class="flex flex-col md:flex-row md:items-center gap-6 mb-3 border-b pb-2">
-                         <div class="flex flex-col flex-shrink-0 min-w-[200px]">
-                           <h4 class="text-sm font-bold text-gray-700">Presupuesto: ${nombreGrupo}</h4>
-                           <span class="text-[10px] text-gray-400 font-semibold italic">Impacto de esta solicitud: ${formatearMoneda(montoPotencial)} ${noAsignado ? '(SIN ASIGNACIÓN)' : ''}</span>
-                         </div>                          
-                          <!-- Barra de Progreso Visual - Ahora ocupa todo el ancho disponible -->
-                          <div class="flex-1 h-5 bg-gray-200 rounded-full overflow-hidden flex shadow-inner border border-gray-300">
-                              <!-- Rojo: Ejecutado -->
-                              <div class="h-full bg-red-600" style="width: ${pctEjecutado}%" title="Ejecutado"></div>
-                              <!-- Naranja: Comprometido -->
-                              <div class="h-full bg-orange-400" style="width: ${pctComprometido}%" title="Comprometido"></div>
-                              <!-- Amarillo/Verde: Potencial (Efecto parpadeo sobre verde) -->
-                              <div class="h-full bg-green-500 relative" style="width: ${pctPotencial}%" title="Impacto de esta solicitud">
-                                  <div class="absolute inset-0 bg-yellow-400 animate-pulse"></div>
-                              </div>
-                              <!-- Verde: Disponible -->
-                              <div class="h-full bg-green-500" style="width: ${pctRestante}%" title="Disponible"></div>
-                          </div>
-                      </div>
-
-                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                        <div class="flex flex-col">
-                          <span class="text-xs font-bold text-gray-500 uppercase">Monto Asignado</span>
-                          <span class="text-lg font-bold text-green-600">${formatearMoneda(s.Monto_Asignado)}</span>
-                        </div>
-                        <div class="flex flex-col border-l border-r border-gray-200 px-2">
-                          <span class="text-xs font-bold text-gray-500 uppercase">Comprometido</span>
-                          <span class="text-lg font-bold text-orange-400">${formatearMoneda(s.Monto_Comprometido)}</span>
-                        </div>
-                        <div class="flex flex-col">
-                          <span class="text-xs font-bold text-gray-500 uppercase">Ejecutado</span>
-                          <span class="text-lg font-bold text-red-600">${formatearMoneda(s.Monto_Ejecutado)}</span>
-                        </div>
-                      </div>
-                      ${alertaHtml}
-                    </div>`;
-              }
-            } catch (e) {
-              console.error("Error en presupuesto grupo " + idGrupo, e);
-            }
-          }
-        }
-      }
-    }
-
     let html = generarDetallesSolicitudHTML(data)
 
-   html += generarComentariosHtml(data)
+    html += generarComentariosHtml(data)
 
     html += generarProductosServiciosHTML(data)
 
@@ -1669,7 +1488,7 @@ window.mostrarVerDictamen = async function(idSolicitud) {
             </div>`
     }
 
-    html += generarSeccionAdjuntos(data);
+    html += generarSeccionAdjuntos(data)
 
     // Solo mostrar botones de acción si la solicitud está 'En revision'
     if (data.Estado === 'En revision') {
@@ -1698,27 +1517,17 @@ window.mostrarVerDictamen = async function(idSolicitud) {
   }
 }
 
-window.regresarTablaDictamen = function() {
+window.regresarTablaDictamen = function () {
   document.getElementById('div-ver-dictamen').classList.add('hidden')
   document.getElementById('div-tabla').classList.remove('hidden')
 }
 
-window.dictaminarDictamen = async function(idSolicitud, nuevoEstado) {
+window.dictaminarDictamen = async function (idSolicitud, nuevoEstado) {
   const esAprobacion = nuevoEstado === 'Aprobada'
-  
-  // Verificación visual previa de bloqueo por presupuesto
-  if (esAprobacion) {
-    const resumenContainer = document.getElementById('presupuesto-resumen-container');
-    if (resumenContainer && !resumenContainer.classList.contains('hidden') && resumenContainer.innerHTML.includes('Bloqueo de Aprobación')) {
-      mostrarNotificacion('Acción rechazada: Una o más partidas presupuestales no tienen presupuesto asignado para este mes.', 'error');
-      return;
-    }
-  }
-
   const title = esAprobacion ? 'Aprobar Solicitud' : 'Rechazar Solicitud'
   const message = esAprobacion
-      ? 'Puede agregar observaciones (opcional):'
-      : 'Por favor, ingrese el motivo del rechazo (obligatorio):'
+    ? 'Puede agregar observaciones (opcional):'
+    : 'Por favor, ingrese el motivo del rechazo (obligatorio):'
   const isRequired = !esAprobacion
 
   const comentarios = await InputPrompt(title, message, isRequired)
@@ -1752,19 +1561,9 @@ window.dictaminarDictamen = async function(idSolicitud, nuevoEstado) {
     }
   } catch (error) {
     procesandoNotif.click()
-    let msg = 'Error de red al procesar el dictamen.'
-    if (error.data) {
-        if (typeof error.data === 'object') {
-            msg = error.data.messages?.error || error.data.message || msg
-        } else if (typeof error.data === 'string') {
-            msg = error.data
-        }
-    }
-    mostrarNotificacion(msg, 'error')
+    mostrarNotificacion('Error de red al procesar el dictamen.', 'error')
   }
 }
-
-
 
 /**
  * Lógica para el modal "Órdenes de Compra"
@@ -1779,47 +1578,44 @@ function initOrdenesCompra() {
 
 async function cancelarReqOrden(idSolicitud) {
   if (
-      !(await Confirmar(
-          'Cancelar solicitud',
-          '¿Está seguro de que desea cancelar la solicitud?',
-      ))
+    !(await Confirmar('Cancelar solicitud', '¿Está seguro de que desea cancelar la solicitud?'))
   ) {
-    return;
+    return
   }
 
   const comentarios = await InputPrompt(
-      'Cancelar Solicitud',
-      'Por favor, ingrese el motivo de la cancelación (obligatorio):',
-      true,
-  );
+    'Cancelar Solicitud',
+    'Por favor, ingrese el motivo de la cancelación (obligatorio):',
+    true,
+  )
 
   if (comentarios === null) {
-    return;
+    return
   }
 
-  const procesandoNotif = mostrarNotificacion('Cancelando solicitud...', 'info', 999999);
+  const procesandoNotif = mostrarNotificacion('Cancelando solicitud...', 'info', 999999)
 
   try {
     const result = await SendDataEnd('api/solicitud/cancelar', {
       method: 'POST',
       body: {
         ID_Solicitud: idSolicitud,
-        ComentariosAdmin: comentarios
+        ComentariosAdmin: comentarios,
       },
-    });
+    })
 
-    procesandoNotif.click();
+    procesandoNotif.click()
 
     if (result.success) {
-      mostrarNotificacion(result.message || 'Solicitud cancelada correctamente.', 'success');
-      abrirModal('ordenes_compra');
+      mostrarNotificacion(result.message || 'Solicitud cancelada correctamente.', 'success')
+      abrirModal('ordenes_compra')
     } else {
-      mostrarNotificacion(result.message || 'No se pudo cancelar la solicitud.', 'error');
+      mostrarNotificacion(result.message || 'No se pudo cancelar la solicitud.', 'error')
     }
   } catch (error) {
-    procesandoNotif.click();
-    console.error('Error al cancelar solicitud:', error);
-    mostrarNotificacion(error.data.messages.error || error.message, 'error');
+    procesandoNotif.click()
+    console.error('Error al cancelar solicitud:', error)
+    mostrarNotificacion(error.data.messages.error || error.message, 'error')
   }
 }
 
@@ -1842,10 +1638,10 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
 
     // --- NUEVO: CHECKBOX DE CORRECCIÓN DE IVA ---
     // Solo permitimos corregir si está aprobada (antes de enviarse o pagarse)
-// En la función mostrarVerOrdenCompra...
+    // En la función mostrarVerOrdenCompra...
 
     if (data.Estado === 'Aprobada') {
-      const tieneIva = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
+      const tieneIva = data.IVA == 1 || data.IVA === 't' || data.IVA === true
 
       // CORRECCIÓN AQUÍ: Pasamos $idsession como 3er argumento
       html += `
@@ -1862,7 +1658,7 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
                 </label>
                 <div id="loading-iva-${idOrden}" class="hidden ml-3">
                    </div>
-            </div>`;
+            </div>`
     }
 
     html += generarProductosServiciosHTML(data)
@@ -1878,7 +1674,7 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
     }
 
     if (typeof generarSeccionAdjuntos === 'function') {
-      html += generarSeccionAdjuntos(data);
+      html += generarSeccionAdjuntos(data)
     }
 
     // Solo mostrar botones de acción si la solicitud está 'Aprobada'
@@ -1897,58 +1693,61 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
     }
     detallesContainer.innerHTML = html
   } catch (error) {
-    console.error(error);
+    console.error(error)
     detallesContainer.innerHTML = `<p class="text-center text-red-500">No se pudieron cargar los detalles. ${error.message}</p>`
   }
 }
 
 async function toggleIvaOrden(idSolicitud, nuevoEstadoIva, idSession) {
-  const loadingIcon = document.getElementById(`loading-iva-${idSolicitud}`);
-  const checkbox = document.getElementById(`chk-iva-correction-${idSolicitud}`);
+  const loadingIcon = document.getElementById(`loading-iva-${idSolicitud}`)
+  const checkbox = document.getElementById(`chk-iva-correction-${idSolicitud}`)
 
   // UI: Mostrar carga y bloquear checkbox
-  if(loadingIcon) loadingIcon.classList.remove('hidden');
-  if(checkbox) checkbox.disabled = true;
+  if (loadingIcon) loadingIcon.classList.remove('hidden')
+  if (checkbox) checkbox.disabled = true
 
   try {
     // 1. Obtener datos actuales para no perder información (proveedor, cuenta, productos base)
-    const currentData = await SendDataEnd(`api/cotizacion/details/${idSolicitud}`);
+    const currentData = await SendDataEnd(`api/cotizacion/details/${idSolicitud}`)
 
-    if(!currentData || currentData.error) {
-      throw new Error("No se pudieron obtener los datos de la orden para actualizar.");
+    if (!currentData || currentData.error) {
+      throw new Error('No se pudieron obtener los datos de la orden para actualizar.')
     }
 
-    const isServicio = currentData.Tipo == 2;
+    const isServicio = currentData.Tipo == 2
 
     // 2. Preparar el array de productos para la API de update
     // IMPORTANTE: Enviamos el "Importe" tal cual viene de la BD (Precio Base).
     // Al cambiar el flag "iva", el backend hará la matemática (Base * 1.16) o dejará la Base sola.
-    let productosPayload = [];
+    let productosPayload = []
 
     if (currentData.productos && currentData.productos.length > 0) {
-      productosPayload = currentData.productos.map(p => {
+      productosPayload = currentData.productos.map((p) => {
         // Parseamos a float para evitar errores de string
-        const importeBase = parseFloat(p.Importe) || 0;
+        const importeBase = parseFloat(p.Importe) || 0
 
         if (isServicio) {
           return {
             nombre: p.Nombre,
-            importe: importeBase
-          };
+            importe: importeBase,
+          }
         } else {
           return {
             codigo: p.Codigo,
             nombre: p.Nombre,
             cantidad: parseFloat(p.Cantidad) || 1,
-            importe: importeBase
-          };
+            importe: importeBase,
+          }
         }
-      });
+      })
     }
 
     // 3. Determinar ID Cotización (si existe)
-    const idCotizacion = currentData.ID_Cotizacion ||
-        (currentData.cotizaciones && currentData.cotizaciones.length > 0 ? currentData.cotizaciones[0].ID_Cotizacion : null);
+    const idCotizacion =
+      currentData.ID_Cotizacion ||
+      (currentData.cotizaciones && currentData.cotizaciones.length > 0
+        ? currentData.cotizaciones[0].ID_Cotizacion
+        : null)
 
     // 4. Construir Payload
     const payload = {
@@ -1956,39 +1755,37 @@ async function toggleIvaOrden(idSolicitud, nuevoEstadoIva, idSession) {
       id_cotizacion_seleccionada: idCotizacion,
       productos: productosPayload,
       comentarios: currentData.ComentariosAdmin || null, // Mantenemos comentarios del admin
-      id_cuenta: currentData.ID_Cuenta || null,         // Mantenemos la cuenta bancaria seleccionada
-      iva: nuevoEstadoIva ? 1 : 0                        // <--- AQUÍ CAMBIAMOS EL ESTADO DEL IMPUESTO
-    };
+      id_cuenta: currentData.ID_Cuenta || null, // Mantenemos la cuenta bancaria seleccionada
+      iva: nuevoEstadoIva ? 1 : 0, // <--- AQUÍ CAMBIAMOS EL ESTADO DEL IMPUESTO
+    }
 
     // 5. Enviar Actualización
     const result = await SendDataEnd('api/solicitud/update', {
       method: 'POST',
-      body: payload
-    });
+      body: payload,
+    })
 
     if (result.success) {
-      mostrarNotificacion('IVA actualizado y PDF regenerado correctamente.', 'success');
+      mostrarNotificacion('IVA actualizado y PDF regenerado correctamente.', 'success')
 
       // 6. Recargar la vista para ver los nuevos totales
       // Pasamos idSolicitud y el idSession que recibimos como argumento
-      await mostrarVerOrdenCompra(idSolicitud, idSession);
-
+      await mostrarVerOrdenCompra(idSolicitud, idSession)
     } else {
-      throw new Error(result.message || 'Error desconocido al actualizar la orden.');
+      throw new Error(result.message || 'Error desconocido al actualizar la orden.')
     }
-
   } catch (error) {
-    console.error('Error en toggleIvaOrden:', error);
-    mostrarNotificacion(`Error: ${error.message}`, 'error');
+    console.error('Error en toggleIvaOrden:', error)
+    mostrarNotificacion(`Error: ${error.message}`, 'error')
 
     // Revertir el checkbox visualmente si falló la operación
-    if(checkbox) {
-      checkbox.checked = !nuevoEstadoIva; // Volver al estado anterior
+    if (checkbox) {
+      checkbox.checked = !nuevoEstadoIva // Volver al estado anterior
     }
   } finally {
     // UI: Ocultar carga y desbloquear
-    if(loadingIcon) loadingIcon.classList.add('hidden');
-    if(checkbox) checkbox.disabled = false;
+    if (loadingIcon) loadingIcon.classList.add('hidden')
+    if (checkbox) checkbox.disabled = false
   }
 }
 
@@ -2392,7 +2189,6 @@ function aprobarSolicitudes() {
             `
         }
 
-
         html += `
             <div class="mt-8 flex justify-end space-x-4 border-t pt-6">
                 <!-- Botón Rechazar -->
@@ -2417,7 +2213,7 @@ function aprobarSolicitudes() {
     regresarATabla: function () {
       document.getElementById('div-ver-aprobacion').classList.add('hidden')
       document.getElementById('div-tabla-aprobacion').classList.remove('hidden')
-    }
+    },
   }
 }
 
@@ -2454,9 +2250,9 @@ async function dictaminarSolicitud(idSolicitud, accion) {
 
   if (esRechazo) {
     comentarios = await InputPrompt(
-        'Rechazar Solicitud',
-        'Por favor, ingrese el motivo del rechazo (obligatorio):',
-        true,
+      'Rechazar Solicitud',
+      'Por favor, ingrese el motivo del rechazo (obligatorio):',
+      true,
     )
     if (comentarios === null) {
       return // El usuario canceló el modal
@@ -2464,8 +2260,8 @@ async function dictaminarSolicitud(idSolicitud, accion) {
   } else {
     // Caso de aprobación directa
     const confirmado = await Confirmar(
-        'Aprobar Solicitud',
-        '¿Está seguro de que desea aprobar esta solicitud?',
+      'Aprobar Solicitud',
+      '¿Está seguro de que desea aprobar esta solicitud?',
     )
     if (!confirmado) {
       return
@@ -2499,15 +2295,7 @@ async function dictaminarSolicitud(idSolicitud, accion) {
     }
   } catch (error) {
     procesandoNotif.click()
-    let msg = `Error de red al intentar ${accion} la solicitud.`
-    if (error.data) {
-        if (typeof error.data === 'object') {
-            msg = error.data.messages?.error || error.data.message || msg
-        } else if (typeof error.data === 'string') {
-            msg = error.data
-        }
-    }
-    mostrarNotificacion(msg, 'error')
+    mostrarNotificacion(`Error de red al intentar ${accion} la solicitud.`, 'error')
   }
 }
 
@@ -2568,59 +2356,59 @@ function initRazonSocialPantallas() {
 }
 
 function initRazonSocialForm() {
-    const formAgregar = document.getElementById('form-agregar-razonsocial')
-    if (!formAgregar) return
+  const formAgregar = document.getElementById('form-agregar-razonsocial')
+  if (!formAgregar) return
 
-    formAgregar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formAgregar)
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formAgregar)
 
-        try {
-            const result = await SendDataEnd('modales/razonsocial/insertar', {
-                method: 'POST',
-                body: formData,
-            })
+    try {
+      const result = await SendDataEnd('modales/razonsocial/insertar', {
+        method: 'POST',
+        body: formData,
+      })
 
-            if (result.success) {
-                mostrarNotificacion('Razón social agregada correctamente ✅', 'success')
-                formAgregar.reset()
-                abrirModal('razonsocial') // Recargar el modal para ver los cambios
-            } else {
-                mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
-            }
-        } catch (error) {
-            console.error('Error al agregar razón social:', error)
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+      if (result.success) {
+        mostrarNotificacion('Razón social agregada correctamente ✅', 'success')
+        formAgregar.reset()
+        abrirModal('razonsocial') // Recargar el modal para ver los cambios
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch (error) {
+      console.error('Error al agregar razón social:', error)
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
     }
+  }
 }
 
 function initRazonSocialEditarForm() {
-    const formEditar = document.getElementById('form-editar-razonsocial')
-    if (!formEditar) return
+  const formEditar = document.getElementById('form-editar-razonsocial')
+  if (!formEditar) return
 
-    formEditar.onsubmit = async (e) => {
-        e.preventDefault()
-        const formData = new FormData(formEditar)
-        const id = formData.get('ID_RazonSocial')
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
+    const id = formData.get('ID_RazonSocial')
 
-        try {
-            const result = await SendDataEnd(`modales/razonsocial/editar/${id}`, {
-                method: 'POST',
-                body: formData,
-            })
+    try {
+      const result = await SendDataEnd(`modales/razonsocial/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
 
-            if (result.success) {
-                mostrarNotificacion('Razón social actualizada correctamente ✅', 'success')
-                abrirModal('razonsocial') // Recargar el modal para ver los cambios
-            } else {
-                mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
-            }
-        } catch (error) {
-            console.error('Error al editar razón social:', error)
-            mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
-        }
+      if (result.success) {
+        mostrarNotificacion('Razón social actualizada correctamente ✅', 'success')
+        abrirModal('razonsocial') // Recargar el modal para ver los cambios
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch (error) {
+      console.error('Error al editar razón social:', error)
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
     }
+  }
 }
 
 function initRazonSocialActions(tabla) {
@@ -2648,7 +2436,9 @@ function initRazonSocialActions(tabla) {
 
     // --- ELIMINAR ---
     if (btn.classList.contains('btn-eliminar')) {
-      if (!(await Confirmar('Eliminar Razón Social', '¿Seguro que deseas eliminar este registro?'))) {
+      if (
+        !(await Confirmar('Eliminar Razón Social', '¿Seguro que deseas eliminar este registro?'))
+      ) {
         return
       }
 
@@ -2759,6 +2549,9 @@ window.initLimpiarAlmacenamiento = function () {
         : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`
 
     if (confirm(mensaje)) {
+      console.group('🚀 EJECUTANDO ACCIÓN: ' + tipo.toUpperCase())
+      console.log('Rutas a procesar:', listaParaEnviar)
+      console.groupEnd()
       alert(`Acción "${tipo}" simulada. Revisa la consola.`)
     }
   }
@@ -2905,7 +2698,9 @@ function initDepartamentosTabla() {
     paginationSelector: 'paginacion-departamentos',
     filterFormSelector: '#form-filtros-departamentos',
     filterFunction: (row, form) => {
-      const nombreFiltro = (document.getElementById('buscar-nombre-depto')?.value || '').toLowerCase()
+      const nombreFiltro = (
+        document.getElementById('buscar-nombre-depto')?.value || ''
+      ).toLowerCase()
       const lugarFiltro = (document.getElementById('buscar-lugar-depto')?.value || '').toLowerCase()
 
       const nombre = row.querySelector('.nombre-depto')?.textContent.toLowerCase() || ''
@@ -2952,30 +2747,7 @@ function initDepartamentosForm() {
   const formAgregar = document.getElementById('form-agregar-departamento')
   const pantallaAgregar = document.getElementById('pantalla-agregar-departamento')
   const pantallaLista = document.getElementById('pantalla-lista-departamentos')
-  const selectPlaces = document.getElementById('ID_Place')
-  const btnSelectAll = document.getElementById('btn-seleccionar-todos-places')
-
   if (!formAgregar) return
-
-  // Inicializar Choices.js para selección múltiple
-  let choicesPlaces = null
-  if (selectPlaces && typeof Choices !== 'undefined') {
-    choicesPlaces = new Choices(selectPlaces, {
-      removeItemButton: true,
-      noChoicesText: 'No hay más opciones para elegir',
-      itemSelectText: 'Presiona para elegir',
-      placeholder: true,
-      placeholderValue: 'Seleccione uno o más lugares'
-    })
-  }
-
-  // Lógica de "Seleccionar todos"
-  if (btnSelectAll && choicesPlaces) {
-    btnSelectAll.addEventListener('click', () => {
-      const allValues = Array.from(selectPlaces.options).map(opt => opt.value)
-      choicesPlaces.setChoiceByValue(allValues)
-    })
-  }
 
   formAgregar.onsubmit = async (e) => {
     e.preventDefault()
@@ -2988,13 +2760,7 @@ function initDepartamentosForm() {
       })
 
       if (result.success) {
-        mostrarNotificacion(result.message || 'Departamento(s) agregado(s) correctamente ✅', 'success')
-        
-        // Limpiar Choices si existe
-        if (choicesPlaces) {
-          choicesPlaces.removeActiveItems()
-        }
-
+        mostrarNotificacion('Departamento agregado correctamente ✅', 'success')
         pantallaAgregar?.classList.add('hidden')
         pantallaLista?.classList.remove('hidden')
         formAgregar.reset()
@@ -3036,9 +2802,9 @@ function initDepartamentosEditarForm() {
           fila.querySelector('.nombre-depto').textContent = formData.get('Nombre')
 
           // Places
-          const selectLugar = document.getElementById('editar-ID_Place');
-          const lugarTexto = selectLugar.options[selectLugar.selectedIndex].text;
-          fila.querySelector('.lugar-depto').textContent = lugarTexto;
+          const selectLugar = document.getElementById('editar-ID_Place')
+          const lugarTexto = selectLugar.options[selectLugar.selectedIndex].text
+          fila.querySelector('.lugar-depto').textContent = lugarTexto
 
           fila.dataset.nombre = formData.get('Nombre')
           fila.dataset.idPlace = formData.get('ID_Place')
@@ -3067,25 +2833,25 @@ function initDepartamentosActions(tabla) {
       const id = btnEliminar.dataset.id
 
       if (
-          !(await Confirmar(
-              'Eliminar Departamento?',
-              '¿Seguro que deseas eliminar este departamento?',
-          ))
+        !(await Confirmar(
+          'Eliminar Departamento?',
+          '¿Seguro que deseas eliminar este departamento?',
+        ))
       )
         return
 
       SendDataEnd(`modales/crud_departamentos/eliminar/${id}`, {
         method: 'POST',
       })
-          .then((result) => {
-            if (result.success) {
-              mostrarNotificacion('Departamento eliminado ✅', 'success')
-              btnEliminar.closest('tr')?.remove()
-            } else {
-              mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
-            }
-          })
-          .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+        .then((result) => {
+          if (result.success) {
+            mostrarNotificacion('Departamento eliminado ✅', 'success')
+            btnEliminar.closest('tr')?.remove()
+          } else {
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+          }
+        })
+        .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
       return
     }
 
@@ -3107,7 +2873,6 @@ function initDepartamentosActions(tabla) {
   })
 }
 
-
 /**
  * Lógica para el CRUD de cuentas de proveedor
  */
@@ -3128,7 +2893,9 @@ function initCuentasTabla() {
     paginationSelector: 'paginacion-cuentas',
     filterFormSelector: '#form-filtros-cuentas',
     filterFunction: (row, form) => {
-      const razonSocialFiltro = (document.getElementById('buscar-razonsocial-cuenta')?.value || '').toLowerCase()
+      const razonSocialFiltro = (
+        document.getElementById('buscar-razonsocial-cuenta')?.value || ''
+      ).toLowerCase()
       const rfcFiltro = (document.getElementById('buscar-rfc-cuenta')?.value || '').toLowerCase()
 
       const razonSocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || ''
@@ -3155,140 +2922,139 @@ function initCuentasPantallas() {
 }
 
 function initSubPantallasCuentas() {
-  const vistaTabla = document.getElementById('vista-tabla-cuentas-detalle');
-  const vistaForm = document.getElementById('vista-form-nueva-cuenta');
-  const tablaDetalle = document.getElementById('tabla-cuentas-detalle');
+  const vistaTabla = document.getElementById('vista-tabla-cuentas-detalle')
+  const vistaForm = document.getElementById('vista-form-nueva-cuenta')
+  const tablaDetalle = document.getElementById('tabla-cuentas-detalle')
 
-  const btnAgregar = document.getElementById('btn-agregar-cuenta-detalle');
-  const btnCancelar = document.getElementById('btn-cancelar-nueva-cuenta');
-  const btnConfirmar = document.getElementById('btn-confirmar-nueva-cuenta');
+  const btnAgregar = document.getElementById('btn-agregar-cuenta-detalle')
+  const btnCancelar = document.getElementById('btn-cancelar-nueva-cuenta')
+  const btnConfirmar = document.getElementById('btn-confirmar-nueva-cuenta')
 
-  const inputCuenta = document.getElementById('nueva-cuenta-input');
-  const inputIdRef = document.getElementById('editar-ID_Ref');
-  const inputIdEdicion = document.getElementById('id_cuenta_edicion');
-  const tituloForm = document.getElementById('titulo-form-cuenta');
+  const inputCuenta = document.getElementById('nueva-cuenta-input')
+  const inputIdRef = document.getElementById('editar-ID_Ref')
+  const inputIdEdicion = document.getElementById('id_cuenta_edicion')
+  const tituloForm = document.getElementById('titulo-form-cuenta')
 
   // 1. Botón "AGREGAR"
   if (btnAgregar) {
     btnAgregar.onclick = () => {
-      if(inputCuenta) inputCuenta.value = '';
-      if(inputIdEdicion) inputIdEdicion.value = '';
-      if(tituloForm) tituloForm.textContent = 'Nueva Cuenta';
+      if (inputCuenta) inputCuenta.value = ''
+      if (inputIdEdicion) inputIdEdicion.value = ''
+      if (tituloForm) tituloForm.textContent = 'Nueva Cuenta'
 
-      vistaTabla.classList.add('hidden');
-      vistaForm.classList.remove('hidden');
-      if(inputCuenta) inputCuenta.focus();
-    };
+      vistaTabla.classList.add('hidden')
+      vistaForm.classList.remove('hidden')
+      if (inputCuenta) inputCuenta.focus()
+    }
   }
 
   // Eventos de eliminar y editar
   if (tablaDetalle) {
     tablaDetalle.addEventListener('click', async (e) => {
-
       // Botón "EDITAR"
-      const btnEditar = e.target.closest('.btn-editar-detalle');
+      const btnEditar = e.target.closest('.btn-editar-detalle')
       if (btnEditar) {
-        e.preventDefault();
-        const idCuenta = btnEditar.dataset.id;
-        const numeroCuenta = btnEditar.dataset.cuenta;
+        e.preventDefault()
+        const idCuenta = btnEditar.dataset.id
+        const numeroCuenta = btnEditar.dataset.cuenta
 
-        if(inputIdEdicion) inputIdEdicion.value = idCuenta;
-        if(inputCuenta) inputCuenta.value = numeroCuenta;
-        if(tituloForm) tituloForm.textContent = 'Editar Cuenta';
+        if (inputIdEdicion) inputIdEdicion.value = idCuenta
+        if (inputCuenta) inputCuenta.value = numeroCuenta
+        if (tituloForm) tituloForm.textContent = 'Editar Cuenta'
 
-        vistaTabla.classList.add('hidden');
-        vistaForm.classList.remove('hidden');
-        if(inputCuenta) inputCuenta.focus();
-        return;
+        vistaTabla.classList.add('hidden')
+        vistaForm.classList.remove('hidden')
+        if (inputCuenta) inputCuenta.focus()
+        return
       }
 
       // Botón "ELIMINAR"
-      const btnEliminar = e.target.closest('.btn-eliminar-detalle');
+      const btnEliminar = e.target.closest('.btn-eliminar-detalle')
       if (btnEliminar) {
-        e.preventDefault();
-        const idCuenta = btnEliminar.dataset.id;
+        e.preventDefault()
+        const idCuenta = btnEliminar.dataset.id
 
-        if (!(await Confirmar('Eliminar Cuenta', '¿Seguro que deseas eliminar esta cuenta bancaria?'))) {
-          return;
+        if (
+          !(await Confirmar('Eliminar Cuenta', '¿Seguro que deseas eliminar esta cuenta bancaria?'))
+        ) {
+          return
         }
 
         try {
           const result = await SendDataEnd(`modales/cuentas/eliminar/${idCuenta}`, {
-            method: 'POST'
-          });
+            method: 'POST',
+          })
 
           if (result.success) {
-            mostrarNotificacion('Cuenta eliminada correctamente ✅', 'success');
+            mostrarNotificacion('Cuenta eliminada correctamente ✅', 'success')
             // Recargar la tabla usando el ID del proveedor actual
-            cargarCuentasDeProveedor(inputIdRef.value);
+            cargarCuentasDeProveedor(inputIdRef.value)
           } else {
-            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error');
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
           }
         } catch (error) {
-          console.error(error);
-          mostrarNotificacion('Error de conexión al eliminar.', 'error');
+          console.error(error)
+          mostrarNotificacion('Error de conexión al eliminar.', 'error')
         }
       }
-    });
+    })
   }
 
   // Botón "Cancelar"
   if (btnCancelar) {
     btnCancelar.onclick = () => {
-      vistaForm.classList.add('hidden');
-      vistaTabla.classList.remove('hidden');
-    };
+      vistaForm.classList.add('hidden')
+      vistaTabla.classList.remove('hidden')
+    }
   }
 
   // Botón "Confirmar" (Guardar)
   if (btnConfirmar) {
     btnConfirmar.onclick = async () => {
-      const valor = inputCuenta.value.trim();
-      const idProveedor = inputIdRef.value;
-      const idCuenta = inputIdEdicion.value;
+      const valor = inputCuenta.value.trim()
+      const idProveedor = inputIdRef.value
+      const idCuenta = inputIdEdicion.value
 
       if (!valor) {
-        mostrarNotificacion("Por favor ingrese una cuenta.", "warning");
-        return;
+        mostrarNotificacion('Por favor ingrese una cuenta.', 'warning')
+        return
       }
       if (valor.length < 16 || valor.length > 20) {
-        mostrarNotificacion("La cuenta debe tener entre 16 y 20 caracteres.", "warning");
-        return;
+        mostrarNotificacion('La cuenta debe tener entre 16 y 20 caracteres.', 'warning')
+        return
       }
 
-      const formData = new FormData();
-      formData.append('Cuenta', valor);
-      formData.append('ID_Proveedor', idProveedor);
+      const formData = new FormData()
+      formData.append('Cuenta', valor)
+      formData.append('ID_Proveedor', idProveedor)
 
-      const url = idCuenta
-          ? `modales/cuentas/editar/${idCuenta}`
-          : `modales/cuentas/insertar`;
+      const url = idCuenta ? `modales/cuentas/editar/${idCuenta}` : `modales/cuentas/insertar`
 
       try {
         const result = await SendDataEnd(url, {
           method: 'POST',
-          body: formData
-        });
+          body: formData,
+        })
 
         if (result.success) {
-          const mensaje = idCuenta ? 'Cuenta actualizada ✅' : 'Cuenta agregada ✅';
-          mostrarNotificacion(mensaje, 'success');
+          const mensaje = idCuenta ? 'Cuenta actualizada ✅' : 'Cuenta agregada ✅'
+          mostrarNotificacion(mensaje, 'success')
 
-          inputCuenta.value = '';
-          if(inputIdEdicion) inputIdEdicion.value = '';
+          inputCuenta.value = ''
+          if (inputIdEdicion) inputIdEdicion.value = ''
 
-          vistaForm.classList.add('hidden');
-          vistaTabla.classList.remove('hidden');
+          vistaForm.classList.add('hidden')
+          vistaTabla.classList.remove('hidden')
 
-          cargarCuentasDeProveedor(idProveedor);
+          cargarCuentasDeProveedor(idProveedor)
         } else {
-          mostrarNotificacion(result.message || 'Error al guardar ❌', 'error');
+          mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
         }
       } catch (error) {
-        console.error(error);
-        mostrarNotificacion('Error de conexión al guardar.', 'error');
+        console.error(error)
+        mostrarNotificacion('Error de conexión al guardar.', 'error')
       }
-    };
+    }
   }
 }
 
@@ -3303,16 +3069,16 @@ function initCuentasActions(tabla) {
     const fila = btnEditar.closest('tr')
     if (!fila) return
 
-    const idProveedor = fila.dataset.id;
+    const idProveedor = fila.dataset.id
     document.getElementById('editar-ID_Ref').value = idProveedor
     document.getElementById('editar-RazonSocial').value = fila.dataset.razonsocial || ''
     document.getElementById('editar-RFC').value = fila.dataset.rfc || ''
 
     // Resetear vistas internas: Siempre mostrar tabla primero al entrar
-    document.getElementById('vista-tabla-cuentas-detalle').classList.remove('hidden');
-    document.getElementById('vista-form-nueva-cuenta').classList.add('hidden');
+    document.getElementById('vista-tabla-cuentas-detalle').classList.remove('hidden')
+    document.getElementById('vista-form-nueva-cuenta').classList.add('hidden')
 
-    cargarCuentasDeProveedor(idProveedor);
+    cargarCuentasDeProveedor(idProveedor)
 
     document.getElementById('pantalla-lista-cuentas').classList.add('hidden')
     document.getElementById('pantalla-editar-cuenta').classList.remove('hidden')
@@ -3320,15 +3086,16 @@ function initCuentasActions(tabla) {
 }
 
 async function cargarCuentasDeProveedor(idProveedor) {
-  const tbody = document.getElementById('tabla-cuentas-detalle');
-  tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">Cargando cuentas...</td></tr>';
+  const tbody = document.getElementById('tabla-cuentas-detalle')
+  tbody.innerHTML =
+    '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">Cargando cuentas...</td></tr>'
 
   try {
-    const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, { method: 'GET' });
+    const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, { method: 'GET' })
 
     if (cuentas && cuentas.length > 0) {
-      let html = '';
-      cuentas.forEach(c => {
+      let html = ''
+      cuentas.forEach((c) => {
         html += `
                     <tr class="border-t hover:bg-gray-50">
                         <td class="px-4 py-2 text-sm text-gray-700 align-middle">${c.Cuenta}</td>
@@ -3354,21 +3121,404 @@ async function cargarCuentasDeProveedor(idProveedor) {
                             </div>
                         </td>
                     </tr>
-                `;
-      });
-      tbody.innerHTML = html;
+                `
+      })
+      tbody.innerHTML = html
     } else {
-      tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">No hay cuentas registradas para este proveedor.</td></tr>';
+      tbody.innerHTML =
+        '<tr><td colspan="2" class="px-4 py-3 text-center text-gray-500 text-sm">No hay cuentas registradas para este proveedor.</td></tr>'
     }
   } catch (error) {
-    console.error('Error al cargar cuentas:', error);
-    tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-center text-red-500 text-sm">Error al cargar datos.</td></tr>';
+    console.error('Error al cargar cuentas:', error)
+    tbody.innerHTML =
+      '<tr><td colspan="2" class="px-4 py-3 text-center text-red-500 text-sm">Error al cargar datos.</td></tr>'
   }
 }
 
+/**
+ * Lógica para el CRUD de cuentas de Grupos Presupuestales
+ */
+function initCrudGrupos() {
+  const tabla = document.getElementById('tabla-grupos')
+  if (!tabla) return
 
+  initGruposTabla()
+  initGruposPantallas()
+  initGruposForm()
+  initGruposEditarForm()
+  initGruposActions(tabla)
+}
 
+function initGruposTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-grupos tr[data-id]',
+    paginationSelector: 'paginacion-grupos',
+    filterFormSelector: '#form-filtros-grupos',
+    filterFunction: (row, form) => {
+      const nombreFiltro = (
+        document.getElementById('buscar-nombre-grupo')?.value || ''
+      ).toLowerCase()
+      const descFiltro = (
+        document.getElementById('buscar-descripcion-grupo')?.value || ''
+      ).toLowerCase()
 
+      const nombre = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || ''
+      const descripcion = row.querySelector('.descripcion-grupo')?.textContent.toLowerCase() || ''
+
+      return nombre.includes(nombreFiltro) && descripcion.includes(descFiltro)
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initGruposPantallas() {
+  const pantallaAgregar = document.getElementById('pantalla-agregar-grupos')
+  const pantallaEditar = document.getElementById('pantalla-editar-grupos')
+  const pantallaLista = document.getElementById('pantalla-lista-grupos')
+
+  const btnAgregar = document.getElementById('btn-agregar-grupos')
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista-grupos')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-grupos')
+
+  if (btnAgregar)
+    btnAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaLista?.classList.add('hidden')
+      pantallaAgregar?.classList.remove('hidden')
+    }
+
+  if (btnRegresarAgregar)
+    btnRegresarAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaAgregar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+
+  if (btnRegresarEditar)
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+}
+
+function initGruposForm() {
+  const formAgregar = document.getElementById('form-agregar-grupos')
+  const pantallaAgregar = document.getElementById('pantalla-agregar-grupos')
+  const pantallaLista = document.getElementById('pantalla-lista-grupos')
+  if (!formAgregar) return
+
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formAgregar)
+
+    try {
+      const result = await SendDataEnd('modales/crud_grupos_presupuestales/insertar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Grupo agregado correctamente ✅', 'success')
+        pantallaAgregar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+        formAgregar.reset()
+        // Recargamos el modal para ver los cambios
+        abrirModal('GrupoPresupuestal')
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initGruposEditarForm() {
+  const formEditar = document.getElementById('form-editar-grupos')
+  const pantallaEditar = document.getElementById('pantalla-editar-grupos')
+  const pantallaLista = document.getElementById('pantalla-lista-grupos')
+  const tabla = document.getElementById('tabla-grupos')
+  if (!formEditar) return
+
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
+    const id = formData.get('ID_GrupoPresupuestal')
+
+    try {
+      const result = await SendDataEnd(`modales/crud_grupos_presupuestales/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Grupo actualizado correctamente ✅', 'success')
+
+        const fila = tabla.querySelector(`tr[data-id='${id}']`)
+        if (fila) {
+          // Actualizar textos básicos
+          fila.querySelector('.nombre-grupo').textContent = formData.get('Nombre')
+          fila.querySelector('.descripcion-grupo').textContent = formData.get('Descripcion')
+
+          // Actualizar Datasets
+          fila.dataset.nombre = formData.get('Nombre')
+          fila.dataset.descripcion = formData.get('Descripcion')
+        }
+
+        pantallaEditar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initGruposActions(tabla) {
+  if (!tabla) return
+
+  tabla.addEventListener('click', async (e) => {
+    // --- ELIMINAR ---
+    const btnEliminar = e.target.closest("[id^='btn-eliminar-grupos-']")
+    if (btnEliminar) {
+      e.preventDefault()
+      const id = btnEliminar.dataset.id
+
+      if (
+        !(await Confirmar(
+          'Eliminar Grupo?',
+          '¿Seguro que deseas eliminar este grupo presupuestal?',
+        ))
+      )
+        return
+
+      SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${id}`, {
+        method: 'POST',
+      })
+        .then((result) => {
+          if (result.success) {
+            mostrarNotificacion('Grupo eliminado ✅', 'success')
+            btnEliminar.closest('tr')?.remove()
+            abrirModal('GrupoPresupuestal')
+          } else {
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+          }
+        })
+        .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+      return
+    }
+
+    // --- EDITAR ---
+    const btnEditar = e.target.closest("[id^='btn-editar-grupos-']")
+    if (!btnEditar) return
+    e.preventDefault()
+
+    const fila = btnEditar.closest('tr')
+    if (!fila) return
+
+    document.getElementById('editar-ID_GrupoPresupuestal').value = fila.dataset.id
+    document.getElementById('editar-Nombre').value = fila.dataset.nombre
+    document.getElementById('editar-Descripcion').value = fila.dataset.descripcion
+
+    document.getElementById('pantalla-lista-grupos').classList.add('hidden')
+    document.getElementById('pantalla-editar-grupos').classList.remove('hidden')
+  })
+}
+
+/**
+ * Lógica para el CRUD de cuentas Bancos Dpto
+ */
+function initCrudBancoDpto() {
+  const tabla = document.getElementById('tabla-banco-dpto')
+  if (!tabla) return
+
+  initBancoDptoTabla()
+  initBancoDptoPantallas()
+  initBancoDptoForm()
+  initBancoDptoEditarForm()
+  initBancoDptoActions(tabla)
+}
+
+function initBancoDptoTabla() {
+  setupClientSideTable({
+    rowsSelector: '#tabla-banco-dpto tr[data-id]',
+    paginationSelector: 'paginacion-banco-dpto',
+    filterFormSelector: '#form-filtros-banco-dpto',
+    filterFunction: (row, form) => {
+      const dptoFiltro = (document.getElementById('buscar-dpto')?.value || '').toLowerCase()
+      const bancoFiltro = (document.getElementById('buscar-banco')?.value || '').toLowerCase()
+
+      const dpto = row.querySelector('.nombre-dpto')?.textContent.toLowerCase() || ''
+      const banco = row.querySelector('.nombre-banco')?.textContent.toLowerCase() || ''
+
+      return dpto.includes(dptoFiltro) && banco.includes(bancoFiltro)
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initBancoDptoPantallas() {
+  const pantallaAgregar = document.getElementById('pantalla-agregar-banco-dpto')
+  const pantallaEditar = document.getElementById('pantalla-editar-banco-dpto')
+  const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
+
+  const btnAgregar = document.getElementById('btn-agregar-banco-dpto')
+  const btnRegresarAgregar = document.getElementById('btn-regresar-lista-banco-dpto')
+  const btnRegresarEditar = document.getElementById('btn-regresar-lista-editar-banco-dpto')
+
+  if (btnAgregar)
+    btnAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaLista?.classList.add('hidden')
+      pantallaAgregar?.classList.remove('hidden')
+    }
+
+  if (btnRegresarAgregar)
+    btnRegresarAgregar.onclick = (e) => {
+      e.preventDefault()
+      pantallaAgregar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+
+  if (btnRegresarEditar)
+    btnRegresarEditar.onclick = (e) => {
+      e.preventDefault()
+      pantallaEditar?.classList.add('hidden')
+      pantallaLista?.classList.remove('hidden')
+    }
+}
+
+function initBancoDptoForm() {
+  const formAgregar = document.getElementById('form-agregar-banco-dpto')
+  const pantallaAgregar = document.getElementById('pantalla-agregar-banco-dpto')
+  const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
+  if (!formAgregar) return
+
+  formAgregar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formAgregar)
+
+    try {
+      const result = await SendDataEnd('modales/crud_banco_dpto/insertar', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Banco agregado correctamente ✅', 'success')
+        pantallaAgregar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+        formAgregar.reset()
+        // Recargamos el modal para ver los cambios
+        abrirModal('BancoDpto')
+      } else {
+        mostrarNotificacion(result.message || 'Error al guardar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initBancoDptoEditarForm() {
+  const formEditar = document.getElementById('form-editar-banco-dpto')
+  const pantallaEditar = document.getElementById('pantalla-editar-banco-dpto')
+  const pantallaLista = document.getElementById('pantalla-lista-banco-dpto')
+  const tabla = document.getElementById('tabla-banco-dpto')
+  if (!formEditar) return
+
+  formEditar.onsubmit = async (e) => {
+    e.preventDefault()
+    const formData = new FormData(formEditar)
+    const id = formData.get('ID_BancoDpto')
+
+    try {
+      const result = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (result.success) {
+        mostrarNotificacion('Banco actualizado correctamente ✅', 'success')
+
+        const fila = tabla.querySelector(`tr[data-id='${id}']`)
+        if (fila) {
+          // Actualizar textos visuales
+          fila.querySelector('.nombre-banco').textContent = formData.get('Banco')
+          fila.querySelector('.clabe-banco').textContent = formData.get('Clabe')
+
+          // Actualizar Nombre Dpto visualmente desde el select
+          const selectDpto = document.getElementById('editar-ID_Dpto')
+          const dptoTexto = selectDpto.options[selectDpto.selectedIndex].text
+          fila.querySelector('.nombre-dpto').textContent = dptoTexto
+
+          // Actualizar Datasets
+          fila.dataset.banco = formData.get('Banco')
+          fila.dataset.clabe = formData.get('Clabe')
+          fila.dataset.idDpto = formData.get('ID_Dpto')
+        }
+
+        pantallaEditar?.classList.add('hidden')
+        pantallaLista?.classList.remove('hidden')
+      } else {
+        mostrarNotificacion(result.message || 'Error al actualizar ❌', 'error')
+      }
+    } catch {
+      mostrarNotificacion('Error de conexión con el servidor ❌', 'error')
+    }
+  }
+}
+
+function initBancoDptoActions(tabla) {
+  if (!tabla) return
+
+  tabla.addEventListener('click', async (e) => {
+    // --- ELIMINAR ---
+    const btnEliminar = e.target.closest("[id^='btn-eliminar-banco-dpto-']")
+    if (btnEliminar) {
+      e.preventDefault()
+      const id = btnEliminar.dataset.id
+
+      if (!(await Confirmar('Eliminar Banco?', '¿Seguro que deseas eliminar este registro?')))
+        return
+
+      SendDataEnd(`modales/crud_banco_dpto/eliminar/${id}`, {
+        method: 'POST',
+      })
+        .then((result) => {
+          if (result.success) {
+            mostrarNotificacion('Registro eliminado ✅', 'success')
+            btnEliminar.closest('tr')?.remove()
+          } else {
+            mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
+          }
+        })
+        .catch(() => mostrarNotificacion('Error de conexión ❌', 'error'))
+      return
+    }
+
+    // --- EDITAR ---
+    const btnEditar = e.target.closest("[id^='btn-editar-banco-dpto-']")
+    if (!btnEditar) return
+    e.preventDefault()
+
+    const fila = btnEditar.closest('tr')
+    if (!fila) return
+
+    // Cargar datos al formulario
+    document.getElementById('editar-ID_BancoDpto').value = fila.dataset.id
+    document.getElementById('editar-Banco').value = fila.dataset.banco
+    document.getElementById('editar-Clabe').value = fila.dataset.clabe
+    document.getElementById('editar-ID_Dpto').value = fila.dataset.idDpto
+
+    // Cambiar de pantalla
+    document.getElementById('pantalla-lista-banco-dpto').classList.add('hidden')
+    document.getElementById('pantalla-editar-banco-dpto').classList.remove('hidden')
+  })
+}
 
 //==================================================================================================================
 /**
@@ -3420,7 +3570,6 @@ async function GenerarOrden(id, button) {
     button.textContent = originalText
   }
 }
-
 
 /**
  * Lógica para limpiar almacenamiento
@@ -3510,6 +3659,9 @@ window.initLimpiarAlmacenamiento = function () {
         : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`
 
     if (confirm(mensaje)) {
+      console.group('🚀 EJECUTANDO ACCIÓN: ' + tipo.toUpperCase())
+      console.log('Rutas a procesar:', listaParaEnviar)
+      console.groupEnd()
       alert(`Acción "${tipo}" simulada. Revisa la consola.`)
     }
   }
@@ -3692,39 +3844,39 @@ async function GenerarOrden(id, button) {
  * @param {number} idSolicitud - El ID de la base de datos
  * @param {function} callback - Función a ejecutar tras el éxito (opcional)
  */
-window.globalCancelarSolicitud = async function(idSolicitud, callbackExito) {
-  const title = 'Rechazar/Cancelar Solicitud';
-  const message = 'Por favor, ingrese el motivo (obligatorio):';
+window.globalCancelarSolicitud = async function (idSolicitud, callbackExito) {
+  const title = 'Rechazar/Cancelar Solicitud'
+  const message = 'Por favor, ingrese el motivo (obligatorio):'
 
   // Tu función existente de prompt
-  const comentarios = await InputPrompt(title, message, true);
+  const comentarios = await InputPrompt(title, message, true)
 
-  if (!comentarios) return; // Si cancela o está vacío
+  if (!comentarios) return // Si cancela o está vacío
 
   const payload = {
     ID_Solicitud: idSolicitud,
-    ComentariosAdmin: comentarios
-  };
+    ComentariosAdmin: comentarios,
+  }
 
-  const notif = mostrarNotificacion('Procesando solicitud...', 'info', 9999);
+  const notif = mostrarNotificacion('Procesando solicitud...', 'info', 9999)
 
   try {
     // Aquí usamos la ruta de la API que modificamos en el paso anterior
     const result = await SendDataEnd('api/solicitud/cancelar', {
       method: 'POST',
-      body: payload
-    });
+      body: payload,
+    })
 
-    if (notif.click) notif.click();
+    if (notif.click) notif.click()
 
     if (result.success) {
-      mostrarNotificacion(result.message, 'success');
-      if (callbackExito) callbackExito(); // Aquí recargamos la vista actual
+      mostrarNotificacion(result.message, 'success')
+      if (callbackExito) callbackExito() // Aquí recargamos la vista actual
     } else {
-      mostrarNotificacion(result.message || 'Error al procesar', 'error');
+      mostrarNotificacion(result.message || 'Error al procesar', 'error')
     }
   } catch (error) {
-    if (notif.click) notif.click();
-    mostrarNotificacion('Error de conexión', 'error');
+    if (notif.click) notif.click()
+    mostrarNotificacion('Error de conexión', 'error')
   }
 }

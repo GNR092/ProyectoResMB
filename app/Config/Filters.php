@@ -14,6 +14,7 @@ use CodeIgniter\Filters\PerformanceMetrics;
 use CodeIgniter\Filters\SecureHeaders;
 use App\Filters\AuthFilter;
 use App\Filters\HSTS;
+use App\Filters\MantenimientoFilter;
 
 
 class Filters extends BaseFilters
@@ -33,6 +34,7 @@ class Filters extends BaseFilters
         'honeypot'      => Honeypot::class,
         'auth'          => AuthFilter::class,
         'hsts'          => HSTS::class,
+        'mantenimiento' => MantenimientoFilter::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
         'cors'          => Cors::class,
@@ -74,6 +76,7 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
+            'mantenimiento',
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',

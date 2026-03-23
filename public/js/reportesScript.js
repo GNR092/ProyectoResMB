@@ -18,14 +18,20 @@ function Reportes(initialData = []) {
       return Math.ceil(this.filteredData.length / this.rowsPerPage)
     },
 
+    get pageNumbers() {
+      return generatePaginationNumbers(this.currentPage, this.totalPages, 7)
+    },
+
     init() {
       // 1. Limpieza y preparación de datos original
-      const cleanData = initialData.filter(item => item.ID_Solicitud != null && item.ID_Solicitud !== '');
+      const cleanData = initialData.filter(
+        (item) => item.ID_Solicitud != null && item.ID_Solicitud !== '',
+      )
 
       this.allData = cleanData.map((item) => {
-        item.ProveedorFiltro = item.proveedor ? item.proveedor.RazonSocial : 'N/A';
-        return item;
-      });
+        item.ProveedorFiltro = item.proveedor ? item.proveedor.RazonSocial : 'N/A'
+        return item
+      })
 
       // 2. Inicializar Choices.js asegurando que el DOM (HTML) ya está listo
       this.$nextTick(() => {
@@ -35,47 +41,47 @@ function Reportes(initialData = []) {
           searchPlaceholderValue: 'Buscar...',
           placeholder: true,
           noResultsText: 'No se encontraron resultados',
-          noChoicesText: 'No hay más opciones'
-        };
+          noChoicesText: 'No hay más opciones',
+        }
 
         // Mapeamos los x-ref del HTML con sus variables en Alpine
         const selects = [
           { ref: this.$refs.deptoSelect, model: 'departamento' },
           { ref: this.$refs.razonSelect, model: 'razonSocial' },
-          { ref: this.$refs.provSelect, model: 'proveedor' }
-        ];
+          { ref: this.$refs.provSelect, model: 'proveedor' },
+        ]
 
-        this.selectInstances = []; // Lo guardamos para poder usarlo en clearFilters()
+        this.selectInstances = [] // Lo guardamos para poder usarlo en clearFilters()
 
-        selects.forEach(item => {
+        selects.forEach((item) => {
           if (item.ref) {
-            const choice = new Choices(item.ref, config);
+            const choice = new Choices(item.ref, config)
 
             // Sincronizar los cambios de Choices.js hacia las variables de Alpine.js
             item.ref.addEventListener('change', () => {
-              this[item.model] = choice.getValue(true);
-              this.applyFiltersAndPaginate();
-            });
+              this[item.model] = choice.getValue(true)
+              this.applyFiltersAndPaginate()
+            })
 
             // Guardamos la instancia para el botón de limpiar filtros
-            this.selectInstances.push({ ...item, choiceInstance: choice });
+            this.selectInstances.push({ ...item, choiceInstance: choice })
           }
-        });
-      });
+        })
+      })
 
       // 3. Aplicar filtros iniciales
-      this.applyFiltersAndPaginate();
+      this.applyFiltersAndPaginate()
 
       // 4. Mantener los watchers SOLO para los elementos que NO usan Choices.js
-      this.$watch('fecha', () => this.applyFiltersAndPaginate());
+      this.$watch('fecha', () => this.applyFiltersAndPaginate())
       this.$watch('porMes', (value) => {
         if (!value) {
-          this.fecha = '';
+          this.fecha = ''
         }
-        this.applyFiltersAndPaginate();
-      });
-      this.$watch('estado', () => this.applyFiltersAndPaginate());
-      this.$watch('metodoPago', () => this.applyFiltersAndPaginate());
+        this.applyFiltersAndPaginate()
+      })
+      this.$watch('estado', () => this.applyFiltersAndPaginate())
+      this.$watch('metodoPago', () => this.applyFiltersAndPaginate())
 
       // Nota: Se eliminaron los $watch de departamento, razonSocial y proveedor
       // porque ahora se actualizan en tiempo real gracias al evento 'change' de arriba.
@@ -90,36 +96,44 @@ function Reportes(initialData = []) {
     applyFilters() {
       this.filteredData = this.allData.filter((item) => {
         // Filtro Fecha (se queda igual)
-        const filterFecha = this.fecha;
-        let fechaMatch = true;
+        const filterFecha = this.fecha
+        let fechaMatch = true
         if (filterFecha) {
-          const itemDate = new Date(item.Fecha + 'T00:00:00');
-          const filterDate = new Date(filterFecha + 'T00:00:00');
+          const itemDate = new Date(item.Fecha + 'T00:00:00')
+          const filterDate = new Date(filterFecha + 'T00:00:00')
           if (this.porMes) {
-            fechaMatch = itemDate.getUTCFullYear() === filterDate.getUTCFullYear() && itemDate.getUTCMonth() === filterDate.getUTCMonth();
+            fechaMatch =
+              itemDate.getUTCFullYear() === filterDate.getUTCFullYear() &&
+              itemDate.getUTCMonth() === filterDate.getUTCMonth()
           } else {
-            fechaMatch = itemDate.getUTCDate() === filterDate.getUTCDate() && itemDate.getUTCMonth() === filterDate.getUTCMonth() && itemDate.getUTCFullYear() === filterDate.getUTCFullYear();
+            fechaMatch =
+              itemDate.getUTCDate() === filterDate.getUTCDate() &&
+              itemDate.getUTCMonth() === filterDate.getUTCMonth() &&
+              itemDate.getUTCFullYear() === filterDate.getUTCFullYear()
           }
         }
 
-        const estadoReal = item.EstadoOrden || item.Estado;
-        const estadoMatch = !this.estado || estadoReal === this.estado;
-        const metodoPagoMatch = !this.metodoPago || item.MetodoPago == this.metodoPago;
+        const estadoReal = item.EstadoOrden || item.Estado
+        const estadoMatch = !this.estado || estadoReal === this.estado
+        const metodoPagoMatch = !this.metodoPago || item.MetodoPago == this.metodoPago
 
         // NUEVA LÓGICA PARA MÚLTIPLES SELECCIONES
-        const deptoMatch = this.departamento.length === 0 || this.departamento.includes(item.DepartamentoNombre);
-        const razonSocialMatch = this.razonSocial.length === 0 || this.razonSocial.includes(item.Complejo);
-        const proveedorMatch = this.proveedor.length === 0 || this.proveedor.includes(item.ProveedorFiltro);
+        const deptoMatch =
+          this.departamento.length === 0 || this.departamento.includes(item.DepartamentoNombre)
+        const razonSocialMatch =
+          this.razonSocial.length === 0 || this.razonSocial.includes(item.Complejo)
+        const proveedorMatch =
+          this.proveedor.length === 0 || this.proveedor.includes(item.ProveedorFiltro)
 
         return (
-            fechaMatch &&
-            estadoMatch &&
-            deptoMatch &&
-            razonSocialMatch &&
-            proveedorMatch &&
-            metodoPagoMatch
-        );
-      });
+          fechaMatch &&
+          estadoMatch &&
+          deptoMatch &&
+          razonSocialMatch &&
+          proveedorMatch &&
+          metodoPagoMatch
+        )
+      })
     },
 
     paginate() {
@@ -142,38 +156,48 @@ function Reportes(initialData = []) {
       this.goToPage(this.currentPage - 1)
     },
 
-// Reemplaza tu función actual con esta:
+    firstPage() {
+      this.goToPage(1)
+    },
+
+    lastPage() {
+      this.goToPage(this.totalPages)
+    },
+
+    // Reemplaza tu función actual con esta:
     async mostrarVerReporte(index) {
-      const item = this.paginatedData[index];
-      if (!item) return;
+      const item = this.paginatedData[index]
+      if (!item) return
 
       // Usamos ID_Orden o ID_Solicitud según venga
-      const id = item.ID_Solicitud || item.ID_Orden;
+      const id = item.ID_Solicitud || item.ID_Orden
 
-      const divReportes = document.getElementById('div-reportes');
-      const divVer = document.getElementById('div-ver-reporte');
+      const divReportes = document.getElementById('div-reportes')
+      const divVer = document.getElementById('div-ver-reporte')
 
       // Mostrar cargando
-      divReportes.classList.add('hidden');
-      divVer.classList.remove('hidden');
-      divVer.innerHTML = '<p class="text-center p-8 text-gray-500">Cargando detalles completos...</p>';
+      divReportes.classList.add('hidden')
+      divVer.classList.remove('hidden')
+      divVer.innerHTML =
+        '<p class="text-center p-8 text-gray-500">Cargando detalles completos...</p>'
 
       try {
         // Petición fresca a la API para asegurar datos de IVA y Productos
-        const fullData = await SendDataEnd(`api/orden-compra/details/${id}`);
-        if(!fullData) throw new Error("No se recibieron datos.");
+        const fullData = await SendDataEnd(`api/orden-compra/details/${id}`)
+        if (!fullData) throw new Error('No se recibieron datos.')
 
         const prov = fullData.proveedor || {}
 
         // Helper para moneda
-        const format = (val) => parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+        const format = (val) =>
+          parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 
-        const totalFormateado = format(fullData.cotizacion?.Total);
-        const metodoPagoTexto = fullData.MetodoPago == 0 ? 'Contado' : 'Crédito';
+        const totalFormateado = format(fullData.cotizacion?.Total)
+        const metodoPagoTexto = fullData.MetodoPago == 0 ? 'Contado' : 'Crédito'
 
         // Lógica de IVA
-        const tieneIVA = fullData.IVA == 1 || fullData.IVA === 't' || fullData.IVA === true;
-        const isServicio = fullData.Tipo == 2;
+        const tieneIVA = fullData.IVA == 1 || fullData.IVA === 't' || fullData.IVA === true
+        const isServicio = fullData.Tipo == 2
 
         let html = `
             <div class="flex justify-between items-center mb-4">
@@ -198,11 +222,11 @@ function Reportes(initialData = []) {
               <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
               <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
               ${
-            fullData.MetodoPago != 0
-                ? `<div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
+                fullData.MetodoPago != 0
+                  ? `<div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
                      <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${prov.Monto_Credito ? format(prov.Monto_Credito) : 'N/A'}</div>`
-                : ''
-        }
+                  : ''
+              }
             </div>
 
             <h3 class="text-md font-semibold mb-3 text-gray-700">PRODUCTOS DE LA ORDEN</h3>
@@ -219,47 +243,46 @@ function Reportes(initialData = []) {
                       </tr>
                   </thead>
                   <tbody class="bg-white">
-          `;
+          `
 
         if (fullData.productos && fullData.productos.length > 0) {
           fullData.productos.forEach((p) => {
-            const cantidad = isServicio ? 1 : (parseFloat(p.Cantidad) || 0);
-            const importeBase = parseFloat(p.Importe) || 0;
+            const cantidad = isServicio ? 1 : parseFloat(p.Cantidad) || 0
+            const importeBase = parseFloat(p.Importe) || 0
 
             // CÁLCULOS FILA POR FILA
-            const subtotalFila = cantidad * importeBase;
-            const ivaFila = tieneIVA ? (subtotalFila * 0.16) : 0;
-            const totalFila = subtotalFila + ivaFila;
+            const subtotalFila = cantidad * importeBase
+            const ivaFila = tieneIVA ? subtotalFila * 0.16 : 0
+            const totalFila = subtotalFila + ivaFila
 
             html += `
                   <tr class="hover:bg-gray-50">
-                      <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? (p.Codigo || '-') : 'N/A'}</td>
+                      <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? p.Codigo || '-' : 'N/A'}</td>
                       <td class="py-2 px-4 border-t text-sm">${p.Nombre}</td>
                       <td class="py-2 px-4 border-t text-right text-sm">${cantidad}</td>
                       <td class="py-2 px-4 border-t text-right text-sm">${format(importeBase)}</td>
                       <td class="py-2 px-4 border-t text-right text-sm">${format(ivaFila)}</td>
                       <td class="py-2 px-4 border-t text-right text-sm font-bold">${format(totalFila)}</td>
                   </tr>
-              `;
+              `
           })
         } else {
-          html += `<tr><td colspan="6" class="text-center py-3 text-sm text-gray-500">No hay productos en esta orden.</td></tr>`;
+          html += `<tr><td colspan="6" class="text-center py-3 text-sm text-gray-500">No hay productos en esta orden.</td></tr>`
         }
 
-        html += `</tbody></table></div>`;
+        html += `</tbody></table></div>`
 
         // Sección de Adjuntos (reutilizando tu función global)
-        if(typeof generarSeccionAdjuntos === 'function') {
-          if(!fullData.ID_Solicitud && fullData.ID_Orden) fullData.ID_Solicitud = fullData.ID_Orden;
-          html += generarSeccionAdjuntos(fullData);
+        if (typeof generarSeccionAdjuntos === 'function') {
+          if (!fullData.ID_Solicitud && fullData.ID_Orden) fullData.ID_Solicitud = fullData.ID_Orden
+          html += generarSeccionAdjuntos(fullData)
         }
 
-        divVer.innerHTML = html;
-
+        divVer.innerHTML = html
       } catch (error) {
-        console.error(error);
+        console.error(error)
         divVer.innerHTML = `<p class="text-center p-8 text-red-500">Error al cargar detalles: ${error.message}</p>
-                              <button onclick="regresarReportes()" class="block mx-auto mt-4 text-blue-600 underline">Regresar</button>`;
+                              <button onclick="regresarReportes()" class="block mx-auto mt-4 text-blue-600 underline">Regresar</button>`
       }
     },
 
@@ -330,27 +353,27 @@ function Reportes(initialData = []) {
     },
 
     clearFilters() {
-      this.fecha = '';
-      this.porMes = false;
-      this.estado = '';
-      this.metodoPago = '';
+      this.fecha = ''
+      this.porMes = false
+      this.estado = ''
+      this.metodoPago = ''
 
       // Limpiar los arreglos
-      this.departamento = [];
-      this.razonSocial = [];
-      this.proveedor = [];
+      this.departamento = []
+      this.razonSocial = []
+      this.proveedor = []
 
       // Limpiar visualmente los Choices
       if (this.selectInstances) {
-        this.selectInstances.forEach(item => {
+        this.selectInstances.forEach((item) => {
           if (item.choiceInstance) {
-            item.choiceInstance.removeActiveItems(); // Quita las pastillas azules seleccionadas
+            item.choiceInstance.removeActiveItems() // Quita las pastillas azules seleccionadas
           }
-        });
+        })
       }
 
-      this.applyFiltersAndPaginate();
-    }
+      this.applyFiltersAndPaginate()
+    },
   }
 }
 

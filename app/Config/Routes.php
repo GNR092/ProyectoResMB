@@ -25,16 +25,21 @@ if (!file_exists($installerLockFile)) {
     // Estas rutas solo están disponibles si el archivo de bloqueo YA existe.
     $routes->get('installer/success', 'Installer::success');
     $routes->get('/', 'Home::index');
+    $routes->get('mantenimiento', 'Mantenimiento::index');
     // Login
     $routes->get('auth', 'Auth::index');
     $routes->post('auth/login', 'Auth::login');
+    // Auth
+    $routes->get('auth/logout', 'Auth::logout');
+    // API Token Generation
+    $routes->post('api/gentoken', 'Api::gentoken');
 
     /*
      **
      * Proteccion de rutas para evitar que se mande o filtre información sensible
      * Agregar nuevas rutas despues del $routes->group('/', ['filter' => 'auth'], function ($routes)
      */
-    $routes->group('/', ['filter' => 'auth'], function ($routes) {
+    $routes->group('/', ['filter' => ['auth', 'mantenimiento']], function ($routes) {
         //Registrar usuarios
         $routes->post('modales/actualizarUsuario/(:num)', 'Modales::actualizarUsuario/$1');
         $routes->post('modales/eliminarUsuario/(:num)', 'Modales::eliminarUsuario/$1');
@@ -51,10 +56,6 @@ if (!file_exists($installerLockFile)) {
         $routes->post('proveedores/insertar', 'Modales::insertarProveedor');
         $routes->post('proveedores/eliminarProveedor/(:num)', 'Modales::eliminarProveedor/$1');
         $routes->post('proveedores/editar/(:num)', 'Modales::editarProveedor/$1');
-        
-        // Rutas para dictaminar ajustes de presupuesto
-        $routes->get('api/presupuesto/cambios', 'PresupuestoApiController::getCambiosPendientes');
-        $routes->post('api/presupuesto/dictaminar', 'PresupuestoApiController::dictaminarCambio');
 
         // Solicitudes y Cotizaciones
         $routes->post('api/cotizacion/crear', 'Api::crearCotizacion');
@@ -93,8 +94,6 @@ if (!file_exists($installerLockFile)) {
 
         //region departamentos
         $routes->get('api/departments/all', 'Api::getDepartments');
-        $routes->get('api/v1/budget-groups', 'Api::getBudgetGroups');
-        $routes->get('api/v1/monthly-budgets', 'Api::getMonthlyBudgets');
 
         //region proveedores
         $routes->get('api/providers/all', 'Api::getAllProviders');
@@ -168,19 +167,10 @@ if (!file_exists($installerLockFile)) {
         //crud departamentos
         $routes->post('modales/crud_departamentos/insertar', 'Modales::insertarDepartamento');
         $routes->post('modales/crud_departamentos/editar/(:num)', 'Modales::editarDepartamento/$1');
-        $routes->post('modales/crud_departamentos/eliminar/(:num)', 'Modales::eliminarDepartamento/$1');
-
-        // CRUD Segmentos de Negocio
-        $routes->post('modales/crud_segmentos/insertar', 'Modales::insertarSegmento');
-        $routes->post('modales/crud_segmentos/editar/(:num)', 'Modales::editarSegmento/$1');
-        $routes->post('modales/crud_segmentos/eliminar/(:num)', 'Modales::eliminarSegmento/$1');
-
-        // CRUD Unidades Operativas
-        $routes->post('modales/crud_unidades_operativas/insertar', 'Modales::insertarUnidadOperativa');
-        $routes->post('modales/crud_unidades_operativas/editar/(:num)', 'Modales::editarUnidadOperativa/$1');
-        $routes->post('modales/crud_unidades_operativas/eliminar/(:num)', 'Modales::eliminarUnidadOperativa/$1');
-
-
+        $routes->post(
+            'modales/crud_departamentos/eliminar/(:num)',
+            'Modales::eliminarDepartamento/$1',
+        );
         //Bancos de Dpto
         $routes->post('modales/crud_banco_dpto/insertar', 'Modales::insertarBancoDpto');
         $routes->post('modales/crud_banco_dpto/editar/(:num)', 'Modales::editarBancoDpto/$1');
@@ -188,20 +178,14 @@ if (!file_exists($installerLockFile)) {
 
         // Rutas para CRUD Grupo Presupuestal
         $routes->post('modales/crud_grupos_presupuestales/insertar', 'Modales::insertarGrupo');
-        $routes->post('modales/crud_grupos_presupuestales/editar/(:num)', 'Modales::editarGrupo/$1');
-        $routes->post('modales/crud_grupos_presupuestales/eliminar/(:num)', 'Modales::eliminarGrupo/$1');
-
-        //Rutas para presupuestos mensuales
-        $routes->post('api/presupuesto-mensual/guardar-masivo', 'PresupuestoApiController::saveMasivo');
-        $routes->get('api/presupuesto-mensual/estructura/(:any)/(:num)/(:num)', 'PresupuestoApiController::getEstructura/$1/$2/$3');
-        $routes->get('api/presupuesto/saldos', 'PresupuestoApiController::getSaldos');
-
-        //Rutas para saldos bancarios
-        $routes->post('api/saldos-bancarios/guardar-masivo', 'PresupuestoApiController::saveSaldosMasivo');
-        $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');
-        $routes->get('api/presupuesto/comparativo/(:num)/(:num)/(:any)', 'PresupuestoApiController::getComparativo/$1/$2/$3');
-        $routes->get('api/bancos/comparativo/(:num)/(:num)/(:any)', 'PresupuestoApiController::getComparativoBancos/$1/$2/$3');
-        $routes->get('api/reporte/completo/(:num)/(:num)/(:any)', 'PresupuestoApiController::getReporteCompleto/$1/$2/$3');
+        $routes->post(
+            'modales/crud_grupos_presupuestales/editar/(:num)',
+            'Modales::editarGrupo/$1',
+        );
+        $routes->post(
+            'modales/crud_grupos_presupuestales/eliminar/(:num)',
+            'Modales::eliminarGrupo/$1',
+        );
 
         //Control maestro
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');
@@ -210,8 +194,6 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/user/update', 'Api::updateUser');
         $routes->post('api/user/upload_signature', 'Api::upload_signature');
 
-        // Auth
-        $routes->get('auth/logout', 'Auth::logout');
         //PDF
         $routes->get('api/solicitud/pdf/(:num)', 'GenerarPDF::GenerarRequisicion/$1');
         $routes->get('api/solicitud/pdf/(:num)/(:num)', 'GenerarPDF::GenerarRequisicion/$1/$2');
@@ -223,6 +205,5 @@ if (!file_exists($installerLockFile)) {
 
         $routes->get('dev', 'Dev::index');
         $routes->get('api/test-email', 'Api::testEmailConnection');
-
     });
 }

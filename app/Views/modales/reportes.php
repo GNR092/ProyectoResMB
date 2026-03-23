@@ -43,7 +43,9 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
                 <option value="">Departamento (Todos)</option>
                 <?php if (!empty($departamentos)): ?>
                     <?php foreach ($departamentos as $dpto): ?>
-                        <option value="<?= esc($dpto['Nombre']) ?>"><?= esc($dpto['Nombre']) ?></option>
+                        <option value="<?= esc($dpto['Nombre']) ?>"><?= esc(
+    $dpto['Nombre'],
+) ?></option>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </select>
@@ -67,7 +69,9 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
                 <option value="">Proveedor (Todos)</option>
                 <?php if (!empty($proveedores)): ?>
                     <?php foreach ($proveedores as $prov): ?>
-                        <option value="<?= esc($prov['RazonSocial']) ?>"><?= esc($prov['RazonSocial']) ?></option>
+                        <option value="<?= esc($prov['RazonSocial']) ?>"><?= esc(
+    $prov['RazonSocial'],
+) ?></option>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </select>
@@ -142,16 +146,40 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
             </span>
         </div>
 
-        <!-- Botones de Paginación -->
-        <div class="flex space-x-2">
-            <button @click="prevPage()" :disabled="currentPage === 1"
-                class="px-3 py-1 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                Anterior
-            </button>
-            <button @click="nextPage()" :disabled="currentPage === totalPages"
-                class="px-3 py-1 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
-                Siguiente
-            </button>
+        <!-- Botones de Paginación Estilo Google -->
+        <div class="flex items-center gap-1">
+            <template x-for="item in pageNumbers" :key="'page-' + item.type + '-' + item.value">
+                <button x-show="item.type === 'first'" @click="firstPage()"
+                    :disabled="currentPage === 1"
+                    class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Primera página">
+                    &laquo;
+                </button>
+                <button x-show="item.type === 'prev'" @click="prevPage()"
+                    :disabled="currentPage === 1"
+                    class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Página anterior">
+                    &lsaquo;
+                </button>
+                <span x-show="item.type === '...'" class="px-2 text-gray-400 cursor-default">...</span>
+                <button x-show="item.type === 'number'" @click="goToPage(item.value)"
+                    :class="item.active ? 'bg-blue-500 text-white' : 'bg-white text-black hover:bg-gray-100'"
+                    class="px-3 py-1 border rounded">
+                    <span x-text="item.value"></span>
+                </button>
+                <button x-show="item.type === 'next'" @click="nextPage()"
+                    :disabled="currentPage === totalPages"
+                    class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Página siguiente">
+                    &rsaquo;
+                </button>
+                <button x-show="item.type === 'last'" @click="lastPage()"
+                    :disabled="currentPage === totalPages"
+                    class="px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Última página">
+                    &raquo;
+                </button>
+            </template>
         </div>
     </div>
 

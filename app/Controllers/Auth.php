@@ -84,11 +84,14 @@ class Auth extends BaseController
     }
     public function logout()
     {
-        $token = new Rest();
-        $userModel = new UsuariosModel();
-        $user = $userModel->find($this->session->get('id'));
-        if ($user) {
-            $token->updateToken($user['ID_Usuario'], null);
+        $userId = $this->session->get('id');
+        if ($userId) {
+            $token = new Rest();
+            $userModel = new UsuariosModel();
+            $user = $userModel->find($userId);
+            if ($user) {
+                $token->updateToken($user['ID_Usuario'], null);
+            }
         }
         $this->session->destroy();
         return redirect()->to('/auth');

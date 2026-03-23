@@ -19,13 +19,17 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 <body class="h-screen flex">
 <aside class="font-montserrat w-64 bg-carbon-700 text-white flex flex-col overflow-auto">
     <div class="p-4 border-b border-gray-600">
-        <img src="<?= base_url('images/logo.png') ?>" alt="Logo" class="mx-auto h-20 object-contain">
+        <img src="<?= base_url(
+            'images/logo.png',
+        ) ?>" alt="Logo" class="mx-auto h-20 object-contain">
     </div>
 
     <nav id="sidebar-nav" class="flex-1 mt-4 px-4 space-y-2">
         <?php if (!empty($opcionesDinamicas)): ?>
             <?php foreach ($opcionesDinamicas as $key => $opcion): ?>
-                <?php $isTitle = (isset($opcion['is_title']) && $opcion['is_title']) || empty($opcion['icon']); ?>
+                <?php $isTitle =
+                    (isset($opcion['is_title']) && $opcion['is_title']) ||
+                    empty($opcion['icon']); ?>
 
                 <?php if ($isTitle): ?>
                     <div class="text-gray-500 text-xs font-bold uppercase tracking-widest pt-6 pb-1 px-3 select-none">
@@ -58,7 +62,9 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             <?php endif; ?>
         <?php endif; ?>
 
-        <a href="<?= base_url('auth/logout') ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors">
+        <a href="<?= base_url(
+            'auth/logout',
+        ) ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors">
             <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
                 <use xlink:href="/icons/icons.svg#logout"></use>
             </svg>
@@ -69,12 +75,16 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 
 <div class="flex-1 flex flex-col bg-gray-100">
     <header class="h-12 bg-white border-b border-gray-300 flex items-center justify-end px-6 text-sm text-gray-600 shadow-sm">
-        <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc($modo_login . ' ' . ($departamento_usuario ?? 'Departamento')) ?>
+        <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc(
+     $modo_login . ' ' . ($departamento_usuario ?? 'Departamento'),
+ ) ?>
     </header>
 
     <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-            <img src="<?= base_url('images/logo.png') ?>" alt="Logo" class="max-w-xs filter invert" />
+            <img src="<?= base_url(
+                'images/logo.png',
+            ) ?>" alt="Logo" class="max-w-xs filter invert" />
         </div>
 
         <div class="relative z-10">
@@ -108,15 +118,28 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 </script>
 <script src="<?= base_url() ?>js/choices.min.js" defer></script>
 <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
-<script src="<?= base_url() ?>js/utils.js" defer></script>
-<script src="<?= base_url(file_exists(FCPATH . 'js/mbscript.js') ? 'js/mbscript.js' : 'js/mbscript.min.js') ?>" defer></script>
-<script src="<?= base_url(file_exists(FCPATH . 'js/reportesScript.js') ? 'js/reportesScript.js' : 'js/reportesScript.min.js') ?>" defer></script>
-<script src="<?= base_url() ?>js/revision.js" defer></script>
-<script src="<?= base_url() ?>js/almacen.js" defer></script>
-<script src="<?= base_url() ?>js/user.js" defer></script>
-<script src="<?= base_url() ?>js/pago.js" defer></script>
-<script src="<?= base_url() ?>js/correcciones.js" defer></script>
-<script src="<?= base_url() ?>js/presupuestos.js" defer></script>
+<script src="<?= base_url() ?>js/utils.js?v=<?= filemtime(
+    FCPATH . 'js/utils.js',
+) ?>" defer></script>
+<script src="<?= base_url(
+    file_exists(FCPATH . 'js/mbscript.js') ? 'js/mbscript.js' : 'js/mbscript.min.js',
+) ?>?v=<?= filemtime(FCPATH . 'js/mbscript.js') ?>" defer></script>
+<script src="<?= base_url(
+    file_exists(FCPATH . 'js/reportesScript.js')
+        ? 'js/reportesScript.js'
+        : 'js/reportesScript.min.js',
+) ?>?v=<?= filemtime(FCPATH . 'js/reportesScript.js') ?>" defer></script>
+<script src="<?= base_url() ?>js/revision.js?v=<?= filemtime(
+    FCPATH . 'js/revision.js',
+) ?>" defer></script>
+<script src="<?= base_url() ?>js/almacen.js?v=<?= filemtime(
+    FCPATH . 'js/almacen.js',
+) ?>" defer></script>
+<script src="<?= base_url() ?>js/user.js?v=<?= filemtime(FCPATH . 'js/user.js') ?>" defer></script>
+<script src="<?= base_url() ?>js/pago.js?v=<?= filemtime(FCPATH . 'js/pago.js') ?>" defer></script>
+<script src="<?= base_url() ?>js/correcciones.js?v=<?= filemtime(
+    FCPATH . 'js/correcciones.js',
+) ?>" defer></script>
 </body>
 
 </html>

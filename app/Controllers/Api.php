@@ -2695,7 +2695,7 @@ class Api extends ResourceController
                 // Mapeo Método Pago
                 $txtPago = 'N/A';
                 switch ((int)$sol['MetodoPago']) {
-                    case MetodoPago::Efectivo: $txtPago = 'Efectivo'; break;
+                    case MetodoPago::Efectivo: $txtPago = 'Contado'; break;
                     case MetodoPago::Credito:  $txtPago = 'Crédito'; break;
                     case MetodoPago::EnEspera: $txtPago = 'En Espera'; break;
                 }
