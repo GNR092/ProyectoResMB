@@ -187,6 +187,10 @@ if (!file_exists($installerLockFile)) {
             'Modales::eliminarGrupo/$1',
         );
 
+        // Rutas API Presupuesto Dictamen
+        $routes->get('api/presupuesto/cambios', 'PresupuestoApiController::getCambiosPendientes');
+        $routes->post('api/presupuesto/dictaminar', 'PresupuestoApiController::dictaminarCambio');
+
         //Control maestro
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');
 
