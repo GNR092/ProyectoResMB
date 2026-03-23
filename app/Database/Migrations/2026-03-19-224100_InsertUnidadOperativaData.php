@@ -8,10 +8,19 @@ class InsertUnidadOperativaData extends Migration
 {
     public function up()
     {
+        $db = \Config\Database::connect();
+        
+        // Obtener ID_Place de 'Gastos' y 'Transporte' dinámicamente
+        $gastosPlace = $db->table('Places')->where('Nombre_Corto', 'Gastos')->get()->getRowArray();
+        $transportePlace = $db->table('Places')->where('Nombre_Corto', 'Transporte')->get()->getRowArray();
+
+        $gastosPlaceId = $gastosPlace['ID_Place'] ?? null;
+        $transportePlaceId = $transportePlace['ID_Place'] ?? null;
+
         $data = [
-            ['ID_UnidadOperativa' => 2, 'Nombre' => 'Gastos', 'ID_Place' => 3, 'activo' => true],
-            ['ID_UnidadOperativa' => 3, 'Nombre' => 'Transporte Campus', 'ID_Place' => 9, 'activo' => true],
-            ['ID_UnidadOperativa' => 4, 'Nombre' => 'Presupuesto del área de atención a residentes', 'ID_Place' => 2, 'activo' => true],
+            ['ID_UnidadOperativa' => 2, 'Nombre' => 'Gastos', 'ID_Place' => $gastosPlaceId, 'activo' => true],
+            ['ID_UnidadOperativa' => 3, 'Nombre' => 'Transporte Campus', 'ID_Place' => $transportePlaceId, 'activo' => true],
+            ['ID_UnidadOperativa' => 4, 'Nombre' => 'Presupuesto del área de atención a residentes', 'ID_Place' => 2, 'activo' => true], // ID 2 (Campus) es fijo, ya existe en el servidor
             ['ID_UnidadOperativa' => 5, 'Nombre' => 'Presupuesto del área de Mantenimiento', 'ID_Place' => 2, 'activo' => true],
             ['ID_UnidadOperativa' => 6, 'Nombre' => 'Presupuesto del área de Sistemas', 'ID_Place' => 2, 'activo' => true],
             ['ID_UnidadOperativa' => 7, 'Nombre' => 'Presupuesto del área de Seguridad', 'ID_Place' => 2, 'activo' => true],

@@ -123,7 +123,8 @@ class CreateUnidadOperativaAndRestructure extends Migration
         $this->forge->processIndexes('PresupuestoMensual');
 
         // 5. Eliminar las columnas viejas que ya no se usan
-        $this->forge->dropColumn('Departamentos', 'ID_Place');
+        // Se comenta la eliminación de ID_Place de Departamentos para preservar datos del servidor.
+        // $this->forge->dropColumn('Departamentos', 'ID_Place');
         $this->forge->dropColumn('GrupoPresupuestal', 'ID_Dpto');
         $this->forge->dropColumn('PresupuestoMensual', 'ID_Dpto');
 
