@@ -191,6 +191,19 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/presupuesto/cambios', 'PresupuestoApiController::getCambiosPendientes');
         $routes->post('api/presupuesto/dictaminar', 'PresupuestoApiController::dictaminarCambio');
 
+        // Rutas API Presupuesto Mensual
+        $routes->get('api/presupuesto-mensual/estructura/(:any)/(:num)/(:num)', 'PresupuestoApiController::getEstructura/$1/$2/$3');
+        $routes->post('api/presupuesto-mensual/guardar-masivo', 'PresupuestoApiController::saveMasivo');
+        $routes->get('api/presupuesto/comparativo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getComparativo/$1/$2/$3');
+
+        // Rutas API Saldos Bancarios
+        $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');
+        $routes->post('api/saldos-bancarios/guardar-masivo', 'PresupuestoApiController::saveSaldosMasivo');
+        $routes->get('api/bancos/comparativo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getComparativoBancos/$1/$2/$3');
+
+        // Rutas API Reporte Completo
+        $routes->get('api/reporte/completo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getReporteCompleto/$1/$2/$3');
+
         //Control maestro
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');
 
