@@ -14,6 +14,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     <meta name="csrf-token-hash" content="<?= csrf_hash() ?>">
     <link rel="stylesheet" href="<?= base_url('css/choices.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>?v=<?= $version ?>">
+    <link rel="stylesheet" href="<?= base_url('css/modal-anim.css') ?>?v=<?= time() ?>">
 </head>
 
 <body class="h-screen flex">

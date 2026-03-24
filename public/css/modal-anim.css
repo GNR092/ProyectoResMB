@@ -1,0 +1,30 @@
+
+/* Animaciones para el Modal General */
+#modal-general {
+    transition: opacity 0.3s ease-out !important;
+    display: none; /* Por defecto oculto */
+    opacity: 0;
+}
+
+/* Cuando se le quita la clase .hidden por JS, lo mostramos con flex pero mantenemos opacidad 0 */
+#modal-general:not(.hidden) {
+    display: flex !important;
+}
+
+/* Clase para activar la transición de opacidad del fondo */
+#modal-general.opacity-100 {
+    opacity: 1 !important;
+}
+
+/* El contenedor interno del modal (el cuadro blanco) */
+#modal-general > div {
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease-out !important;
+    transform: translateX(-30px) scale(0.95);
+    opacity: 0;
+}
+
+/* Estado cuando el modal está activo */
+#modal-general.active > div {
+    transform: translateX(0) scale(1) !important;
+    opacity: 1 !important;
+}

@@ -94,17 +94,38 @@ function abrirModal(opcion) {
     correcciones: 'Corregir Solicitudes',
     GrupoPresupuestal: 'Grupo Presupuestal',
     BancoDpto: 'Cuentas Bancarias de los Departamentos',
+    PresupuestoMensual: 'Asignar Presupuestos Mensuales',
+    ReportePresupuesto: 'Reportes para presupuestos',
+    SaldosBancarios: 'Saldos de Bancos',
+    SegmentoNegocio: 'Segmentos de Negocio',
+    UnidadOperativa: 'Unidades operativas',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
   titulo.innerText = titulos[opcion] ?? 'Opción'
 
+  // Si el modal ya está abierto, iniciamos la animación de salida mientras carga la nueva vista
+  if (!modal.classList.contains('hidden')) {
+    modal.classList.remove('active')
+  }
+
   SendDataEnd(`modales/${opcion}`, { responseType: 'text' })
     .then((html) => {
-      contenido.innerHTML = html
-      modal.classList.remove('hidden')
-
-      const inicializadores = {
+      // Un pequeño retraso en caso de que la carga haya sido instantánea, 
+      // para permitir que la animación de salida sea visible por un instante
+      setTimeout(() => {
+        contenido.innerHTML = html
+        
+        // Asegurarnos de que el modal esté visible (por si estaba cerrado)
+        modal.classList.remove('hidden')
+        
+        // Forzar un reflow para reiniciar las animaciones
+        void modal.offsetWidth
+  
+        // Activar la animación de entrada
+        modal.classList.add('opacity-100', 'active')
+  
+        const inicializadores = {
         ver_historial: initPaginacionHistorial,
         usuarios: initUsuarios,
         revisar_solicitudes: initRevisarSolicitud,
@@ -131,6 +152,7 @@ function abrirModal(opcion) {
       if (inicializador) {
         inicializador()
       }
+      }, 50); // Cierra el setTimeout y su callback
     })
     .catch((error) => {
       console.error('Error al cargar modal:', error)
@@ -139,8 +161,15 @@ function abrirModal(opcion) {
     })
 }
 function cerrarModal() {
-  //  Ocultar el modal
-  document.getElementById('modal-general').classList.add('hidden')
+  const modal = document.getElementById('modal-general')
+
+  // Retiramos las clases que disparan la animación de entrada
+  modal.classList.remove('active', 'opacity-100')
+
+  // Esperamos 0.3-0.4s antes de ocultar completamente el elemento
+  setTimeout(() => {
+    modal.classList.add('hidden')
+  }, 400)
 
   // Limpiar la selección de la barra lateral
   const activeClasses = ['bg-indigo-600', 'text-white']
