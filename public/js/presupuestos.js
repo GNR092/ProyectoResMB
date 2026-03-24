@@ -981,6 +981,23 @@ function registrarComponenteReportePresupuesto() {
                 await this.cargarComparativo();
             },
 
+            exportarExcel() {
+                if (this.meses.length === 0) {
+                    alert("Seleccione al menos un mes para exportar.");
+                    return;
+                }
+                const stringMeses = this.meses.join(',');
+                const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
+                
+                if (!targetPlaceId && !this.verGlobal) {
+                    alert("Seleccione un complejo o active el presupuesto global.");
+                    return;
+                }
+
+                const url = `${BASE_URL}api/presupuesto/exportar/${targetPlaceId}/${this.anio}/${stringMeses}`;
+                window.location.href = url;
+            },
+
             initChoicesDpto() {
                 if (this.choicesDpto) this.choicesDpto.destroy();
                 const selectEl = this.$refs.filtroDptos;
