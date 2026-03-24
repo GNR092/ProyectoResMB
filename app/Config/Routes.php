@@ -203,6 +203,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/bancos/comparativo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getComparativoBancos/$1/$2/$3');
 
         // Rutas API Reporte Completo
+        $routes->get('api/reporte/completo/exportar/(:any)/(:num)/(:any)', 'PresupuestoApiController::exportarReporteCompleto/$1/$2/$3');
         $routes->get('api/reporte/completo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getReporteCompleto/$1/$2/$3');
 
         //Control maestro

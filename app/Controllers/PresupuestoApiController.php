@@ -42,7 +42,10 @@ class PresupuestoApiController extends ResourceController
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
             ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
 
-        if ($idPlace > 0) $query->where('UnidadOperativa.ID_Place', $idPlace);
+        if (!empty($idPlace) && $idPlace != '0') {
+            $placeIds = array_map('intval', explode(',', (string)$idPlace));
+            $query->whereIn('UnidadOperativa.ID_Place', $placeIds);
+        }
         $unidadesRaw = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('PlaceNombre', 'ASC')->orderBy('Nombre', 'ASC')->findAll();
 
         if (empty($unidadesRaw)) return $this->fail('No hay datos para exportar');
@@ -247,6 +250,14 @@ class PresupuestoApiController extends ResourceController
         $sheet->getStyle('B2:E' . $lastRow)->getNumberFormat()->setFormatCode('$#,##0.00');
         $sheet->getStyle('F2:F' . $lastRow)->getNumberFormat()->setFormatCode('0.0%');
 
+        // Formato condicional para porcentajes > 100% (columna F)
+        for ($i = 2; $i <= $lastRow; $i++) {
+            $valorPorcentaje = $sheet->getCell('F' . $i)->getValue();
+            if (is_numeric($valorPorcentaje) && $valorPorcentaje > 1) {
+                $sheet->getStyle('F' . $i)->getFont()->getColor()->setRGB('FF0000');
+            }
+        }
+
         // Bordes
         $sheet->getStyle('A1:F' . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
@@ -262,6 +273,229 @@ class PresupuestoApiController extends ResourceController
     }
 
     // --- MÉTODOS PARA SALDOS BANCARIOS ---
+
+    public function exportarReporteCompleto($idPlace, $anio, $mes)
+    {
+        if (empty($mes)) return $this->fail('Meses no proporcionados');
+        $meses = array_map('intval', explode(',', $mes));
+
+        // 1. Obtener Datos
+        $unidadModel = new UnidadOperativaModel();
+        $presupuestoMensualModel = new PresupuestoMensualModel();
+        $grupoModel = new GrupoPresupuestalModel();
+        $bancoModel = new BancoDptoModel();
+        $saldosModel = new SaldosBancariosModel();
+
+        $query = $unidadModel->select('UnidadOperativa.*, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
+            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
+            ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
+
+        if (!empty($idPlace) && $idPlace != '0') {
+            $placeIds = array_map('intval', explode(',', (string)$idPlace));
+            $query->whereIn('UnidadOperativa.ID_Place', $placeIds);
+        }
+        $unidadesRaw = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('UnidadOperativa.Nombre', 'ASC')->findAll();
+
+        if (empty($unidadesRaw)) return $this->fail('No hay datos');
+
+        $unidadIds = array_column($unidadesRaw, 'ID_UnidadOperativa');
+        $gruposAll = $grupoModel->whereIn('ID_UnidadOperativa', $unidadIds)->where('activo', true)->findAll();
+        $presupuestosRaw = $presupuestoMensualModel
+            ->select('ID_UnidadOperativa, ID_GrupoPresupuestal')
+            ->selectSum('Monto_Asignado', 'Monto_Asignado')
+            ->selectSum('Monto_Comprometido', 'Monto_Comprometido')
+            ->selectSum('Monto_Ejecutado', 'Monto_Ejecutado')
+            ->whereIn('ID_UnidadOperativa', $unidadIds)
+            ->where('Anio', $anio)
+            ->whereIn('Mes', $meses)
+            ->groupBy('ID_UnidadOperativa, ID_GrupoPresupuestal')
+            ->findAll();
+
+        $rsIds = array_unique(array_filter(array_column($unidadesRaw, 'ID_RazonSocial')));
+        $bancos = !empty($rsIds) ? $bancoModel->whereIn('ID_RazonSocial', $rsIds)->findAll() : [];
+        $bancoIds = array_column($bancos, 'ID_BancoDpto');
+        $saldos = !empty($bancoIds) ? $saldosModel->whereIn('id_bancodpto', $bancoIds)->where('anio', $anio)->whereIn('mes', $meses)->findAll() : [];
+
+        // Agrupación Jerárquica
+        $rsGrupos = [];
+        $rsProcesadasBancos = [];
+
+        foreach ($unidadesRaw as $uni) {
+            $idUnidad = (int)$uni['ID_UnidadOperativa'];
+            $idRS = (int)$uni['ID_RazonSocial'];
+            $rsNombre = $uni['RazonSocialNombre'];
+            $segNombre = $uni['SegmentoNombre'] ?? 'Sin Segmento';
+            $placeNombre = $uni['PlaceNombre'];
+
+            if (!isset($rsGrupos[$rsNombre])) {
+                $rsGrupos[$rsNombre] = ['nombre' => $rsNombre, 'segmentos' => [], 'presupuesto' => ['asignado' => 0, 'gastado' => 0], 'bancos' => ['inicial' => 0, 'final' => 0]];
+            }
+            if (!isset($rsGrupos[$rsNombre]['segmentos'][$segNombre])) {
+                $rsGrupos[$rsNombre]['segmentos'][$segNombre] = ['nombre' => $segNombre, 'complejos' => [], 'presupuesto' => ['asignado' => 0, 'gastado' => 0]];
+            }
+            if (!isset($rsGrupos[$rsNombre]['segmentos'][$segNombre]['complejos'][$placeNombre])) {
+                $rsGrupos[$rsNombre]['segmentos'][$segNombre]['complejos'][$placeNombre] = ['nombre' => $placeNombre, 'unidades' => [], 'presupuesto' => ['asignado' => 0, 'gastado' => 0]];
+            }
+
+            $detalles = [];
+            $uAsignado = 0; $uGastado = 0;
+
+            foreach ($gruposAll as $g) {
+                if ((int)$g['ID_UnidadOperativa'] === $idUnidad) {
+                    $monto = array_filter($presupuestosRaw, fn($p) => (int)$p['ID_UnidadOperativa'] === $idUnidad && (int)$p['ID_GrupoPresupuestal'] === (int)$g['ID_GrupoPresupuestal']);
+                    $m = reset($monto);
+                    $gAsig = (float)($m['Monto_Asignado'] ?? 0);
+                    $gGast = (float)($m['Monto_Comprometido'] ?? 0) + (float)($m['Monto_Ejecutado'] ?? 0);
+                    
+                    $detalles[] = ['etiqueta' => $g['Nombre'], 'asignado' => $gAsig, 'gastado' => $gGast];
+                    $uAsignado += $gAsig; $uGastado += $gGast;
+                }
+            }
+
+            if (!in_array($idRS, $rsProcesadasBancos)) {
+                $bIni = 0; $bFin = 0;
+                foreach ($bancos as $b) {
+                    if ((int)$b['ID_RazonSocial'] === $idRS) {
+                        $seB = array_filter($saldos, fn($item) => (int)$item['id_bancodpto'] === (int)$b['ID_BancoDpto'] && in_array((int)$item['mes'], $meses));
+                        if (!empty($seB)) {
+                            usort($seB, fn($a, $b) => (int)$a['mes'] <=> (int)$b['mes']);
+                            $sMin = reset($seB); $sMax = end($seB);
+                            $bIni += (float)$sMin['saldo_inicial'];
+                            $fVal = (float)$sMax['saldo_final'];
+                            if ($fVal == 0 && (float)$sMax['saldo_inicial'] != 0) $fVal = (float)$sMax['saldo_inicial'];
+                            $bFin += $fVal;
+                        }
+                    }
+                }
+                $rsGrupos[$rsNombre]['bancos']['inicial'] = $bIni;
+                $rsGrupos[$rsNombre]['bancos']['final'] = $bFin;
+                $rsProcesadasBancos[] = $idRS;
+            }
+
+            $rsGrupos[$rsNombre]['presupuesto']['asignado'] += $uAsignado;
+            $rsGrupos[$rsNombre]['presupuesto']['gastado'] += $uGastado;
+            $rsGrupos[$rsNombre]['segmentos'][$segNombre]['presupuesto']['asignado'] += $uAsignado;
+            $rsGrupos[$rsNombre]['segmentos'][$segNombre]['presupuesto']['gastado'] += $uGastado;
+            $rsGrupos[$rsNombre]['segmentos'][$segNombre]['complejos'][$placeNombre]['presupuesto']['asignado'] += $uAsignado;
+            $rsGrupos[$rsNombre]['segmentos'][$segNombre]['complejos'][$placeNombre]['presupuesto']['gastado'] += $uGastado;
+            
+            $rsGrupos[$rsNombre]['segmentos'][$segNombre]['complejos'][$placeNombre]['unidades'][] = [
+                'nombre' => $uni['Nombre'],
+                'presupuesto' => ['asignado' => $uAsignado, 'gastado' => $uGastado],
+                'detalles' => $detalles
+            ];
+        }
+
+        // 2. Excel
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Consolidado Maestro');
+
+        $headerStyle = ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F2937']], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]];
+        $cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        $headers = ['Unidad / Partida', 'P. Asignado', 'P. Gastado', 'P. Disponible', '% Ejec.', 'B. Inicial', 'B. Final', 'B. Diferencia'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($cols[$i] . '1', $h);
+            $sheet->getStyle($cols[$i] . '1')->applyFromArray($headerStyle);
+            $sheet->getColumnDimension($cols[$i])->setAutoSize(true);
+        }
+
+        $row = 2;
+        $gtAsig = 0; $gtGast = 0; $gtBIni = 0; $gtBFin = 0;
+
+        foreach ($rsGrupos as $rs) {
+            $gtAsig += $rs['presupuesto']['asignado']; $gtGast += $rs['presupuesto']['gastado'];
+            $gtBIni += $rs['bancos']['inicial']; $gtBFin += $rs['bancos']['final'];
+
+            // Fila RS
+            $sheet->setCellValue('A' . $row, $rs['nombre']);
+            $sheet->setCellValue('B' . $row, $rs['presupuesto']['asignado']);
+            $sheet->setCellValue('C' . $row, $rs['presupuesto']['gastado']);
+            $sheet->setCellValue('D' . $row, $rs['presupuesto']['asignado'] - $rs['presupuesto']['gastado']);
+            $sheet->setCellValue('E' . $row, $rs['presupuesto']['asignado'] > 0 ? ($rs['presupuesto']['gastado'] / $rs['presupuesto']['asignado']) : 0);
+            $sheet->setCellValue('F' . $row, $rs['bancos']['inicial']);
+            $sheet->setCellValue('G' . $row, $rs['bancos']['final']);
+            $sheet->setCellValue('H' . $row, $rs['bancos']['inicial'] - $rs['bancos']['final']);
+            $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('A' . $row . ':H' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
+            $row++;
+
+            foreach ($rs['segmentos'] as $seg) {
+                $sheet->setCellValue('A' . $row, '    ' . $seg['nombre']);
+                $sheet->setCellValue('B' . $row, $seg['presupuesto']['asignado']);
+                $sheet->setCellValue('C' . $row, $seg['presupuesto']['gastado']);
+                $sheet->setCellValue('D' . $row, $seg['presupuesto']['asignado'] - $seg['presupuesto']['gastado']);
+                $sheet->setCellValue('E' . $row, $seg['presupuesto']['asignado'] > 0 ? ($seg['presupuesto']['gastado'] / $seg['presupuesto']['asignado']) : 0);
+                $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setBold(true)->getColor()->setRGB('1E3A8A');
+                $sheet->getStyle('A' . $row . ':E' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('DBEAFE');
+                $row++;
+
+                foreach ($seg['complejos'] as $comp) {
+                    $sheet->setCellValue('A' . $row, '        ' . $comp['nombre']);
+                    $sheet->setCellValue('B' . $row, $comp['presupuesto']['asignado']);
+                    $sheet->setCellValue('C' . $row, $comp['presupuesto']['gastado']);
+                    $sheet->setCellValue('D' . $row, $comp['presupuesto']['asignado'] - $comp['presupuesto']['gastado']);
+                    $sheet->setCellValue('E' . $row, $comp['presupuesto']['asignado'] > 0 ? ($comp['presupuesto']['gastado'] / $comp['presupuesto']['asignado']) : 0);
+                    $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setItalic(true);
+                    $row++;
+
+                    foreach ($comp['unidades'] as $uni) {
+                        $sheet->setCellValue('A' . $row, '            ' . $uni['nombre']);
+                        $sheet->setCellValue('B' . $row, $uni['presupuesto']['asignado']);
+                        $sheet->setCellValue('C' . $row, $uni['presupuesto']['gastado']);
+                        $sheet->setCellValue('D' . $row, $uni['presupuesto']['asignado'] - $uni['presupuesto']['gastado']);
+                        $sheet->setCellValue('E' . $row, $uni['presupuesto']['asignado'] > 0 ? ($uni['presupuesto']['gastado'] / $uni['presupuesto']['asignado']) : 0);
+                        $sheet->getStyle('A' . $row . ':E' . $row)->getFont()->setBold(true);
+                        $row++;
+
+                        foreach ($uni['detalles'] as $det) {
+                            $sheet->setCellValue('A' . $row, '                ' . $det['etiqueta']);
+                            $sheet->setCellValue('B' . $row, $det['asignado']);
+                            $sheet->setCellValue('C' . $row, $det['gastado']);
+                            $sheet->setCellValue('D' . $row, $det['asignado'] - $det['gastado']);
+                            $sheet->setCellValue('E' . $row, $det['asignado'] > 0 ? ($det['gastado'] / $det['asignado']) : 0);
+                            $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->getColor()->setRGB('6B7280');
+                            $row++;
+                        }
+                    }
+                }
+            }
+        }
+
+        $sheet->setCellValue('A' . $row, 'TOTAL GENERAL');
+        $sheet->setCellValue('B' . $row, $gtAsig);
+        $sheet->setCellValue('C' . $row, $gtGast);
+        $sheet->setCellValue('D' . $row, $gtAsig - $gtGast);
+        $sheet->setCellValue('E' . $row, $gtAsig > 0 ? ($gtGast / $gtAsig) : 0);
+        $sheet->setCellValue('F' . $row, $gtBIni);
+        $sheet->setCellValue('G' . $row, $gtBFin);
+        $sheet->setCellValue('H' . $row, $gtBIni - $gtBFin);
+        $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle('A' . $row . ':H' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('1F2937');
+
+        $lastRow = $row;
+        $sheet->getStyle('B2:D' . $lastRow)->getNumberFormat()->setFormatCode('$#,##0.00');
+        $sheet->getStyle('F2:H' . $lastRow)->getNumberFormat()->setFormatCode('$#,##0.00');
+        $sheet->getStyle('E2:E' . $lastRow)->getNumberFormat()->setFormatCode('0.0%');
+
+        // Formato condicional para porcentajes > 100% (columna E en reporte completo)
+        for ($i = 2; $i <= $lastRow; $i++) {
+            $valorPorcentaje = $sheet->getCell('E' . $i)->getValue();
+            if (is_numeric($valorPorcentaje) && $valorPorcentaje > 1) {
+                $sheet->getStyle('E' . $i)->getFont()->getColor()->setRGB('FF0000');
+            }
+        }
+        $sheet->getStyle('A1:H' . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'reporte_consolidado_' . date('Ymd_His') . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit();
+    }
 
     public function getReporteCompleto($idPlace, $anio, $mes)
     {
@@ -280,7 +514,10 @@ class PresupuestoApiController extends ResourceController
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
             ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
 
-        if ($idPlace > 0) $query->where('UnidadOperativa.ID_Place', $idPlace);
+        if (!empty($idPlace) && $idPlace != '0') {
+            $placeIds = array_map('intval', explode(',', (string)$idPlace));
+            $query->whereIn('UnidadOperativa.ID_Place', $placeIds);
+        }
         $unidadesRaw = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('UnidadOperativa.Nombre', 'ASC')->findAll();
 
         if (empty($unidadesRaw)) return $this->respond(['departamentos' => []]);
@@ -401,7 +638,10 @@ class PresupuestoApiController extends ResourceController
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
             ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
 
-        if ($idPlace > 0) $query->where('UnidadOperativa.ID_Place', $idPlace);
+        if (!empty($idPlace) && $idPlace != '0') {
+            $placeIds = array_map('intval', explode(',', (string)$idPlace));
+            $query->whereIn('UnidadOperativa.ID_Place', $placeIds);
+        }
         $unidadesRaw = $query->orderBy('RazonSocialNombre', 'ASC')->orderBy('PlaceNombre', 'ASC')->orderBy('Nombre', 'ASC')->findAll();
 
         if (empty($unidadesRaw)) return $this->respond(['departamentos' => [], 'totales_generales' => $this->getTotalesCero()]);
@@ -894,7 +1134,10 @@ class PresupuestoApiController extends ResourceController
         $meses = array_map('intval', explode(',', $mes));
         $unidades = $uniModel->select('UnidadOperativa.ID_Place, Places.ID_RazonSocial, Razon_Social.Nombre as RazonSocialNombre')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial');
-        if ($idPlace > 0) $unidades->where('UnidadOperativa.ID_Place', $idPlace);
+        if (!empty($idPlace) && $idPlace != '0') {
+            $placeIds = array_map('intval', explode(',', (string)$idPlace));
+            $unidades->whereIn('UnidadOperativa.ID_Place', $placeIds);
+        }
         $unidades = $unidades->findAll(); if (empty($unidades)) return $this->respond(['razones' => []]);
         $rsIds = array_unique(array_column($unidades, 'ID_RazonSocial'));
         $bancos = $bModel->whereIn('ID_RazonSocial', $rsIds)->findAll();

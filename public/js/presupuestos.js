@@ -662,7 +662,7 @@ function registrarComponenteReportePresupuesto() {
         return {
             pantalla: 'menu', // 'menu', 'presupuesto', 'cuentas', 'completo'
             idRazonSocial: '',
-            idPlace: '',
+            idPlace: [], // Ahora es un array para selecciones múltiples
             verGlobal: false,
             anio: '',
             meses: [],
@@ -676,6 +676,7 @@ function registrarComponenteReportePresupuesto() {
             dptosSeleccionados: [],
             choicesDpto: null,
             choicesMeses: null,
+            choicesPlaces: null, // Instancia para el selector de complejos
             years: [],
             totalesGenerales: {
                 asignado: 0,
@@ -707,6 +708,7 @@ function registrarComponenteReportePresupuesto() {
                 // 2. Establecer valores por defecto al final para asegurar el vínculo reactivo
                 this.anio = String(currentYear);
                 this.meses = [String(now.getMonth() + 1)];
+                this.idPlace = [];
             },
 
             initChoicesMeses(refName) {
@@ -751,6 +753,41 @@ function registrarComponenteReportePresupuesto() {
                 });
             },
 
+            initChoicesPlaces(refName) {
+                if (typeof Choices === 'undefined') return;
+                
+                if (this.choicesPlaces) {
+                    this.choicesPlaces.destroy();
+                    this.choicesPlaces = null;
+                }
+
+                if (!refName) return;
+
+                const selectEl = this.$refs[refName];
+                if (!selectEl) return;
+
+                this.choicesPlaces = new Choices(selectEl, {
+                    removeItemButton: true,
+                    itemSelectText: '',
+                    placeholderValue: 'Seleccione Complejo(s)',
+                    searchPlaceholderValue: 'Buscar complejo...',
+                    shouldSort: false,
+                    allowHTML: true
+                });
+
+                // Establecer valor inicial si hay algo en idPlace
+                if (this.idPlace && this.idPlace.length > 0) {
+                    this.choicesPlaces.setChoiceByValue(this.idPlace.map(String));
+                }
+
+                selectEl.addEventListener('change', () => {
+                    this.idPlace = this.choicesPlaces.getValue(true).map(String);
+                    if (this.pantalla === 'presupuesto') this.cargarComparativo();
+                    if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
+                    if (this.pantalla === 'completo') this.cargarReporteCompleto();
+                });
+            },
+
             irAPantalla(nueva) {
                 this.pantalla = nueva;
                 this.departamentos = [];
@@ -768,18 +805,28 @@ function registrarComponenteReportePresupuesto() {
                     this.choicesMeses.destroy();
                     this.choicesMeses = null;
                 }
+                if (this.choicesPlaces) {
+                    this.choicesPlaces.destroy();
+                    this.choicesPlaces = null;
+                }
                 
-                this.idPlace = '';
+                this.idPlace = [];
                 this.idRazonSocial = '';
 
                 if (nueva !== 'menu') {
                     this.$nextTick(() => {
-                        const refMap = {
+                        const refMapMeses = {
                             'presupuesto': 'mesesSelectorPresupuesto',
                             'cuentas': 'mesesSelectorCuentas',
                             'completo': 'mesesSelectorCompleto'
                         };
-                        this.initChoicesMeses(refMap[nueva]);
+                        const refMapPlaces = {
+                            'presupuesto': 'placesSelectorPresupuesto',
+                            'cuentas': 'placesSelectorCuentas',
+                            'completo': 'placesSelectorCompleto'
+                        };
+                        this.initChoicesMeses(refMapMeses[nueva]);
+                        this.initChoicesPlaces(refMapPlaces[nueva]);
                     });
                 }
 
@@ -803,6 +850,24 @@ function registrarComponenteReportePresupuesto() {
                 }
             },
 
+            actualizarRazonSocial(pantalla) {
+                this.idPlace = [];
+                this.departamentos = [];
+                this.departamentosBancos = [];
+                this.departamentosCompleto = [];
+                this.departamentosOriginales = [];
+                
+                const refMap = {
+                    'presupuesto': 'placesSelectorPresupuesto',
+                    'cuentas': 'placesSelectorCuentas',
+                    'completo': 'placesSelectorCompleto'
+                };
+                
+                this.$nextTick(() => {
+                    this.initChoicesPlaces(refMap[pantalla]);
+                });
+            },
+
             get placesFiltrados() {
                 if (!this.idRazonSocial) return [];
                 return this.todosPlaces.filter(p => String(p.ID_RazonSocial) === String(this.idRazonSocial));
@@ -817,7 +882,7 @@ function registrarComponenteReportePresupuesto() {
 
                 const crearTotales = () => {
                     if (this.pantalla === 'cuentas') return { inicial: 0, final: 0, usado: 0, porcentaje: 0 };
-                    if (this.pantalla === 'completo') return { pAsignado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0 };
+                    if (this.pantalla === 'completo') return { pAsignado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0, pPorcentaje: 0 };
                     return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 };
                 };
 
@@ -846,6 +911,8 @@ function registrarComponenteReportePresupuesto() {
                         const totalGasto = totales.comprometido + totales.ejecutado;
                         totales.disponible = totales.asignado - totalGasto;
                         totales.porcentaje = totales.asignado > 0 ? Math.round((totalGasto / totales.asignado) * 100 * 100) / 100 : 0;
+                    } else if (this.pantalla === 'completo') {
+                        totales.pPorcentaje = totales.pAsignado > 0 ? Math.round((totales.pGastado / totales.pAsignado) * 100 * 100) / 100 : 0;
                     }
                 };
 
@@ -898,7 +965,7 @@ function registrarComponenteReportePresupuesto() {
                 if (this.pantalla === 'cuentas') return this.cargarComparativoBancos();
                 if (this.pantalla === 'completo') return this.cargarReporteCompleto();
 
-                if (!this.verGlobal && (!this.idPlace || !this.anio || this.meses.length === 0)) return;
+                if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0 || !this.anio || this.meses.length === 0)) return;
 
                 const stringMeses = this.meses.join(',');
                 this.cargando = true;
@@ -906,7 +973,7 @@ function registrarComponenteReportePresupuesto() {
                 this.departamentosOriginales = [];
                 this.mensaje = '';
 
-                const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
+                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
 
                 try {
                     const res = await fetch(`${BASE_URL}api/presupuesto/comparativo/${targetPlaceId}/${this.anio}/${stringMeses}`);
@@ -932,11 +999,11 @@ function registrarComponenteReportePresupuesto() {
             },
 
             async cargarComparativoBancos() {
-                if (!this.verGlobal && (!this.idPlace || !this.anio || this.meses.length === 0)) return;
+                if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0 || !this.anio || this.meses.length === 0)) return;
                 const stringMeses = this.meses.join(',');
                 this.cargando = true;
                 this.departamentosBancos = [];
-                const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
+                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
 
                 try {
                     const res = await fetch(`${BASE_URL}api/bancos/comparativo/${targetPlaceId}/${this.anio}/${stringMeses}`);
@@ -949,11 +1016,11 @@ function registrarComponenteReportePresupuesto() {
             },
 
             async cargarReporteCompleto() {
-                if (!this.verGlobal && (!this.idPlace || !this.anio || this.meses.length === 0)) return;
+                if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0 || !this.anio || this.meses.length === 0)) return;
                 const stringMeses = this.meses.join(',');
                 this.cargando = true;
                 this.departamentosCompleto = [];
-                const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
+                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
 
                 try {
                     const res = await fetch(`${BASE_URL}api/reporte/completo/${targetPlaceId}/${this.anio}/${stringMeses}`);
@@ -967,7 +1034,7 @@ function registrarComponenteReportePresupuesto() {
 
             async cargarGlobal() {
                 this.idRazonSocial = '';
-                this.idPlace = '';
+                this.idPlace = [];
                 this.departamentos = [];
                 this.departamentosBancos = [];
                 this.departamentosCompleto = [];
@@ -976,6 +1043,10 @@ function registrarComponenteReportePresupuesto() {
                 if (this.choicesDpto) {
                     this.choicesDpto.destroy();
                     this.choicesDpto = null;
+                }
+                if (this.choicesPlaces) {
+                    this.choicesPlaces.destroy();
+                    this.choicesPlaces = null;
                 }
 
                 await this.cargarComparativo();
@@ -987,14 +1058,31 @@ function registrarComponenteReportePresupuesto() {
                     return;
                 }
                 const stringMeses = this.meses.join(',');
-                const targetPlaceId = this.verGlobal ? 0 : this.idPlace;
+                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
                 
                 if (!targetPlaceId && !this.verGlobal) {
-                    alert("Seleccione un complejo o active el presupuesto global.");
+                    alert("Seleccione al menos un complejo o active el presupuesto global.");
                     return;
                 }
 
                 const url = `${BASE_URL}api/presupuesto/exportar/${targetPlaceId}/${this.anio}/${stringMeses}`;
+                window.location.href = url;
+            },
+
+            exportarReporteCompletoExcel() {
+                if (this.meses.length === 0) {
+                    alert("Seleccione al menos un mes para exportar.");
+                    return;
+                }
+                const stringMeses = this.meses.join(',');
+                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
+                
+                if (!targetPlaceId && !this.verGlobal) {
+                    alert("Seleccione al menos un complejo o active el reporte global.");
+                    return;
+                }
+
+                const url = `${BASE_URL}api/reporte/completo/exportar/${targetPlaceId}/${this.anio}/${stringMeses}`;
                 window.location.href = url;
             },
 

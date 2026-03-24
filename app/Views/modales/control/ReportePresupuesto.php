@@ -50,15 +50,14 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Razón Social</label>
-                    <select x-model="idRazonSocial" @change="idPlace = ''; departamentos = []" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300 min-w-[200px] text-sm">
+                    <select x-model="idRazonSocial" @change="actualizarRazonSocial('presupuesto')" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300 min-w-[200px] text-sm">
                         <option value="">Seleccione Razón Social</option>
                         <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial"><option :value="rs.ID_RazonSocial" x-text="rs.Nombre"></option></template>
                     </select>
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Place</label>
-                    <select x-model="idPlace" @change="cargarComparativo()" :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300 min-w-[200px] text-sm disabled:bg-gray-100">
-                        <option value="">Seleccione Complejo</option>
+                    <select x-ref="placesSelectorPresupuesto" multiple :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300 min-w-[200px] text-sm disabled:bg-gray-100">
                         <template x-for="place in placesFiltrados" :key="place.ID_Place"><option :value="place.ID_Place" x-text="place.Nombre_Corto"></option></template>
                     </select>
                 </div>
@@ -208,15 +207,14 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Razón Social</label>
-                    <select x-model="idRazonSocial" @change="idPlace = ''; departamentosBancos = []" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 min-w-[200px] text-sm">
+                    <select x-model="idRazonSocial" @change="actualizarRazonSocial('cuentas')" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 min-w-[200px] text-sm">
                         <option value="">Seleccione Razón Social</option>
                         <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial"><option :value="rs.ID_RazonSocial" x-text="rs.Nombre"></option></template>
                     </select>
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Place</label>
-                    <select x-model="idPlace" @change="cargarComparativoBancos()" :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 min-w-[200px] text-sm disabled:bg-gray-100">
-                        <option value="">Seleccione Complejo</option>
+                    <select x-ref="placesSelectorCuentas" multiple :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-green-300 min-w-[200px] text-sm disabled:bg-gray-100">
                         <template x-for="place in placesFiltrados" :key="place.ID_Place"><option :value="place.ID_Place" x-text="place.Nombre_Corto"></option></template>
                     </select>
                 </div>
@@ -312,21 +310,28 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         <div class="animate-fadeIn">
             <div class="flex items-center justify-between mb-6">
                 <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-purple-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <h2 class="text-xl font-bold text-gray-800">Reporte Consolidado Maestro</h2>
+                <div class="flex items-center gap-4">
+                    <button x-show="departamentosCompleto.length > 0" @click="exportarReporteCompletoExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exportar Excel
+                    </button>
+                    <h2 class="text-xl font-bold text-gray-800">Reporte Consolidado Maestro</h2>
+                </div>
             </div>
 
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Razón Social</label>
-                    <select x-model="idRazonSocial" @change="idPlace = ''; departamentosCompleto = []" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 min-w-[200px] text-sm">
+                    <select x-model="idRazonSocial" @change="actualizarRazonSocial('completo')" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 min-w-[200px] text-sm">
                         <option value="">Seleccione Razón Social</option>
                         <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial"><option :value="rs.ID_RazonSocial" x-text="rs.Nombre"></option></template>
                     </select>
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold text-gray-500 uppercase">Place</label>
-                    <select x-model="idPlace" @change="cargarReporteCompleto()" :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 min-w-[200px] text-sm disabled:bg-gray-100">
-                        <option value="">Seleccione Complejo</option>
+                    <select x-ref="placesSelectorCompleto" multiple :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 min-w-[200px] text-sm disabled:bg-gray-100">
                         <template x-for="place in placesFiltrados" :key="place.ID_Place"><option :value="place.ID_Place" x-text="place.Nombre_Corto"></option></template>
                     </select>
                 </div>
@@ -372,6 +377,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <th class="px-2 py-3 text-right">P. Asignado</th>
                             <th class="px-2 py-3 text-right">P. Gastado</th>
                             <th class="px-2 py-3 text-right">P. Disponible</th>
+                            <th class="px-2 py-3 text-center">% Ejec.</th>
                             <th class="px-2 py-3 text-right">B. Inicial</th>
                             <th class="px-2 py-3 text-right">B. Final</th>
                             <th class="px-4 py-3 text-right">B. Diferencia</th>
@@ -379,8 +385,8 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     </thead>
 
                     <tbody x-show="cargando || departamentosCompleto.length === 0">
-                        <tr x-show="cargando"><td colspan="7" class="px-4 py-12 text-center text-gray-500 italic">Consolidando información financiera...</td></tr>
-                        <tr x-show="!cargando && departamentosCompleto.length === 0"><td colspan="7" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el consolidado.</td></tr>
+                        <tr x-show="cargando"><td colspan="8" class="px-4 py-12 text-center text-gray-500 italic">Consolidando información financiera...</td></tr>
+                        <tr x-show="!cargando && departamentosCompleto.length === 0"><td colspan="8" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el consolidado.</td></tr>
                     </tbody>
 
                     <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
@@ -390,6 +396,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                 <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.pAsignado)"></td>
                                 <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.pGastado)"></td>
                                 <td class="px-2 py-3 text-right font-black" :class="grupoRS.totales.pDisponible < 0 ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.pDisponible)"></td>
+                                <td class="px-2 py-3 text-center text-[10px]" :class="getClaseSemaforo(grupoRS.totales.pPorcentaje)" x-text="grupoRS.totales.pPorcentaje + '%'"></td>
                                 <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.bInicial)"></td>
                                 <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.bFinal)"></td>
                                 <td class="px-4 py-3 text-right font-black" :class="grupoRS.totales.bFinal < grupoRS.totales.bInicial ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.bInicial - grupoRS.totales.bFinal)"></td>
@@ -402,6 +409,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                         <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pAsignado)"></td>
                                         <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pGastado)"></td>
                                         <td class="px-2 py-2 text-right font-bold" :class="seg.totales.pDisponible < 0 ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(seg.totales.pDisponible)"></td>
+                                        <td class="px-2 py-2 text-center" :class="getClaseSemaforo(seg.totales.pPorcentaje)" x-text="seg.totales.pPorcentaje + '%'"></td>
                                         <!-- Bancos vacíos en Segmentos -->
                                         <td class="px-2 py-2 text-right text-gray-400">-</td>
                                         <td class="px-2 py-2 text-right text-gray-400">-</td>
@@ -415,6 +423,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                 <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pAsignado)"></td>
                                                 <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pGastado)"></td>
                                                 <td class="px-2 py-1 text-right" :class="complex.totales.pDisponible < 0 ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.pDisponible)"></td>
+                                                <td class="px-2 py-1 text-center" :class="getClaseSemaforo(complex.totales.pPorcentaje)" x-text="complex.totales.pPorcentaje + '%'"></td>
                                                 <!-- Bancos vacíos en Places -->
                                                 <td class="px-2 py-1 text-right text-gray-300">-</td>
                                                 <td class="px-2 py-1 text-right text-gray-300">-</td>
@@ -432,6 +441,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                             <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.asignado) : formatearMoneda(item.asignado)"></td>
                                                             <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.gastado) : formatearMoneda(item.gastado)"></td>
                                                             <td class="px-2 py-2 text-right font-bold" :class="(index === 0 ? uni.presupuesto?.disponible < 0 : item.disponible < 0) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.disponible) : formatearMoneda(item.disponible)"></td>
+                                                            <td class="px-2 py-2 text-center" :class="index === 0 ? getClaseSemaforo(uni.presupuesto?.porcentaje) : getClaseSemaforo(item.porcentaje)" x-text="(index === 0 ? (uni.presupuesto?.porcentaje || 0) : (item.porcentaje || 0)) + '%'"></td>
                                                             <!-- Bancos vacíos en Unidades y Grupos -->
                                                             <td class="px-2 py-2 text-right text-gray-200">-</td>
                                                             <td class="px-2 py-2 text-right text-gray-200">-</td>
