@@ -491,17 +491,24 @@ function RevisionX() {
                   let todasPartidasSeleccionadas = true;
 
                   selectGrupos.forEach(select => {
-                      if (!select.value || select.value === "") {
+                      // Verificar si el select tiene más de 1 opción (el placeholder + partidas reales)
+                      const tieneOpciones = select.options.length > 1;
+                      
+                      if (tieneOpciones && (!select.value || select.value === "")) {
                           todasPartidasSeleccionadas = false;
                           select.classList.add('border-red-500'); // Resaltar el error visualmente
                       } else {
                           select.classList.remove('border-red-500');
                       }
-                      formData.append(select.name, select.value);
+                      
+                      // Solo agregamos al formData si tiene un valor seleccionado
+                      if (select.value) {
+                          formData.append(select.name, select.value);
+                      }
                   });
 
                   if (!isServicio && !todasPartidasSeleccionadas) {
-                      mostrarNotificacion('Por favor, asigne una partida presupuestal a todos los productos.', 'error');
+                      mostrarNotificacion('Por favor, asigne una partida presupuestal a todos los productos que tengan opciones disponibles.', 'error');
                       return;
                   }
                   // ========================================

@@ -993,14 +993,9 @@ class Api extends ResourceController
 
                 foreach ($productosActuales as $prod) {
                     $idProd = $prod['ID_SolicitudProd'];
-                    $grupoAsignado = $nuevosGrupos[$idProd] ?? $prod['ID_GrupoPresupuestal'];
-
-                    if (empty($grupoAsignado)) {
-                        return $this->fail('Todos los productos deben tener una partida presupuestal asignada.', HttpStatus::BAD_REQUEST);
-                    }
-
-                    // Actualizar si viene en el request
-                    if (isset($nuevosGrupos[$idProd])) {
+                    
+                    // Actualizar solo si viene un nuevo valor en el request
+                    if (isset($nuevosGrupos[$idProd]) && !empty($nuevosGrupos[$idProd])) {
                         $solicitudProductModel->update((int)$idProd, [
                             'ID_GrupoPresupuestal' => (int)$nuevosGrupos[$idProd]
                         ]);
