@@ -490,6 +490,7 @@ class Api extends ResourceController
 
                 // Comparar y ajustar por cada grupo presupuestal afectado
                 $todosLosGrupos = array_unique(array_merge(array_keys($montosViejosPorGrupo), array_keys($montosNuevosPorGrupo)));
+                $grupoModel = new \App\Models\GrupoPresupuestalModel();
                 
                 foreach ($todosLosGrupos as $idGrupo) {
                     $viejo = (float)($montosViejosPorGrupo[$idGrupo] ?? 0);
@@ -499,17 +500,21 @@ class Api extends ResourceController
                     if (abs($diferencia) > 0.0001) { // Evitar micro-diferencias por coma flotante
                         $campoAjustar = ($solicitud['Estado'] === 'Pagada' || $solicitud['Estado'] === Status::Pagada) ? 'Monto_Ejecutado' : 'Monto_Comprometido';
                         
+                        // Encontrar la Unidad Operativa del grupo para el ajuste
+                        $grupoInfo = $grupoModel->find($idGrupo);
+                        $idUnidadDelGrupo = $grupoInfo['ID_UnidadOperativa'] ?? 0;
+
                         $db->table('PresupuestoMensual')
                            ->set($campoAjustar, "\"$campoAjustar\" + ($diferencia)", false)
                            ->where([
-                                'ID_UnidadOperativa' => $idUnidad,
+                                'ID_UnidadOperativa' => $idUnidadDelGrupo,
                                 'ID_GrupoPresupuestal' => $idGrupo,
                                 'Mes' => $mes,
                                 'Anio' => $anio
                            ])
                            ->update();
                         
-                        log_message('debug', "Presupuesto Ajustado Atómico por Edición: Grupo $idGrupo - Diferencia: $diferencia en $campoAjustar");
+                        log_message('debug', "Presupuesto Ajustado Atómico por Edición: Grupo $idGrupo (Unidad $idUnidadDelGrupo) - Diferencia: $diferencia en $campoAjustar");
                     }
                 }
             }
@@ -1108,18 +1113,24 @@ class Api extends ResourceController
             $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
 
             $todosLosGrupos = array_unique(array_merge(array_keys($montosADescontar), array_keys($montosAEjecutar)));
+            $grupoModel = new \App\Models\GrupoPresupuestalModel();
 
             $db->transStart();
             foreach ($todosLosGrupos as $idGrupo) {
-                if (!$idUnidad || !$idGrupo) continue;
+                if (!$idGrupo) continue;
 
                 $montoRestar = (float)($montosADescontar[$idGrupo] ?? 0);
                 $montoSumar = (float)($montosAEjecutar[$idGrupo] ?? 0);
 
+                // Encontrar la Unidad Operativa a la que pertenece este grupo (camino inverso)
+                $grupoInfo = $grupoModel->find($idGrupo);
+                $idUnidadDelGrupo = $grupoInfo['ID_UnidadOperativa'] ?? 0;
+
                 $db->table('PresupuestoMensual')
                    ->set('Monto_Comprometido', "GREATEST(0, \"Monto_Comprometido\" - $montoRestar)", false)
                    ->set('Monto_Ejecutado', "\"Monto_Ejecutado\" + $montoSumar", false)
-                   ->where([                        'ID_UnidadOperativa' => $idUnidad,
+                   ->where([
+                        'ID_UnidadOperativa' => $idUnidadDelGrupo,
                         'ID_GrupoPresupuestal' => $idGrupo,
                         'Mes' => $mes,
                         'Anio' => $anio
@@ -1179,19 +1190,26 @@ class Api extends ResourceController
             $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
 
             $db->transStart();
+            $grupoModel = new \App\Models\GrupoPresupuestalModel();
+
             foreach ($montosPorGrupo as $idGrupo => $monto) {
                 $campo = $esEjecutado ? 'Monto_Ejecutado' : 'Monto_Comprometido';
 
+                // Encontrar la Unidad Operativa a la que pertenece este grupo (camino inverso)
+                $grupoInfo = $grupoModel->find($idGrupo);
+                $idUnidadDelGrupo = $grupoInfo['ID_UnidadOperativa'] ?? 0;
+
                 $db->table('PresupuestoMensual')
                    ->set($campo, "GREATEST(0, \"$campo\" - $monto)", false)
-                   ->where([                        'ID_UnidadOperativa' => $idUnidad,
+                   ->where([
+                        'ID_UnidadOperativa' => $idUnidadDelGrupo,
                         'ID_GrupoPresupuestal' => $idGrupo,
                         'Mes' => $mes,
                         'Anio' => $anio
                    ])
                    ->update();
                 
-                log_message('debug', "Presupuesto Liberado Atómico: Grupo $idGrupo - Monto: $monto ($campo)");
+                log_message('debug', "Presupuesto Liberado Atómico: Grupo $idGrupo (Unidad $idUnidadDelGrupo) - Monto: $monto ($campo)");
             }
             $db->transComplete();
 
@@ -1278,12 +1296,17 @@ class Api extends ResourceController
                     // --- USAR EL MES Y AÑO DE LA APROBACIÓN, NO DE LA SOLICITUD ---
                     $mes = (int)date('n');
                     $anio = (int)date('Y');
-                    $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
+                    
+                    $grupoModel = new \App\Models\GrupoPresupuestalModel();
 
                     // --- VALIDACIÓN DE PRESUPUESTO EXISTENTE Y ASIGNADO ---
                     foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
+                        // Encontrar la Unidad Operativa a la que pertenece este grupo (camino inverso)
+                        $grupoInfo = $grupoModel->find($idGrupo);
+                        $idUnidadDelGrupo = $grupoInfo['ID_UnidadOperativa'] ?? 0;
+
                         $presupuesto = $presupuestoModel->where([
-                            'ID_UnidadOperativa' => $idUnidad,
+                            'ID_UnidadOperativa' => $idUnidadDelGrupo,
                             'ID_GrupoPresupuestal' => $idGrupo,
                             'Mes' => $mes,
                             'Anio' => $anio
@@ -1291,7 +1314,6 @@ class Api extends ResourceController
 
                         if (!$presupuesto || (float)$presupuesto['Monto_Asignado'] <= 0) {
                             $db->transRollback(); // Revertimos antes de salir
-                            $grupoInfo = (new \App\Models\GrupoPresupuestalModel())->find($idGrupo);
                             $nombreGrupo = $grupoInfo ? $grupoInfo['Nombre'] : "ID $idGrupo";
                             return $this->respond([
                                 'success' => false,
@@ -1312,8 +1334,11 @@ class Api extends ResourceController
                     }
 
                     foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
+                        $grupoInfo = $grupoModel->find($idGrupo);
+                        $idUnidadDelGrupo = $grupoInfo['ID_UnidadOperativa'] ?? 0;
+
                         $presupuesto = $presupuestoModel->where([
-                            'ID_UnidadOperativa' => $idUnidad,
+                            'ID_UnidadOperativa' => $idUnidadDelGrupo,
                             'ID_GrupoPresupuestal' => $idGrupo,
                             'Mes' => $mes,
                             'Anio' => $anio
@@ -1322,7 +1347,8 @@ class Api extends ResourceController
                         if ($presupuesto) {
                             $db->table('PresupuestoMensual')
                                ->set('Monto_Comprometido', "\"Monto_Comprometido\" + $montoAComprometer", false)
-                               ->where('ID_PresupuestoMensual', $presupuesto['ID_PresupuestoMensual'])                               ->update();
+                               ->where('ID_PresupuestoMensual', $presupuesto['ID_PresupuestoMensual'])
+                               ->update();
                         }
                     }
                 }

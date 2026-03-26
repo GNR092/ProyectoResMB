@@ -51,6 +51,7 @@ class Modales extends BaseController
                 $razonSocialModel = new RazonSocialModel();
                 $grupoModel = new GrupoPresupuestalModel();
                 $departamentoModel = new DepartamentosModel();
+                $placeModel = new PlacesModel();
 
                 // 1. Obtener el nombre del departamento del usuario actual
                 $idDeptoUsuario = session('id_departamento_usuario');
@@ -68,16 +69,36 @@ class Modales extends BaseController
                     ->orderBy('RazonSocial', 'ASC')
                     ->findAll();
 
-                // 3. Obtener SOLO las razones sociales que tienen este mismo departamento (por nombre)
-                $data['razones_sociales'] = $razonSocialModel
-                    ->select('Razon_Social.ID_RazonSocial, Razon_Social.Nombre')
-                    ->distinct()
-                    ->join('Places', 'Places.ID_RazonSocial = Razon_Social.ID_RazonSocial')
-                    ->join('UnidadOperativa', 'UnidadOperativa.ID_Place = Places.ID_Place')
-                    ->join('Departamentos', 'Departamentos.ID_UnidadOperativa = UnidadOperativa.ID_UnidadOperativa')
-                    ->where('Departamentos.Nombre', $nombreDepto)
-                    ->orderBy('Razon_Social.Nombre', 'ASC')
-                    ->findAll();
+                // Detección del departamento especial (Operacion o variantes)
+                $deptoLower = mb_strtolower(trim($nombreDepto));
+                $data['is_depto_especial'] = (strpos($deptoLower, 'operacion') !== false || strpos($deptoLower, 'operación') !== false);
+
+                // 3. Obtener Razones Sociales (dependiendo del tipo de departamento)
+                if ($data['is_depto_especial']) {
+                    // Si es el departamento especial, ve TODAS las razones sociales activas (o en este caso todas)
+                    $data['razones_sociales'] = $razonSocialModel
+                        ->select('ID_RazonSocial, Nombre')
+                        ->orderBy('Nombre', 'ASC')
+                        ->findAll();
+                    
+                    // También enviamos todos los places para que JS los filtre
+                    $data['all_places'] = $placeModel
+                        ->select('ID_Place, Nombre_Corto, ID_RazonSocial')
+                        ->where('activo', true)
+                        ->orderBy('Nombre_Corto', 'ASC')
+                        ->findAll();
+                } else {
+                    // Obtener SOLO las razones sociales que tienen este mismo departamento (por nombre)
+                    $data['razones_sociales'] = $razonSocialModel
+                        ->select('Razon_Social.ID_RazonSocial, Razon_Social.Nombre')
+                        ->distinct()
+                        ->join('Places', 'Places.ID_RazonSocial = Razon_Social.ID_RazonSocial')
+                        ->join('UnidadOperativa', 'UnidadOperativa.ID_Place = Places.ID_Place')
+                        ->join('Departamentos', 'Departamentos.ID_UnidadOperativa = UnidadOperativa.ID_UnidadOperativa')
+                        ->where('Departamentos.Nombre', $nombreDepto)
+                        ->orderBy('Razon_Social.Nombre', 'ASC')
+                        ->findAll();
+                }
 
                 // 4. Obtener grupos presupuestales filtrados por la Unidad Operativa del departamento del usuario
                 $deptoModel = new DepartamentosModel();

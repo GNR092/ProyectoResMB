@@ -472,11 +472,26 @@ class Rest
         // Obtener grupos presupuestales asociados a la Unidad Operativa del departamento de la solicitud
         $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
         $grupoModel = new GrupoPresupuestalModel();
-        $solicitud['grupos_presupuestales'] = $grupoModel
-            ->where('ID_UnidadOperativa', $idUnidad)
-            ->where('activo', true)
-            ->orderBy('Nombre', 'ASC')
-            ->findAll();
+
+        // Detección del departamento especial (Operacion o variantes)
+        $nombreDepto = $solicitud['DepartamentoNombre'] ?? '';
+        $deptoLower = mb_strtolower(trim($nombreDepto));
+        $isDeptoEspecial = (strpos($deptoLower, 'operacion') !== false || strpos($deptoLower, 'operación') !== false);
+
+        if ($isDeptoEspecial) {
+            // Si es el departamento especial, enviamos TODAS las partidas activas
+            $solicitud['grupos_presupuestales'] = $grupoModel
+                ->where('activo', true)
+                ->orderBy('Nombre', 'ASC')
+                ->findAll();
+        } else {
+            // Lógica normal: filtrado por Unidad Operativa
+            $solicitud['grupos_presupuestales'] = $grupoModel
+                ->where('ID_UnidadOperativa', $idUnidad)
+                ->where('activo', true)
+                ->orderBy('Nombre', 'ASC')
+                ->findAll();
+        }
 
         $productos = [];
 

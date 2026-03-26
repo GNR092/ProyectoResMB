@@ -92,6 +92,20 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </select>
             </div>
 
+            <!-- Selector de Place (Solo para Operación) -->
+            <?php if (isset($is_depto_especial) && $is_depto_especial): ?>
+            <div class="mb-4" id="contenedor-place-material">
+                <label for="placeMaterial" class="block text-sm font-medium text-gray-700">
+                    Condominio (Place)
+                </label>
+                <select name="id_place" id="placeMaterial"
+                        class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required>
+                    <option value="">Seleccione un condominio</option>
+                </select>
+            </div>
+            <?php endif; ?>
+
 
             <!-- Proveedores -->
             <div>
@@ -234,6 +248,20 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </select>
             </div>
 
+            <!-- Selector de Place (Solo para Operación) -->
+            <?php if (isset($is_depto_especial) && $is_depto_especial): ?>
+            <div class="mb-4" id="contenedor-place-sincotizar">
+                <label for="placeSinCotizar" class="block text-sm font-medium text-gray-700">
+                    Condominio (Place)
+                </label>
+                <select name="id_place" id="placeSinCotizar"
+                        class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required>
+                    <option value="">Seleccione un condominio</option>
+                </select>
+            </div>
+            <?php endif; ?>
+
             <!-- Proveedores -->
             <div class="hidden">
                 <label class="text-sm text-gray-700 font-medium">Proveedor:</label>
@@ -372,6 +400,20 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </select>
             </div>
 
+            <!-- Selector de Place (Solo para Operación) -->
+            <?php if (isset($is_depto_especial) && $is_depto_especial): ?>
+            <div class="mb-4" id="contenedor-place-servicio">
+                <label for="placeServicio" class="block text-sm font-medium text-gray-700">
+                    Condominio (Place)
+                </label>
+                <select name="id_place" id="placeServicio"
+                        class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        required>
+                    <option value="">Seleccione un condominio</option>
+                </select>
+            </div>
+            <?php endif; ?>
+
             <!-- Proveedor Servicio -->
             <div>
                 <label class="text-sm text-gray-700 font-medium">Proveedor</label>
@@ -480,3 +522,54 @@ $iconUrl = "/icons/icons.svg?v=$version";
         </form>
     </div>
 </div>
+
+<?php if (isset($is_depto_especial) && $is_depto_especial): ?>
+<script>
+// El contenido del script de la vista solicitar_material es cargado via AJAX. 
+// Usaremos una función global o listeners atados al body para evitar que el DOMContentLoaded no sirva.
+function initPlaceSelectors() {
+    const allPlaces = <?= json_encode($all_places ?? []) ?>;
+    
+    // Función para actualizar el selector de Place
+    function updatePlaces(razonSelectId, placeSelectId) {
+        const razonSelect = document.getElementById(razonSelectId);
+        const placeSelect = document.getElementById(placeSelectId);
+        
+        if (!razonSelect || !placeSelect) return;
+        
+        // Ejecutar una vez al inicio por si hay algo preseleccionado
+        filtrar(razonSelect, placeSelect, allPlaces);
+
+        razonSelect.addEventListener('change', function() {
+            filtrar(this, placeSelect, allPlaces);
+        });
+    }
+
+    function filtrar(selectOrigen, selectDestino, data) {
+        const selectedRazonId = selectOrigen.value;
+        // Limpiar opciones actuales (manteniendo la opción por defecto)
+        selectDestino.innerHTML = '<option value="">Seleccione un condominio</option>';
+        
+        if (!selectedRazonId) return;
+        
+        // Filtrar y agregar las nuevas opciones
+        const filteredPlaces = data.filter(p => p.ID_RazonSocial == selectedRazonId);
+        
+        filteredPlaces.forEach(place => {
+            const option = document.createElement('option');
+            option.value = place.ID_Place;
+            option.textContent = place.Nombre_Corto;
+            selectDestino.appendChild(option);
+        });
+    }
+
+    // Inicializar para los tres formularios
+    updatePlaces('razonSocialMaterial', 'placeMaterial');
+    updatePlaces('razonSocialSinCotizar', 'placeSinCotizar');
+    updatePlaces('razonSocialServicio', 'placeServicio');
+}
+
+// Ejecutar inmediatamente (ya que se carga por AJAX)
+setTimeout(initPlaceSelectors, 300); // Pequeño delay para asegurar que los elementos existan
+</script>
+<?php endif; ?>

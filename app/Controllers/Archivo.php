@@ -127,19 +127,36 @@ class Archivo extends BaseController
                     $etiquetaTrazabilidad = "Solicitud originada por: [$nombreDeptoOrig - $nombreRSOrig].";
                 }
 
+                // Verificamos si es el departamento especial
+                $deptoLower = mb_strtolower(trim($nombreDeptoOrig));
+                $isDeptoEspecial = (strpos($deptoLower, 'operacion') !== false || strpos($deptoLower, 'operación') !== false);
+
                 // 2. Buscar el ID_Dpto en la Razón Social seleccionada (Destino)
                 if (!empty($razon_social_id)) {
-                    $deptoDestino = $departamentoModel
-                        ->select('Departamentos.ID_Dpto, Departamentos.ID_UnidadOperativa')
-                        ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa')
-                        ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')
-                        ->where('Places.ID_RazonSocial', $razon_social_id)
-                        ->where('Departamentos.Nombre', $nombreDeptoOrig)
-                        ->first();
+                    if ($isDeptoEspecial && !empty($post['id_place'])) {
+                        // Lógica especial para 'Operacion': Usar el Place seleccionado para determinar la Unidad Operativa
+                        $idPlaceDestino = $post['id_place'];
+                        // Buscamos la primera unidad operativa asociada a este Place (ya que la real se definirá por la partida)
+                        $unidadDestino = $uniModel->where('ID_Place', $idPlaceDestino)->where('activo', true)->first();
+                        
+                        if ($unidadDestino) {
+                            $idUnidadFinal = $unidadDestino['ID_UnidadOperativa'];
+                            // El departamento sigue siendo el de Operacion, no buscamos homónimo
+                        }
+                    } else {
+                        // Lógica normal: Buscar homónimo
+                        $deptoDestino = $departamentoModel
+                            ->select('Departamentos.ID_Dpto, Departamentos.ID_UnidadOperativa')
+                            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa')
+                            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')
+                            ->where('Places.ID_RazonSocial', $razon_social_id)
+                            ->where('Departamentos.Nombre', $nombreDeptoOrig)
+                            ->first();
 
-                    if ($deptoDestino) {
-                        $idDptoFinal = $deptoDestino['ID_Dpto'];
-                        $idUnidadFinal = $deptoDestino['ID_UnidadOperativa'];
+                        if ($deptoDestino) {
+                            $idDptoFinal = $deptoDestino['ID_Dpto'];
+                            $idUnidadFinal = $deptoDestino['ID_UnidadOperativa'];
+                        }
                     }
                 }
             }
