@@ -99,6 +99,7 @@ function abrirModal(opcion) {
     SaldosBancarios: 'Saldos de Bancos',
     SegmentoNegocio: 'Segmentos de Negocio',
     UnidadOperativa: 'Unidades operativas',
+    AjustesPresupuesto: 'Ajustes presupuestales',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
