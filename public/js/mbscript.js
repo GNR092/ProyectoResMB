@@ -103,6 +103,7 @@ function abrirModal(opcion) {
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
+
   titulo.innerText = titulos[opcion] ?? 'Opción'
 
   // Si el modal ya está abierto, iniciamos la animación de salida mientras carga la nueva vista

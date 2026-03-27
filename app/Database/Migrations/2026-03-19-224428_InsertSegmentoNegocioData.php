@@ -33,6 +33,46 @@ class InsertSegmentoNegocioData extends Migration
                 'created_at'      => '2026-03-10 17:03:56',
                 'updated_at'      => '2026-03-10 23:57:53',
             ],
+            [
+                'id'              => 4,
+                'id_razon_social' => 2,
+                'nombre'          => 'Presupuesto Para Residen',
+                'descripcion'     => 'Presupuesto Para Residen',
+                'created_at'      => '2026-03-26 12:05:27',
+                'updated_at'      => '2026-03-26 12:05:27',
+            ],
+            [
+                'id'              => 5,
+                'id_razon_social' => 2,
+                'nombre'          => 'Presupuesto Para Temozon 122',
+                'descripcion'     => 'Presupuesto Para Temozon 122',
+                'created_at'      => '2026-03-26 12:05:31',
+                'updated_at'      => '2026-03-26 12:05:31',
+            ],
+            [
+                'id'              => 6,
+                'id_razon_social' => 2,
+                'nombre'          => 'Presupuesto Aldea Borboleta 3',
+                'descripcion'     => 'Presupuesto Aldea Borboleta 2',
+                'created_at'      => '2026-03-26 12:05:37',
+                'updated_at'      => '2026-03-26 12:05:37',
+            ],
+            [
+                'id'              => 7,
+                'id_razon_social' => 2,
+                'nombre'          => 'Presupuesto Aldea Borboleta 2',
+                'descripcion'     => 'Presupuesto Aldea Borboleta 2',
+                'created_at'      => '2026-03-26 12:05:41',
+                'updated_at'      => '2026-03-26 12:05:41',
+            ],
+            [
+                'id'              => 8,
+                'id_razon_social' => 2,
+                'nombre'          => 'Presupuesto Aldea Borboleta 1',
+                'descripcion'     => 'Presupuesto del condominio aldea borboleta 1',
+                'created_at'      => '2026-03-26 12:05:44',
+                'updated_at'      => '2026-03-26 12:05:44',
+            ],
         ];
 
         $this->db->table('segmento_negocio')->insertBatch($data);
@@ -40,7 +80,7 @@ class InsertSegmentoNegocioData extends Migration
 
     public function down()
     {
-        $insertedIds = [1, 2, 3];
+        $insertedIds = [1, 2, 3, 4, 5, 6, 7, 8];
 
         $this->db->table('segmento_negocio')->whereIn('id', $insertedIds)->delete();
     }
