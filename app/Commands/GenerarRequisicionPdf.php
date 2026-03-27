@@ -10,6 +10,9 @@ class GenerarRequisicionPdf extends BaseCommand
     protected $group = 'Generacion';
     protected $name = 'generar:requisicion-pdf';
     protected $description = 'Genera PDFs de requisicion que no existan (excluye canceladas)';
+    protected $usage = 'generar:requisicion-pdf';
+    protected $arguments = [];
+    protected $options = [];
 
     public function run(array $params)
     {
