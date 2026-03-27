@@ -826,7 +826,46 @@ class PresupuestoApiController extends ResourceController
     public function getCambiosPendientes()
     {
         $model = new \App\Models\SolicitudesCambioPresupuestoModel();
-        return $this->respond($model->getPendientes());
+        $cambios = $model->getPendientes();
+        
+        $db = \Config\Database::connect();
+        
+        foreach ($cambios as &$c) {
+            $c['Datos_Payload'] = $this->enrichPayload($c['Datos_Payload'], $db);
+            $c['Datos_Antiguos'] = $this->enrichPayload($c['Datos_Antiguos'], $db);
+        }
+        
+        return $this->respond($cambios);
+    }
+
+    private function enrichPayload($json, $db) {
+        if (!$json) return $json;
+        $data = json_decode($json, true);
+        if (!is_array($data)) return $json;
+
+        $mappings = [
+            'ID_UnidadOperativa' => ['table' => 'UnidadOperativa', 'col' => 'ID_UnidadOperativa', 'name' => 'Nombre'],
+            'id_unidad'          => ['table' => 'UnidadOperativa', 'col' => 'ID_UnidadOperativa', 'name' => 'Nombre'],
+            'id_dpto'            => ['table' => 'UnidadOperativa', 'col' => 'ID_UnidadOperativa', 'name' => 'Nombre'],
+            'ID_Place'           => ['table' => 'Places',           'col' => 'ID_Place',           'name' => 'Nombre_Corto'],
+            'ID_RazonSocial'     => ['table' => 'Razon_Social',     'col' => 'ID_RazonSocial',     'name' => 'Nombre'],
+            'id_segmento'        => ['table' => 'segmento_negocio', 'col' => 'id',               'name' => 'nombre'],
+            'ID_Segmento'        => ['table' => 'segmento_negocio', 'col' => 'id',               'name' => 'nombre'],
+            'id_bancodpto'       => ['table' => 'BancoDpto',        'col' => 'ID_BancoDpto',       'name' => 'Banco'],
+            'ID_BancoDpto'       => ['table' => 'BancoDpto',        'col' => 'ID_BancoDpto',       'name' => 'Banco'],
+            'ID_Usuario'         => ['table' => 'Usuarios',         'col' => 'ID_Usuario',         'name' => 'Nombre'],
+        ];
+        
+        foreach ($mappings as $key => $map) {
+            if (isset($data[$key]) && !empty($data[$key]) && is_numeric($data[$key])) {
+                $res = $db->table($map['table'])->where($map['col'], $data[$key])->get()->getRow();
+                if ($res) {
+                    $nameField = $map['name'];
+                    $data[$key] = $res->$nameField . " (#" . $data[$key] . ")";
+                }
+            }
+        }
+        return json_encode($data);
     }
 
     public function dictaminarCambio()

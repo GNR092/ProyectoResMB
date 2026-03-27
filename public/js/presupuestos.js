@@ -1667,9 +1667,21 @@ function initAjustesPresupuesto() {
       if (s.Accion === 'Insertar' || s.Accion === 'Masivo') accionClass = 'bg-green-100 text-green-800';
       else if (s.Accion === 'Eliminar') accionClass = 'bg-red-100 text-red-800';
 
+      let nombreRef = s.ID_Afectado || '#' + s.ID_SolicitudCambio;
+      try {
+          const p = JSON.parse(s.Datos_Payload || '{}');
+          const a = JSON.parse(s.Datos_Antiguos || '{}');
+
+          // Preferir campos de nombre, luego IDs (que vienen enriquecidos del backend)
+          nombreRef = a.Nombre || p.Nombre || a.nombre || p.nombre || a.Banco || p.Banco || 
+                      a.ID_UnidadOperativa || p.ID_UnidadOperativa || 
+                      a.ID_Place || p.ID_Place || 
+                      a.ID_RazonSocial || p.ID_RazonSocial || 
+                      nombreRef;
+      } catch (e) {}
       return `
       <tr class='hover:bg-gray-50' data-id='${s.ID_SolicitudCambio}'>
-          <td class='py-3 px-6 text-left font-medium text-gray-800'>${s.ID_SolicitudCambio}</td>
+          <td class='py-3 px-6 text-left font-medium text-gray-800'>${nombreRef}</td>
           <td class='py-3 px-6 text-left'>${s.NombreUsuario || 'Desconocido'}</td>
           <td class='py-3 px-6 text-left font-semibold text-blue-600'>${s.Modulo}</td>
           <td class='py-3 px-6 text-left'>
@@ -1680,8 +1692,7 @@ function initAjustesPresupuesto() {
               <button onclick='mostrarDetalleAjuste(${s.ID_SolicitudCambio})' class='px-4 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-600 hover:text-white transition-colors text-sm font-semibold'>Revisar</button>
           </td>
       </tr>`;
-    }
-  });
+    }  });
 }
 
 window.mostrarDetalleAjuste = async function(id) {
@@ -1702,6 +1713,17 @@ window.mostrarDetalleAjuste = async function(id) {
     const payloadNew = JSON.parse(data.Datos_Payload || '{}');
     const payloadOld = JSON.parse(data.Datos_Antiguos || '{}');
     
+    let nombreRef = data.ID_Afectado || '#' + data.ID_SolicitudCambio;
+    try {
+        nombreRef = payloadOld.Nombre || payloadNew.Nombre || payloadOld.nombre || payloadNew.nombre || payloadOld.Banco || payloadNew.Banco || 
+                    payloadOld.ID_UnidadOperativa || payloadNew.ID_UnidadOperativa || 
+                    payloadOld.ID_Place || payloadNew.ID_Place || 
+                    payloadOld.ID_RazonSocial || payloadNew.ID_RazonSocial || 
+                    nombreRef;
+    } catch (e) {}
+
+    document.getElementById('titulo-detalle-ajuste').innerText = `Detalles de la Solicitud: ${nombreRef}`;
+
     let htmlDiff = '';
 
     // Lógica para comparar Masivos (Presupuestos o Saldos)
@@ -1834,6 +1856,7 @@ window.mostrarDetalleAjuste = async function(id) {
     let html = `
         <div class="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
             <div><span class="block text-xs font-bold text-gray-500 uppercase">Módulo</span><span class="text-lg font-semibold text-gray-800">${data.Modulo}</span></div>
+            <div><span class="block text-xs font-bold text-gray-500 uppercase">Referencia</span><span class="text-lg font-semibold text-gray-800">${nombreRef}</span></div>
             <div><span class="block text-xs font-bold text-gray-500 uppercase">Acción Solicitada</span><span class="text-lg font-semibold text-gray-800">${data.Accion}</span></div>
             <div><span class="block text-xs font-bold text-gray-500 uppercase">Solicitante</span><span class="text-gray-800">${data.NombreUsuario}</span></div>
             <div><span class="block text-xs font-bold text-gray-500 uppercase">Fecha</span><span class="text-gray-800">${data.created_at}</span></div>
