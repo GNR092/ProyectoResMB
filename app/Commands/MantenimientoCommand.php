@@ -14,7 +14,7 @@ class MantenimientoCommand extends BaseCommand
 
     protected $description = 'Gestiona el modo mantenimiento del sistema';
 
-    protected $usage = 'maintenance:on [--roles=Admin,Usuario] [--message=Mensaje] | maintenance:off | maintenance:status';
+    protected $usage = 'maintenance [on|off|status] [--roles=Admin,Usuario] [--message="Mensaje"]';
 
     protected $arguments = [];
 
