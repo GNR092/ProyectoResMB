@@ -148,6 +148,7 @@ function abrirModal(opcion) {
         AjustesPresupuesto: initAjustesPresupuesto,
         UnidadOperativa: initCrudUnidades,
         SegmentoNegocio: initCrudSegmentos,
+        solicitar_material: initSolicitarMaterialTodo,
       }
 
       const inicializador = inicializadores[opcion]
@@ -187,7 +188,7 @@ function cerrarModal() {
  * Lógica para el modal "Solicitar Material"
  */
 function initPlaceSelectors(allPlaces) {
-  if (!allPlaces || allPlaces.length === 0) return
+  if (!allPlaces || !Array.isArray(allPlaces) || allPlaces.length === 0) return
 
   const mappings = [
     { razon: 'razonSocialMaterial', place: 'placeMaterial' },
@@ -200,21 +201,41 @@ function initPlaceSelectors(allPlaces) {
     const placeSelect = document.getElementById(map.place)
 
     if (razonSelect && placeSelect) {
+      // Eliminar el listener anterior si existe para evitar duplicados
+      if (razonSelect._filterHandler) {
+        razonSelect.removeEventListener('change', razonSelect._filterHandler)
+      }
+
       const filtrar = () => {
         const selectedId = razonSelect.value
         placeSelect.innerHTML = '<option value="">Seleccione un condominio</option>'
         if (!selectedId) return
 
-        const filtered = allPlaces.filter((p) => p.ID_RazonSocial == selectedId)
+        // Filtrado robusto (maneja posibles variaciones en los nombres de las propiedades)
+        const filtered = allPlaces.filter((p) => {
+          // Buscamos en todas las variantes posibles que PostgreSQL/PHP podrían retornar
+          const rsId = p.ID_RazonSocial || p.id_razon_social || p.id_razonsocial || p.Id_RazonSocial
+          return String(rsId) === String(selectedId)
+        })
+
+        // Evitar duplicados por ID_Place
+        const seen = new Set()
         filtered.forEach((p) => {
-          const opt = document.createElement('option')
-          opt.value = p.ID_Place
-          opt.textContent = p.Nombre_Corto
-          placeSelect.appendChild(opt)
+          const placeId = p.ID_Place || p.id_place
+          if (placeId && !seen.has(placeId)) {
+            seen.add(placeId)
+            const opt = document.createElement('option')
+            opt.value = placeId
+            opt.textContent = p.Nombre_Corto || p.nombre_corto || 'Place ' + placeId
+            placeSelect.appendChild(opt)
+          }
         })
       }
 
+      // Guardar el handler en el elemento para poder removerlo después
+      razonSelect._filterHandler = filtrar
       razonSelect.addEventListener('change', filtrar)
+      
       // Ejecutar una vez por si hay algo preseleccionado
       filtrar()
     }
@@ -707,6 +728,17 @@ function regresarSubmenuMaterial() {
   document.getElementById('solicitar-material-content').classList.add('hidden')
   document.getElementById('solicitar-material-sin-cotizar').classList.add('hidden')
   document.getElementById('submenu-material').classList.remove('hidden')
+}
+
+/**
+ * Inicializador general para el modal de Solicitar Material (Requisiciones)
+ * Ejecuta los inicializadores de todas las sub-secciones para que los selectores
+ * estén listos desde que se abre el modal.
+ */
+function initSolicitarMaterialTodo() {
+  initSolicitarMaterial()
+  initSolicitarMaterialSinCotizar()
+  initSolicitarServicio()
 }
 
 /**

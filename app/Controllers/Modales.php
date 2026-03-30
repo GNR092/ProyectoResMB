@@ -86,21 +86,10 @@ class Modales extends BaseController
                         ->findAll();
                     
                     // También enviamos todos los places para que JS los filtre
-                    // Vinculación robusta: Places -> Razon_Social OR Places -> segmento_negocio -> Razon_Social
+                    // Vinculación directa únicamente: Places -> ID_RazonSocial
                     $sqlPlaces = "
-                        SELECT p.\"ID_Place\", p.\"Nombre_Corto\", rs.\"ID_RazonSocial\"
-                        FROM \"Places\" p
-                        JOIN \"Razon_Social\" rs ON rs.\"ID_RazonSocial\" = p.\"ID_RazonSocial\"
-                        WHERE p.\"activo\" = true
-                        
-                        UNION
-                        
-                        SELECT p.\"ID_Place\", p.\"Nombre_Corto\", rs.\"ID_RazonSocial\"
-                        FROM \"Places\" p
-                        JOIN \"segmento_negocio\" sn ON sn.\"id\" = p.\"id_segmento\"
-                        JOIN \"Razon_Social\" rs ON rs.\"ID_RazonSocial\" = sn.\"id_razon_social\"
-                        WHERE p.\"activo\" = true
-                        
+                        SELECT \"ID_Place\", \"Nombre_Corto\", \"ID_RazonSocial\"
+                        FROM \"Places\"
                         ORDER BY \"Nombre_Corto\" ASC
                     ";
                     $data['all_places'] = $db->query($sqlPlaces)->getResultArray();
