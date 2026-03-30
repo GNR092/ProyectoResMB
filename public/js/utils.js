@@ -490,10 +490,25 @@ function generarProductosServiciosHTML(data) {
 
   data.productos.forEach((p) => {
     const costoTotal = iva ? 1.16 * (p.Cantidad * p.Importe) : p.Cantidad * p.Importe
+    
+    // Verificamos si este producto pertenece a un grupo sin presupuesto (solo para dictamen)
+    let sinPresupuesto = false;
+    if (data.presupuestos_detallados) {
+        const pDetalle = data.presupuestos_detallados.find(d => d.ID_GrupoPresupuestal == p.ID_GrupoPresupuestal);
+        if (pDetalle && pDetalle.SinPresupuesto) {
+            sinPresupuesto = true;
+        }
+    }
+
+    const rowClass = sinPresupuesto ? 'bg-red-50 blink-row-red' : 'hover:bg-gray-50';
+
     html += `
-                <tr class="hover:bg-gray-50">
+                <tr class="${rowClass}">
                     <td class="py-2 px-4 border-t">${p.Codigo || 'N/A'} </td>
-                    <td class="py-2 px-4 border-t">${p.Nombre}</td>
+                    <td class="py-2 px-4 border-t">
+                        ${p.Nombre}
+                        ${sinPresupuesto ? '<br><span class="text-[10px] text-red-600 font-bold uppercase">⚠️ Sin presupuesto asignado para este mes</span>' : ''}
+                    </td>
                     ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">${p.Cantidad}</td>`}
                     <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
                     ${iva ? `<td class="py-2 px-4 border-t text-right">$${parseFloat(0.16 * p.Importe).toFixed(2)}</td>` : ''}

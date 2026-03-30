@@ -1584,64 +1584,85 @@ async function initDictamenSolicitudes() {
 }
 
 /**
- * Genera el HTML para la barra de presupuesto y el semáforo
+ * Genera el HTML para una barra de presupuesto individual
+ * Fondo Verde (Total), Rojo (Usado), Amarillo Parpadeante (Impacto de esta solicitud)
  */
-function generarBarraPresupuestoHTML(data) {
-  if (!data.presupuesto_actual) return ''
+function generarBarraPresupuestoHTML(presupuesto) {
+  if (!presupuesto) return ''
 
-  const p = data.presupuesto_actual
-  const asignado = parseFloat(p.Monto_Asignado || 0)
-  const comprometido = parseFloat(p.Monto_Comprometido || 0)
-  const ejecutado = parseFloat(p.Monto_Ejecutado || 0)
-  const totalGasto = comprometido + ejecutado
-  const disponible = asignado - totalGasto
-  const porcentaje = asignado > 0 ? Math.min(100, Math.round((totalGasto / asignado) * 100)) : 0
-
-  let colorBarra = 'bg-green-500'
-  let colorTexto = 'text-green-600'
-
-  if (porcentaje >= 100) {
-    colorBarra = 'bg-red-600'
-    colorTexto = 'text-red-600'
-  } else if (porcentaje >= 80) {
-    colorBarra = 'bg-orange-500'
-    colorTexto = 'text-orange-600'
-  }
+  const asignado = parseFloat(presupuesto.Monto_Asignado || 0)
+  const comprometido = parseFloat(presupuesto.Monto_Comprometido || 0)
+  const ejecutado = parseFloat(presupuesto.Monto_Ejecutado || 0)
+  const montoImpacto = parseFloat(presupuesto.ImpactoActual || 0)
+  
+  const usadoAnterior = comprometido + ejecutado
+  const totalConImpacto = usadoAnterior + montoImpacto
+  
+  // Porcentajes para la barra
+  const pctUsado = asignado > 0 ? Math.min(100, (usadoAnterior / asignado) * 100) : 0
+  const pctImpacto = asignado > 0 ? Math.min(100 - pctUsado, (montoImpacto / asignado) * 100) : 0
+  
+  // Lógica de aviso de excedente
+  const excedePresupuesto = totalConImpacto > asignado
+  const montoExcedido = totalConImpacto - asignado
 
   const fmt = (m) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(m)
 
   return `
-        <div class="bg-white p-4 border rounded-lg shadow-sm border-gray-200 mb-6">
+        <style>
+            @keyframes budget-blink-alt {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+            .blink-budget-new {
+                animation: budget-blink-alt 0.8s ease-in-out infinite alternate;
+            }
+            @keyframes row-blink-red {
+                from { background-color: #fee2e2; }
+                to { background-color: #ffffff; }
+            }
+            .blink-row-red {
+                animation: row-blink-red 1s ease-in-out infinite alternate;
+            }
+        </style>
+        <div class="bg-white p-4 border rounded-lg shadow-sm border-gray-200 mb-4">
             <div class="flex justify-between items-center mb-2">
-                <h4 class="text-sm font-bold text-gray-700">Estado de Presupuesto: <span class="text-blue-600">${
-                  p.GrupoNombre || 'N/A'
-                }</span></h4>
-                <span class="text-xs font-bold ${colorTexto}">${porcentaje}% Utilizado</span>
+                <h4 class="text-sm font-bold text-gray-700">Partida: <span class="text-blue-600">${presupuesto.GrupoNombre || 'N/A'}</span></h4>
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] text-gray-500 font-bold uppercase">Impacto de Solicitud: ${fmt(montoImpacto)}</span>
+                    ${presupuesto.SinPresupuesto ? '<span class="text-[10px] text-red-700 font-black animate-pulse">🛑 BLOQUEADO: SIN PRESUPUESTO ASIGNADO</span>' : (excedePresupuesto ? `<span class="text-[10px] text-red-600 font-black animate-pulse">⚠️ EXCEDE PRESUPUESTO POR ${fmt(montoExcedido)}</span>` : '')}
+                </div>
             </div>
             
-            <div class="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden border border-gray-100">
-                <div class="${colorBarra} h-full rounded-full transition-all duration-500" style="width: ${porcentaje}%"></div>
+            <!-- Contenedor Barra: Fondo Verde (Asignado) -->
+            <div class="w-full ${presupuesto.SinPresupuesto ? 'bg-gray-300' : 'bg-green-500'} rounded-full h-6 mb-4 overflow-hidden border border-gray-300 relative">
+                ${presupuesto.SinPresupuesto ? 
+                    `<div class="bg-red-600 h-full w-full opacity-20 absolute top-0 left-0"></div>` :
+                    `<!-- Capa Roja: Lo ya usado (Comprometido + Ejecutado) -->
+                    <div class="bg-red-600 h-full absolute left-0 top-0 transition-all duration-500" style="width: ${pctUsado}%"></div>
+                    
+                    <!-- Capa Amarilla: Impacto de los productos de esta partida (Parpadeante) -->
+                    <div class="bg-yellow-400 h-full absolute blink-budget-new transition-all duration-500" style="left: ${pctUsado}%; width: ${pctImpacto}%"></div>`
+                }
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
-                    <p class="text-[10px] uppercase text-gray-500 font-semibold">Asignado</p>
-                    <p class="text-sm font-bold text-gray-800">${fmt(asignado)}</p>
+                    <p class="text-[9px] uppercase text-gray-500 font-bold">Total Asignado</p>
+                    <p class="text-xs font-bold ${presupuesto.SinPresupuesto ? 'text-red-600' : 'text-gray-800'}">${presupuesto.SinPresupuesto ? 'NO CONFIG.' : fmt(asignado)}</p>
                 </div>
                 <div>
-                    <p class="text-[10px] uppercase text-gray-500 font-semibold">Comprometido</p>
-                    <p class="text-sm font-bold text-blue-600">${fmt(comprometido)}</p>
+                    <p class="text-[9px] uppercase text-red-600 font-bold">Usado Anterior</p>
+                    <p class="text-xs font-bold text-red-600">${fmt(usadoAnterior)}</p>
                 </div>
                 <div>
-                    <p class="text-[10px] uppercase text-gray-500 font-semibold">Ejecutado</p>
-                    <p class="text-sm font-bold text-indigo-600">${fmt(ejecutado)}</p>
+                    <p class="text-[9px] uppercase text-yellow-600 font-bold">Solicitud Actual</p>
+                    <p class="text-xs font-bold text-yellow-600">${fmt(montoImpacto)}</p>
                 </div>
                 <div>
-                    <p class="text-[10px] uppercase text-gray-500 font-semibold">Disponible</p>
-                    <p class="text-sm font-bold ${disponible < 0 ? 'text-red-600' : 'text-green-600'}">${fmt(
-    disponible,
-  )}</p>
+                    <p class="text-[9px] uppercase text-gray-500 font-bold">Saldo Final</p>
+                    <p class="text-xs font-bold ${asignado - totalConImpacto < 0 || presupuesto.SinPresupuesto ? 'text-red-600' : 'text-green-600'}">${presupuesto.SinPresupuesto ? 'N/A' : fmt(asignado - totalConImpacto)}</p>
                 </div>
             </div>
         </div>
@@ -1663,10 +1684,41 @@ window.mostrarVerDictamen = async function (idSolicitud) {
     let html = generarDetallesSolicitudHTML(data)
 
     // --- INTEGRACIÓN DE BARRA DE PRESUPUESTO (SEMÁFORO) ---
+    let tieneBloqueoPresupuesto = false
+    let tieneGruposAsignados = false
     const presupuestoContainer = document.getElementById('presupuesto-resumen-container')
+    
     if (presupuestoContainer) {
-      if (data.presupuesto_actual) {
-        presupuestoContainer.innerHTML = generarBarraPresupuestoHTML(data)
+      if (data.presupuestos_detallados && data.presupuestos_detallados.length > 0) {
+        tieneGruposAsignados = true
+        let presupuestoHtml = ''
+        data.presupuestos_detallados.forEach((pres) => {
+          if (pres.SinPresupuesto) tieneBloqueoPresupuesto = true
+          presupuestoHtml += generarBarraPresupuestoHTML(pres)
+        })
+        presupuestoContainer.innerHTML = presupuestoHtml
+        presupuestoContainer.classList.remove('hidden')
+      } else if (data.Tipo != 2) {
+        // Es material pero no tiene grupos asignados
+        presupuestoContainer.innerHTML = `
+          <div class="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 shadow-sm">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-orange-700 font-bold">
+                  Aviso: Esta solicitud no tiene partidas presupuestales asignadas a sus productos.
+                </p>
+                <p class="text-xs text-orange-600">
+                  Podrá aprobarla, pero no se descontará de ningún presupuesto mensual.
+                </p>
+              </div>
+            </div>
+          </div>
+        `
         presupuestoContainer.classList.remove('hidden')
       } else {
         presupuestoContainer.innerHTML = ''
@@ -1704,8 +1756,25 @@ window.mostrarVerDictamen = async function (idSolicitud) {
 
     // Solo mostrar botones de acción si la solicitud está 'En revision'
     if (data.Estado === 'En revision') {
+      let btnAprobar = '';
+      
+      if (tieneBloqueoPresupuesto) {
+        btnAprobar = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded relative text-sm font-bold animate-pulse">
+             ⚠️ No se puede aprobar: Hay productos sin presupuesto asignado para este mes.
+           </div>`;
+      } else {
+        // Si es material y NO tiene grupos asignados, pedimos confirmación especial
+        const mensajeExtra = (!tieneGruposAsignados && data.Tipo != 2) 
+          ? "'Esta solicitud NO tiene partidas presupuestales. ¿Deseas aprobarla de todos modos?'" 
+          : "null";
+
+        btnAprobar = `<button onclick="dictaminarDictamen(${idSolicitud}, 'Aprobada', ${mensajeExtra})" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
+                        Aprobar
+                    </button>`;
+      }
+
       html += `
-                <div class="mt-8 flex justify-end space-x-4 border-t pt-6">
+                <div class="mt-8 flex items-center justify-end space-x-4 border-t pt-6">
                     <button onclick="mostrarVerPdf(${idSolicitud}, 1)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
                     Ver PDF
                     </button>
@@ -1715,9 +1784,7 @@ window.mostrarVerDictamen = async function (idSolicitud) {
         Cancelar Solicitud
     </button>
     
-                    <button onclick="dictaminarDictamen(${idSolicitud}, 'Aprobada')" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition">
-                        Aprobar
-                    </button>
+                    ${btnAprobar}
                 </div>
             `
     }
@@ -1734,7 +1801,11 @@ window.regresarTablaDictamen = function () {
   document.getElementById('div-tabla').classList.remove('hidden')
 }
 
-window.dictaminarDictamen = async function (idSolicitud, nuevoEstado) {
+window.dictaminarDictamen = async function (idSolicitud, nuevoEstado, mensajeExtra = null) {
+  if (mensajeExtra) {
+    if (!(await Confirmar('Atención', mensajeExtra))) return
+  }
+
   const esAprobacion = nuevoEstado === 'Aprobada'
   const title = esAprobacion ? 'Aprobar Solicitud' : 'Rechazar Solicitud'
   const message = esAprobacion

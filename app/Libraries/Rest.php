@@ -529,34 +529,58 @@ class Rest
                 ->where('ID_Solicitud', $id)
                 ->findAll();
 
-            // --- LÓGICA DE PRESUPUESTO PARA DICTAMEN ---
-            // Si hay productos con grupo presupuestal, intentamos obtener el presupuesto actual
-            $primerProductoConGrupo = null;
+            // --- LÓGICA DE PRESUPUESTO MULTI-GRUPO PARA DICTAMEN ---
+            $impactoPorGrupo = [];
             foreach ($productos as $p) {
                 if (!empty($p['ID_GrupoPresupuestal'])) {
-                    $primerProductoConGrupo = $p;
-                    break;
+                    $idG = $p['ID_GrupoPresupuestal'];
+                    if (!isset($impactoPorGrupo[$idG])) {
+                        $impactoPorGrupo[$idG] = [
+                            'ID_GrupoPresupuestal' => $idG,
+                            'Nombre' => $p['GrupoPresupuestalNombre'],
+                            'MontoImpacto' => 0
+                        ];
+                    }
+                    // Sumamos el importe del producto al impacto de este grupo
+                    $impactoPorGrupo[$idG]['MontoImpacto'] += (float)($p['Importe'] ?? 0);
                 }
             }
 
-            if ($primerProductoConGrupo) {
+            if (!empty($impactoPorGrupo)) {
                 $presupuestoMensualModel = new \App\Models\PresupuestoMensualModel();
                 $fechaSolicitud = $solicitud['Fecha'] ?? date('Y-m-d');
                 $anio = date('Y', strtotime($fechaSolicitud));
                 $mes = date('n', strtotime($fechaSolicitud));
 
-                $presupuesto = $presupuestoMensualModel
-                    ->where('ID_GrupoPresupuestal', $primerProductoConGrupo['ID_GrupoPresupuestal'])
-                    ->where('Anio', $anio)
-                    ->where('Mes', $mes)
-                    ->first();
-                
-                if ($presupuesto) {
-                    $solicitud['presupuesto_actual'] = $presupuesto;
-                    $solicitud['presupuesto_actual']['GrupoNombre'] = $primerProductoConGrupo['GrupoPresupuestalNombre'];
+                $solicitud['presupuestos_detallados'] = [];
+
+                foreach ($impactoPorGrupo as $idG => $info) {
+                    $presupuesto = $presupuestoMensualModel
+                        ->where('ID_GrupoPresupuestal', $idG)
+                        ->where('Anio', $anio)
+                        ->where('Mes', $mes)
+                        ->first();
+                    
+                    if ($presupuesto) {
+                        $presupuesto['GrupoNombre'] = $info['Nombre'];
+                        $presupuesto['ImpactoActual'] = $info['MontoImpacto'];
+                        $presupuesto['SinPresupuesto'] = false;
+                        $solicitud['presupuestos_detallados'][] = $presupuesto;
+                    } else {
+                        // Si no hay presupuesto asignado, devolvemos un objeto marcado
+                        $solicitud['presupuestos_detallados'][] = [
+                            'ID_GrupoPresupuestal' => $idG,
+                            'GrupoNombre' => $info['Nombre'],
+                            'ImpactoActual' => $info['MontoImpacto'],
+                            'SinPresupuesto' => true,
+                            'Monto_Asignado' => 0,
+                            'Monto_Comprometido' => 0,
+                            'Monto_Ejecutado' => 0
+                        ];
+                    }
                 }
             }
-            // --------------------------------------------
+            // -------------------------------------------------------
         } else {
             $solicitudServicioModel = new SolicitudServiciosModel();
             $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
@@ -698,34 +722,58 @@ class Rest
                 ->where('ID_Solicitud', $id)
                 ->findAll();
 
-            // --- LÓGICA DE PRESUPUESTO PARA DICTAMEN ---
-            // Si hay productos con grupo presupuestal, intentamos obtener el presupuesto actual
-            $primerProductoConGrupo = null;
+            // --- LÓGICA DE PRESUPUESTO MULTI-GRUPO PARA DICTAMEN ---
+            $impactoPorGrupo = [];
             foreach ($productos as $p) {
                 if (!empty($p['ID_GrupoPresupuestal'])) {
-                    $primerProductoConGrupo = $p;
-                    break;
+                    $idG = $p['ID_GrupoPresupuestal'];
+                    if (!isset($impactoPorGrupo[$idG])) {
+                        $impactoPorGrupo[$idG] = [
+                            'ID_GrupoPresupuestal' => $idG,
+                            'Nombre' => $p['GrupoPresupuestalNombre'],
+                            'MontoImpacto' => 0
+                        ];
+                    }
+                    // Sumamos el importe del producto al impacto de este grupo
+                    $impactoPorGrupo[$idG]['MontoImpacto'] += (float)($p['Importe'] ?? 0);
                 }
             }
 
-            if ($primerProductoConGrupo) {
+            if (!empty($impactoPorGrupo)) {
                 $presupuestoMensualModel = new \App\Models\PresupuestoMensualModel();
                 $fechaSolicitud = $solicitud['Fecha'] ?? date('Y-m-d');
                 $anio = date('Y', strtotime($fechaSolicitud));
                 $mes = date('n', strtotime($fechaSolicitud));
 
-                $presupuesto = $presupuestoMensualModel
-                    ->where('ID_GrupoPresupuestal', $primerProductoConGrupo['ID_GrupoPresupuestal'])
-                    ->where('Anio', $anio)
-                    ->where('Mes', $mes)
-                    ->first();
-                
-                if ($presupuesto) {
-                    $solicitud['presupuesto_actual'] = $presupuesto;
-                    $solicitud['presupuesto_actual']['GrupoNombre'] = $primerProductoConGrupo['GrupoPresupuestalNombre'];
+                $solicitud['presupuestos_detallados'] = [];
+
+                foreach ($impactoPorGrupo as $idG => $info) {
+                    $presupuesto = $presupuestoMensualModel
+                        ->where('ID_GrupoPresupuestal', $idG)
+                        ->where('Anio', $anio)
+                        ->where('Mes', $mes)
+                        ->first();
+                    
+                    if ($presupuesto) {
+                        $presupuesto['GrupoNombre'] = $info['Nombre'];
+                        $presupuesto['ImpactoActual'] = $info['MontoImpacto'];
+                        $presupuesto['SinPresupuesto'] = false;
+                        $solicitud['presupuestos_detallados'][] = $presupuesto;
+                    } else {
+                        // Si no hay presupuesto asignado, devolvemos un objeto marcado
+                        $solicitud['presupuestos_detallados'][] = [
+                            'ID_GrupoPresupuestal' => $idG,
+                            'GrupoNombre' => $info['Nombre'],
+                            'ImpactoActual' => $info['MontoImpacto'],
+                            'SinPresupuesto' => true,
+                            'Monto_Asignado' => 0,
+                            'Monto_Comprometido' => 0,
+                            'Monto_Ejecutado' => 0
+                        ];
+                    }
                 }
             }
-            // --------------------------------------------
+            // -------------------------------------------------------
         } else {
             $solicitudServicioModel = new SolicitudServiciosModel();
             $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
