@@ -148,6 +148,7 @@ function abrirModal(opcion) {
         AjustesPresupuesto: initAjustesPresupuesto,
         UnidadOperativa: initCrudUnidades,
         SegmentoNegocio: initCrudSegmentos,
+        solicitar_material: initSolicitarMaterialTodo,
       }
 
       const inicializador = inicializadores[opcion]
@@ -186,6 +187,61 @@ function cerrarModal() {
 /**
  * Lógica para el modal "Solicitar Material"
  */
+function initPlaceSelectors(allPlaces) {
+  if (!allPlaces || !Array.isArray(allPlaces) || allPlaces.length === 0) return
+
+  const mappings = [
+    { razon: 'razonSocialMaterial', place: 'placeMaterial' },
+    { razon: 'razonSocialSinCotizar', place: 'placeSinCotizar' },
+    { razon: 'razonSocialServicio', place: 'placeServicio' },
+  ]
+
+  mappings.forEach((map) => {
+    const razonSelect = document.getElementById(map.razon)
+    const placeSelect = document.getElementById(map.place)
+
+    if (razonSelect && placeSelect) {
+      // Eliminar el listener anterior si existe para evitar duplicados
+      if (razonSelect._filterHandler) {
+        razonSelect.removeEventListener('change', razonSelect._filterHandler)
+      }
+
+      const filtrar = () => {
+        const selectedId = razonSelect.value
+        placeSelect.innerHTML = '<option value="">Seleccione un condominio</option>'
+        if (!selectedId) return
+
+        // Filtrado robusto (maneja posibles variaciones en los nombres de las propiedades)
+        const filtered = allPlaces.filter((p) => {
+          // Buscamos en todas las variantes posibles que PostgreSQL/PHP podrían retornar
+          const rsId = p.ID_RazonSocial || p.id_razon_social || p.id_razonsocial || p.Id_RazonSocial
+          return String(rsId) === String(selectedId)
+        })
+
+        // Evitar duplicados por ID_Place
+        const seen = new Set()
+        filtered.forEach((p) => {
+          const placeId = p.ID_Place || p.id_place
+          if (placeId && !seen.has(placeId)) {
+            seen.add(placeId)
+            const opt = document.createElement('option')
+            opt.value = placeId
+            opt.textContent = p.Nombre_Corto || p.nombre_corto || 'Place ' + placeId
+            placeSelect.appendChild(opt)
+          }
+        })
+      }
+
+      // Guardar el handler en el elemento para poder removerlo después
+      razonSelect._filterHandler = filtrar
+      razonSelect.addEventListener('change', filtrar)
+      
+      // Ejecutar una vez por si hay algo preseleccionado
+      filtrar()
+    }
+  })
+}
+
 async function initSolicitarMaterial() {
   const tabla = document.getElementById('tabla-productos')
   const agregarBtn = document.getElementById('agregar-fila')
@@ -194,6 +250,17 @@ async function initSolicitarMaterial() {
   const chkIVA = document.getElementById('agregar-iva')
 
   if (!tabla) return
+
+  // Obtener datos de lugares desde el input oculto (forma confiable para carga via AJAX)
+  const placesStore = document.getElementById('ALL_PLACES_DATA_STORE')
+  if (placesStore) {
+    try {
+      const allPlaces = JSON.parse(placesStore.value)
+      initPlaceSelectors(allPlaces)
+    } catch (e) {
+      console.error('Error al parsear datos de condominios:', e)
+    }
+  }
 
   let productRowHtml = null
   async function getProductRowHtml() {
@@ -357,6 +424,17 @@ async function initSolicitarMaterialSinCotizar() {
 
   if (!tabla) return
 
+  // Obtener datos de lugares desde el input oculto
+  const placesStore = document.getElementById('ALL_PLACES_DATA_STORE')
+  if (placesStore) {
+    try {
+      const allPlaces = JSON.parse(placesStore.value)
+      initPlaceSelectors(allPlaces)
+    } catch (e) {
+      console.error('Error al parsear datos de condominios:', e)
+    }
+  }
+
   function actualizarNumeros() {
     tabla.querySelectorAll('tr').forEach((fila, i) => {
       const celdaNumero = fila.querySelector('.numero-fila')
@@ -437,6 +515,17 @@ async function initSolicitarServicio() {
   const chkIVA = document.getElementById('agregar-iva-servicio')
 
   if (!tabla) return
+
+  // Obtener datos de lugares desde el input oculto
+  const placesStore = document.getElementById('ALL_PLACES_DATA_STORE')
+  if (placesStore) {
+    try {
+      const allPlaces = JSON.parse(placesStore.value)
+      initPlaceSelectors(allPlaces)
+    } catch (e) {
+      console.error('Error al parsear datos de condominios:', e)
+    }
+  }
 
   let serviceRowHtml = null
   async function getServiceRowHtml() {
@@ -639,6 +728,17 @@ function regresarSubmenuMaterial() {
   document.getElementById('solicitar-material-content').classList.add('hidden')
   document.getElementById('solicitar-material-sin-cotizar').classList.add('hidden')
   document.getElementById('submenu-material').classList.remove('hidden')
+}
+
+/**
+ * Inicializador general para el modal de Solicitar Material (Requisiciones)
+ * Ejecuta los inicializadores de todas las sub-secciones para que los selectores
+ * estén listos desde que se abre el modal.
+ */
+function initSolicitarMaterialTodo() {
+  initSolicitarMaterial()
+  initSolicitarMaterialSinCotizar()
+  initSolicitarServicio()
 }
 
 /**

@@ -524,52 +524,6 @@ $iconUrl = "/icons/icons.svg?v=$version";
 </div>
 
 <?php if (isset($is_depto_especial) && $is_depto_especial): ?>
-<script>
-// El contenido del script de la vista solicitar_material es cargado via AJAX. 
-// Usaremos una función global o listeners atados al body para evitar que el DOMContentLoaded no sirva.
-function initPlaceSelectors() {
-    const allPlaces = <?= json_encode($all_places ?? []) ?>;
-    
-    // Función para actualizar el selector de Place
-    function updatePlaces(razonSelectId, placeSelectId) {
-        const razonSelect = document.getElementById(razonSelectId);
-        const placeSelect = document.getElementById(placeSelectId);
-        
-        if (!razonSelect || !placeSelect) return;
-        
-        // Ejecutar una vez al inicio por si hay algo preseleccionado
-        filtrar(razonSelect, placeSelect, allPlaces);
-
-        razonSelect.addEventListener('change', function() {
-            filtrar(this, placeSelect, allPlaces);
-        });
-    }
-
-    function filtrar(selectOrigen, selectDestino, data) {
-        const selectedRazonId = selectOrigen.value;
-        // Limpiar opciones actuales (manteniendo la opción por defecto)
-        selectDestino.innerHTML = '<option value="">Seleccione un condominio</option>';
-        
-        if (!selectedRazonId) return;
-        
-        // Filtrar y agregar las nuevas opciones
-        const filteredPlaces = data.filter(p => p.ID_RazonSocial == selectedRazonId);
-        
-        filteredPlaces.forEach(place => {
-            const option = document.createElement('option');
-            option.value = place.ID_Place;
-            option.textContent = place.Nombre_Corto;
-            selectDestino.appendChild(option);
-        });
-    }
-
-    // Inicializar para los tres formularios
-    updatePlaces('razonSocialMaterial', 'placeMaterial');
-    updatePlaces('razonSocialSinCotizar', 'placeSinCotizar');
-    updatePlaces('razonSocialServicio', 'placeServicio');
-}
-
-// Ejecutar inmediatamente (ya que se carga por AJAX)
-setTimeout(initPlaceSelectors, 300); // Pequeño delay para asegurar que los elementos existan
-</script>
+    <!-- Pasamos los datos de los lugares a través de un input oculto para que el JS pueda leerlo al inicializar -->
+    <input type="hidden" id="ALL_PLACES_DATA_STORE" value='<?= htmlspecialchars(json_encode($all_places ?? []), ENT_QUOTES, 'UTF-8') ?>'>
 <?php endif; ?>
