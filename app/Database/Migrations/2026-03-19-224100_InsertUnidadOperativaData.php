@@ -20,7 +20,7 @@ class InsertUnidadOperativaData extends Migration
         $data = [
             ['ID_UnidadOperativa' => 1, 'Nombre' => 'Prestamos', 'ID_Place' => 1, 'activo' => true],
             ['ID_UnidadOperativa' => 2, 'Nombre' => 'Gastos', 'ID_Place' => 3, 'activo' => true],
-            ['ID_UnidadOperativa' => 3, 'Nombre' => 'Transporte Campus', 'ID_Place' => 9, 'activo' => true],
+            ['ID_UnidadOperativa' => 3, 'Nombre' => 'Transporte Campus', 'ID_Place' => 2, 'activo' => true],
             ['ID_UnidadOperativa' => 4, 'Nombre' => 'Presupuesto del área de atención a residentes', 'ID_Place' => 2, 'activo' => true],
             ['ID_UnidadOperativa' => 5, 'Nombre' => 'Presupuesto del área de Mantenimiento', 'ID_Place' => 2, 'activo' => true],
             ['ID_UnidadOperativa' => 6, 'Nombre' => 'Presupuesto del área de Sistemas', 'ID_Place' => 2, 'activo' => true],

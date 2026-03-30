@@ -8,14 +8,18 @@ class AddIdDptoToGrupoPresupuestal extends Migration
 {
     public function up()
     {
+        $field = [
+            'type'       => 'INT',
+            'constraint' => 11,
+            'unsigned'   => true,
+            'null'       => true,
+        ];
+        if ($this->db->DBDriver === 'MySQLi') {
+            $field['after'] = 'Descripcion';
+        }
+
         $fields = [
-            'ID_Dpto' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true, // Permitimos NULL por si hay registros existentes
-                'after'      => 'Descripcion', // Opcional: Para ordenar la columna visualmente
-            ],
+            'ID_Dpto' => $field,
         ];
 
         // 1. Agregamos la columna a la tabla 'GrupoPresupuestal'

@@ -8,32 +8,49 @@ class AddIdSegmentoToPlaces extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('Places', [
-            'id_segmento' => [
+        $db = \Config\Database::connect();
+        $driver = $db->DBDriver;
+
+        if (! $db->fieldExists('id_segmento', 'Places')) {
+            $field = [
                 'type'       => 'INT',
                 'constraint' => 11,
                 'unsigned'   => true,
-                'null'       => true, // Permitimos nulo para no romper registros existentes
-                'after'      => 'ID_RazonSocial' // Posicionamos después de la RS
-            ],
-        ]);
+                'null'       => true,
+            ];
+            if ($driver === 'MySQLi') {
+                $field['after'] = 'ID_RazonSocial';
+            }
 
-        // Añadimos la Llave Foránea
-        $this->forge->addForeignKey(
-            'id_segmento', 
-            'segmento_negocio', 
-            'id', 
-            'CASCADE', 
-            'SET NULL',
-            'places_segmento_fk'
-        );
+            $this->forge->addColumn('Places', [
+                'id_segmento' => $field,
+            ]);
+        }
 
-        // Procesar cambios pendientes (algunos drivers requieren esto para llaves foráneas en addColumn)
-        $this->forge->processIndexes('Places');
+        if ($driver === 'Postgre') {
+            $fkExists = (int) ($db->query(
+                "SELECT COUNT(*) AS total FROM information_schema.table_constraints WHERE table_catalog = current_database() AND table_schema = current_schema() AND LOWER(table_name) = LOWER('Places') AND LOWER(constraint_name) = LOWER('places_segmento_fk') AND constraint_type = 'FOREIGN KEY'"
+            )->getRow('total') ?? 0);
+        } else {
+            $fkExists = (int) ($db->query(
+                "SELECT COUNT(*) AS total FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = LOWER('Places') AND LOWER(CONSTRAINT_NAME) = LOWER('places_segmento_fk') AND CONSTRAINT_TYPE = 'FOREIGN KEY'"
+            )->getRow('total') ?? 0);
+        }
+
+        if ($fkExists === 0) {
+            $this->forge->addForeignKey(
+                'id_segmento',
+                'segmento_negocio',
+                'id',
+                'CASCADE',
+                'SET NULL',
+                'places_segmento_fk'
+            );
+
+            $this->forge->processIndexes('Places');
+        }
 
         // --- MIGRACIÓN DE DATOS (Asociar segmentos existentes) ---
-        $db = \Config\Database::connect();
-        
         $mapeo = [
             'Campus'            => 1, // Arrendamiento
             'Transporte Campus' => 2, // Transporte
@@ -53,4 +70,3 @@ class AddIdSegmentoToPlaces extends Migration
         $this->forge->dropColumn('Places', 'id_segmento');
     }
 }
-

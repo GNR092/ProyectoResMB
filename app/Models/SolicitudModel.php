@@ -46,4 +46,33 @@ class SolicitudModel extends Model
     protected $validationMessages = [];
     protected $skipValidation = false;
     protected $cleanValidationRules = true;
+
+    protected $beforeInsert = ['normalizeUnidadOperativa'];
+    protected $beforeUpdate = ['normalizeUnidadOperativaOnUpdate'];
+
+    protected function normalizeUnidadOperativa(array $data): array
+    {
+        if (! array_key_exists('ID_UnidadOperativa', $data['data'] ?? [])) {
+            return $data;
+        }
+
+        $valor = $data['data']['ID_UnidadOperativa'];
+        if ($valor === '' || $valor === '0' || $valor === 0 || $valor === null) {
+            $data['data']['ID_UnidadOperativa'] = null;
+            return $data;
+        }
+
+        $unidad = (int) $valor;
+        $data['data']['ID_UnidadOperativa'] = $unidad > 0 ? $unidad : null;
+        return $data;
+    }
+
+    protected function normalizeUnidadOperativaOnUpdate(array $data): array
+    {
+        if (! isset($data['data']) || ! is_array($data['data'])) {
+            return $data;
+        }
+
+        return $this->normalizeUnidadOperativa($data);
+    }
 }

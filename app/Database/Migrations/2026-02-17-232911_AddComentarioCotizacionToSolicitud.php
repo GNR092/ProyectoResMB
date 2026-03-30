@@ -8,12 +8,16 @@ class AddComentarioCotizacionToSolicitud extends Migration
 {
     public function up()
     {
+        $field = [
+            'type'       => 'TEXT',
+            'null'       => true,
+        ];
+        if ($this->db->DBDriver === 'MySQLi') {
+            $field['after'] = 'ID_Usuario_Autoriza';
+        }
+
         $fields = [
-            'ComentarioCotizacion' => [
-                'type'       => 'TEXT', // O 'VARCHAR' con 'constraint' => 255 si es corto
-                'null'       => true,
-                'after'      => 'ID_Usuario_Autoriza', // Se agregará al final de tus columnas actuales
-            ],
+            'ComentarioCotizacion' => $field,
         ];
 
         // Agregamos la columna a la tabla 'Solicitud'

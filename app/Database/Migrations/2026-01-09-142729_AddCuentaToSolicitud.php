@@ -8,14 +8,18 @@ class AddCuentaToSolicitud extends Migration
 {
     public function up()
     {
+        $field = [
+            'type'       => 'BIGINT',
+            'constraint' => 20,
+            'unsigned'   => true,
+            'null'       => true,
+        ];
+        if ($this->db->DBDriver === 'MySQLi') {
+            $field['after'] = 'ID_Proveedor';
+        }
+
         $this->forge->addColumn('Solicitud', [
-            'ID_Cuenta' => [
-                'type'       => 'BIGINT',
-                'constraint' => 20,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'ID_Proveedor',
-            ],
+            'ID_Cuenta' => $field,
         ]);
 
         // It's possible the FK isn't being created reliably, 
@@ -31,4 +35,3 @@ class AddCuentaToSolicitud extends Migration
         $this->forge->dropColumn('Solicitud', 'ID_Cuenta');
     }
 }
-

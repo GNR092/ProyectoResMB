@@ -9,6 +9,7 @@ class CreateUnidadOperativaAndRestructure extends Migration
     public function up()
     {
         $db = \Config\Database::connect();
+        $driver = $db->DBDriver;
         $db->transStart();
 
         // 1. Crear tabla UnidadOperativa
@@ -24,8 +25,8 @@ class CreateUnidadOperativaAndRestructure extends Migration
                 'constraint' => '255',
             ],
             'ID_Place' => [
-                'type'       => 'INT',
-                'constraint' => 11,
+                'type'       => 'BIGINT',
+                'constraint' => 20,
                 'unsigned'   => true,
             ],
             'activo' => [
@@ -38,35 +39,38 @@ class CreateUnidadOperativaAndRestructure extends Migration
         $this->forge->createTable('UnidadOperativa');
 
         // 2. Agregar columnas ID_UnidadOperativa a las tablas existentes
-        $this->forge->addColumn('Departamentos', [
-            'ID_UnidadOperativa' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'ID_Place'
-            ]
-        ]);
+        $campoDepto = [
+            'type'       => 'INT',
+            'constraint' => 11,
+            'unsigned'   => true,
+            'null'       => true,
+        ];
+        if ($driver === 'MySQLi') {
+            $campoDepto['after'] = 'ID_Place';
+        }
+        $this->forge->addColumn('Departamentos', ['ID_UnidadOperativa' => $campoDepto]);
 
-        $this->forge->addColumn('GrupoPresupuestal', [
-            'ID_UnidadOperativa' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'ID_Dpto'
-            ]
-        ]);
+        $campoGrupo = [
+            'type'       => 'INT',
+            'constraint' => 11,
+            'unsigned'   => true,
+            'null'       => true,
+        ];
+        if ($driver === 'MySQLi') {
+            $campoGrupo['after'] = 'ID_Dpto';
+        }
+        $this->forge->addColumn('GrupoPresupuestal', ['ID_UnidadOperativa' => $campoGrupo]);
 
-        $this->forge->addColumn('PresupuestoMensual', [
-            'ID_UnidadOperativa' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'ID_Dpto'
-            ]
-        ]);
+        $campoPresupuesto = [
+            'type'       => 'INT',
+            'constraint' => 11,
+            'unsigned'   => true,
+            'null'       => true,
+        ];
+        if ($driver === 'MySQLi') {
+            $campoPresupuesto['after'] = 'ID_Dpto';
+        }
+        $this->forge->addColumn('PresupuestoMensual', ['ID_UnidadOperativa' => $campoPresupuesto]);
 
         // 3. MIGRACIÓN DE DATOS (Preservar historial)
         // Obtener todos los Places que tienen departamentos actualmente

@@ -75,7 +75,19 @@ class InsertSegmentoNegocioData extends Migration
             ],
         ];
 
-        $this->db->table('segmento_negocio')->insertBatch($data);
+        foreach ($data as $row) {
+            $exists = $this->db->table('segmento_negocio')
+                ->where('id', $row['id'])
+                ->countAllResults();
+
+            if ($exists === 0) {
+                $this->db->table('segmento_negocio')->insert($row);
+            } else {
+                $this->db->table('segmento_negocio')
+                    ->where('id', $row['id'])
+                    ->update($row);
+            }
+        }
     }
 
     public function down()

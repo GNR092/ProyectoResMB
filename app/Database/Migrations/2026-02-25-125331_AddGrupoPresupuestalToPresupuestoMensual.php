@@ -8,14 +8,18 @@ class AddGrupoPresupuestalToPresupuestoMensual extends Migration
 {
     public function up()
     {
+        $field = [
+            'type'       => 'INT',
+            'constraint' => 11,
+            'unsigned'   => true,
+            'null'       => true,
+        ];
+        if ($this->db->DBDriver === 'MySQLi') {
+            $field['after'] = 'ID_Dpto';
+        }
+
         $fields = [
-            'ID_GrupoPresupuestal' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'ID_Dpto',
-            ],
+            'ID_GrupoPresupuestal' => $field,
         ];
         $this->forge->addColumn('PresupuestoMensual', $fields);
 
@@ -31,20 +35,7 @@ class AddGrupoPresupuestalToPresupuestoMensual extends Migration
 
     public function down()
     {
-        $db = \Config\Database::connect();
-        $schema = $db->getDatabase(); // Get the current database name/schema
-
-        $query = $db->table('information_schema.table_constraints')
-                    ->where('constraint_type', 'FOREIGN KEY')
-                    ->where('constraint_name', 'presupuestomensual_grupo_fk')
-                    ->where('table_schema', $schema) // For PostgreSQL, this is usually 'public' or the schema name
-                    ->where('table_name', 'PresupuestoMensual')
-                    ->get();
-
-        if ($query->getRow()) {
-            try { $this->forge->dropForeignKey('PresupuestoMensual', 'presupuestomensual_grupo_fk'); } catch (\Throwable $e) {}
-        }
+        try { $this->forge->dropForeignKey('PresupuestoMensual', 'presupuestomensual_grupo_fk'); } catch (\Throwable $e) {}
         $this->forge->dropColumn('PresupuestoMensual', 'ID_GrupoPresupuestal');
     }
 }
-

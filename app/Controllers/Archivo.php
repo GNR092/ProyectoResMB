@@ -104,13 +104,13 @@ class Archivo extends BaseController
             $deptoUsuario = $idDptoOriginal ? $departamentoModel->find($idDptoOriginal) : null;
             
             if ($deptoUsuario) {
-                $nombreDeptoOrig = $deptoUsuario['Nombre'] ?? 'Desconocido';
+                $nombreDeptoOrig = (string) ($deptoUsuario['Nombre'] ?? 'Desconocido');
                 $idUnidadFinal = $deptoUsuario['ID_UnidadOperativa'] ?? null; // Por defecto es la del usuario
                 
                 $razonSocialModel = new RazonSocialModel();
                 $placeModel = new PlacesModel();
-                $idUnidadOrig = $deptoUsuario['ID_UnidadOperativa'] ?? 0;
                 $uniModel = new \App\Models\UnidadOperativaModel();
+                $idUnidadOrig = $deptoUsuario['ID_UnidadOperativa'] ?? 0;
                 $unidadOrig = $uniModel->find($idUnidadOrig);
                 $placeOrig = $unidadOrig ? $placeModel->find($unidadOrig['ID_Place'] ?? 0) : null;
                 
@@ -158,6 +158,26 @@ class Archivo extends BaseController
                             $idUnidadFinal = $deptoDestino['ID_UnidadOperativa'];
                         }
                     }
+                }
+            }
+
+            // 2.1 Sanitizar y normalizar unidad operativa final
+            // Regla: si llega 0/no existe, intentamos resolver por departamento; si no, NULL.
+            $idUnidadFinal = !empty($idUnidadFinal) ? (int) $idUnidadFinal : null;
+            if ($idUnidadFinal !== null && $idUnidadFinal <= 0) {
+                $idUnidadFinal = null;
+            }
+
+            if ($idUnidadFinal === null && !empty($idDptoFinal)) {
+                $deptoResolucion = $departamentoModel->find((int) $idDptoFinal);
+                $unidadDesdeDpto = $deptoResolucion['ID_UnidadOperativa'] ?? null;
+                $idUnidadFinal = !empty($unidadDesdeDpto) ? (int) $unidadDesdeDpto : null;
+            }
+
+            if ($idUnidadFinal !== null) {
+                $unidadValida = (new \App\Models\UnidadOperativaModel())->find($idUnidadFinal);
+                if (!$unidadValida) {
+                    $idUnidadFinal = null;
                 }
             }
 
