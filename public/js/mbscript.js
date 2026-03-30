@@ -186,6 +186,41 @@ function cerrarModal() {
 /**
  * Lógica para el modal "Solicitar Material"
  */
+function initPlaceSelectors(allPlaces) {
+  if (!allPlaces || allPlaces.length === 0) return
+
+  const mappings = [
+    { razon: 'razonSocialMaterial', place: 'placeMaterial' },
+    { razon: 'razonSocialSinCotizar', place: 'placeSinCotizar' },
+    { razon: 'razonSocialServicio', place: 'placeServicio' },
+  ]
+
+  mappings.forEach((map) => {
+    const razonSelect = document.getElementById(map.razon)
+    const placeSelect = document.getElementById(map.place)
+
+    if (razonSelect && placeSelect) {
+      const filtrar = () => {
+        const selectedId = razonSelect.value
+        placeSelect.innerHTML = '<option value="">Seleccione un condominio</option>'
+        if (!selectedId) return
+
+        const filtered = allPlaces.filter((p) => p.ID_RazonSocial == selectedId)
+        filtered.forEach((p) => {
+          const opt = document.createElement('option')
+          opt.value = p.ID_Place
+          opt.textContent = p.Nombre_Corto
+          placeSelect.appendChild(opt)
+        })
+      }
+
+      razonSelect.addEventListener('change', filtrar)
+      // Ejecutar una vez por si hay algo preseleccionado
+      filtrar()
+    }
+  })
+}
+
 async function initSolicitarMaterial() {
   const tabla = document.getElementById('tabla-productos')
   const agregarBtn = document.getElementById('agregar-fila')
@@ -194,6 +229,17 @@ async function initSolicitarMaterial() {
   const chkIVA = document.getElementById('agregar-iva')
 
   if (!tabla) return
+
+  // Obtener datos de lugares desde el input oculto (forma confiable para carga via AJAX)
+  const placesStore = document.getElementById('ALL_PLACES_DATA_STORE')
+  if (placesStore) {
+    try {
+      const allPlaces = JSON.parse(placesStore.value)
+      initPlaceSelectors(allPlaces)
+    } catch (e) {
+      console.error('Error al parsear datos de condominios:', e)
+    }
+  }
 
   let productRowHtml = null
   async function getProductRowHtml() {
@@ -357,6 +403,17 @@ async function initSolicitarMaterialSinCotizar() {
 
   if (!tabla) return
 
+  // Obtener datos de lugares desde el input oculto
+  const placesStore = document.getElementById('ALL_PLACES_DATA_STORE')
+  if (placesStore) {
+    try {
+      const allPlaces = JSON.parse(placesStore.value)
+      initPlaceSelectors(allPlaces)
+    } catch (e) {
+      console.error('Error al parsear datos de condominios:', e)
+    }
+  }
+
   function actualizarNumeros() {
     tabla.querySelectorAll('tr').forEach((fila, i) => {
       const celdaNumero = fila.querySelector('.numero-fila')
@@ -437,6 +494,17 @@ async function initSolicitarServicio() {
   const chkIVA = document.getElementById('agregar-iva-servicio')
 
   if (!tabla) return
+
+  // Obtener datos de lugares desde el input oculto
+  const placesStore = document.getElementById('ALL_PLACES_DATA_STORE')
+  if (placesStore) {
+    try {
+      const allPlaces = JSON.parse(placesStore.value)
+      initPlaceSelectors(allPlaces)
+    } catch (e) {
+      console.error('Error al parsear datos de condominios:', e)
+    }
+  }
 
   let serviceRowHtml = null
   async function getServiceRowHtml() {

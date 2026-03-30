@@ -53,15 +53,17 @@ class Modales extends BaseController
                 $departamentoModel = new DepartamentosModel();
                 $placeModel = new PlacesModel();
 
-                // 1. Obtener el nombre del departamento del usuario actual
+                // 1. Obtener el departamento del usuario actual
                 $idDeptoUsuario = session('id_departamento_usuario');
+                $idUsuario = session('id');
                 $deptoActual = $idDeptoUsuario ? $departamentoModel->find($idDeptoUsuario) : null;
-                $nombreDepto = $deptoActual['Nombre'] ?? '';
 
-                if (empty($nombreDepto)) {
-                    // Si no hay departamento en sesión, fallamos con mensaje
+                if (!$deptoActual) {
+                    log_message('error', 'No se encontró departamento para el usuario ID: ' . $idUsuario . ' con DeptoID: ' . $idDeptoUsuario);
                     return "<p class='text-red-500 p-4'>No se pudo identificar su departamento. Por favor, cierre sesión e ingrese de nuevo.</p>";
                 }
+
+                $nombreDepto = $deptoActual['Nombre'] ?? '';
 
                 // 2. Obtener proveedores
                 $data['proveedores'] = $proveedorModel
@@ -73,38 +75,88 @@ class Modales extends BaseController
                 $deptoLower = mb_strtolower(trim($nombreDepto));
                 $data['is_depto_especial'] = (strpos($deptoLower, 'operacion') !== false || strpos($deptoLower, 'operación') !== false);
 
-                // 3. Obtener Razones Sociales (dependiendo del tipo de departamento)
+                $db = \Config\Database::connect();
+
+                // 3. Obtener Razones Sociales
                 if ($data['is_depto_especial']) {
-                    // Si es el departamento especial, ve TODAS las razones sociales activas (o en este caso todas)
+                    // Si es el departamento especial, ve TODAS las razones sociales activas
                     $data['razones_sociales'] = $razonSocialModel
                         ->select('ID_RazonSocial, Nombre')
                         ->orderBy('Nombre', 'ASC')
                         ->findAll();
                     
                     // También enviamos todos los places para que JS los filtre
-                    $data['all_places'] = $placeModel
-                        ->select('ID_Place, Nombre_Corto, ID_RazonSocial')
-                        ->where('activo', true)
-                        ->orderBy('Nombre_Corto', 'ASC')
-                        ->findAll();
+                    // Vinculación robusta: Places -> Razon_Social OR Places -> segmento_negocio -> Razon_Social
+                    $sqlPlaces = "
+                        SELECT p.\"ID_Place\", p.\"Nombre_Corto\", rs.\"ID_RazonSocial\"
+                        FROM \"Places\" p
+                        JOIN \"Razon_Social\" rs ON rs.\"ID_RazonSocial\" = p.\"ID_RazonSocial\"
+                        WHERE p.\"activo\" = true
+                        
+                        UNION
+                        
+                        SELECT p.\"ID_Place\", p.\"Nombre_Corto\", rs.\"ID_RazonSocial\"
+                        FROM \"Places\" p
+                        JOIN \"segmento_negocio\" sn ON sn.\"id\" = p.\"id_segmento\"
+                        JOIN \"Razon_Social\" rs ON rs.\"ID_RazonSocial\" = sn.\"id_razon_social\"
+                        WHERE p.\"activo\" = true
+                        
+                        ORDER BY \"Nombre_Corto\" ASC
+                    ";
+                    $data['all_places'] = $db->query($sqlPlaces)->getResultArray();
                 } else {
-                    // Obtener SOLO las razones sociales que tienen este mismo departamento (por nombre)
-                    $data['razones_sociales'] = $razonSocialModel
-                        ->select('Razon_Social.ID_RazonSocial, Razon_Social.Nombre')
-                        ->distinct()
-                        ->join('Places', 'Places.ID_RazonSocial = Razon_Social.ID_RazonSocial')
-                        ->join('UnidadOperativa', 'UnidadOperativa.ID_Place = Places.ID_Place')
-                        ->join('Departamentos', 'Departamentos.ID_UnidadOperativa = UnidadOperativa.ID_UnidadOperativa')
-                        ->where('Departamentos.Nombre', $nombreDepto)
-                        ->orderBy('Razon_Social.Nombre', 'ASC')
-                        ->findAll();
+                    /**
+                     * Requisito:
+                     * 1. La razón social a la cual pertenece su departamento.
+                     * 2. Razones sociales que tengan entre sus complejos un departamento igual al del solicitante.
+                     */
+                    
+                    // Consulta unificada usando UNION y vinculación robusta de Places
+                    $sql = "
+                        WITH LinkedPlaces AS (
+                            SELECT p.\"ID_Place\", p.\"Nombre_Corto\", rs.\"ID_RazonSocial\"
+                            FROM \"Places\" p
+                            JOIN \"Razon_Social\" rs ON rs.\"ID_RazonSocial\" = p.\"ID_RazonSocial\"
+                            UNION
+                            SELECT p.\"ID_Place\", p.\"Nombre_Corto\", rs.\"ID_RazonSocial\"
+                            FROM \"Places\" p
+                            JOIN \"segmento_negocio\" sn ON sn.\"id\" = p.\"id_segmento\"
+                            JOIN \"Razon_Social\" rs ON rs.\"ID_RazonSocial\" = sn.\"id_razon_social\"
+                        )
+                        SELECT DISTINCT rs.\"ID_RazonSocial\", rs.\"Nombre\"
+                        FROM \"Razon_Social\" rs
+                        JOIN LinkedPlaces p ON p.\"ID_RazonSocial\" = rs.\"ID_RazonSocial\"
+                        JOIN \"Departamentos\" d ON d.\"ID_Place\" = p.\"ID_Place\"
+                        WHERE d.\"ID_Dpto\" = ? OR d.\"Nombre\" = ?
+                        
+                        UNION
+                        
+                        SELECT DISTINCT rs.\"ID_RazonSocial\", rs.\"Nombre\"
+                        FROM \"Razon_Social\" rs
+                        JOIN LinkedPlaces p ON p.\"ID_RazonSocial\" = rs.\"ID_RazonSocial\"
+                        JOIN \"UnidadOperativa\" uo ON uo.\"ID_Place\" = p.\"ID_Place\"
+                        JOIN \"Departamentos\" d ON d.\"ID_UnidadOperativa\" = uo.\"ID_UnidadOperativa\"
+                        WHERE d.\"ID_Dpto\" = ? OR d.\"Nombre\" = ?
+                        
+                        ORDER BY \"Nombre\" ASC
+                    ";
+
+                    $data['razones_sociales'] = $db->query($sql, [$idDeptoUsuario, $nombreDepto, $idDeptoUsuario, $nombreDepto])->getResultArray();
+
+                    // Fallback: si por alguna razón estructural sigue vacío, cargamos todas
+                    if (empty($data['razones_sociales'])) {
+                        log_message('notice', 'Consulta SQL directa vacía para usuario ' . $idUsuario . '. Cargando todas.');
+                        $data['razones_sociales'] = $razonSocialModel
+                            ->select('ID_RazonSocial, Nombre')
+                            ->orderBy('Nombre', 'ASC')
+                            ->findAll();
+                    }
+
+                    log_message('debug', 'Razones Sociales finales SQL (Usuario ' . $idUsuario . '): ' . json_encode($data['razones_sociales']));
                 }
 
                 // 4. Obtener grupos presupuestales filtrados por la Unidad Operativa del departamento del usuario
-                $deptoModel = new DepartamentosModel();
-                $idDepto = session('id_departamento_usuario');
-                $deptoObj = $deptoModel->find($idDepto);
-                $idUnidad = $deptoObj['ID_UnidadOperativa'] ?? 0;
+                $idUnidad = $deptoActual['ID_UnidadOperativa'] ?? 0;
 
                 $data['grupos_presupuestales'] = $grupoModel
                     ->where('ID_UnidadOperativa', $idUnidad)
