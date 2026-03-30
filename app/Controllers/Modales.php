@@ -88,12 +88,11 @@ class Modales extends BaseController
                     // También enviamos todos los places para que JS los filtre
                     // Vinculación directa únicamente: Places -> ID_RazonSocial
                     // Filtramos para asegurar que el ID_RazonSocial no sea nulo y que el registro esté activo (si existe la columna)
-                    $db = \Config\Database::connect();
                     $sqlPlaces = "
-                        SELECT \"ID_Place\", \"Nombre_Corto\", \"ID_RazonSocial\"
-                        FROM \"Places\"
-                        WHERE \"ID_RazonSocial\" IS NOT NULL
-                        ORDER BY \"Nombre_Corto\" ASC
+                        SELECT ID_Place, Nombre_Corto, ID_RazonSocial
+                        FROM Places
+                        WHERE ID_RazonSocial IS NOT NULL
+                        ORDER BY Nombre_Corto ASC
                     ";
                     $data['all_places'] = $db->query($sqlPlaces)->getResultArray();
                 } else {
@@ -106,31 +105,31 @@ class Modales extends BaseController
                     // Consulta unificada usando UNION y vinculación robusta de Places
                     $sql = "
                         WITH LinkedPlaces AS (
-                            SELECT p.\"ID_Place\", p.\"Nombre_Corto\", rs.\"ID_RazonSocial\"
-                            FROM \"Places\" p
-                            JOIN \"Razon_Social\" rs ON rs.\"ID_RazonSocial\" = p.\"ID_RazonSocial\"
+                            SELECT p.ID_Place, p.Nombre_Corto, rs.ID_RazonSocial
+                            FROM Places p
+                            JOIN Razon_Social rs ON rs.ID_RazonSocial = p.ID_RazonSocial
                             UNION
-                            SELECT p.\"ID_Place\", p.\"Nombre_Corto\", rs.\"ID_RazonSocial\"
-                            FROM \"Places\" p
-                            JOIN \"segmento_negocio\" sn ON sn.\"id\" = p.\"id_segmento\"
-                            JOIN \"Razon_Social\" rs ON rs.\"ID_RazonSocial\" = sn.\"id_razon_social\"
+                            SELECT p.ID_Place, p.Nombre_Corto, rs.ID_RazonSocial
+                            FROM Places p
+                            JOIN segmento_negocio sn ON sn.id = p.id_segmento
+                            JOIN Razon_Social rs ON rs.ID_RazonSocial = sn.id_razon_social
                         )
-                        SELECT DISTINCT rs.\"ID_RazonSocial\", rs.\"Nombre\"
-                        FROM \"Razon_Social\" rs
-                        JOIN LinkedPlaces p ON p.\"ID_RazonSocial\" = rs.\"ID_RazonSocial\"
-                        JOIN \"Departamentos\" d ON d.\"ID_Place\" = p.\"ID_Place\"
-                        WHERE d.\"ID_Dpto\" = ? OR d.\"Nombre\" = ?
+                        SELECT DISTINCT rs.ID_RazonSocial, rs.Nombre
+                        FROM Razon_Social rs
+                        JOIN LinkedPlaces p ON p.ID_RazonSocial = rs.ID_RazonSocial
+                        JOIN Departamentos d ON d.ID_Place = p.ID_Place
+                        WHERE d.ID_Dpto = ? OR d.Nombre = ?
                         
                         UNION
                         
-                        SELECT DISTINCT rs.\"ID_RazonSocial\", rs.\"Nombre\"
-                        FROM \"Razon_Social\" rs
-                        JOIN LinkedPlaces p ON p.\"ID_RazonSocial\" = rs.\"ID_RazonSocial\"
-                        JOIN \"UnidadOperativa\" uo ON uo.\"ID_Place\" = p.\"ID_Place\"
-                        JOIN \"Departamentos\" d ON d.\"ID_UnidadOperativa\" = uo.\"ID_UnidadOperativa\"
-                        WHERE d.\"ID_Dpto\" = ? OR d.\"Nombre\" = ?
+                        SELECT DISTINCT rs.ID_RazonSocial, rs.Nombre
+                        FROM Razon_Social rs
+                        JOIN LinkedPlaces p ON p.ID_RazonSocial = rs.ID_RazonSocial
+                        JOIN UnidadOperativa uo ON uo.ID_Place = p.ID_Place
+                        JOIN Departamentos d ON d.ID_UnidadOperativa = uo.ID_UnidadOperativa
+                        WHERE d.ID_Dpto = ? OR d.Nombre = ?
                         
-                        ORDER BY \"Nombre\" ASC
+                        ORDER BY Nombre ASC
                     ";
 
                     $data['razones_sociales'] = $db->query($sql, [$idDeptoUsuario, $nombreDepto, $idDeptoUsuario, $nombreDepto])->getResultArray();
