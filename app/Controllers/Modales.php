@@ -88,6 +88,7 @@ class Modales extends BaseController
                     // También enviamos todos los places para que JS los filtre
                     // Vinculación directa únicamente: Places -> ID_RazonSocial
                     // Filtramos para asegurar que el ID_RazonSocial no sea nulo y que el registro esté activo (si existe la columna)
+                    $db = \Config\Database::connect();
                     $sqlPlaces = "
                         SELECT \"ID_Place\", \"Nombre_Corto\", \"ID_RazonSocial\"
                         FROM \"Places\"
