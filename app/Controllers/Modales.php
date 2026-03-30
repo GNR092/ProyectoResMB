@@ -111,11 +111,9 @@ class Modales extends BaseController
                     $builder->join('Places p2', 'p2.id_segmento = sn.id', 'left');
                     
                     // Unir con Departamentos por ID_Place o ID_UnidadOperativa
-                    $builder->groupStart()
-                        ->join('Departamentos d', 'd.ID_Place = p.ID_Place OR d.ID_Place = p2.ID_Place', 'left')
-                        ->join('UnidadOperativa uo', 'uo.ID_Place = p.ID_Place OR uo.ID_Place = p2.ID_Place', 'left')
-                        ->join('Departamentos d2', 'd2.ID_UnidadOperativa = uo.ID_UnidadOperativa', 'left')
-                    ->groupEnd();
+                    $builder->join('Departamentos d', 'd.ID_Place = p.ID_Place OR d.ID_Place = p2.ID_Place', 'left');
+                    $builder->join('UnidadOperativa uo', 'uo.ID_Place = p.ID_Place OR uo.ID_Place = p2.ID_Place', 'left');
+                    $builder->join('Departamentos d2', 'd2.ID_UnidadOperativa = uo.ID_UnidadOperativa', 'left');
 
                     $builder->groupStart()
                         ->where('d.ID_Dpto', $idDeptoUsuario)
