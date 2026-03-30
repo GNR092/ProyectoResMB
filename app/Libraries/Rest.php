@@ -225,7 +225,7 @@ class Rest
         $solicitudes = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->whereNotIn('Solicitud.Estado', $excluded_statuses)
@@ -319,7 +319,7 @@ class Rest
         $solicitudes = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
             ->where('Solicitud.ID_Dpto', $id)
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
@@ -449,11 +449,12 @@ class Rest
                 'Departamentos.ID_UnidadOperativa',
                 'Proveedor.RazonSocial as RazonSocialNombre',
                 'Razon_Social.Nombre as Complejo',
-                'Places.Nombre_Corto as ID_Place',
+                'Places.ID_Place',
+                'Places.Nombre_Corto as PlaceNombre',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
@@ -462,6 +463,22 @@ class Rest
         if (!$solicitud) {
             return null;
         }
+
+        // Fallback para ID_Place si el join falló (ej. ID_UnidadOperativa null en Solicitud)
+        if (empty($solicitud['ID_Place'])) {
+            $depto = (new DepartamentosModel())->find($solicitud['ID_Dpto'] ?? 0);
+            if ($depto && !empty($depto['ID_UnidadOperativa'])) {
+                $unidad = (new \App\Models\UnidadOperativaModel())->find($depto['ID_UnidadOperativa']);
+                if ($unidad) {
+                    $solicitud['ID_Place'] = $unidad['ID_Place'];
+                    $place = (new PlacesModel())->find($unidad['ID_Place']);
+                    if ($place) {
+                        $solicitud['PlaceNombre'] = $place['Nombre_Corto'];
+                    }
+                }
+            }
+        }
+
         if (!empty($solicitud['ID_Cuenta'])) {
             $cuentasModel = new CuentasModel();
             $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
@@ -480,16 +497,22 @@ class Rest
 
         if ($isDeptoEspecial) {
             // Si es el departamento especial, enviamos TODAS las partidas activas
+            // Unimos con UnidadOperativa para obtener el ID_Place
             $solicitud['grupos_presupuestales'] = $grupoModel
-                ->where('activo', true)
-                ->orderBy('Nombre', 'ASC')
+                ->select('GrupoPresupuestal.*, UnidadOperativa.ID_Place')
+                ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
+                ->where('GrupoPresupuestal.activo', true)
+                ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
                 ->findAll();
         } else {
             // Lógica normal: filtrado por Unidad Operativa
+            // También incluimos el ID_Place por consistencia
             $solicitud['grupos_presupuestales'] = $grupoModel
-                ->where('ID_UnidadOperativa', $idUnidad)
-                ->where('activo', true)
-                ->orderBy('Nombre', 'ASC')
+                ->select('GrupoPresupuestal.*, UnidadOperativa.ID_Place')
+                ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
+                ->where('GrupoPresupuestal.ID_UnidadOperativa', $idUnidad)
+                ->where('GrupoPresupuestal.activo', true)
+                ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
                 ->findAll();
         }
 
@@ -505,6 +528,35 @@ class Rest
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
+
+            // --- LÓGICA DE PRESUPUESTO PARA DICTAMEN ---
+            // Si hay productos con grupo presupuestal, intentamos obtener el presupuesto actual
+            $primerProductoConGrupo = null;
+            foreach ($productos as $p) {
+                if (!empty($p['ID_GrupoPresupuestal'])) {
+                    $primerProductoConGrupo = $p;
+                    break;
+                }
+            }
+
+            if ($primerProductoConGrupo) {
+                $presupuestoMensualModel = new \App\Models\PresupuestoMensualModel();
+                $fechaSolicitud = $solicitud['Fecha'] ?? date('Y-m-d');
+                $anio = date('Y', strtotime($fechaSolicitud));
+                $mes = date('n', strtotime($fechaSolicitud));
+
+                $presupuesto = $presupuestoMensualModel
+                    ->where('ID_GrupoPresupuestal', $primerProductoConGrupo['ID_GrupoPresupuestal'])
+                    ->where('Anio', $anio)
+                    ->where('Mes', $mes)
+                    ->first();
+                
+                if ($presupuesto) {
+                    $solicitud['presupuesto_actual'] = $presupuesto;
+                    $solicitud['presupuesto_actual']['GrupoNombre'] = $primerProductoConGrupo['GrupoPresupuestalNombre'];
+                }
+            }
+            // --------------------------------------------
         } else {
             $solicitudServicioModel = new SolicitudServiciosModel();
             $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
@@ -567,7 +619,7 @@ class Rest
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
@@ -645,6 +697,35 @@ class Rest
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
+
+            // --- LÓGICA DE PRESUPUESTO PARA DICTAMEN ---
+            // Si hay productos con grupo presupuestal, intentamos obtener el presupuesto actual
+            $primerProductoConGrupo = null;
+            foreach ($productos as $p) {
+                if (!empty($p['ID_GrupoPresupuestal'])) {
+                    $primerProductoConGrupo = $p;
+                    break;
+                }
+            }
+
+            if ($primerProductoConGrupo) {
+                $presupuestoMensualModel = new \App\Models\PresupuestoMensualModel();
+                $fechaSolicitud = $solicitud['Fecha'] ?? date('Y-m-d');
+                $anio = date('Y', strtotime($fechaSolicitud));
+                $mes = date('n', strtotime($fechaSolicitud));
+
+                $presupuesto = $presupuestoMensualModel
+                    ->where('ID_GrupoPresupuestal', $primerProductoConGrupo['ID_GrupoPresupuestal'])
+                    ->where('Anio', $anio)
+                    ->where('Mes', $mes)
+                    ->first();
+                
+                if ($presupuesto) {
+                    $solicitud['presupuesto_actual'] = $presupuesto;
+                    $solicitud['presupuesto_actual']['GrupoNombre'] = $primerProductoConGrupo['GrupoPresupuestalNombre'];
+                }
+            }
+            // --------------------------------------------
         } else {
             $solicitudServicioModel = new SolicitudServiciosModel();
             $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
@@ -712,7 +793,7 @@ class Rest
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
             ->join('Razon_Social RS', 'RS.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
@@ -1764,7 +1845,7 @@ class Rest
         $builder = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Usuarios.Nombre as UsuarioNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left');
 

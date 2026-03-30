@@ -1583,6 +1583,71 @@ async function initDictamenSolicitudes() {
   })
 }
 
+/**
+ * Genera el HTML para la barra de presupuesto y el semáforo
+ */
+function generarBarraPresupuestoHTML(data) {
+  if (!data.presupuesto_actual) return ''
+
+  const p = data.presupuesto_actual
+  const asignado = parseFloat(p.Monto_Asignado || 0)
+  const comprometido = parseFloat(p.Monto_Comprometido || 0)
+  const ejecutado = parseFloat(p.Monto_Ejecutado || 0)
+  const totalGasto = comprometido + ejecutado
+  const disponible = asignado - totalGasto
+  const porcentaje = asignado > 0 ? Math.min(100, Math.round((totalGasto / asignado) * 100)) : 0
+
+  let colorBarra = 'bg-green-500'
+  let colorTexto = 'text-green-600'
+
+  if (porcentaje >= 100) {
+    colorBarra = 'bg-red-600'
+    colorTexto = 'text-red-600'
+  } else if (porcentaje >= 80) {
+    colorBarra = 'bg-orange-500'
+    colorTexto = 'text-orange-600'
+  }
+
+  const fmt = (m) =>
+    new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(m)
+
+  return `
+        <div class="bg-white p-4 border rounded-lg shadow-sm border-gray-200 mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <h4 class="text-sm font-bold text-gray-700">Estado de Presupuesto: <span class="text-blue-600">${
+                  p.GrupoNombre || 'N/A'
+                }</span></h4>
+                <span class="text-xs font-bold ${colorTexto}">${porcentaje}% Utilizado</span>
+            </div>
+            
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden border border-gray-100">
+                <div class="${colorBarra} h-full rounded-full transition-all duration-500" style="width: ${porcentaje}%"></div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                    <p class="text-[10px] uppercase text-gray-500 font-semibold">Asignado</p>
+                    <p class="text-sm font-bold text-gray-800">${fmt(asignado)}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase text-gray-500 font-semibold">Comprometido</p>
+                    <p class="text-sm font-bold text-blue-600">${fmt(comprometido)}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase text-gray-500 font-semibold">Ejecutado</p>
+                    <p class="text-sm font-bold text-indigo-600">${fmt(ejecutado)}</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase text-gray-500 font-semibold">Disponible</p>
+                    <p class="text-sm font-bold ${disponible < 0 ? 'text-red-600' : 'text-green-600'}">${fmt(
+    disponible,
+  )}</p>
+                </div>
+            </div>
+        </div>
+    `
+}
+
 window.mostrarVerDictamen = async function (idSolicitud) {
   document.getElementById('div-tabla').classList.add('hidden')
   const divVer = document.getElementById('div-ver-dictamen')
@@ -1596,6 +1661,19 @@ window.mostrarVerDictamen = async function (idSolicitud) {
     if (data.error) throw new Error(data.error)
 
     let html = generarDetallesSolicitudHTML(data)
+
+    // --- INTEGRACIÓN DE BARRA DE PRESUPUESTO (SEMÁFORO) ---
+    const presupuestoContainer = document.getElementById('presupuesto-resumen-container')
+    if (presupuestoContainer) {
+      if (data.presupuesto_actual) {
+        presupuestoContainer.innerHTML = generarBarraPresupuestoHTML(data)
+        presupuestoContainer.classList.remove('hidden')
+      } else {
+        presupuestoContainer.innerHTML = ''
+        presupuestoContainer.classList.add('hidden')
+      }
+    }
+    // -----------------------------------------------------
 
     html += generarComentariosHtml(data)
 

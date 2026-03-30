@@ -310,7 +310,17 @@ function RevisionX() {
                       gruposHtml = `<select name="id_grupo_presupuestal[${p.ID_SolicitudProd}]" class="w-full border rounded px-2 py-1 text-sm grupo-presupuestal-select" required>`
                       gruposHtml += `<option value="">Seleccione grupo</option>`
                       if (data.grupos_presupuestales) {
-                          data.grupos_presupuestales.forEach((grupo) => {
+                          // Filtrar grupos por el ID_Place de la solicitud
+                          const requestPlaceId = data.ID_Place;
+                          
+                          const gruposFiltrados = data.grupos_presupuestales.filter(g => {
+                              // Si no tenemos ID_Place en la solicitud, mostramos todos por seguridad
+                              if (!requestPlaceId) return true;
+                              // Mostrar solo si coincide el ID_Place (usamos == para permitir string/int)
+                              return g.ID_Place == requestPlaceId;
+                          });
+
+                          gruposFiltrados.forEach((grupo) => {
                               const selected = p.ID_GrupoPresupuestal == grupo.ID_GrupoPresupuestal ? 'selected' : ''
                               gruposHtml += `<option value="${grupo.ID_GrupoPresupuestal}" ${selected}>${grupo.Nombre}</option>`
                           })
