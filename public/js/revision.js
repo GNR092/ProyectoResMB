@@ -274,6 +274,41 @@ function RevisionX() {
         `
               // =========================================
 
+              // --- LÓGICA SELECTOR GRUPO GENERAL (ASISTENTE) ---
+              const contenedorGeneral = document.getElementById('contenedor-grupo-general');
+              const selectGeneralContainer = document.getElementById('select-grupo-general-container');
+              
+              if (contenedorGeneral && selectGeneralContainer) {
+                  if (!isServicio && data.grupos_presupuestales) {
+                      const requestPlaceId = data.ID_Place;
+                      const gruposFiltrados = data.grupos_presupuestales.filter(g => !requestPlaceId || g.ID_Place == requestPlaceId);
+                      
+                      let selectHtml = `<select id="select-grupo-presupuestal-general" class="w-full border rounded-md p-2 bg-white text-blue-900 font-semibold focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer">`;
+                      selectHtml += `<option value="">-- Seleccionar grupo para aplicar a todo --</option>`;
+                      gruposFiltrados.forEach(grupo => {
+                          selectHtml += `<option value="${grupo.ID_GrupoPresupuestal}">${grupo.Nombre}</option>`;
+                      });
+                      selectHtml += `</select>`;
+                      
+                      selectGeneralContainer.innerHTML = selectHtml;
+                      contenedorGeneral.classList.remove('hidden');
+
+                      // Evento para replicar a todos los selectores individuales
+                      document.getElementById('select-grupo-presupuestal-general').addEventListener('change', function(e) {
+                          const valor = e.target.value;
+                          if (valor !== '') {
+                              document.querySelectorAll('.grupo-presupuestal-select').forEach(select => {
+                                  select.value = valor;
+                              });
+                          }
+                      });
+                  } else {
+                      contenedorGeneral.classList.add('hidden');
+                      selectGeneralContainer.innerHTML = '';
+                  }
+              }
+              // -------------------------------------------------
+
               html += `
                 <h4 class="text-md font-bold mb-2">${
                   isServicio ? 'Servicios' : 'Productos'
