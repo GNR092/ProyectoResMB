@@ -112,6 +112,19 @@ class Home extends BaseController
                 'TituloOperacion',
                 'solicitar_material',
                 'ver_historial',
+            ],
+
+            // Rol Presupuestos
+            'Presupuestos' => [
+                'TituloPresupuestos',
+                'UnidadOperativa',
+                'GrupoPresupuestal',
+                'BancoDpto',
+                'PresupuestoMensual',
+                'ReportePresupuesto',
+                'SaldosBancarios',
+                'SegmentoNegocio',
+                'ver_historial',
             ]
         ];
         
@@ -198,7 +211,14 @@ class Home extends BaseController
                 // Contaduria
                 'reportes'    => 'TituloContador',
 
-
+                // Presupuestos
+                'UnidadOperativa'    => 'TituloPresupuestos',
+                'GrupoPresupuestal'  => 'TituloPresupuestos',
+                'BancoDpto'          => 'TituloPresupuestos',
+                'PresupuestoMensual' => 'TituloPresupuestos',
+                'ReportePresupuesto' => 'TituloPresupuestos',
+                'SaldosBancarios'    => 'TituloPresupuestos',
+                'SegmentoNegocio'    => 'TituloPresupuestos',
             ];
 
             foreach ($mapaTitulos as $opcion => $titulo) {
