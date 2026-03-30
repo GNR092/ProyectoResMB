@@ -87,14 +87,12 @@ class Modales extends BaseController
                     
                     // También enviamos todos los places para que JS los filtre
                     // Vinculación directa únicamente: Places -> ID_RazonSocial
-                    // Filtramos para asegurar que el ID_RazonSocial no sea nulo y que el registro esté activo (si existe la columna)
-                    $sqlPlaces = "
-                        SELECT ID_Place, Nombre_Corto, ID_RazonSocial
-                        FROM Places
-                        WHERE ID_RazonSocial IS NOT NULL
-                        ORDER BY Nombre_Corto ASC
-                    ";
-                    $data['all_places'] = $db->query($sqlPlaces)->getResultArray();
+                    $data['all_places'] = $db->table('Places')
+                        ->select('ID_Place, Nombre_Corto, ID_RazonSocial')
+                        ->where('ID_RazonSocial IS NOT NULL')
+                        ->orderBy('Nombre_Corto', 'ASC')
+                        ->get()
+                        ->getResultArray();
                 } else {
                     /**
                      * Requisito:
@@ -102,48 +100,40 @@ class Modales extends BaseController
                      * 2. Razones sociales que tengan entre sus complejos un departamento igual al del solicitante.
                      */
                     
-                    // Consulta unificada usando UNION y vinculación robusta de Places
-                    $sql = "
-                        WITH LinkedPlaces AS (
-                            SELECT p.ID_Place, p.Nombre_Corto, rs.ID_RazonSocial
-                            FROM Places p
-                            JOIN Razon_Social rs ON rs.ID_RazonSocial = p.ID_RazonSocial
-                            UNION
-                            SELECT p.ID_Place, p.Nombre_Corto, rs.ID_RazonSocial
-                            FROM Places p
-                            JOIN segmento_negocio sn ON sn.id = p.id_segmento
-                            JOIN Razon_Social rs ON rs.ID_RazonSocial = sn.id_razon_social
-                        )
-                        SELECT DISTINCT rs.ID_RazonSocial, rs.Nombre
-                        FROM Razon_Social rs
-                        JOIN LinkedPlaces p ON p.ID_RazonSocial = rs.ID_RazonSocial
-                        JOIN Departamentos d ON d.ID_Place = p.ID_Place
-                        WHERE d.ID_Dpto = ? OR d.Nombre = ?
-                        
-                        UNION
-                        
-                        SELECT DISTINCT rs.ID_RazonSocial, rs.Nombre
-                        FROM Razon_Social rs
-                        JOIN LinkedPlaces p ON p.ID_RazonSocial = rs.ID_RazonSocial
-                        JOIN UnidadOperativa uo ON uo.ID_Place = p.ID_Place
-                        JOIN Departamentos d ON d.ID_UnidadOperativa = uo.ID_UnidadOperativa
-                        WHERE d.ID_Dpto = ? OR d.Nombre = ?
-                        
-                        ORDER BY Nombre ASC
-                    ";
+                    // Usamos Query Builder para construir la consulta de forma compatible con cualquier DB
+                    $builder = $db->table('Razon_Social rs');
+                    $builder->select('rs.ID_RazonSocial, rs.Nombre')->distinct();
+                    
+                    // Sub-consulta para encontrar IDs de Razones Sociales vinculadas al departamento del usuario
+                    // Ruta 1: RS -> Place -> Departamentos
+                    $builder->join('Places p', 'p.ID_RazonSocial = rs.ID_RazonSocial', 'left');
+                    $builder->join('segmento_negocio sn', 'sn.id_razon_social = rs.ID_RazonSocial', 'left');
+                    $builder->join('Places p2', 'p2.id_segmento = sn.id', 'left');
+                    
+                    // Unir con Departamentos por ID_Place o ID_UnidadOperativa
+                    $builder->groupStart()
+                        ->join('Departamentos d', 'd.ID_Place = p.ID_Place OR d.ID_Place = p2.ID_Place', 'left')
+                        ->join('UnidadOperativa uo', 'uo.ID_Place = p.ID_Place OR uo.ID_Place = p2.ID_Place', 'left')
+                        ->join('Departamentos d2', 'd2.ID_UnidadOperativa = uo.ID_UnidadOperativa', 'left')
+                    ->groupEnd();
 
-                    $data['razones_sociales'] = $db->query($sql, [$idDeptoUsuario, $nombreDepto, $idDeptoUsuario, $nombreDepto])->getResultArray();
+                    $builder->groupStart()
+                        ->where('d.ID_Dpto', $idDeptoUsuario)
+                        ->orWhere('d.Nombre', $nombreDepto)
+                        ->orWhere('d2.ID_Dpto', $idDeptoUsuario)
+                        ->orWhere('d2.Nombre', $nombreDepto)
+                    ->groupEnd();
+
+                    $data['razones_sociales'] = $builder->orderBy('rs.Nombre', 'ASC')->get()->getResultArray();
 
                     // Fallback: si por alguna razón estructural sigue vacío, cargamos todas
                     if (empty($data['razones_sociales'])) {
-                        log_message('notice', 'Consulta SQL directa vacía para usuario ' . $idUsuario . '. Cargando todas.');
+                        log_message('notice', 'Consulta Query Builder vacía para usuario ' . $idUsuario . '. Cargando todas.');
                         $data['razones_sociales'] = $razonSocialModel
                             ->select('ID_RazonSocial, Nombre')
                             ->orderBy('Nombre', 'ASC')
                             ->findAll();
                     }
-
-                    log_message('debug', 'Razones Sociales finales SQL (Usuario ' . $idUsuario . '): ' . json_encode($data['razones_sociales']));
                 }
 
                 // 4. Obtener grupos presupuestales filtrados por la Unidad Operativa del departamento del usuario
