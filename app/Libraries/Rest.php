@@ -621,11 +621,18 @@ class Rest
         if (!$solicitud) {
             return null;
         }
-        $depto = $this->getDepartmentById($solicitud['ID_Dpto']);
+
+        $depto = $this->getDepartmentById($solicitud['ID_Dpto'] ?? 0);
         $uniModel = new \App\Models\UnidadOperativaModel();
         $unidad = $uniModel->find($depto['ID_UnidadOperativa'] ?? 0);
-        $solicitud['ID_Place'] = $placesModel->find($unidad['ID_Place'] ?? 0)['Nombre_Corto'];
-        $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
+        
+        // Validamos la existencia de Place y Unidad Operativa para evitar errores "offset on null"
+        $place = $placesModel->find($unidad['ID_Place'] ?? 0);
+        $solicitud['ID_Place'] = $place['Nombre_Corto'] ?? 'N/A';
+        
+        $razonSocial = $razonSocialModel->find($solicitud['ID_RazonSocial'] ?? 0);
+        $solicitud['ComplejoRFC'] = $razonSocial['RFC'] ?? 'N/A';
+
         $productos = [];
 
         if (
