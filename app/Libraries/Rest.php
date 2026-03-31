@@ -529,6 +529,10 @@ class Rest
                 ->where('ID_Solicitud', $id)
                 ->findAll();
 
+            $ivaValue = $solicitud['IVA'] ?? false;
+            $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
+            $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
+
             // --- LÓGICA DE PRESUPUESTO MULTI-GRUPO PARA DICTAMEN ---
             $impactoPorGrupo = [];
             foreach ($productos as $p) {
@@ -541,8 +545,9 @@ class Rest
                             'MontoImpacto' => 0
                         ];
                     }
-                    // Sumamos el importe del producto al impacto de este grupo
-                    $impactoPorGrupo[$idG]['MontoImpacto'] += (float)($p['Importe'] ?? 0);
+                    // Sumamos el importe del producto al impacto de este grupo (incluyendo IVA y Cantidad)
+                    $montoItem = (float)($p['Cantidad'] ?? 0) * (float)($p['Importe'] ?? 0) * $factorIVA;
+                    $impactoPorGrupo[$idG]['MontoImpacto'] += $montoItem;
                 }
             }
 
@@ -722,6 +727,10 @@ class Rest
                 ->where('ID_Solicitud', $id)
                 ->findAll();
 
+            $ivaValue = $solicitud['IVA'] ?? false;
+            $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
+            $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
+
             // --- LÓGICA DE PRESUPUESTO MULTI-GRUPO PARA DICTAMEN ---
             $impactoPorGrupo = [];
             foreach ($productos as $p) {
@@ -734,8 +743,9 @@ class Rest
                             'MontoImpacto' => 0
                         ];
                     }
-                    // Sumamos el importe del producto al impacto de este grupo
-                    $impactoPorGrupo[$idG]['MontoImpacto'] += (float)($p['Importe'] ?? 0);
+                    // Sumamos el importe del producto al impacto de este grupo (incluyendo IVA y Cantidad)
+                    $montoItem = (float)($p['Cantidad'] ?? 0) * (float)($p['Importe'] ?? 0) * $factorIVA;
+                    $impactoPorGrupo[$idG]['MontoImpacto'] += $montoItem;
                 }
             }
 
