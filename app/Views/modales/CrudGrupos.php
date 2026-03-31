@@ -47,11 +47,13 @@
                 </select>
             </div>
         </div>
+        <?php if (session('departamento_usuario') === 'Dirección'): ?>
         <div class="self-end mb-1">
             <a href="#" id="btn-agregar-grupos" class="inline-block px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors uppercase text-sm">
                 AGREGAR
             </a>
         </div>
+        <?php endif; ?>
     </div>
 
     <div class="overflow-x-auto">
@@ -62,7 +64,9 @@
                 <th class="w-1/5 px-3 py-2 border-b text-left">Descripción</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Estado</th>
+                <?php if (session('departamento_usuario') === 'Dirección'): ?>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Acciones</th>
+                <?php endif; ?>
             </tr>
             </thead>
             <tbody id="tabla-grupos">
@@ -91,6 +95,7 @@
                             <?php endif; ?>
                         </td>
 
+                        <?php if (session('departamento_usuario') === 'Dirección'): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <?php if ($enRevision): ?>
                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-300">
@@ -120,11 +125,12 @@
                             </div>
                             <?php endif; ?>
                         </td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="5" class="px-3 py-4 text-center text-gray-500">No hay partidas registradas</td>
+                    <td colspan="<?= (session('departamento_usuario') === 'Dirección') ? '5' : '4' ?>" class="px-3 py-4 text-center text-gray-500">No hay partidas registradas</td>
                 </tr>
             <?php endif; ?>
             </tbody>

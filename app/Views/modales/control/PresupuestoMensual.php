@@ -50,9 +50,8 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
             </button>
         </div>
 
-        <div class="flex flex-col gap-1 self-end mb-0.5">
-            <button x-show="departamentos.length > 0"
-                    @click="guardarMasivo()"
+        <div class="flex flex-col gap-1 self-end mb-0.5" x-show="departamentos.length > 0 && (<?= (session('departamento_usuario') === 'Dirección') ? 'true' : 'false' ?> || usoCopia)" x-cloak>
+            <button @click="guardarMasivo()"
                     :disabled="guardando || bloqueadoPorRevision"
                     class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
 
@@ -142,8 +141,8 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                 <input type="number"
                                        min="0" step="0.01"
                                        x-model="grupo.Monto_Asignado"
-                                       :disabled="bloqueadoPorRevision"
-                                       :class="bloqueadoPorRevision ? 'bg-gray-100 cursor-not-allowed' : ''"
+                                       :disabled="bloqueadoPorRevision || <?= (session('departamento_usuario') !== 'Dirección') ? 'true' : 'false' ?>"
+                                       :class="(bloqueadoPorRevision || <?= (session('departamento_usuario') !== 'Dirección') ? 'true' : 'false' ?>) ? 'bg-gray-100 cursor-not-allowed' : ''"
                                        placeholder="0.00"
                                        class="w-32 px-2 py-1.5 border border-gray-300 rounded-md text-right focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent">
                             </div>
@@ -176,5 +175,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 
         <div x-show="mensaje === ''"></div>
     </div>
+
+</div>
 
 </div>

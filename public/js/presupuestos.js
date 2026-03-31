@@ -22,6 +22,7 @@ function registrarComponentePresupuesto() {
             cargando: false,
             guardando: false,
             bloqueadoPorRevision: false,
+            usoCopia: false,
             mensaje: '',
             error: false,
 
@@ -132,6 +133,7 @@ function registrarComponentePresupuesto() {
                 const [anio, mes] = this.mesAnio.split('-');
                 const idsParam = this.idsPlaces.join(',');
                 this.cargando = true;
+                this.usoCopia = false;
                 this.departamentos = [];
                 this.departamentosOriginales = [];
                 this.mensaje = '';
@@ -313,6 +315,7 @@ function registrarComponentePresupuesto() {
                     });
 
                     if (copiasRealizadas > 0) {
+                        this.usoCopia = true; // Activar la bandera de excepción
                         mostrarNotificacion(`Se copiaron ${copiasRealizadas} montos exitosamente.`, 'success');
                     } else {
                         mostrarNotificacion('No se encontraron montos coincidentes para copiar.', 'alert');
@@ -370,17 +373,21 @@ function registrarComponentePresupuesto() {
                     return;
                 }
 
-                const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe brevemente el motivo de esta asignación (Obligatorio):', true);
-                if (comentarios === null) {
-                    this.guardando = false;
-                    return;
+                let comentarios = 'Copia de mes anterior (Excepción)';
+                if (!this.usoCopia) {
+                    comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe brevemente el motivo de esta asignación (Obligatorio):', true);
+                    if (comentarios === null) {
+                        this.guardando = false;
+                        return;
+                    }
                 }
 
                 const payload = {
                     anio: parseInt(anio),
                     mes: parseInt(mes),
                     grupos: gruposParaGuardar,
-                    comentarios: comentarios
+                    comentarios: comentarios,
+                    uso_copia: this.usoCopia // Indicar al servidor que es una excepción
                 };
 
                 try {
@@ -398,11 +405,13 @@ function registrarComponentePresupuesto() {
                         if (result.pending_review) {
                             this.mensaje = result.message || 'Presupuestos enviados a revisión.';
                             this.error = false;
+                            this.usoCopia = false;
                             this.bloqueadoPorRevision = true; // Bloqueo inmediato en el frontend
                             await this.cargarEstructura();    // Sincronizar con el servidor
                         } else {
                             this.mensaje = 'Presupuestos guardados correctamente';
                             this.error = false;
+                            this.usoCopia = false;
                             await this.cargarEstructura();
                         }
                     } else {
@@ -1354,7 +1363,8 @@ function initCrudGrupos() {
 
 function initGruposPantallas() {
     const pLis = document.getElementById('pantalla-lista-grupos'), pAdd = document.getElementById('pantalla-agregar-grupos'), pEdi = document.getElementById('pantalla-editar-grupos');
-    document.getElementById('btn-agregar-grupos').onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
+    const btnAdd = document.getElementById('btn-agregar-grupos');
+    if (btnAdd) btnAdd.onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
     document.getElementById('btn-regresar-lista-grupos').onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); };
     document.getElementById('btn-regresar-lista-editar-grupos').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
 }
@@ -1453,7 +1463,8 @@ function initCrudUnidades() {
     }, rowsPerPage: 10 });
 
     const pLis = document.getElementById('pantalla-lista-unidades'), pAdd = document.getElementById('pantalla-agregar-unidad'), pEdi = document.getElementById('pantalla-editar-unidad');
-    document.getElementById('btn-agregar-unidad').onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
+    const btnAdd = document.getElementById('btn-agregar-unidad');
+    if (btnAdd) btnAdd.onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
     document.getElementById('btn-regresar-lista-unidad').onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); };
     document.getElementById('btn-regresar-lista-editar-unidad').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
 

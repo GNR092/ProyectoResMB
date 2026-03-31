@@ -1043,7 +1043,89 @@ class PresupuestoApiController extends ResourceController
         $anio = (int) $json['anio'];
         $mes = (int) $json['mes'];
         $comentarios = $json['comentarios'] ?? null;
+        $usoCopia = $json['uso_copia'] ?? false;
 
+        // --- EXCEPCIÓN: COPIA DE MES ANTERIOR ---
+        // Si se usó la copia, aplicamos directamente sin pasar por revisión
+        if ($usoCopia) {
+            $db = \Config\Database::connect();
+            $db->transStart();
+            try {
+                $pmModel = new PresupuestoMensualModel();
+                $paModel = new PresupuestoAnualModel();
+                $uniModel = new UnidadOperativaModel();
+                $placesModel = new PlacesModel();
+                
+                $rsAfectadas = [];
+
+                foreach ($json['grupos'] as $g) {
+                    $idUnidad = (int) ($g['id_unidad'] ?? $g['id_dpto']);
+                    $idGrupo  = (int) $g['id_grupo'];
+                    
+                    $data = [
+                        'ID_UnidadOperativa'   => $idUnidad,
+                        'ID_GrupoPresupuestal' => $idGrupo,
+                        'Anio'                 => $anio, 
+                        'Mes'                  => $mes,
+                        'Monto_Asignado'       => (float) $g['monto_asignado']
+                    ];
+
+                    // Siempre buscamos si ya existe por la llave única natural (Unidad, Grupo, Anio, Mes)
+                    $exists = $pmModel->where([
+                        'ID_UnidadOperativa'   => $idUnidad,
+                        'ID_GrupoPresupuestal' => $idGrupo,
+                        'Anio'                 => $anio,
+                        'Mes'                  => $mes
+                    ])->first();
+
+                    if ($exists) {
+                        $pmModel->update($exists['ID_PresupuestoMensual'], $data);
+                    } else {
+                        // Sincronizar secuencia antes de insertar (Parche para Postgres)
+                        $db->query("SELECT setval('\"PresupuestoMensual_ID_PresupuestoMensual_seq\"', (SELECT MAX(\"ID_PresupuestoMensual\") FROM \"PresupuestoMensual\"))");
+                        $pmModel->insert($data);
+                    }
+
+                    $unidad = $uniModel->find($idUnidad);
+                    if ($unidad) {
+                        $place = $placesModel->find($unidad['ID_Place']);
+                        if ($place) $rsAfectadas[] = (int) $place['ID_RazonSocial'];
+                    }
+                }
+
+                // Recalcular presupuesto anual para las RS afectadas
+                foreach (array_unique($rsAfectadas) as $idRS) {
+                    $q = $db->table('PresupuestoMensual')
+                        ->selectSum('PresupuestoMensual.Monto_Asignado', 'total')
+                        ->join('UnidadOperativa u', 'u.ID_UnidadOperativa = PresupuestoMensual.ID_UnidadOperativa')
+                        ->join('Places p', 'p.ID_Place = u.ID_Place')
+                        ->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')
+                        ->where(['PresupuestoMensual.Anio' => $anio, 'p.ID_RazonSocial' => $idRS, 'gp.activo' => true])
+                        ->get()->getRow();
+                    $total = $q ? (float) $q->total : 0.0;
+                    
+                    $pa = $paModel->where(['Anio' => $anio, 'ID_RazonSocial' => $idRS])->first();
+                    $paData = ['ID_RazonSocial' => $idRS, 'Anio' => $anio, 'Monto' => $total];
+                    if ($pa) $paModel->update($pa['ID_PresupuestoAnual'], $paData);
+                    else $paModel->insert($paData);
+                }
+
+                $db->transComplete();
+                if ($db->transStatus() === false) throw new \Exception('Error al guardar copia directa.');
+
+                return $this->respond([
+                    'success' => true, 
+                    'pending_review' => false, 
+                    'message' => 'Presupuesto del mes anterior aplicado correctamente ✅'
+                ]);
+
+            } catch (\Exception $e) {
+                $db->transRollback();
+                return $this->failServerError($e->getMessage());
+            }
+        }
+
+        // --- FLUJO NORMAL: ENVÍO A REVISIÓN ---
         $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
         if ($solicitudesModel->insert([
@@ -1052,7 +1134,7 @@ class PresupuestoApiController extends ResourceController
             'Accion'        => 'Masivo',
             'ID_Afectado'   => "{$anio}-{$mes}",
             'Datos_Payload' => json_encode($json),
-            'Datos_Antiguos'=> null, // En masivo, calcular el diff dinámico es mejor en UI
+            'Datos_Antiguos'=> null,
             'Estado'        => 'Pendiente',
             'Comentarios_Solicitante' => $comentarios
         ])) {
