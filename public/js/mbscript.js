@@ -243,6 +243,12 @@ function initPlaceSelectors(allPlaces) {
 }
 
 async function initSolicitarMaterial() {
+  const formulario = document.getElementById('form-upload')
+  if (formulario) {
+    if (formulario.dataset.init === '1') return
+    formulario.dataset.init = '1'
+  }
+
   const tabla = document.getElementById('tabla-productos')
   const agregarBtn = document.getElementById('agregar-fila')
   const subtotalTd = document.getElementById('subtotal-costo')
@@ -383,7 +389,6 @@ async function initSolicitarMaterial() {
 
   loadRazonSocialProv('ProvSelect')
 
-  const formulario = document.getElementById('form-upload')
   if (formulario) {
     formulario.addEventListener('submit', function (e) {
       const importes = tabla.querySelectorAll('.importe')
@@ -419,6 +424,12 @@ async function initSolicitarMaterial() {
   }
 }
 async function initSolicitarMaterialSinCotizar() {
+  const formulario = document.getElementById('form-upload-sin-cotizar')
+  if (formulario) {
+    if (formulario.dataset.init === '1') return
+    formulario.dataset.init = '1'
+  }
+
   const tabla = document.getElementById('tabla-productos-sin-cotizar')
   const agregarBtn = document.getElementById('agregar-fila-sin-cotizar')
 
@@ -502,12 +513,17 @@ async function initSolicitarMaterialSinCotizar() {
 
   loadRazonSocialProv('ProvSelectSinCotizar')
 
-  const formulario = document.getElementById('form-upload-sin-cotizar')
   if (formulario) {
     formulario.addEventListener('submit', SendData)
   }
 }
 async function initSolicitarServicio() {
+  const formulario = document.getElementById('form-servicio-upload')
+  if (formulario) {
+    if (formulario.dataset.init === '1') return
+    formulario.dataset.init = '1'
+  }
+
   const tabla = document.getElementById('tabla-servicios')
   const agregarBtn = document.getElementById('agregar-fila-servicio')
   const subtotalTd = document.getElementById('subtotal-servicio')
@@ -663,9 +679,9 @@ async function initSolicitarServicio() {
     })
   }
 
-  const formulario = document.getElementById('form-servicio-upload')
   if (formulario) {
     formulario.addEventListener('submit', function (e) {
+
       const costos = tabla.querySelectorAll('.costo-servicio')
       let valido = true
 
