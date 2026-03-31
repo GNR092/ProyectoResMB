@@ -624,11 +624,11 @@ class Modales extends BaseController
     public function getProductTableRow()
     {
         $grupoModel = new GrupoPresupuestalModel();
-        $dptoModel = new DepartamentosModel();
+        $deptoModel = new DepartamentosModel();
         
         $idDepto = session('id_departamento_usuario');
         $deptoObj = $idDepto ? $deptoModel->find($idDepto) : null;
-        $idUnidad = $deptoObj['ID_UnidadOperativa'] ?? 0;
+        $idUnidad = ($deptoObj && is_array($deptoObj)) ? ($deptoObj['ID_UnidadOperativa'] ?? 0) : 0;
 
         $data['grupos_presupuestales'] = $grupoModel
             ->where('ID_UnidadOperativa', $idUnidad)
@@ -1148,7 +1148,15 @@ class Modales extends BaseController
     {
         $model = new PlacesModel();
         // AGREGAR 'ID_RazonSocial' e 'id_segmento' al array
-        $data = $this->request->getPost(['Nombre_Corto', 'Nombre_Completo', 'ID_RazonSocial', 'id_segmento']);
+        $postData = $this->request->getPost();
+        
+        $data = [
+            'Nombre_Corto'    => $postData['Nombre_Corto'] ?? '',
+            'Nombre_Completo' => $postData['Nombre_Completo'] ?? '',
+            'ID_RazonSocial'  => $postData['ID_RazonSocial'] ?? '',
+            'id_segmento'     => !empty($postData['id_segmento']) ? (int)$postData['id_segmento'] : null,
+            'activo'          => true
+        ];
 
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
