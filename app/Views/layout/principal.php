@@ -55,7 +55,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             <?php if (count($ajustes) > 0): ?>
                 <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
                    onclick="abrirModal('ajustes')">
-                    <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
+                    <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="/icons/icons.svg#settings"></use>
                     </svg>
                     <span>Ajustes</span>
@@ -66,7 +66,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
         <a href="<?= base_url(
             'auth/logout',
         ) ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors">
-            <svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor">
+            <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
                 <use xlink:href="/icons/icons.svg#logout"></use>
             </svg>
             <span>Cerrar sesión</span>

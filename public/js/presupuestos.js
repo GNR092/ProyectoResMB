@@ -1276,12 +1276,79 @@ function initSegmentosActions(tabla) {
 }
 
 function initCrudGrupos() {
-    const tabla = document.getElementById('tabla-grupos'); if (!tabla) return;
-    setupClientSideTable({ rowsSelector: '#tabla-grupos tr[data-id]', paginationSelector: 'paginacion-grupos', filterFormSelector: '#form-filtros-grupos', filterFunction: (row) => {
-        const nom = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase();
-        const des = (document.getElementById('buscar-descripcion-grupo')?.value || '').toLowerCase();
-        return row.querySelector('.nombre-grupo')?.textContent.toLowerCase().includes(nom) && row.querySelector('.descripcion-grupo')?.textContent.toLowerCase().includes(des);
-    }, rowsPerPage: 10 });
+    const container = document.getElementById('pantalla-lista-grupos');
+    const tabla = document.getElementById('tabla-grupos'); 
+    if (!tabla || !container) return;
+    
+    const unidadesData = JSON.parse(container.dataset.unidadesJson || '[]');
+
+    // Inicializar Choices para los filtros
+    const refLugar = document.getElementById('filtro-lugar-grupo');
+    const refUnidad = document.getElementById('filtro-unidad-grupo');
+    let choicesLugar = null;
+    let choicesUnidad = null;
+
+    if (refLugar) {
+        choicesLugar = new Choices(refLugar, { removeItemButton: true, itemSelectText: '', placeholderValue: 'Todos los complejos', searchPlaceholderValue: 'Buscar...' });
+    }
+    if (refUnidad) {
+        choicesUnidad = new Choices(refUnidad, { removeItemButton: true, itemSelectText: '', placeholderValue: 'Todos los departamentos', searchPlaceholderValue: 'Buscar...' });
+    }
+
+    // Lógica de Sincronización de Filtros
+    if (refLugar && refUnidad) {
+        refLugar.addEventListener('change', () => {
+            const lugaresSeleccionados = choicesLugar.getValue(true); // Nombres de los complejos
+            
+            let deptosFiltrados = [];
+            if (lugaresSeleccionados.length === 0) {
+                // Si no hay complejos, mostrar todos los departamentos únicos
+                deptosFiltrados = [...new Set(unidadesData.map(u => u.Nombre))];
+            } else {
+                // Mostrar departamentos que pertenezcan a los complejos seleccionados
+                deptosFiltrados = [...new Set(
+                    unidadesData
+                        .filter(u => lugaresSeleccionados.includes(u.PlaceNombre))
+                        .map(u => u.Nombre)
+                )];
+            }
+
+            // Actualizar las opciones del selector de Unidades
+            choicesUnidad.clearStore();
+            const nuevasOpciones = deptosFiltrados.sort().map(nombre => ({
+                value: nombre,
+                label: nombre,
+                selected: false,
+                disabled: false
+            }));
+            choicesUnidad.setChoices(nuevasOpciones, 'value', 'label', true);
+            
+            // Forzar refresco de la tabla
+            refUnidad.dispatchEvent(new Event('change'));
+        });
+    }
+
+    setupClientSideTable({ 
+        rowsSelector: '#tabla-grupos tr[data-id]', 
+        paginationSelector: 'paginacion-grupos', 
+        filterFormSelector: '#form-filtros-grupos', 
+        filterFunction: (row) => {
+            const nom = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase();
+            const lugaresSel = choicesLugar ? choicesLugar.getValue(true).map(v => v.toLowerCase()) : [];
+            const unidadesSel = choicesUnidad ? choicesUnidad.getValue(true).map(v => v.toLowerCase()) : [];
+            
+            const textoCelda = row.querySelector('.unidad-grupo')?.textContent.toLowerCase() || '';
+            
+            const matchNombre = row.querySelector('.nombre-grupo')?.textContent.toLowerCase().includes(nom);
+            const matchLugar = lugaresSel.length === 0 || lugaresSel.some(l => textoCelda.includes(`(${l})`));
+            
+            const nombreUnidadEnCelda = textoCelda.split(' (')[0];
+            const matchUnidad = unidadesSel.length === 0 || unidadesSel.some(u => nombreUnidadEnCelda === u);
+
+            return matchNombre && matchLugar && matchUnidad;
+        }, 
+        rowsPerPage: 10 
+    });
     initGruposPantallas(); initGruposForm(); initGruposEditarForm(); initGruposActions(tabla);
 }
 
@@ -1405,7 +1472,7 @@ function initCrudUnidades() {
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
                 } else {
-                    mostrarNotificacion('Unidad agregada ✅', 'success'); 
+                    mostrarNotificacion('Departamento agregado ✅', 'success'); 
                 }
                 abrirModal('UnidadOperativa'); 
             }
@@ -1458,9 +1525,8 @@ function initCrudUnidades() {
                 if (res.pending_review) {
                     mostrarNotificacion(res.message || 'Desactivación enviada a revisión ⏳', 'info');
                 } else {
-                    mostrarNotificacion('Desactivada ✅', 'success'); 
-                }
-                abrirModal('UnidadOperativa'); 
+                    mostrarNotificacion('Desactivado ✅', 'success');
+                }                abrirModal('UnidadOperativa'); 
             }
         }
     });

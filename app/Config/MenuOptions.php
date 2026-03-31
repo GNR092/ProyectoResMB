@@ -27,17 +27,17 @@ class MenuOptions extends BaseConfig
 
             'solicitar_material' => [
                 'label' => 'Crear Requisición',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#solicitar_material"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#solicitar_material"></use></svg>',
             ],
 
             'aprobar_solicitudes' => [
                 'label' => 'Aprobar Requisiciones Auxiliares',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar"></use></svg>',
             ],
 
             'ver_historial' => [
                 'label' => 'Estado De Requisiciones',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ver_historial"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ver_historial"></use></svg>',
             ],
 
             // ********* COMNPRAS **********//
@@ -49,28 +49,28 @@ class MenuOptions extends BaseConfig
 
             'revisar_solicitudes' => [
                 'label' => 'Cotizar Solicitudes',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#revisar_solicitudes"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#revisar_solicitudes"></use></svg>',
             ],
 
             'enviar_revision' => [
                 'label' => 'Enviar a revisión',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#enviar_revision"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#enviar_revision"></use></svg>',
             ],
 
             'ordenes_compra' => [
                 'label' => 'Ordenes de Compras',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ordenes_compra"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ordenes_compra"></use></svg>',
             ],
 
             'pagos_pendientes' => [
                 'label' => 'Facturas Pendientes',
                 'icon' =>
-                    '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#pagos_pendientes"></use></svg>',
+                    '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#pagos_pendientes"></use></svg>',
             ],
 
             'correcciones' => [
                 'label' => 'Corregir solicitudes',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#Fix"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#Fix"></use></svg>',
             ],
 
             // ******** DIRECCION *******//
@@ -82,23 +82,23 @@ class MenuOptions extends BaseConfig
 
             'dictamen_solicitudes' => [
                 'label' => 'Aprobar requisiciones',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#dictamen_solicitudes"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#dictamen_solicitudes"></use></svg>',
             ],
 
             'programar_pagos' => [
                 'label' => 'Programación de pagos',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar_pagos"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#aprobar_pagos"></use></svg>',
             ],
 
             'AjustesPresupuesto' => [
                 'label' => 'Ajustes de Presupuesto',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#CambiosPresupuesto"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#CambiosPresupuesto"></use></svg>',
             ],
 
             // ********** COMPRAS Y TESORERIA ************ //
             'crud_cuentas' => [
                 'label' => 'Cuentas',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#cuentas"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#cuentas"></use></svg>',
             ],
 
             // ****** TESORERIA ******//
@@ -110,7 +110,7 @@ class MenuOptions extends BaseConfig
 
             'lista_pagos' => [
                 'label' => 'Lista de Pagos',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
             ],
 
 
@@ -123,7 +123,7 @@ class MenuOptions extends BaseConfig
 
             'almacen' => [
                 'label' => 'Almacén',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#almacen"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#almacen"></use></svg>',
             ],
 
 
@@ -136,7 +136,7 @@ class MenuOptions extends BaseConfig
 
             'reportes' => [
                 'label' => 'Reportes/Auditoria',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#reportes"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#reportes"></use></svg>',
             ],
 
             //**********PRESUPUESTOS**********//
@@ -148,38 +148,49 @@ class MenuOptions extends BaseConfig
             ],
 
             'UnidadOperativa' => [
-                'label' => 'Unidades Operativas',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#UnidadOperativa"></use></svg>',
+                'label' => 'Departamentos De Operación',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#UnidadOperativa"></use></svg>',
             ],
 
             'GrupoPresupuestal' => [
                 'label' => 'Partidas Presupuestales',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#GrupoPresupuestal"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#GrupoPresupuestal"></use></svg>',
             ],
 
-            'BancoDpto' => [
-                'label' => 'Bancos de Razón Social',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#BancoDpto"></use></svg>',
-            ],
 
             'PresupuestoMensual' => [
-                'label' => 'Asignar Presupuestos',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#PresupuestoMensual"></use></svg>',
+                'label' => 'Creación/Asignación De Presupuestos',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#PresupuestoMensual"></use></svg>',
             ],
 
             'ReportePresupuesto' => [
                 'label' => 'Reportes de Presupuestos',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ReportePresupuestal"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ReportePresupuestal"></use></svg>',
+            ],
+
+
+
+            'SegmentoNegocio' => [
+                'label' => 'Segmentos de Negocio',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SegmentoNegocio"></use></svg>',
+            ],
+
+            //**********BANCOS RAZON SOCIAL**********//
+
+            'TituloBancos' => [
+                'label' => 'Bancos de Razón Social',
+                'icon' => '',
+                'is_title' => true,
+            ],
+
+            'BancoDpto' => [
+                'label' => 'Bancos de Razón Social',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#BancoDpto"></use></svg>',
             ],
 
             'SaldosBancarios' => [
                 'label' => 'Saldos Bancarios',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SaldoBancario"></use></svg>',
-            ],
-
-            'SegmentoNegocio' => [
-                'label' => 'Segmentos de Negocio',
-                'icon' => '<svg class="size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SegmentoNegocio"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SaldoBancario"></use></svg>',
             ],
 
         ];

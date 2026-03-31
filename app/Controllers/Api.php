@@ -1312,7 +1312,7 @@ class Api extends ResourceController
                             $nombreGrupo = $grupoInfo ? $grupoInfo['Nombre'] : "ID $idGrupo";
                             return $this->respond([
                                 'success' => false,
-                                'message' => "No se puede aprobar la solicitud porque el grupo presupuestal '$nombreGrupo' no tiene presupuesto mensual asignado para " . date('F Y') . "."
+                                'message' => "No se puede aprobar la solicitud porque la partida presupuestal '$nombreGrupo' no tiene presupuesto mensual asignado para " . date('F Y') . "."
                             ]);
                         }
                     }

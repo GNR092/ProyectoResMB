@@ -14,8 +14,8 @@
             <label for="buscar-nombre-depto" class="sr-only">Buscar por nombre</label>
             <input type="text" id="buscar-nombre-depto" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
 
-            <label for="buscar-unidad-depto" class="sr-only">Buscar por Unidad</label>
-            <input type="text" id="buscar-unidad-depto" placeholder="Buscar por Unidad..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+            <label for="buscar-unidad-depto" class="sr-only">Buscar por Depto. de Op.</label>
+            <input type="text" id="buscar-unidad-depto" placeholder="Buscar por Depto. de Op. ..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
         </div>
         <div>
             <a href="#" id="btn-agregar-departamento" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
@@ -30,7 +30,7 @@
             <tr>
                 <th class="w-1/3 px-3 py-2 border-b text-left">Departamento</th>
                 <th class="w-1/3 px-3 py-2 border-b text-left">Lugar</th>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Unidad Operativa</th>
+                <th class="w-1/3 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
             </tr>
             </thead>
@@ -106,9 +106,9 @@
             </div>
 
             <div class="flex flex-col">
-                <label for="ID_UnidadOperativa" class="font-medium mb-1">Unidad Operativa</label>
+                <label for="ID_UnidadOperativa" class="font-medium mb-1">Departamento De Operación</label>
                 <select name="ID_UnidadOperativa" id="ID_UnidadOperativa" class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
-                    <option value="">Seleccione Unidad Operativa</option>
+                    <option value="">Seleccione Departamento De Operación</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $unidad): ?>
                             <option value="<?= $unidad['ID_UnidadOperativa'] ?>" data-place="<?= $unidad['ID_Place'] ?>">
@@ -150,9 +150,9 @@
             </div>
 
             <div class="flex flex-col">
-                <label for="editar-ID_UnidadOperativa" class="mb-1 font-medium">Unidad Operativa</label>
+                <label for="editar-ID_UnidadOperativa" class="mb-1 font-medium">Departamento De Operación</label>
                 <select name="ID_UnidadOperativa" id="editar-ID_UnidadOperativa" class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
-                    <option value="">Seleccione Unidad Operativa</option>
+                    <option value="">Seleccione Departamento De Operación</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $unidad): ?>
                             <option value="<?= $unidad['ID_UnidadOperativa'] ?>" data-place="<?= $unidad['ID_Place'] ?>">

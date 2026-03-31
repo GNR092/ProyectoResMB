@@ -1,8 +1,8 @@
-<!-- Pantalla 1: lista de unidades operativas -->
+<!-- Pantalla 1: lista de departamentos de operación -->
 <div id="pantalla-lista-unidades" class="p-6 bg-white rounded-xl shadow-md">
 
 
-    <h2 class="text-2xl font-semibold mb-4 text-center">Unidades Operativas</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Departamentos De Operación</h2>
 
     <div id="form-filtros-unidades" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
         <div class="flex flex-1 gap-4">
@@ -20,7 +20,7 @@
         <table class="min-w-full border border-gray-300 rounded-lg table-fixed">
             <thead class="bg-gray-100">
             <tr>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Unidad Operativa</th>
+                <th class="w-1/3 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/3 px-3 py-2 border-b text-left">Lugar (Complejo)</th>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Estado</th>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
@@ -80,7 +80,7 @@
 <!-- Pantalla Agregar -->
 <div id="pantalla-agregar-unidad" class="hidden p-6 bg-white rounded-xl shadow-md">
     <button id="btn-regresar-lista-unidad" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">← Regresar</button>
-    <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Unidad Operativa</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Departamento De Operación</h2>
     <form id="form-agregar-unidad" class="space-y-4">
         <div class="flex flex-col">
             <label for="Nombre" class="mb-1 font-medium">Nombre de la Unidad</label>
@@ -104,11 +104,11 @@
 <!-- Pantalla Editar -->
 <div id="pantalla-editar-unidad" class="hidden p-6 bg-white rounded-xl shadow-md">
     <button id="btn-regresar-lista-editar-unidad" class="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">← Regresar</button>
-    <h2 class="text-2xl font-semibold mb-4 text-center">Editar Unidad Operativa</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Editar Departamento De Operación</h2>
     <form id="form-editar-unidad" class="space-y-4">
         <input type="hidden" name="ID_UnidadOperativa" id="editar-ID_UnidadOperativa">
         <div class="flex flex-col">
-            <label for="editar-Nombre-unidad" class="mb-1 font-medium">Nombre de la Unidad</label>
+            <label for="editar-Nombre-unidad" class="mb-1 font-medium">Nombre</label>
             <input type="text" name="Nombre" id="editar-Nombre-unidad" required class="w-full px-3 py-2 border rounded-lg">
         </div>
         <div class="flex flex-col">

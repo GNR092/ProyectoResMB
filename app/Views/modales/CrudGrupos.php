@@ -1,18 +1,54 @@
-<div id="pantalla-lista-grupos" class="p-6 bg-white rounded-xl shadow-md">
+<div id="pantalla-lista-grupos" 
+     class="p-6 bg-white rounded-xl shadow-md"
+     data-unidades-json='<?= json_encode($unidades_operativas ?? []) ?>'>
     
 
     <h2 class="text-2xl font-semibold mb-4 text-center">Partidas Presupuestales</h2>
 
     <div id="form-filtros-grupos" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-        <div class="flex flex-1 gap-4">
-            <label for="buscar-nombre-grupo" class="sr-only">Buscar por nombre</label>
-            <input type="text" id="buscar-nombre-grupo" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+        <div class="flex flex-1 gap-4 items-end">
+            <div class="flex-1">
+                <label for="buscar-nombre-grupo" class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label>
+                <input type="text" id="buscar-nombre-grupo" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+            </div>
 
-            <label for="buscar-descripcion-grupo" class="sr-only">Buscar por descripción</label>
-            <input type="text" id="buscar-descripcion-grupo" placeholder="Buscar por descripción..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Complejos</label>
+                <select id="filtro-lugar-grupo" multiple>
+                    <?php 
+                    $placesUnicos = [];
+                    if (!empty($unidades_operativas)) {
+                        foreach ($unidades_operativas as $uo) {
+                            $placesUnicos[$uo['ID_Place']] = $uo['PlaceNombre'];
+                        }
+                    }
+                    asort($placesUnicos);
+                    foreach ($placesUnicos as $id => $nombre): ?>
+                        <option value="<?= esc($nombre) ?>"><?= esc($nombre) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Depto. de Op.</label>
+                <select id="filtro-unidad-grupo" multiple>
+                    <?php 
+                    $unidadesUnicas = [];
+                    if (!empty($unidades_operativas)) {
+                        foreach ($unidades_operativas as $uo) {
+                            $unidadesUnicas[] = $uo['Nombre'];
+                        }
+                    }
+                    $unidadesUnicas = array_unique($unidadesUnicas);
+                    asort($unidadesUnicas);
+                    foreach ($unidadesUnicas as $nombre): ?>
+                        <option value="<?= esc($nombre) ?>"><?= esc($nombre) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
         </div>
-        <div>
-            <a href="#" id="btn-agregar-grupos" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
+        <div class="self-end mb-1">
+            <a href="#" id="btn-agregar-grupos" class="inline-block px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors uppercase text-sm">
                 AGREGAR
             </a>
         </div>
@@ -24,7 +60,7 @@
             <tr>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Nombre</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Descripción</th>
-                <th class="w-1/5 px-3 py-2 border-b text-left">Unidad Operativa</th>
+                <th class="w-1/5 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Estado</th>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Acciones</th>
             </tr>
@@ -115,9 +151,9 @@
             </div>
 
             <div class="flex flex-col">
-                <label for="ID_UnidadOperativa" class="mb-1 font-medium">Unidad Operativa</label>
+                <label for="ID_UnidadOperativa" class="mb-1 font-medium">Departamento De Operación</label>
                 <select name="ID_UnidadOperativa" id="ID_UnidadOperativa" class="w-full px-3 py-2 border rounded-lg">
-                    <option value="">Seleccionar Unidad</option>
+                    <option value="">Seleccionar Departamento De Operación</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $uni): ?>
                             <option value="<?= esc($uni['ID_UnidadOperativa']) ?>">
@@ -150,9 +186,9 @@
             </div>
 
             <div class="flex flex-col">
-                <label for="editar-ID_UnidadOperativa" class="mb-1 font-medium">Unidad Operativa</label>
+                <label for="editar-ID_UnidadOperativa" class="mb-1 font-medium">Departamento De Operación</label>
                 <select name="ID_UnidadOperativa" id="editar-ID_UnidadOperativa" class="w-full px-3 py-2 border rounded-lg">
-                    <option value="">Seleccionar Unidad</option>
+                    <option value="">Seleccionar Departamento De Operación</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $uni): ?>
                             <option value="<?= esc($uni['ID_UnidadOperativa']) ?>">

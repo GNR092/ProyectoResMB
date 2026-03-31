@@ -92,9 +92,9 @@ function abrirModal(opcion) {
     lista_pagos: 'Lista de pagos',
     crud_cuentas: 'Cuentas de proveedores',
     correcciones: 'Corregir Solicitudes',
-    GrupoPresupuestal: 'Grupo Presupuestal',
+    GrupoPresupuestal: 'Partida Presupuestal',
     BancoDpto: 'Cuentas Bancarias de los Departamentos',
-    PresupuestoMensual: 'Asignar Presupuestos Mensuales',
+    PresupuestoMensual: 'Creación/Asignación De Presupuestos',
     ReportePresupuesto: 'Reportes para presupuestos',
     SaldosBancarios: 'Saldos de Bancos',
     SegmentoNegocio: 'Segmentos de Negocio',
@@ -3589,7 +3589,7 @@ function initGruposActions(tabla) {
       if (
         !(await Confirmar(
           'Eliminar Grupo?',
-          '¿Seguro que deseas eliminar este grupo presupuestal?',
+          '¿Seguro que deseas eliminar esta partida presupuestal?',
         ))
       )
         return

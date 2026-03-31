@@ -23,7 +23,7 @@ class Home extends BaseController
             // Rol SuperAdmin: ve todo
             'Administración' => array_keys($opcionesDisponibles),
             
-            // Rol Compras
+            // ********* Rol Compras
             'Compras' => [
                 'TituloCompras',
                 'solicitar_material',
@@ -39,16 +39,27 @@ class Home extends BaseController
                 'crud_cuentas',
             ],
 
-            // Rol Dirección
+            // ********** Rol Dirección
             'Direccion' => [
                 'TituloDireccion',
                 'dictamen_solicitudes',
                 'programar_pagos',
                 'AjustesPresupuesto',
                 'ver_historial',
+                //PRESUPUESTOS
+                'TituloPresupuestos',
+                'UnidadOperativa',
+                'GrupoPresupuestal',
+                'PresupuestoMensual',
+                'ReportePresupuesto',
+                'SegmentoNegocio',
+                'ver_historial',
+                'TituloBancos',
+                'BancoDpto',
+                'SaldosBancarios',
             ],
 
-            // Rol Tesorería
+            // ******** Rol Tesorería
             'Tesoreria' => [
                 'TituloTesoreria',
                 'ficha_pago',
@@ -59,7 +70,7 @@ class Home extends BaseController
                 'solicitar_material',
             ],
 
-            // Rol Almacén
+            // ******* Rol Almacén
             'Almacen' => [
                 'TituloAlmacen',
                 'registrar_productos',
@@ -70,14 +81,28 @@ class Home extends BaseController
                 'almacen',
             ],
 
-            // Rol Direccion Campus
+            // ******* Rol Direccion Campus
             'Direccion Campus' => [
                 'solicitar_material',
                 'enviar_revision',
                 'ver_historial',
             ],
 
-            //Rol Contaduria
+            // ******** Rol Presupuestos
+            'Presupuestos' => [
+                'TituloPresupuestos',
+                'UnidadOperativa',
+                'GrupoPresupuestal',
+                'PresupuestoMensual',
+                'ReportePresupuesto',
+                'SegmentoNegocio',
+                'ver_historial',
+                'TituloBancos',
+                'BancoDpto',
+                'SaldosBancarios',
+            ],
+
+            // ******** Rol Contaduria
             'Contaduría' => [
                 //COMPRAS
                 'TituloCompras',
@@ -87,6 +112,7 @@ class Home extends BaseController
                 'ordenes_compra',
                 'pagos_pendientes',
                 'ver_historial',
+
 
                 //TESORERIA
                 'TituloTesoreria',
@@ -104,17 +130,20 @@ class Home extends BaseController
                 'bajas_destruccion',
                 'almacen',
 
+                //CONTABILIDAD
                 'reportes',
 
+                //PRESUPUESTOS
                 'TituloPresupuestos',
                 'UnidadOperativa',
                 'GrupoPresupuestal',
-                'BancoDpto',
                 'PresupuestoMensual',
                 'ReportePresupuesto',
-                'SaldosBancarios',
                 'SegmentoNegocio',
                 'ver_historial',
+                'TituloBancos',
+                'BancoDpto',
+                'SaldosBancarios',
             ],
 
             // Rol por defecto (Jefes de Departamento)
@@ -124,18 +153,7 @@ class Home extends BaseController
                 'ver_historial',
             ],
 
-            // Rol Presupuestos
-            'Presupuestos' => [
-                'TituloPresupuestos',
-                'UnidadOperativa',
-                'GrupoPresupuestal',
-                'BancoDpto',
-                'PresupuestoMensual',
-                'ReportePresupuesto',
-                'SaldosBancarios',
-                'SegmentoNegocio',
-                'ver_historial',
-            ]
+
         ];
         
         $opcionesAjustes = [

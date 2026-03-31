@@ -110,7 +110,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-800 text-white text-[10px] uppercase tracking-wider">
                         <tr>
-                            <th class="px-6 py-3 text-left">Unidad / Partida</th>
+                            <th class="px-6 py-3 text-left">Departamento / Partida</th>
                             <th class="px-4 py-3 text-right">Presp. Asignado</th>
                             <th class="px-4 py-3 text-right">Comprometido</th>
                             <th class="px-4 py-3 text-right">Ejecutado</th>
@@ -373,10 +373,10 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-800 text-white text-[9px] uppercase tracking-wider">
                         <tr>
-                            <th class="px-4 py-3 text-left">Unidad / Partida</th>
-                            <th class="px-2 py-3 text-right">P. Asignado</th>
-                            <th class="px-2 py-3 text-right">P. Gastado</th>
-                            <th class="px-2 py-3 text-right">P. Disponible</th>
+                            <th class="px-4 py-3 text-left">Departamento / Partida</th>
+                            <th class="px-2 py-3 text-right">Importe asignado</th>
+                            <th class="px-2 py-3 text-right">Importe Pagado</th>
+                            <th class="px-2 py-3 text-right">Importe Disponible</th>
                             <th class="px-2 py-3 text-center">% Ejec.</th>
                             <th class="px-2 py-3 text-right">B. Inicial</th>
                             <th class="px-2 py-3 text-right">B. Final</th>
@@ -467,3 +467,4 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     [x-cloak] { display: none !important; }
 </style>
+>

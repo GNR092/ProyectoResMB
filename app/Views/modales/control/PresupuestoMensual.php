@@ -49,11 +49,26 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 Copiar Mes Anterior
             </button>
         </div>
+
+        <div class="flex flex-col gap-1 self-end mb-0.5">
+            <button x-show="departamentos.length > 0"
+                    @click="guardarMasivo()"
+                    :disabled="guardando || bloqueadoPorRevision"
+                    class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
+
+                <svg x-show="guardando" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+
+                <span x-text="guardando ? 'Guardando...' : 'Guardar Presupuestos'"></span>
+            </button>
+        </div>
     </div>
 
     <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm" x-cloak>
         <div class="flex flex-col gap-1 w-full md:w-[45%]">
-            <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Unidades Operativas</label>
+            <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
             <select x-ref="filtroUnidad" multiple>
                 <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
                     <option :value="uni.ID_UnidadOperativa" x-text="uni.Nombre"></option>
@@ -87,7 +102,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         <table class="min-w-full text-sm">
             <thead class="bg-blue-50">
             <tr>
-                <th class="w-2/3 px-6 py-3 border-b border-gray-300 text-left font-semibold text-gray-700">Unidad Operativa / Grupo Presupuestal</th>
+                <th class="w-2/3 px-6 py-3 border-b border-gray-300 text-left font-semibold text-gray-700">Departamento De Operación / Partida Presupuestal</th>
                 <th class="w-1/3 px-6 py-3 border-b border-gray-300 text-right font-semibold text-gray-700 border-l border-l-gray-300">Monto Asignado</th>
             </tr>
             </thead>
@@ -100,7 +115,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
             </tr>
             <tr x-show="!cargando && departamentos.length === 0">
                 <td colspan="2" class="px-4 py-12 text-center text-gray-400">
-                    Seleccione una Razón Social, un Place y una Fecha para visualizar las unidades operativas.
+                    Seleccione una Razón Social, un Place y una Fecha para visualizar los departamentos de operación.
                 </td>
             </tr>
             </tbody>
@@ -160,19 +175,6 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
            x-text="mensaje"></p>
 
         <div x-show="mensaje === ''"></div>
-
-        <button x-show="departamentos.length > 0"
-                @click="guardarMasivo()"
-                :disabled="guardando || bloqueadoPorRevision"
-                class="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
-
-            <svg x-show="guardando" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-
-            <span x-text="guardando ? 'Guardando...' : 'Guardar Presupuestos'"></span>
-        </button>
     </div>
 
 </div>
