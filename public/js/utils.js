@@ -1090,13 +1090,20 @@ function generarSeccionAdjuntos(data) {
             ${
               /* 2. COTIZACIÓN */
               cotizacionFile
-                ? `
-            <div>
-                <strong>Cotizacion:</strong> 
-                <a href="${BASE_URL}api/storage/serve?path=cotizaciones/${sol.Fecha ? sol.Fecha.split(' ')[0] : data.Fecha}/${cotizacionFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                    ${cotizacionFile}
-                </a>
-            </div>`
+                ? cotizacionFile
+                    .split(',')
+                    .map((file) => {
+                      const trimmedFile = file.trim()
+                      if (!trimmedFile) return ''
+                      return `
+                <div>
+                    <strong>Cotizacion:</strong> 
+                    <a href="${BASE_URL}api/storage/serve?path=cotizaciones/${sol.Fecha ? sol.Fecha.split(' ')[0] : data.Fecha}/${trimmedFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                        ${trimmedFile}
+                    </a>
+                </div>`
+                    })
+                    .join('')
                 : '<div class="text-gray-400"><strong>Cotizacion:</strong> No adjuntada</div>'
             }
 
