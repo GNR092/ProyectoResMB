@@ -54,14 +54,6 @@
             </div>
         </div>
 
-        <!-- Detalles -->
-        <div id="contenedor-grupo-general" class="mb-4 bg-blue-50 p-4 border border-blue-200 rounded-lg hidden">
-            <label class="block text-sm font-bold text-blue-800 mb-1">Asistente de Llenado: Seleccionar grupo para todos los productos</label>
-            <div id="select-grupo-general-container">
-                <!-- Se llenará vía JS -->
-            </div>
-        </div>
-
         <div id="detalles-para-revision" class="mb-6">
             <!-- Cargados vía JS -->
         </div>
