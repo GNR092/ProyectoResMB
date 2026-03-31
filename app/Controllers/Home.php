@@ -105,6 +105,16 @@ class Home extends BaseController
                 'almacen',
 
                 'reportes',
+
+                'TituloPresupuestos',
+                'UnidadOperativa',
+                'GrupoPresupuestal',
+                'BancoDpto',
+                'PresupuestoMensual',
+                'ReportePresupuesto',
+                'SaldosBancarios',
+                'SegmentoNegocio',
+                'ver_historial',
             ],
 
             // Rol por defecto (Jefes de Departamento)
