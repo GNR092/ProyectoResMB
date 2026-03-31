@@ -1274,22 +1274,21 @@ class Modales extends BaseController
     public function insertarDepartamento()
     {
         $model = new DepartamentosModel();
-        $unidadModel = new UnidadOperativaModel();
         
         $nombre = $this->request->getPost('Nombre');
         $unidadId = $this->request->getPost('ID_UnidadOperativa');
         $placeId = $this->request->getPost('ID_Place'); // Capturamos el lugar elegido
 
-        if (empty($nombre) || empty($unidadId) || empty($placeId)) {
+        if (empty($nombre) || empty($placeId)) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'El nombre, el complejo y la unidad operativa son obligatorios',
+                'message' => 'El nombre y el complejo son obligatorios',
             ]);
         }
 
         $data = [
             'Nombre'             => $nombre,
-            'ID_UnidadOperativa' => $unidadId,
+            'ID_UnidadOperativa' => !empty($unidadId) ? $unidadId : null,
             'ID_Place'           => $placeId,
         ];
 
@@ -1310,9 +1309,11 @@ class Modales extends BaseController
     {
         $model = new DepartamentosModel();
         
+        $unidadId = $this->request->getPost('ID_UnidadOperativa');
+
         $data = [
             'Nombre'             => $this->request->getPost('Nombre'),
-            'ID_UnidadOperativa' => $this->request->getPost('ID_UnidadOperativa'),
+            'ID_UnidadOperativa' => !empty($unidadId) ? $unidadId : null,
             'ID_Place'           => $this->request->getPost('ID_Place')
         ];
 

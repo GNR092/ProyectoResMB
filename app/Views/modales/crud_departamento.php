@@ -107,7 +107,7 @@
 
             <div class="flex flex-col">
                 <label for="ID_UnidadOperativa" class="font-medium mb-1">Unidad Operativa</label>
-                <select name="ID_UnidadOperativa" id="ID_UnidadOperativa" required class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
+                <select name="ID_UnidadOperativa" id="ID_UnidadOperativa" class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
                     <option value="">Seleccione Unidad Operativa</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $unidad): ?>
@@ -151,7 +151,7 @@
 
             <div class="flex flex-col">
                 <label for="editar-ID_UnidadOperativa" class="mb-1 font-medium">Unidad Operativa</label>
-                <select name="ID_UnidadOperativa" id="editar-ID_UnidadOperativa" required class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
+                <select name="ID_UnidadOperativa" id="editar-ID_UnidadOperativa" class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
                     <option value="">Seleccione Unidad Operativa</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $unidad): ?>
