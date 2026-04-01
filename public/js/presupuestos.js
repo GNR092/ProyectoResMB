@@ -274,6 +274,94 @@ function registrarComponentePresupuesto() {
                 this.aplicarFiltrosLocales();
             },
 
+            async exportarAsignacionExcel() {
+                if (this.departamentos.length === 0) return;
+                
+                const notif = mostrarNotificacion('Generando archivo Excel...', 'info', 0);
+                try {
+                    // Preparamos los datos tal cual están en pantalla
+                    const dataExport = this.departamentos.map(uni => ({
+                        unidad: uni.Nombre,
+                        place: uni.PlaceNombre || '',
+                        grupos: uni.grupos.map(g => ({
+                            nombre: g.Nombre,
+                            monto: parseFloat(g.Monto_Asignado) || 0
+                        }))
+                    }));
+
+                    const payload = {
+                        mesAnio: this.mesAnio,
+                        datos: dataExport
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto-mensual/exportar-asignacion`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `asignacion_presupuesto_${this.mesAnio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        mostrarNotificacion('Error al generar el Excel', 'error');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    mostrarNotificacion('Error de conexión', 'error');
+                } finally {
+                    if (notif) notif.click();
+                }
+            },
+
+            async exportarAnualExcel() {
+                if (this.departamentos.length === 0 || !this.mesAnio) {
+                    mostrarNotificacion('Por favor cargue una estructura antes de exportar el anual.', 'warning');
+                    return;
+                }
+
+                const anio = this.mesAnio.split('-')[0];
+                const notif = mostrarNotificacion('Generando archivo Excel Anual...', 'info', 0);
+                
+                try {
+                    const payload = {
+                        anio: anio,
+                        idsPlaces: this.idsPlaces,
+                        idRazonSocial: this.idRazonSocial
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto-mensual/exportar-anual`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `presupuesto_anual_${anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        mostrarNotificacion('Error al generar el archivo Excel anual', 'error');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    mostrarNotificacion('Error de red al exportar anual', 'error');
+                } finally {
+                    if (notif) notif.click();
+                }
+            },
+
             async copiarAnterior() {
                 if (this.idsPlaces.length === 0 || !this.mesAnio) {
                     mostrarNotificacion('Seleccione al menos un Complejo y una Fecha primero.', 'error');
@@ -328,7 +416,7 @@ function registrarComponentePresupuesto() {
                 }
             },
 
-            async guardarMasivo() {
+            async guardarMasivo(esRestoAnio = false) {
                 if (this.departamentos.length === 0) return;
 
                 const [anio, mes] = this.mesAnio.split('-');
@@ -385,6 +473,7 @@ function registrarComponentePresupuesto() {
                 const payload = {
                     anio: parseInt(anio),
                     mes: parseInt(mes),
+                    resto_anio: esRestoAnio,
                     grupos: gruposParaGuardar,
                     comentarios: comentarios,
                     uso_copia: this.usoCopia // Indicar al servidor que es una excepción
@@ -698,6 +787,7 @@ function registrarComponenteReportePresupuesto() {
             cargando: false,
             mensaje: '',
             error: false,
+            hayExcedidos: false,
 
             init() {
                 if (this.$el) {
@@ -839,24 +929,8 @@ function registrarComponenteReportePresupuesto() {
                     });
                 }
 
-                // LÓGICA DE ANCHO DE MODAL DINÁMICO
-                const modal = document.getElementById('modal-general');
-                const modalTitle = document.getElementById('modal-title');
-                const modalBox = modalTitle ? modalTitle.parentElement : null;
-
-                if (modal && modalBox) {
-                    if (nueva === 'completo') {
-                        // Expandir modal (Lógica de mbscript.js para modales anchos)
-                        modal.classList.remove('justify-center');
-                        modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto');
-                        modalBox.classList.add('w-[95%]', 'mx-auto'); // Forzamos un ancho casi total
-                    } else {
-                        // Restaurar ancho estándar para las otras pantallas
-                        modal.classList.add('justify-center');
-                        modalBox.classList.add('max-w-4xl', 'mx-4', 'sm:mx-auto');
-                        modalBox.classList.remove('w-[95%]');
-                    }
-                }
+                // ELIMINADA LÓGICA DE ANCHO DE MODAL DINÁMICO
+                // Ahora se controla globalmente en mbscript.js para ReportePresupuesto
             },
 
             actualizarRazonSocial(pantalla) {
@@ -888,11 +962,13 @@ function registrarComponenteReportePresupuesto() {
                 if (this.pantalla === 'completo') fuente = this.departamentosCompleto;
 
                 const rsGrupos = [];
+                // Reset bandera de excedidos antes de recalcular
+                if (this.pantalla === 'presupuesto') this.hayExcedidos = false;
 
                 const crearTotales = () => {
                     if (this.pantalla === 'cuentas') return { inicial: 0, final: 0, usado: 0, porcentaje: 0 };
-                    if (this.pantalla === 'completo') return { pAsignado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0, pPorcentaje: 0 };
-                    return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 };
+                    if (this.pantalla === 'completo') return { pAsignado: 0, pComprometido: 0, pEjecutado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0, pExcedido: 0, pPorcentaje: 0 };
+                    return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, excedido: 0, porcentaje: 0 };
                 };
 
                 const sumar = (totales, d) => {
@@ -903,8 +979,9 @@ function registrarComponenteReportePresupuesto() {
                     } else if (this.pantalla === 'completo') {
                         // Presupuesto: Sumar en todos los niveles
                         totales.pAsignado += parseFloat(d.presupuesto?.asignado || 0);
+                        totales.pComprometido += parseFloat(d.presupuesto?.comprometido || 0);
+                        totales.pEjecutado += parseFloat(d.presupuesto?.ejecutado || 0);
                         totales.pGastado += parseFloat(d.presupuesto?.gastado || 0);
-                        totales.pDisponible += parseFloat(d.presupuesto?.disponible || 0);
                     } else {
                         const src = d.totales || d;
                         totales.asignado += parseFloat(src.asignado || 0);
@@ -918,9 +995,27 @@ function registrarComponenteReportePresupuesto() {
                         totales.porcentaje = totales.inicial > 0 ? Math.round((totales.usado / totales.inicial) * 100 * 100) / 100 : 0;
                     } else if (this.pantalla === 'presupuesto') {
                         const totalGasto = totales.comprometido + totales.ejecutado;
-                        totales.disponible = totales.asignado - totalGasto;
+                        
+                        // Lógica solicitada: Si gasto > asignado, disponible = 0 y el resto es excedido
+                        if (totalGasto > totales.asignado) {
+                            totales.disponible = 0;
+                            totales.excedido = totalGasto - totales.asignado;
+                            this.hayExcedidos = true; // Activar columna globalmente
+                        } else {
+                            totales.disponible = totales.asignado - totalGasto;
+                            totales.excedido = 0;
+                        }
+
                         totales.porcentaje = totales.asignado > 0 ? Math.round((totalGasto / totales.asignado) * 100 * 100) / 100 : 0;
                     } else if (this.pantalla === 'completo') {
+                        if (totales.pGastado > totales.pAsignado) {
+                            totales.pDisponible = 0;
+                            totales.pExcedido = totales.pGastado - totales.pAsignado;
+                            this.hayExcedidos = true;
+                        } else {
+                            totales.pDisponible = totales.pAsignado - totales.pGastado;
+                            totales.pExcedido = 0;
+                        }
                         totales.pPorcentaje = totales.pAsignado > 0 ? Math.round((totales.pGastado / totales.pAsignado) * 100 * 100) / 100 : 0;
                     }
                 };
@@ -1061,38 +1156,107 @@ function registrarComponenteReportePresupuesto() {
                 await this.cargarComparativo();
             },
 
-            exportarExcel() {
-                if (this.meses.length === 0) {
-                    alert("Seleccione al menos un mes para exportar.");
+            async exportarExcel() {
+                if (this.departamentos.length === 0) {
+                    alert("No hay datos para exportar.");
                     return;
                 }
-                const stringMeses = this.meses.join(',');
-                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
                 
-                if (!targetPlaceId && !this.verGlobal) {
-                    alert("Seleccione al menos un complejo o active el presupuesto global.");
-                    return;
-                }
+                const notif = mostrarNotificacion('Generando Excel de Presupuesto...', 'info', 0);
+                try {
+                    const payload = {
+                        titulo: 'Presupuesto vs Ejecutado',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        hayExcedidos: this.hayExcedidos
+                    };
 
-                const url = `${BASE_URL}api/presupuesto/exportar/${targetPlaceId}/${this.anio}/${stringMeses}`;
-                window.location.href = url;
+                    const res = await fetch(`${BASE_URL}api/presupuesto/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `presupuesto_vs_ejecutado_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif) notif.click(); }
             },
 
-            exportarReporteCompletoExcel() {
-                if (this.meses.length === 0) {
-                    alert("Seleccione al menos un mes para exportar.");
-                    return;
-                }
-                const stringMeses = this.meses.join(',');
-                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
-                
-                if (!targetPlaceId && !this.verGlobal) {
-                    alert("Seleccione al menos un complejo o active el reporte global.");
+            async exportarBancosExcel() {
+                if (this.departamentosBancos.length === 0) {
+                    alert("No hay datos para exportar.");
                     return;
                 }
 
-                const url = `${BASE_URL}api/reporte/completo/exportar/${targetPlaceId}/${this.anio}/${stringMeses}`;
-                window.location.href = url;
+                const notif = mostrarNotificacion('Generando Excel de Bancos...', 'info', 0);
+                try {
+                    const payload = {
+                        titulo: 'Reporte de Cuentas Bancarias',
+                        datos: this.departamentosAgrupados
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/bancos/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `reporte_bancos_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif) notif.click(); }
+            },
+
+            async exportarReporteCompletoExcel() {
+                if (this.departamentosCompleto.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = mostrarNotificacion('Generando Reporte Consolidado...', 'info', 0);
+                try {
+                    const payload = {
+                        titulo: 'Reporte Consolidado Maestro',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        hayExcedidos: this.hayExcedidos
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/reporte/completo/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `reporte_consolidado_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif) notif.click(); }
             },
 
             initChoicesDpto() {

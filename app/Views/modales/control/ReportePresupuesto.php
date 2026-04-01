@@ -111,17 +111,19 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     <thead class="bg-gray-800 text-white text-[10px] uppercase tracking-wider">
                         <tr>
                             <th class="px-6 py-3 text-left">Departamento / Partida</th>
-                            <th class="px-4 py-3 text-right">Presp. Asignado</th>
-                            <th class="px-4 py-3 text-right">Comprometido</th>
-                            <th class="px-4 py-3 text-right">Ejecutado</th>
-                            <th class="px-4 py-3 text-right">Disponible</th>
+                            <th class="px-4 py-3 text-right">Importe Asignado</th>
+                            <th class="px-4 py-3 text-right">Importe Comprometido</th>
+                            <th class="px-4 py-3 text-right">Importe Pagado</th>
+                            <th class="px-4 py-3 text-right">Compras del mes</th>
+                            <th class="px-4 py-3 text-right">Importe Disponible</th>
+                            <th class="px-4 py-3 text-right" x-show="hayExcedidos" x-cloak>Importe Excedido</th>
                             <th class="px-4 py-3 text-center">% Ejecución</th>
                         </tr>
                     </thead>
 
                     <tbody x-show="cargando || departamentos.length === 0">
-                        <tr x-show="cargando"><td colspan="6" class="px-4 py-12 text-center text-gray-500 italic">Cargando datos...</td></tr>
-                        <tr x-show="!cargando && departamentos.length === 0"><td colspan="6" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el reporte.</td></tr>
+                        <tr x-show="cargando"><td :colspan="hayExcedidos ? 8 : 7" class="px-4 py-12 text-center text-gray-500 italic">Cargando datos...</td></tr>
+                        <tr x-show="!cargando && departamentos.length === 0"><td :colspan="hayExcedidos ? 8 : 7" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el reporte.</td></tr>
                     </tbody>
 
                     <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
@@ -131,7 +133,9 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                 <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.asignado)"></td>
                                 <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.comprometido)"></td>
                                 <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.ejecutado)"></td>
-                                <td class="px-4 py-3 text-right font-black" :class="grupoRS.totales.disponible < 0 ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.disponible)"></td>
+                                <td class="px-4 py-3 text-right font-bold text-gray-700" x-text="formatearMoneda(grupoRS.totales.comprometido + grupoRS.totales.ejecutado)"></td>
+                                <td class="px-4 py-3 text-right font-black" :class="grupoRS.totales.disponible <= 0 ? 'text-gray-400' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.disponible)"></td>
+                                <td class="px-4 py-3 text-right font-black text-red-700" x-show="hayExcedidos" x-cloak x-text="formatearMoneda(grupoRS.totales.excedido)"></td>
                                 <td class="px-4 py-3 text-center" :class="getClaseSemaforo(grupoRS.totales.porcentaje)" x-text="grupoRS.totales.porcentaje + '%'"></td>
                             </tr>
 
@@ -142,7 +146,9 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                         <td class="px-4 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.asignado)"></td>
                                         <td class="px-4 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.comprometido)"></td>
                                         <td class="px-4 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.ejecutado)"></td>
-                                        <td class="px-4 py-2 text-right font-bold" :class="seg.totales.disponible < 0 ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(seg.totales.disponible)"></td>
+                                        <td class="px-4 py-2 text-right font-bold text-blue-800" x-text="formatearMoneda(seg.totales.comprometido + seg.totales.ejecutado)"></td>
+                                        <td class="px-4 py-2 text-right font-bold" :class="seg.totales.disponible <= 0 ? 'text-blue-300' : 'text-green-800'" x-text="formatearMoneda(seg.totales.disponible)"></td>
+                                        <td class="px-4 py-2 text-right font-bold text-red-700" x-show="hayExcedidos" x-cloak x-text="formatearMoneda(seg.totales.excedido)"></td>
                                         <td class="px-4 py-2 text-center font-black" :class="getClaseSemaforo(seg.totales.porcentaje)" x-text="seg.totales.porcentaje + '%'"></td>
                                     </tr>
 
@@ -153,7 +159,9 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                 <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.asignado)"></td>
                                                 <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.comprometido)"></td>
                                                 <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.ejecutado)"></td>
-                                                <td class="px-4 py-1 text-right" :class="complex.totales.disponible < 0 ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.disponible)"></td>
+                                                <td class="px-4 py-1 text-right font-bold text-gray-700" x-text="formatearMoneda(complex.totales.comprometido + complex.totales.ejecutado)"></td>
+                                                <td class="px-4 py-1 text-right" :class="complex.totales.disponible <= 0 ? 'text-gray-300' : 'text-green-600'" x-text="formatearMoneda(complex.totales.disponible)"></td>
+                                                <td class="px-4 py-1 text-right text-red-600 font-bold" x-show="hayExcedidos" x-cloak x-text="formatearMoneda(complex.totales.excedido)"></td>
                                                 <td class="px-4 py-1 text-center font-bold" :class="getClaseSemaforo(complex.totales.porcentaje)" x-text="complex.totales.porcentaje + '%'"></td>
                                             </tr>
 
@@ -168,7 +176,9 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                             <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.totales?.asignado) : formatearMoneda(item.asignado)"></td>
                                                             <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" x-text="index === 0 ? formatearMoneda(uni.totales?.comprometido) : formatearMoneda(item.comprometido)"></td>
                                                             <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-blue-700 font-semibold'" x-text="index === 0 ? formatearMoneda(uni.totales?.ejecutado) : formatearMoneda(item.ejecutado)"></td>
-                                                            <td class="px-4 py-2 text-right font-bold" :class="index === 0 ? (uni.totales?.disponible < 0 ? 'text-red-600' : 'text-green-600') : (item.disponible < 0 ? 'text-red-600' : 'text-green-700')" x-text="index === 0 ? formatearMoneda(uni.totales?.disponible) : formatearMoneda(item.disponible)"></td>
+                                                            <td class="px-4 py-2 text-right font-medium text-gray-600" x-text="index === 0 ? formatearMoneda(uni.totales?.comprometido + uni.totales?.ejecutado) : formatearMoneda(item.comprometido + item.ejecutado)"></td>
+                                                            <td class="px-4 py-2 text-right font-bold" :class="index === 0 ? (uni.totales?.disponible <= 0 ? 'text-gray-300' : 'text-green-600') : (item.disponible <= 0 ? 'text-gray-300' : 'text-green-700')" x-text="index === 0 ? formatearMoneda(uni.totales?.disponible) : formatearMoneda(item.disponible)"></td>
+                                                            <td class="px-4 py-2 text-right text-red-600 font-bold" x-show="hayExcedidos" x-cloak x-text="index === 0 ? formatearMoneda(uni.totales?.excedido) : formatearMoneda(item.excedido)"></td>
                                                             <td class="px-4 py-2 text-center" :class="index === 0 ? getClaseSemaforo(uni.totales?.porcentaje) : getClaseSemaforo(item.porcentaje)" x-text="(index === 0 ? (uni.totales?.porcentaje || 0) : item.porcentaje) + '%'"></td>
                                                         </tr>
                                                     </template>
@@ -187,7 +197,9 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <td class="px-4 py-4 text-right font-bold text-lg" x-text="formatearMoneda(totalesGenerales?.asignado)"></td>
                             <td class="px-4 py-4 text-right font-bold text-lg text-orange-300" x-text="formatearMoneda(totalesGenerales?.comprometido)"></td>
                             <td class="px-4 py-4 text-right font-bold text-lg text-blue-300" x-text="formatearMoneda(totalesGenerales?.ejecutado)"></td>
-                            <td class="px-4 py-4 text-right font-bold text-lg" :class="totalesGenerales?.disponible < 0 ? 'text-red-400' : 'text-green-400'" x-text="formatearMoneda(totalesGenerales?.disponible)"></td>
+                            <td class="px-4 py-4 text-right font-bold text-lg text-gray-300" x-text="formatearMoneda(totalesGenerales?.comprometido + totalesGenerales?.ejecutado)"></td>
+                            <td class="px-4 py-4 text-right font-bold text-lg" :class="totalesGenerales?.disponible <= 0 ? 'text-gray-400' : 'text-green-400'" x-text="formatearMoneda(totalesGenerales?.disponible)"></td>
+                            <td class="px-4 py-4 text-right font-bold text-lg text-red-400" x-show="hayExcedidos" x-cloak x-text="formatearMoneda(totalesGenerales?.excedido)"></td>
                             <td class="px-4 py-4 text-center font-bold text-lg" :class="totalesGenerales?.porcentaje >= 100 ? 'text-red-400' : 'text-green-400'" x-text="(totalesGenerales?.porcentaje || 0) + '%'"></td>
                         </tr>
                     </tfoot>
@@ -201,7 +213,15 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         <div class="animate-fadeIn">
             <div class="flex items-center justify-between mb-6">
                 <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-green-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <h2 class="text-xl font-bold text-gray-800">Reporte de Cuentas Bancarias</h2>
+                <div class="flex items-center gap-4">
+                    <button x-show="departamentosBancos.length > 0" @click="exportarBancosExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exportar Excel
+                    </button>
+                    <h2 class="text-xl font-bold text-gray-800">Reporte de Cuentas Bancarias</h2>
+                </div>
             </div>
 
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
@@ -375,18 +395,21 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                         <tr>
                             <th class="px-4 py-3 text-left">Departamento / Partida</th>
                             <th class="px-2 py-3 text-right">Importe asignado</th>
+                            <th class="px-2 py-3 text-right">Importe Comprometido</th>
                             <th class="px-2 py-3 text-right">Importe Pagado</th>
+                            <th class="px-2 py-3 text-right">Compras del mes</th>
                             <th class="px-2 py-3 text-right">Importe Disponible</th>
+                            <th class="px-2 py-3 text-right" x-show="hayExcedidos" x-cloak>Importe Excedido</th>
                             <th class="px-2 py-3 text-center">% Ejec.</th>
-                            <th class="px-2 py-3 text-right">B. Inicial</th>
+                            <th class="px-2 py-3 text-right border-l border-gray-600">B. Inicial</th>
                             <th class="px-2 py-3 text-right">B. Final</th>
                             <th class="px-4 py-3 text-right">B. Diferencia</th>
                         </tr>
                     </thead>
 
                     <tbody x-show="cargando || departamentosCompleto.length === 0">
-                        <tr x-show="cargando"><td colspan="8" class="px-4 py-12 text-center text-gray-500 italic">Consolidando información financiera...</td></tr>
-                        <tr x-show="!cargando && departamentosCompleto.length === 0"><td colspan="8" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el consolidado.</td></tr>
+                        <tr x-show="cargando"><td :colspan="hayExcedidos ? 11 : 10" class="px-4 py-12 text-center text-gray-500 italic">Consolidando información financiera...</td></tr>
+                        <tr x-show="!cargando && departamentosCompleto.length === 0"><td :colspan="hayExcedidos ? 11 : 10" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el consolidado.</td></tr>
                     </tbody>
 
                     <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
@@ -394,10 +417,13 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <tr class="bg-gray-200 font-black text-sm shadow-sm">
                                 <td class="px-6 py-3 text-gray-800 uppercase tracking-wider text-[11px]" x-text="grupoRS.nombre"></td>
                                 <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.pAsignado)"></td>
-                                <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.pGastado)"></td>
-                                <td class="px-2 py-3 text-right font-black" :class="grupoRS.totales.pDisponible < 0 ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.pDisponible)"></td>
+                                <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.pComprometido)"></td>
+                                <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.pEjecutado)"></td>
+                                <td class="px-2 py-3 text-right font-bold text-gray-700" x-text="formatearMoneda(grupoRS.totales.pComprometido + grupoRS.totales.pEjecutado)"></td>
+                                <td class="px-2 py-3 text-right font-black" :class="grupoRS.totales.pDisponible <= 0 ? 'text-gray-400' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.pDisponible)"></td>
+                                <td class="px-2 py-3 text-right font-black text-red-700" x-show="hayExcedidos" x-cloak x-text="formatearMoneda(grupoRS.totales.pExcedido)"></td>
                                 <td class="px-2 py-3 text-center text-[10px]" :class="getClaseSemaforo(grupoRS.totales.pPorcentaje)" x-text="grupoRS.totales.pPorcentaje + '%'"></td>
-                                <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.bInicial)"></td>
+                                <td class="px-2 py-3 text-right text-gray-900 border-l border-gray-400" x-text="formatearMoneda(grupoRS.totales.bInicial)"></td>
                                 <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.bFinal)"></td>
                                 <td class="px-4 py-3 text-right font-black" :class="grupoRS.totales.bFinal < grupoRS.totales.bInicial ? 'text-red-700' : 'text-green-700'" x-text="formatearMoneda(grupoRS.totales.bInicial - grupoRS.totales.bFinal)"></td>
                             </tr>
@@ -407,11 +433,13 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                     <tr class="bg-blue-100 border-l-4 border-blue-500 font-bold text-[11px]">
                                         <td class="px-10 py-2 text-blue-900 uppercase tracking-tight border-l-4 border-blue-600" x-text="'📁 ' + seg.nombre"></td>
                                         <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pAsignado)"></td>
-                                        <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pGastado)"></td>
-                                        <td class="px-2 py-2 text-right font-bold" :class="seg.totales.pDisponible < 0 ? 'text-red-700' : 'text-green-800'" x-text="formatearMoneda(seg.totales.pDisponible)"></td>
+                                        <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pComprometido)"></td>
+                                        <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pEjecutado)"></td>
+                                        <td class="px-2 py-2 text-right font-bold text-blue-800" x-text="formatearMoneda(seg.totales.pComprometido + seg.totales.pEjecutado)"></td>
+                                        <td class="px-2 py-2 text-right font-bold" :class="seg.totales.pDisponible <= 0 ? 'text-blue-300' : 'text-green-800'" x-text="formatearMoneda(seg.totales.pDisponible)"></td>
+                                        <td class="px-2 py-2 text-right font-bold text-red-700" x-show="hayExcedidos" x-cloak x-text="formatearMoneda(seg.totales.pExcedido)"></td>
                                         <td class="px-2 py-2 text-center" :class="getClaseSemaforo(seg.totales.pPorcentaje)" x-text="seg.totales.pPorcentaje + '%'"></td>
-                                        <!-- Bancos vacíos en Segmentos -->
-                                        <td class="px-2 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-2 py-2 text-right text-gray-400 border-l border-blue-200">-</td>
                                         <td class="px-2 py-2 text-right text-gray-400">-</td>
                                         <td class="px-4 py-2 text-right text-gray-400">-</td>
                                     </tr>
@@ -421,11 +449,13 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                             <tr class="bg-white font-semibold text-[10px] text-gray-500 border-b border-gray-100">
                                                 <td class="px-14 py-1 uppercase tracking-tighter" x-text="'📍 ' + complex.nombre"></td>
                                                 <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pAsignado)"></td>
-                                                <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pGastado)"></td>
-                                                <td class="px-2 py-1 text-right" :class="complex.totales.pDisponible < 0 ? 'text-red-600' : 'text-green-600'" x-text="formatearMoneda(complex.totales.pDisponible)"></td>
+                                                <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pComprometido)"></td>
+                                                <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pEjecutado)"></td>
+                                                <td class="px-2 py-1 text-right font-bold text-gray-700" x-text="formatearMoneda(complex.totales.pComprometido + complex.totales.pEjecutado)"></td>
+                                                <td class="px-2 py-1 text-right" :class="complex.totales.pDisponible <= 0 ? 'text-gray-300' : 'text-green-600'" x-text="formatearMoneda(complex.totales.pDisponible)"></td>
+                                                <td class="px-2 py-1 text-right text-red-600 font-bold" x-show="hayExcedidos" x-cloak x-text="formatearMoneda(complex.totales.pExcedido)"></td>
                                                 <td class="px-2 py-1 text-center" :class="getClaseSemaforo(complex.totales.pPorcentaje)" x-text="complex.totales.pPorcentaje + '%'"></td>
-                                                <!-- Bancos vacíos en Places -->
-                                                <td class="px-2 py-1 text-right text-gray-300">-</td>
+                                                <td class="px-2 py-1 text-right text-gray-300 border-l border-gray-100">-</td>
                                                 <td class="px-2 py-1 text-right text-gray-300">-</td>
                                                 <td class="px-4 py-1 text-right text-gray-300">-</td>
                                             </tr>
@@ -439,11 +469,13 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                             </td>
                                                             <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.asignado) : formatearMoneda(item.asignado)"></td>
-                                                            <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.gastado) : formatearMoneda(item.gastado)"></td>
-                                                            <td class="px-2 py-2 text-right font-bold" :class="(index === 0 ? uni.presupuesto?.disponible < 0 : item.disponible < 0) ? 'text-red-600' : 'text-green-600'" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.disponible) : formatearMoneda(item.disponible)"></td>
+                                                            <td class="px-2 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.comprometido) : formatearMoneda(item.comprometido)"></td>
+                                                            <td class="px-2 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-blue-700 font-semibold'" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.ejecutado) : formatearMoneda(item.ejecutado)"></td>
+                                                            <td class="px-2 py-2 text-right font-medium text-gray-600" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.comprometido + uni.presupuesto?.ejecutado) : formatearMoneda(item.comprometido + item.ejecutado)"></td>
+                                                            <td class="px-2 py-2 text-right font-bold" :class="index === 0 ? (uni.presupuesto?.disponible <= 0 ? 'text-gray-300' : 'text-green-600') : (item.disponible <= 0 ? 'text-gray-300' : 'text-green-700')" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.disponible) : formatearMoneda(item.disponible)"></td>
+                                                            <td class="px-2 py-2 text-right text-red-600 font-bold" x-show="hayExcedidos" x-cloak x-text="index === 0 ? formatearMoneda(uni.presupuesto?.excedido) : formatearMoneda(item.excedido)"></td>
                                                             <td class="px-2 py-2 text-center" :class="index === 0 ? getClaseSemaforo(uni.presupuesto?.porcentaje) : getClaseSemaforo(item.porcentaje)" x-text="(index === 0 ? (uni.presupuesto?.porcentaje || 0) : (item.porcentaje || 0)) + '%'"></td>
-                                                            <!-- Bancos vacíos en Unidades y Grupos -->
-                                                            <td class="px-2 py-2 text-right text-gray-200">-</td>
+                                                            <td class="px-2 py-2 text-right text-gray-200 border-l border-gray-100">-</td>
                                                             <td class="px-2 py-2 text-right text-gray-200">-</td>
                                                             <td class="px-4 py-2 text-right text-gray-200">-</td>
                                                         </tr>
@@ -467,4 +499,3 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     [x-cloak] { display: none !important; }
 </style>
->
