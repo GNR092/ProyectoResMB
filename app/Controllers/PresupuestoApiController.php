@@ -1081,8 +1081,7 @@ class PresupuestoApiController extends ResourceController
                     if ($exists) {
                         $pmModel->update($exists['ID_PresupuestoMensual'], $data);
                     } else {
-                        // Sincronizar secuencia antes de insertar (Parche para Postgres)
-                        $db->query("SELECT setval('\"PresupuestoMensual_ID_PresupuestoMensual_seq\"', (SELECT MAX(\"ID_PresupuestoMensual\") FROM \"PresupuestoMensual\"))");
+                        $this->syncPresupuestoMensualSequenceIfNeeded($db);
                         $pmModel->insert($data);
                     }
 
@@ -1246,6 +1245,21 @@ class PresupuestoApiController extends ResourceController
             ]);
         } else {
             return $this->failServerError('Error al enviar la solicitud de saldos.');
+        }
+    }
+
+    private function syncPresupuestoMensualSequenceIfNeeded($db): void
+    {
+        if (($db->DBDriver ?? '') !== 'Postgre') {
+            return;
+        }
+
+        try {
+            $db->query(
+                'SELECT setval(pg_get_serial_sequence(\'"PresupuestoMensual"\', \'ID_PresupuestoMensual\'), COALESCE((SELECT MAX("ID_PresupuestoMensual") FROM "PresupuestoMensual"), 1), true)'
+            );
+        } catch (\Throwable $e) {
+            log_message('warning', '[PresupuestoApiController::syncPresupuestoMensualSequenceIfNeeded] ' . $e->getMessage());
         }
     }
 
