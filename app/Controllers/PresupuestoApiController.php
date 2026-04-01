@@ -1148,6 +1148,68 @@ class PresupuestoApiController extends ResourceController
         }
     }
 
+    public function exportarAsignacion()
+    {
+        $json = $this->request->getJSON(true);
+        $mesAnio = $json['mesAnio'] ?? date('Y-m');
+        $datos = $json['datos'] ?? [];
+
+        if (empty($datos)) return $this->fail('No hay datos para exportar');
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Asignacion Presupuesto');
+
+        // Estilos
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F2937']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+        ];
+
+        // Encabezados
+        $headers = ['Complejo', 'Departamento De Operación', 'Partida Presupuestal', 'Importe Asignado'];
+        $cols = ['A', 'B', 'C', 'D'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValue($cols[$i] . '1', $h);
+            $sheet->getStyle($cols[$i] . '1')->applyFromArray($headerStyle);
+            $sheet->getColumnDimension($cols[$i])->setAutoSize(true);
+        }
+
+        $row = 2;
+        foreach ($datos as $uni) {
+            $nombreUni = $uni['unidad'];
+            $nombrePlace = $uni['place'];
+
+            foreach ($uni['grupos'] as $grupo) {
+                $sheet->setCellValue('A' . $row, $nombrePlace);
+                $sheet->setCellValue('B' . $row, $nombreUni);
+                $sheet->setCellValue('C' . $row, $grupo['nombre']);
+                $sheet->setCellValue('D' . $row, $grupo['monto']);
+                $row++;
+            }
+        }
+
+        // Formato moneda
+        $lastRow = $row - 1;
+        if ($lastRow >= 2) {
+            $sheet->getStyle('D2:D' . $lastRow)->getNumberFormat()->setFormatCode('$#,##0.00');
+            $sheet->getStyle('A1:D' . $lastRow)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'asignacion_presupuesto_' . $mesAnio . '_' . date('His') . '.xlsx';
+
+        ob_start();
+        $writer->save('php://output');
+        $content = ob_get_clean();
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setBody($content);
+    }
+
     public function getSaldos()
     {
         $idDpto = $this->request->getVar('id_dpto');

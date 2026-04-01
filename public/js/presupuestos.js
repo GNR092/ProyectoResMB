@@ -274,6 +274,52 @@ function registrarComponentePresupuesto() {
                 this.aplicarFiltrosLocales();
             },
 
+            async exportarAsignacionExcel() {
+                if (this.departamentos.length === 0) return;
+                
+                const notif = mostrarNotificacion('Generando archivo Excel...', 'info', 0);
+                try {
+                    // Preparamos los datos tal cual están en pantalla
+                    const dataExport = this.departamentos.map(uni => ({
+                        unidad: uni.Nombre,
+                        place: uni.PlaceNombre || '',
+                        grupos: uni.grupos.map(g => ({
+                            nombre: g.Nombre,
+                            monto: parseFloat(g.Monto_Asignado) || 0
+                        }))
+                    }));
+
+                    const payload = {
+                        mesAnio: this.mesAnio,
+                        datos: dataExport
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto-mensual/exportar-asignacion`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `asignacion_presupuesto_${this.mesAnio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        mostrarNotificacion('Error al generar el Excel', 'error');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    mostrarNotificacion('Error de conexión', 'error');
+                } finally {
+                    if (notif) notif.click();
+                }
+            },
+
             async copiarAnterior() {
                 if (this.idsPlaces.length === 0 || !this.mesAnio) {
                     mostrarNotificacion('Seleccione al menos un Complejo y una Fecha primero.', 'error');
