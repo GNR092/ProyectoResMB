@@ -147,10 +147,18 @@ class MenuOptions extends BaseConfig
                 'is_title' => true,
             ],
 
+
+
+            'SegmentoNegocio' => [
+                'label' => 'Segmentos de Negocio',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SegmentoNegocio"></use></svg>',
+            ],
+
             'UnidadOperativa' => [
                 'label' => 'Departamentos De Operación',
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#UnidadOperativa"></use></svg>',
             ],
+
 
             'GrupoPresupuestal' => [
                 'label' => 'Partidas Presupuestales',
@@ -164,16 +172,10 @@ class MenuOptions extends BaseConfig
             ],
 
             'ReportePresupuesto' => [
-                'label' => 'Reportes de Presupuestos',
+                'label' => 'Reporteria Presupuestal',
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ReportePresupuestal"></use></svg>',
             ],
 
-
-
-            'SegmentoNegocio' => [
-                'label' => 'Segmentos de Negocio',
-                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SegmentoNegocio"></use></svg>',
-            ],
 
             //**********BANCOS RAZON SOCIAL**********//
 
@@ -184,7 +186,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'BancoDpto' => [
-                'label' => 'Bancos de Razón Social',
+                'label' => 'Bancos',
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#BancoDpto"></use></svg>',
             ],
 
