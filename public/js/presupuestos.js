@@ -1113,38 +1113,107 @@ function registrarComponenteReportePresupuesto() {
                 await this.cargarComparativo();
             },
 
-            exportarExcel() {
-                if (this.meses.length === 0) {
-                    alert("Seleccione al menos un mes para exportar.");
+            async exportarExcel() {
+                if (this.departamentos.length === 0) {
+                    alert("No hay datos para exportar.");
                     return;
                 }
-                const stringMeses = this.meses.join(',');
-                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
                 
-                if (!targetPlaceId && !this.verGlobal) {
-                    alert("Seleccione al menos un complejo o active el presupuesto global.");
-                    return;
-                }
+                const notif = mostrarNotificacion('Generando Excel de Presupuesto...', 'info', 0);
+                try {
+                    const payload = {
+                        titulo: 'Presupuesto vs Ejecutado',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        hayExcedidos: this.hayExcedidos
+                    };
 
-                const url = `${BASE_URL}api/presupuesto/exportar/${targetPlaceId}/${this.anio}/${stringMeses}`;
-                window.location.href = url;
+                    const res = await fetch(`${BASE_URL}api/presupuesto/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `presupuesto_vs_ejecutado_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif) notif.click(); }
             },
 
-            exportarReporteCompletoExcel() {
-                if (this.meses.length === 0) {
-                    alert("Seleccione al menos un mes para exportar.");
-                    return;
-                }
-                const stringMeses = this.meses.join(',');
-                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
-                
-                if (!targetPlaceId && !this.verGlobal) {
-                    alert("Seleccione al menos un complejo o active el reporte global.");
+            async exportarBancosExcel() {
+                if (this.departamentosBancos.length === 0) {
+                    alert("No hay datos para exportar.");
                     return;
                 }
 
-                const url = `${BASE_URL}api/reporte/completo/exportar/${targetPlaceId}/${this.anio}/${stringMeses}`;
-                window.location.href = url;
+                const notif = mostrarNotificacion('Generando Excel de Bancos...', 'info', 0);
+                try {
+                    const payload = {
+                        titulo: 'Reporte de Cuentas Bancarias',
+                        datos: this.departamentosAgrupados
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/bancos/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `reporte_bancos_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif) notif.click(); }
+            },
+
+            async exportarReporteCompletoExcel() {
+                if (this.departamentosCompleto.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = mostrarNotificacion('Generando Reporte Consolidado...', 'info', 0);
+                try {
+                    const payload = {
+                        titulo: 'Reporte Consolidado Maestro',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        hayExcedidos: this.hayExcedidos
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/reporte/completo/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `reporte_consolidado_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif) notif.click(); }
             },
 
             initChoicesDpto() {
