@@ -437,6 +437,15 @@ class PresupuestoApiController extends ResourceController
         $mes = (int) $json['mes'];
         $comentarios = $json['comentarios'] ?? null;
         $usoCopia = $json['uso_copia'] ?? false;
+        $restoAnio = $json['resto_anio'] ?? false;
+
+        $mesesAGuardar = [$mes];
+        if ($restoAnio) {
+            $mesesAGuardar = [];
+            for ($m = $mes; $m <= 12; $m++) {
+                $mesesAGuardar[] = $m;
+            }
+        }
 
         if ($usoCopia) {
             $db = \Config\Database::connect();
@@ -449,23 +458,25 @@ class PresupuestoApiController extends ResourceController
                 
                 $rsAfectadas = [];
 
-                foreach ($json['grupos'] as $g) {
-                    $idUnidad = (int) ($g['id_unidad'] ?? $g['id_dpto']);
-                    $idGrupo  = (int) $g['id_grupo'];
-                    $data = ['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => $idGrupo, 'Anio' => $anio, 'Mes' => $mes, 'Monto_Asignado' => (float) $g['monto_asignado']];
+                foreach ($mesesAGuardar as $mActual) {
+                    foreach ($json['grupos'] as $g) {
+                        $idUnidad = (int) ($g['id_unidad'] ?? $g['id_dpto']);
+                        $idGrupo  = (int) $g['id_grupo'];
+                        $data = ['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => $idGrupo, 'Anio' => $anio, 'Mes' => $mActual, 'Monto_Asignado' => (float) $g['monto_asignado']];
 
-                    $exists = $pmModel->where(['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => $idGrupo, 'Anio' => $anio, 'Mes' => $mes])->first();
-                    if ($exists) {
-                        $pmModel->update($exists['ID_PresupuestoMensual'], $data);
-                    } else {
-                        $db->query("SELECT setval('\"PresupuestoMensual_ID_PresupuestoMensual_seq\"', (SELECT MAX(\"ID_PresupuestoMensual\") FROM \"PresupuestoMensual\"))");
-                        $pmModel->insert($data);
-                    }
+                        $exists = $pmModel->where(['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => $idGrupo, 'Anio' => $anio, 'Mes' => $mActual])->first();
+                        if ($exists) {
+                            $pmModel->update($exists['ID_PresupuestoMensual'], $data);
+                        } else {
+                            $db->query("SELECT setval('\"PresupuestoMensual_ID_PresupuestoMensual_seq\"', (SELECT MAX(\"ID_PresupuestoMensual\") FROM \"PresupuestoMensual\"))");
+                            $pmModel->insert($data);
+                        }
 
-                    $unidad = $uniModel->find($idUnidad);
-                    if ($unidad) {
-                        $place = $placesModel->find($unidad['ID_Place']);
-                        if ($place) $rsAfectadas[] = (int) $place['ID_RazonSocial'];
+                        $unidad = $uniModel->find($idUnidad);
+                        if ($unidad) {
+                            $place = $placesModel->find($unidad['ID_Place']);
+                            if ($place) $rsAfectadas[] = (int) $place['ID_RazonSocial'];
+                        }
                     }
                 }
 
@@ -479,7 +490,7 @@ class PresupuestoApiController extends ResourceController
 
                 $db->transComplete();
                 if ($db->transStatus() === false) throw new \Exception('Error al guardar copia.');
-                return $this->respond(['success' => true, 'pending_review' => false, 'message' => 'Presupuesto copiado correctamente ✅']);
+                return $this->respond(['success' => true, 'pending_review' => false, 'message' => 'Presupuesto guardado correctamente ✅']);
             } catch (\Exception $e) {
                 $db->transRollback();
                 return $this->failServerError($e->getMessage());
@@ -487,10 +498,11 @@ class PresupuestoApiController extends ResourceController
         }
 
         $solModel = new \App\Models\SolicitudesCambioPresupuestoModel();
-        if ($solModel->insert(['ID_Usuario' => session('id'), 'Modulo' => 'PresupuestoMensual', 'Accion' => 'Masivo', 'ID_Afectado' => "{$anio}-{$mes}", 'Datos_Payload' => json_encode($json), 'Estado' => 'Pendiente', 'Comentarios_Solicitante' => $comentarios])) {
-            return $this->respondCreated(['success' => true, 'pending_review' => true, 'message' => 'Cambios enviados a revisión.']);
+        foreach ($mesesAGuardar as $mActual) {
+            $solModel->insert(['ID_Usuario' => session('id'), 'Modulo' => 'PresupuestoMensual', 'Accion' => 'Masivo', 'ID_Afectado' => "{$anio}-{$mActual}", 'Datos_Payload' => json_encode($json), 'Estado' => 'Pendiente', 'Comentarios_Solicitante' => $comentarios]);
         }
-        return $this->failServerError('Error al enviar solicitud.');
+        
+        return $this->respondCreated(['success' => true, 'pending_review' => true, 'message' => 'Cambios enviados a revisión.']);
     }
 
     /**

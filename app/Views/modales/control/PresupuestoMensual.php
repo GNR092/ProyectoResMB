@@ -60,8 +60,14 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     Exportar
                 </button>
 
-                <div x-show="<?= (session('departamento_usuario') === 'Dirección') ? 'true' : 'false' ?> || usoCopia">
-                    <button @click="guardarMasivo()"
+                <div x-show="<?= (session('departamento_usuario') === 'Dirección') ? 'true' : 'false' ?> || usoCopia" class="flex gap-2">
+                    <button @click="guardarMasivo(true)"
+                            :disabled="guardando || bloqueadoPorRevision"
+                            title="Aplica los montos asignados a este mes y a todos los meses restantes del año"
+                            class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
+                        <span x-text="guardando ? 'Guardando...' : 'Asignar Resto del Año'"></span>
+                    </button>
+                    <button @click="guardarMasivo(false)"
                             :disabled="guardando || bloqueadoPorRevision"
                             class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2">
 

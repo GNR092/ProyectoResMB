@@ -374,7 +374,7 @@ function registrarComponentePresupuesto() {
                 }
             },
 
-            async guardarMasivo() {
+            async guardarMasivo(esRestoAnio = false) {
                 if (this.departamentos.length === 0) return;
 
                 const [anio, mes] = this.mesAnio.split('-');
@@ -431,6 +431,7 @@ function registrarComponentePresupuesto() {
                 const payload = {
                     anio: parseInt(anio),
                     mes: parseInt(mes),
+                    resto_anio: esRestoAnio,
                     grupos: gruposParaGuardar,
                     comentarios: comentarios,
                     uso_copia: this.usoCopia // Indicar al servidor que es una excepción
