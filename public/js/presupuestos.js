@@ -744,6 +744,7 @@ function registrarComponenteReportePresupuesto() {
             cargando: false,
             mensaje: '',
             error: false,
+            hayExcedidos: false,
 
             init() {
                 if (this.$el) {
@@ -918,11 +919,13 @@ function registrarComponenteReportePresupuesto() {
                 if (this.pantalla === 'completo') fuente = this.departamentosCompleto;
 
                 const rsGrupos = [];
+                // Reset bandera de excedidos antes de recalcular
+                if (this.pantalla === 'presupuesto') this.hayExcedidos = false;
 
                 const crearTotales = () => {
                     if (this.pantalla === 'cuentas') return { inicial: 0, final: 0, usado: 0, porcentaje: 0 };
-                    if (this.pantalla === 'completo') return { pAsignado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0, pPorcentaje: 0 };
-                    return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 };
+                    if (this.pantalla === 'completo') return { pAsignado: 0, pComprometido: 0, pEjecutado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0, pExcedido: 0, pPorcentaje: 0 };
+                    return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, excedido: 0, porcentaje: 0 };
                 };
 
                 const sumar = (totales, d) => {
@@ -933,8 +936,9 @@ function registrarComponenteReportePresupuesto() {
                     } else if (this.pantalla === 'completo') {
                         // Presupuesto: Sumar en todos los niveles
                         totales.pAsignado += parseFloat(d.presupuesto?.asignado || 0);
+                        totales.pComprometido += parseFloat(d.presupuesto?.comprometido || 0);
+                        totales.pEjecutado += parseFloat(d.presupuesto?.ejecutado || 0);
                         totales.pGastado += parseFloat(d.presupuesto?.gastado || 0);
-                        totales.pDisponible += parseFloat(d.presupuesto?.disponible || 0);
                     } else {
                         const src = d.totales || d;
                         totales.asignado += parseFloat(src.asignado || 0);
@@ -948,9 +952,27 @@ function registrarComponenteReportePresupuesto() {
                         totales.porcentaje = totales.inicial > 0 ? Math.round((totales.usado / totales.inicial) * 100 * 100) / 100 : 0;
                     } else if (this.pantalla === 'presupuesto') {
                         const totalGasto = totales.comprometido + totales.ejecutado;
-                        totales.disponible = totales.asignado - totalGasto;
+                        
+                        // Lógica solicitada: Si gasto > asignado, disponible = 0 y el resto es excedido
+                        if (totalGasto > totales.asignado) {
+                            totales.disponible = 0;
+                            totales.excedido = totalGasto - totales.asignado;
+                            this.hayExcedidos = true; // Activar columna globalmente
+                        } else {
+                            totales.disponible = totales.asignado - totalGasto;
+                            totales.excedido = 0;
+                        }
+
                         totales.porcentaje = totales.asignado > 0 ? Math.round((totalGasto / totales.asignado) * 100 * 100) / 100 : 0;
                     } else if (this.pantalla === 'completo') {
+                        if (totales.pGastado > totales.pAsignado) {
+                            totales.pDisponible = 0;
+                            totales.pExcedido = totales.pGastado - totales.pAsignado;
+                            this.hayExcedidos = true;
+                        } else {
+                            totales.pDisponible = totales.pAsignado - totales.pGastado;
+                            totales.pExcedido = 0;
+                        }
                         totales.pPorcentaje = totales.pAsignado > 0 ? Math.round((totales.pGastado / totales.pAsignado) * 100 * 100) / 100 : 0;
                     }
                 };

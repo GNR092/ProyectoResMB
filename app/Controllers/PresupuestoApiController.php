@@ -570,11 +570,22 @@ class PresupuestoApiController extends ResourceController
                     $pComprometido += $gComprometido;
                     $pEjecutado += $gEjecutado;
 
+                    $gDisponible = $gAsignado - $gGastado;
+                    $gExcedido = 0;
+                    if ($gDisponible < 0) {
+                        $gExcedido = abs($gDisponible);
+                        $gDisponible = 0;
+                    }
+
                     $analisisGrupos[] = [
                         'etiqueta'   => $g['Nombre'],
                         'asignado'   => $gAsignado,
+                        'comprometido' => $gComprometido,
+                        'ejecutado'  => $gEjecutado,
                         'gastado'    => $gGastado,
-                        'disponible' => $gAsignado - $gGastado
+                        'disponible' => $gDisponible,
+                        'excedido'   => $gExcedido,
+                        'porcentaje' => $gAsignado > 0 ? round(($gGastado / $gAsignado) * 100, 2) : 0
                     ];
                 }
             }
@@ -599,6 +610,13 @@ class PresupuestoApiController extends ResourceController
             }
 
             $totalGasto = $pComprometido + $pEjecutado;
+            $pDisponible = $pAsignado - $totalGasto;
+            $pExcedido = 0;
+            if ($pDisponible < 0) {
+                $pExcedido = abs($pDisponible);
+                $pDisponible = 0;
+            }
+
             $estructura[] = [
                 'ID_UnidadOperativa' => $idUnidad,
                 'Nombre' => $uni['Nombre'],
@@ -608,8 +626,11 @@ class PresupuestoApiController extends ResourceController
                 'detalles' => $analisisGrupos,
                 'presupuesto' => [
                     'asignado' => $pAsignado,
+                    'comprometido' => $pComprometido,
+                    'ejecutado' => $pEjecutado,
                     'gastado' => $totalGasto,
-                    'disponible' => $pAsignado - $totalGasto,
+                    'disponible' => $pDisponible,
+                    'excedido' => $pExcedido,
                     'porcentaje' => $pAsignado > 0 ? round(($totalGasto / $pAsignado) * 100, 2) : 0
                 ],
                 'bancos' => [
