@@ -320,6 +320,48 @@ function registrarComponentePresupuesto() {
                 }
             },
 
+            async exportarAnualExcel() {
+                if (this.departamentos.length === 0 || !this.mesAnio) {
+                    mostrarNotificacion('Por favor cargue una estructura antes de exportar el anual.', 'warning');
+                    return;
+                }
+
+                const anio = this.mesAnio.split('-')[0];
+                const notif = mostrarNotificacion('Generando archivo Excel Anual...', 'info', 0);
+                
+                try {
+                    const payload = {
+                        anio: anio,
+                        idsPlaces: this.idsPlaces,
+                        idRazonSocial: this.idRazonSocial
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto-mensual/exportar-anual`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `presupuesto_anual_${anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        mostrarNotificacion('Error al generar el archivo Excel anual', 'error');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    mostrarNotificacion('Error de red al exportar anual', 'error');
+                } finally {
+                    if (notif) notif.click();
+                }
+            },
+
             async copiarAnterior() {
                 if (this.idsPlaces.length === 0 || !this.mesAnio) {
                     mostrarNotificacion('Seleccione al menos un Complejo y una Fecha primero.', 'error');

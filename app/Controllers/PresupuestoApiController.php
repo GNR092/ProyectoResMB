@@ -741,4 +741,177 @@ class PresupuestoApiController extends ResourceController
             return $this->failServerError($e->getMessage());
         }
     }
+
+    /**
+     * EXPORTAR PRESUPUESTO ANUAL
+     */
+    public function exportarAnual()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+            $anio = $json['anio'] ?? date('Y');
+            $idsPlaces = $json['idsPlaces'] ?? [];
+            
+            if (empty($idsPlaces)) {
+                return $this->fail('No se seleccionaron complejos');
+            }
+
+            $unidadModel = new UnidadOperativaModel();
+            $grupoModel = new GrupoPresupuestalModel();
+            $presupuestoMensualModel = new PresupuestoMensualModel();
+
+            // 1. Obtener Unidades
+            $unidadesRaw = $unidadModel->select('UnidadOperativa.ID_UnidadOperativa, UnidadOperativa.Nombre, Places.Nombre_Corto as PlaceNombre')
+                ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')
+                ->whereIn('UnidadOperativa.ID_Place', $idsPlaces)
+                ->orderBy('Places.Nombre_Corto', 'ASC')
+                ->orderBy('UnidadOperativa.Nombre', 'ASC')
+                ->findAll();
+
+            if (empty($unidadesRaw)) {
+                return $this->fail('No hay datos para exportar');
+            }
+
+            $unidadIds = array_column($unidadesRaw, 'ID_UnidadOperativa');
+
+            // 2. Cargar Grupos Activos
+            $gruposAll = $grupoModel->whereIn('ID_UnidadOperativa', $unidadIds)->where('activo', true)->orderBy('Nombre', 'ASC')->findAll();
+
+            // 3. Cargar Presupuestos de todo el año
+            $presupuestosRaw = $presupuestoMensualModel
+                ->whereIn('ID_UnidadOperativa', $unidadIds)
+                ->where('Anio', (int)$anio)
+                ->findAll();
+
+            // Indexar presupuestos: [ID_UnidadOperativa_ID_GrupoPresupuestal_Mes]
+            $presIndex = [];
+            foreach ($presupuestosRaw as $p) {
+                $presIndex[$p['ID_UnidadOperativa'] . '_' . $p['ID_GrupoPresupuestal'] . '_' . $p['Mes']] = $p['Monto_Asignado'];
+            }
+
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle("Presupuesto $anio");
+
+            // Encabezados
+            $mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            $headers = ['Complejo', 'Departamento / Partida'];
+            $headers = array_merge($headers, $mesesNombres);
+            $headers[] = 'Total Anual';
+            
+            $cols = [];
+            for ($i = 0; $i < count($headers); $i++) {
+                $cols[] = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
+            }
+            $lastCol = end($cols);
+
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F2937']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+            ];
+
+            foreach ($headers as $i => $h) {
+                $sheet->setCellValue($cols[$i] . '1', $h);
+                $sheet->getStyle($cols[$i] . '1')->applyFromArray($headerStyle);
+                $sheet->getColumnDimension($cols[$i])->setAutoSize(true);
+            }
+
+            $row = 2;
+            foreach ($unidadesRaw as $uni) {
+                $idU = (int)$uni['ID_UnidadOperativa'];
+                
+                // Fila de la Unidad
+                $sheet->setCellValue('A' . $row, $uni['PlaceNombre']);
+                $sheet->setCellValue('B' . $row, $uni['Nombre']);
+                
+                $startUnidadRow = $row + 1;
+                $gruposCount = 0;
+
+                // Filas de los grupos
+                foreach ($gruposAll as $g) {
+                    if ((int)$g['ID_UnidadOperativa'] === $idU) {
+                        $currentRow = $startUnidadRow + $gruposCount;
+                        $sheet->setCellValue('B' . $currentRow, '    ' . $g['Nombre']);
+                        
+                        // Llenar meses
+                        for ($mes = 1; $mes <= 12; $mes++) {
+                            $monto = $presIndex[$idU . '_' . $g['ID_GrupoPresupuestal'] . '_' . $mes] ?? 0;
+                            $colMes = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($mes + 2);
+                            $sheet->setCellValue($colMes . $currentRow, (float)$monto);
+                        }
+                        
+                        // Total Anual de la fila (Partida)
+                        $firstMesCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3);
+                        $lastMesCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(14);
+                        $sheet->setCellValue($lastCol . $currentRow, "=SUM({$firstMesCol}{$currentRow}:{$lastMesCol}{$currentRow})");
+                        
+                        $gruposCount++;
+                    }
+                }
+
+                // Sumatorias de la unidad por mes en la fila principal del departamento
+                $firstMesCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(3);
+                $lastMesCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(14);
+                
+                if ($gruposCount > 0) {
+                    for ($mes = 1; $mes <= 12; $mes++) {
+                        $colMes = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($mes + 2);
+                        $sheet->setCellValue($colMes . $row, "=SUM({$colMes}{$startUnidadRow}:{$colMes}" . ($startUnidadRow + $gruposCount - 1) . ")");
+                    }
+                    // Total Anual de la Unidad
+                    $sheet->setCellValue($lastCol . $row, "=SUM({$firstMesCol}{$row}:{$lastMesCol}{$row})");
+                } else {
+                    for ($mes = 1; $mes <= 12; $mes++) {
+                        $colMes = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($mes + 2);
+                        $sheet->setCellValue($colMes . $row, 0);
+                    }
+                    $sheet->setCellValue($lastCol . $row, 0);
+                }
+
+                // Estilo unidad
+                $sheet->getStyle("A$row:{$lastCol}$row")->applyFromArray([
+                    'font' => ['bold' => true],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F3F4F6']]
+                ]);
+
+                $row = $startUnidadRow + $gruposCount;
+            }
+
+            // Fila de Gran Total
+            $sheet->setCellValue('B' . $row, 'TOTALES POR MES');
+            for ($mes = 1; $mes <= 12; $mes++) {
+                $colMes = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($mes + 2);
+                $sheet->setCellValue($colMes . $row, "=SUM({$colMes}2:{$colMes}" . ($row - 1) . ")/2");
+            }
+            // Gran Total Anual
+            $sheet->setCellValue($lastCol . $row, "=SUM({$lastCol}2:{$lastCol}" . ($row - 1) . ")/2");
+            
+            $sheet->getStyle("A$row:{$lastCol}$row")->applyFromArray([
+                'font' => ['bold' => true, 'size' => 12],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F2937']],
+                'font' => ['color' => ['rgb' => 'FFFFFF']]
+            ]);
+            $row++;
+
+            // Formato de moneda
+            $sheet->getStyle("C2:{$lastCol}" . ($row - 1))->getNumberFormat()->setFormatCode('$#,##0.00');
+            
+            // Bordes
+            $sheet->getStyle("A1:{$lastCol}" . ($row - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+            $writer = new Xlsx($spreadsheet);
+            $filename = "presupuesto_anual_{$anio}_" . date('Ymd_His') . ".xlsx";
+
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+
+            $writer->save('php://output');
+            exit();
+        } catch (\Throwable $e) {
+            log_message('error', '[exportarAnual] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
 }
