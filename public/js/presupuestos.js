@@ -977,16 +977,37 @@ function registrarComponenteReportePresupuesto() {
                         totales.final += parseFloat(d.totales?.final || 0);
                         totales.usado += parseFloat(d.totales?.usado || 0);
                     } else if (this.pantalla === 'completo') {
-                        // Presupuesto: Sumar en todos los niveles
-                        totales.pAsignado += parseFloat(d.presupuesto?.asignado || 0);
-                        totales.pComprometido += parseFloat(d.presupuesto?.comprometido || 0);
-                        totales.pEjecutado += parseFloat(d.presupuesto?.ejecutado || 0);
-                        totales.pGastado += parseFloat(d.presupuesto?.gastado || 0);
+                        const asig = parseFloat(d.presupuesto?.asignado || 0);
+                        const comp = parseFloat(d.presupuesto?.comprometido || 0);
+                        const ejec = parseFloat(d.presupuesto?.ejecutado || 0);
+                        const gast = parseFloat(d.presupuesto?.gastado || 0);
+                        
+                        totales.pAsignado += asig;
+                        totales.pComprometido += comp;
+                        totales.pEjecutado += ejec;
+                        totales.pGastado += gast;
+
+                        // Activar bandera si esta unidad o alguno de sus detalles ya excedió
+                        if (gast > asig) this.hayExcedidos = true;
+                        if (d.detalles) {
+                            d.detalles.forEach(det => { if (det.gastado > det.asignado) this.hayExcedidos = true; });
+                        }
                     } else {
                         const src = d.totales || d;
-                        totales.asignado += parseFloat(src.asignado || 0);
-                        totales.comprometido += parseFloat(src.comprometido || 0);
-                        totales.ejecutado += parseFloat(src.ejecutado || 0);
+                        const asig = parseFloat(src.asignado || 0);
+                        const comp = parseFloat(src.comprometido || 0);
+                        const ejec = parseFloat(src.ejecutado || 0);
+                        const gast = comp + ejec;
+
+                        totales.asignado += asig;
+                        totales.comprometido += comp;
+                        totales.ejecutado += ejec;
+
+                        // Activar bandera si esta unidad o alguno de sus detalles ya excedió
+                        if (gast > asig) this.hayExcedidos = true;
+                        if (d.detalles) {
+                            d.detalles.forEach(det => { if ((det.comprometido + det.ejecutado) > det.asignado) this.hayExcedidos = true; });
+                        }
                     }
                 };
 

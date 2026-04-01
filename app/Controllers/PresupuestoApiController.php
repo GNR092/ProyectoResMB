@@ -929,4 +929,220 @@ class PresupuestoApiController extends ResourceController
             log_message('warning', '[PresupuestoApiController::syncPresupuestoMensualSequenceIfNeeded] ' . $e->getMessage());
         }
     }
+
+    /**
+     * Rutas API Presupuesto Dictamen
+     */
+    public function getCambiosPendientes()
+    {
+        try {
+            $solicitudModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+            return $this->respond($solicitudModel->getPendientes());
+        } catch (\Throwable $e) {
+            log_message('error', '[getCambiosPendientes] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    public function dictaminarCambio()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+            $id = $json['ID_SolicitudCambio'] ?? null;
+            $estado = $json['Estado'] ?? null;
+            $comentarios = $json['Comentarios'] ?? null;
+
+            if (!$id || !$estado) return $this->failValidationErrors('Faltan datos.');
+
+            $solModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+            $solicitud = $solModel->find($id);
+            if (!$solicitud) return $this->failNotFound('Solicitud no encontrada.');
+
+            if ($estado === 'Aprobado') {
+                $db = \Config\Database::connect();
+                $db->transStart();
+                
+                $modulo = $solicitud['Modulo'];
+                $accion = $solicitud['Accion'];
+                $payload = json_decode($solicitud['Datos_Payload'], true);
+                $idAfectado = $solicitud['ID_Afectado'];
+
+                if ($accion === 'Masivo') {
+                    if ($modulo === 'PresupuestoMensual') {
+                        $this->ejecutarPresupuestoMasivo($payload);
+                    } else if ($modulo === 'SaldosBancarios') {
+                        $this->ejecutarSaldosMasivo($payload);
+                    }
+                } else {
+                    $this->ejecutarCambioIndividual($modulo, $accion, $idAfectado, $payload);
+                }
+
+                $solModel->update($id, [
+                    'Estado' => 'Aprobado',
+                    'Comentarios_Revisor' => $comentarios,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+                $db->transComplete();
+                if ($db->transStatus() === false) throw new \Exception('Error al procesar la transacción.');
+                return $this->respond(['success' => true, 'message' => 'Cambio aprobado y ejecutado correctamente ✅']);
+            } else {
+                $solModel->update($id, [
+                    'Estado' => 'Rechazado',
+                    'Comentarios_Revisor' => $comentarios,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+                return $this->respond(['success' => true, 'message' => 'Cambio rechazado ❌']);
+            }
+        } catch (\Throwable $e) {
+            log_message('error', '[dictaminarCambio] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    private function ejecutarPresupuestoMasivo($json)
+    {
+        $pmModel = new PresupuestoMensualModel();
+        $paModel = new PresupuestoAnualModel();
+        $uniModel = new UnidadOperativaModel();
+        $placesModel = new PlacesModel();
+        $db = \Config\Database::connect();
+
+        $anio = (int) $json['anio'];
+        $mes = (int) $json['mes'];
+        $restoAnio = $json['resto_anio'] ?? false;
+
+        $mesesAGuardar = [$mes];
+        if ($restoAnio) {
+            for ($m = $mes + 1; $m <= 12; $m++) $mesesAGuardar[] = $m;
+        }
+
+        $rsAfectadas = [];
+        foreach ($mesesAGuardar as $mActual) {
+            foreach ($json['grupos'] as $g) {
+                $idUnidad = (int) ($g['id_unidad'] ?? $g['id_dpto']);
+                $idGrupo  = (int) $g['id_grupo'];
+                $data = ['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => $idGrupo, 'Anio' => $anio, 'Mes' => $mActual, 'Monto_Asignado' => (float) $g['monto_asignado']];
+
+                $exists = $pmModel->where(['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => $idGrupo, 'Anio' => $anio, 'Mes' => $mActual])->first();
+                if ($exists) $pmModel->update($exists['ID_PresupuestoMensual'], $data);
+                else {
+                    $this->syncPresupuestoMensualSequenceIfNeeded($db);
+                    $pmModel->insert($data);
+                }
+
+                $unidad = $uniModel->find($idUnidad);
+                if ($unidad) {
+                    $place = $placesModel->find($unidad['ID_Place']);
+                    if ($place) $rsAfectadas[] = (int) $place['ID_RazonSocial'];
+                }
+            }
+        }
+
+        foreach (array_unique($rsAfectadas) as $idRS) {
+            $q = $db->table('PresupuestoMensual')->selectSum('PresupuestoMensual.Monto_Asignado', 'total')->join('UnidadOperativa u', 'u.ID_UnidadOperativa = PresupuestoMensual.ID_UnidadOperativa')->join('Places p', 'p.ID_Place = u.ID_Place')->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')->where(['PresupuestoMensual.Anio' => $anio, 'p.ID_RazonSocial' => $idRS, 'gp.activo' => true])->get()->getRow();
+            $total = $q ? (float) $q->total : 0.0;
+            $pa = $paModel->where(['Anio' => $anio, 'ID_RazonSocial' => $idRS])->first();
+            if ($pa) $paModel->update($pa['ID_PresupuestoAnual'], ['Monto' => $total]);
+            else $paModel->insert(['ID_RazonSocial' => $idRS, 'Anio' => $anio, 'Monto' => $total]);
+        }
+    }
+
+    private function ejecutarSaldosMasivo($json)
+    {
+        $sModel = new SaldosBancariosModel();
+        foreach ($json['saldos'] as $s) {
+            $data = ['id_bancodpto' => (int)$s['id_bancodpto'], 'anio' => (int)$json['anio'], 'mes' => (int)$json['mes'], 'saldo_inicial' => (float)$s['saldo_inicial'], 'saldo_final' => (float)$s['saldo_final']];
+            $exists = $sModel->where(['id_bancodpto' => $data['id_bancodpto'], 'anio' => $data['anio'], 'mes' => $data['mes']])->first();
+            if ($exists) $sModel->update($exists['id'], $data);
+            else $sModel->insert($data);
+        }
+    }
+
+    private function ejecutarCambioIndividual($modulo, $accion, $idAfectado, $payload)
+    {
+        $model = null;
+        switch ($modulo) {
+            case 'GrupoPresupuestal': $model = new GrupoPresupuestalModel(); break;
+            case 'BancoDpto': $model = new BancoDptoModel(); break;
+            case 'RazonSocial': $model = new RazonSocialModel(); break;
+            case 'Place': $model = new PlacesModel(); break;
+            case 'SegmentoNegocio': $model = new SegmentoNegocioModel(); break;
+            case 'UnidadOperativa': $model = new UnidadOperativaModel(); break;
+            case 'Departamento': $model = new DepartamentosModel(); break;
+        }
+
+        if (!$model) throw new \Exception("Módulo '$modulo' no reconocido.");
+
+        if ($accion === 'Insertar') {
+            $model->insert($payload);
+        } else if ($accion === 'Editar') {
+            if (!$idAfectado) throw new \Exception("ID de afectado no proporcionado para Editar.");
+            $model->update($idAfectado, $payload);
+        } else if ($accion === 'Eliminar') {
+            if (!$idAfectado) throw new \Exception("ID de afectado no proporcionado para Eliminar.");
+            $model->delete($idAfectado);
+        }
+    }
+
+    /**
+     * Rutas API Saldos Bancarios
+     */
+    public function getEstructuraSaldos($idRS, $anio, $mes)
+    {
+        try {
+            $bModel = new BancoDptoModel();
+            $sModel = new SaldosBancariosModel();
+            $solModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+
+            $bancos = $bModel->where('ID_RazonSocial', (int)$idRS)->findAll();
+            if (empty($bancos)) return $this->respond(['razones' => []]);
+
+            $bancoIds = array_column($bancos, 'ID_BancoDpto');
+            $saldos = $sModel->whereIn('id_bancodpto', $bancoIds)->where('anio', (int)$anio)->where('mes', (int)$mes)->findAll();
+            
+            $sIndex = [];
+            foreach ($saldos as $s) { $sIndex[$s['id_bancodpto']] = $s; }
+
+            foreach ($bancos as &$b) {
+                $s = $sIndex[$b['ID_BancoDpto']] ?? null;
+                $b['saldo_inicial'] = $s ? (float)$s['saldo_inicial'] : 0;
+                $b['saldo_final'] = $s ? (float)$s['saldo_final'] : 0;
+                $b['id_saldo'] = $s ? $s['id'] : null;
+            }
+
+            // Bloqueo por revisión
+            $revisiones = $solModel->where(['Modulo' => 'SaldosBancarios', 'Estado' => 'Pendiente', 'ID_Afectado' => "{$anio}-{$mes}"])->findAll();
+            return $this->respond(['razones' => [['ID_RazonSocial' => (int)$idRS, 'bancos' => $bancos]], 'bloqueadoPorRevision' => !empty($revisiones)]);
+        } catch (\Throwable $e) {
+            log_message('error', '[getEstructuraSaldos] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    public function saveSaldosMasivo()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+            if (!isset($json['anio']) || !isset($json['mes']) || !isset($json['saldos'])) {
+                return $this->failValidationErrors('Datos incompletos.');
+            }
+
+            $solModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+            $solModel->insert([
+                'ID_Usuario' => session('id'),
+                'Modulo' => 'SaldosBancarios',
+                'Accion' => 'Masivo',
+                'ID_Afectado' => "{$json['anio']}-{$json['mes']}",
+                'Datos_Payload' => json_encode($json),
+                'Estado' => 'Pendiente',
+                'Comentarios_Solicitante' => $json['comentarios'] ?? null
+            ]);
+
+            return $this->respondCreated(['success' => true, 'pending_review' => true, 'message' => 'Saldos enviados a revisión.']);
+        } catch (\Throwable $e) {
+            log_message('error', '[saveSaldosMasivo] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
 }
