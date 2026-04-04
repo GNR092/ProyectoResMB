@@ -2,6 +2,10 @@
 // Codificamos los datos iniciales enviados por el controlador
 $razonesJson = json_encode($razones_sociales ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
+
+$iconPath = FCPATH . 'icons/icons.svg';
+$version = file_exists($iconPath) ? filemtime($iconPath) : time();
+$iconUrl = base_url("icons/icons.svg?v=$version");
 ?>
 
 <div id="reporte-presupuesto-main-div"
@@ -15,21 +19,96 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
             <span class="text-blue-600">📊</span> Central de Reportes
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <button @click="irAPantalla('presupuesto')" class="flex flex-col items-center p-8 border-2 border-blue-100 rounded-2xl hover:border-blue-500 hover:bg-blue-50 transition-all group">
-                <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">📉</div>
-                <span class="font-bold text-gray-700 group-hover:text-blue-700">Presupuesto vs Ejecutado</span>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button @click="irAPantalla('presupuesto')" class="flex flex-col items-center p-4 border-2 border-blue-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-blue-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#PresupuestoVsEjecutado"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-blue-700 text-xs">Presupuesto vs Ejecutado</span>
             </button>
-            <button @click="irAPantalla('cuentas')" class="flex flex-col items-center p-8 border-2 border-green-100 rounded-2xl hover:border-green-500 hover:bg-green-50 transition-all group">
-                <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">🏦</div>
-                <span class="font-bold text-gray-700 group-hover:text-green-700">Cuentas Bancarias</span>
+            <button @click="irAPantalla('cuentas')" class="flex flex-col items-center p-4 border-2 border-green-100 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-green-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#CuentasBancarias"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-green-700 text-xs">Cuentas Bancarias</span>
             </button>
-            <button @click="irAPantalla('completo')" class="flex flex-col items-center p-8 border-2 border-purple-100 rounded-2xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
-                <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">📋</div>
-                <span class="font-bold text-gray-700 group-hover:text-purple-700">Reporte Completo</span>
+            <button @click="irAPantalla('completo')" class="flex flex-col items-center p-4 border-2 border-purple-100 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-purple-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#ReporteCompleto"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-purple-700 text-xs">Reporte Completo</span>
+            </button>
+            <button @click="irAPantalla('proveedores')" class="flex flex-col items-center p-4 border-2 border-orange-100 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-orange-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#ListaProveedores"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-orange-700 text-xs">Lista De Proveedores</span>
+            </button>
+            <button @click="irAPantalla('compras')" class="flex flex-col items-center p-4 border-2 border-red-100 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all group">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-red-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#ReporteCompras"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-red-700 text-xs">Reporte De Compras</span>
+            </button>
+            <button @click="irAPantalla('movimientos')" class="flex flex-col items-center p-4 border-2 border-teal-100 rounded-xl hover:border-teal-500 hover:bg-teal-50 transition-all group">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-teal-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#MovimientosProveedor"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-teal-700 text-xs">Movimientos De Proveedor</span>
             </button>
         </div>
     </div>
+
+    <!-- Pantalla 5: Lista de Proveedores -->
+    <template x-if="pantalla === 'proveedores'">
+        <div class="animate-fadeIn">
+            <div class="flex items-center justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-orange-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <h2 class="text-xl font-bold text-gray-800">Lista de Proveedores</h2>
+            </div>
+            <div class="p-8 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 italic">
+                Contenido de Lista de Proveedores próximamente...
+            </div>
+        </div>
+    </template>
+
+    <!-- Pantalla 6: Reporte de Compras -->
+    <template x-if="pantalla === 'compras'">
+        <div class="animate-fadeIn">
+            <div class="flex items-center justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <h2 class="text-xl font-bold text-gray-800">Reporte de Compras</h2>
+            </div>
+            <div class="p-8 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 italic">
+                Contenido de Reporte de Compras próximamente...
+            </div>
+        </div>
+    </template>
+
+    <!-- Pantalla 7: Movimientos de Proveedor -->
+    <template x-if="pantalla === 'movimientos'">
+        <div class="animate-fadeIn">
+            <div class="flex items-center justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-teal-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <h2 class="text-xl font-bold text-gray-800">Movimientos de Proveedor</h2>
+            </div>
+            <div class="p-8 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 italic">
+                Contenido de Movimientos de Proveedor próximamente...
+            </div>
+        </div>
+    </template>
 
     <!-- Pantalla 2: Reporte Presupuesto vs Ejecutado -->
     <template x-if="pantalla === 'presupuesto'">

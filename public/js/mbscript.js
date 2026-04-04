@@ -97,7 +97,7 @@ function abrirModal(opcion) {
     GrupoPresupuestal: 'Partida Presupuestal',
     BancoDpto: 'Cuentas Bancarias de los Departamentos',
     PresupuestoMensual: 'Creación/Asignación De Presupuestos',
-    ReportePresupuesto: 'Reportes para presupuestos',
+    ReportePresupuesto: 'Reportes',
     SaldosBancarios: 'Saldos de Bancos',
     SegmentoNegocio: 'Segmentos de Negocio',
     UnidadOperativa: 'Unidades operativas',

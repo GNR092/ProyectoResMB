@@ -4,7 +4,7 @@
 function registrarComponenteReportePresupuesto() {
     Alpine.data('reportePresupuestoComponent', function () {
         return {
-            pantalla: 'menu', // 'menu', 'presupuesto', 'cuentas', 'completo'
+            pantalla: 'menu', // 'menu', 'presupuesto', 'cuentas', 'completo', 'proveedores', 'compras', 'movimientos'
             idRazonSocial: '',
             idPlace: [], // Ahora es un array para selecciones múltiples
             verGlobal: false,
@@ -17,6 +17,12 @@ function registrarComponenteReportePresupuesto() {
             departamentosBancos: [],
             departamentosCompleto: [],
             departamentosOriginales: [],
+
+            // Nuevos arrays para las sub-pantallas
+            listaProveedores: [],
+            reporteCompras: [],
+            movimientosProveedor: [],
+
             dptosSeleccionados: [],
             choicesDpto: null,
             choicesMeses: null,
@@ -95,6 +101,10 @@ function registrarComponenteReportePresupuesto() {
                     if (this.pantalla === 'presupuesto') this.cargarComparativo();
                     if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
                     if (this.pantalla === 'completo') this.cargarReporteCompleto();
+
+                    // Cargadores para las nuevas pantallas
+                    if (this.pantalla === 'compras') this.cargarReporteCompras();
+                    if (this.pantalla === 'movimientos') this.cargarMovimientosProveedor();
                 });
             },
 
@@ -130,6 +140,9 @@ function registrarComponenteReportePresupuesto() {
                     if (this.pantalla === 'presupuesto') this.cargarComparativo();
                     if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
                     if (this.pantalla === 'completo') this.cargarReporteCompleto();
+
+                    if (this.pantalla === 'compras') this.cargarReporteCompras();
+                    if (this.pantalla === 'movimientos') this.cargarMovimientosProveedor();
                 });
             },
 
@@ -139,6 +152,11 @@ function registrarComponenteReportePresupuesto() {
                 this.departamentosBancos = [];
                 this.departamentosCompleto = [];
                 this.departamentosOriginales = [];
+
+                this.listaProveedores = [];
+                this.reporteCompras = [];
+                this.movimientosProveedor = [];
+
                 this.dptosSeleccionados = [];
                 this.verGlobal = false;
                 
@@ -163,15 +181,23 @@ function registrarComponenteReportePresupuesto() {
                         const refMapMeses = {
                             'presupuesto': 'mesesSelectorPresupuesto',
                             'cuentas': 'mesesSelectorCuentas',
-                            'completo': 'mesesSelectorCompleto'
+                            'completo': 'mesesSelectorCompleto',
+                            'compras': 'mesesSelectorCompras',
+                            'movimientos': 'mesesSelectorMovimientos'
                         };
                         const refMapPlaces = {
                             'presupuesto': 'placesSelectorPresupuesto',
                             'cuentas': 'placesSelectorCuentas',
-                            'completo': 'placesSelectorCompleto'
+                            'completo': 'placesSelectorCompleto',
+                            'compras': 'placesSelectorCompras',
+                            'movimientos': 'placesSelectorMovimientos'
                         };
-                        this.initChoicesMeses(refMapMeses[nueva]);
-                        this.initChoicesPlaces(refMapPlaces[nueva]);
+                        
+                        if (refMapMeses[nueva]) this.initChoicesMeses(refMapMeses[nueva]);
+                        if (refMapPlaces[nueva]) this.initChoicesPlaces(refMapPlaces[nueva]);
+
+                        // Carga automática si aplica
+                        if (nueva === 'proveedores') this.cargarListaProveedores();
                     });
                 }
             },
@@ -186,12 +212,35 @@ function registrarComponenteReportePresupuesto() {
                 const refMap = {
                     'presupuesto': 'placesSelectorPresupuesto',
                     'cuentas': 'placesSelectorCuentas',
-                    'completo': 'placesSelectorCompleto'
+                    'completo': 'placesSelectorCompleto',
+                    'compras': 'placesSelectorCompras',
+                    'movimientos': 'placesSelectorMovimientos'
                 };
                 
                 this.$nextTick(() => {
-                    this.initChoicesPlaces(refMap[pantalla]);
+                    if (refMap[pantalla]) this.initChoicesPlaces(refMap[pantalla]);
                 });
+            },
+
+            // Funciones placeholder para las nuevas pantallas
+            async cargarListaProveedores() {
+                this.cargando = true;
+                console.log("Cargando lista de proveedores...");
+                setTimeout(() => { this.cargando = false; }, 500);
+            },
+
+            async cargarReporteCompras() {
+                if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0)) return;
+                this.cargando = true;
+                console.log("Cargando reporte de compras...");
+                setTimeout(() => { this.cargando = false; }, 500);
+            },
+
+            async cargarMovimientosProveedor() {
+                if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0)) return;
+                this.cargando = true;
+                console.log("Cargando movimientos de proveedor...");
+                setTimeout(() => { this.cargando = false; }, 500);
             },
 
             get placesFiltrados() {

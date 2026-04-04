@@ -49,7 +49,7 @@ class MenuOptions extends BaseConfig
 
             'revisar_solicitudes' => [
                 'label' => 'Cotizar Solicitudes',
-                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#revisar_solicitudes"></use></svg>',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#cotizacion"></use></svg>',
             ],
 
             'enviar_revision' => [
@@ -171,11 +171,6 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#PresupuestoMensual"></use></svg>',
             ],
 
-            'ReportePresupuesto' => [
-                'label' => 'Reporteria Presupuestal',
-                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ReportePresupuestal"></use></svg>',
-            ],
-
 
             //**********BANCOS RAZON SOCIAL**********//
 
@@ -193,6 +188,20 @@ class MenuOptions extends BaseConfig
             'SaldosBancarios' => [
                 'label' => 'Saldos Bancarios',
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SaldoBancario"></use></svg>',
+            ],
+
+
+            //**********REPORTES**********//
+
+            'TituloReportes' => [
+                'label' => 'Central De Reportes',
+                'icon' => '',
+                'is_title' => true,
+            ],
+
+            'ReportePresupuesto' => [
+                'label' => 'Reportes',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ReportePresupuestal"></use></svg>',
             ],
 
         ];
