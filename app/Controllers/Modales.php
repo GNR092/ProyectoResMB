@@ -501,15 +501,6 @@ class Modales extends BaseController
 
                 return view('modales/control/PresupuestoMensual', $data);
 
-            case 'ReportePresupuesto':
-                $razonSocialModel = new \App\Models\RazonSocialModel();
-                $placesModel      = new \App\Models\PlacesModel();
-
-                $data['razones_sociales'] = $razonSocialModel->orderBy('Nombre', 'ASC')->findAll();
-                $data['places']           = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
-
-                return view('modales/control/ReportePresupuesto', $data);
-
             case 'SaldosBancarios':
                 $razonSocialModel = new \App\Models\RazonSocialModel();
                 $placesModel      = new \App\Models\PlacesModel();

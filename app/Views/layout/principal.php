@@ -131,6 +131,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
         : 'js/reportesScript.min.js',
 ) ?>?v=<?= filemtime(FCPATH . 'js/reportesScript.js') ?>" defer></script>
 <script src="<?= base_url() ?>js/presupuestos.js?v=<?= file_exists(FCPATH . 'js/presupuestos.js') ? filemtime(FCPATH . 'js/presupuestos.js') : time() ?>" defer></script>
+<script src="<?= base_url() ?>js/reporte_presupuesto.js?v=<?= file_exists(FCPATH . 'js/reporte_presupuesto.js') ? filemtime(FCPATH . 'js/reporte_presupuesto.js') : time() ?>" defer></script>
 <script src="<?= base_url() ?>js/revision.js?v=<?= filemtime(
     FCPATH . 'js/revision.js',
 ) ?>" defer></script>

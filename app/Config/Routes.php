@@ -81,6 +81,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/cuentas/eliminar/(:num)', 'Modales::eliminarCuenta/$1');
 
         // Modales
+        $routes->get('modales/ReportePresupuesto', 'ReportesController::index');
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');
         $routes->get('modales/vistas/service_row', 'Modales::getServiceTableRow');
@@ -206,20 +207,20 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/presupuesto-mensual/guardar-masivo', 'PresupuestoApiController::saveMasivo');
         $routes->post('api/presupuesto-mensual/exportar-asignacion', 'PresupuestoApiController::exportarAsignacion');
         $routes->post('api/presupuesto-mensual/exportar-anual', 'PresupuestoApiController::exportarAnual');
-        $routes->get('api/presupuesto/comparativo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getComparativo/$1/$2/$3');
-        $routes->get('api/presupuesto/exportar/(:any)/(:num)/(:any)', 'PresupuestoApiController::exportarComparativo/$1/$2/$3');
-        $routes->post('api/presupuesto/exportar-datos', 'PresupuestoApiController::exportarDatosJson');
+        $routes->get('api/presupuesto/comparativo/(:any)/(:num)/(:any)', 'ReportesController::getComparativo/$1/$2/$3');
+        $routes->get('api/presupuesto/exportar/(:any)/(:num)/(:any)', 'ReportesController::exportarComparativo/$1/$2/$3');
+        $routes->post('api/presupuesto/exportar-datos', 'ReportesController::exportarDatosJson');
 
         // Rutas API Saldos Bancarios
         $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');
         $routes->post('api/saldos-bancarios/guardar-masivo', 'PresupuestoApiController::saveSaldosMasivo');
-        $routes->get('api/bancos/comparativo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getComparativoBancos/$1/$2/$3');
-        $routes->post('api/bancos/exportar-datos', 'PresupuestoApiController::exportarBancosJson');
+        $routes->get('api/bancos/comparativo/(:any)/(:num)/(:any)', 'ReportesController::getComparativoBancos/$1/$2/$3');
+        $routes->post('api/bancos/exportar-datos', 'ReportesController::exportarBancosJson');
 
         // Rutas API Reporte Completo
-        $routes->get('api/reporte/completo/exportar/(:any)/(:num)/(:any)', 'PresupuestoApiController::exportarReporteCompleto/$1/$2/$3');
-        $routes->post('api/reporte/completo/exportar-datos', 'PresupuestoApiController::exportarReporteCompletoJson');
-        $routes->get('api/reporte/completo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getReporteCompleto/$1/$2/$3');
+        $routes->get('api/reporte/completo/exportar/(:any)/(:num)/(:any)', 'ReportesController::exportarReporteCompleto/$1/$2/$3');
+        $routes->post('api/reporte/completo/exportar-datos', 'ReportesController::exportarReporteCompletoJson');
+        $routes->get('api/reporte/completo/(:any)/(:num)/(:any)', 'ReportesController::getReporteCompleto/$1/$2/$3');
 
         //Control maestro
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');
