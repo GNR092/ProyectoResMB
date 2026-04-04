@@ -21,14 +21,15 @@ function abrirModal(opcion) {
     crud_productos: 'almacen',
     entrega_productos: 'almacen',
     reporte_almacen: 'almacen',
-    crud_usuarios: 'ajustes',
+    crud_usuarios: 'catalogos',
     limpiar_almacenamiento: 'ajustes',
-    crud_proveedores: 'ajustes',
+    crud_proveedores: 'catalogos',
     reportes: 'ajustes',
-    razonsocial: 'ajustes',
+    razonsocial: 'catalogos',
     micuenta: 'ajustes',
     programar_pagos: 'programar_pagos',
-    crud_departamento: 'crud_departamento',
+    crud_departamento: 'catalogos',
+    crud_places: 'catalogos',
   }
 
   const highlightOpcion = parentModals[opcion] || opcion
@@ -79,6 +80,7 @@ function abrirModal(opcion) {
     entrega_productos: 'Entrega de Material',
     ficha_pago: 'Fichas de pago',
     ajustes: 'Ajustes',
+    catalogos: 'Catálogos',
     almacen: 'Almacén',
     reportes: 'Reportes/Auditoria',
     razonsocial: 'Razón social',

@@ -310,6 +310,9 @@ class Modales extends BaseController
             case 'ajustes':
                 return view('modales/ajustes');
 
+            case 'catalogos':
+                return view('modales/catalogos');
+
             case 'almacen':
                 return view('modales/almacen');
 

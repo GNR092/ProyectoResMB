@@ -10,9 +10,9 @@ $iconUrl = "/icons/icons.svg?v=$version";
     <div id="div-lista-usuarios">
 
         <div class="flex items-center mb-4">
-            <button onclick="abrirModal('ajustes')"
+            <button onclick="abrirModal('catalogos')"
                     class="text-sm text-gray-600 hover:text-gray-900 transition">
-                &larr; Regresar a Ajustes
+                &larr; Regresar a Catálogos
             </button>
         </div>
 
