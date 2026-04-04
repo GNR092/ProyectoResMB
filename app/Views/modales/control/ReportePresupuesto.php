@@ -127,7 +127,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     </tbody>
 
                     <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
-                        <tbody class="border-t-4 border-gray-500">
+                        <tbody class="border-t-4 border-gray-500" x-show="grupoRS.totales.asignado > 0">
                             <tr class="bg-gray-200 font-black text-sm shadow-sm">
                                 <td class="px-6 py-3 text-gray-900 uppercase tracking-wider text-[11px]" x-text="grupoRS.nombre"></td>
                                 <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.asignado)"></td>
@@ -140,7 +140,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             </tr>
 
                             <template x-for="seg in grupoRS.segmentos" :key="seg.nombre">
-                                <tbody class="contents">
+                                <tbody class="contents" x-show="seg.totales.asignado > 0">
                                     <tr class="bg-blue-100 border-l-4 border-blue-500 font-bold text-xs">
                                         <td class="px-10 py-2 text-blue-900 uppercase tracking-tight border-l-4 border-blue-600" x-text="'📁 ' + seg.nombre"></td>
                                         <td class="px-4 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.asignado)"></td>
@@ -153,7 +153,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                     </tr>
 
                                     <template x-for="complex in seg.complejos" :key="complex.nombre">
-                                        <tbody class="contents">
+                                        <tbody class="contents" x-show="complex.totales.asignado > 0">
                                             <tr class="bg-white font-semibold text-[11px] text-gray-500 border-b border-gray-100">
                                                 <td class="px-14 py-1 uppercase tracking-tighter" x-text="'📍 ' + complex.nombre"></td>
                                                 <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.asignado)"></td>
@@ -166,9 +166,10 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                             </tr>
 
                                             <template x-for="uni in complex.departamentos" :key="uni.ID_UnidadOperativa">
-                                                <tbody class="contents">
+                                                <tbody class="contents" x-show="uni.totales?.asignado > 0">
                                                     <template x-for="(item, index) in [uni, ...(uni.detalles || [])]" :key="index">
-                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold border-l-2 border-gray-300' : 'hover:bg-gray-50 border-b border-gray-50'">
+                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold border-l-2 border-gray-300' : 'hover:bg-gray-50 border-b border-gray-50'"
+                                                            x-show="index === 0 ? (uni.totales?.asignado > 0) : (parseFloat(item.asignado) > 0)">
                                                             <td class="px-6 py-2" :class="index === 0 ? 'text-gray-900 text-xs pl-20' : 'pl-28 text-gray-400 text-[11px]'">
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
@@ -413,7 +414,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     </tbody>
 
                     <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
-                        <tbody class="border-t-4 border-gray-500">
+                        <tbody class="border-t-4 border-gray-500" x-show="grupoRS.totales.pAsignado > 0">
                             <tr class="bg-gray-200 font-black text-sm shadow-sm">
                                 <td class="px-6 py-3 text-gray-800 uppercase tracking-wider text-[11px]" x-text="grupoRS.nombre"></td>
                                 <td class="px-2 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.pAsignado)"></td>
@@ -429,7 +430,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             </tr>
 
                             <template x-for="seg in grupoRS.segmentos" :key="seg.nombre">
-                                <tbody class="contents">
+                                <tbody class="contents" x-show="seg.totales.pAsignado > 0">
                                     <tr class="bg-blue-100 border-l-4 border-blue-500 font-bold text-[11px]">
                                         <td class="px-10 py-2 text-blue-900 uppercase tracking-tight border-l-4 border-blue-600" x-text="'📁 ' + seg.nombre"></td>
                                         <td class="px-2 py-2 text-right text-blue-900" x-text="formatearMoneda(seg.totales.pAsignado)"></td>
@@ -445,7 +446,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                     </tr>
 
                                     <template x-for="complex in seg.complejos" :key="complex.nombre">
-                                        <tbody class="contents">
+                                        <tbody class="contents" x-show="complex.totales.pAsignado > 0">
                                             <tr class="bg-white font-semibold text-[10px] text-gray-500 border-b border-gray-100">
                                                 <td class="px-14 py-1 uppercase tracking-tighter" x-text="'📍 ' + complex.nombre"></td>
                                                 <td class="px-2 py-1 text-right" x-text="formatearMoneda(complex.totales.pAsignado)"></td>
@@ -461,9 +462,10 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                             </tr>
 
                                             <template x-for="uni in complex.departamentos" :key="uni.ID_UnidadOperativa">
-                                                <tbody class="contents">
+                                                <tbody class="contents" x-show="uni.presupuesto?.asignado > 0">
                                                     <template x-for="(item, index) in [uni, ...(uni.detalles || [])]" :key="index">
-                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold border-l-2 border-gray-300' : 'hover:bg-gray-50 border-b border-gray-50'">
+                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold border-l-2 border-gray-300' : 'hover:bg-gray-50 border-b border-gray-50'"
+                                                            x-show="index === 0 ? (uni.presupuesto?.asignado > 0) : (parseFloat(item.asignado) > 0)">
                                                             <td class="px-6 py-2" :class="index === 0 ? 'text-blue-900 text-xs pl-20' : 'pl-28 text-gray-500 text-[10px]'">
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>

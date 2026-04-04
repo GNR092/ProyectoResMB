@@ -961,6 +961,13 @@ function registrarComponenteReportePresupuesto() {
                 if (this.pantalla === 'cuentas') fuente = this.departamentosBancos;
                 if (this.pantalla === 'completo') fuente = this.departamentosCompleto;
 
+                // Filtrar fuente: Solo mostrar si hay presupuesto asignado (si no es pantalla de cuentas)
+                if (this.pantalla === 'presupuesto') {
+                    fuente = fuente.filter(d => parseFloat(d.totales?.asignado || 0) > 0);
+                } else if (this.pantalla === 'completo') {
+                    fuente = fuente.filter(d => parseFloat(d.presupuesto?.asignado || 0) > 0);
+                }
+
                 const rsGrupos = [];
                 // Reset bandera de excedidos antes de recalcular
                 if (this.pantalla === 'presupuesto') this.hayExcedidos = false;
@@ -1024,6 +1031,11 @@ function registrarComponenteReportePresupuesto() {
                     const rsNombre = d.RazonSocialNombre || 'Sin Razón Social';
                     const segNombre = d.SegmentoNombre || 'Sin Segmento';
                     const placeNombre = d.PlaceNombre || 'Sin Place';
+
+                    // Filtrar detalles internos (partidas) que no tengan presupuesto
+                    if (d.detalles) {
+                        d.detalles = d.detalles.filter(det => parseFloat(det.asignado || 0) > 0);
+                    }
 
                     let rs = rsGrupos.find(g => g.nombre === rsNombre);
                     if (!rs) {
