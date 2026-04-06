@@ -1916,7 +1916,11 @@ class Rest
                 'Places.Nombre_Corto as PlaceNombre',
                 'Proveedor.RazonSocial as ProveedorNombre',
                 'Proveedor.RFC as ProveedorRFC',
-                'Proveedor.Banco as CuentaBanco', // El banco está en la tabla Proveedor
+                'Proveedor.Banco as CuentaBanco',
+                'Proveedor.Cuenta as Cuenta',
+                'Proveedor.Clabe as Clabe',
+                'Proveedor.Nombre_Contacto as Nombre_Contacto',
+                'Proveedor.Tel_Contacto as Tel_Contacto',
                 'Razon_Social.Nombre as RazonSocialNombre',
                 'UsuarioAutoriza.Nombre as UsuarioAutorizaNombre',
                 'Cotizacion.Total as MontoTotal',

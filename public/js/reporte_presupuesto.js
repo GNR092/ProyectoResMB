@@ -384,6 +384,51 @@ function registrarComponenteReportePresupuesto() {
                 this.currentPageMovimientos = page;
             },
 
+            async exportarMovimientosExcel() {
+                if (this.movimientosFiltrados.length === 0) {
+                    alert("No hay movimientos para exportar con los filtros actuales.");
+                    return;
+                }
+
+                const notif = typeof mostrarNotificacion !== 'undefined' ? mostrarNotificacion('Generando Reporte de Movimientos...', 'info', 0) : null;
+                
+                try {
+                    const payload = {
+                        titulo: 'Reporte Detallado de Movimientos de Proveedor',
+                        filtros: {
+                            texto: this.filtroTextoMovimientos,
+                            desde: this.fechaInicioMovimientos,
+                            hasta: this.fechaFinMovimientos,
+                            complejos: (this.idPlace || []).length > 0 ? this.todosPlaces.filter(p => this.idPlace.includes(String(p.ID_Place))).map(p => p.Nombre).join(', ') : 'Todos'
+                        },
+                        datos: this.movimientosFiltrados
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/historic/exportar-movimientos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `movimientos_proveedor_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert("Error al generar el archivo Excel.");
+                    }
+                } catch (e) {
+                    console.error("Error en exportarMovimientosExcel:", e);
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
             async mostrarVerMovimiento(idSolicitud) {
                 const divMovimientos = document.getElementById('div-movimientos');
                 const divVer = document.getElementById('div-ver-movimiento');

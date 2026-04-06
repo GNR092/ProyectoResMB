@@ -28,6 +28,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class Api extends ResourceController
 {
@@ -3467,6 +3468,121 @@ class Api extends ResourceController
      *
      * @return \CodeIgniter\HTTP\Response
      */
+    public function exportarMovimientosExcel()
+    {
+        $json = $this->request->getJSON(true);
+        $datos = $json['datos'] ?? [];
+        $filtros = $json['filtros'] ?? [];
+
+        if (empty($datos)) {
+            return $this->fail('No hay datos para exportar.');
+        }
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Movimientos');
+
+        // Estilos para los bloques
+        $styleSolicitud = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+        ];
+        $styleOrden = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'ED7D31']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+        ];
+        $styleProveedor = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '70AD47']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+        ];
+
+        // Definición de Columnas por Bloque
+        // A-H: Solicitud | I-N: Orden de Compra | O-U: Proveedor
+        $sheet->setCellValue('A1', 'BLOQUE 1: INFORMACIÓN DE SOLICITUD');
+        $sheet->mergeCells('A1:H1');
+        $sheet->getStyle('A1:H1')->applyFromArray($styleSolicitud);
+
+        $sheet->setCellValue('I1', 'BLOQUE 2: ORDEN DE COMPRA Y PAGOS');
+        $sheet->mergeCells('I1:N1');
+        $sheet->getStyle('I1:N1')->applyFromArray($styleOrden);
+
+        $sheet->setCellValue('O1', 'BLOQUE 3: DETALLES DEL PROVEEDOR');
+        $sheet->mergeCells('O1:U1');
+        $sheet->getStyle('O1:U1')->applyFromArray($styleProveedor);
+
+        $subHeaders = [
+            'Folio', 'Fecha', 'Estado', 'Solicitante', 'Departamento', 'Unidad Operativa', 'Complejo', 'Inversión Total',
+            'Estado Orden', 'Fecha Orden', 'Ref. Pago', 'F. Pago Realizado', 'Factura', 'Comprobante',
+            'Proveedor', 'RFC', 'Banco', 'Cuenta', 'CLABE', 'Contacto', 'Teléfono'
+        ];
+
+        $col = 'A';
+        foreach ($subHeaders as $sh) {
+            $sheet->setCellValue($col . '2', $sh);
+            $style = ($col <= 'H') ? $styleSolicitud : (($col <= 'N') ? $styleOrden : $styleProveedor);
+            $sheet->getStyle($col . '2')->applyFromArray($style);
+            $col++;
+        }
+
+        $row = 3;
+        foreach ($datos as $d) {
+            // BLOQUE 1: Solicitud
+            $sheet->setCellValue('A' . $row, $d['No_Folio'] ?? 'N/A');
+            $sheet->setCellValue('B' . $row, $d['Fecha'] ?? 'N/A');
+            $sheet->setCellValue('C' . $row, $d['Estado'] ?? 'N/A');
+            $sheet->setCellValue('D' . $row, $d['UsuarioSolicita'] ?? 'N/A');
+            $sheet->setCellValue('E' . $row, $d['DepartamentoNombre'] ?? 'N/A');
+            $sheet->setCellValue('F' . $row, $d['UnidadOperativaNombre'] ?? 'N/A');
+            $sheet->setCellValue('G' . $row, $d['PlaceNombre'] ?? 'N/A');
+            $sheet->setCellValue('H' . $row, (float)($d['MontoTotal'] ?? 0));
+            $sheet->getStyle('H' . $row)->getNumberFormat()->setFormatCode('"$"#,##0.00_-');
+
+            // BLOQUE 2: Orden de Compra
+            $sheet->setCellValue('I' . $row, $d['OrdenEstado'] ?? 'Pendiente');
+            $sheet->setCellValue('J' . $row, $d['OrdenFecha'] ?? 'N/A');
+            $sheet->setCellValue('K' . $row, $d['FechaRefPago'] ?? '—');
+            $sheet->setCellValue('L' . $row, $d['FechaPagoRealizado'] ?? 'Pendiente');
+            $sheet->setCellValue('M' . $row, !empty($d['File_Factura']) ? 'SÍ' : 'NO');
+            $sheet->setCellValue('N' . $row, !empty($d['File_Comprobante']) ? 'SÍ' : 'NO');
+
+            // BLOQUE 3: Proveedor
+            $sheet->setCellValue('O' . $row, $d['ProveedorNombre'] ?? 'N/A');
+            $sheet->setCellValue('P' . $row, $d['ProveedorRFC'] ?? 'N/A');
+            $sheet->setCellValue('Q' . $row, $d['CuentaBanco'] ?? 'N/A');
+            $sheet->setCellValue('R' . $row, $d['Cuenta'] ?? 'N/A');
+            $sheet->setCellValue('S' . $row, $d['Clabe'] ?? 'N/A');
+            $sheet->setCellValue('T' . $row, $d['Nombre_Contacto'] ?? 'N/A');
+            $sheet->setCellValue('U' . $row, $d['Tel_Contacto'] ?? 'N/A');
+            
+            $row++;
+        }
+
+        // Fila de Totales
+        $lastDataRow = $row - 1;
+        $sheet->setCellValue('A' . $row, 'TOTAL GENERAL DE INVERSIÓN:');
+        $sheet->mergeCells('A' . $row . ':G' . $row);
+        $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        
+        // Sumatoria en la columna H
+        $sheet->setCellValue('H' . $row, "=SUM(H3:H$lastDataRow)");
+        $sheet->getStyle('H' . $row)->getNumberFormat()->setFormatCode('"$"#,##0.00_-');
+
+        foreach (range('A', 'U') as $columnID) {
+            $sheet->getColumnDimension($columnID)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="movimientos_proveedor_' . date('Y-m-d') . '.xlsx"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
+
     public function testEmailConnection()
     {
         $mail = new MBSMail();
