@@ -493,7 +493,7 @@ class Rest
         // Detección del departamento especial (Operacion o variantes)
         $nombreDepto = $solicitud['DepartamentoNombre'] ?? '';
         $deptoLower = mb_strtolower(trim($nombreDepto));
-        $isDeptoEspecial = (strpos($deptoLower, 'operacion') !== false || strpos($deptoLower, 'operación') !== false);
+        $isDeptoEspecial = (strpos($deptoLower, 'operacion') !== false || strpos($deptoLower, 'operación') !== false || strpos($deptoLower, 'compras') !== false);
 
         if ($isDeptoEspecial) {
             // Si es el departamento especial, enviamos TODAS las partidas activas
