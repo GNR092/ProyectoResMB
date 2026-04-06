@@ -1886,6 +1886,54 @@ class Rest
     }
     
     /**
+     * Obtiene todas las solicitudes con la información detallada de sus claves foráneas
+     * para el reporte de Movimientos de Proveedor.
+     *
+     * @return array Un array con los datos completos de las solicitudes.
+     */
+    public function getMovimientosProveedor(): array
+    {
+        $solicitudModel = new SolicitudModel();
+
+        // Join con todas las FK de SolicitudModel:
+        // ID_Usuario, ID_Dpto, ID_UnidadOperativa, ID_Proveedor, ID_Cuenta, ID_RazonSocial
+        $solicitudes = $solicitudModel
+            ->select([
+                'Solicitud.ID_Solicitud',
+                'Solicitud.No_Folio',
+                'Solicitud.Fecha',
+                'Solicitud.Estado',
+                'Solicitud.Tipo',
+                'Solicitud.MetodoPago',
+                'Solicitud.IVA',
+                'Solicitud.Fecha_Aprobacion',
+                'Usuarios.Nombre as UsuarioSolicita',
+                'Departamentos.Nombre as DepartamentoNombre',
+                'UnidadOperativa.Nombre as UnidadOperativaNombre',
+                'Places.Nombre_Corto as PlaceNombre',
+                'Proveedor.RazonSocial as ProveedorNombre',
+                'Proveedor.RFC as ProveedorRFC',
+                'Cuentas_Bancarias.Banco as CuentaBanco', // Asumiendo tabla Cuentas_Bancarias
+                'Razon_Social.Nombre as RazonSocialNombre',
+                'UsuarioAutoriza.Nombre as UsuarioAutorizaNombre',
+                'Cotizacion.Total as MontoTotal'
+            ])
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Usuarios as UsuarioAutoriza', 'UsuarioAutoriza.ID_Usuario = Solicitud.ID_Usuario_Autoriza', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
+            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+            ->join('Cuentas_Bancarias', 'Cuentas_Bancarias.ID_Cuenta = Solicitud.ID_Cuenta', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left') // Para obtener el monto total de forma rápida
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->findAll();
+
+        return $solicitudes ?: [];
+    }
+
+    /**
      * Obtiene solicitudes filtradas por varios criterios.
      *
      * @param string|null $fecha La fecha para filtrar (YYYY-MM-DD).

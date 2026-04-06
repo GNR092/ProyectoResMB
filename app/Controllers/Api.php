@@ -314,6 +314,19 @@ class Api extends ResourceController
     }
 
     /**
+     * Obtiene el historial completo de solicitudes con detalles de proveedores (Movimientos).
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getMovimientosProveedor()
+    {
+        $results = $this->api->getMovimientosProveedor();
+        if (empty($results)) {
+            return $this->respond([], HttpStatus::OK); // Return empty array if no results
+        }
+        return $this->respond($results, HttpStatus::OK);
+    }
+
+    /**
      * Obtiene las solicitudes de un usuario por su ID.
      * @param int|null $id
      * @return \CodeIgniter\HTTP\Response

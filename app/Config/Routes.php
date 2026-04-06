@@ -105,6 +105,7 @@ if (!file_exists($installerLockFile)) {
         // Historial
         $routes->get('api/historic', 'Api::getHistorial');
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
+        $routes->get('api/historic/movimientos-proveedor', 'Api::getMovimientosProveedor', ['filter' => 'mantenimiento']);
         $routes->get('api/historial/exportar', 'Api::exportarHistorial');
 
         // Solicitudes

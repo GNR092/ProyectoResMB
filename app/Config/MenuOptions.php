@@ -148,7 +148,6 @@ class MenuOptions extends BaseConfig
             ],
 
 
-
             'SegmentoNegocio' => [
                 'label' => 'Segmentos de Negocio',
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#SegmentoNegocio"></use></svg>',
