@@ -391,53 +391,150 @@ function registrarComponenteReportePresupuesto() {
                 detallesContainer.innerHTML = '<p class="text-center p-8 text-gray-500">Cargando detalles completos...</p>';
 
                 try {
+                    // Obtenemos el registro base que ya tiene info de OrdenCompra
+                    const base = this.movimientosProveedor.find(mov => mov.ID_Solicitud == idSolicitud);
+                    
+                    // Obtenemos los detalles de productos y archivos
                     const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`);
                     if (data.error) throw new Error(data.error);
 
-                    let html = generarDetallesSolicitudHTML(data);
+                    // Fetch adicional del proveedor para tener info completa (RFC, Correo, Clabe, etc)
+                    let infoProv = null;
+                    if (data.ID_Proveedor) {
+                        try {
+                            const resProv = await fetch(`${BASE_URL}api/provider/${data.ID_Proveedor}`);
+                            if (resProv.ok) infoProv = await resProv.json();
+                        } catch (e) { console.warn("No se pudo cargar info extra del proveedor"); }
+                    }
+
+                    const format = (val) => parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+
+                    // CONSTRUCCIÓN DEL HTML MODULAR (3 BLOQUES APILADOS - MINIMALISTA CON ICONOS Y FONDO GRIS)
+                    let html = `
+                        <div class="space-y-4 mb-10">
+                            <!-- MODULO 1: SOLICITUD -->
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 transition-all shadow-sm">
+                                <h4 class="text-[12px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-gray-200 pb-3 mb-5 flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    Información de Solicitud
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-5">
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-[10px] text-gray-400 uppercase font-bold">Folio y Fecha</p>
+                                        <p class="text-s font-bold text-gray-700 font-mono">${data.No_Folio} <span class="font-normal text-gray-400 ml-1">/ ${data.Fecha}</span></p>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold">Estado</p>
+                                        <p class="text-[12px] font-extrabold text-blue-500 uppercase tracking-tighter">${data.Estado}</p>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold">Solicitante</p>
+                                        <p class="text-s text-gray-600 font-medium">${data.UsuarioNombre || 'N/A'}</p>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold">Método de Pago</p>
+                                        <p class="text-s text-gray-600 font-medium">${data.MetodoPago == 0 ? 'Contado' : 'Crédito'}</p>
+                                    </div>
+                                    <div class="md:col-span-2 flex flex-col gap-1">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold">Departamento y Unidad</p>
+                                        <p class="text-s text-gray-600">${data.DepartamentoNombre} <span class="text-gray-300 mx-1">|</span> <span class="text-black-500 font-light">${data.UnidadOperativaNombre || ''}</span></p>
+                                    </div>
+                                    <div class="md:col-span-2 flex flex-col gap-1">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold">Complejo</p>
+                                        <p class="text-s text-gray-600">${data.PlaceNombre || data.Complejo || 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- MODULO 2: ORDEN DE COMPRA -->
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 transition-all shadow-sm">
+                                <h4 class="text-[12px] font-bold text-black-500 uppercase tracking-[0.2em] border-b border-gray-200 pb-3 mb-5 flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    Orden de Compra y Pagos
+                                </h4>
+                                ${base && base.ID_OrdenCompra ? `
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-5">
+                                        <div class="flex flex-col gap-1">
+                                            <p class="text-[10px] text-black-500 uppercase font-bold">Estado Orden</p>
+                                            <p class="text-[12px] font-extrabold text-orange-500 uppercase tracking-tighter">${base.OrdenEstado}</p>
+                                        </div>
+                                        <div class="flex flex-col gap-1">
+                                            <p class="text-[10px] text-black-500 uppercase font-bold">Fecha Orden</p>
+                                            <p class="text-s text-gray-600 font-medium">${base.OrdenFecha || 'N/A'}</p>
+                                        </div>
+                                        <div class="flex flex-col gap-1">
+                                            <p class="text-[10px] text-black-500 uppercase font-bold">Ref. Programación</p>
+                                            <p class="text-s text-gray-600 font-medium">${base.FechaRefPago || '—'}</p>
+                                        </div>
+                                        <div class="flex flex-col gap-1">
+                                            <p class="text-[10px] text-black-500 uppercase font-bold">Pago Realizado</p>
+                                            <p class="text-s font-bold ${base.FechaPagoRealizado ? 'text-green-500' : 'text-black-500 italic'}">${base.FechaPagoRealizado || 'Pendiente'}</p>
+                                        </div>
+                                        <div class="md:col-span-4 flex items-center gap-4 pt-2 border-t border-gray-200">
+                                            <p class="text-[10px] text-black-500 uppercase font-bold tracking-widest">Documentación:</p>
+                                            <div class="flex gap-4">
+                                                <span class="text-[12px] font-bold ${base.File_Factura ? 'text-green-600' : 'text-gray-300'}">FACTURA ${base.File_Factura ? '✓' : '✗'}</span>
+                                                <span class="text-[12px] font-bold ${base.File_Comprobante ? 'text-green-600' : 'text-gray-300'}">COMPROBANTE ${base.File_Comprobante ? '✓' : '✗'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <p class="text-s text-black-500 italic font-light tracking-wide">No se ha generado una Orden de Compra para esta solicitud aún.</p>
+                                `}
+                            </div>
+
+                            <!-- MODULO 3: PROVEEDOR -->
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 transition-all shadow-sm">
+                                <h4 class="text-[12px] font-bold text-black-500 uppercase tracking-[0.2em] border-b border-gray-200 pb-3 mb-5 flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                    Detalles del Proveedor
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-5">
+                                    <div class="md:col-span-2 flex flex-col gap-1">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold">Razón Social</p>
+                                        <p class="text-sm font-bold text-gray-800 tracking-tight">${data.RazonSocialNombre || 'N/A'}</p>
+                                    </div>
+                                    <div class="md:col-span-2 flex flex-col gap-1 items-end justify-center">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold mb-1 tracking-widest text-gray-600">Inversión Total</p>
+                                        <p class="text-2xl font-black text-gray-800 tracking-tighter drop-shadow-sm">${format(data.cotizacion?.Total || 0)}</p>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold">RFC</p>
+                                        <p class="text-s text-gray-600 font-medium">${infoProv?.RFC || 'N/A'}</p>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold">Banco</p>
+                                        <p class="text-s text-gray-600 font-medium">${infoProv?.Banco || 'N/A'}</p>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-[10px] text-black-500 uppercase font-bold">Cuenta / CLABE</p>
+                                        <p class="text-[11px] text-gray-500 font-mono">${infoProv?.Cuenta || 'N/A'}</p>
+                                        <p class="text-[12px] text-black-500 font-mono tracking-tighter">${infoProv?.Clabe || ''}</p>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <p class="text-[10px] text-gray-400 uppercase font-bold">Contacto</p>
+                                        <p class="text-s text-gray-600">${infoProv?.Nombre_Contacto || '—'}</p>
+                                        <p class="text-[12px] text-gray-400 font-bold">${infoProv?.Tel_Contacto || ''}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // CONTINUACIÓN DE LA VISTA (TABLAS, COMENTARIOS, ADJUNTOS)
+
                     html += generarComentariosHtml(data);
                     html += generarProductosServiciosHTML(data);
 
                     if (data.ComentariosUser) {
                         html += `
-                            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
-                                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
-                                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
+                            <div class="mt-6 p-4 border rounded-lg bg-gray-50 border-gray-200">
+                                <h4 class="text-md font-bold text-gray-800 mb-2 uppercase text-xs tracking-wider border-b pb-1">Comentarios o referencias del Usuario</h4>
+                                <p class="text-gray-700 whitespace-pre-wrap text-sm italic">${data.ComentariosUser}</p>
                             </div>`;
                     }
 
                     html += generarSeccionAdjuntos(data);
-
-                    // Información Adicional de la Orden de Compra (Exclusiva de Movimientos)
-                    // Obtenemos el registro actual del listado para mostrar la data de OrdenCompra pre-cargada
-                    const m = this.movimientosProveedor.find(mov => mov.ID_Solicitud == idSolicitud);
-                    if (m && m.ID_OrdenCompra) {
-                        html += `
-                            <div class="mt-8 border-t pt-6">
-                                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b-2 border-teal-500 inline-block pb-1">Orden de Compra / Pagos</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                                    <div class="space-y-2">
-                                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Estado Orden</p>
-                                        <p class="text-sm font-bold text-orange-600 px-2 py-1 bg-orange-50 rounded inline-block">${m.OrdenEstado}</p>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Fecha Orden</p>
-                                        <p class="text-sm font-medium text-gray-800">${m.OrdenFecha}</p>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Fecha Pago Realizado</p>
-                                        <p class="text-sm font-bold text-green-600">${m.FechaPagoRealizado || 'Pendiente'}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    } else if (m) {
-                        html += `
-                            <div class="mt-8 p-4 bg-orange-50 rounded-xl border border-orange-200">
-                                <p class="text-sm text-orange-700 font-medium italic">No se ha generado una Orden de Compra para esta solicitud aún.</p>
-                            </div>
-                        `;
-                    }
 
                     detallesContainer.innerHTML = html;
                 } catch (error) {
