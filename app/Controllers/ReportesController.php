@@ -16,9 +16,19 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 
+use App\Models\DepartamentosModel;
+use App\Models\ProveedorModel;
+use App\Libraries\Rest;
+
 class ReportesController extends ResourceController
 {
     protected $format = 'json';
+    protected $api;
+
+    public function __construct()
+    {
+        $this->api = new Rest();
+    }
 
     /**
      * Renderiza el modal principal de Reporte de Presupuesto
@@ -27,16 +37,40 @@ class ReportesController extends ResourceController
     {
         $session = session();
         $data = [
-            'departamentos' => $session->get('departamentos'),
+            'departamentos_usuario' => $session->get('departamentos'), // Evitar colisión con la lista completa de dptos
             'nombre_usuario' => $session->get('nombre_usuario'),
             'departamento_usuario' => $session->get('departamento_usuario'),
         ];
 
         $razonSocialModel = new RazonSocialModel();
         $placesModel      = new PlacesModel();
+        $departamentoModel = new DepartamentosModel();
 
         $data['razones_sociales'] = $razonSocialModel->orderBy('Nombre', 'ASC')->findAll();
         $data['places']           = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
+
+        // Datos para el Reporte de Compras (Pantalla 6)
+        $data['departamentos'] = $departamentoModel
+            ->select('ID_Dpto, Nombre')
+            ->orderBy('Nombre', 'ASC')
+            ->findAll();
+
+        $data['proveedores'] = $this->api->getProveedorIdAndRazonSocial();
+
+        $ocs = $this->api->getAllOrdenCompraData();
+        $tabledata = [];
+
+        foreach ($ocs as $oc) {
+            $o = $this->api->getOrdenCompra($oc['ID_Solicitud']);
+            if ($o && !empty($o['OrdenCompra'])) {
+                $estado = $o['OrdenCompra']['Estado'] ?? '';
+                if (in_array($estado, ['Por Pagar', 'Pagada'])) {
+                    $o['EstadoOrden'] = $estado;
+                    $tabledata[] = $o;
+                }
+            }
+        }
+        $data['tabledata'] = $tabledata;
 
         return view('modales/control/ReportePresupuesto', $data);
     }
