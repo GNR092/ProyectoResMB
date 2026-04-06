@@ -794,7 +794,7 @@ function registrarComponenteReportePresupuesto() {
                 
                 // 1. Generar lista de años primero
                 this.years = [];
-                for (let i = currentYear + 2; i >= currentYear - 5; i--) {
+                for (let i = currentYear; i >= currentYear - 5; i--) {
                     this.years.push(String(i));
                 }
 

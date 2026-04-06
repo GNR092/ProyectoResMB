@@ -1916,7 +1916,7 @@ class Rest
                 'Places.Nombre_Corto as PlaceNombre',
                 'Proveedor.RazonSocial as ProveedorNombre',
                 'Proveedor.RFC as ProveedorRFC',
-                'Cuentas_Bancarias.Banco as CuentaBanco',
+                'Proveedor.Banco as CuentaBanco', // El banco está en la tabla Proveedor
                 'Razon_Social.Nombre as RazonSocialNombre',
                 'UsuarioAutoriza.Nombre as UsuarioAutorizaNombre',
                 'Cotizacion.Total as MontoTotal',
@@ -1936,7 +1936,6 @@ class Rest
             ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
-            ->join('Cuentas_Bancarias', 'Cuentas_Bancarias.ID_Cuenta = Solicitud.ID_Cuenta', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
             ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')

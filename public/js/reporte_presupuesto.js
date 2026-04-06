@@ -31,6 +31,12 @@ function registrarComponenteReportePresupuesto() {
 
             reporteCompras: [],
             movimientosProveedor: [],
+            movimientoSeleccionado: null,
+
+            // Paginación y filtrado movimientos
+            currentPageMovimientos: 1,
+            rowsPerPageMovimientos: 15,
+            filtroTextoMovimientos: '',
 
             dptosSeleccionados: [],
             choicesDpto: null,
@@ -61,7 +67,7 @@ function registrarComponenteReportePresupuesto() {
                 
                 // 1. Generar lista de años primero
                 this.years = [];
-                for (let i = currentYear + 2; i >= currentYear - 5; i--) {
+                for (let i = currentYear; i >= currentYear - 5; i--) {
                     this.years.push(String(i));
                 }
 
@@ -209,6 +215,7 @@ function registrarComponenteReportePresupuesto() {
 
                         // Carga automática si aplica
                         if (nueva === 'proveedores') this.cargarListaProveedores();
+                        if (nueva === 'movimientos') this.cargarMovimientosProveedor();
                     });
                 }
             },
@@ -299,10 +306,170 @@ function registrarComponenteReportePresupuesto() {
             },
 
             async cargarMovimientosProveedor() {
-                if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0)) return;
+                // Ya no hay restricciones de verGlobal o complejos: cargamos todo para filtrar localmente
                 this.cargando = true;
-                console.log("Cargando movimientos de proveedor...");
-                setTimeout(() => { this.cargando = false; }, 500);
+                this.movimientosProveedor = [];
+                this.mensaje = '';
+                this.currentPageMovimientos = 1;
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/historic/movimientos-proveedor`);
+                    if (res.ok) {
+                        this.movimientosProveedor = await res.json();
+                    } else {
+                        this.mensaje = 'Error al cargar los movimientos del servidor.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error("Error cargando movimientos:", e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargando = false;
+                }
+            },
+
+            get movimientosFiltrados() {
+                const search = (this.filtroTextoMovimientos || '').toLowerCase();
+                const selectedPlaces = (this.idPlace || []).map(String);
+                const selectedMeses = (this.meses || []).map(String);
+
+                return this.movimientosProveedor.filter(m => {
+                    // Filtro de Texto (Folio o Proveedor)
+                    const matchText = !search || 
+                                     (m.No_Folio || '').toLowerCase().includes(search) || 
+                                     (m.ProveedorNombre || '').toLowerCase().includes(search);
+                    
+                    // Filtro de Complejo (Place)
+                    let matchPlace = true;
+                    if (selectedPlaces.length > 0) {
+                        matchPlace = selectedPlaces.includes(String(m.ID_Place));
+                    }
+
+                    // Filtro de Meses (Si no hay seleccionados, mostramos todos los del año)
+                    let matchMes = true;
+                    if (selectedMeses.length > 0) {
+                        const mesSol = new Date(m.Fecha).getMonth() + 1;
+                        matchMes = selectedMeses.includes(String(mesSol));
+                    }
+
+                    // Filtro de Año (Siempre mostramos del año seleccionado)
+                    let matchAnio = true;
+                    if (this.anio) {
+                        const anioSol = new Date(m.Fecha).getFullYear();
+                        matchAnio = anioSol === parseInt(this.anio);
+                    }
+
+                    return matchText && matchPlace && matchMes && matchAnio;
+                });
+            },
+
+            get totalPagesMovimientos() {
+                return Math.ceil(this.movimientosFiltrados.length / this.rowsPerPageMovimientos) || 1;
+            },
+
+            get paginatedMovimientos() {
+                const start = (this.currentPageMovimientos - 1) * this.rowsPerPageMovimientos;
+                const end = start + this.rowsPerPageMovimientos;
+                return this.movimientosFiltrados.slice(start, end);
+            },
+
+            cambiarPaginaMovimientos(page) {
+                if (page < 1 || page > this.totalPagesMovimientos) return;
+                this.currentPageMovimientos = page;
+            },
+
+            async mostrarVerMovimiento(idSolicitud) {
+                const divMovimientos = document.getElementById('div-movimientos');
+                const divVer = document.getElementById('div-ver-movimiento');
+                const detallesContainer = document.getElementById('detalles-movimiento-solicitud');
+
+                if (divMovimientos) divMovimientos.classList.add('hidden');
+                if (divVer) divVer.classList.remove('hidden');
+
+                if (!detallesContainer) return;
+                detallesContainer.innerHTML = '<p class="text-center p-8 text-gray-500">Cargando detalles completos...</p>';
+
+                try {
+                    const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`);
+                    if (data.error) throw new Error(data.error);
+
+                    let html = generarDetallesSolicitudHTML(data);
+                    html += generarComentariosHtml(data);
+                    html += generarProductosServiciosHTML(data);
+
+                    if (data.ComentariosUser) {
+                        html += `
+                            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
+                                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
+                            </div>`;
+                    }
+
+                    html += generarSeccionAdjuntos(data);
+
+                    // Información Adicional de la Orden de Compra (Exclusiva de Movimientos)
+                    // Obtenemos el registro actual del listado para mostrar la data de OrdenCompra pre-cargada
+                    const m = this.movimientosProveedor.find(mov => mov.ID_Solicitud == idSolicitud);
+                    if (m && m.ID_OrdenCompra) {
+                        html += `
+                            <div class="mt-8 border-t pt-6">
+                                <h3 class="text-lg font-bold text-gray-800 mb-4 border-b-2 border-teal-500 inline-block pb-1">Orden de Compra / Pagos</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                    <div class="space-y-2">
+                                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Estado Orden</p>
+                                        <p class="text-sm font-bold text-orange-600 px-2 py-1 bg-orange-50 rounded inline-block">${m.OrdenEstado}</p>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Fecha Orden</p>
+                                        <p class="text-sm font-medium text-gray-800">${m.OrdenFecha}</p>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">Fecha Pago Realizado</p>
+                                        <p class="text-sm font-bold text-green-600">${m.FechaPagoRealizado || 'Pendiente'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else if (m) {
+                        html += `
+                            <div class="mt-8 p-4 bg-orange-50 rounded-xl border border-orange-200">
+                                <p class="text-sm text-orange-700 font-medium italic">No se ha generado una Orden de Compra para esta solicitud aún.</p>
+                            </div>
+                        `;
+                    }
+
+                    detallesContainer.innerHTML = html;
+                } catch (error) {
+                    console.error('Error al cargar detalles del movimiento:', error);
+                    detallesContainer.innerHTML = `<p class="text-center p-8 text-red-500 font-bold">No se pudieron cargar los detalles: ${error.message}</p>`;
+                }
+            },
+
+            regresarAMovimientos() {
+                const divVer = document.getElementById('div-ver-movimiento');
+                const divMovimientos = document.getElementById('div-movimientos');
+                
+                if (divVer) divVer.classList.add('hidden');
+                if (divMovimientos) divMovimientos.classList.remove('hidden');
+            },
+
+            limpiarFiltrosMovimientos() {
+                this.filtroTextoMovimientos = '';
+                this.idPlace = [];
+                const now = new Date();
+                this.anio = String(now.getFullYear());
+                this.meses = [String(now.getMonth() + 1)];
+
+                if (this.choicesPlaces) {
+                    this.choicesPlaces.removeActiveItems();
+                }
+                if (this.choicesMeses) {
+                    this.choicesMeses.removeActiveItems();
+                    this.choicesMeses.setChoiceByValue(this.meses.map(String));
+                }
+
+                this.cargarMovimientosProveedor();
             },
 
             get placesFiltrados() {

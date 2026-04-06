@@ -429,13 +429,153 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <!-- Pantalla 7: Movimientos de Proveedor -->
     <template x-if="pantalla === 'movimientos'">
         <div class="animate-fadeIn">
-            <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-teal-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <h2 class="text-xl font-bold text-gray-800">Movimientos de Proveedor</h2>
+            
+            <!-- CONTENEDOR PRINCIPAL: Tabla de Movimientos -->
+            <div id="div-movimientos">
+                <div class="flex items-center justify-between mb-6">
+                    <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                    <div class="flex items-center gap-4">
+                        <button x-show="movimientosProveedor.length > 0" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Exportar Excel
+                        </button>
+                        <h2 class="text-xl font-bold text-gray-800">Movimientos de Proveedor</h2>
+                    </div>
+                </div>
+
+                <!-- Filtros Superiores -->
+                <div class="flex flex-wrap items-center gap-3 mb-6">
+                    <!-- Filtro Año/Mes -->
+                    <div class="w-full sm:w-auto shrink-0">
+                        <select x-model="anio" @change="cargarMovimientosProveedor()" class="border p-2 rounded text-sm min-w-[100px] bg-white">
+                            <template x-for="y in years" :key="y">
+                                <option :value="y" x-text="y"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <div class="w-full sm:w-auto shrink-0">
+                        <select x-ref="mesesSelectorMovimientos" multiple>
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+
+                    <!-- Filtro Complejo (Places) -->
+                    <div class="w-full sm:w-auto shrink-0">
+                        <select x-ref="placesSelectorMovimientos" multiple>
+                            <template x-for="p in todosPlaces" :key="p.ID_Place">
+                                <option :value="p.ID_Place" x-text="p.Nombre_Corto"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Buscador Local -->
+                    <div class="w-full sm:w-auto grow max-w-md">
+                        <input type="text" x-model="filtroTextoMovimientos" placeholder="Buscar por Folio o Proveedor..." 
+                               class="border p-2 rounded w-full text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <button @click="limpiarFiltrosMovimientos()"
+                        class="bg-gray-800 hover:bg-gray-900 text-white font-semibold px-4 py-2 rounded-md transition text-sm ml-auto shadow-sm">
+                        Limpiar Filtros
+                    </button>
+                </div>
+
+                <!-- Tabla (Mismo Estilo que Compras) -->
+                <div class="overflow-x-auto shadow rounded-lg border border-gray-300">
+                    <table class="min-w-full border-collapse" id="tabla-movimientos">
+                        <thead class="bg-gray-100 text-gray-600 uppercase text-[10px] font-bold">
+                            <tr>
+                                <th class="border px-3 py-2 text-left">Folio</th>
+                                <th class="border px-3 py-2 text-left">Fecha Sol.</th>
+                                <th class="border px-3 py-2 text-left">Aprobación</th>
+                                <th class="border px-3 py-2 text-left">Razón Social</th>
+                                <th class="border px-3 py-2 text-left">Proveedor</th>
+                                <th class="border px-3 py-2 text-right">Importe Total</th>
+                                <th class="border px-3 py-2 text-left">Depto.</th>
+                                <th class="border px-3 py-2 text-left">F. Pago Realizado</th>
+                                <th class="border px-3 py-2 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white">
+                            <template x-if="paginatedMovimientos.length === 0">
+                                <tr>
+                                    <td colspan="9" class="text-center py-12 text-gray-400 italic">No se encontraron datos que coincidan con los filtros.</td>
+                                </tr>
+                            </template>
+                            <template x-for="(m, index) in paginatedMovimientos" :key="m.ID_Solicitud || index">
+                                <tr class="text-center hover:bg-gray-50 text-xs">
+                                    <td class="border px-3 py-2 text-left font-mono font-bold text-blue-700" x-text="m.No_Folio"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="m.Fecha"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="m.Fecha_Aprobacion || '-'"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="m.RazonSocialNombre"></td>
+                                    <td class="border px-3 py-2 text-left font-medium" x-text="m.ProveedorNombre"></td>
+                                    <td class="border px-3 py-2 text-right font-bold" x-text="formatearMoneda(m.MontoTotal)"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="m.DepartamentoNombre"></td>
+                                    <td class="border px-3 py-2 text-left font-bold text-green-700" x-text="m.FechaPagoRealizado || 'Pendiente'"></td>
+                                    <td class="border px-3 py-2">
+                                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded transition text-[10px] uppercase shadow-sm" @click="mostrarVerMovimiento(m.ID_Solicitud)">Ver</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Controles de Paginación -->
+                <div class="flex justify-between items-center mt-4" x-show="totalPagesMovimientos > 1">
+                    <div>
+                        <span class="text-xs text-gray-600 font-medium">
+                            Mostrando <span x-text="(currentPageMovimientos - 1) * rowsPerPageMovimientos + 1"></span> a <span
+                                x-text="Math.min(currentPageMovimientos * rowsPerPageMovimientos, movimientosFiltrados.length)"></span> de <span
+                                x-text="movimientosFiltrados.length"></span> resultados
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-1">
+                        <button @click="cambiarPaginaMovimientos(1)" :disabled="currentPageMovimientos === 1"
+                                class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                        <button @click="cambiarPaginaMovimientos(currentPageMovimientos - 1)" :disabled="currentPageMovimientos === 1"
+                                class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+                        
+                        <span class="px-3 py-1 border rounded bg-blue-600 text-white text-xs font-bold" x-text="currentPageMovimientos"></span>
+                        
+                        <button @click="cambiarPaginaMovimientos(currentPageMovimientos + 1)" :disabled="currentPageMovimientos === totalPagesMovimientos"
+                                class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                        <button @click="cambiarPaginaMovimientos(totalPagesMovimientos)" :disabled="currentPageMovimientos === totalPagesMovimientos"
+                                class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                    </div>
+                </div>
             </div>
-            <div class="p-8 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 italic">
-                Contenido de Movimientos de Proveedor próximamente...
+
+            <!-- CONTENEDOR SECUNDARIO: Ver Detalles Completos -->
+            <div id="div-ver-movimiento" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800">Detalles de la Solicitud</h3>
+                    <div class="cursor-pointer p-2 rounded-full hover:bg-gray-200 transition-colors" @click="regresarAMovimientos()" title="Regresar a la lista">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-gray-600">
+                            <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-4.28 9.22a.75.75 0 0 0 0 1.06l3 3a.75.75 0 1 0 1.06-1.06l-1.72-1.72h5.69a.75.75 0 0 0 0-1.5h-5.69l1.72-1.72a.75.75 0 0 0-1.06-1.06l-3 3Z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                <div id="detalles-movimiento-solicitud" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm min-h-[50vh]">
+                    <!-- Renderizado dinámico desde JS (idéntico al historial) -->
+                </div>
             </div>
+
         </div>
     </template>
 
