@@ -3783,16 +3783,21 @@ function initBancoDptoEditarForm() {
           // Actualizar textos visuales
           fila.querySelector('.nombre-banco').textContent = formData.get('Banco')
           fila.querySelector('.clabe-banco').textContent = formData.get('Clabe')
+          fila.querySelector('.alias-banco').textContent = formData.get('Alias') || '-'
+          fila.querySelector('.cuenta-banco').textContent = formData.get('Cuenta') || '-'
 
-          // Actualizar Nombre Dpto visualmente desde el select
-          const selectDpto = document.getElementById('editar-ID_Dpto')
-          const dptoTexto = selectDpto.options[selectDpto.selectedIndex].text
-          fila.querySelector('.nombre-dpto').textContent = dptoTexto
+          // Actualizar Nombre RS visualmente desde el select
+          const selectRS = document.getElementById('editar-ID_RazonSocial')
+          const rsTexto = selectRS.options[selectRS.selectedIndex].text
+          fila.querySelector('.nombre-rs').textContent = rsTexto
 
           // Actualizar Datasets
           fila.dataset.banco = formData.get('Banco')
           fila.dataset.clabe = formData.get('Clabe')
-          fila.dataset.idDpto = formData.get('ID_Dpto')
+          fila.dataset.alias = formData.get('Alias')
+          fila.dataset.cuenta = formData.get('Cuenta')
+          fila.dataset.sucursal = formData.get('Sucursal')
+          fila.dataset.idRs = formData.get('ID_RazonSocial')
         }
 
         pantallaEditar?.classList.add('hidden')
@@ -3844,9 +3849,12 @@ function initBancoDptoActions(tabla) {
 
     // Cargar datos al formulario
     document.getElementById('editar-ID_BancoDpto').value = fila.dataset.id
+    document.getElementById('editar-Alias').value = fila.dataset.alias || ''
     document.getElementById('editar-Banco').value = fila.dataset.banco
+    document.getElementById('editar-Cuenta').value = fila.dataset.cuenta || ''
+    document.getElementById('editar-Sucursal').value = fila.dataset.sucursal || ''
     document.getElementById('editar-Clabe').value = fila.dataset.clabe
-    document.getElementById('editar-ID_Dpto').value = fila.dataset.idDpto
+    document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRs
 
     // Cambiar de pantalla
     document.getElementById('pantalla-lista-banco-dpto').classList.add('hidden')
