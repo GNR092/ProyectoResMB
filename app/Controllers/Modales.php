@@ -484,13 +484,12 @@ class Modales extends BaseController
             case 'BancoDpto':
                 $bancoModel = new BancoDptoModel();
                 $rsModel    = new RazonSocialModel();
-                $solicitudesCambioModel = new \App\Models\SolicitudesCambioPresupuestoModel();
                 
                 $data['bancos_dpto'] = $bancoModel->withRazonSocial()->findAll();
                 $data['razones_sociales'] = $rsModel
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
-                $data['registros_bloqueados'] = $solicitudesCambioModel->where('Estado', 'Pendiente')->where('Modulo', 'BancoDpto')->findColumn('ID_Afectado') ?? [];
+                $data['registros_bloqueados'] = [];
 
                 return view('modales/BancoDpto', $data);
 
@@ -1537,77 +1536,39 @@ class Modales extends BaseController
     {
         // Recibimos ID_RazonSocial, Banco, Clabe
         $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe']);
-        $comentarios = $this->request->getPost('comentarios');
-        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
+        $bancoModel = new \App\Models\BancoDptoModel();
 
-        if ($solicitudesModel->insert([
-            'ID_Usuario'    => session('id'),
-            'Modulo'        => 'BancoDpto',
-            'Accion'        => 'Insertar',
-            'ID_Afectado'   => null,
-            'Datos_Payload' => json_encode($data),
-            'Datos_Antiguos'=> null,
-            'Estado'        => 'Pendiente',
-            'Comentarios_Solicitante' => $comentarios
-        ])) {
-            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
+        if ($bancoModel->insert($data)) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Banco guardado correctamente.']);
         } else {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Error al enviar a revisión',
-                'errors' => $solicitudesModel->errors()
+                'message' => 'Error al guardar el banco',
+                'errors' => $bancoModel->errors()
             ]);
         }
     }
     public function editarBancoDpto($id)
     {
         $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe']);
-        $comentarios = $this->request->getPost('comentarios');
-        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
-        
-        $modeloReal = new \App\Models\BancoDptoModel();
-        $datosAntiguos = $modeloReal->find($id);
+        $bancoModel = new \App\Models\BancoDptoModel();
 
         try {
-            $solicitudesModel->insert([
-                'ID_Usuario'    => session('id'),
-                'Modulo'        => 'BancoDpto',
-                'Accion'        => 'Editar',
-                'ID_Afectado'   => $id,
-                'Datos_Payload' => json_encode($data),
-                'Datos_Antiguos'=> json_encode($datosAntiguos),
-                'Estado'        => 'Pendiente',
-                'Comentarios_Solicitante' => $comentarios
-            ]);
-            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
+            $bancoModel->update($id, $data);
+            return $this->response->setJSON(['success' => true, 'message' => 'Banco actualizado correctamente.']);
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
     public function eliminarBancoDpto($id)
     {
-        $solicitudesModel = new \App\Models\SolicitudesCambioPresupuestoModel();
-        $comentarios = $this->request->getPost('comentarios');
-        
-        $modeloReal = new \App\Models\BancoDptoModel();
-        $datosAntiguos = $modeloReal->find($id);
+        $bancoModel = new \App\Models\BancoDptoModel();
 
-        if ($solicitudesModel->insert([
-            'ID_Usuario'    => session('id'),
-            'Modulo'        => 'BancoDpto',
-            'Accion'        => 'Eliminar',
-            'ID_Afectado'   => $id,
-            'Datos_Payload' => json_encode(['id' => $id]),
-            'Datos_Antiguos'=> json_encode($datosAntiguos),
-            'Estado'        => 'Pendiente',
-            'Comentarios_Solicitante' => $comentarios
-        ])) {
-            return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Solicitud de eliminación enviada a Dirección para su autorización.']);
-        } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'No se pudo enviar la solicitud de eliminación a revisión',
-            ]);
+        try {
+            $bancoModel->delete($id);
+            return $this->response->setJSON(['success' => true, 'message' => 'Banco eliminado correctamente.']);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 

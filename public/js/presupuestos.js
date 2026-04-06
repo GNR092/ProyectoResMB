@@ -697,17 +697,11 @@ function registrarComponenteSaldosBancarios() {
                     return;
                 }
 
-                const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta actualización de saldos (Obligatorio):', true);
-                if (comentarios === null) {
-                    this.guardando = false;
-                    return;
-                }
-
                 const payload = {
                     anio: parseInt(anio),
                     mes: parseInt(mes),
                     saldos: saldosParaEnviar,
-                    comentarios: comentarios
+                    comentarios: 'Actualización directa'
                 };
 
                 try {
@@ -755,13 +749,604 @@ function registrarComponenteSaldosBancarios() {
     });
 }
 
+function registrarComponenteReportePresupuesto() {
+    Alpine.data('reportePresupuestoComponent', function () {
+        return {
+            pantalla: 'menu', // 'menu', 'presupuesto', 'cuentas', 'completo'
+            idRazonSocial: '',
+            idPlace: [], // Ahora es un array para selecciones múltiples
+            verGlobal: false,
+            anio: '',
+            meses: [],
+
+            razonesSociales: [],
+            todosPlaces: [],
+            departamentos: [], // Representa Unidades Operativas ahora en el reporte
+            departamentosBancos: [],
+            departamentosCompleto: [],
+            departamentosOriginales: [],
+            dptosSeleccionados: [],
+            choicesDpto: null,
+            choicesMeses: null,
+            choicesPlaces: null, // Instancia para el selector de complejos
+            years: [],
+            totalesGenerales: {
+                asignado: 0,
+                comprometido: 0,
+                ejecutado: 0,
+                disponible: 0,
+                porcentaje: 0
+            },
+
+            cargando: false,
+            mensaje: '',
+            error: false,
+            hayExcedidos: false,
+
+            init() {
+                if (this.$el) {
+                    this.razonesSociales = JSON.parse(this.$el.dataset.razonesJson || '[]');
+                    this.todosPlaces     = JSON.parse(this.$el.dataset.placesJson || '[]');
+                }
+
+                const now = new Date();
+                const currentYear = now.getFullYear();
+                
+                // 1. Generar lista de años primero
+                this.years = [];
+                for (let i = currentYear + 2; i >= currentYear - 5; i--) {
+                    this.years.push(String(i));
+                }
+
+                // 2. Establecer valores por defecto al final para asegurar el vínculo reactivo
+                this.anio = String(currentYear);
+                this.meses = [String(now.getMonth() + 1)];
+                this.idPlace = [];
+            },
+
+            initChoicesMeses(refName) {
+                if (typeof Choices === 'undefined') {
+                    console.error('Choices.js no está cargada.');
+                    return;
+                }
+                
+                if (this.choicesMeses) {
+                    this.choicesMeses.destroy();
+                    this.choicesMeses = null;
+                }
+
+                if (!refName) return; // Salir si no hay nombre de referencia
+
+                const selectEl = this.$refs[refName];
+                if (!selectEl) {
+                    console.warn(`No se encontró el elemento x-ref="${refName}"`);
+                    return;
+                }
+
+                this.choicesMeses = new Choices(selectEl, {
+                    removeItemButton: true,
+                    itemSelectText: '',
+                    placeholderValue: 'Seleccione meses',
+                    searchEnabled: false,
+                    shouldSort: false,
+                    allowHTML: true
+                });
+
+                // Establecer valor inicial (asegurarse de que sean strings)
+                if (this.meses && this.meses.length > 0) {
+                    this.choicesMeses.removeActiveItems();
+                    this.choicesMeses.setChoiceByValue(this.meses.map(String));
+                }
+
+                selectEl.addEventListener('change', () => {
+                    this.meses = this.choicesMeses.getValue(true).map(String);
+                    if (this.pantalla === 'presupuesto') this.cargarComparativo();
+                    if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
+                    if (this.pantalla === 'completo') this.cargarReporteCompleto();
+                });
+            },
+
+            initChoicesPlaces(refName) {
+                if (typeof Choices === 'undefined') return;
+                
+                if (this.choicesPlaces) {
+                    this.choicesPlaces.destroy();
+                    this.choicesPlaces = null;
+                }
+
+                if (!refName) return;
+
+                const selectEl = this.$refs[refName];
+                if (!selectEl) return;
+
+                this.choicesPlaces = new Choices(selectEl, {
+                    removeItemButton: true,
+                    itemSelectText: '',
+                    placeholderValue: 'Seleccione Complejo(s)',
+                    searchPlaceholderValue: 'Buscar complejo...',
+                    shouldSort: false,
+                    allowHTML: true
+                });
+
+                // Establecer valor inicial si hay algo en idPlace
+                if (this.idPlace && this.idPlace.length > 0) {
+                    this.choicesPlaces.setChoiceByValue(this.idPlace.map(String));
+                }
+
+                selectEl.addEventListener('change', () => {
+                    this.idPlace = this.choicesPlaces.getValue(true).map(String);
+                    if (this.pantalla === 'presupuesto') this.cargarComparativo();
+                    if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
+                    if (this.pantalla === 'completo') this.cargarReporteCompleto();
+                });
+            },
+
+            irAPantalla(nueva) {
+                this.pantalla = nueva;
+                this.departamentos = [];
+                this.departamentosBancos = [];
+                this.departamentosCompleto = [];
+                this.departamentosOriginales = [];
+                this.dptosSeleccionados = [];
+                this.verGlobal = false;
+                
+                if (this.choicesDpto) {
+                    this.choicesDpto.destroy();
+                    this.choicesDpto = null;
+                }
+                if (this.choicesMeses) {
+                    this.choicesMeses.destroy();
+                    this.choicesMeses = null;
+                }
+                if (this.choicesPlaces) {
+                    this.choicesPlaces.destroy();
+                    this.choicesPlaces = null;
+                }
+                
+                this.idPlace = [];
+                this.idRazonSocial = '';
+
+                if (nueva !== 'menu') {
+                    this.$nextTick(() => {
+                        const refMapMeses = {
+                            'presupuesto': 'mesesSelectorPresupuesto',
+                            'cuentas': 'mesesSelectorCuentas',
+                            'completo': 'mesesSelectorCompleto'
+                        };
+                        const refMapPlaces = {
+                            'presupuesto': 'placesSelectorPresupuesto',
+                            'cuentas': 'placesSelectorCuentas',
+                            'completo': 'placesSelectorCompleto'
+                        };
+                        this.initChoicesMeses(refMapMeses[nueva]);
+                        this.initChoicesPlaces(refMapPlaces[nueva]);
+                    });
+                }
+
+                // ELIMINADA LÓGICA DE ANCHO DE MODAL DINÁMICO
+                // Ahora se controla globalmente en mbscript.js para ReportePresupuesto
+            },
+
+            actualizarRazonSocial(pantalla) {
+                this.idPlace = [];
+                this.departamentos = [];
+                this.departamentosBancos = [];
+                this.departamentosCompleto = [];
+                this.departamentosOriginales = [];
+                
+                const refMap = {
+                    'presupuesto': 'placesSelectorPresupuesto',
+                    'cuentas': 'placesSelectorCuentas',
+                    'completo': 'placesSelectorCompleto'
+                };
+                
+                this.$nextTick(() => {
+                    this.initChoicesPlaces(refMap[pantalla]);
+                });
+            },
+
+            get placesFiltrados() {
+                if (!this.idRazonSocial) return [];
+                return this.todosPlaces.filter(p => String(p.ID_RazonSocial) === String(this.idRazonSocial));
+            },
+
+            get departamentosAgrupados() {
+                let fuente = this.departamentos;
+                if (this.pantalla === 'cuentas') fuente = this.departamentosBancos;
+                if (this.pantalla === 'completo') fuente = this.departamentosCompleto;
+
+                const rsGrupos = [];
+                // Reset bandera de excedidos antes de recalcular
+                if (this.pantalla === 'presupuesto') this.hayExcedidos = false;
+
+                const crearTotales = () => {
+                    if (this.pantalla === 'cuentas') return { inicial: 0, final: 0, usado: 0, porcentaje: 0 };
+                    if (this.pantalla === 'completo') return { pAsignado: 0, pComprometido: 0, pEjecutado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0, pExcedido: 0, pPorcentaje: 0 };
+                    return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, excedido: 0, porcentaje: 0 };
+                };
+
+                const sumar = (totales, d) => {
+                    if (this.pantalla === 'cuentas') {
+                        totales.inicial += parseFloat(d.totales?.inicial || 0);
+                        totales.final += parseFloat(d.totales?.final || 0);
+                        totales.usado += parseFloat(d.totales?.usado || 0);
+                    } else if (this.pantalla === 'completo') {
+                        const asig = parseFloat(d.presupuesto?.asignado || 0);
+                        const comp = parseFloat(d.presupuesto?.comprometido || 0);
+                        const ejec = parseFloat(d.presupuesto?.ejecutado || 0);
+                        const gast = parseFloat(d.presupuesto?.gastado || 0);
+                        
+                        totales.pAsignado += asig;
+                        totales.pComprometido += comp;
+                        totales.pEjecutado += ejec;
+                        totales.pGastado += gast;
+
+                        // Activar bandera si esta unidad o alguno de sus detalles ya excedió
+                        if (gast > asig) this.hayExcedidos = true;
+                        if (d.detalles) {
+                            d.detalles.forEach(det => { if (det.gastado > det.asignado) this.hayExcedidos = true; });
+                        }
+                    } else {
+                        const src = d.totales || d;
+                        const asig = parseFloat(src.asignado || 0);
+                        const comp = parseFloat(src.comprometido || 0);
+                        const ejec = parseFloat(src.ejecutado || 0);
+                        const gast = comp + ejec;
+
+                        totales.asignado += asig;
+                        totales.comprometido += comp;
+                        totales.ejecutado += ejec;
+
+                        // Activar bandera si esta unidad o alguno de sus detalles ya excedió
+                        if (gast > asig) this.hayExcedidos = true;
+                        if (d.detalles) {
+                            d.detalles.forEach(det => { if ((det.comprometido + det.ejecutado) > det.asignado) this.hayExcedidos = true; });
+                        }
+                    }
+                };
+
+                const calc = (totales) => {
+                    if (this.pantalla === 'cuentas') {
+                        totales.porcentaje = totales.inicial > 0 ? Math.round((totales.usado / totales.inicial) * 100 * 100) / 100 : 0;
+                    } else if (this.pantalla === 'presupuesto') {
+                        const totalGasto = totales.comprometido + totales.ejecutado;
+                        
+                        // Lógica solicitada: Si gasto > asignado, disponible = 0 y el resto es excedido
+                        if (totalGasto > totales.asignado) {
+                            totales.disponible = 0;
+                            totales.excedido = totalGasto - totales.asignado;
+                            this.hayExcedidos = true; // Activar columna globalmente
+                        } else {
+                            totales.disponible = totales.asignado - totalGasto;
+                            totales.excedido = 0;
+                        }
+
+                        totales.porcentaje = totales.asignado > 0 ? Math.round((totalGasto / totales.asignado) * 100 * 100) / 100 : 0;
+                    } else if (this.pantalla === 'completo') {
+                        if (totales.pGastado > totales.pAsignado) {
+                            totales.pDisponible = 0;
+                            totales.pExcedido = totales.pGastado - totales.pAsignado;
+                            this.hayExcedidos = true;
+                        } else {
+                            totales.pDisponible = totales.pAsignado - totales.pGastado;
+                            totales.pExcedido = 0;
+                        }
+                        totales.pPorcentaje = totales.pAsignado > 0 ? Math.round((totales.pGastado / totales.pAsignado) * 100 * 100) / 100 : 0;
+                    }
+                };
+
+                fuente.forEach(d => {
+                    const rsNombre = d.RazonSocialNombre || 'Sin Razón Social';
+                    const segNombre = d.SegmentoNombre || 'Sin Segmento';
+                    const placeNombre = d.PlaceNombre || 'Sin Place';
+
+                    let rs = rsGrupos.find(g => g.nombre === rsNombre);
+                    if (!rs) {
+                        rs = { nombre: rsNombre, segmentos: [], totales: crearTotales() };
+                        rsGrupos.push(rs);
+                    }
+                    sumar(rs.totales, d);
+                    
+                    if (this.pantalla === 'completo') {
+                        rs.totales.bInicial += parseFloat(d.bancos?.inicial || 0);
+                        rs.totales.bFinal += parseFloat(d.bancos?.final || 0);
+                    }
+
+                    let seg = rs.segmentos.find(s => s.nombre === segNombre);
+                    if (!seg) {
+                        seg = { nombre: segNombre, complejos: [], totales: crearTotales() };
+                        rs.segmentos.push(seg);
+                    }
+                    sumar(seg.totales, d);
+
+                    let complex = seg.complejos.find(c => c.nombre === placeNombre);
+                    if (!complex) {
+                        complex = { nombre: placeNombre, departamentos: [], totales: crearTotales() };
+                        seg.complejos.push(complex);
+                    }
+                    sumar(complex.totales, d);
+
+                    complex.departamentos.push(d);
+                });
+
+                rsGrupos.forEach(rs => {
+                    calc(rs.totales);
+                    rs.segmentos.forEach(seg => {
+                        calc(seg.totales);
+                        seg.complejos.forEach(c => calc(c.totales));
+                    });
+                });
+
+                return rsGrupos;
+            },
+
+            async cargarComparativo() {
+                if (this.pantalla === 'cuentas') return this.cargarComparativoBancos();
+                if (this.pantalla === 'completo') return this.cargarReporteCompleto();
+
+                if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0 || !this.anio || this.meses.length === 0)) return;
+
+                const stringMeses = this.meses.join(',');
+                this.cargando = true;
+                this.departamentos = [];
+                this.departamentosOriginales = [];
+                this.mensaje = '';
+
+                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/presupuesto/comparativo/${targetPlaceId}/${this.anio}/${stringMeses}`);
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.departamentosOriginales = data.departamentos || [];
+                        this.departamentos = [...this.departamentosOriginales];
+                        this.totalesGenerales = data.totales_generales || this.getTotalesCero();
+                        
+                        this.$nextTick(() => this.initChoicesDpto());
+                    } else {
+                        this.mensaje = 'Error al cargar los datos del servidor.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error("Error cargando comparativo:", e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargando = false;
+                }
+            },
+
+            async cargarComparativoBancos() {
+                if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0 || !this.anio || this.meses.length === 0)) return;
+                const stringMeses = this.meses.join(',');
+                this.cargando = true;
+                this.departamentosBancos = [];
+                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/bancos/comparativo/${targetPlaceId}/${this.anio}/${stringMeses}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.departamentosBancos = data.razones || [];
+                    }
+                } catch (e) { console.error(e); }
+                finally { this.cargando = false; }
+            },
+
+            async cargarReporteCompleto() {
+                if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0 || !this.anio || this.meses.length === 0)) return;
+                const stringMeses = this.meses.join(',');
+                this.cargando = true;
+                this.departamentosCompleto = [];
+                const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/reporte/completo/${targetPlaceId}/${this.anio}/${stringMeses}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.departamentosCompleto = data.departamentos || [];
+                    }
+                } catch (e) { console.error(e); }
+                finally { this.cargando = false; }
+            },
+
+            async cargarGlobal() {
+                this.idRazonSocial = '';
+                this.idPlace = [];
+                this.departamentos = [];
+                this.departamentosBancos = [];
+                this.departamentosCompleto = [];
+                this.departamentosOriginales = [];
+                
+                if (this.choicesDpto) {
+                    this.choicesDpto.destroy();
+                    this.choicesDpto = null;
+                }
+                if (this.choicesPlaces) {
+                    this.choicesPlaces.destroy();
+                    this.choicesPlaces = null;
+                }
+
+                await this.cargarComparativo();
+            },
+
+            async exportarExcel() {
+                if (this.departamentos.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+                
+                const notif = mostrarNotificacion('Generando Excel de Presupuesto...', 'info', 0);
+                try {
+                    const payload = {
+                        titulo: 'Presupuesto vs Ejecutado',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        hayExcedidos: this.hayExcedidos
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `presupuesto_vs_ejecutado_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif) notif.click(); }
+            },
+
+            async exportarBancosExcel() {
+                if (this.departamentosBancos.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = mostrarNotificacion('Generando Excel de Bancos...', 'info', 0);
+                try {
+                    const payload = {
+                        titulo: 'Reporte de Cuentas Bancarias',
+                        datos: this.departamentosAgrupados
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/bancos/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `reporte_bancos_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif) notif.click(); }
+            },
+
+            async exportarReporteCompletoExcel() {
+                if (this.departamentosCompleto.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = mostrarNotificacion('Generando Reporte Consolidado...', 'info', 0);
+                try {
+                    const payload = {
+                        titulo: 'Reporte Consolidado Maestro',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        hayExcedidos: this.hayExcedidos
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/reporte/completo/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `reporte_consolidado_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif) notif.click(); }
+            },
+
+            initChoicesDpto() {
+                if (this.choicesDpto) this.choicesDpto.destroy();
+                const selectEl = this.$refs.filtroDptos;
+                if (!selectEl) return;
+
+                this.choicesDpto = new Choices(selectEl, {
+                    removeItemButton: true,
+                    itemSelectText: '',
+                    placeholderValue: 'Todas las Unidades',
+                    searchPlaceholderValue: 'Buscar unidad...'
+                });
+
+                selectEl.onchange = () => {
+                    this.dptosSeleccionados = this.choicesDpto.getValue(true).map(String);
+                    this.aplicarFiltroLocal();
+                };
+            },
+
+            aplicarFiltroLocal() {
+                if (this.dptosSeleccionados.length === 0) {
+                    this.departamentos = [...this.departamentosOriginales];
+                } else {
+                    this.departamentos = this.departamentosOriginales.filter(d => 
+                        this.dptosSeleccionados.includes(String(d.ID_UnidadOperativa))
+                    );
+                }
+                this.recalcularTotales();
+            },
+
+            recalcularTotales() {
+                let asignado = 0, comprometido = 0, ejecutado = 0;
+                this.departamentos.forEach(d => {
+                    asignado += parseFloat(d.totales?.asignado || 0);
+                    comprometido += parseFloat(d.totales?.comprometido || 0);
+                    ejecutado += parseFloat(d.totales?.ejecutado || 0);
+                });
+                const totalGasto = comprometido + ejecutado;
+                this.totalesGenerales = {
+                    asignado, comprometido, ejecutado,
+                    disponible: asignado - totalGasto,
+                    porcentaje: asignado > 0 ? Math.round((totalGasto / asignado) * 100 * 100) / 100 : 0
+                };
+            },
+
+            getTotalesCero() {
+                return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, porcentaje: 0 };
+            },
+
+            formatearMoneda(monto) {
+                return new Intl.NumberFormat('es-MX', {
+                    style: 'currency',
+                    currency: 'MXN'
+                }).format(monto || 0);
+            },
+
+            getClaseSemaforo(porcentaje) {
+                if (porcentaje >= 100) return 'text-red-600 font-bold';
+                if (porcentaje >= 80)  return 'text-orange-600 font-bold';
+                return 'text-green-600 font-bold';
+            }
+        };
+    });
+}
+
 if (window.Alpine) {
     registrarComponentePresupuesto();
     registrarComponenteSaldosBancarios();
+    registrarComponenteReportePresupuesto();
 } else {
     document.addEventListener('alpine:init', () => {
         registrarComponentePresupuesto();
         registrarComponenteSaldosBancarios();
+        registrarComponenteReportePresupuesto();
     });
 }
 
@@ -1244,21 +1829,11 @@ function initBancoDptoForm() {
     const fAdd = document.getElementById('form-agregar-banco-dpto'); if (!fAdd) return;
     fAdd.onsubmit = async (e) => {
         e.preventDefault(); 
-        
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de este registro (Obligatorio):', true);
-        if (comentarios === null) return;
-        
         const fd = new FormData(fAdd);
-        fd.append('comentarios', comentarios);
-        
         try {
             const res = await SendDataEnd('modales/crud_banco_dpto/insertar', { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Agregado ✅', 'success'); 
-                }
+                mostrarNotificacion('Agregado ✅', 'success'); 
                 abrirModal('BancoDpto'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1269,22 +1844,12 @@ function initBancoDptoEditarForm() {
     const fEdi = document.getElementById('form-editar-banco-dpto'); if (!fEdi) return;
     fEdi.onsubmit = async (e) => {
         e.preventDefault(); 
-        
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta edición (Obligatorio):', true);
-        if (comentarios === null) return;
-        
         const fd = new FormData(fEdi); 
-        fd.append('comentarios', comentarios);
         const id = fd.get('ID_BancoDpto');
-        
         try {
             const res = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Edición enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Actualizado ✅', 'success'); 
-                }
+                mostrarNotificacion('Actualizado ✅', 'success'); 
                 abrirModal('BancoDpto'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1296,19 +1861,10 @@ function initBancoDptoActions(tabla) {
         const bE = e.target.closest("[id^='btn-editar-banco-dpto-']"), bD = e.target.closest("[id^='btn-eliminar-banco-dpto-']");
         if (bD) {
             e.preventDefault(); 
-            const comentarios = await InputPrompt('Confirmar Eliminación', 'Describe el motivo de la eliminación (Obligatorio):', true);
-            if (comentarios === null) return;
-            
-            const fd = new FormData();
-            fd.append('comentarios', comentarios);
-            
-            const res = await SendDataEnd(`modales/crud_banco_dpto/eliminar/${bD.dataset.id}`, { method: 'POST', body: fd });
+            if (!(await Confirmar('Eliminar Banco?', '¿Seguro que deseas eliminar este registro?'))) return;
+            const res = await SendDataEnd(`modales/crud_banco_dpto/eliminar/${bD.dataset.id}`, { method: 'POST' });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Eliminación enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Eliminado ✅', 'success'); 
-                }
+                mostrarNotificacion('Eliminado ✅', 'success'); 
                 abrirModal('BancoDpto'); 
             }
         }

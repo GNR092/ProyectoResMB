@@ -250,41 +250,51 @@ class ControlMaestro extends BaseController
                     if ($presupuesto) {
                         $builder = $this->db->table('PresupuestoMensual');
                         $builder->where('ID_PresupuestoMensual', $presupuesto->ID_PresupuestoMensual);
+                        $aplicoReglaPresupuestal = false;
 
                         // REGLA 1: Se mantiene en Comprometido (4-7)
                         if ($nivelAnterior >= 4 && $nivelAnterior <= 7 && $nivelNuevo >= 4 && $nivelNuevo <= 7) {
                             $diff = $montoNuevo - $montoViejo;
                             $builder->set('Monto_Comprometido', "\"Monto_Comprometido\" + ($diff)", false);
+                            $aplicoReglaPresupuestal = true;
                         }
                         // REGLA 2: Sube de Pre-presupuesto a Comprometido (<4 -> 4-7)
                         elseif ($nivelAnterior < 4 && $nivelNuevo >= 4 && $nivelNuevo <= 7) {
                             $builder->set('Monto_Comprometido', "\"Monto_Comprometido\" + $montoNuevo", false);
+                            $aplicoReglaPresupuestal = true;
                         }
                         // REGLA 3: Sube de Comprometido a Ejecutado (4-7 -> 8)
                         elseif ($nivelAnterior >= 4 && $nivelAnterior <= 7 && $nivelNuevo == 8) {
                             $builder->set('Monto_Comprometido', "GREATEST(0, \"Monto_Comprometido\" - $montoViejo)", false);
                             $builder->set('Monto_Ejecutado', "\"Monto_Ejecutado\" + $montoNuevo", false);
+                            $aplicoReglaPresupuestal = true;
                         }
                         // REGLA 4: Se mantiene en Ejecutado (8 -> 8)
                         elseif ($nivelAnterior == 8 && $nivelNuevo == 8) {
                             $diff = $montoNuevo - $montoViejo;
                             $builder->set('Monto_Ejecutado', "\"Monto_Ejecutado\" + ($diff)", false);
+                            $aplicoReglaPresupuestal = true;
                         }
                         // REGLA 5: Baja de Comprometido a Pre-presupuesto (4-7 -> <4)
                         elseif ($nivelAnterior >= 4 && $nivelAnterior <= 7 && $nivelNuevo < 4) {
                             $builder->set('Monto_Comprometido', "GREATEST(0, \"Monto_Comprometido\" - $montoViejo)", false);
+                            $aplicoReglaPresupuestal = true;
                         }
                         // REGLA 6: Baja de Ejecutado a Comprometido (8 -> 4-7)
                         elseif ($nivelAnterior == 8 && $nivelNuevo >= 4 && $nivelNuevo <= 7) {
                             $builder->set('Monto_Ejecutado', "GREATEST(0, \"Monto_Ejecutado\" - $montoViejo)", false);
                             $builder->set('Monto_Comprometido', "\"Monto_Comprometido\" + $montoNuevo", false);
+                            $aplicoReglaPresupuestal = true;
                         }
                         // REGLA 7: Baja de Ejecutado a Pre-presupuesto (8 -> <4)
                         elseif ($nivelAnterior == 8 && $nivelNuevo < 4) {
                             $builder->set('Monto_Ejecutado', "GREATEST(0, \"Monto_Ejecutado\" - $montoViejo)", false);
+                            $aplicoReglaPresupuestal = true;
                         }
 
-                        $builder->update();
+                        if ($aplicoReglaPresupuestal) {
+                            $builder->update();
+                        }
                     } 
                     // Si no existe presupuesto y estamos entrando a nivel comprometido, lo creamos
                     elseif ($nivelNuevo >= 4) {
