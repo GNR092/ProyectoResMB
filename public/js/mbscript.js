@@ -193,14 +193,15 @@ function initPlaceSelectors(allPlaces) {
   if (!allPlaces || !Array.isArray(allPlaces) || allPlaces.length === 0) return
 
   const mappings = [
-    { razon: 'razonSocialMaterial', place: 'placeMaterial' },
-    { razon: 'razonSocialSinCotizar', place: 'placeSinCotizar' },
-    { razon: 'razonSocialServicio', place: 'placeServicio' },
+    { razon: 'razonSocialMaterial', place: 'placeMaterial', contenedor: 'contenedor-place-material' },
+    { razon: 'razonSocialSinCotizar', place: 'placeSinCotizar', contenedor: 'contenedor-place-sincotizar' },
+    { razon: 'razonSocialServicio', place: 'placeServicio', contenedor: 'contenedor-place-servicio' },
   ]
 
   mappings.forEach((map) => {
     const razonSelect = document.getElementById(map.razon)
     const placeSelect = document.getElementById(map.place)
+    const contenedor = document.getElementById(map.contenedor)
 
     if (razonSelect && placeSelect) {
       // Eliminar el listener anterior si existe para evitar duplicados
@@ -211,7 +212,12 @@ function initPlaceSelectors(allPlaces) {
       const filtrar = () => {
         const selectedId = razonSelect.value
         placeSelect.innerHTML = '<option value="">Seleccione un condominio</option>'
-        if (!selectedId) return
+        
+        if (!selectedId) {
+            if (contenedor) contenedor.classList.add('hidden');
+            placeSelect.required = false;
+            return;
+        }
 
         // Filtrado robusto (maneja posibles variaciones en los nombres de las propiedades)
         const filtered = allPlaces.filter((p) => {
@@ -219,6 +225,17 @@ function initPlaceSelectors(allPlaces) {
           const rsId = p.ID_RazonSocial || p.id_razon_social || p.id_razonsocial || p.Id_RazonSocial
           return String(rsId) === String(selectedId)
         })
+
+        if (filtered.length === 0) {
+            // Si no hay lugares para esta razón social, ocultamos el selector y quitamos el required
+            if (contenedor) contenedor.classList.add('hidden');
+            placeSelect.required = false;
+            return;
+        }
+
+        // Si hay lugares, mostramos el contenedor y ponemos el required
+        if (contenedor) contenedor.classList.remove('hidden');
+        placeSelect.required = true;
 
         // Evitar duplicados por ID_Place
         const seen = new Set()

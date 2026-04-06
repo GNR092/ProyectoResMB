@@ -278,7 +278,7 @@ function RevisionX() {
               let grupoGeneralHtml = '';
               if (!isServicio && data.grupos_presupuestales) {
                   const requestPlaceId = data.ID_Place;
-                  const gruposFiltrados = data.grupos_presupuestales.filter(g => !requestPlaceId || g.ID_Place == requestPlaceId);
+                  const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
 
                   if (gruposFiltrados.length > 0) {
                       grupoGeneralHtml = `
@@ -327,7 +327,8 @@ function RevisionX() {
                         <tbody>
             `
               data.productos.forEach((p) => {
-                  const costoTotal = !isServicio ? (p.Cantidad * p.Importe).toFixed(2) : ''
+                  const factorIVA = data.IVA ? 1.16 : 1.0;
+                  const costoTotal = !isServicio ? (p.Cantidad * p.Importe * factorIVA).toFixed(2) : ''
 
                   let gruposHtml = '';
                   if (!isServicio) {
@@ -338,8 +339,8 @@ function RevisionX() {
                           const requestPlaceId = data.ID_Place;
                           
                           const gruposFiltrados = data.grupos_presupuestales.filter(g => {
-                              // Si no tenemos ID_Place en la solicitud, mostramos todos por seguridad
-                              if (!requestPlaceId) return true;
+                              // Si no tenemos ID_Place en la solicitud, NO mostramos nada por seguridad
+                              if (!requestPlaceId) return false;
                               // Mostrar solo si coincide el ID_Place (usamos == para permitir string/int)
                               return g.ID_Place == requestPlaceId;
                           });
