@@ -327,7 +327,8 @@ function RevisionX() {
                         <tbody>
             `
               data.productos.forEach((p) => {
-                  const costoTotal = !isServicio ? (p.Cantidad * p.Importe).toFixed(2) : ''
+                  const factorIVA = data.IVA ? 1.16 : 1.0;
+                  const costoTotal = !isServicio ? (p.Cantidad * p.Importe * factorIVA).toFixed(2) : ''
 
                   let gruposHtml = '';
                   if (!isServicio) {
