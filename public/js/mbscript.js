@@ -3133,9 +3133,15 @@ function initDepartamentosEditarForm() {
           const lugarTexto = selectLugar.options[selectLugar.selectedIndex].text
           fila.querySelector('.lugar-depto').textContent = lugarTexto
 
+          // Unidad Operativa
+          const selectUnidad = document.getElementById('editar-ID_UnidadOperativa')
+          const unidadTexto = selectUnidad.options[selectUnidad.selectedIndex].text
+          fila.querySelector('.unidad-depto').textContent = selectUnidad.value ? unidadTexto : 'N/A'
+
           fila.dataset.nombre = formData.get('Nombre')
           fila.dataset.idPlace = formData.get('ID_Place')
           fila.dataset.nombrePlace = lugarTexto
+          fila.dataset.idUnidad = formData.get('ID_UnidadOperativa')
         }
 
         pantallaEditar?.classList.add('hidden')
@@ -3194,6 +3200,7 @@ function initDepartamentosActions(tabla) {
     document.getElementById('editar-ID_Dpto').value = fila.dataset.id
     document.getElementById('editar-Nombre').value = fila.dataset.nombre
     document.getElementById('editar-ID_Place').value = fila.dataset.idPlace
+    document.getElementById('editar-ID_UnidadOperativa').value = fila.dataset.idUnidad || ''
 
     document.getElementById('pantalla-lista-departamentos').classList.add('hidden')
     document.getElementById('pantalla-editar-departamento').classList.remove('hidden')
