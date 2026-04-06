@@ -2266,7 +2266,7 @@ class Api extends ResourceController
         $db = \Config\Database::connect();
         // Usamos los nombres exactos del modelo RazonSocialModel
         $data = $db->table('Razon_Social')
-            ->select('ID_RazonSocial, Nombre, RFC') // 'Nombre' es la columna correcta
+            ->select('ID_RazonSocial, Nombre, RFC, Nombre_Comercial, Direccion') // Incluimos campos nuevos
             ->get()
             ->getResultArray();
 
