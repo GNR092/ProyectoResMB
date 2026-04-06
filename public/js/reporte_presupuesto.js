@@ -37,6 +37,8 @@ function registrarComponenteReportePresupuesto() {
             currentPageMovimientos: 1,
             rowsPerPageMovimientos: 15,
             filtroTextoMovimientos: '',
+            fechaInicioMovimientos: '',
+            fechaFinMovimientos: '',
 
             dptosSeleccionados: [],
             choicesDpto: null,
@@ -75,6 +77,10 @@ function registrarComponenteReportePresupuesto() {
                 this.anio = String(currentYear);
                 this.meses = [String(now.getMonth() + 1)];
                 this.idPlace = [];
+                
+                // Rango por defecto para movimientos: Año completo actual
+                this.fechaInicioMovimientos = `${currentYear}-01-01`;
+                this.fechaFinMovimientos = `${currentYear}-12-31`;
             },
 
             initChoicesMeses(refName) {
@@ -199,8 +205,7 @@ function registrarComponenteReportePresupuesto() {
                             'presupuesto': 'mesesSelectorPresupuesto',
                             'cuentas': 'mesesSelectorCuentas',
                             'completo': 'mesesSelectorCompleto',
-                            'compras': 'mesesSelectorCompras',
-                            'movimientos': 'mesesSelectorMovimientos'
+                            'compras': 'mesesSelectorCompras'
                         };
                         const refMapPlaces = {
                             'presupuesto': 'placesSelectorPresupuesto',
@@ -332,35 +337,35 @@ function registrarComponenteReportePresupuesto() {
             get movimientosFiltrados() {
                 const search = (this.filtroTextoMovimientos || '').toLowerCase();
                 const selectedPlaces = (this.idPlace || []).map(String);
-                const selectedMeses = (this.meses || []).map(String);
+                
+                // Convertimos límites de fecha a objetos Date si existen
+                const fechaIni = this.fechaInicioMovimientos ? new Date(this.fechaInicioMovimientos + 'T00:00:00') : null;
+                const fechaFin = this.fechaFinMovimientos ? new Date(this.fechaFinMovimientos + 'T23:59:59') : null;
 
                 return this.movimientosProveedor.filter(m => {
-                    // Filtro de Texto (Folio o Proveedor)
+                    // 1. Filtro de Texto (Folio o Proveedor)
                     const matchText = !search || 
                                      (m.No_Folio || '').toLowerCase().includes(search) || 
                                      (m.ProveedorNombre || '').toLowerCase().includes(search);
                     
-                    // Filtro de Complejo (Place)
+                    // 2. Filtro de Complejo (Place)
                     let matchPlace = true;
                     if (selectedPlaces.length > 0) {
                         matchPlace = selectedPlaces.includes(String(m.ID_Place));
                     }
 
-                    // Filtro de Meses (Si no hay seleccionados, mostramos todos los del año)
-                    let matchMes = true;
-                    if (selectedMeses.length > 0) {
-                        const mesSol = new Date(m.Fecha).getMonth() + 1;
-                        matchMes = selectedMeses.includes(String(mesSol));
+                    // 3. Filtro de Rango de Fechas
+                    let matchFecha = true;
+                    if (m.Fecha) {
+                        // Forzamos la interpretación local si m.Fecha es solo fecha (YYYY-MM-DD)
+                        const fechaString = m.Fecha.includes(' ') ? m.Fecha : m.Fecha + 'T00:00:00';
+                        const fechaMov = new Date(fechaString);
+                        
+                        if (fechaIni && fechaMov < fechaIni) matchFecha = false;
+                        if (fechaFin && fechaMov > fechaFin) matchFecha = false;
                     }
 
-                    // Filtro de Año (Siempre mostramos del año seleccionado)
-                    let matchAnio = true;
-                    if (this.anio) {
-                        const anioSol = new Date(m.Fecha).getFullYear();
-                        matchAnio = anioSol === parseInt(this.anio);
-                    }
-
-                    return matchText && matchPlace && matchMes && matchAnio;
+                    return matchText && matchPlace && matchFecha;
                 });
             },
 
@@ -555,15 +560,14 @@ function registrarComponenteReportePresupuesto() {
                 this.filtroTextoMovimientos = '';
                 this.idPlace = [];
                 const now = new Date();
-                this.anio = String(now.getFullYear());
-                this.meses = [String(now.getMonth() + 1)];
+                const curYear = now.getFullYear();
+                
+                // Reiniciar rango a todo el año actual
+                this.fechaInicioMovimientos = `${curYear}-01-01`;
+                this.fechaFinMovimientos = `${curYear}-12-31`;
 
                 if (this.choicesPlaces) {
                     this.choicesPlaces.removeActiveItems();
-                }
-                if (this.choicesMeses) {
-                    this.choicesMeses.removeActiveItems();
-                    this.choicesMeses.setChoiceByValue(this.meses.map(String));
                 }
 
                 this.cargarMovimientosProveedor();

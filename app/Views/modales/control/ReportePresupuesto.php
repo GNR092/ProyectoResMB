@@ -447,30 +447,19 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
                 <!-- Filtros Superiores -->
                 <div class="flex flex-wrap items-center gap-3 mb-6">
-                    <!-- Filtro Año/Mes -->
-                    <div class="w-full sm:w-auto shrink-0">
-                        <select x-model="anio" @change="cargarMovimientosProveedor()" class="border p-2 rounded text-sm min-w-[100px] bg-white">
-                            <template x-for="y in years" :key="y">
-                                <option :value="y" x-text="y"></option>
-                            </template>
-                        </select>
-                    </div>
-
-                    <div class="w-full sm:w-auto shrink-0">
-                        <select x-ref="mesesSelectorMovimientos" multiple>
-                            <option value="1">Enero</option>
-                            <option value="2">Febrero</option>
-                            <option value="3">Marzo</option>
-                            <option value="4">Abril</option>
-                            <option value="5">Mayo</option>
-                            <option value="6">Junio</option>
-                            <option value="7">Julio</option>
-                            <option value="8">Agosto</option>
-                            <option value="9">Septiembre</option>
-                            <option value="10">Octubre</option>
-                            <option value="11">Noviembre</option>
-                            <option value="12">Diciembre</option>
-                        </select>
+                    <!-- Rango de Fechas -->
+                    <div class="flex items-center gap-2 bg-white border p-1 px-2 rounded-lg shadow-sm shrink-0">
+                        <div class="flex flex-col">
+                            <label class="text-[9px] text-gray-400 font-bold uppercase ml-1">Desde</label>
+                            <input type="date" x-model="fechaInicioMovimientos" 
+                                   class="border-none p-0 text-sm focus:ring-0 cursor-pointer">
+                        </div>
+                        <div class="h-6 w-[1px] bg-gray-200 mx-1"></div>
+                        <div class="flex flex-col">
+                            <label class="text-[9px] text-gray-400 font-bold uppercase ml-1">Hasta</label>
+                            <input type="date" x-model="fechaFinMovimientos" 
+                                   class="border-none p-0 text-sm focus:ring-0 cursor-pointer">
+                        </div>
                     </div>
 
                     <!-- Filtro Complejo (Places) -->
