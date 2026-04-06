@@ -697,17 +697,11 @@ function registrarComponenteSaldosBancarios() {
                     return;
                 }
 
-                const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta actualización de saldos (Obligatorio):', true);
-                if (comentarios === null) {
-                    this.guardando = false;
-                    return;
-                }
-
                 const payload = {
                     anio: parseInt(anio),
                     mes: parseInt(mes),
                     saldos: saldosParaEnviar,
-                    comentarios: comentarios
+                    comentarios: 'Actualización directa'
                 };
 
                 try {
@@ -1835,21 +1829,11 @@ function initBancoDptoForm() {
     const fAdd = document.getElementById('form-agregar-banco-dpto'); if (!fAdd) return;
     fAdd.onsubmit = async (e) => {
         e.preventDefault(); 
-        
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de este registro (Obligatorio):', true);
-        if (comentarios === null) return;
-        
         const fd = new FormData(fAdd);
-        fd.append('comentarios', comentarios);
-        
         try {
             const res = await SendDataEnd('modales/crud_banco_dpto/insertar', { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Agregado ✅', 'success'); 
-                }
+                mostrarNotificacion('Agregado ✅', 'success'); 
                 abrirModal('BancoDpto'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1860,22 +1844,12 @@ function initBancoDptoEditarForm() {
     const fEdi = document.getElementById('form-editar-banco-dpto'); if (!fEdi) return;
     fEdi.onsubmit = async (e) => {
         e.preventDefault(); 
-        
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta edición (Obligatorio):', true);
-        if (comentarios === null) return;
-        
         const fd = new FormData(fEdi); 
-        fd.append('comentarios', comentarios);
         const id = fd.get('ID_BancoDpto');
-        
         try {
             const res = await SendDataEnd(`modales/crud_banco_dpto/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Edición enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Actualizado ✅', 'success'); 
-                }
+                mostrarNotificacion('Actualizado ✅', 'success'); 
                 abrirModal('BancoDpto'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1887,19 +1861,10 @@ function initBancoDptoActions(tabla) {
         const bE = e.target.closest("[id^='btn-editar-banco-dpto-']"), bD = e.target.closest("[id^='btn-eliminar-banco-dpto-']");
         if (bD) {
             e.preventDefault(); 
-            const comentarios = await InputPrompt('Confirmar Eliminación', 'Describe el motivo de la eliminación (Obligatorio):', true);
-            if (comentarios === null) return;
-            
-            const fd = new FormData();
-            fd.append('comentarios', comentarios);
-            
-            const res = await SendDataEnd(`modales/crud_banco_dpto/eliminar/${bD.dataset.id}`, { method: 'POST', body: fd });
+            if (!(await Confirmar('Eliminar Banco?', '¿Seguro que deseas eliminar este registro?'))) return;
+            const res = await SendDataEnd(`modales/crud_banco_dpto/eliminar/${bD.dataset.id}`, { method: 'POST' });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Eliminación enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Eliminado ✅', 'success'); 
-                }
+                mostrarNotificacion('Eliminado ✅', 'success'); 
                 abrirModal('BancoDpto'); 
             }
         }

@@ -1111,9 +1111,7 @@ class PresupuestoApiController extends ResourceController
                 $b['id_saldo'] = $s ? $s['id'] : null;
             }
 
-            // Bloqueo por revisión
-            $revisiones = $solModel->where(['Modulo' => 'SaldosBancarios', 'Estado' => 'Pendiente', 'ID_Afectado' => "{$anio}-{$mes}"])->findAll();
-            return $this->respond(['razones' => [['ID_RazonSocial' => (int)$idRS, 'bancos' => $bancos]], 'bloqueadoPorRevision' => !empty($revisiones)]);
+            return $this->respond(['razones' => [['ID_RazonSocial' => (int)$idRS, 'bancos' => $bancos]], 'bloqueadoPorRevision' => false]);
         } catch (\Throwable $e) {
             log_message('error', '[getEstructuraSaldos] ' . $e->getMessage());
             return $this->failServerError($e->getMessage());
@@ -1128,18 +1126,9 @@ class PresupuestoApiController extends ResourceController
                 return $this->failValidationErrors('Datos incompletos.');
             }
 
-            $solModel = new \App\Models\SolicitudesCambioPresupuestoModel();
-            $solModel->insert([
-                'ID_Usuario' => session('id'),
-                'Modulo' => 'SaldosBancarios',
-                'Accion' => 'Masivo',
-                'ID_Afectado' => "{$json['anio']}-{$json['mes']}",
-                'Datos_Payload' => json_encode($json),
-                'Estado' => 'Pendiente',
-                'Comentarios_Solicitante' => $json['comentarios'] ?? null
-            ]);
+            $this->ejecutarSaldosMasivo($json);
 
-            return $this->respondCreated(['success' => true, 'pending_review' => true, 'message' => 'Saldos enviados a revisión.']);
+            return $this->respondCreated(['success' => true, 'message' => 'Saldos actualizados correctamente.']);
         } catch (\Throwable $e) {
             log_message('error', '[saveSaldosMasivo] ' . $e->getMessage());
             return $this->failServerError($e->getMessage());
