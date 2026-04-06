@@ -98,6 +98,8 @@ if (!file_exists($installerLockFile)) {
 
         //region proveedores
         $routes->get('api/providers/all', 'Api::getAllProviders');
+        $routes->get('api/providers/full-list', 'Api::getFullProvidersList');
+        $routes->get('api/providers/exportar-excel', 'Api::exportarProveedoresExcel');
         $routes->get('api/provider/(:num)', 'Api::getProviderById/$1');
 
         // Historial

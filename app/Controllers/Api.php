@@ -100,6 +100,73 @@ class Api extends ResourceController
     }
 
     /**
+     * Obtiene la lista completa de proveedores con todos sus campos.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getFullProvidersList()
+    {
+        $proveedorModel = new ProveedorModel();
+        $results = $proveedorModel->orderBy('RazonSocial', 'ASC')->findAll();
+        return $this->respond($results, HttpStatus::OK);
+    }
+
+    /**
+     * Exporta la lista de proveedores a Excel.
+     */
+    public function exportarProveedoresExcel()
+    {
+        $proveedorModel = new ProveedorModel();
+        $proveedores = $proveedorModel->orderBy('RazonSocial', 'ASC')->findAll();
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Proveedores');
+
+        $headers = [
+            'ID', 'Razón Social', 'Correo', 'RFC', 'Banco', 'Cuenta', 'Clabe', 
+            'Tel. Contacto', 'Nombre Contacto', 'Servicio', 'Días Crédito', 'Monto Crédito'
+        ];
+        
+        $sheet->fromArray($headers, NULL, 'A1');
+        
+        // Estilo encabezado
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+        ];
+        $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
+
+        $row = 2;
+        foreach ($proveedores as $p) {
+            $sheet->setCellValue('A' . $row, $p['ID_Proveedor']);
+            $sheet->setCellValue('B' . $row, $p['RazonSocial']);
+            $sheet->setCellValue('C' . $row, $p['Correo']);
+            $sheet->setCellValue('D' . $row, $p['RFC']);
+            $sheet->setCellValue('E' . $row, $p['Banco']);
+            $sheet->setCellValue('F' . $row, $p['Cuenta']);
+            $sheet->setCellValue('G' . $row, $p['Clabe']);
+            $sheet->setCellValue('H' . $row, $p['Tel_Contacto']);
+            $sheet->setCellValue('I' . $row, $p['Nombre_Contacto']);
+            $sheet->setCellValue('J' . $row, $p['Servicio']);
+            $sheet->setCellValue('K' . $row, $p['Dias_Credito']);
+            $sheet->setCellValue('L' . $row, $p['Monto_Credito']);
+            $row++;
+        }
+
+        foreach (range('A', 'L') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="lista_proveedores.xlsx"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit;
+    }
+
+    /**
      * Obtiene un proveedor por su ID.
      * @param int|null $id El ID del proveedor.
      * @return \CodeIgniter\HTTP\Response

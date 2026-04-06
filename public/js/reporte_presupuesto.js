@@ -20,6 +20,15 @@ function registrarComponenteReportePresupuesto() {
 
             // Nuevos arrays para las sub-pantallas
             listaProveedores: [],
+            listaProveedoresFiltrada: [], // Para búsqueda local
+            proveedorSeleccionado: null, // Para el modal de detalles
+            
+            // Paginación proveedores
+            currentPageProveedor: 1,
+            rowsPerPageProveedor: 10,
+            filtroNombreProveedor: '',
+            filtroServicioProveedor: '',
+
             reporteCompras: [],
             movimientosProveedor: [],
 
@@ -154,6 +163,8 @@ function registrarComponenteReportePresupuesto() {
                 this.departamentosOriginales = [];
 
                 this.listaProveedores = [];
+                this.listaProveedoresFiltrada = [];
+                this.proveedorSeleccionado = null;
                 this.reporteCompras = [];
                 this.movimientosProveedor = [];
 
@@ -222,11 +233,62 @@ function registrarComponenteReportePresupuesto() {
                 });
             },
 
-            // Funciones placeholder para las nuevas pantallas
+            // Funciones para la pantalla de proveedores
             async cargarListaProveedores() {
                 this.cargando = true;
-                console.log("Cargando lista de proveedores...");
-                setTimeout(() => { this.cargando = false; }, 500);
+                this.listaProveedores = [];
+                this.listaProveedoresFiltrada = [];
+                this.currentPageProveedor = 1;
+                this.filtroNombreProveedor = '';
+                this.filtroServicioProveedor = '';
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/providers/full-list`);
+                    if (res.ok) {
+                        this.listaProveedores = await res.json();
+                        this.aplicarFiltrosProveedor();
+                    }
+                } catch (e) { console.error(e); }
+                finally { this.cargando = false; }
+            },
+
+            aplicarFiltrosProveedor() {
+                const nombre = this.filtroNombreProveedor.toLowerCase();
+                const servicio = this.filtroServicioProveedor.toLowerCase();
+
+                this.listaProveedoresFiltrada = this.listaProveedores.filter(p => 
+                    p.RazonSocial.toLowerCase().includes(nombre) &&
+                    (p.Servicio ? p.Servicio.toLowerCase().includes(servicio) : true)
+                );
+                this.currentPageProveedor = 1; // Reset a página 1 al filtrar
+            },
+
+            get totalPagesProveedor() {
+                return Math.ceil(this.listaProveedoresFiltrada.length / this.rowsPerPageProveedor) || 1;
+            },
+
+            get paginatedProveedores() {
+                const start = (this.currentPageProveedor - 1) * this.rowsPerPageProveedor;
+                const end = start + this.rowsPerPageProveedor;
+                return this.listaProveedoresFiltrada.slice(start, end);
+            },
+
+            get paginationDataProveedor() {
+                if (typeof generatePaginationNumbers === 'undefined') return [];
+                return generatePaginationNumbers(this.currentPageProveedor, this.totalPagesProveedor, 7);
+            },
+
+            cambiarPaginaProveedor(page) {
+                if (page < 1 || page > this.totalPagesProveedor) return;
+                this.currentPageProveedor = page;
+            },
+
+            verDetalleProveedor(p) {
+                this.proveedorSeleccionado = p;
+            },
+
+            exportarProveedoresExcel() {
+                window.location.href = `${BASE_URL}api/providers/exportar-excel`;
             },
 
             async cargarReporteCompras() {

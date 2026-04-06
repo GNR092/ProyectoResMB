@@ -73,13 +73,179 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
     <!-- Pantalla 5: Lista de Proveedores -->
     <template x-if="pantalla === 'proveedores'">
-        <div class="animate-fadeIn">
-            <div class="flex items-center justify-between mb-6">
+        <div id="pantalla-lista-proveedores" class="animate-fadeIn bg-white rounded-xl shadow-md p-6">
+            <div class="flex items-center justify-between mb-4">
                 <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-orange-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <h2 class="text-xl font-bold text-gray-800">Lista de Proveedores</h2>
+                <div class="flex items-center gap-4">
+                    <button @click="exportarProveedoresExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exportar Excel
+                    </button>
+                    <h2 class="text-2xl font-semibold text-center text-gray-800">Lista de Proveedores</h2>
+                </div>
             </div>
-            <div class="p-8 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-400 italic">
-                Contenido de Lista de Proveedores próximamente...
+
+            <!-- Buscadores -->
+            <div id="form-filtros-proveedores" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+                <div class="flex flex-1 gap-4">
+                    <label for="buscar-nombre-rep" class="sr-only">Buscar por nombre</label>
+                    <input type="text" id="buscar-nombre-rep" 
+                           x-model="filtroNombreProveedor" 
+                           @input.debounce.300ms="aplicarFiltrosProveedor()"
+                           placeholder="Buscar por nombre..." 
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+                    <label for="buscar-servicio-rep" class="sr-only">Buscar por servicio</label>
+                    <input type="text" id="buscar-servicio-rep" 
+                           x-model="filtroServicioProveedor"
+                           @input.debounce.300ms="aplicarFiltrosProveedor()"
+                           placeholder="Buscar por servicio..." 
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full border border-gray-300 rounded-lg table-fixed">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="w-1/6 px-3 py-2 border-b text-left text-xs font-bold uppercase text-gray-600">Razón Social</th>
+                            <th class="w-1/6 px-3 py-2 border-b text-left text-xs font-bold uppercase text-gray-600">RFC</th>
+                            <th class="w-1/6 px-3 py-2 border-b text-left text-xs font-bold uppercase text-gray-600">Banco</th>
+                            <th class="w-1/6 px-3 py-2 border-b text-left text-xs font-bold uppercase text-gray-600">Teléfono</th>
+                            <th class="w-1/6 px-3 py-2 border-b text-left text-xs font-bold uppercase text-gray-600">Servicio</th>
+                            <th class="w-1/6 px-3 py-2 border-b text-center text-xs font-bold uppercase text-gray-600">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-proveedores">
+                        <template x-for="(prov, index) in paginatedProveedores" :key="prov.ID_Proveedor">
+                            <tr :class="index % 2 === 0 ? 'bg-white' : 'bg-gray-50'" class="hover:bg-blue-50 transition-colors">
+                                <td class="px-3 py-2 border-b text-sm razonsocial" x-text="prov.RazonSocial"></td>
+                                <td class="px-3 py-2 border-b text-sm" x-text="prov.RFC || 'N/A'"></td>
+                                <td class="px-3 py-2 border-b text-sm" x-text="prov.Banco || 'N/A'"></td>
+                                <td class="px-3 py-2 border-b text-sm" x-text="prov.Tel_Contacto || 'N/A'"></td>
+                                <td class="px-3 py-2 border-b text-sm servicio" x-text="prov.Servicio || 'N/A'"></td>
+                                <td class="px-2 py-2 border-b align-top text-center acciones">
+                                    <button @click="verDetalleProveedor(prov)" 
+                                            class="inline-flex items-center gap-1 bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-all text-[10px] font-bold uppercase">
+                                        Detalles
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr x-show="cargando">
+                            <td colspan="6" class="px-3 py-12 text-center text-gray-500 italic">Cargando proveedores...</td>
+                        </tr>
+                        <tr x-show="!cargando && paginatedProveedores.length === 0">
+                            <td colspan="6" class="px-3 py-12 text-center text-gray-400 italic">No hay proveedores registrados que coincidan con los filtros.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            <div id="paginacion-proveedores-rep" class="flex flex-wrap justify-center mt-4 gap-2">
+                <template x-for="item in paginationDataProveedor" :key="item.type + (item.value || '')">
+                    <button 
+                        @click="cambiarPaginaProveedor(item.value)"
+                        :disabled="item.disabled || (item.type === 'number' && item.active)"
+                        :class="{
+                            'bg-blue-600 text-white': item.active && item.type === 'number',
+                            'bg-white text-gray-700 hover:bg-gray-100': !item.active && item.type !== '...',
+                            'opacity-50 cursor-not-allowed': item.disabled,
+                            'cursor-default text-gray-400': item.type === '...'
+                        }"
+                        class="px-3 py-1 border rounded text-xs font-medium transition-all"
+                        x-html="item.type === 'first' ? '&laquo;' : (item.type === 'prev' ? '&lsaquo;' : (item.type === 'next' ? '&rsaquo;' : (item.type === 'last' ? '&raquo;' : (item.value || '...'))))"
+                    ></button>
+                </template>
+            </div>
+
+            <!-- Modal / Sección de Detalles -->
+            <div x-show="proveedorSeleccionado" 
+                 x-cloak 
+                 class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 animate-fadeIn"
+                 @click.self="proveedorSeleccionado = null">
+                <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                    <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            🔍 Detalles del Proveedor
+                        </h3>
+                        <button @click="proveedorSeleccionado = null" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+                    </div>
+                    
+                    <div class="p-6 overflow-y-auto">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                            <!-- Columna 1 -->
+                            <div class="space-y-4">
+                                <div class="flex flex-col">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Razón Social</label>
+                                    <div class="px-3 py-2 bg-gray-100 border rounded-lg text-sm text-gray-700 font-medium" x-text="proveedorSeleccionado?.RazonSocial"></div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Correo Electrónico</label>
+                                    <div class="px-3 py-2 bg-gray-100 border rounded-lg text-sm text-gray-700 font-medium" x-text="proveedorSeleccionado?.Correo || 'N/A'"></div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">RFC</label>
+                                    <div class="px-3 py-2 bg-gray-100 border rounded-lg text-sm text-gray-700 font-medium" x-text="proveedorSeleccionado?.RFC"></div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Servicio</label>
+                                    <div class="px-3 py-2 bg-gray-100 border rounded-lg text-sm text-gray-700 font-medium" x-text="proveedorSeleccionado?.Servicio"></div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Nombre del Contacto</label>
+                                    <div class="px-3 py-2 bg-gray-100 border rounded-lg text-sm text-gray-700 font-medium" x-text="proveedorSeleccionado?.Nombre_Contacto"></div>
+                                </div>
+                            </div>
+
+                            <!-- Columna 2 -->
+                            <div class="space-y-4">
+                                <div class="flex flex-col">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Banco</label>
+                                    <div class="px-3 py-2 bg-gray-100 border rounded-lg text-sm text-gray-700 font-medium" x-text="proveedorSeleccionado?.Banco"></div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Cuenta</label>
+                                    <div class="px-3 py-2 bg-gray-100 border rounded-lg text-sm text-gray-700 font-medium" x-text="proveedorSeleccionado?.Cuenta"></div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">CLABE</label>
+                                    <div class="px-3 py-2 bg-gray-100 border rounded-lg text-sm text-gray-700 font-medium" x-text="proveedorSeleccionado?.Clabe"></div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Teléfono de Contacto</label>
+                                    <div class="px-3 py-2 bg-gray-100 border rounded-lg text-sm text-gray-700 font-medium" x-text="proveedorSeleccionado?.Tel_Contacto"></div>
+                                </div>
+                                <div class="border-t pt-4">
+                                    <div class="flex items-center mb-4">
+                                        <div :class="proveedorSeleccionado?.Dias_Credito > 0 ? 'bg-green-500' : 'bg-gray-400'" class="w-4 h-4 rounded-full mr-2"></div>
+                                        <span class="text-sm font-bold text-gray-700" x-text="proveedorSeleccionado?.Dias_Credito > 0 ? 'Este proveedor tiene crédito' : 'No tiene crédito registrado'"></span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4" x-show="proveedorSeleccionado?.Dias_Credito > 0">
+                                        <div class="flex flex-col">
+                                            <label class="text-xs font-bold text-gray-500 uppercase mb-1">Días</label>
+                                            <div class="px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800 font-bold" x-text="proveedorSeleccionado?.Dias_Credito"></div>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <label class="text-xs font-bold text-gray-500 uppercase mb-1">Monto</label>
+                                            <div class="px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800 font-bold" x-text="formatearMoneda(proveedorSeleccionado?.Monto_Credito)"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 border-t bg-gray-50 text-right">
+                        <button @click="proveedorSeleccionado = null" 
+                                class="px-6 py-2 bg-gray-800 text-white rounded-lg font-bold text-xs uppercase hover:bg-gray-900 transition-all shadow-md">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </template>
