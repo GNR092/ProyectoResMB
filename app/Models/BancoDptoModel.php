@@ -16,7 +16,10 @@ class BancoDptoModel extends Model
     protected $allowedFields    = [
         'ID_RazonSocial',
         'Clabe',
-        'Banco'
+        'Banco',
+        'Alias',
+        'Cuenta',
+        'Sucursal'
     ];
 
     // Dates

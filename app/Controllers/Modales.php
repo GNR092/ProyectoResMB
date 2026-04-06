@@ -1540,8 +1540,8 @@ class Modales extends BaseController
     //-----Bancos de Dpto -------------
     public function insertarBancoDpto()
     {
-        // Recibimos ID_RazonSocial, Banco, Clabe
-        $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe']);
+        // Recibimos ID_RazonSocial, Banco, Clabe, Alias, Cuenta, Sucursal
+        $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe', 'Alias', 'Cuenta', 'Sucursal']);
         $bancoModel = new \App\Models\BancoDptoModel();
 
         if ($bancoModel->insert($data)) {
@@ -1556,7 +1556,7 @@ class Modales extends BaseController
     }
     public function editarBancoDpto($id)
     {
-        $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe']);
+        $data = $this->request->getPost(['ID_RazonSocial', 'Banco', 'Clabe', 'Alias', 'Cuenta', 'Sucursal']);
         $bancoModel = new \App\Models\BancoDptoModel();
 
         try {

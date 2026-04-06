@@ -21,9 +21,11 @@
         <table class="min-w-full border border-gray-300 rounded-lg table-fixed">
             <thead>
             <tr>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Razón Social</th>
-                <th class="w-1/4 px-3 py-2 border-b text-left">Banco</th>
-                <th class="w-1/4 px-3 py-2 border-b text-left">CLABE</th>
+                <th class="w-1/4 px-3 py-2 border-b text-left">Razón Social</th>
+                <th class="w-1/6 px-3 py-2 border-b text-left">Alias</th>
+                <th class="w-1/6 px-3 py-2 border-b text-left">Banco</th>
+                <th class="w-1/6 px-3 py-2 border-b text-left">Cuenta</th>
+                <th class="w-1/6 px-3 py-2 border-b text-left">CLABE</th>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
             </tr>
             </thead>
@@ -35,12 +37,17 @@
                     ?>
                     <tr data-id="<?= $item['ID_BancoDpto'] ?>"
                         data-id-rs="<?= esc($item['ID_RazonSocial'] ?? $item['id_razonsocial'] ?? '') ?>"
+                        data-alias="<?= esc($item['Alias'] ?? '') ?>"
                         data-banco="<?= esc($item['Banco'] ?? $item['banco'] ?? '') ?>"
+                        data-cuenta="<?= esc($item['Cuenta'] ?? '') ?>"
+                        data-sucursal="<?= esc($item['Sucursal'] ?? '') ?>"
                         data-clabe="<?= esc($item['Clabe'] ?? $item['clabe'] ?? '') ?>"
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= $enRevision ? 'bg-yellow-50 opacity-80' : '' ?>">
 
                         <td class="px-3 py-2 border-b nombre-rs"><?= esc($item['razonsocial_nombre'] ?? 'Sin Razón Social') ?></td>
+                        <td class="px-3 py-2 border-b alias-banco"><?= esc($item['Alias'] ?? '-') ?></td>
                         <td class="px-3 py-2 border-b nombre-banco"><?= esc($item['Banco'] ?? $item['banco'] ?? '') ?></td>
+                        <td class="px-3 py-2 border-b cuenta-banco"><?= esc($item['Cuenta'] ?? '-') ?></td>
                         <td class="px-3 py-2 border-b clabe-banco font-mono text-sm"><?= esc($item['Clabe'] ?? $item['clabe'] ?? '') ?></td>
 
                         <td class="px-2 py-2 border-b align-top text-center acciones">
@@ -88,7 +95,7 @@
     <h2 class="text-2xl font-semibold mb-4 text-center">Agregar Banco a Razón Social</h2>
 
     <form id="form-agregar-banco-dpto" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
 
             <div class="flex flex-col sm:col-span-2">
                 <label for="ID_RazonSocial" class="mb-1 font-medium">Razón Social</label>
@@ -101,11 +108,26 @@
             </div>
 
             <div class="flex flex-col">
+                <label for="Alias" class="mb-1 font-medium">Alias de la Cuenta</label>
+                <input type="text" name="Alias" id="Alias" placeholder="Ej. Nómina / Principal" required class="w-full px-3 py-2 border rounded-lg">
+            </div>
+
+            <div class="flex flex-col">
                 <label for="Banco" class="mb-1 font-medium">Nombre del Banco</label>
                 <input type="text" name="Banco" id="Banco" placeholder="Ej. BBVA" required class="w-full px-3 py-2 border rounded-lg">
             </div>
 
             <div class="flex flex-col">
+                <label for="Cuenta" class="mb-1 font-medium">Número de Cuenta</label>
+                <input type="text" name="Cuenta" id="Cuenta" placeholder="11 o 16 dígitos..." maxlength="16" class="w-full px-3 py-2 border rounded-lg">
+            </div>
+
+            <div class="flex flex-col">
+                <label for="Sucursal" class="mb-1 font-medium">Sucursal</label>
+                <input type="text" name="Sucursal" id="Sucursal" placeholder="Nombre o número de sucursal..." class="w-full px-3 py-2 border rounded-lg">
+            </div>
+
+            <div class="flex flex-col sm:col-span-2">
                 <label for="Clabe" class="mb-1 font-medium">CLABE Interbancaria</label>
                 <input type="text" name="Clabe" id="Clabe" placeholder="18 dígitos..." required minlength="18" maxlength="18" class="w-full px-3 py-2 border rounded-lg">
             </div>
@@ -122,7 +144,7 @@
     <form id="form-editar-banco-dpto" class="space-y-4">
         <input type="hidden" name="ID_BancoDpto" id="editar-ID_BancoDpto">
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
 
             <div class="flex flex-col sm:col-span-2">
                 <label for="editar-ID_RazonSocial" class="mb-1 font-medium">Razón Social</label>
@@ -135,11 +157,26 @@
             </div>
 
             <div class="flex flex-col">
+                <label for="editar-Alias" class="mb-1 font-medium">Alias de la Cuenta</label>
+                <input type="text" name="Alias" id="editar-Alias" required class="w-full px-3 py-2 border rounded-lg">
+            </div>
+
+            <div class="flex flex-col">
                 <label for="editar-Banco" class="mb-1 font-medium">Nombre del Banco</label>
                 <input type="text" name="Banco" id="editar-Banco" required class="w-full px-3 py-2 border rounded-lg">
             </div>
 
             <div class="flex flex-col">
+                <label for="editar-Cuenta" class="mb-1 font-medium">Número de Cuenta</label>
+                <input type="text" name="Cuenta" id="editar-Cuenta" maxlength="16" class="w-full px-3 py-2 border rounded-lg">
+            </div>
+
+            <div class="flex flex-col">
+                <label for="editar-Sucursal" class="mb-1 font-medium">Sucursal</label>
+                <input type="text" name="Sucursal" id="editar-Sucursal" class="w-full px-3 py-2 border rounded-lg">
+            </div>
+
+            <div class="flex flex-col sm:col-span-2">
                 <label for="editar-Clabe" class="mb-1 font-medium">CLABE Interbancaria</label>
                 <input type="text" name="Clabe" id="editar-Clabe" required minlength="18" maxlength="18" class="w-full px-3 py-2 border rounded-lg">
             </div>
