@@ -1095,7 +1095,7 @@ class Modales extends BaseController
     public function insertarRazonSocial()
     {
         $model = new RazonSocialModel();
-        $data = $this->request->getPost(['Nombre', 'RFC']);
+        $data = $this->request->getPost(['Nombre', 'RFC', 'Nombre_Comercial', 'Direccion']);
 
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
@@ -1109,7 +1109,7 @@ class Modales extends BaseController
     public function editarRazonSocial($id)
     {
         $model = new RazonSocialModel();
-        $data = $this->request->getPost(['Nombre', 'RFC']);
+        $data = $this->request->getPost(['Nombre', 'RFC', 'Nombre_Comercial', 'Direccion']);
 
         try {
             $model->update($id, $data);

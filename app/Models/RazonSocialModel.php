@@ -12,7 +12,7 @@ class RazonSocialModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['Nombre', 'RFC', 'Ubicacion'];
+    protected $allowedFields    = ['Nombre', 'RFC', 'Ubicacion', 'Nombre_Comercial', 'Direccion'];
 
     // Dates
     protected $useTimestamps = false;

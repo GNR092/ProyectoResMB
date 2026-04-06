@@ -1528,11 +1528,17 @@ function initPlacesEditarForm() {
           // Si el value es vacío (no seleccionó nada), ponemos un guion, si no, el nombre
           fila.querySelector('.razon-social-nombre').textContent = selectRS.value ? rsTexto : '-'
 
+          // --- ACTUALIZAR SEGMENTO ---
+          const selectSeg = document.getElementById('editar-id_segmento')
+          const segTexto = selectSeg.options[selectSeg.selectedIndex].text
+          fila.querySelector('.segmento-nombre').textContent = selectSeg.value ? segTexto : '-'
+
           // Actualizar Datasets
           fila.dataset.nombreCorto = formData.get('Nombre_Corto')
           fila.dataset.nombreCompleto = formData.get('Nombre_Completo')
           // --- NUEVO: Actualizar dataset de ID RS ---
           fila.dataset.idRazonSocial = formData.get('ID_RazonSocial')
+          fila.dataset.idSegmento = formData.get('id_segmento')
         }
 
         pantallaEditar?.classList.add('hidden')
@@ -1588,6 +1594,7 @@ function initPlacesActions(tabla) {
     // --- NUEVO: Cargar el valor de la Razón Social al select ---
     // Usamos el dataset que agregamos en la vista HTML
     document.getElementById('editar-ID_RazonSocial').value = fila.dataset.idRazonSocial || ''
+    document.getElementById('editar-id_segmento').value = fila.dataset.idSegmento || ''
 
     document.getElementById('pantalla-lista-places').classList.add('hidden')
     document.getElementById('pantalla-editar-places').classList.remove('hidden')
@@ -2746,7 +2753,9 @@ function initRazonSocialActions(tabla) {
 
       document.getElementById('editar-ID_RazonSocial').value = id
       document.getElementById('editar-Nombre').value = fila.querySelector('.nombre').textContent
+      document.getElementById('editar-Nombre_Comercial').value = fila.querySelector('.nombre-comercial').textContent.trim()
       document.getElementById('editar-RFC').value = fila.querySelector('.rfc').textContent
+      document.getElementById('editar-Direccion').value = fila.querySelector('.direccion').textContent.trim()
 
       document.getElementById('pantalla-lista-razonsocial').classList.add('hidden')
       document.getElementById('pantalla-editar-razonsocial').classList.remove('hidden')
