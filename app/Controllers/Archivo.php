@@ -109,10 +109,8 @@ class Archivo extends BaseController
                 
                 $razonSocialModel = new RazonSocialModel();
                 $placeModel = new PlacesModel();
-                $uniModel = new \App\Models\UnidadOperativaModel();
-                $idUnidadOrig = $deptoUsuario['ID_UnidadOperativa'] ?? 0;
-                $unidadOrig = $uniModel->find($idUnidadOrig);
-                $placeOrig = $unidadOrig ? $placeModel->find($unidadOrig['ID_Place'] ?? 0) : null;
+                $idPlaceOrig = $deptoUsuario['ID_Place'] ?? 0;
+                $placeOrig = $placeModel->find($idPlaceOrig);
                 
                 $nombreRSOrig = 'RS Desconocida';
                 if ($placeOrig) {
