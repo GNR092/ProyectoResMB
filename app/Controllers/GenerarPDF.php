@@ -164,7 +164,7 @@ class GenerarPDF extends BaseController
             10,
             'Departamento: ' .
                 mb_convert_encoding(
-                    ($solicitud['DepartamentoNombre'] ?? '') . ' ' . $solicitud['ID_Place'] ?? '',
+                    $solicitud['DepartamentoNombre'] . (isset($solicitud['PlaceNombre']) ? ' (' . $solicitud['PlaceNombre'] . ')' : ''),
                     'ISO-8859-1',
                     'UTF-8',
                 ),
@@ -1635,16 +1635,31 @@ class GenerarPDF extends BaseController
 
             $pdf->SetFont('Arial', '', 10);
             $totalServicios = 0;
+            $lineHeight = 7;
+            
+            // Need to set widths for MultiCell
+            $wds_servicio = [150, 40];
+            $pdf->SetWidths($wds_servicio);
+
             foreach ($solicitud['servicios'] as $servicio) {
-                $pdf->Cell(
-                    150,
-                    7,
-                    mb_convert_encoding($servicio['Nombre'], 'ISO-8859-1', 'UTF-8'),
-                    1,
-                    0,
-                    'L',
-                );
-                $pdf->Cell(40, 7, '$' . number_format($servicio['Importe'], 2), 1, 1, 'R');
+                $nombre = mb_convert_encoding($servicio['Nombre'], 'ISO-8859-1', 'UTF-8');
+                
+                $nb = $pdf->NbLines($wds_servicio[0], $nombre);
+                $rowHeight = $nb * $lineHeight;
+
+                if ($pdf->GetY() + $rowHeight > $pdf->getPageBreakTrigger()) {
+                    $pdf->AddPage($pdf->getCurOrientation());
+                }
+
+                $x0 = $pdf->GetX();
+                $y0 = $pdf->GetY();
+
+                $pdf->MultiCell($wds_servicio[0], $lineHeight, $nombre, 1, 'L', false);
+                $pdf->SetXY($x0 + $wds_servicio[0], $y0);
+                $pdf->MultiCell($wds_servicio[1], $rowHeight, '$' . number_format($servicio['Importe'], 2), 1, 'R', false);
+                
+                $pdf->SetY($y0 + $rowHeight);
+
                 $totalServicios += $servicio['Importe'];
             }
 
