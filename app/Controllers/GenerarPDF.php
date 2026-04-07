@@ -1053,7 +1053,7 @@ class GenerarPDF extends BaseController
             $Cwd,
             7,
             mb_convert_encoding(
-                $data['DepartamentoNombre'] . ' ' . $data['ID_Place'],
+                $data['DepartamentoNombre'] . (isset($data['PlaceNombre']) ? ' (' . $data['PlaceNombre'] . ')' : ''),
                 'ISO-8859-1',
                 'UTF-8',
             ),
@@ -1144,13 +1144,12 @@ class GenerarPDF extends BaseController
 
         
 
-                // Filas 2 a 10 (vacías)
+                // Filas 2 a 5 (vacías para dejar espacio a las firmas)
 
                 $rowHeightVacia = $lineHeight; // Para filas vacías, la altura es la de una línea
 
-        
+                for ($i = 2; $i <= 5; $i++) {
 
-                for ($i = 2; $i <= 10; $i++) {
 
                     // Chequear si hay que añadir una nueva página
 
@@ -1238,6 +1237,11 @@ class GenerarPDF extends BaseController
         );
 
         $pdf->Ln(10);
+
+        // Verificación de seguridad para el bloque de firmas (al menos 40mm)
+        if ($pdf->GetY() + 40 > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage();
+        }
 
         $y_firmas = $pdf->GetY();
         $ancho_firma = 60;
