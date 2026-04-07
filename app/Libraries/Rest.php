@@ -644,7 +644,8 @@ class Rest
                 // 'Proveedor.MetodoPago as ProveedorMetodoPago', // Para forma de pago
                 'Razon_Social.Nombre as Complejo',
                 'Solicitud.Fecha_Aprobacion', // Necesario para la fecha de la factura
-                'Places.Nombre_Corto as ID_Place',
+                'Places.ID_Place',
+                'Places.Nombre_Corto as PlaceNombre',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
@@ -709,7 +710,8 @@ class Rest
         
         // Validamos la existencia de Place y Unidad Operativa para evitar errores "offset on null"
         $place = $placesModel->find($unidad['ID_Place'] ?? 0);
-        $solicitud['ID_Place'] = $place['Nombre_Corto'] ?? 'N/A';
+        $solicitud['ID_Place'] = $place['ID_Place'] ?? 0;
+        $solicitud['PlaceNombre'] = $place['Nombre_Corto'] ?? 'N/A';
         
         $razonSocial = $razonSocialModel->find($solicitud['ID_RazonSocial'] ?? 0);
         $solicitud['ComplejoRFC'] = $razonSocial['RFC'] ?? 'N/A';
@@ -1819,8 +1821,10 @@ class Rest
         $depto = $this->getDepartmentById($solicitud['ID_Dpto']);
         $uniModel = new \App\Models\UnidadOperativaModel();
         $unidad = $uniModel->find($depto['ID_UnidadOperativa'] ?? 0);
-        $solicitud['ID_Place'] = $placesModel->find($unidad['ID_Place'] ?? 0)['Nombre_Corto'];
-        log_message('debug', 'ID_Place: ' . $solicitud['ID_Place']);
+        $place = $placesModel->find($unidad['ID_Place'] ?? 0);
+        $solicitud['ID_Place'] = $place['ID_Place'] ?? 0;
+        $solicitud['PlaceNombre'] = $place['Nombre_Corto'] ?? 'N/A';
+        log_message('debug', 'PlaceNombre: ' . $solicitud['PlaceNombre']);
 
         $importeTotal = 0;
         $descripcionPago = '';

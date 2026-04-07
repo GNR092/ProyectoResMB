@@ -393,7 +393,7 @@ function generarDetallesSolicitudHTML(data) {
             <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${estadoText || 'N/A'}</span></div>
             ${fechaAprobacionHTML}
             <div><strong>Solicitante:</strong> ${data.UsuarioNombre}</div>
-            <div><strong>Departamento:</strong> ${data.DepartamentoNombre + ' - ' + data.ID_Place}</div>
+            <div><strong>Departamento:</strong> ${data.DepartamentoNombre + (data.PlaceNombre ? ' (' + data.PlaceNombre + ')' : '')}</div>
             <div><strong>Complejo:</strong> ${data.Complejo}</div>
             <div><strong>Proveedor:</strong> ${providerName}</div>
             ${metodoPago}
