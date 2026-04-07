@@ -415,7 +415,6 @@ function ListaPagos() {
     },
 
     get pagosFiltrados() {
-      console.log('filtroMetodoPago:', this.filtroMetodoPago, 'tipo:', typeof this.filtroMetodoPago, 'total pagos:', this.pagos.length)
       if (this.filtroMetodoPago === 'todos') {
         return this.pagos
       }
@@ -472,8 +471,6 @@ function ListaPagos() {
           return
         }
         this.pagos = listpagos
-        const metodos = [...new Set(listpagos.map(p => p.MetodoPago))]
-        console.log('Pagos cargados:', listpagos.length, 'MetodoPago únicos:', metodos, 'primeros 3:', listpagos.slice(0, 3).map(p => ({MetodoPago: p.MetodoPago, tipo: typeof p.MetodoPago})))
       } catch (error) {
         console.error('Error al cargar pagos programados:', error)
         if (document.body.contains(root)) this.pagos = []

@@ -97,10 +97,7 @@ function registrarComponenteReportePresupuesto() {
                 if (!refName) return; // Salir si no hay nombre de referencia
 
                 const selectEl = this.$refs[refName];
-                if (!selectEl) {
-                    console.warn(`No se encontró el elemento x-ref="${refName}"`);
-                    return;
-                }
+                if (!selectEl) return;
 
                 this.choicesMeses = new Choices(selectEl, {
                     removeItemButton: true,
@@ -204,14 +201,12 @@ function registrarComponenteReportePresupuesto() {
                         const refMapMeses = {
                             'presupuesto': 'mesesSelectorPresupuesto',
                             'cuentas': 'mesesSelectorCuentas',
-                            'completo': 'mesesSelectorCompleto',
-                            'compras': 'mesesSelectorCompras'
+                            'completo': 'mesesSelectorCompleto'
                         };
                         const refMapPlaces = {
                             'presupuesto': 'placesSelectorPresupuesto',
                             'cuentas': 'placesSelectorCuentas',
                             'completo': 'placesSelectorCompleto',
-                            'compras': 'placesSelectorCompras',
                             'movimientos': 'placesSelectorMovimientos'
                         };
                         
@@ -236,7 +231,6 @@ function registrarComponenteReportePresupuesto() {
                     'presupuesto': 'placesSelectorPresupuesto',
                     'cuentas': 'placesSelectorCuentas',
                     'completo': 'placesSelectorCompleto',
-                    'compras': 'placesSelectorCompras',
                     'movimientos': 'placesSelectorMovimientos'
                 };
                 
