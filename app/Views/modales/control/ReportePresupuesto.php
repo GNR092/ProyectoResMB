@@ -252,174 +252,176 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
     <!-- Pantalla 6: Reporte de Compras -->
     <template x-if="pantalla === 'compras'">
-        <div id="div-reportes" x-data="Reportes(<?= htmlspecialchars(json_encode($tabledata ?? []), ENT_QUOTES, 'UTF-8') ?>)" class="animate-fadeIn">
-            <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <div class="flex items-center gap-4">
-                    <button @click="generarReporteCSV" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <h2 class="text-xl font-bold text-gray-800">Reporte de Compras</h2>
-                </div>
-            </div>
-
-            <!-- Controles de Filtro -->
-            <div class="flex flex-wrap items-center gap-3 mb-6">
-                <!-- Filtro Fecha -->
-                <div class="w-full sm:w-auto shrink-0">
-                    <div class="flex items-center gap-2 border p-2 rounded min-w-[190px] bg-white">
-                        <span class="text-gray-500 text-sm cursor-default">Fecha:</span>
-                        <input type="date" x-model="fecha" id="filtro-fecha-reportes"
-                            @click="$el.showPicker()"
-                            class="border-none p-0 focus:ring-0 bg-transparent grow min-w-0 cursor-pointer text-sm">
-                        <label class="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap cursor-pointer">
-                            <input type="checkbox" x-model="porMes" id="filtrar-por-mes-reportes"
-                                class="accent-blue-600 h-4 w-4">
-                            Mes
-                        </label>
+        <div class="animate-fadeIn">
+            <div id="div-reportes" x-data="Reportes(<?= htmlspecialchars(json_encode($tabledata ?? []), ENT_QUOTES, 'UTF-8') ?>)">
+                <div class="flex items-center justify-between mb-6">
+                    <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                    <div class="flex items-center gap-4">
+                        <button @click="generarReporteCSV" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Exportar Excel
+                        </button>
+                        <h2 class="text-xl font-bold text-gray-800">Reporte de Compras</h2>
                     </div>
                 </div>
 
-                <!-- Filtro Estado -->
-                <div class="w-full sm:w-auto shrink-0">
-                    <select x-model="estado" id="filtro-estado-reportes" class="border p-2 rounded w-full min-w-[150px]">
-                        <option value="">Estado (Todos)</option>
-                        <option value="Por Pagar">🟠 Por Pagar</option>
-                        <option value="Pagada">🟢 Pagada</option>
-                    </select>
-                </div>
-
-                <!-- Filtro Dpto -->
-                <div class="w-full sm:w-auto shrink-0">
-                    <select x-ref="deptoSelect" id="filtroDepartamento-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>
-                        <option value="">Departamento (Todos)</option>
-                        <?php if (!empty($departamentos)): ?>
-                            <?php foreach ($departamentos as $dpto): ?>
-                                <option value="<?= esc($dpto['Nombre']) ?>"><?= esc($dpto['Nombre']) ?></option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </select>
-                </div>
-
-                <!-- Filtro Razon Social -->
-                <div class="w-full sm:w-auto shrink-0">
-                    <select x-ref="razonSelect" id="filtroRazonSocial-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>
-                        <option value="">Razón Social (Todas)</option>
-                        <?php if (!empty($razones_sociales)): ?>
-                            <?php foreach ($razones_sociales as $rs): ?>
-                                <option value="<?= esc($rs['Nombre']) ?>"><?= esc($rs['Nombre']) ?></option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </select>
-                </div>
-
-                <!-- Filtro Proveedor -->
-                <div class="w-full sm:w-auto shrink-0">
-                    <select x-ref="provSelect" id="filtroProveedor-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>
-                        <option value="">Proveedor (Todos)</option>
-                        <?php if (!empty($proveedores)): ?>
-                            <?php foreach ($proveedores as $prov): ?>
-                                <option value="<?= esc($prov['RazonSocial']) ?>"><?= esc($prov['RazonSocial']) ?></option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </select>
-                </div>
-
-                <!-- Filtro Metodo de Pago -->
-                <div class="w-full sm:w-auto shrink-0">
-                    <select x-model="metodoPago" id="filtroMetodoPago-reportes" class="border p-2 rounded w-full min-w-[150px]">
-                        <option value="">Método de Pago</option>
-                        <option value="0">Contado</option>
-                        <option value="1">Crédito</option>
-                    </select>
-                </div>
-
-                <!-- Botón Limpiar Filtros -->
-                <button @click="clearFilters()"
-                    class="bg-gray-800 hover:bg-gray-900 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
-                    Limpiar Filtros
-                </button>
-            </div>
-
-            <!-- Tabla -->
-            <div class="overflow-x-auto shadow rounded-lg">
-                <table class="min-w-full border border-gray-300" id="tabla-reportes">
-                    <thead class="bg-gray-100 text-gray-600 uppercase text-[10px] font-bold">
-                        <tr>
-                            <th class="border px-3 py-2 text-left">Folio</th>
-                            <th class="border px-3 py-2 text-left">Departamento</th>
-                            <th class="border px-3 py-2 text-left">Razón social</th>
-                            <th class="border px-3 py-2 text-left">Proveedor</th>
-                            <th class="border px-3 py-2 text-left">Fecha</th>
-                            <th class="border px-3 py-2 text-center">Estado</th>
-                            <th class="border px-3 py-2 text-center">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white">
-                        <template x-if="paginatedData.length === 0">
-                            <tr>
-                                <td colspan="7" class="text-center py-12 text-gray-400 italic">No se encontraron datos que coincidan con los filtros.</td>
-                            </tr>
-                        </template>
-                        <template x-for="(item, index) in paginatedData" :key="item.ID_Solicitud || ('row-' + index)">
-                            <tr class="text-center hover:bg-gray-50 text-xs">
-                                <td class="border px-3 py-2 text-left font-mono" x-text="item.No_Folio"></td>
-                                <td class="border px-3 py-2 text-left" x-text="item.DepartamentoNombre"></td>
-                                <td class="border px-3 py-2 text-left" x-text="item.Complejo"></td>
-                                <td class="border px-3 py-2 text-left" x-text="item.proveedor?.RazonSocial"></td>
-                                <td class="border px-3 py-2 text-left" x-text="item.Fecha"></td>
-                                <td class="border px-3 py-2 col-estado"
-                                    :data-estado="item.EstadoOrden"
-                                    :title="item.EstadoOrden"
-                                    x-text="item.EstadoOrden">
-                                </td>
-                                <td class="border px-3 py-2">
-                                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded transition text-[10px] uppercase" @click="mostrarVerReporte(index)">Ver</button>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Controles de Paginación -->
-            <div id="paginacion-reportes" class="flex justify-between items-center mt-4" x-show="totalPages > 1">
-                <div>
-                    <span class="text-xs text-gray-600 font-medium">
-                        Mostrando <span x-text="(currentPage - 1) * rowsPerPage + 1"></span> a <span
-                            x-text="Math.min(currentPage * rowsPerPage, filteredData.length)"></span> de <span
-                            x-text="filteredData.length"></span> resultados
-                    </span>
-                </div>
-
-                <div class="flex items-center gap-1">
-                    <template x-for="item in pageNumbers" :key="'page-' + item.type + '-' + item.value">
-                        <div>
-                            <button x-show="item.type === 'first'" @click="firstPage()"
-                                :disabled="currentPage === 1"
-                                class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs"
-                                title="Primera página">&laquo;</button>
-                            <button x-show="item.type === 'prev'" @click="prevPage()"
-                                :disabled="currentPage === 1"
-                                class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs"
-                                title="Página anterior">&lsaquo;</button>
-                            <span x-show="item.type === '...'" class="px-2 text-gray-400 cursor-default text-xs">...</span>
-                            <button x-show="item.type === 'number'" @click="goToPage(item.value)"
-                                :class="item.active ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'"
-                                class="px-3 py-1 border rounded text-xs font-bold" x-text="item.value"></button>
-                            <button x-show="item.type === 'next'" @click="nextPage()"
-                                :disabled="currentPage === totalPages"
-                                class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs"
-                                title="Página siguiente">&rsaquo;</button>
-                            <button x-show="item.type === 'last'" @click="lastPage()"
-                                :disabled="currentPage === totalPages"
-                                class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs"
-                                title="Última página">&raquo;</button>
+                <!-- Controles de Filtro -->
+                <div class="flex flex-wrap items-center gap-3 mb-6">
+                    <!-- Filtro Fecha -->
+                    <div class="w-full sm:w-auto shrink-0">
+                        <div class="flex items-center gap-2 border p-2 rounded min-w-[190px] bg-white">
+                            <span class="text-gray-500 text-sm cursor-default">Fecha:</span>
+                            <input type="date" x-model="fecha" id="filtro-fecha-reportes"
+                                @click="$el.showPicker()"
+                                class="border-none p-0 focus:ring-0 bg-transparent grow min-w-0 cursor-pointer text-sm">
+                            <label class="flex items-center gap-1 text-xs text-gray-600 whitespace-nowrap cursor-pointer">
+                                <input type="checkbox" x-model="porMes" id="filtrar-por-mes-reportes"
+                                    class="accent-blue-600 h-4 w-4">
+                                Mes
+                            </label>
                         </div>
-                    </template>
+                    </div>
+
+                    <!-- Filtro Estado -->
+                    <div class="w-full sm:w-auto shrink-0">
+                        <select x-model="estado" id="filtro-estado-reportes" class="border p-2 rounded w-full min-w-[150px]">
+                            <option value="">Estado (Todos)</option>
+                            <option value="Por Pagar">🟠 Por Pagar</option>
+                            <option value="Pagada">🟢 Pagada</option>
+                        </select>
+                    </div>
+
+                    <!-- Filtro Dpto -->
+                    <div class="w-full sm:w-auto shrink-0">
+                        <select x-ref="deptoSelect" id="filtroDepartamento-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>
+                            <option value="">Departamento (Todos)</option>
+                            <?php if (!empty($departamentos)): ?>
+                                <?php foreach ($departamentos as $dpto): ?>
+                                    <option value="<?= esc($dpto['Nombre']) ?>"><?= esc($dpto['Nombre']) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+
+                    <!-- Filtro Razon Social -->
+                    <div class="w-full sm:w-auto shrink-0">
+                        <select x-ref="razonSelect" id="filtroRazonSocial-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>
+                            <option value="">Razón Social (Todas)</option>
+                            <?php if (!empty($razones_sociales)): ?>
+                                <?php foreach ($razones_sociales as $rs): ?>
+                                    <option value="<?= esc($rs['Nombre']) ?>"><?= esc($rs['Nombre']) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+
+                    <!-- Filtro Proveedor -->
+                    <div class="w-full sm:w-auto shrink-0">
+                        <select x-ref="provSelect" id="filtroProveedor-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>
+                            <option value="">Proveedor (Todos)</option>
+                            <?php if (!empty($proveedores)): ?>
+                                <?php foreach ($proveedores as $prov): ?>
+                                    <option value="<?= esc($prov['RazonSocial']) ?>"><?= esc($prov['RazonSocial']) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+
+                    <!-- Filtro Metodo de Pago -->
+                    <div class="w-full sm:w-auto shrink-0">
+                        <select x-model="metodoPago" id="filtroMetodoPago-reportes" class="border p-2 rounded w-full min-w-[150px]">
+                            <option value="">Método de Pago</option>
+                            <option value="0">Contado</option>
+                            <option value="1">Crédito</option>
+                        </select>
+                    </div>
+
+                    <!-- Botón Limpiar Filtros -->
+                    <button @click="clearFilters()"
+                        class="bg-gray-800 hover:bg-gray-900 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
+                        Limpiar Filtros
+                    </button>
+                </div>
+
+                <!-- Tabla -->
+                <div class="overflow-x-auto shadow rounded-lg">
+                    <table class="min-w-full border border-gray-300" id="tabla-reportes">
+                        <thead class="bg-gray-100 text-gray-600 uppercase text-[10px] font-bold">
+                            <tr>
+                                <th class="border px-3 py-2 text-left">Folio</th>
+                                <th class="border px-3 py-2 text-left">Departamento</th>
+                                <th class="border px-3 py-2 text-left">Razón social</th>
+                                <th class="border px-3 py-2 text-left">Proveedor</th>
+                                <th class="border px-3 py-2 text-left">Fecha</th>
+                                <th class="border px-3 py-2 text-center">Estado</th>
+                                <th class="border px-3 py-2 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white">
+                            <template x-if="paginatedData.length === 0">
+                                <tr>
+                                    <td colspan="7" class="text-center py-12 text-gray-400 italic">No se encontraron datos que coincidan con los filtros.</td>
+                                </tr>
+                            </template>
+                            <template x-for="(item, index) in paginatedData" :key="item.ID_Solicitud || ('row-' + index)">
+                                <tr class="text-center hover:bg-gray-50 text-xs">
+                                    <td class="border px-3 py-2 text-left font-mono" x-text="item.No_Folio"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="item.DepartamentoNombre"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="item.Complejo"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="item.proveedor?.RazonSocial"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="item.Fecha"></td>
+                                    <td class="border px-3 py-2 col-estado"
+                                        :data-estado="item.EstadoOrden"
+                                        :title="item.EstadoOrden"
+                                        x-text="item.EstadoOrden">
+                                    </td>
+                                    <td class="border px-3 py-2">
+                                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded transition text-[10px] uppercase" @click="mostrarVerReporte(index)">Ver</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Controles de Paginación -->
+                <div id="paginacion-reportes" class="flex justify-between items-center mt-4" x-show="totalPages > 1">
+                    <div>
+                        <span class="text-xs text-gray-600 font-medium">
+                            Mostrando <span x-text="(currentPage - 1) * rowsPerPage + 1"></span> a <span
+                                x-text="Math.min(currentPage * rowsPerPage, filteredData.length)"></span> de <span
+                                x-text="filteredData.length"></span> resultados
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-1">
+                        <template x-for="item in pageNumbers" :key="'page-' + item.type + '-' + item.value">
+                            <div>
+                                <button x-show="item.type === 'first'" @click="firstPage()"
+                                    :disabled="currentPage === 1"
+                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs"
+                                    title="Primera página">&laquo;</button>
+                                <button x-show="item.type === 'prev'" @click="prevPage()"
+                                    :disabled="currentPage === 1"
+                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs"
+                                    title="Página anterior">&lsaquo;</button>
+                                <span x-show="item.type === '...'" class="px-2 text-gray-400 cursor-default text-xs">...</span>
+                                <button x-show="item.type === 'number'" @click="goToPage(item.value)"
+                                    :class="item.active ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100'"
+                                    class="px-3 py-1 border rounded text-xs font-bold" x-text="item.value"></button>
+                                <button x-show="item.type === 'next'" @click="nextPage()"
+                                    :disabled="currentPage === totalPages"
+                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs"
+                                    title="Página siguiente">&rsaquo;</button>
+                                <button x-show="item.type === 'last'" @click="lastPage()"
+                                    :disabled="currentPage === totalPages"
+                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs"
+                                    title="Última página">&raquo;</button>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </div>
             <div id="div-ver-reporte" class="hidden animate-fadeIn"></div>
