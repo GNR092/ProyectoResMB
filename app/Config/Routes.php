@@ -81,6 +81,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('modales/cuentas/eliminar/(:num)', 'Modales::eliminarCuenta/$1');
 
         // Modales
+        $routes->get('modales/ReportePresupuesto', 'ReportesController::index');
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');
         $routes->get('modales/vistas/service_row', 'Modales::getServiceTableRow');
@@ -97,11 +98,15 @@ if (!file_exists($installerLockFile)) {
 
         //region proveedores
         $routes->get('api/providers/all', 'Api::getAllProviders');
+        $routes->get('api/providers/full-list', 'Api::getFullProvidersList');
+        $routes->get('api/providers/exportar-excel', 'Api::exportarProveedoresExcel');
         $routes->get('api/provider/(:num)', 'Api::getProviderById/$1');
 
         // Historial
         $routes->get('api/historic', 'Api::getHistorial');
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
+        $routes->get('api/historic/movimientos-proveedor', 'Api::getMovimientosProveedor', ['filter' => 'mantenimiento']);
+        $routes->post('api/historic/exportar-movimientos', 'Api::exportarMovimientosExcel');
         $routes->get('api/historial/exportar', 'Api::exportarHistorial');
 
         // Solicitudes
@@ -206,20 +211,20 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/presupuesto-mensual/guardar-masivo', 'PresupuestoApiController::saveMasivo');
         $routes->post('api/presupuesto-mensual/exportar-asignacion', 'PresupuestoApiController::exportarAsignacion');
         $routes->post('api/presupuesto-mensual/exportar-anual', 'PresupuestoApiController::exportarAnual');
-        $routes->get('api/presupuesto/comparativo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getComparativo/$1/$2/$3');
-        $routes->get('api/presupuesto/exportar/(:any)/(:num)/(:any)', 'PresupuestoApiController::exportarComparativo/$1/$2/$3');
-        $routes->post('api/presupuesto/exportar-datos', 'PresupuestoApiController::exportarDatosJson');
+        $routes->get('api/presupuesto/comparativo/(:any)/(:num)/(:any)', 'ReportesController::getComparativo/$1/$2/$3');
+        $routes->get('api/presupuesto/exportar/(:any)/(:num)/(:any)', 'ReportesController::exportarComparativo/$1/$2/$3');
+        $routes->post('api/presupuesto/exportar-datos', 'ReportesController::exportarDatosJson');
 
         // Rutas API Saldos Bancarios
         $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');
         $routes->post('api/saldos-bancarios/guardar-masivo', 'PresupuestoApiController::saveSaldosMasivo');
-        $routes->get('api/bancos/comparativo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getComparativoBancos/$1/$2/$3');
-        $routes->post('api/bancos/exportar-datos', 'PresupuestoApiController::exportarBancosJson');
+        $routes->get('api/bancos/comparativo/(:any)/(:num)/(:any)', 'ReportesController::getComparativoBancos/$1/$2/$3');
+        $routes->post('api/bancos/exportar-datos', 'ReportesController::exportarBancosJson');
 
         // Rutas API Reporte Completo
-        $routes->get('api/reporte/completo/exportar/(:any)/(:num)/(:any)', 'PresupuestoApiController::exportarReporteCompleto/$1/$2/$3');
-        $routes->post('api/reporte/completo/exportar-datos', 'PresupuestoApiController::exportarReporteCompletoJson');
-        $routes->get('api/reporte/completo/(:any)/(:num)/(:any)', 'PresupuestoApiController::getReporteCompleto/$1/$2/$3');
+        $routes->get('api/reporte/completo/exportar/(:any)/(:num)/(:any)', 'ReportesController::exportarReporteCompleto/$1/$2/$3');
+        $routes->post('api/reporte/completo/exportar-datos', 'ReportesController::exportarReporteCompletoJson');
+        $routes->get('api/reporte/completo/(:any)/(:num)/(:any)', 'ReportesController::getReporteCompleto/$1/$2/$3');
 
         //Control maestro
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');

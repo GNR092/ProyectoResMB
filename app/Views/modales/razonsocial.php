@@ -2,8 +2,8 @@
 <div id="pantalla-lista-razonsocial" class="p-6 bg-white rounded-xl shadow-md">
 
     <div class="flex items-center mb-4">
-        <button onclick="abrirModal('ajustes')" class="text-sm text-gray-600 hover:text-gray-900 transition">
-            &larr; Regresar a Ajustes
+        <button onclick="abrirModal('catalogos')" class="text-sm text-gray-600 hover:text-gray-900 transition">
+            &larr; Regresar a Catálogos
         </button>
     </div>
 

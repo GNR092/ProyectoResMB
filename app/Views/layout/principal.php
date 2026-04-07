@@ -53,6 +53,14 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 
         <?php if ($login_type === 'boss'): ?>
             <?php if (count($ajustes) > 0): ?>
+                <a href="#" data-opcion="catalogos" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
+                   onclick="abrirModal('catalogos')">
+                    <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="/icons/icons.svg#Catalogos"></use>
+                    </svg>
+                    <span>Catálogos</span>
+                </a>
+
                 <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
                    onclick="abrirModal('ajustes')">
                     <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
@@ -131,6 +139,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
         : 'js/reportesScript.min.js',
 ) ?>?v=<?= filemtime(FCPATH . 'js/reportesScript.js') ?>" defer></script>
 <script src="<?= base_url() ?>js/presupuestos.js?v=<?= file_exists(FCPATH . 'js/presupuestos.js') ? filemtime(FCPATH . 'js/presupuestos.js') : time() ?>" defer></script>
+<script src="<?= base_url() ?>js/reporte_presupuesto.js?v=<?= file_exists(FCPATH . 'js/reporte_presupuesto.js') ? filemtime(FCPATH . 'js/reporte_presupuesto.js') : time() ?>" defer></script>
 <script src="<?= base_url() ?>js/revision.js?v=<?= filemtime(
     FCPATH . 'js/revision.js',
 ) ?>" defer></script>

@@ -1886,6 +1886,70 @@ class Rest
     }
     
     /**
+     * Obtiene todas las solicitudes con la información detallada de sus claves foráneas
+     * para el reporte de Movimientos de Proveedor.
+     *
+     * @return array Un array con los datos completos de las solicitudes.
+     */
+    public function getMovimientosProveedor(): array
+    {
+        $solicitudModel = new SolicitudModel();
+
+        // Join con todas las FK de SolicitudModel:
+        // ID_Usuario, ID_Dpto, ID_UnidadOperativa, ID_Proveedor, ID_Cuenta, ID_RazonSocial
+        // Y extensión hacia OrdenCompra a través de Cotización
+        $solicitudes = $solicitudModel
+            ->select([
+                'Solicitud.ID_Solicitud',
+                'Solicitud.No_Folio',
+                'Solicitud.Fecha',
+                'Solicitud.Estado',
+                'Solicitud.Tipo',
+                'Solicitud.MetodoPago',
+                'Solicitud.IVA',
+                'Solicitud.Fecha_Aprobacion',
+                'Solicitud.ID_UnidadOperativa',
+                'Usuarios.Nombre as UsuarioSolicita',
+                'Departamentos.Nombre as DepartamentoNombre',
+                'UnidadOperativa.Nombre as UnidadOperativaNombre',
+                'UnidadOperativa.ID_Place',
+                'Places.Nombre_Corto as PlaceNombre',
+                'Proveedor.RazonSocial as ProveedorNombre',
+                'Proveedor.RFC as ProveedorRFC',
+                'Proveedor.Banco as CuentaBanco',
+                'Proveedor.Cuenta as Cuenta',
+                'Proveedor.Clabe as Clabe',
+                'Proveedor.Nombre_Contacto as Nombre_Contacto',
+                'Proveedor.Tel_Contacto as Tel_Contacto',
+                'Razon_Social.Nombre as RazonSocialNombre',
+                'UsuarioAutoriza.Nombre as UsuarioAutorizaNombre',
+                'Cotizacion.Total as MontoTotal',
+                'Cotizacion.ID_Cotizacion',
+                // Campos de Orden de Compra
+                'OrdenCompra.ID_OrdenCompra',
+                'OrdenCompra.Estado as OrdenEstado',
+                'OrdenCompra.Fecha as OrdenFecha',
+                'OrdenCompra.File_Factura',
+                'OrdenCompra.File_Comprobante',
+                'OrdenCompra.FechaRefPago',
+                'OrdenCompra.FechaPagoRealizado'
+            ])
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Usuarios as UsuarioAutoriza', 'UsuarioAutoriza.ID_Usuario = Solicitud.ID_Usuario_Autoriza', 'left')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
+            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
+            ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->findAll();
+
+        return $solicitudes ?: [];
+    }
+
+    /**
      * Obtiene solicitudes filtradas por varios criterios.
      *
      * @param string|null $fecha La fecha para filtrar (YYYY-MM-DD).
