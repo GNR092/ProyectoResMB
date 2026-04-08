@@ -40,6 +40,18 @@ function registrarComponenteReportePresupuesto() {
             currentPageVencimientos: 1,
             rowsPerPageVencimientos: 15,
             filtroTextoVencimientos: '',
+            
+            // Nuevos filtros Choices.js para Vencimientos
+            filtrosFolioVenc: '',
+            filtrosProveedoresVenc: [],
+            filtrosRazonesVenc: [],
+            filtrosPlacesVenc: [],
+            filtrosDeptosVenc: [],
+            
+            choicesProvVenc: null,
+            choicesRazonVenc: null,
+            choicesPlaceVenc: null,
+            choicesDeptoVenc: null,
 
             // Paginación y filtrado movimientos
             currentPageMovimientos: 1,
@@ -224,7 +236,10 @@ function registrarComponenteReportePresupuesto() {
                         // Carga automática si aplica
                         if (nueva === 'proveedores') this.cargarListaProveedores();
                         if (nueva === 'movimientos') this.cargarMovimientosProveedor();
-                        if (nueva === 'vencimientos') this.cargarReporteVencimientos();
+                        if (nueva === 'vencimientos') {
+                            this.cargarReporteVencimientos();
+                            this.initChoicesVencimientos();
+                        }
                     });
                 }
             },
@@ -400,11 +415,19 @@ function registrarComponenteReportePresupuesto() {
                                     Dias_Credito: parseInt(item.Dias_Credito) || 0,
                                     importePorPagar: 0,
                                     fechaReferenciaBase: null,
-                                    diasVencidos: 0
+                                    diasVencidos: 0,
+                                    solicitudes: []
                                 };
                             }
 
                             acc[idProv].importePorPagar += (parseFloat(item.Total) || 0);
+                            acc[idProv].solicitudes.push({
+                                No_Folio: item.No_Folio,
+                                ID_Proveedor: item.ID_Proveedor,
+                                ID_RazonSocial: item.ID_RazonSocial,
+                                ID_Place: item.ID_Place,
+                                ID_Dpto: item.ID_Dpto
+                            });
 
                             const baseDateStr = item.FechaRefPago || item.FechaOrden;
                             if (baseDateStr) {
@@ -459,14 +482,65 @@ function registrarComponenteReportePresupuesto() {
             },
 
             get vencimientosFiltrados() {
-                const search = (this.filtroTextoVencimientos || '').toLowerCase();
                 const source = this.reporteDetallado ? this.vencimientosRaw : this.vencimientosAgrupados;
                 
-                return source.filter(v => 
-                    !search || 
-                    (v.RazonSocial || '').toLowerCase().includes(search) ||
-                    (this.reporteDetallado && (v.No_Folio || '').toLowerCase().includes(search))
-                );
+                const searchFolio = (this.filtrosFolioVenc || '').toLowerCase();
+                const selProvs = (this.filtrosProveedoresVenc || []).map(String);
+                const selRazones = (this.filtrosRazonesVenc || []).map(String);
+                const selPlaces = (this.filtrosPlacesVenc || []).map(String);
+                const selDeptos = (this.filtrosDeptosVenc || []).map(String);
+
+                return source.filter(v => {
+                    // Si es agrupado, chequeamos si alguna de sus solicitudes cumple los filtros
+                    const itemsToCheck = this.reporteDetallado ? [v] : v.solicitudes;
+
+                    return itemsToCheck.some(item => {
+                        const matchFolio = !searchFolio || (item.No_Folio || '').toLowerCase().includes(searchFolio);
+                        const matchProv = selProvs.length === 0 || selProvs.includes(String(item.ID_Proveedor));
+                        const matchRazon = selRazones.length === 0 || selRazones.includes(String(item.ID_RazonSocial));
+                        const matchPlace = selPlaces.length === 0 || selPlaces.includes(String(item.ID_Place));
+                        const matchDepto = selDeptos.length === 0 || selDeptos.includes(String(item.ID_Dpto));
+
+                        return matchFolio && matchProv && matchRazon && matchPlace && matchDepto;
+                    });
+                });
+            },
+
+            limpiarFiltrosVencimientos() {
+                this.filtrosFolioVenc = '';
+                this.filtrosProveedoresVenc = [];
+                this.filtrosRazonesVenc = [];
+                this.filtrosPlacesVenc = [];
+                this.filtrosDeptosVenc = [];
+                
+                if (this.choicesProvVenc) this.choicesProvVenc.removeActiveItems();
+                if (this.choicesRazonVenc) this.choicesRazonVenc.removeActiveItems();
+                if (this.choicesPlaceVenc) this.choicesPlaceVenc.removeActiveItems();
+                if (this.choicesDeptoVenc) this.choicesDeptoVenc.removeActiveItems();
+                
+                this.currentPageVencimientos = 1;
+            },
+
+            initChoicesVencimientos() {
+                if (typeof Choices === 'undefined') return;
+
+                const config = { removeItemButton: true, itemSelectText: '', allowHTML: true, shouldSort: false };
+
+                const initOne = (ref, prop, choicesProp) => {
+                    const el = this.$refs[ref];
+                    if (!el) return;
+                    if (this[choicesProp]) this[choicesProp].destroy();
+                    this[choicesProp] = new Choices(el, config);
+                    el.addEventListener('change', () => {
+                        this[prop] = this[choicesProp].getValue(true).map(String);
+                        this.currentPageVencimientos = 1;
+                    });
+                };
+
+                initOne('choicesProvVenc', 'filtrosProveedoresVenc', 'choicesProvVenc');
+                initOne('choicesRazonVenc', 'filtrosRazonesVenc', 'choicesRazonVenc');
+                initOne('choicesPlaceVenc', 'filtrosPlacesVenc', 'choicesPlaceVenc');
+                initOne('choicesDeptoVenc', 'filtrosDeptosVenc', 'choicesDeptoVenc');
             },
 
             get totalPagesVencimientos() {

@@ -590,17 +590,76 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                 <label class="inline-flex items-center cursor-pointer">
                                     <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
                                     <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
-                                    <span class="ms-3 text-[10px] font-bold text-gray-700 uppercase tracking-tighter">Reporte Detallado</span>
+                                    <span class="ms-3 text-[10px] font-bold text-gray-700 uppercase tracking-tighter">📝 Reporte Detallado</span>
                                 </label>
                             </div>
-
-                            <div class="relative max-w-xs">                                <input type="text" x-model="filtroTextoVencimientos" placeholder="Buscar..." 
-                                       class="w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
-                                <svg class="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
                             <h2 class="text-xl font-bold text-gray-800">Reportes de Vencimiento</h2>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Filtros Avanzados -->
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <!-- Folio -->
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Folio</label>
+                                <input type="text" x-model="filtrosFolioVenc" placeholder="Buscar folio..." 
+                                       class="px-3 py-2 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
+                            </div>
+
+                            <!-- Proveedor -->
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Proveedor</label>
+                                <select x-ref="choicesProvVenc" multiple>
+                                    <?php if (!empty($proveedores)): ?>
+                                        <?php foreach ($proveedores as $prov): ?>
+                                            <option value="<?= esc($prov['ID_Proveedor']) ?>"><?= esc($prov['RazonSocial']) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+
+                            <!-- Razón Social -->
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Razón Social</label>
+                                <select x-ref="choicesRazonVenc" multiple>
+                                    <?php if (!empty($razones_sociales)): ?>
+                                        <?php foreach ($razones_sociales as $rs): ?>
+                                            <option value="<?= esc($rs['ID_RazonSocial']) ?>"><?= esc($rs['Nombre']) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+
+                            <!-- Complejo (Places) -->
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Complejo</label>
+                                <select x-ref="choicesPlaceVenc" multiple>
+                                    <?php if (!empty($places)): ?>
+                                        <?php foreach ($places as $p): ?>
+                                            <option value="<?= esc($p['ID_Place']) ?>"><?= esc($p['Nombre_Corto']) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+
+                            <!-- Departamento -->
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Departamento</label>
+                                <select x-ref="choicesDeptoVenc" multiple>
+                                    <?php if (!empty($departamentos)): ?>
+                                        <?php foreach ($departamentos as $d): ?>
+                                            <option value="<?= esc($d['ID_Dpto']) ?>"><?= esc($d['Nombre']) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end mt-4">
+                            <button @click="limpiarFiltrosVencimientos()" class="px-4 py-1.5 bg-gray-800 text-white text-[10px] font-bold rounded-lg hover:bg-gray-900 transition-all uppercase tracking-widest shadow-sm">
+                                Limpiar Filtros
+                            </button>
                         </div>
                     </div>
 
@@ -617,7 +676,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                     <th class="border px-3 py-2 text-right">Importe Por Pagar</th>
                                     <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Saldo Crédito</th>
                                     <th class="border px-3 py-2 text-center">Días Créd.</th>
-                                    <th class="border px-3 py-2 text-center">Fecha Ref.</th>
+                                    <th class="border px-3 py-2 text-center" x-show="reporteDetallado">Fecha Ref.</th>
                                     <th class="border px-3 py-2 text-center">Días Vencido</th>
                                 </tr>
                             </thead>
@@ -642,7 +701,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                         <td class="px-3 py-2 text-right font-bold" :class="reporteDetallado ? 'text-gray-700' : 'text-blue-700'" x-text="formatearMoneda(v.importePorPagar)"></td>
                                         <td class="px-3 py-2 text-right font-black" x-show="!reporteDetallado" :class="v.saldoCredito < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(v.saldoCredito)"></td>
                                         <td class="px-3 py-2" x-text="v.Dias_Credito"></td>
-                                        <td class="px-3 py-2" x-text="v.fechaReferenciaStr"></td>
+                                        <td class="px-3 py-2" x-show="reporteDetallado" x-text="v.fechaReferenciaStr"></td>
                                         <td class="px-3 py-2 font-black uppercase tracking-tighter">
                                             <span x-text="v.textoVencimiento"></span>
                                         </td>
