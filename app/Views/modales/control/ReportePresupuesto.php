@@ -355,6 +355,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                 <th class="border px-3 py-2 text-left">Razón social</th>
                                 <th class="border px-3 py-2 text-left">Proveedor</th>
                                 <th class="border px-3 py-2 text-left">Fecha</th>
+                                <th class="border px-3 py-2 text-right">Importe Total</th>
                                 <th class="border px-3 py-2 text-center">Estado</th>
                                 <th class="border px-3 py-2 text-center">Acción</th>
                             </tr>
@@ -362,7 +363,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <tbody class="bg-white">
                             <template x-if="paginatedData.length === 0">
                                 <tr>
-                                    <td colspan="7" class="text-center py-12 text-gray-400 italic">No se encontraron datos que coincidan con los filtros.</td>
+                                    <td colspan="8" class="text-center py-12 text-gray-400 italic">No se encontraron datos que coincidan con los filtros.</td>
                                 </tr>
                             </template>
                             <template x-for="(item, index) in paginatedData" :key="item.ID_Solicitud || ('row-' + index)">
@@ -372,6 +373,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                     <td class="border px-3 py-2 text-left" x-text="item.Complejo"></td>
                                     <td class="border px-3 py-2 text-left" x-text="item.proveedor?.RazonSocial"></td>
                                     <td class="border px-3 py-2 text-left" x-text="item.Fecha"></td>
+                                    <td class="border px-3 py-2 text-right font-bold" x-text="formatearMoneda(item.MontoTotal)"></td>
                                     <td class="border px-3 py-2 col-estado"
                                         :data-estado="item.EstadoOrden"
                                         :title="item.EstadoOrden"

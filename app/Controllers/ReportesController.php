@@ -66,6 +66,7 @@ class ReportesController extends ResourceController
                 $estado = $o['OrdenCompra']['Estado'] ?? '';
                 if (in_array($estado, ['Por Pagar', 'Pagada'])) {
                     $o['EstadoOrden'] = $estado;
+                    $o['MontoTotal'] = $o['cotizacion']['Total'] ?? 0;
                     $tabledata[] = $o;
                 }
             }
