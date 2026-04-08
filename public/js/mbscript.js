@@ -780,6 +780,7 @@ function initSolicitarMaterialTodo() {
  * Lógica para el modal "Ver Historial"
  */
 let choicesDepartamento = null
+let choicesProveedor = null
 function initPaginacionHistorial() {
   const tabla = document.getElementById('tabla-historial')
   if (!tabla) return
@@ -790,6 +791,19 @@ function initPaginacionHistorial() {
       removeItemButton: true,
       placeholder: true,
       placeholderValue: 'Todos los departamentos',
+      searchPlaceholderValue: 'Buscar...',
+      itemSelectText: 'Seleccionar',
+      noResultsText: 'No se encontraron resultados',
+      noChoicesText: 'No hay más opciones para elegir',
+    })
+  }
+
+  const filtroProvEl = document.getElementById('filtro-proveedor')
+  if (filtroProvEl) {
+    choicesProveedor = new Choices(filtroProvEl, {
+      removeItemButton: true,
+      placeholder: true,
+      placeholderValue: 'Todos los proveedores',
       searchPlaceholderValue: 'Buscar...',
       itemSelectText: 'Seleccionar',
       noResultsText: 'No se encontraron resultados',
@@ -945,17 +959,21 @@ function initPaginacionHistorial() {
       const fechaFiltro = document.getElementById('filtro-fecha').value
       const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
       const estadoFiltro = document.getElementById('filtro-estado').value
-      const proveedorFiltro = document.getElementById('filtro-proveedor')?.value.toLowerCase() || ''
+      const folioFiltro = document.getElementById('filtro-folio')?.value.toLowerCase() || ''
       const departamentosSeleccionados = choicesDepartamento
         ? choicesDepartamento.getValue(true)
         : []
+      const proveedoresSeleccionados = choicesProveedor ? choicesProveedor.getValue(true) : []
 
       return allData.filter((item) => {
         const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
 
         const coincideProveedor =
-          !proveedorFiltro ||
-          (item.ProveedorNombre && item.ProveedorNombre.toLowerCase().includes(proveedorFiltro))
+          proveedoresSeleccionados.length === 0 ||
+          (item.ProveedorNombre && proveedoresSeleccionados.includes(item.ProveedorNombre))
+
+        const coincideFolio =
+          !folioFiltro || (item.No_Folio && item.No_Folio.toLowerCase().includes(folioFiltro))
 
         let coincideDepartamento = true
         if (departamentosSeleccionados.length > 0) {
@@ -970,7 +988,7 @@ function initPaginacionHistorial() {
         }
 
         if (!fechaFiltro) {
-          return coincideEstado && coincideDepartamento && coincideProveedor
+          return coincideEstado && coincideDepartamento && coincideProveedor && coincideFolio
         }
 
         const fechaItem = item.Fecha
@@ -978,11 +996,19 @@ function initPaginacionHistorial() {
           const mesFiltro = fechaFiltro.slice(0, 7)
           const mesItem = fechaItem.slice(0, 7)
           return (
-            mesItem === mesFiltro && coincideEstado && coincideDepartamento && coincideProveedor
+            mesItem === mesFiltro &&
+            coincideEstado &&
+            coincideDepartamento &&
+            coincideProveedor &&
+            coincideFolio
           )
         } else {
           return (
-            fechaItem === fechaFiltro && coincideEstado && coincideDepartamento && coincideProveedor
+            fechaItem === fechaFiltro &&
+            coincideEstado &&
+            coincideDepartamento &&
+            coincideProveedor &&
+            coincideFolio
           )
         }
       })

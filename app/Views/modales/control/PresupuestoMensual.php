@@ -43,7 +43,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
             
             <button @click="copiarAnterior()"
-                    x-show="!cargando && departamentos.length > 0 && !bloqueadoPorRevision"
+                    x-show="!cargando && departamentos.length > 0"
                     class="mt-1 px-1 py-0.5 border border-orange-500 text-orange-600 hover:bg-orange-50 text-[9px] font-bold uppercase rounded transition-colors w-full text-center"
                     title="Copiar montos del mes anterior">
                 Copiar Mes Anterior
@@ -70,16 +70,16 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     Exportar Anual
                 </button>
 
-                <div x-show="<?= (session('departamento_usuario') === 'Dirección') ? 'true' : 'false' ?> || usoCopia" class="flex gap-2">
+                <div class="flex gap-2">
                     <button @click="guardarMasivo(true)"
-                            :disabled="guardando || bloqueadoPorRevision"
+                            :disabled="guardando"
                             title="Aplica los montos asignados a este mes y a todos los meses restantes del año"
                             class="px-4 py-2 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2 text-xs">
                         <span x-text="guardando ? 'Procesando...' : 'Asignar Resto del Año'"></span>
                     </button>
                     
                     <button @click="guardarMasivo(false)"
-                            :disabled="guardando || bloqueadoPorRevision"
+                            :disabled="guardando"
                             class="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2 text-xs">
                         <svg x-show="guardando" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -168,8 +168,6 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                                 <input type="number"
                                        min="0" step="0.01"
                                        x-model="grupo.Monto_Asignado"
-                                       :disabled="bloqueadoPorRevision || <?= (session('departamento_usuario') !== 'Dirección') ? 'true' : 'false' ?>"
-                                       :class="(bloqueadoPorRevision || <?= (session('departamento_usuario') !== 'Dirección') ? 'true' : 'false' ?>) ? 'bg-gray-100 cursor-not-allowed' : ''"
                                        placeholder="0.00"
                                        class="w-32 px-2 py-1.5 border border-gray-300 rounded-md text-right focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent">
                             </div>
@@ -180,18 +178,6 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                 </tbody>
             </template>
         </table>
-    </div>
-
-    <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded" x-show="bloqueadoPorRevision" x-cloak>
-        <div class="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 15.667c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <div>
-                <p class="text-sm font-bold text-amber-800">Atención: Edición Bloqueada</p>
-                <p class="text-xs text-amber-700">Existe una solicitud de cambio pendiente para este periodo y complejo(s). Debe esperar a que sea procesada para realizar nuevos ajustes.</p>
-            </div>
-        </div>
     </div>
 
     <div class="flex items-center justify-between mt-6">

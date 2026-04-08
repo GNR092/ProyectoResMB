@@ -101,7 +101,7 @@ class PresupuestoApiController extends ResourceController
                 }
             }
 
-            return $this->respond(['departamentos' => $estructura, 'bloqueadoPorRevision' => $bloqueado]);
+            return $this->respond(['departamentos' => $estructura, 'bloqueadoPorRevision' => false]);
         } catch (\Throwable $e) {
             log_message('error', '[getEstructura] ' . $e->getMessage());
             return $this->failServerError($e->getMessage());
@@ -115,76 +115,17 @@ class PresupuestoApiController extends ResourceController
             return $this->failValidationErrors('Datos incompletos.');
         }
 
-        $anio = (int) $json['anio'];
-        $mes = (int) $json['mes'];
-        $comentarios = $json['comentarios'] ?? null;
-        $usoCopia = $json['uso_copia'] ?? false;
-        $restoAnio = $json['resto_anio'] ?? false;
-
-        $mesesAGuardar = [$mes];
-        if ($restoAnio) {
-            $mesesAGuardar = [];
-            for ($m = $mes; $m <= 12; $m++) {
-                $mesesAGuardar[] = $m;
-            }
+        $db = \Config\Database::connect();
+        $db->transStart();
+        try {
+            $this->ejecutarPresupuestoMasivo($json);
+            $db->transComplete();
+            if ($db->transStatus() === false) throw new \Exception('Error al guardar presupuesto.');
+            return $this->respond(['success' => true, 'pending_review' => false, 'message' => 'Presupuesto guardado correctamente ✅']);
+        } catch (\Exception $e) {
+            $db->transRollback();
+            return $this->failServerError($e->getMessage());
         }
-
-        if ($usoCopia) {
-            $db = \Config\Database::connect();
-            $db->transStart();
-            try {
-                $pmModel = new PresupuestoMensualModel();
-                $paModel = new PresupuestoAnualModel();
-                $uniModel = new UnidadOperativaModel();
-                $placesModel = new PlacesModel();
-                
-                $rsAfectadas = [];
-
-                foreach ($mesesAGuardar as $mActual) {
-                    foreach ($json['grupos'] as $g) {
-                        $idUnidad = (int) ($g['id_unidad'] ?? $g['id_dpto']);
-                        $idGrupo  = (int) $g['id_grupo'];
-                        $data = ['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => $idGrupo, 'Anio' => $anio, 'Mes' => $mActual, 'Monto_Asignado' => (float) $g['monto_asignado']];
-
-                        $exists = $pmModel->where(['ID_UnidadOperativa' => $idUnidad, 'ID_GrupoPresupuestal' => $idGrupo, 'Anio' => $anio, 'Mes' => $mActual])->first();
-                        if ($exists) {
-                            $pmModel->update($exists['ID_PresupuestoMensual'], $data);
-                        } else {
-                            $this->syncPresupuestoMensualSequenceIfNeeded($db);
-                            $pmModel->insert($data);
-                        }
-
-                        $unidad = $uniModel->find($idUnidad);
-                        if ($unidad) {
-                            $place = $placesModel->find($unidad['ID_Place']);
-                            if ($place) $rsAfectadas[] = (int) $place['ID_RazonSocial'];
-                        }
-                    }
-                }
-
-                foreach (array_unique($rsAfectadas) as $idRS) {
-                    $q = $db->table('PresupuestoMensual')->selectSum('PresupuestoMensual.Monto_Asignado', 'total')->join('UnidadOperativa u', 'u.ID_UnidadOperativa = PresupuestoMensual.ID_UnidadOperativa')->join('Places p', 'p.ID_Place = u.ID_Place')->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = PresupuestoMensual.ID_GrupoPresupuestal')->where(['PresupuestoMensual.Anio' => $anio, 'p.ID_RazonSocial' => $idRS, 'gp.activo' => true])->get()->getRow();
-                    $total = $q ? (float) $q->total : 0.0;
-                    $pa = $paModel->where(['Anio' => $anio, 'ID_RazonSocial' => $idRS])->first();
-                    if ($pa) $paModel->update($pa['ID_PresupuestoAnual'], ['Monto' => $total]);
-                    else $paModel->insert(['ID_RazonSocial' => $idRS, 'Anio' => $anio, 'Monto' => $total]);
-                }
-
-                $db->transComplete();
-                if ($db->transStatus() === false) throw new \Exception('Error al guardar copia.');
-                return $this->respond(['success' => true, 'pending_review' => false, 'message' => 'Presupuesto guardado correctamente ✅']);
-            } catch (\Exception $e) {
-                $db->transRollback();
-                return $this->failServerError($e->getMessage());
-            }
-        }
-
-        $solModel = new \App\Models\SolicitudesCambioPresupuestoModel();
-        foreach ($mesesAGuardar as $mActual) {
-            $solModel->insert(['ID_Usuario' => session('id'), 'Modulo' => 'PresupuestoMensual', 'Accion' => 'Masivo', 'ID_Afectado' => "{$anio}-{$mActual}", 'Datos_Payload' => json_encode($json), 'Estado' => 'Pendiente', 'Comentarios_Solicitante' => $comentarios]);
-        }
-        
-        return $this->respondCreated(['success' => true, 'pending_review' => true, 'message' => 'Cambios enviados a revisión.']);
     }
 
     /**

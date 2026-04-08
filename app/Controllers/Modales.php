@@ -38,11 +38,16 @@ class Modales extends BaseController
         switch ($opcion) {
             case 'ver_historial':
                 $departamentoModel = new DepartamentosModel();
+                $proveedorModel = new \App\Models\ProveedorModel();
                 $data['departamentos'] = $departamentoModel
                     ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
                     ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
                     ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
+                    ->findAll();
+                $data['proveedores'] = $proveedorModel
+                    ->select('ID_Proveedor, RazonSocial')
+                    ->orderBy('RazonSocial', 'ASC')
                     ->findAll();
                 return view('modales/ver_historial', $data);
 
