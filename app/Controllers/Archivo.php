@@ -99,6 +99,7 @@ class Archivo extends BaseController
 
             // 1. Obtener datos del origen del usuario (independientemente de a dónde cargue)
             $departamentoModel = new DepartamentosModel();
+            $unidadOperativaModel = new \App\Models\UnidadOperativaModel();
             $idDptoOriginal = $user['ID_Dpto'] ?? null;
             $idRSOriginal = $user['ID_RazonSocial'] ?? null;
             $deptoUsuario = $idDptoOriginal ? $departamentoModel->find($idDptoOriginal) : null;
@@ -135,7 +136,7 @@ class Archivo extends BaseController
                         // Lógica especial para 'Operacion': Usar el Place seleccionado para determinar la Unidad Operativa
                         $idPlaceDestino = $post['id_place'];
                         // Buscamos la primera unidad operativa asociada a este Place (ya que la real se definirá por la partida)
-                        $unidadDestino = $uniModel->where('ID_Place', $idPlaceDestino)->where('activo', true)->first();
+                        $unidadDestino = $unidadOperativaModel->where('ID_Place', $idPlaceDestino)->where('activo', true)->first();
                         
                         if ($unidadDestino) {
                             $idUnidadFinal = $unidadDestino['ID_UnidadOperativa'];
