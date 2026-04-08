@@ -328,6 +328,64 @@ class Api extends ResourceController
     }
 
     /**
+     * Obtiene el reporte de vencimientos para solicitudes a crédito (MetodoPago = 1).
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getReporteVencimientos()
+    {
+        try {
+            $db = \Config\Database::connect();
+
+            // Consultamos órdenes que sean a CRÉDITO (1) y que NO estén pagadas totalmente.
+            // Incluimos tanto 'Espera_Programacion' como 'Por Pagar' para el reporte de vencimientos global.
+            $data = $db->table('OrdenCompra')
+                ->select([
+                    'Solicitud.ID_Solicitud',
+                    'Solicitud.No_Folio',
+                    'Solicitud.MetodoPago',
+                    'Solicitud.Fecha as FechaSolicitud',
+                    'Solicitud.Fecha_Aprobacion',
+                    'OrdenCompra.Fecha as FechaOrden',
+                    'OrdenCompra.FechaRefPago',
+                    'OrdenCompra.Estado as EstadoOrden',
+                    'Departamentos.Nombre as DepartamentoNombre',
+                    'Razon_Social.Nombre as Complejo',
+                    'UnidadOperativa.Nombre as UnidadOperativaNombre',
+                    'Proveedor.ID_Proveedor',
+                    'Proveedor.RazonSocial',
+                    'Proveedor.RFC',
+                    'Proveedor.Banco',
+                    'Proveedor.Cuenta',
+                    'Proveedor.Clabe',
+                    'Proveedor.Nombre_Contacto',
+                    'Proveedor.Tel_Contacto',
+                    'Proveedor.Monto_Credito',
+                    'Proveedor.Dias_Credito',
+                    'Cotizacion.Total'
+                ])
+                ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'inner')
+                ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'inner')
+                ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+                ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
+                ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+                ->where('Solicitud.MetodoPago', '1')
+                ->where('OrdenCompra.Estado !=', 'Pagada')
+                ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+                ->get()
+                ->getResultArray();
+
+            return $this->response->setJSON($data);
+
+        } catch (\Throwable $th) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'status' => 'error',
+                'message' => $th.getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Obtiene las solicitudes de un usuario por su ID.
      * @param int|null $id
      * @return \CodeIgniter\HTTP\Response

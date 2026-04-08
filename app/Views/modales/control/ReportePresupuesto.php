@@ -68,6 +68,14 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-teal-700 text-xs">Movimientos De Proveedor</span>
             </button>
+            <button @click="irAPantalla('vencimientos')" class="flex flex-col items-center p-4 border-2 border-yellow-100 rounded-xl hover:border-yellow-500 hover:bg-yellow-50 transition-all group">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-yellow-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#ReporteVencimientos"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-yellow-700 text-xs">Reportes De Vencimiento</span>
+            </button>
         </div>
     </div>
 
@@ -568,11 +576,115 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <!-- Renderizado dinámico desde JS (idéntico al historial) -->
                 </div>
             </div>
+            </div>
+            </template>
 
-        </div>
-    </template>
+            <!-- Pantalla 8: Reportes de Vencimiento -->
+            <template x-if="pantalla === 'vencimientos'">
+                <div class="animate-fadeIn">
+                    <div class="flex items-center justify-between mb-6">
+                        <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-yellow-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                        <div class="flex items-center gap-4">
+                            <h2 class="text-xl font-bold text-gray-800">Reportes de Vencimiento</h2>
+                        </div>
+                    </div>
 
-    <!-- Pantalla 2: Reporte Presupuesto vs Ejecutado -->
+                    <!-- Simbología -->
+                    <div class="flex flex-wrap items-center gap-6 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-[10px] uppercase font-bold tracking-tight">
+                        <span class="text-gray-700">Simbología:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded bg-gray-900 border border-gray-600 shadow-sm"></span>
+                            <span class="text-gray-600">Vencido</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded bg-red-100 border border-red-200 shadow-sm"></span>
+                            <span class="text-gray-600">Menos de 5 días</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded bg-yellow-100 border border-yellow-200 shadow-sm"></span>
+                            <span class="text-gray-600">Menos de 15 días</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded bg-white border border-gray-300 shadow-sm"></span>
+                            <span class="text-gray-600">Vigente (+15 días)</span>
+                        </div>
+
+                        <div class="ml-auto grow max-w-xs">
+                            <input type="text" x-model="filtroTextoVencimientos" placeholder="Buscar Folio o Proveedor..." 
+                                   class="w-full px-3 py-1.5 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
+                        </div>
+                    </div>
+
+                    <!-- Tabla -->
+                    <div class="overflow-x-auto shadow rounded-lg border border-gray-300">
+                        <table class="min-w-full border-collapse" id="tabla-vencimientos">
+                            <thead class="bg-gray-100 text-gray-600 uppercase text-[10px] font-bold">
+                                <tr>
+                                    <th class="border px-3 py-2 text-left">Folio</th>
+                                    <th class="border px-3 py-2 text-left">Proveedor</th>
+                                    <th class="border px-3 py-2 text-center">Fecha Orden</th>
+                                    <th class="border px-3 py-2 text-center">Días Créd.</th>
+                                    <th class="border px-3 py-2 text-center">Vencimiento</th>
+                                    <th class="border px-3 py-2 text-center">Días Rest.</th>
+                                    <th class="border px-3 py-2 text-right">Importe Total</th>
+                                    <th class="border px-3 py-2 text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                <template x-if="cargando">
+                                    <tr>
+                                        <td colspan="8" class="text-center py-12 text-gray-500 italic">Cargando reporte de vencimientos...</td>
+                                    </tr>
+                                </template>
+                                <template x-if="!cargando && paginatedVencimientos.length === 0">
+                                    <tr>
+                                        <td colspan="8" class="text-center py-12 text-gray-400 italic">No se encontraron deudas a crédito pendientes.</td>
+                                    </tr>
+                                </template>
+                                <template x-for="(v, index) in paginatedVencimientos" :key="'venc-' + (v.ID_Solicitud || index)">
+                                    <tr class="text-center hover:bg-gray-50 text-xs border-b transition-colors" :class="v.claseSemaforo">
+                                        <td class="px-3 py-2 text-left font-mono font-bold" x-text="v.No_Folio"></td>
+                                        <td class="px-3 py-2 text-left">
+                                            <div class="font-medium" x-text="v.RazonSocial"></div>
+                                            <div class="text-[9px] opacity-70" x-text="v.RFC || ''"></div>
+                                        </td>
+                                        <td class="px-3 py-2" x-text="v.FechaRefPago || v.Fecha_Aprobacion || v.FechaOrden || v.FechaSolicitud || '-'"></td>
+                                        <td class="px-3 py-2 font-bold" x-text="v.Dias_Credito || 0"></td>
+                                        <td class="px-3 py-2 font-bold" x-text="v.fechaVencimientoCalculada"></td>
+                                        <td class="px-3 py-2 font-black uppercase tracking-tighter" x-text="v.textoVencimiento"></td>
+                                        <td class="px-3 py-2 text-right font-bold" x-text="formatearMoneda(v.Total)"></td>
+                                        <td class="px-3 py-2">
+                                            <span class="px-2 py-0.5 rounded-full bg-white/20 border border-current text-[9px] font-bold" x-text="v.EstadoOrden"></span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Controles de Paginación -->
+                    <div class="flex justify-between items-center mt-4" x-show="totalPagesVencimientos > 1">
+                        <span class="text-xs text-gray-600 font-medium">
+                            Página <span x-text="currentPageVencimientos"></span> de <span x-text="totalPagesVencimientos"></span>
+                        </span>
+
+                        <div class="flex items-center gap-1">
+                            <button @click="cambiarPaginaVencimientos(1)" :disabled="currentPageVencimientos === 1"
+                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                            <button @click="cambiarPaginaVencimientos(currentPageVencimientos - 1)" :disabled="currentPageVencimientos === 1"
+                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+
+                            <span class="px-3 py-1 border rounded bg-yellow-600 text-white text-xs font-bold" x-text="currentPageVencimientos"></span>
+
+                            <button @click="cambiarPaginaVencimientos(currentPageVencimientos + 1)" :disabled="currentPageVencimientos === totalPagesVencimientos"
+                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                            <button @click="cambiarPaginaVencimientos(totalPagesVencimientos)" :disabled="currentPageVencimientos === totalPagesVencimientos"
+                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <!-- Pantalla 2: Reporte Presupuesto vs Ejecutado -->
     <template x-if="pantalla === 'presupuesto'">
         <div class="animate-fadeIn">
             <div class="flex items-center justify-between mb-6">

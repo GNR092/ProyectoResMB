@@ -33,6 +33,11 @@ function registrarComponenteReportePresupuesto() {
             movimientosProveedor: [],
             movimientoSeleccionado: null,
 
+            vencimientos: [],
+            currentPageVencimientos: 1,
+            rowsPerPageVencimientos: 15,
+            filtroTextoVencimientos: '',
+
             // Paginación y filtrado movimientos
             currentPageMovimientos: 1,
             rowsPerPageMovimientos: 15,
@@ -216,6 +221,7 @@ function registrarComponenteReportePresupuesto() {
                         // Carga automática si aplica
                         if (nueva === 'proveedores') this.cargarListaProveedores();
                         if (nueva === 'movimientos') this.cargarMovimientosProveedor();
+                        if (nueva === 'vencimientos') this.cargarReporteVencimientos();
                     });
                 }
             },
@@ -327,6 +333,96 @@ function registrarComponenteReportePresupuesto() {
                 } finally {
                     this.cargando = false;
                 }
+            },
+
+            async cargarReporteVencimientos() {
+                this.cargando = true;
+                this.vencimientos = [];
+                this.currentPageVencimientos = 1;
+
+                try {
+                    const res = await fetch(`${BASE_URL}api/historic/reporte-vencimientos`);
+                    if (res.ok) {
+                        const rawData = await res.json();
+                        const hoy = new Date();
+                        hoy.setHours(0, 0, 0, 0);
+
+                        this.vencimientos = (Array.isArray(rawData) ? rawData : []).map(item => {
+                            const fechaBaseStr = item.FechaRefPago || item.Fecha_Aprobacion || item.FechaSolicitud;
+                            let fechaVencimiento = null;
+                            let diasRestantes = null;
+                            let claseSemaforo = 'bg-white';
+                            let textoVencimiento = 'N/A';
+
+                            if (fechaBaseStr) {
+                                // Reemplazar guiones por barras para compatibilidad con Safari/iOS
+                                const fechaBase = new Date(fechaBaseStr.replace(/-/g, '/').split(' ')[0]);
+                                const diasCredito = parseInt(item.Dias_Credito) || 0;
+                                
+                                fechaVencimiento = new Date(fechaBase);
+                                fechaVencimiento.setDate(fechaVencimiento.getDate() + diasCredito);
+                                
+                                const diffTime = fechaVencimiento.getTime() - hoy.getTime();
+                                diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                if (diasRestantes < 0) {
+                                    claseSemaforo = 'bg-gray-900 text-white'; // Vencido (Negro como en programar_pagos)
+                                    textoVencimiento = `Vencido (${Math.abs(diasRestantes)} d)`;
+                                } else if (diasRestantes === 0) {
+                                    claseSemaforo = 'bg-red-100 text-red-800';
+                                    textoVencimiento = 'Vence hoy';
+                                } else if (diasRestantes < 5) {
+                                    claseSemaforo = 'bg-red-100 text-red-800';
+                                    textoVencimiento = `${diasRestantes} días`;
+                                } else if (diasRestantes < 15) {
+                                    claseSemaforo = 'bg-yellow-100 text-yellow-800';
+                                    textoVencimiento = `${diasRestantes} días`;
+                                } else {
+                                    claseSemaforo = 'bg-white text-gray-700';
+                                    textoVencimiento = `${diasRestantes} días`;
+                                }
+                            }
+
+                            return {
+                                ...item,
+                                fechaVencimientoCalculada: fechaVencimiento ? fechaVencimiento.toLocaleDateString('es-MX') : 'N/A',
+                                diasRestantes: diasRestantes,
+                                claseSemaforo: claseSemaforo,
+                                textoVencimiento: textoVencimiento
+                            };
+                        });
+                        
+                        // Ordenar por días restantes (vencidos primero)
+                        this.vencimientos.sort((a, b) => (a.diasRestantes || 999) - (b.diasRestantes || 999));
+                    }
+                } catch (e) {
+                    console.error("Error cargando vencimientos:", e);
+                } finally {
+                    this.cargando = false;
+                }
+            },
+
+            get vencimientosFiltrados() {
+                const search = (this.filtroTextoVencimientos || '').toLowerCase();
+                return this.vencimientos.filter(v => 
+                    !search || 
+                    (v.No_Folio || '').toLowerCase().includes(search) || 
+                    (v.RazonSocial || '').toLowerCase().includes(search)
+                );
+            },
+
+            get totalPagesVencimientos() {
+                return Math.ceil(this.vencimientosFiltrados.length / this.rowsPerPageVencimientos) || 1;
+            },
+
+            get paginatedVencimientos() {
+                const start = (this.currentPageVencimientos - 1) * this.rowsPerPageVencimientos;
+                return this.vencimientosFiltrados.slice(start, start + this.rowsPerPageVencimientos);
+            },
+
+            cambiarPaginaVencimientos(page) {
+                if (page < 1 || page > this.totalPagesVencimientos) return;
+                this.currentPageVencimientos = page;
             },
 
             get movimientosFiltrados() {
