@@ -461,14 +461,7 @@ function registrarComponentePresupuesto() {
                     return;
                 }
 
-                let comentarios = 'Copia de mes anterior (Excepción)';
-                if (!this.usoCopia) {
-                    comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe brevemente el motivo de esta asignación (Obligatorio):', true);
-                    if (comentarios === null) {
-                        this.guardando = false;
-                        return;
-                    }
-                }
+                let comentarios = this.usoCopia ? 'Copia de mes anterior' : 'Actualización directa';
 
                 const payload = {
                     anio: parseInt(anio),
@@ -491,18 +484,10 @@ function registrarComponentePresupuesto() {
 
                     if (res.ok) {
                         const result = await res.json();
-                        if (result.pending_review) {
-                            this.mensaje = result.message || 'Presupuestos enviados a revisión.';
-                            this.error = false;
-                            this.usoCopia = false;
-                            this.bloqueadoPorRevision = true; // Bloqueo inmediato en el frontend
-                            await this.cargarEstructura();    // Sincronizar con el servidor
-                        } else {
-                            this.mensaje = 'Presupuestos guardados correctamente';
-                            this.error = false;
-                            this.usoCopia = false;
-                            await this.cargarEstructura();
-                        }
+                        this.mensaje = result.message || 'Presupuestos guardados correctamente';
+                        this.error = false;
+                        this.usoCopia = false;
+                        await this.cargarEstructura();
                     } else {
                         this.mensaje = 'Error al guardar los presupuestos';
                         this.error = true;
