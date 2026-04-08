@@ -1947,7 +1947,40 @@ class Rest
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
             ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
-            ->groupBy('Solicitud.ID_Solicitud')
+            ->groupBy([
+                'Solicitud.ID_Solicitud',
+                'Solicitud.No_Folio',
+                'Solicitud.Fecha',
+                'Solicitud.Estado',
+                'Solicitud.Tipo',
+                'Solicitud.MetodoPago',
+                'Solicitud.IVA',
+                'Solicitud.Fecha_Aprobacion',
+                'Solicitud.ID_UnidadOperativa',
+                'Usuarios.Nombre',
+                'Departamentos.Nombre',
+                'UnidadOperativa.Nombre',
+                'UnidadOperativa.ID_Place',
+                'Places.Nombre_Corto',
+                'Proveedor.RazonSocial',
+                'Proveedor.RFC',
+                'Proveedor.Banco',
+                'Proveedor.Cuenta',
+                'Proveedor.Clabe',
+                'Proveedor.Nombre_Contacto',
+                'Proveedor.Tel_Contacto',
+                'Razon_Social.Nombre',
+                'UsuarioAutoriza.Nombre',
+                'Cotizacion.Total',
+                'Cotizacion.ID_Cotizacion',
+                'OrdenCompra.ID_OrdenCompra',
+                'OrdenCompra.Estado',
+                'OrdenCompra.Fecha',
+                'OrdenCompra.File_Factura',
+                'OrdenCompra.File_Comprobante',
+                'OrdenCompra.FechaRefPago',
+                'OrdenCompra.FechaPagoRealizado'
+            ])
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
 
