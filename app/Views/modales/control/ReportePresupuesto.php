@@ -613,9 +613,9 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                     <th class="border px-3 py-2 text-left" x-show="reporteDetallado">Folio</th>
                                     <th class="border px-3 py-2 text-left">RFC</th>
                                     <th class="border px-3 py-2 text-left">Razón Social</th>
-                                    <th class="border px-3 py-2 text-right">Importe Crédito</th>
+                                    <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Importe Crédito</th>
                                     <th class="border px-3 py-2 text-right">Importe Por Pagar</th>
-                                    <th class="border px-3 py-2 text-right">Saldo Crédito</th>
+                                    <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Saldo Crédito</th>
                                     <th class="border px-3 py-2 text-center">Días Créd.</th>
                                     <th class="border px-3 py-2 text-center">Fecha Ref.</th>
                                     <th class="border px-3 py-2 text-center">Días Vencido</th>
@@ -638,9 +638,9 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                         <td class="px-3 py-2 text-left font-bold text-blue-800" x-show="reporteDetallado" x-text="v.No_Folio"></td>
                                         <td class="px-3 py-2 text-left" x-text="v.RFC || 'N/A'"></td>
                                         <td class="px-3 py-2 text-left font-bold" x-text="v.RazonSocial"></td>
-                                        <td class="px-3 py-2 text-right" x-text="formatearMoneda(v.Monto_Credito)"></td>
+                                        <td class="px-3 py-2 text-right" x-show="!reporteDetallado" x-text="formatearMoneda(v.Monto_Credito)"></td>
                                         <td class="px-3 py-2 text-right font-bold" :class="reporteDetallado ? 'text-gray-700' : 'text-blue-700'" x-text="formatearMoneda(v.importePorPagar)"></td>
-                                        <td class="px-3 py-2 text-right font-black" :class="v.saldoCredito < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(v.saldoCredito)"></td>
+                                        <td class="px-3 py-2 text-right font-black" x-show="!reporteDetallado" :class="v.saldoCredito < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(v.saldoCredito)"></td>
                                         <td class="px-3 py-2" x-text="v.Dias_Credito"></td>
                                         <td class="px-3 py-2" x-text="v.fechaReferenciaStr"></td>
                                         <td class="px-3 py-2 font-black uppercase tracking-tighter">
