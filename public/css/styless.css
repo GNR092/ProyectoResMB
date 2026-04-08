@@ -377,6 +377,9 @@
   .left-0 {
     left: calc(var(--spacing) * 0);
   }
+  .left-2\.5 {
+    left: calc(var(--spacing) * 2.5);
+  }
   .left-3 {
     left: calc(var(--spacing) * 3);
   }
@@ -1098,6 +1101,9 @@
   .border-yellow-300 {
     border-color: var(--color-yellow-300);
   }
+  .border-yellow-700 {
+    border-color: var(--color-yellow-700);
+  }
   .border-l-gray-200 {
     border-left-color: var(--color-gray-200);
   }
@@ -1245,6 +1251,9 @@
   .bg-yellow-500 {
     background-color: var(--color-yellow-500);
   }
+  .bg-yellow-600 {
+    background-color: var(--color-yellow-600);
+  }
   .bg-gradient-to-br {
     --tw-gradient-position: to bottom right in oklab;
     background-image: linear-gradient(var(--tw-gradient-stops));
@@ -1381,6 +1390,9 @@
   }
   .pl-3 {
     padding-left: calc(var(--spacing) * 3);
+  }
+  .pl-8 {
+    padding-left: calc(var(--spacing) * 8);
   }
   .pl-10 {
     padding-left: calc(var(--spacing) * 10);
@@ -2478,6 +2490,13 @@
       }
     }
   }
+  .hover\:text-yellow-600 {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-yellow-600);
+      }
+    }
+  }
   .hover\:underline {
     &:hover {
       @media (hover: hover) {
@@ -2593,6 +2612,11 @@
   .focus\:ring-purple-300 {
     &:focus {
       --tw-ring-color: var(--color-purple-300);
+    }
+  }
+  .focus\:ring-yellow-500 {
+    &:focus {
+      --tw-ring-color: var(--color-yellow-500);
     }
   }
   .focus\:ring-offset-2 {

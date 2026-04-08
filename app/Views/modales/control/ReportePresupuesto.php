@@ -585,8 +585,16 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <div class="flex items-center justify-between mb-6">
                         <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-yellow-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
                         <div class="flex items-center gap-4">
-                            <div class="relative max-w-xs">
-                                <input type="text" x-model="filtroTextoVencimientos" placeholder="Buscar Proveedor..." 
+                            <!-- Toggle Detallado (Estilo Presupuesto Global) -->
+                            <div class="flex items-center mr-2">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
+                                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
+                                    <span class="ms-3 text-[10px] font-bold text-gray-700 uppercase tracking-tighter">Reporte Detallado</span>
+                                </label>
+                            </div>
+
+                            <div class="relative max-w-xs">                                <input type="text" x-model="filtroTextoVencimientos" placeholder="Buscar..." 
                                        class="w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
                                 <svg class="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -596,11 +604,13 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </div>
                     </div>
 
-                    <!-- Tabla -->                    <div class="overflow-x-auto shadow rounded-lg border border-gray-300">
+                    <!-- Tabla -->
+                    <div class="overflow-x-auto shadow rounded-lg border border-gray-300">
                         <table class="min-w-full border-collapse" id="tabla-vencimientos">
                             <thead class="bg-gray-100 text-gray-600 uppercase text-[9px] font-bold">
                                 <tr>
                                     <th class="border px-2 py-2 text-center">Cód.</th>
+                                    <th class="border px-3 py-2 text-left" x-show="reporteDetallado">Folio</th>
                                     <th class="border px-3 py-2 text-left">RFC</th>
                                     <th class="border px-3 py-2 text-left">Razón Social</th>
                                     <th class="border px-3 py-2 text-right">Importe Crédito</th>
@@ -614,21 +624,22 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             <tbody class="bg-white">
                                 <template x-if="cargando">
                                     <tr>
-                                        <td colspan="9" class="text-center py-12 text-gray-500 italic">Cargando reporte de vencimientos...</td>
+                                        <td colspan="10" class="text-center py-12 text-gray-500 italic">Cargando reporte de vencimientos...</td>
                                     </tr>
                                 </template>
                                 <template x-if="!cargando && paginatedVencimientos.length === 0">
                                     <tr>
-                                        <td colspan="9" class="text-center py-12 text-gray-400 italic">No se encontraron proveedores con crédito pendiente.</td>
+                                        <td colspan="10" class="text-center py-12 text-gray-400 italic">No se encontraron datos para mostrar.</td>
                                     </tr>
                                 </template>
-                                <template x-for="(v, index) in paginatedVencimientos" :key="'venc-prov-' + (v.ID_Proveedor || index)">
+                                <template x-for="(v, index) in paginatedVencimientos" :key="reporteDetallado ? 'venc-det-' + v.ID_Solicitud : 'venc-prov-' + v.ID_Proveedor">
                                     <tr class="text-center hover:bg-gray-50 text-xs border-b transition-colors" :class="v.claseSemaforo">
                                         <td class="px-2 py-2 font-mono font-bold" x-text="v.ID_Proveedor"></td>
+                                        <td class="px-3 py-2 text-left font-bold text-blue-800" x-show="reporteDetallado" x-text="v.No_Folio"></td>
                                         <td class="px-3 py-2 text-left" x-text="v.RFC || 'N/A'"></td>
                                         <td class="px-3 py-2 text-left font-bold" x-text="v.RazonSocial"></td>
                                         <td class="px-3 py-2 text-right" x-text="formatearMoneda(v.Monto_Credito)"></td>
-                                        <td class="px-3 py-2 text-right font-bold text-blue-700" x-text="formatearMoneda(v.importePorPagar)"></td>
+                                        <td class="px-3 py-2 text-right font-bold" :class="reporteDetallado ? 'text-gray-700' : 'text-blue-700'" x-text="formatearMoneda(v.importePorPagar)"></td>
                                         <td class="px-3 py-2 text-right font-black" :class="v.saldoCredito < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(v.saldoCredito)"></td>
                                         <td class="px-3 py-2" x-text="v.Dias_Credito"></td>
                                         <td class="px-3 py-2" x-text="v.fechaReferenciaStr"></td>

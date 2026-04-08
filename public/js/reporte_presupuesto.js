@@ -34,6 +34,9 @@ function registrarComponenteReportePresupuesto() {
             movimientoSeleccionado: null,
 
             vencimientos: [],
+            vencimientosRaw: [], // Solicitudes individuales procesadas
+            vencimientosAgrupados: [], // Proveedores agrupados
+            reporteDetallado: false, 
             currentPageVencimientos: 1,
             rowsPerPageVencimientos: 15,
             filtroTextoVencimientos: '',
@@ -337,7 +340,8 @@ function registrarComponenteReportePresupuesto() {
 
             async cargarReporteVencimientos() {
                 this.cargando = true;
-                this.vencimientos = [];
+                this.vencimientosRaw = [];
+                this.vencimientosAgrupados = [];
                 this.currentPageVencimientos = 1;
 
                 try {
@@ -347,8 +351,45 @@ function registrarComponenteReportePresupuesto() {
                         const hoy = new Date();
                         hoy.setHours(0, 0, 0, 0);
 
-                        // AGRUPACIÓN POR PROVEEDOR
-                        const agrupado = (Array.isArray(rawData) ? rawData : []).reduce((acc, item) => {
+                        // 1. PROCESAMIENTO INDIVIDUAL (DETALLADO)
+                        this.vencimientosRaw = (Array.isArray(rawData) ? rawData : []).map(item => {
+                            const baseDateStr = item.FechaRefPago || item.FechaOrden;
+                            let diasVencidos = 0;
+                            let claseSemaforo = 'bg-white';
+                            let textoVencimiento = 'Al corriente';
+
+                            if (baseDateStr) {
+                                const baseDate = new Date(baseDateStr.replace(/-/g, '/').split(' ')[0]);
+                                const fechaVencimiento = new Date(baseDate);
+                                fechaVencimiento.setDate(fechaVencimiento.getDate() + (parseInt(item.Dias_Credito) || 0));
+                                
+                                const diffTime = hoy.getTime() - fechaVencimiento.getTime();
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                if (diffDays > 0) {
+                                    diasVencidos = diffDays;
+                                    textoVencimiento = `${diasVencidos} d vencidos`;
+                                    if (diasVencidos > 15) claseSemaforo = 'bg-gray-900 text-white';
+                                    else if (diasVencidos > 5) claseSemaforo = 'bg-red-100 text-red-800';
+                                    else claseSemaforo = 'bg-yellow-100 text-yellow-800';
+                                } else {
+                                    textoVencimiento = `Vence en ${Math.abs(diffDays)} d`;
+                                }
+                            }
+
+                            return {
+                                ...item,
+                                importePorPagar: parseFloat(item.Total) || 0,
+                                saldoCredito: (parseFloat(item.Monto_Credito) || 0) - (parseFloat(item.Total) || 0),
+                                diasVencidos: diasVencidos,
+                                textoVencimiento: textoVencimiento,
+                                claseSemaforo: claseSemaforo,
+                                fechaReferenciaStr: baseDateStr ? new Date(baseDateStr.replace(/-/g, '/')).toLocaleDateString('es-MX') : 'N/A'
+                            };
+                        });
+
+                        // 2. PROCESAMIENTO AGRUPADO (POR PROVEEDOR)
+                        const agrupado = rawData.reduce((acc, item) => {
                             const idProv = item.ID_Proveedor;
                             if (!acc[idProv]) {
                                 acc[idProv] = {
@@ -357,19 +398,14 @@ function registrarComponenteReportePresupuesto() {
                                     RazonSocial: item.RazonSocial,
                                     Monto_Credito: parseFloat(item.Monto_Credito) || 0,
                                     Dias_Credito: parseInt(item.Dias_Credito) || 0,
-                                    solicitudes: [],
                                     importePorPagar: 0,
-                                    // Para la fecha de referencia del grupo, buscaremos la más antigua
                                     fechaReferenciaBase: null,
-                                    maxDiasVencidos: 0,
-                                    claseSemaforo: 'bg-white'
+                                    diasVencidos: 0
                                 };
                             }
 
-                            const totalSol = parseFloat(item.Total) || 0;
-                            acc[idProv].importePorPagar += totalSol;
+                            acc[idProv].importePorPagar += (parseFloat(item.Total) || 0);
 
-                            // Lógica de fecha por solicitud: FechaRefPago o FechaOrden
                             const baseDateStr = item.FechaRefPago || item.FechaOrden;
                             if (baseDateStr) {
                                 const baseDate = new Date(baseDateStr.replace(/-/g, '/').split(' ')[0]);
@@ -377,14 +413,10 @@ function registrarComponenteReportePresupuesto() {
                                     acc[idProv].fechaReferenciaBase = baseDate;
                                 }
                             }
-
-                            acc[idProv].solicitudes.push(item);
                             return acc;
                         }, {});
 
-                        // PROCESAMIENTO FINAL DE GRUPOS
-                        this.vencimientos = Object.values(agrupado).map(prov => {
-                            const saldoCredito = prov.Monto_Credito - prov.importePorPagar;
+                        this.vencimientosAgrupados = Object.values(agrupado).map(prov => {
                             let diasVencidos = 0;
                             let claseSemaforo = 'bg-white';
                             let textoVencimiento = 'Al corriente';
@@ -392,26 +424,22 @@ function registrarComponenteReportePresupuesto() {
                             if (prov.fechaReferenciaBase) {
                                 const fechaVencimiento = new Date(prov.fechaReferenciaBase);
                                 fechaVencimiento.setDate(fechaVencimiento.getDate() + prov.Dias_Credito);
-                                
-                                const diffTime = hoy.getTime() - fechaVencimiento.getTime();
-                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                const diffDays = Math.ceil((hoy.getTime() - fechaVencimiento.getTime()) / (1000 * 60 * 60 * 24));
 
                                 if (diffDays > 0) {
                                     diasVencidos = diffDays;
                                     textoVencimiento = `${diasVencidos} d vencidos`;
-                                    // Semaforización basada en días de retraso
                                     if (diasVencidos > 15) claseSemaforo = 'bg-gray-900 text-white';
                                     else if (diasVencidos > 5) claseSemaforo = 'bg-red-100 text-red-800';
                                     else claseSemaforo = 'bg-yellow-100 text-yellow-800';
                                 } else {
-                                    const faltan = Math.abs(diffDays);
-                                    textoVencimiento = `Vence en ${faltan} d`;
+                                    textoVencimiento = `Vence en ${Math.abs(diffDays)} d`;
                                 }
                             }
 
                             return {
                                 ...prov,
-                                saldoCredito: saldoCredito,
+                                saldoCredito: prov.Monto_Credito - prov.importePorPagar,
                                 diasVencidos: diasVencidos,
                                 textoVencimiento: textoVencimiento,
                                 claseSemaforo: claseSemaforo,
@@ -419,8 +447,9 @@ function registrarComponenteReportePresupuesto() {
                             };
                         });
 
-                        // Ordenar por días vencidos (más vencidos primero)
-                        this.vencimientos.sort((a, b) => b.diasVencidos - a.diasVencidos);
+                        // Ordenar ambas por vencimiento (descendente)
+                        this.vencimientosRaw.sort((a, b) => b.diasVencidos - a.diasVencidos);
+                        this.vencimientosAgrupados.sort((a, b) => b.diasVencidos - a.diasVencidos);
                     }
                 } catch (e) {
                     console.error("Error cargando vencimientos:", e);
@@ -431,10 +460,12 @@ function registrarComponenteReportePresupuesto() {
 
             get vencimientosFiltrados() {
                 const search = (this.filtroTextoVencimientos || '').toLowerCase();
-                return this.vencimientos.filter(v => 
+                const source = this.reporteDetallado ? this.vencimientosRaw : this.vencimientosAgrupados;
+                
+                return source.filter(v => 
                     !search || 
-                    (v.No_Folio || '').toLowerCase().includes(search) || 
-                    (v.RazonSocial || '').toLowerCase().includes(search)
+                    (v.RazonSocial || '').toLowerCase().includes(search) ||
+                    (this.reporteDetallado && (v.No_Folio || '').toLowerCase().includes(search))
                 );
             },
 
