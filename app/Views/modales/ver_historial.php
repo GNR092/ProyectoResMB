@@ -14,6 +14,9 @@
             </label>
         </div>
 
+        <!-- Filtro por Folio -->
+        <input type="text" id="filtro-folio" placeholder="Buscar folio..." class="border p-2 rounded w-full md:w-auto">
+
         <!-- Filtro por Estado -->
         <select id="filtro-estado" class="border p-2 rounded w-full md:w-auto">
             <option value="">Todos los estados</option>
@@ -30,7 +33,16 @@
         </select>
 
         <!-- Filtro por Proveedor -->
-        <input type="text" id="filtro-proveedor" placeholder="Buscar proveedor..." class="border p-2 rounded w-full md:w-auto">
+        <select id="filtro-proveedor" class="border p-2 rounded w-full md:w-auto" multiple>
+            <option value="">Todos los proveedores</option>
+            <?php if (isset($proveedores) && !empty($proveedores)): ?>
+                <?php foreach ($proveedores as $prov): ?>
+                    <option value="<?= esc($prov['RazonSocial']) ?>">
+                        <?= esc($prov['RazonSocial']) ?>
+                    </option>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </select>
 
         <!-- Filtro por Departamento -->
          <?php if (session('login_type') === 'boss'): ?>
