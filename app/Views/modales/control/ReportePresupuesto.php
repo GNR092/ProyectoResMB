@@ -585,84 +585,61 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <div class="flex items-center justify-between mb-6">
                         <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-yellow-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
                         <div class="flex items-center gap-4">
+                            <div class="relative max-w-xs">
+                                <input type="text" x-model="filtroTextoVencimientos" placeholder="Buscar Proveedor..." 
+                                       class="w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
+                                <svg class="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
                             <h2 class="text-xl font-bold text-gray-800">Reportes de Vencimiento</h2>
                         </div>
                     </div>
 
-                    <!-- Simbología -->
-                    <div class="flex flex-wrap items-center gap-6 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-[10px] uppercase font-bold tracking-tight">
-                        <span class="text-gray-700">Simbología:</span>
-                        <div class="flex items-center gap-2">
-                            <span class="w-4 h-4 rounded bg-gray-900 border border-gray-600 shadow-sm"></span>
-                            <span class="text-gray-600">Vencido</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-4 h-4 rounded bg-red-100 border border-red-200 shadow-sm"></span>
-                            <span class="text-gray-600">Menos de 5 días</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-4 h-4 rounded bg-yellow-100 border border-yellow-200 shadow-sm"></span>
-                            <span class="text-gray-600">Menos de 15 días</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-4 h-4 rounded bg-white border border-gray-300 shadow-sm"></span>
-                            <span class="text-gray-600">Vigente (+15 días)</span>
-                        </div>
-
-                        <div class="ml-auto grow max-w-xs">
-                            <input type="text" x-model="filtroTextoVencimientos" placeholder="Buscar Folio o Proveedor..." 
-                                   class="w-full px-3 py-1.5 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
-                        </div>
-                    </div>
-
-                    <!-- Tabla -->
-                    <div class="overflow-x-auto shadow rounded-lg border border-gray-300">
+                    <!-- Tabla -->                    <div class="overflow-x-auto shadow rounded-lg border border-gray-300">
                         <table class="min-w-full border-collapse" id="tabla-vencimientos">
-                            <thead class="bg-gray-100 text-gray-600 uppercase text-[10px] font-bold">
+                            <thead class="bg-gray-100 text-gray-600 uppercase text-[9px] font-bold">
                                 <tr>
-                                    <th class="border px-3 py-2 text-left">Folio</th>
-                                    <th class="border px-3 py-2 text-left">Proveedor</th>
-                                    <th class="border px-3 py-2 text-center">Fecha Orden</th>
+                                    <th class="border px-2 py-2 text-center">Cód.</th>
+                                    <th class="border px-3 py-2 text-left">RFC</th>
+                                    <th class="border px-3 py-2 text-left">Razón Social</th>
+                                    <th class="border px-3 py-2 text-right">Importe Crédito</th>
+                                    <th class="border px-3 py-2 text-right">Importe Por Pagar</th>
+                                    <th class="border px-3 py-2 text-right">Saldo Crédito</th>
                                     <th class="border px-3 py-2 text-center">Días Créd.</th>
-                                    <th class="border px-3 py-2 text-center">Vencimiento</th>
-                                    <th class="border px-3 py-2 text-center">Días Rest.</th>
-                                    <th class="border px-3 py-2 text-right">Importe Total</th>
-                                    <th class="border px-3 py-2 text-center">Estado</th>
+                                    <th class="border px-3 py-2 text-center">Fecha Ref.</th>
+                                    <th class="border px-3 py-2 text-center">Días Vencido</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white">
                                 <template x-if="cargando">
                                     <tr>
-                                        <td colspan="8" class="text-center py-12 text-gray-500 italic">Cargando reporte de vencimientos...</td>
+                                        <td colspan="9" class="text-center py-12 text-gray-500 italic">Cargando reporte de vencimientos...</td>
                                     </tr>
                                 </template>
                                 <template x-if="!cargando && paginatedVencimientos.length === 0">
                                     <tr>
-                                        <td colspan="8" class="text-center py-12 text-gray-400 italic">No se encontraron deudas a crédito pendientes.</td>
+                                        <td colspan="9" class="text-center py-12 text-gray-400 italic">No se encontraron proveedores con crédito pendiente.</td>
                                     </tr>
                                 </template>
-                                <template x-for="(v, index) in paginatedVencimientos" :key="'venc-' + (v.ID_Solicitud || index)">
+                                <template x-for="(v, index) in paginatedVencimientos" :key="'venc-prov-' + (v.ID_Proveedor || index)">
                                     <tr class="text-center hover:bg-gray-50 text-xs border-b transition-colors" :class="v.claseSemaforo">
-                                        <td class="px-3 py-2 text-left font-mono font-bold" x-text="v.No_Folio"></td>
-                                        <td class="px-3 py-2 text-left">
-                                            <div class="font-medium" x-text="v.RazonSocial"></div>
-                                            <div class="text-[9px] opacity-70" x-text="v.RFC || ''"></div>
-                                        </td>
-                                        <td class="px-3 py-2" x-text="v.FechaRefPago || v.Fecha_Aprobacion || v.FechaOrden || v.FechaSolicitud || '-'"></td>
-                                        <td class="px-3 py-2 font-bold" x-text="v.Dias_Credito || 0"></td>
-                                        <td class="px-3 py-2 font-bold" x-text="v.fechaVencimientoCalculada"></td>
-                                        <td class="px-3 py-2 font-black uppercase tracking-tighter" x-text="v.textoVencimiento"></td>
-                                        <td class="px-3 py-2 text-right font-bold" x-text="formatearMoneda(v.Total)"></td>
-                                        <td class="px-3 py-2">
-                                            <span class="px-2 py-0.5 rounded-full bg-white/20 border border-current text-[9px] font-bold" x-text="v.EstadoOrden"></span>
+                                        <td class="px-2 py-2 font-mono font-bold" x-text="v.ID_Proveedor"></td>
+                                        <td class="px-3 py-2 text-left" x-text="v.RFC || 'N/A'"></td>
+                                        <td class="px-3 py-2 text-left font-bold" x-text="v.RazonSocial"></td>
+                                        <td class="px-3 py-2 text-right" x-text="formatearMoneda(v.Monto_Credito)"></td>
+                                        <td class="px-3 py-2 text-right font-bold text-blue-700" x-text="formatearMoneda(v.importePorPagar)"></td>
+                                        <td class="px-3 py-2 text-right font-black" :class="v.saldoCredito < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(v.saldoCredito)"></td>
+                                        <td class="px-3 py-2" x-text="v.Dias_Credito"></td>
+                                        <td class="px-3 py-2" x-text="v.fechaReferenciaStr"></td>
+                                        <td class="px-3 py-2 font-black uppercase tracking-tighter">
+                                            <span x-text="v.textoVencimiento"></span>
                                         </td>
                                     </tr>
                                 </template>
                             </tbody>
                         </table>
-                    </div>
-
-                    <!-- Controles de Paginación -->
+                    </div>                    <!-- Controles de Paginación -->
                     <div class="flex justify-between items-center mt-4" x-show="totalPagesVencimientos > 1">
                         <span class="text-xs text-gray-600 font-medium">
                             Página <span x-text="currentPageVencimientos"></span> de <span x-text="totalPagesVencimientos"></span>
