@@ -37,6 +37,7 @@ class Home extends BaseController
                 'crud_proveedores',
                 'crud_usuarios',
                 'crud_cuentas',
+                'ReportePresupuesto',
             ],
 
             // ********** Rol Dirección
@@ -57,6 +58,7 @@ class Home extends BaseController
                 'TituloBancos',
                 'BancoDpto',
                 'SaldosBancarios',
+                'ReportePresupuesto',
             ],
 
             // ******** Rol Tesorería
@@ -68,6 +70,7 @@ class Home extends BaseController
                 'lista_pagos',
                 'ver_historial',
                 'solicitar_material',
+                'ReportePresupuesto',
             ],
 
             // ******* Rol Almacén
@@ -86,6 +89,7 @@ class Home extends BaseController
                 'solicitar_material',
                 'enviar_revision',
                 'ver_historial',
+                'ReportePresupuesto',
             ],
 
             // ******** Rol Presupuestos
@@ -100,6 +104,7 @@ class Home extends BaseController
                 'TituloBancos',
                 'BancoDpto',
                 'SaldosBancarios',
+                'ReportePresupuesto',
             ],
 
             // ******** Rol Contaduria
@@ -153,6 +158,7 @@ class Home extends BaseController
                 'TituloOperacion',
                 'solicitar_material',
                 'ver_historial',
+                'ReportePresupuesto',
             ],
 
 
@@ -169,11 +175,19 @@ class Home extends BaseController
 
         ];
 
+        $opcionesCatalogos = [
+            'crud_usuarios',
+            'crud_proveedores',
+            'razonsocial',
+            'crud_places',
+            'crud_departamento'
+        ];
+
         $permisosAjustesDpto = [
             'Administración' => array_values($opcionesAjustes),
-            'Compras' => array_values($opcionesAjustes),
+            'Compras' => array_values(array_diff($opcionesAjustes, $opcionesCatalogos)),
             'Direccion' => array_values($opcionesAjustes),
-            'Contaduría' => array_values($opcionesAjustes),
+            'Contaduría' => array_values(array_diff($opcionesAjustes, $opcionesCatalogos)),
             'default' => [
                 null
             ]

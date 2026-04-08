@@ -53,6 +53,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 
         <?php if ($login_type === 'boss'): ?>
             <?php if (count($ajustes) > 0): ?>
+                <?php if (array_intersect(['razonsocial', 'crud_places', 'crud_departamento', 'crud_usuarios', 'crud_proveedores'], $ajustes)): ?>
                 <a href="#" data-opcion="catalogos" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
                    onclick="abrirModal('catalogos')">
                     <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
@@ -60,6 +61,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
                     </svg>
                     <span>Catálogos</span>
                 </a>
+                <?php endif; ?>
 
                 <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
                    onclick="abrirModal('ajustes')">
