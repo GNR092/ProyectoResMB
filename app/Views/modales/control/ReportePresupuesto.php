@@ -119,7 +119,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </tr>
                     </thead>
                     <tbody id="tabla-proveedores">
-                        <template x-for="(prov, index) in paginatedProveedores" :key="prov.ID_Proveedor">
+                        <template x-for="(prov, index) in paginatedProveedores" :key="prov.ID_Proveedor ? 'prov-' + prov.ID_Proveedor : 'prow-' + index">
                             <tr :class="index % 2 === 0 ? 'bg-white' : 'bg-gray-50'" class="hover:bg-blue-50 transition-colors">
                                 <td class="px-3 py-2 border-b text-sm razonsocial" x-text="prov.RazonSocial"></td>
                                 <td class="px-3 py-2 border-b text-sm" x-text="prov.RFC || 'N/A'"></td>
@@ -509,7 +509,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                     <td colspan="9" class="text-center py-12 text-gray-400 italic">No se encontraron datos que coincidan con los filtros.</td>
                                 </tr>
                             </template>
-                            <template x-for="(m, index) in paginatedMovimientos" :key="m.ID_Solicitud || index">
+                            <template x-for="(m, index) in paginatedMovimientos" :key="m.ID_Solicitud ? 'mov-' + m.ID_Solicitud : 'row-' + index">
                                 <tr class="text-center hover:bg-gray-50 text-xs">
                                     <td class="border px-3 py-2 text-left font-mono font-bold text-blue-700" x-text="m.No_Folio"></td>
                                     <td class="border px-3 py-2 text-left" x-text="m.Fecha"></td>

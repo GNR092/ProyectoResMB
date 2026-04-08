@@ -314,7 +314,8 @@ function registrarComponenteReportePresupuesto() {
                 try {
                     const res = await fetch(`${BASE_URL}api/historic/movimientos-proveedor`);
                     if (res.ok) {
-                        this.movimientosProveedor = await res.json();
+                        const data = await res.json();
+                        this.movimientosProveedor = Array.isArray(data) ? data : [];
                     } else {
                         this.mensaje = 'Error al cargar los movimientos del servidor.';
                         this.error = true;
@@ -329,6 +330,8 @@ function registrarComponenteReportePresupuesto() {
             },
 
             get movimientosFiltrados() {
+                if (!Array.isArray(this.movimientosProveedor)) return [];
+                
                 const search = (this.filtroTextoMovimientos || '').toLowerCase();
                 const selectedPlaces = (this.idPlace || []).map(String);
                 
@@ -337,6 +340,7 @@ function registrarComponenteReportePresupuesto() {
                 const fechaFin = this.fechaFinMovimientos ? new Date(this.fechaFinMovimientos + 'T23:59:59') : null;
 
                 return this.movimientosProveedor.filter(m => {
+                    if (!m) return false;
                     // 1. Filtro de Texto (Folio o Proveedor)
                     const matchText = !search || 
                                      (m.No_Folio || '').toLowerCase().includes(search) || 
@@ -364,13 +368,15 @@ function registrarComponenteReportePresupuesto() {
             },
 
             get totalPagesMovimientos() {
-                return Math.ceil(this.movimientosFiltrados.length / this.rowsPerPageMovimientos) || 1;
+                const filtrados = this.movimientosFiltrados;
+                return Math.ceil(filtrados.length / this.rowsPerPageMovimientos) || 1;
             },
 
             get paginatedMovimientos() {
+                const filtrados = this.movimientosFiltrados;
                 const start = (this.currentPageMovimientos - 1) * this.rowsPerPageMovimientos;
                 const end = start + this.rowsPerPageMovimientos;
-                return this.movimientosFiltrados.slice(start, end);
+                return filtrados.slice(start, end);
             },
 
             cambiarPaginaMovimientos(page) {
