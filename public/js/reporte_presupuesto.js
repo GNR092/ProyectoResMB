@@ -1096,6 +1096,43 @@ function registrarComponenteReportePresupuesto() {
                 finally { if (notif) notif.click(); }
             },
 
+            async exportarVencimientosExcel() {
+                const filteredData = this.vencimientosFiltrados;
+                if (filteredData.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = mostrarNotificacion('Generando Excel de Vencimientos...', 'info', 0);
+                try {
+                    const payload = {
+                        reporteDetallado: this.reporteDetallado,
+                        datos: filteredData
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/vencimientos/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `reporte_vencimientos_${this.reporteDetallado ? 'detallado' : 'agrupado'}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { 
+                    console.error("Error exportando excel:", e); 
+                } finally { 
+                    if (notif) notif.click(); 
+                }
+            },
+
             async exportarBancosExcel() {
                 if (this.departamentosBancos.length === 0) {
                     alert("No hay datos para exportar.");

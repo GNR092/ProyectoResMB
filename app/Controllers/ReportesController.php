@@ -512,6 +512,142 @@ class ReportesController extends ResourceController
         } catch (\Throwable $e) { return $this->failServerError($e->getMessage()); }
     }
 
+    /**
+     * EXPORTAR REPORTE DE VENCIMIENTOS DESDE JSON
+     */
+    public function exportarVencimientosJson()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+            $datos = $json['datos'] ?? [];
+            $esDetallado = $json['reporteDetallado'] ?? false;
+            
+            if (empty($datos)) return $this->fail('No hay datos');
+
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Vencimientos');
+
+            $headers = ['Cód.', 'RFC', 'Razón Social'];
+            if ($esDetallado) {
+                array_splice($headers, 1, 0, ['Folio']);
+            }
+            
+            if (!$esDetallado) {
+                $headers[] = 'Importe Crédito';
+            }
+            
+            $headers[] = 'Importe Por Pagar';
+            
+            if (!$esDetallado) {
+                $headers[] = 'Saldo Crédito';
+            }
+            
+            $headers[] = 'Días Créd.';
+            
+            if ($esDetallado) {
+                $headers[] = 'Fecha Ref.';
+            }
+            
+            $headers[] = 'Días Vencido';
+
+            $cols = [];
+            for ($i = 0; $i < count($headers); $i++) {
+                $cols[] = chr(65 + $i);
+            }
+            
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '1F2937']
+                ],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+            ];
+
+            foreach ($headers as $i => $h) {
+                $sheet->setCellValue($cols[$i].'1', $h);
+                $sheet->getStyle($cols[$i].'1')->applyFromArray($headerStyle);
+                $sheet->getColumnDimension($cols[$i])->setAutoSize(true);
+            }
+
+            $row = 2;
+            foreach ($datos as $v) {
+                $c = 0;
+                $sheet->setCellValue($cols[$c++].$row, $v['ID_Proveedor']);
+                if ($esDetallado) {
+                    $sheet->setCellValue($cols[$c++].$row, $v['No_Folio']);
+                }
+                $sheet->setCellValue($cols[$c++].$row, $v['RFC'] ?: 'N/A');
+                $sheet->setCellValue($cols[$c++].$row, $v['RazonSocial']);
+                
+                if (!$esDetallado) {
+                    $sheet->setCellValue($cols[$c++].$row, (float)$v['Monto_Credito']);
+                }
+                
+                $sheet->setCellValue($cols[$c++].$row, (float)$v['importePorPagar']);
+                
+                if (!$esDetallado) {
+                    $sheet->setCellValue($cols[$c++].$row, (float)$v['saldoCredito']);
+                }
+                
+                $sheet->setCellValue($cols[$c++].$row, (int)$v['Dias_Credito']);
+                
+                if ($esDetallado) {
+                    $sheet->setCellValue($cols[$c++].$row, $v['fechaReferenciaStr']);
+                }
+                
+                $sheet->setCellValue($cols[$c++].$row, $v['textoVencimiento']);
+
+                // Estilos de semáforo
+                if (isset($v['claseSemaforo'])) {
+                    if (strpos($v['claseSemaforo'], 'bg-gray-900') !== false) {
+                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFill()
+                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('111827');
+                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFont()
+                            ->getColor()->setRGB('FFFFFF');
+                    } else if (strpos($v['claseSemaforo'], 'bg-red-100') !== false) {
+                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFill()
+                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FEE2E2');
+                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFont()
+                            ->getColor()->setRGB('991B1B');
+                    } else if (strpos($v['claseSemaforo'], 'bg-yellow-100') !== false) {
+                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFill()
+                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FEF3C7');
+                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFont()
+                            ->getColor()->setRGB('92400E');
+                    }
+                }
+                $row++;
+            }
+
+            // Formato de moneda para columnas de dinero
+            // Dinero suele estar en:
+            // Agrupado: D (Monto_Credito), E (importePorPagar), F (saldoCredito)
+            // Detallado: D (importePorPagar)
+            if ($esDetallado) {
+                $sheet->getStyle('E2:E'.($row-1))->getNumberFormat()->setFormatCode('$#,##0.00');
+            } else {
+                $sheet->getStyle('D2:F'.($row-1))->getNumberFormat()->setFormatCode('$#,##0.00');
+            }
+
+            $sheet->getStyle('A1:'.$cols[count($headers)-1].($row-1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+            $writer = new Xlsx($spreadsheet);
+            $filename = 'reporte_vencimientos_'.($esDetallado ? 'detallado_' : 'agrupado_').date('Ymd_His').'.xlsx';
+            
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="'.$filename.'"');
+            header('Cache-Control: max-age=0');
+            
+            $writer->save('php://output');
+            exit();
+
+        } catch (\Throwable $e) {
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
     private function excelWriteJsonRow($sheet, $row, $label, $t, $hayExcedidos, $bgColor=null, $bold=false, $fColor=null, $italic=false, $isFull=false)
     {
         $asig = (float)($t['asignado'] ?? $t['pAsignado'] ?? 0);

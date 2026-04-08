@@ -585,9 +585,17 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <div class="flex items-center justify-between mb-6">
                         <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-yellow-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
                         <div class="flex items-center gap-4">
+                            <!-- Botón Exportar Excel -->
+                            <button @click="exportarVencimientosExcel()" 
+                                    class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Exportar Excel
+                            </button>
+
                             <!-- Toggle Detallado (Estilo Presupuesto Global) -->
-                            <div class="flex items-center mr-2">
-                                <label class="inline-flex items-center cursor-pointer">
+                            <div class="flex items-center mr-2">                                <label class="inline-flex items-center cursor-pointer">
                                     <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
                                     <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
                                     <span class="ms-3 text-[10px] font-bold text-gray-700 uppercase tracking-tighter">📝 Reporte Detallado</span>

@@ -107,6 +107,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
         $routes->get('api/historic/movimientos-proveedor', 'Api::getMovimientosProveedor', ['filter' => 'mantenimiento']);
         $routes->get('api/historic/reporte-vencimientos', 'Api::getReporteVencimientos', ['filter' => 'mantenimiento']);
+        $routes->post('api/vencimientos/exportar-datos', 'ReportesController::exportarVencimientosJson');
         $routes->post('api/historic/exportar-movimientos', 'Api::exportarMovimientosExcel');
         $routes->get('api/historial/exportar', 'Api::exportarHistorial');
 
