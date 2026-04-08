@@ -509,18 +509,18 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                     <td colspan="9" class="text-center py-12 text-gray-400 italic">No se encontraron datos que coincidan con los filtros.</td>
                                 </tr>
                             </template>
-                            <template x-for="(m, index) in paginatedMovimientos" :key="m.ID_Solicitud ? 'mov-' + m.ID_Solicitud : 'row-' + index">
-                                <tr class="text-center hover:bg-gray-50 text-xs">
-                                    <td class="border px-3 py-2 text-left font-mono font-bold text-blue-700" x-text="m.No_Folio"></td>
-                                    <td class="border px-3 py-2 text-left" x-text="m.Fecha"></td>
+                            <template x-for="(m, index) in paginatedMovimientos" :key="'mov-' + (m.ID_Solicitud || 'no-id') + '-' + index">
+                                <tr x-show="m" class="text-center hover:bg-gray-50 text-xs">
+                                    <td class="border px-3 py-2 text-left font-mono font-bold text-blue-700" x-text="m.No_Folio || 'N/A'"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="m.Fecha || 'N/A'"></td>
                                     <td class="border px-3 py-2 text-left" x-text="m.Fecha_Aprobacion || '-'"></td>
-                                    <td class="border px-3 py-2 text-left" x-text="m.RazonSocialNombre"></td>
-                                    <td class="border px-3 py-2 text-left font-medium" x-text="m.ProveedorNombre"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="m.RazonSocialNombre || 'N/A'"></td>
+                                    <td class="border px-3 py-2 text-left font-medium" x-text="m.ProveedorNombre || 'N/A'"></td>
                                     <td class="border px-3 py-2 text-right font-bold" x-text="formatearMoneda(m.MontoTotal)"></td>
-                                    <td class="border px-3 py-2 text-left" x-text="m.DepartamentoNombre"></td>
+                                    <td class="border px-3 py-2 text-left" x-text="m.DepartamentoNombre || 'N/A'"></td>
                                     <td class="border px-3 py-2 text-left font-bold text-green-700" x-text="m.FechaPagoRealizado || 'Pendiente'"></td>
                                     <td class="border px-3 py-2">
-                                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded transition text-[10px] uppercase shadow-sm" @click="mostrarVerMovimiento(m.ID_Solicitud)">Ver</button>
+                                        <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded transition text-[10px] uppercase shadow-sm" @click="m.ID_Solicitud && mostrarVerMovimiento(m.ID_Solicitud)">Ver</button>
                                     </td>
                                 </tr>
                             </template>

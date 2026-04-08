@@ -1947,6 +1947,7 @@ class Rest
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
             ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
+            ->groupBy('Solicitud.ID_Solicitud')
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
 
