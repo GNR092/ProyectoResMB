@@ -5,6 +5,7 @@ namespace Config;
 use CodeIgniter\Events\Events;
 use CodeIgniter\Exceptions\FrameworkException;
 use CodeIgniter\HotReloader\HotReloader;
+use App\Libraries\BitacoraService;
 
 /*
  * --------------------------------------------------------------------
@@ -22,6 +23,22 @@ use CodeIgniter\HotReloader\HotReloader;
  * Example:
  *      Events::on('create', [$myInstance, 'myMethod']);
  */
+
+/**
+ * Evento para registrar en la bitácora de forma centralizada
+ */
+Events::on('auditoria', static function (array $data): void {
+    BitacoraService::getInstance()->registrar($data);
+});
+
+/**
+ * Persistir todos los logs acumulados al finalizar la ejecución del sistema
+ */
+Events::on('post_system', static function (): void {
+    if (!is_cli()) {
+        BitacoraService::getInstance()->persistir();
+    }
+});
 
 Events::on('pre_system', static function (): void {
     if (ENVIRONMENT !== 'testing') {

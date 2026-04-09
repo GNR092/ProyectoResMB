@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class OrdenCompraModel extends Model
 {
+    use AuditTrait;
+
     protected $table            = 'OrdenCompra';
     protected $primaryKey       = 'ID_OrdenCompra';
     protected $useAutoIncrement = true;
@@ -35,4 +38,9 @@ class OrdenCompraModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
+
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 }

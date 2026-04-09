@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class PresupuestoMensualModel extends Model
 {
+    use AuditTrait;
+
     protected $table            = 'PresupuestoMensual';
     protected $primaryKey       = 'ID_PresupuestoMensual';
     protected $useAutoIncrement = true;
@@ -29,6 +32,11 @@ class PresupuestoMensualModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
+
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 
     // Helper para obtener datos de la unidad operativa
     public function withUnidad()

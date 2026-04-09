@@ -1498,6 +1498,19 @@ class Api extends ResourceController
                 throw new \Exception('Error al completar la transacción de dictamen.');
             }
 
+            // Registro en Bitácora
+            Events::trigger('auditoria', [
+                'tipo_accion' => 'DICTAMINAR_SOLICITUD',
+                'clasificacion' => 'Compras',
+                'modulo'      => 'Compras',
+                'solicitud_id'=> $idSolicitud,
+                'estado'      => 'exito',
+                'valores_nuevos' => [
+                    'nuevo_estado' => $nuevoEstado,
+                    'comentarios'  => $comentarios
+                ]
+            ]);
+
             return $this->respondUpdated([
                 'success' => true,
                 'message' => 'El dictamen de la solicitud se ha guardado correctamente.',
@@ -1505,6 +1518,17 @@ class Api extends ResourceController
         } catch (\Exception $e) {
             if (isset($db) && $db->transStatus() === false) $db->transRollback();
             log_message('error', '[dictaminarSolicitud] ' . $e->getMessage());
+
+            // Registro de fallo en Bitácora
+            Events::trigger('auditoria', [
+                'tipo_accion' => 'DICTAMINAR_SOLICITUD',
+                'clasificacion' => 'Compras',
+                'modulo'      => 'Compras',
+                'solicitud_id'=> $idSolicitud ?? null,
+                'estado'      => 'fallido',
+                'valores_nuevos' => ['error' => $e->getMessage()]
+            ]);
+
             return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen: ' . $e->getMessage());
         }
     }
@@ -1597,6 +1621,17 @@ class Api extends ResourceController
                 );
             }
 
+            // Registro en Bitácora
+            Events::trigger('auditoria', [
+                'tipo_accion' => 'GENERAR_ORDEN',
+                'clasificacion' => 'Compras',
+                'modulo'      => 'Compras',
+                'solicitud_id'=> $id,
+                'orden_compra_id' => $idOrdenCompra,
+                'cotizacion_id'   => $cotizacion['ID_Cotizacion'] ?? null,
+                'estado'      => 'exito'
+            ]);
+
             return $this->respondCreated([
                 'success' => true,
                 'message' => 'Orden de Compra generada exitosamente.',
@@ -1604,6 +1639,17 @@ class Api extends ResourceController
             ]);
         } catch (\Exception $e) {
             log_message('error', '[GenerarOrden] ' . $e->getMessage());
+
+            // Registro de fallo en Bitácora
+            Events::trigger('auditoria', [
+                'tipo_accion' => 'GENERAR_ORDEN',
+                'clasificacion' => 'Compras',
+                'modulo'      => 'Compras',
+                'solicitud_id'=> $id ?? null,
+                'estado'      => 'fallido',
+                'valores_nuevos' => ['error' => $e->getMessage()]
+            ]);
+
             return $this->failServerError(
                 'Ocurrió un error inesperado al generar la Orden de Compra.',
             );
