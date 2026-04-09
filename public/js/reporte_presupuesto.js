@@ -659,22 +659,56 @@ function registrarComponenteReportePresupuesto() {
 
             async mostrarVerMovimiento(idSolicitud) {
                 const divMovimientos = document.getElementById('div-movimientos');
-                const divVer = document.getElementById('div-ver-movimiento');
-                const detallesContainer = document.getElementById('detalles-movimiento-solicitud');
+                const divVencimientos = document.getElementById('div-vencimientos');
+                const divVerMov = document.getElementById('div-ver-movimiento');
+                const divVerVenc = document.getElementById('div-ver-vencimiento');
+                
+                const detMov = document.getElementById('detalles-movimiento-solicitud');
+                const detVenc = document.getElementById('detalles-vencimiento-solicitud');
 
                 if (divMovimientos) divMovimientos.classList.add('hidden');
-                if (divVer) divVer.classList.remove('hidden');
+                if (divVencimientos) divVencimientos.classList.add('hidden');
+                
+                if (divVerMov) divVerMov.classList.remove('hidden');
+                if (divVerVenc) divVerVenc.classList.remove('hidden');
 
+                const detallesContainer = detMov || detVenc;
                 if (!detallesContainer) return;
+                
                 detallesContainer.innerHTML = '<p class="text-center p-8 text-gray-500">Cargando detalles completos...</p>';
 
                 try {
                     // Obtenemos el registro base que ya tiene info de OrdenCompra
-                    const base = this.movimientosProveedor.find(mov => mov.ID_Solicitud == idSolicitud);
+                    let base = this.movimientosProveedor.find(mov => mov.ID_Solicitud == idSolicitud);
+                    
+                    // Si no está en movimientos, buscamos en vencimientos
+                    if (!base && this.vencimientosRaw) {
+                        const vBase = this.vencimientosRaw.find(v => v.ID_Solicitud == idSolicitud);
+                        if (vBase) {
+                            base = {
+                                ...vBase,
+                                OrdenEstado: vBase.EstadoOrden,
+                                OrdenFecha: vBase.FechaOrden,
+                                // Estos podrían no venir en vencimientosRaw, pero se sacarán de 'data' luego
+                            };
+                        }
+                    }
                     
                     // Obtenemos los detalles de productos y archivos
                     const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`);
                     if (data.error) throw new Error(data.error);
+
+                    // Normalización: Si base no tiene info de OrdenCompra pero 'data' sí (vía Rest.php)
+                    if (data.OrdenCompra) {
+                        if (!base) base = {};
+                        base.ID_OrdenCompra = data.OrdenCompra.ID_OrdenCompra;
+                        base.OrdenEstado = data.OrdenCompra.Estado;
+                        base.OrdenFecha = data.OrdenCompra.Fecha;
+                        base.FechaRefPago = data.OrdenCompra.FechaRefPago;
+                        base.FechaPagoRealizado = data.OrdenCompra.FechaPagoRealizado;
+                        base.File_Factura = data.OrdenCompra.File_Factura;
+                        base.File_Comprobante = data.OrdenCompra.File_Comprobante;
+                    }
 
                     // Fetch adicional del proveedor para tener info completa (RFC, Correo, Clabe, etc)
                     let infoProv = null;
@@ -730,11 +764,11 @@ function registrarComponenteReportePresupuesto() {
                                     <svg class="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                     Orden de Compra y Pagos
                                 </h4>
-                                ${base && base.ID_OrdenCompra ? `
+                                ${base && (base.ID_OrdenCompra || base.ID_Cotizacion) ? `
                                     <div class="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-5">
                                         <div class="flex flex-col gap-1">
                                             <p class="text-[10px] text-black-500 uppercase font-bold">Estado Orden</p>
-                                            <p class="text-[12px] font-extrabold text-orange-500 uppercase tracking-tighter">${base.OrdenEstado}</p>
+                                            <p class="text-[12px] font-extrabold text-orange-500 uppercase tracking-tighter">${base.OrdenEstado || 'N/A'}</p>
                                         </div>
                                         <div class="flex flex-col gap-1">
                                             <p class="text-[10px] text-black-500 uppercase font-bold">Fecha Orden</p>
@@ -822,11 +856,15 @@ function registrarComponenteReportePresupuesto() {
             },
 
             regresarAMovimientos() {
-                const divVer = document.getElementById('div-ver-movimiento');
+                const divVerMov = document.getElementById('div-ver-movimiento');
+                const divVerVenc = document.getElementById('div-ver-vencimiento');
                 const divMovimientos = document.getElementById('div-movimientos');
+                const divVencimientos = document.getElementById('div-vencimientos');
                 
-                if (divVer) divVer.classList.add('hidden');
+                if (divVerMov) divVerMov.classList.add('hidden');
+                if (divVerVenc) divVerVenc.classList.add('hidden');
                 if (divMovimientos) divMovimientos.classList.remove('hidden');
+                if (divVencimientos) divVencimientos.classList.remove('hidden');
             },
 
             limpiarFiltrosMovimientos() {
