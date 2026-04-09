@@ -543,11 +543,17 @@ class Api extends ResourceController
                 $cotizacionSeleccionada = $cotizacionModel->find($idCotizacionSeleccionada);
                 if ($cotizacionSeleccionada) {
                     $updateData['ID_Proveedor'] = $cotizacionSeleccionada['ID_Proveedor'];
+                    // Inyectamos el ID de cotización para que el AuditTrait lo detecte
+                    $updateData['ID_Cotizacion'] = (int) $idCotizacionSeleccionada;
                 }
             }
 
             if ($idCuenta) {
                 $updateData['ID_Cuenta'] = $idCuenta;
+            }
+
+            if ($comentarios) {
+                $updateData['ComentariosUser'] = $comentarios;
             }
 
             $solicitudModel->update($idSolicitud, $updateData);
