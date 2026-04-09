@@ -67,7 +67,7 @@ trait AuditTrait
         }
         
         // Limpiar temporales
-        unset($this->tempOldData);
+        $this->tempOldData = [];
         return $data;
     }
 
