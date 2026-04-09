@@ -576,169 +576,190 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <!-- Renderizado dinámico desde JS (idéntico al historial) -->
                 </div>
             </div>
+
             </div>
             </template>
 
             <!-- Pantalla 8: Reportes de Vencimiento -->
             <template x-if="pantalla === 'vencimientos'">
                 <div class="animate-fadeIn">
-                    <div class="flex items-center justify-between mb-6">
-                        <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-yellow-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                        <div class="flex items-center gap-4">
-                            <!-- Botón Exportar Excel -->
-                            <button @click="exportarVencimientosExcel()" 
-                                    class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <!-- CONTENEDOR PRINCIPAL: Tabla de Vencimientos -->
+                    <div id="div-vencimientos">
+                        <div class="flex items-center justify-between mb-6">
+                            <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-yellow-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                            <div class="flex items-center gap-4">
+                                <!-- Botón Exportar Excel -->
+                                <button @click="exportarVencimientosExcel()" 
+                                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    Exportar Excel
+                                </button>
+
+                                <!-- Toggle Detallado (Estilo Presupuesto Global) -->
+                                <div class="flex items-center mr-2">                                <label class="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
+                                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
+                                        <span class="ms-3 text-[10px] font-bold text-gray-700 uppercase tracking-tighter">Reporte Detallado</span>
+                                    </label>
+                                </div>
+                                <h2 class="text-xl font-bold text-gray-800">Reportes de Vencimiento</h2>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Filtros Avanzados -->
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                                <!-- Folio -->
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Folio</label>
+                                    <input type="text" x-model="filtrosFolioVenc" placeholder="Buscar folio..." 
+                                           class="px-3 py-2 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
+                                </div>
+
+                                <!-- Proveedor -->
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Proveedor</label>
+                                    <select x-ref="choicesProvVenc" multiple>
+                                        <?php if (!empty($proveedores)): ?>
+                                            <?php foreach ($proveedores as $prov): ?>
+                                                <option value="<?= esc($prov['ID_Proveedor']) ?>"><?= esc($prov['RazonSocial']) ?></option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+
+                                <!-- Razón Social -->
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Razón Social</label>
+                                    <select x-ref="choicesRazonVenc" multiple>
+                                        <?php if (!empty($razones_sociales)): ?>
+                                            <?php foreach ($razones_sociales as $rs): ?>
+                                                <option value="<?= esc($rs['ID_RazonSocial']) ?>"><?= esc($rs['Nombre']) ?></option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+
+                                <!-- Complejo (Places) -->
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Complejo</label>
+                                    <select x-ref="choicesPlaceVenc" multiple>
+                                        <?php if (!empty($places)): ?>
+                                            <?php foreach ($places as $p): ?>
+                                                <option value="<?= esc($p['ID_Place']) ?>"><?= esc($p['Nombre_Corto']) ?></option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+
+                                <!-- Departamento -->
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Departamento</label>
+                                    <select x-ref="choicesDeptoVenc" multiple>
+                                        <?php if (!empty($departamentos)): ?>
+                                            <?php foreach ($departamentos as $d): ?>
+                                                <option value="<?= esc($d['ID_Dpto']) ?>"><?= esc($d['Nombre']) ?></option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end mt-4">
+                                <button @click="limpiarFiltrosVencimientos()" class="px-4 py-1.5 bg-gray-800 text-white text-[10px] font-bold rounded-lg hover:bg-gray-900 transition-all uppercase tracking-widest shadow-sm">
+                                    Limpiar Filtros
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tabla -->
+                        <div class="overflow-x-auto shadow rounded-lg border border-gray-300">
+                            <table class="min-w-full border-collapse" id="tabla-vencimientos">
+                                <thead class="bg-gray-100 text-gray-600 uppercase text-[9px] font-bold">
+                                    <tr>
+                                        <th class="border px-2 py-2 text-center">Cód.</th>
+                                        <th class="border px-3 py-2 text-left" x-show="reporteDetallado">Folio</th>
+                                        <th class="border px-3 py-2 text-left">RFC</th>
+                                        <th class="border px-3 py-2 text-left">Razón Social</th>
+                                        <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Importe Crédito</th>
+                                        <th class="border px-3 py-2 text-right">Importe Por Pagar</th>
+                                        <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Saldo Crédito</th>
+                                        <th class="border px-3 py-2 text-center">Días Créd.</th>
+                                        <th class="border px-3 py-2 text-center" x-show="reporteDetallado">Fecha Ref.</th>
+                                        <th class="border px-3 py-2 text-center">Días Vencido</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white">
+                                    <template x-if="cargando">
+                                        <tr>
+                                            <td colspan="10" class="text-center py-12 text-gray-500 italic">Cargando reporte de vencimientos...</td>
+                                        </tr>
+                                    </template>
+                                    <template x-if="!cargando && paginatedVencimientos.length === 0">
+                                        <tr>
+                                            <td colspan="10" class="text-center py-12 text-gray-400 italic">No se encontraron datos para mostrar.</td>
+                                        </tr>
+                                    </template>
+                                    <template x-for="(v, index) in paginatedVencimientos" :key="reporteDetallado ? 'venc-det-' + v.ID_Solicitud : 'venc-prov-' + v.ID_Proveedor">
+                                        <tr class="text-center hover:bg-gray-50 text-xs border-b transition-colors" :class="v.claseSemaforo + (reporteDetallado ? ' cursor-pointer' : '')"
+                                            @click="reporteDetallado && v.ID_Solicitud && mostrarVerMovimiento(v.ID_Solicitud)">
+                                            <td class="px-2 py-2 font-mono font-bold" x-text="v.ID_Proveedor"></td>
+                                            <td class="px-3 py-2 text-left font-bold text-blue-800" x-show="reporteDetallado" x-text="v.No_Folio"></td>
+                                            <td class="px-3 py-2 text-left" x-text="v.RFC || 'N/A'"></td>
+                                            <td class="px-3 py-2 text-left font-bold" x-text="v.RazonSocial"></td>
+                                            <td class="px-3 py-2 text-right" x-show="!reporteDetallado" x-text="formatearMoneda(v.Monto_Credito)"></td>
+                                            <td class="px-3 py-2 text-right font-bold" :class="reporteDetallado ? 'text-gray-700' : 'text-blue-700'" x-text="formatearMoneda(v.importePorPagar)"></td>
+                                            <td class="px-3 py-2 text-right font-black" x-show="!reporteDetallado" :class="v.saldoCredito < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(v.saldoCredito)"></td>
+                                            <td class="px-3 py-2" x-text="v.Dias_Credito"></td>
+                                            <td class="px-3 py-2" x-show="reporteDetallado" x-text="v.fechaReferenciaStr"></td>
+                                            <td class="px-3 py-2 font-black uppercase tracking-tighter">
+                                                <span x-text="v.textoVencimiento"></span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>                    <!-- Controles de Paginación -->
+                        <div class="flex justify-between items-center mt-4" x-show="totalPagesVencimientos > 1">
+                            <span class="text-xs text-gray-600 font-medium">
+                                Página <span x-text="currentPageVencimientos"></span> de <span x-text="totalPagesVencimientos"></span>
+                            </span>
+
+                            <div class="flex items-center gap-1">
+                                <button @click="cambiarPaginaVencimientos(1)" :disabled="currentPageVencimientos === 1"
+                                        class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                                <button @click="cambiarPaginaVencimientos(currentPageVencimientos - 1)" :disabled="currentPageVencimientos === 1"
+                                        class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+
+                                <span class="px-3 py-1 border rounded bg-yellow-600 text-white text-xs font-bold" x-text="currentPageVencimientos"></span>
+
+                                <button @click="cambiarPaginaVencimientos(currentPageVencimientos + 1)" :disabled="currentPageVencimientos === totalPagesVencimientos"
+                                        class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                                <button @click="cambiarPaginaVencimientos(totalPagesVencimientos)" :disabled="currentPageVencimientos === totalPagesVencimientos"
+                                        class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTENEDOR SECUNDARIO: Ver Detalles Completos -->
+                    <div id="div-ver-vencimiento" class="hidden">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-800">Detalles de la Solicitud</h3>
+                            <div class="cursor-pointer p-2 rounded-full hover:bg-gray-200 transition-colors" @click="regresarAMovimientos()" title="Regresar a la lista">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-gray-600">
+                                    <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-4.28 9.22a.75.75 0 0 0 0 1.06l3 3a.75.75 0 1 0 1.06-1.06l-1.72-1.72h5.69a.75.75 0 0 0 0-1.5h-5.69l1.72-1.72a.75.75 0 0 0-1.06-1.06l-3 3Z" clip-rule="evenodd" />
                                 </svg>
-                                Exportar Excel
-                            </button>
-
-                            <!-- Toggle Detallado (Estilo Presupuesto Global) -->
-                            <div class="flex items-center mr-2">                                <label class="inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
-                                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
-                                    <span class="ms-3 text-[10px] font-bold text-gray-700 uppercase tracking-tighter">Reporte Detallado</span>
-                                </label>
-                            </div>
-                            <h2 class="text-xl font-bold text-gray-800">Reportes de Vencimiento</h2>
-                        </div>
-                    </div>
-
-                    <!-- Panel de Filtros Avanzados -->
-                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
-                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                            <!-- Folio -->
-                            <div class="flex flex-col gap-1">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Folio</label>
-                                <input type="text" x-model="filtrosFolioVenc" placeholder="Buscar folio..." 
-                                       class="px-3 py-2 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
-                            </div>
-
-                            <!-- Proveedor -->
-                            <div class="flex flex-col gap-1">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Proveedor</label>
-                                <select x-ref="choicesProvVenc" multiple>
-                                    <?php if (!empty($proveedores)): ?>
-                                        <?php foreach ($proveedores as $prov): ?>
-                                            <option value="<?= esc($prov['ID_Proveedor']) ?>"><?= esc($prov['RazonSocial']) ?></option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-
-                            <!-- Razón Social -->
-                            <div class="flex flex-col gap-1">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Razón Social</label>
-                                <select x-ref="choicesRazonVenc" multiple>
-                                    <?php if (!empty($razones_sociales)): ?>
-                                        <?php foreach ($razones_sociales as $rs): ?>
-                                            <option value="<?= esc($rs['ID_RazonSocial']) ?>"><?= esc($rs['Nombre']) ?></option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-
-                            <!-- Complejo (Places) -->
-                            <div class="flex flex-col gap-1">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Complejo</label>
-                                <select x-ref="choicesPlaceVenc" multiple>
-                                    <?php if (!empty($places)): ?>
-                                        <?php foreach ($places as $p): ?>
-                                            <option value="<?= esc($p['ID_Place']) ?>"><?= esc($p['Nombre_Corto']) ?></option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-
-                            <!-- Departamento -->
-                            <div class="flex flex-col gap-1">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Departamento</label>
-                                <select x-ref="choicesDeptoVenc" multiple>
-                                    <?php if (!empty($departamentos)): ?>
-                                        <?php foreach ($departamentos as $d): ?>
-                                            <option value="<?= esc($d['ID_Dpto']) ?>"><?= esc($d['Nombre']) ?></option>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </select>
                             </div>
                         </div>
-                        
-                        <div class="flex justify-end mt-4">
-                            <button @click="limpiarFiltrosVencimientos()" class="px-4 py-1.5 bg-gray-800 text-white text-[10px] font-bold rounded-lg hover:bg-gray-900 transition-all uppercase tracking-widest shadow-sm">
-                                Limpiar Filtros
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Tabla -->
-                    <div class="overflow-x-auto shadow rounded-lg border border-gray-300">
-                        <table class="min-w-full border-collapse" id="tabla-vencimientos">
-                            <thead class="bg-gray-100 text-gray-600 uppercase text-[9px] font-bold">
-                                <tr>
-                                    <th class="border px-2 py-2 text-center">Cód.</th>
-                                    <th class="border px-3 py-2 text-left" x-show="reporteDetallado">Folio</th>
-                                    <th class="border px-3 py-2 text-left">RFC</th>
-                                    <th class="border px-3 py-2 text-left">Razón Social</th>
-                                    <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Importe Crédito</th>
-                                    <th class="border px-3 py-2 text-right">Importe Por Pagar</th>
-                                    <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Saldo Crédito</th>
-                                    <th class="border px-3 py-2 text-center">Días Créd.</th>
-                                    <th class="border px-3 py-2 text-center" x-show="reporteDetallado">Fecha Ref.</th>
-                                    <th class="border px-3 py-2 text-center">Días Vencido</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white">
-                                <template x-if="cargando">
-                                    <tr>
-                                        <td colspan="10" class="text-center py-12 text-gray-500 italic">Cargando reporte de vencimientos...</td>
-                                    </tr>
-                                </template>
-                                <template x-if="!cargando && paginatedVencimientos.length === 0">
-                                    <tr>
-                                        <td colspan="10" class="text-center py-12 text-gray-400 italic">No se encontraron datos para mostrar.</td>
-                                    </tr>
-                                </template>
-                                <template x-for="(v, index) in paginatedVencimientos" :key="reporteDetallado ? 'venc-det-' + v.ID_Solicitud : 'venc-prov-' + v.ID_Proveedor">
-                                    <tr class="text-center hover:bg-gray-50 text-xs border-b transition-colors" :class="v.claseSemaforo">
-                                        <td class="px-2 py-2 font-mono font-bold" x-text="v.ID_Proveedor"></td>
-                                        <td class="px-3 py-2 text-left font-bold text-blue-800" x-show="reporteDetallado" x-text="v.No_Folio"></td>
-                                        <td class="px-3 py-2 text-left" x-text="v.RFC || 'N/A'"></td>
-                                        <td class="px-3 py-2 text-left font-bold" x-text="v.RazonSocial"></td>
-                                        <td class="px-3 py-2 text-right" x-show="!reporteDetallado" x-text="formatearMoneda(v.Monto_Credito)"></td>
-                                        <td class="px-3 py-2 text-right font-bold" :class="reporteDetallado ? 'text-gray-700' : 'text-blue-700'" x-text="formatearMoneda(v.importePorPagar)"></td>
-                                        <td class="px-3 py-2 text-right font-black" x-show="!reporteDetallado" :class="v.saldoCredito < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(v.saldoCredito)"></td>
-                                        <td class="px-3 py-2" x-text="v.Dias_Credito"></td>
-                                        <td class="px-3 py-2" x-show="reporteDetallado" x-text="v.fechaReferenciaStr"></td>
-                                        <td class="px-3 py-2 font-black uppercase tracking-tighter">
-                                            <span x-text="v.textoVencimiento"></span>
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>                    <!-- Controles de Paginación -->
-                    <div class="flex justify-between items-center mt-4" x-show="totalPagesVencimientos > 1">
-                        <span class="text-xs text-gray-600 font-medium">
-                            Página <span x-text="currentPageVencimientos"></span> de <span x-text="totalPagesVencimientos"></span>
-                        </span>
-
-                        <div class="flex items-center gap-1">
-                            <button @click="cambiarPaginaVencimientos(1)" :disabled="currentPageVencimientos === 1"
-                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
-                            <button @click="cambiarPaginaVencimientos(currentPageVencimientos - 1)" :disabled="currentPageVencimientos === 1"
-                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
-
-                            <span class="px-3 py-1 border rounded bg-yellow-600 text-white text-xs font-bold" x-text="currentPageVencimientos"></span>
-
-                            <button @click="cambiarPaginaVencimientos(currentPageVencimientos + 1)" :disabled="currentPageVencimientos === totalPagesVencimientos"
-                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
-                            <button @click="cambiarPaginaVencimientos(totalPagesVencimientos)" :disabled="currentPageVencimientos === totalPagesVencimientos"
-                                    class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                        <div id="detalles-vencimiento-solicitud" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm min-h-[50vh]">
+                            <!-- Renderizado dinámico desde JS -->
                         </div>
                     </div>
                 </div>
             </template>
+
             <!-- Pantalla 2: Reporte Presupuesto vs Ejecutado -->
     <template x-if="pantalla === 'presupuesto'">
         <div class="animate-fadeIn">
