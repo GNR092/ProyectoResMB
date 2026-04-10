@@ -51,12 +51,13 @@ class BitacoraService
             $this->loadUserContext();
         }
 
+        $context = $this->userContext ?? [];
         $entry = [
-            'usuario_id'         => $this->userContext['usuario_id'] ?? 0,
-            'nombre_usuario'     => $this->userContext['nombre_usuario'] ?? 'SISTEMA',
-            'departamento_id'    => $data['departamento_id'] ?? ($this->userContext['departamento_id'] ?? null),
-            'complejo_id'        => $data['complejo_id'] ?? ($this->userContext['complejo_id'] ?? null),
-            'razon_social_id'    => $data['razon_social_id'] ?? ($this->userContext['razon_social_id'] ?? null),
+            'usuario_id'         => $context['usuario_id'] ?? 0,
+            'nombre_usuario'     => $context['nombre_usuario'] ?? 'SISTEMA',
+            'departamento_id'    => $data['departamento_id'] ?? ($context['departamento_id'] ?? null),
+            'complejo_id'        => $data['complejo_id'] ?? ($context['complejo_id'] ?? null),
+            'razon_social_id'    => $data['razon_social_id'] ?? ($context['razon_social_id'] ?? null),
             'tipo_accion'        => $data['tipo_accion'] ?? 'ACCION_DESCONOCIDA',
             'clasificacion'      => $data['clasificacion'] ?? 'General',
             'usuario_autoriza_id'=> $data['usuario_autoriza_id'] ?? null,

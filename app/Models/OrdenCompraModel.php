@@ -9,6 +9,8 @@ class OrdenCompraModel extends Model
 {
     use AuditTrait;
 
+    protected $auditClasificacion = 'Compras';
+
     protected $table            = 'OrdenCompra';
     protected $primaryKey       = 'ID_OrdenCompra';
     protected $useAutoIncrement = true;

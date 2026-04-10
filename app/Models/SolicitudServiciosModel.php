@@ -9,6 +9,8 @@ class SolicitudServiciosModel extends Model
 {
     use AuditTrait;
 
+    protected $auditClasificacion = 'Operaciones';
+
     protected $table            = 'Solicitud_Servicios';
     protected $primaryKey       = 'ID_SolicitudServ';
     protected $useAutoIncrement = true;

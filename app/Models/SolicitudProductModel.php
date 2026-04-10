@@ -9,6 +9,8 @@ class SolicitudProductModel extends Model
 {
     use AuditTrait;
 
+    protected $auditClasificacion = 'Operaciones';
+
     protected $table            = 'Solicitud_Producto';
     protected $primaryKey       = 'ID_SolicitudProd';
     protected $useAutoIncrement = true;

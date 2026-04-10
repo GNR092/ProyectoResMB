@@ -1504,19 +1504,6 @@ class Api extends ResourceController
                 throw new \Exception('Error al completar la transacción de dictamen.');
             }
 
-            // Registro en Bitácora
-            Events::trigger('auditoria', [
-                'tipo_accion' => 'DICTAMINAR_SOLICITUD',
-                'clasificacion' => 'Compras',
-                'modulo'      => 'Compras',
-                'solicitud_id'=> $idSolicitud,
-                'estado'      => 'exito',
-                'valores_nuevos' => [
-                    'nuevo_estado' => $nuevoEstado,
-                    'comentarios'  => $comentarios
-                ]
-            ]);
-
             return $this->respondUpdated([
                 'success' => true,
                 'message' => 'El dictamen de la solicitud se ha guardado correctamente.',
@@ -1524,16 +1511,6 @@ class Api extends ResourceController
         } catch (\Exception $e) {
             if (isset($db) && $db->transStatus() === false) $db->transRollback();
             log_message('error', '[dictaminarSolicitud] ' . $e->getMessage());
-
-            // Registro de fallo en Bitácora
-            Events::trigger('auditoria', [
-                'tipo_accion' => 'DICTAMINAR_SOLICITUD',
-                'clasificacion' => 'Compras',
-                'modulo'      => 'Compras',
-                'solicitud_id'=> $idSolicitud ?? null,
-                'estado'      => 'fallido',
-                'valores_nuevos' => ['error' => $e->getMessage()]
-            ]);
 
             return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen: ' . $e->getMessage());
         }
@@ -3329,10 +3306,12 @@ class Api extends ResourceController
             foreach ($ids as $idSolicitud) {
                 $cotizacion = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
                 if ($cotizacion) {
-                    $ordenCompraModel
-                        ->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])
-                        ->set(['Estado' => Status::Programada])
-                        ->update();
+                    $orden = $ordenCompraModel->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])->first();
+                    if ($orden) {
+                        $ordenCompraModel->update($orden['ID_OrdenCompra'], [
+                            'Estado' => Status::Programada
+                        ]);
+                    }
                 }
             }
             $db->transComplete();

@@ -1159,8 +1159,13 @@ class Modales extends BaseController
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
         } else {
-            // ... resto del código igual
-            return $this->response->setJSON(['success' => false, 'message' => 'Error', 'errors' => $model->errors()]);
+            $errors = $model->errors();
+            $msg = isset($errors['Nombre_Corto']) ? $errors['Nombre_Corto'] : 'No se pudo insertar el lugar. Verifique los datos.';
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $msg,
+                'errors'  => $errors
+            ]);
         }
     }
     public function editarPlace($id)
@@ -1177,7 +1182,8 @@ class Modales extends BaseController
         $nuevoSegmento = !empty($postData['id_segmento']) ? (int)$postData['id_segmento'] : null;
         $segmentoAnterior = (int)($placeActual['id_segmento'] ?? 0);
 
-        if ($nuevoSegmento !== $segmentoAnterior && $segmentoAnterior !== 0) {
+        // Solo clonamos si el nuevo segmento existe y es diferente al anterior
+        if ($nuevoSegmento !== null && $nuevoSegmento !== $segmentoAnterior && $segmentoAnterior !== 0) {
             // CAMBIO DE SEGMENTO: Clonación en cascada
             $db = \Config\Database::connect();
             $db->transStart();
@@ -1186,13 +1192,14 @@ class Modales extends BaseController
             $model->update($id, ['activo' => false]);
 
             // 2. Crear nuevo lugar
-            $idNuevoPlace = $model->insert([
+            $insertData = [
                 'Nombre_Corto'    => $postData['Nombre_Corto'] ?? $placeActual['Nombre_Corto'],
                 'Nombre_Completo' => $postData['Nombre_Completo'] ?? $placeActual['Nombre_Completo'],
                 'ID_RazonSocial'  => $postData['ID_RazonSocial'] ?? $placeActual['ID_RazonSocial'],
                 'id_segmento'     => $nuevoSegmento,
                 'activo'          => true
-            ], true);
+            ];
+            $idNuevoPlace = $model->insert($insertData, true);
 
             // 3. Clonar Unidades Operativas y sus Grupos
             $unidadModel = new \App\Models\UnidadOperativaModel();
@@ -1219,8 +1226,9 @@ class Modales extends BaseController
                 }
 
                 // Mover Departamentos a la nueva unidad y lugar
-                $deptoModel->where('ID_UnidadOperativa', $uv['ID_UnidadOperativa'])
-                           ->update(null, ['ID_UnidadOperativa' => $idNuevaUni, 'ID_Place' => $idNuevoPlace]);
+                $deptoModel->set(['ID_UnidadOperativa' => $idNuevaUni, 'ID_Place' => $idNuevoPlace])
+                           ->where('ID_UnidadOperativa', $uv['ID_UnidadOperativa'])
+                           ->update();
             }
 
             $db->transComplete();

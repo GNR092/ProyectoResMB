@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class DepartamentosModel extends Model
 {
+    use AuditTrait;
+
+    protected $auditClasificacion = 'Catálogos';
+
     protected $table            = 'Departamentos';
     protected $primaryKey       = 'ID_Dpto';
     protected $useAutoIncrement = true;
@@ -20,4 +25,10 @@ class DepartamentosModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
+
+    // Callbacks
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 }

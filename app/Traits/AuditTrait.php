@@ -53,7 +53,7 @@ trait AuditTrait
             if (!empty($changedNew)) {
                 Events::trigger('auditoria', [
                     'tipo_accion' => 'ACTUALIZAR',
-                    'clasificacion' => 'Operaciones',
+                    'clasificacion' => $this->auditClasificacion ?? 'Operaciones',
                     'modulo'      => $this->table,
                     'valores_antiguos' => $changedOld,
                     'valores_nuevos'   => $changedNew,
@@ -80,7 +80,7 @@ trait AuditTrait
 
         Events::trigger('auditoria', [
             'tipo_accion' => 'INSERTAR',
-            'clasificacion' => 'Operaciones',
+            'clasificacion' => $this->auditClasificacion ?? 'Operaciones',
             'modulo'      => $this->table,
             'valores_nuevos' => $data['data'],
             'solicitud_id'     => $data['data']['ID_Solicitud'] ?? null,
@@ -101,7 +101,7 @@ trait AuditTrait
 
         Events::trigger('auditoria', [
             'tipo_accion' => 'ELIMINAR',
-            'clasificacion' => 'Operaciones',
+            'clasificacion' => $this->auditClasificacion ?? 'Operaciones',
             'modulo'      => $this->table,
             'valores_antiguos' => ['id' => $data['id']],
             'estado'      => 'exito'

@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class RazonSocialModel extends Model
 {
+    use AuditTrait;
+
+    protected $auditClasificacion = 'Catálogos';
+
     protected $table            = 'Razon_Social';
     protected $primaryKey       = 'ID_RazonSocial';
     protected $useAutoIncrement = true;
@@ -20,4 +25,10 @@ class RazonSocialModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
+
+    // Callbacks
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 }

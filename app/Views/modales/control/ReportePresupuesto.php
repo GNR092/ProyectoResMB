@@ -572,7 +572,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </svg>
                     </div>
                 </div>
-                <div id="detalles-movimiento-solicitud" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm min-h-[50vh]">
+                <div id="detalles-movimiento-solicitudat " class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm min-h-[50vh]">
                     <!-- Renderizado dinámico desde JS (idéntico al historial) -->
                 </div>
             </div>

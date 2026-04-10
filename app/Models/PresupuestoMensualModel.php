@@ -9,6 +9,8 @@ class PresupuestoMensualModel extends Model
 {
     use AuditTrait;
 
+    protected $auditClasificacion = 'Finanzas';
+
     protected $table            = 'PresupuestoMensual';
     protected $primaryKey       = 'ID_PresupuestoMensual';
     protected $useAutoIncrement = true;
