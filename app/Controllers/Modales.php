@@ -346,19 +346,21 @@ class Modales extends BaseController
                     foreach ($ocs as $oc) {
                         $o = $this->api->getOrdenCompra($oc['ID_Solicitud']);
 
-                        if ($o && !empty($o['OrdenCompra'])) {
-                            $estado = $o['OrdenCompra']['Estado'] ?? '';
+                        if ($o) {
+                            $estadoOC = $o['OrdenCompra']['Estado'] ?? '';
+                            $estadoSol = $o['Estado'] ?? '';
 
-                            if (in_array($estado, ['Por Pagar', 'Pagada'])) {
+                            if (in_array($estadoOC, ['Por Pagar', 'Pagada']) || 
+                                in_array($estadoSol, ['Por Pagar', 'Pagada'])) {
 
-                                // AGREGAMOS ESTA LÍNEA:
                                 // Volvemos a colocar el estado en la raíz solo para esta vista
-                                $o['EstadoOrden'] = $estado;
+                                $o['EstadoOrden'] = !empty($estadoOC) ? $estadoOC : $estadoSol;
 
                                 $tabledata[] = $o;
                             }
                         }
                     }
+                    log_message('debug', 'Reportes tabledata count: ' . count($tabledata));
                     $data['tabledata'] = $tabledata;
                 }
 
