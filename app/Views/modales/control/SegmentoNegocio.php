@@ -1,3 +1,7 @@
+<?php 
+    $deptoUsuario = session('departamento_usuario');
+    $tieneAccesoEdicion = in_array($deptoUsuario, ['Administración', 'Direccion', 'Dirección']);
+?>
 <div id="pantalla-lista-segmentos" class="p-6 bg-white rounded-xl shadow-md">
     <h2 class="text-2xl font-semibold mb-4 text-center">Segmentos de Negocio</h2>
 
@@ -6,11 +10,13 @@
             <label for="buscar-nombre-segmento" class="sr-only">Buscar por nombre</label>
             <input type="text" id="buscar-nombre-segmento" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
         </div>
+        <?php if ($tieneAccesoEdicion): ?>
         <div>
             <a href="#" id="btn-agregar-segmentos" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
                 AGREGAR
             </a>
         </div>
+        <?php endif; ?>
     </div>
 
     <div class="overflow-x-auto">
@@ -20,7 +26,9 @@
                 <th class="w-1/4 px-3 py-2 border-b text-left">Nombre</th>
                 <th class="w-1/4 px-3 py-2 border-b text-left">Descripción</th>
                 <th class="w-1/4 px-3 py-2 border-b text-left">Razón Social</th>
+                <?php if ($tieneAccesoEdicion): ?>
                 <th class="w-1/4 px-3 py-2 border-b text-center">Acciones</th>
+                <?php endif; ?>
             </tr>
             </thead>
             <tbody id="tabla-segmentos">
@@ -39,6 +47,7 @@
                         <td class="px-3 py-2 border-b descripcion-segmento"><?= esc($s['descripcion']) ?></td>
                         <td class="px-3 py-2 border-b razon-social-segmento"><?= esc($s['RazonSocial_Nombre']) ?></td>
 
+                        <?php if ($tieneAccesoEdicion): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <?php if ($enRevision): ?>
                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-300">
@@ -59,16 +68,19 @@
                             </div>
                             <?php endif; ?>
                         </td>
+                        <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="4" class="px-3 py-4 text-center text-gray-500">No hay segmentos registrados</td>
+                    <td colspan="<?= ($tieneAccesoEdicion) ? '4' : '3' ?>" class="px-3 py-4 text-center text-gray-500">No hay segmentos registrados</td>
                 </tr>
             <?php endif; ?>
             </tbody>
         </table>
     </div>
+    <div id="paginacion-segmentos" class="flex justify-center mt-4 space-x-2"></div>
+</div>
     <div id="paginacion-segmentos" class="flex justify-center mt-4 space-x-2"></div>
 </div>
 

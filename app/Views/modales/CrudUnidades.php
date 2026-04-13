@@ -1,3 +1,7 @@
+<?php 
+    $deptoUsuario = session('departamento_usuario');
+    $tieneAccesoEdicion = in_array($deptoUsuario, ['Administración', 'Direccion', 'Dirección']);
+?>
 <!-- Pantalla 1: lista de departamentos de operación -->
 <div id="pantalla-lista-unidades" class="p-6 bg-white rounded-xl shadow-md">
 
@@ -9,7 +13,7 @@
             <input type="text" id="buscar-nombre-unidad" placeholder="Buscar unidad..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
             <input type="text" id="buscar-lugar-unidad" placeholder="Buscar por lugar..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
         </div>
-        <?php if (session('departamento_usuario') === 'Dirección'): ?>
+        <?php if ($tieneAccesoEdicion): ?>
         <div>
             <a href="#" id="btn-agregar-unidad" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
                 AGREGAR
@@ -25,7 +29,7 @@
                 <th class="w-1/3 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/3 px-3 py-2 border-b text-left">Lugar (Complejo)</th>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Estado</th>
-                <?php if (session('departamento_usuario') === 'Dirección'): ?>
+                <?php if ($tieneAccesoEdicion): ?>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
                 <?php endif; ?>
             </tr>
@@ -52,7 +56,7 @@
                             </span>
                         </td>
 
-                        <?php if (session('departamento_usuario') === 'Dirección'): ?>
+                        <?php if ($tieneAccesoEdicion): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <?php if ($enRevision): ?>
                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-300">
@@ -75,7 +79,7 @@
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
-                <tr><td colspan="<?= (session('departamento_usuario') === 'Dirección') ? '4' : '3' ?>" class="px-3 py-4 text-center text-gray-500">No hay departamentos registrados</td></tr>
+                <tr><td colspan="<?= ($tieneAccesoEdicion) ? '4' : '3' ?>" class="px-3 py-4 text-center text-gray-500">No hay departamentos registrados</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

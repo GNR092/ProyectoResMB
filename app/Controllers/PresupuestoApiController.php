@@ -124,6 +124,12 @@ class PresupuestoApiController extends ResourceController
             return $this->respond(['success' => true, 'pending_review' => false, 'message' => 'Presupuesto guardado correctamente ✅']);
         } catch (\Exception $e) {
             $db->transRollback();
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'FALLO_PRESUPUESTO_MASIVO',
+                'modulo'         => 'Presupuesto',
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage(), 'post' => $json])
+            ]);
             return $this->failServerError($e->getMessage());
         }
     }
@@ -442,31 +448,50 @@ class PresupuestoApiController extends ResourceController
 
             if ($estado === 'Aprobado') {
                 $db = \Config\Database::connect();
-                $db->transStart();
+                // Habilitamos excepciones para capturar errores detallados de DB
+                $db->transException(true)->transStart();
                 
-                $modulo = $solicitud['Modulo'];
-                $accion = $solicitud['Accion'];
-                $payload = json_decode($solicitud['Datos_Payload'], true);
-                $idAfectado = $solicitud['ID_Afectado'];
+                try {
+                    $modulo = $solicitud['Modulo'];
+                    $accion = $solicitud['Accion'];
+                    $payload = json_decode($solicitud['Datos_Payload'], true);
+                    $idAfectado = $solicitud['ID_Afectado'];
 
-                if ($accion === 'Masivo') {
-                    if ($modulo === 'PresupuestoMensual') {
-                        $this->ejecutarPresupuestoMasivo($payload);
-                    } else if ($modulo === 'SaldosBancarios') {
-                        $this->ejecutarSaldosMasivo($payload);
+                    if ($accion === 'Masivo') {
+                        if ($modulo === 'PresupuestoMensual') {
+                            $this->ejecutarPresupuestoMasivo($payload);
+                        } else if ($modulo === 'SaldosBancarios') {
+                            $this->ejecutarSaldosMasivo($payload);
+                        }
+                    } else {
+                        $this->ejecutarCambioIndividual($modulo, $accion, $idAfectado, $payload);
                     }
-                } else {
-                    $this->ejecutarCambioIndividual($modulo, $accion, $idAfectado, $payload);
+
+                    $solModel->update($id, [
+                        'Estado' => 'Aprobado',
+                        'Comentarios_Revisor' => $comentarios,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                    $db->transComplete();
+
+                    // Registro de Éxito en Bitácora
+                    \CodeIgniter\Events\Events::trigger('auditoria', [
+                        'tipo_accion'    => 'APROBAR_AJUSTE_PRESUPUESTO',
+                        'modulo'         => $modulo,
+                        'estado'         => 'exito',
+                        'solicitud_id'   => $id,
+                        'valores_nuevos' => json_encode([
+                            'modulo'      => $modulo,
+                            'accion'      => $accion,
+                            'comentarios' => $comentarios
+                        ])
+                    ]);
+                } catch (\Throwable $e) {
+                    $db->transRollback();
+                    throw $e; // Re-lanzamos para que el catch principal lo registre
                 }
 
-                $solModel->update($id, [
-                    'Estado' => 'Aprobado',
-                    'Comentarios_Revisor' => $comentarios,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
-
-                $db->transComplete();
-                if ($db->transStatus() === false) throw new \Exception('Error al procesar la transacción.');
                 return $this->respond(['success' => true, 'message' => 'Cambio aprobado y ejecutado correctamente ✅']);
             } else {
                 $solModel->update($id, [
@@ -474,9 +499,27 @@ class PresupuestoApiController extends ResourceController
                     'Comentarios_Revisor' => $comentarios,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
+
+                // Registro de Rechazo en Bitácora
+                \CodeIgniter\Events\Events::trigger('auditoria', [
+                    'tipo_accion'    => 'RECHAZAR_AJUSTE_PRESUPUESTO',
+                    'modulo'         => $solicitud['Modulo'] ?? 'Presupuesto',
+                    'estado'         => 'exito',
+                    'solicitud_id'   => $id,
+                    'valores_nuevos' => json_encode([
+                        'comentarios' => $comentarios
+                    ])
+                ]);
+
                 return $this->respond(['success' => true, 'message' => 'Cambio rechazado ❌']);
             }
         } catch (\Throwable $e) {
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'FALLO_DICTAMEN_PRESUPUESTO',
+                'modulo'         => 'Presupuesto',
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage(), 'id_solicitud' => $id ?? null])
+            ]);
             log_message('error', '[dictaminarCambio] ' . $e->getMessage());
             return $this->failServerError($e->getMessage());
         }
@@ -554,16 +597,48 @@ class PresupuestoApiController extends ResourceController
             case 'Departamento': $model = new DepartamentosModel(); break;
         }
 
-        if (!$model) throw new \Exception("Módulo '$modulo' no reconocido.");
+        if (!$model) {
+            throw new \Exception("Módulo '$modulo' no reconocido o modelo no encontrado.");
+        }
+
+        $db = \Config\Database::connect();
+        $pk = $model->primaryKey;
 
         if ($accion === 'Insertar') {
-            $model->insert($payload);
+            // 1. SEGURIDAD: Eliminamos la PK del payload para que la DB asigne el siguiente automático
+            if (isset($payload[$pk])) {
+                unset($payload[$pk]);
+            }
+            // También eliminamos 'id' genérico por si acaso
+            if (isset($payload['id'])) {
+                unset($payload['id']);
+            }
+
+            // 2. COMPATIBILIDAD POSTGRES: Sincronizar secuencia antes de insertar
+            if (($db->DBDriver ?? '') === 'Postgre') {
+                $table = $model->table;
+                $db->query("SELECT setval(pg_get_serial_sequence('\"$table\"', '$pk'), COALESCE((SELECT MAX(\"$pk\") FROM \"$table\"), 1), true)");
+            }
+
+            if (!$model->skipValidation(true)->insert($payload)) {
+                $error = $model->errors() ? json_encode($model->errors()) : 'Error desconocido al insertar';
+                throw new \Exception("Error DB [$modulo]: $error");
+            }
         } else if ($accion === 'Editar') {
-            if (!$idAfectado) throw new \Exception("ID de afectado no proporcionado para Editar.");
-            $model->update($idAfectado, $payload);
+            $id = $idAfectado ?: ($payload[$pk] ?? ($payload['id'] ?? null));
+            if (!$id) throw new \Exception("No se pudo determinar el ID de afectado para la edición en $modulo.");
+            
+            if (!$model->skipValidation(true)->update($id, $payload)) {
+                $error = $model->errors() ? json_encode($model->errors()) : 'Error desconocido al actualizar';
+                throw new \Exception("Error DB [$modulo]: $error");
+            }
         } else if ($accion === 'Eliminar') {
-            if (!$idAfectado) throw new \Exception("ID de afectado no proporcionado para Eliminar.");
-            $model->delete($idAfectado);
+            $id = $idAfectado ?: ($payload[$pk] ?? ($payload['id'] ?? null));
+            if (!$id) throw new \Exception("No se pudo determinar el ID de afectado para la eliminación en $modulo.");
+            
+            if (!$model->delete($id)) {
+                throw new \Exception("No se pudo eliminar el registro en $modulo.");
+            }
         }
     }
 

@@ -40,6 +40,27 @@ Events::on('post_system', static function (): void {
     }
 });
 
+/**
+ * Captura errores críticos del sistema y los registra en la bitácora
+ */
+Events::on('systemException', static function (\Throwable $e): void {
+    if (!is_cli()) {
+        Events::trigger('auditoria', [
+            'tipo_accion'    => 'SISTEMA_ERROR',
+            'modulo'         => 'Sistema',
+            'estado'         => 'fallido',
+            'valores_nuevos' => json_encode([
+                'excepcion' => get_class($e),
+                'mensaje'   => $e->getMessage(),
+                'archivo'   => $e->getFile(),
+                'linea'     => $e->getLine()
+            ])
+        ]);
+        // Aseguramos persistencia inmediata en caso de error fatal
+        BitacoraService::getInstance()->persistir();
+    }
+});
+
 Events::on('pre_system', static function (): void {
     if (ENVIRONMENT !== 'testing') {
         if (ini_get('zlib.output_compression')) {

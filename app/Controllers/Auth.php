@@ -37,6 +37,12 @@ class Auth extends BaseController
         $user = $userModel->where('Correo', $email)->first();
 
         if (!$user) {
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'LOGIN_FALLIDO',
+                'modulo'         => 'Autenticacion',
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['correo' => $email, 'razon' => 'Usuario no encontrado'])
+            ]);
             return view('auth/login', ['error' => 'Correo electrónico o contraseña no válidos.']);
         }
 
@@ -77,9 +83,22 @@ class Auth extends BaseController
             ];
             $this->session->set($ses_data);
 
+            // Registro de éxito en bitácora
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion' => 'LOGIN_EXITOSO',
+                'modulo'      => 'Autenticacion',
+                'estado'      => 'exito'
+            ]);
+
             return redirect()->to('/');
         }
 
+        \CodeIgniter\Events\Events::trigger('auditoria', [
+            'tipo_accion'    => 'LOGIN_FALLIDO',
+            'modulo'         => 'Autenticacion',
+            'estado'         => 'fallido',
+            'valores_nuevos' => json_encode(['correo' => $email, 'razon' => 'Contraseña incorrecta'])
+        ]);
         return view('auth/login', ['error' => 'Correo electrónico o contraseña no válidos.']);
     }
     public function logout()

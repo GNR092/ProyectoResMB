@@ -26,6 +26,29 @@ class Modales extends BaseController
     {
         $this->api = new Rest();
     }
+
+    /**
+     * Registra un fallo en la bitácora y devuelve una respuesta JSON de error.
+     */
+    private function failAudit($message, $modulo = 'Catalogos', $accion = 'FALLO_REGISTRO', $id = null)
+    {
+        \CodeIgniter\Events\Events::trigger('auditoria', [
+            'tipo_accion'    => $accion,
+            'modulo'         => $modulo,
+            'estado'         => 'fallido',
+            'valores_nuevos' => json_encode([
+                'mensaje' => $message,
+                'url'     => $this->request->getUri()->getPath(),
+                'post'    => $this->request->getPost()
+            ])
+        ]);
+
+        return $this->response->setStatusCode(400)->setJSON([
+            'success' => false,
+            'message' => $message
+        ]);
+    }
+
     public function mostrar($opcion)
     {
         $session = session();
@@ -563,7 +586,7 @@ class Modales extends BaseController
         ])) {
             return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al enviar a revisión', 'errors' => $solicitudesModel->errors()]);
+            return $this->failAudit('Error al enviar a revisión la creación del segmento', 'Catalogos', 'FALLO_SOLICITUD_SEGMENTO');
         }
     }
 
@@ -589,7 +612,7 @@ class Modales extends BaseController
             ]);
             return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+            return $this->failAudit($e->getMessage(), 'Catalogos', 'ERROR_SOLICITUD_SEGMENTO');
         }
     }
 
@@ -613,10 +636,7 @@ class Modales extends BaseController
         ])) {
             return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Solicitud de eliminación enviada a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'No se pudo enviar la solicitud de eliminación a revisión',
-            ]);
+            return $this->failAudit('No se pudo enviar la solicitud de eliminación a revisión', 'Catalogos', 'FALLO_SOLICITUD_SEGMENTO');
         }
     }
 
@@ -665,11 +685,7 @@ class Modales extends BaseController
         ];
 
         if (!$this->validateData($data, $rules)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Datos de entrada inválidos.',
-                'errors' => $this->validator->getErrors(),
-            ]);
+            return $this->failAudit('Datos de entrada inválidos para registro de usuario.', 'Seguridad', 'FALLO_VALIDACION_USUARIO');
         }
 
         // Hashear la contraseña
@@ -680,20 +696,23 @@ class Modales extends BaseController
             $data['ContrasenaG'] = null; // Opcional: asegúrate de que se guarde como nulo si está vacío
         }
         $usuarioModel = new UsuariosModel();
-        $newUserId = $usuarioModel->insert($data, true);
+        
+        try {
+            $newUserId = $usuarioModel->insert($data, true);
 
-        if ($newUserId) {
-            $newUser = $this->api->getUserById($newUserId);
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Usuario registrado correctamente.',
-                'user' => $newUser,
-            ]);
+            if ($newUserId) {
+                $newUser = $this->api->getUserById($newUserId);
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Usuario registrado correctamente.',
+                    'user' => $newUser,
+                ]);
+            }
+
+            return $this->failAudit('No se pudo registrar el usuario.', 'Seguridad', 'FALLO_REGISTRO_USUARIO');
+        } catch (\Exception $e) {
+            return $this->failAudit($e->getMessage(), 'Seguridad', 'ERROR_DB_USUARIO');
         }
-
-        return $this->response
-            ->setStatusCode(500)
-            ->setJSON(['success' => false, 'message' => 'No se pudo registrar el usuario.']);
     }
     public function actualizarUsuario($id)
     {
@@ -713,11 +732,7 @@ class Modales extends BaseController
         ];
 
         if (!$this->validateData($data, $rules)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Datos de entrada inválidos.',
-                'errors' => $this->validator->getErrors(),
-            ]);
+            return $this->failAudit('Datos de entrada inválidos para actualización de usuario.', 'Seguridad', 'FALLO_VALIDACION_USUARIO');
         }
 
         // Si se proporciona una nueva contraseña, la hasheamos.
@@ -734,16 +749,18 @@ class Modales extends BaseController
             unset($data['ContrasenaG']);
         }
 
-        if ($this->api->updateUser((int) $id, $data)) {
-            return $this->response->setJSON([
-                'success' => true,
-                'message' => 'Usuario actualizado correctamente.',
-            ]);
-        }
+        try {
+            if ($this->api->updateUser((int) $id, $data)) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Usuario actualizado correctamente.',
+                ]);
+            }
 
-        return $this->response
-            ->setStatusCode(500)
-            ->setJSON(['success' => false, 'message' => 'No se pudo actualizar el usuario.']);
+            return $this->failAudit('No se pudo actualizar el usuario.', 'Seguridad', 'FALLO_ACTUALIZACION_USUARIO');
+        } catch (\Exception $e) {
+            return $this->failAudit($e->getMessage(), 'Seguridad', 'ERROR_DB_USUARIO');
+        }
     }
     public function eliminarUsuario($id)
     {
@@ -790,11 +807,7 @@ class Modales extends BaseController
         ];
 
         if (!$this->validate($rules)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Error de validación.',
-                'errors' => $this->validator->getErrors(),
-            ]);
+            return $this->failAudit('Error de validación al registrar material.', 'Almacen', 'FALLO_VALIDACION_MATERIAL');
         }
 
         try {
@@ -807,10 +820,7 @@ class Modales extends BaseController
             $newId = $this->api->registrarProductoArray($data);
 
             if ($newId === false) {
-                return $this->response->setStatusCode(500)->setJSON([
-                    'success' => false,
-                    'message' => 'No se pudo registrar el producto en la base de datos.',
-                ]);
+                return $this->failAudit('No se pudo registrar el producto en la base de datos.', 'Almacen', 'FALLO_REGISTRO_MATERIAL');
             }
 
             return $this->response->setStatusCode(201)->setJSON([
@@ -820,10 +830,7 @@ class Modales extends BaseController
             ]);
         } catch (\Throwable $e) {
             log_message('error', '[Registrar Producto] ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Ocurrió un error inesperado al registrar el producto.',
-            ]);
+            return $this->failAudit($e->getMessage(), 'Almacen', 'ERROR_DB_MATERIAL');
         }
     }
     public function eliminarProducto($id = null)
@@ -875,26 +882,17 @@ class Modales extends BaseController
         $data = $this->request->getJSON(true);
 
         if (!$this->validateData($data, $rules)) {
-            return $this->response->setStatusCode(400)->setJSON([
-                'success' => false,
-                'message' => 'Datos de entrada inválidos.',
-                'errors' => $this->validator->getErrors(),
-            ]);
+            return $this->failAudit('Datos de entrada inválidos para edición de producto.', 'Almacen', 'FALLO_VALIDACION_PRODUCTO');
         }
 
         try {
             $productoActual = $this->api->getProductById($id);
             if (!$productoActual) {
-                return $this->response
-                    ->setStatusCode(404)
-                    ->setJSON(['success' => false, 'message' => 'Producto no encontrado.']);
+                return $this->failAudit('Producto no encontrado.', 'Almacen', 'FALLO_EDICION_PRODUCTO');
             }
 
             if ($data['Existencia'] < $productoActual['Existencia']) {
-                return $this->response->setStatusCode(400)->setJSON([
-                    'success' => false,
-                    'message' => 'No se puede reducir la existencia. Solo se puede aumentar.',
-                ]);
+                return $this->failAudit('No se puede reducir la existencia. Solo se puede aumentar.', 'Almacen', 'FALLO_VALIDACION_PRODUCTO');
             }
 
             if ($this->api->actualizarProducto($id, $data)) {
@@ -904,15 +902,10 @@ class Modales extends BaseController
                 ]);
             }
 
-            return $this->response
-                ->setStatusCode(500)
-                ->setJSON(['success' => false, 'message' => 'No se pudo actualizar el producto.']);
+            return $this->failAudit('No se pudo actualizar el producto.', 'Almacen', 'FALLO_EDICION_PRODUCTO');
         } catch (\Throwable $e) {
             log_message('error', '[Editar Producto] ' . $e->getMessage());
-            return $this->response->setStatusCode(500)->setJSON([
-                'success' => false,
-                'message' => 'Ocurrió un error inesperado al editar el producto.',
-            ]);
+            return $this->failAudit($e->getMessage(), 'Almacen', 'ERROR_DB_PRODUCTO');
         }
     }
     public function descontarStockEntrega()
@@ -1033,17 +1026,10 @@ class Modales extends BaseController
             if ($proveedorModel->insert($data)) {
                 return $this->response->setJSON(['success' => true]);
             } else {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'No se pudo insertar el proveedor. Verifique los datos.',
-                    'errors' => $proveedorModel->errors(), // Opcional: enviar errores de validación
-                ]);
+                return $this->failAudit('No se pudo insertar el proveedor. Verifique los datos.', 'Proveedores', 'INSERTAR_PROVEEDOR');
             }
         } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ]);
+            return $this->failAudit($e->getMessage(), 'Proveedores', 'INSERTAR_PROVEEDOR');
         }
     }
     public function eliminarProveedor($id)
@@ -1090,10 +1076,7 @@ class Modales extends BaseController
             $model->update($id, $data);
             return $this->response->setJSON(['success' => true]);
         } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ]);
+            return $this->failAudit($e->getMessage(), 'Catalogos', 'ERROR_DB');
         }
     }
 
@@ -1107,10 +1090,7 @@ class Modales extends BaseController
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'No se pudo insertar la razón social',
-            ]);
+            return $this->failAudit('No se pudo insertar la razón social', 'Catalogos', 'INSERTAR_RAZON_SOCIAL');
         }
     }
     public function editarRazonSocial($id)
@@ -1122,10 +1102,7 @@ class Modales extends BaseController
             $model->update($id, $data);
             return $this->response->setJSON(['success' => true]);
         } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ]);
+            return $this->failAudit($e->getMessage(), 'Catalogos', 'ERROR_DB');
         }
     }
     public function eliminarRazonSocial($id)
@@ -1161,13 +1138,7 @@ class Modales extends BaseController
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
         } else {
-            $errors = $model->errors();
-            $msg = isset($errors['Nombre_Corto']) ? $errors['Nombre_Corto'] : 'No se pudo insertar el lugar. Verifique los datos.';
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => $msg,
-                'errors'  => $errors
-            ]);
+            return $this->failAudit('No se pudo insertar el lugar. Verifique los datos.', 'Catalogos', 'FALLO_REGISTRO_PLACE');
         }
     }
     public function editarPlace($id)
@@ -1288,10 +1259,7 @@ class Modales extends BaseController
         $placeId = $this->request->getPost('ID_Place'); // Capturamos el lugar elegido
 
         if (empty($nombre) || empty($placeId)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'El nombre y el complejo son obligatorios',
-            ]);
+            return $this->failAudit('El nombre y el complejo son obligatorios', 'Catalogos', 'INSERTAR_DEPARTAMENTO');
         }
 
         $data = [
@@ -1306,10 +1274,7 @@ class Modales extends BaseController
                 'message' => "Departamento creado correctamente.",
             ]);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'No se pudo insertar el departamento',
-            ]);
+            return $this->failAudit('No se pudo insertar el departamento', 'Catalogos', 'INSERTAR_DEPARTAMENTO');
         }
     }
 
@@ -1329,10 +1294,7 @@ class Modales extends BaseController
             $model->update($id, $data);
             return $this->response->setJSON(['success' => true]);
         } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ]);
+            return $this->failAudit($e->getMessage(), 'Catalogos', 'ERROR_DB');
         }
     }
     public function eliminarDepartamento($id)
@@ -1393,11 +1355,7 @@ class Modales extends BaseController
         if ($model->insert($data)) {
             return $this->response->setJSON(['success' => true]);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'No se pudo guardar la cuenta.',
-                'errors' => $model->errors()
-            ]);
+            return $this->failAudit('No se pudo guardar la cuenta.', 'Proveedores', 'FALLO_REGISTRO_CUENTA');
         }
     }
     public function actualizarCuenta($id)
@@ -1411,7 +1369,7 @@ class Modales extends BaseController
 
         // Validamos que no esté vacío
         if (empty($data['Cuenta'])) {
-            return $this->response->setJSON(['success' => false, 'message' => 'El número de cuenta es obligatorio.']);
+            return $this->failAudit('El número de cuenta es obligatorio.', 'Proveedores', 'FALLO_VALIDACION_CUENTA');
         }
 
         try {
@@ -1419,17 +1377,10 @@ class Modales extends BaseController
             if ($model->update($id, $data)) {
                 return $this->response->setJSON(['success' => true]);
             } else {
-                return $this->response->setJSON([
-                    'success' => false,
-                    'message' => 'No se pudo actualizar la cuenta.',
-                    'errors' => $model->errors()
-                ]);
+                return $this->failAudit('No se pudo actualizar la cuenta.', 'Proveedores', 'FALLO_ACTUALIZACION_CUENTA');
             }
         } catch (\Exception $e) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Error del servidor: ' . $e->getMessage()
-            ]);
+            return $this->failAudit($e->getMessage(), 'Proveedores', 'ERROR_DB_CUENTA');
         }
     }
     public function eliminarCuenta($id)
@@ -1474,7 +1425,7 @@ class Modales extends BaseController
         ])) {
             return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al enviar a revisión', 'errors' => $solicitudesModel->errors()]);
+            return $this->failAudit('Error al enviar a revisión la creación del grupo', 'Presupuestos', 'FALLO_SOLICITUD_GRUPO');
         }
     }
     
@@ -1514,7 +1465,7 @@ class Modales extends BaseController
             ]);
             return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+            return $this->failAudit($e->getMessage(), 'Presupuestos', 'ERROR_SOLICITUD_GRUPO');
         }
     }
     
@@ -1539,10 +1490,7 @@ class Modales extends BaseController
         ])) {
             return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Solicitud de desactivación enviada a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'No se pudo enviar la solicitud de desactivación',
-            ]);
+            return $this->failAudit('No se pudo enviar la solicitud de desactivación', 'Presupuestos', 'FALLO_SOLICITUD_GRUPO');
         }
     }
 
@@ -1556,11 +1504,7 @@ class Modales extends BaseController
         if ($bancoModel->insert($data)) {
             return $this->response->setJSON(['success' => true, 'message' => 'Banco guardado correctamente.']);
         } else {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Error al guardar el banco',
-                'errors' => $bancoModel->errors()
-            ]);
+            return $this->failAudit('Error al guardar el banco', 'Bancos', 'FALLO_REGISTRO_BANCO');
         }
     }
     public function editarBancoDpto($id)
@@ -1572,7 +1516,7 @@ class Modales extends BaseController
             $bancoModel->update($id, $data);
             return $this->response->setJSON(['success' => true, 'message' => 'Banco actualizado correctamente.']);
         } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+            return $this->failAudit($e->getMessage(), 'Bancos', 'ERROR_DB_BANCO');
         }
     }
     public function eliminarBancoDpto($id)
@@ -1607,7 +1551,7 @@ class Modales extends BaseController
         ])) {
             return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al enviar a revisión', 'errors' => $solicitudesModel->errors()]);
+            return $this->failAudit('Error al enviar a revisión la creación de la unidad operativa', 'Presupuestos', 'FALLO_SOLICITUD_UNIDAD');
         }
     }
 
@@ -1644,7 +1588,7 @@ class Modales extends BaseController
             ]);
             return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Cambio enviado a Dirección para su autorización.']);
         } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+            return $this->failAudit($e->getMessage(), 'Presupuestos', 'ERROR_SOLICITUD_UNIDAD');
         }
     }
 
@@ -1668,7 +1612,7 @@ class Modales extends BaseController
         ])) {
             return $this->response->setJSON(['success' => true, 'pending_review' => true, 'message' => 'Solicitud de desactivación enviada a Dirección para su autorización.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al enviar a revisión']);
+            return $this->failAudit('Error al enviar a revisión la desactivación de la unidad operativa', 'Presupuestos', 'FALLO_SOLICITUD_UNIDAD');
         }
     }
 }

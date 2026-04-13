@@ -1,3 +1,7 @@
+<?php 
+    $deptoUsuario = session('departamento_usuario');
+    $tieneAccesoEdicion = in_array($deptoUsuario, ['Administración', 'Direccion', 'Dirección']);
+?>
 <div id="pantalla-lista-grupos" 
      class="p-6 bg-white rounded-xl shadow-md"
      data-unidades-json='<?= json_encode($unidades_operativas ?? []) ?>'>
@@ -47,7 +51,7 @@
                 </select>
             </div>
         </div>
-        <?php if (session('departamento_usuario') === 'Dirección'): ?>
+        <?php if ($tieneAccesoEdicion): ?>
         <div class="self-end mb-1">
             <a href="#" id="btn-agregar-grupos" class="inline-block px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors uppercase text-sm">
                 AGREGAR
@@ -64,7 +68,7 @@
                 <th class="w-1/5 px-3 py-2 border-b text-left">Descripción</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Estado</th>
-                <?php if (session('departamento_usuario') === 'Dirección'): ?>
+                <?php if ($tieneAccesoEdicion): ?>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Acciones</th>
                 <?php endif; ?>
             </tr>
@@ -85,7 +89,7 @@
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= !$esActivo ? 'opacity-60' : '' ?> <?= $enRevision ? 'bg-yellow-50 opacity-80' : '' ?>">
 
                         <td class="px-3 py-2 border-b nombre-grupo"><?= esc($grupo['Nombre']) ?></td>
-                        <td class="px-3 py-2 border-b descripcion-grupo"><?= esc($grupo['Descripcion']) ?></td>
+                        <td class="px-3 py-2 border-b descripcion-grupo"><?= esc($grupo['Nombre']) ?></td>
                         <td class="px-3 py-2 border-b unidad-grupo"><?= esc($grupo['UnidadNombre'] ?? 'N/A') ?> (<?= esc($grupo['PlaceNombre'] ?? 'N/A') ?>)</td>
                         <td class="px-3 py-2 border-b text-center">
                             <?php if ($esActivo): ?>
@@ -95,7 +99,7 @@
                             <?php endif; ?>
                         </td>
 
-                        <?php if (session('departamento_usuario') === 'Dirección'): ?>
+                        <?php if ($tieneAccesoEdicion): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <?php if ($enRevision): ?>
                                 <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-300">
@@ -130,7 +134,7 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="<?= (session('departamento_usuario') === 'Dirección') ? '5' : '4' ?>" class="px-3 py-4 text-center text-gray-500">No hay partidas registradas</td>
+                    <td colspan="<?= ($tieneAccesoEdicion) ? '5' : '4' ?>" class="px-3 py-4 text-center text-gray-500">No hay partidas registradas</td>
                 </tr>
             <?php endif; ?>
             </tbody>

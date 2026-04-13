@@ -44,6 +44,12 @@ class MantenimientoFilter implements FilterInterface
         $rolesPermitidos = $config['roles_permitidos'] ?? [];
 
         if (empty($rolesPermitidos)) {
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'MANTENIMIENTO_ACCESO',
+                'modulo'         => 'Sistema',
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['mensaje' => 'Sin roles permitidos en mantenimiento', 'url' => $currentUri])
+            ]);
             $session->destroy();
             return redirect()->to(base_url('mantenimiento'));
         }
@@ -52,6 +58,12 @@ class MantenimientoFilter implements FilterInterface
             return;
         }
 
+        \CodeIgniter\Events\Events::trigger('auditoria', [
+            'tipo_accion'    => 'MANTENIMIENTO_ACCESO',
+            'modulo'         => 'Sistema',
+            'estado'         => 'fallido',
+            'valores_nuevos' => json_encode(['mensaje' => 'Usuario no autorizado en mantenimiento', 'url' => $currentUri])
+        ]);
         $session->destroy();
 
         return redirect()->to(base_url('mantenimiento'));
