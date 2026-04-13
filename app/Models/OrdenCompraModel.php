@@ -25,6 +25,7 @@ class OrdenCompraModel extends Model
         'File_FacturaEntrada',
         'File_FacturaServicioPDF',
         'File_FacturaServicioXML',
+        'File_Complemento',
         'FechaRefPago',
         'FechaPagoRealizado',
     ];

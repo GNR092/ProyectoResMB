@@ -293,6 +293,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     const existeCotizacion = (coti.Cotizacion_Files || data.Cotizacion_Files) ? '1' : '0';
     const existeFicha      = (orden.File_Comprobante || data.File_Comprobante) ? '1' : '0';
     const existeFactura    = (orden.File_Factura || data.File_Factura) ? '1' : '0';
+    const existeComplemento = (orden.File_Complemento || data.File_Complemento) ? '1' : '0';
 
     container.innerHTML = `
     <div id="advertencia-presupuesto-maestro" class="hidden mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded shadow-sm">
@@ -328,7 +329,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
             </div>
             <div>
                 <label class="${labelClass}">Método Pago</label>
-                <select name="MetodoPago" id="select-metodo-pago" ${disabledControl} class="${baseInputClass} ${classControl}">
+                <select name="MetodoPago" id="select-metodo-pago" onchange="window.toggleComplementoInput(this.value)" ${disabledControl} class="${baseInputClass} ${classControl}">
                     <option value="${sol.MetodoPago}" selected>Actual: ${sol.MetodoPago == 1 ? 'Crédito' : 'Contado'}</option>
                     <option value="0">Contado</option>
                     <option value="1">Crédito</option>
@@ -401,6 +402,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
             <div><label class="block text-xs font-bold text-green-600 mb-2">Cargar Cotización</label><div id="preview-cotizacion" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 hover:bg-green-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
             <div><label class="block text-xs font-bold text-blue-600 mb-2">Cargar Ficha De Pago</label><div id="preview-comprobante" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Comprobante" id="file-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'comprobante')"><button type="button" onclick="document.getElementById('file-comprobante').click()" class="w-full bg-white border border-blue-300 text-blue-600 hover:bg-blue-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
             <div><label class="block text-xs font-bold text-indigo-600 mb-2">Cargar Factura</label><div id="preview-factura" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Factura" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
+            <div id="container-file-complemento" class="${sol.MetodoPago == '1' ? '' : 'hidden'}"><label class="block text-xs font-bold text-orange-600 mb-2">Complemento De Pago</label><div id="preview-complemento" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Complemento" id="file-complemento" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'complemento')"><button type="button" onclick="document.getElementById('file-complemento').click()" class="w-full bg-white border border-orange-300 text-orange-600 hover:bg-orange-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
         </div>
     </div>
 
@@ -408,6 +410,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     <input type="hidden" id="flag-existe-cotizacion" value="${existeCotizacion}">
     <input type="hidden" id="flag-existe-ficha" value="${existeFicha}">
     <input type="hidden" id="flag-existe-factura" value="${existeFactura}">
+    <input type="hidden" id="flag-existe-complemento" value="${existeComplemento}">
     `;
 
     calcularTotalesUI();
@@ -764,7 +767,12 @@ window.handleFileSelect = function(input, type) {
 }
 
 window.removeFile = function(type) {
-    const inputIds = { 'cotizacion': 'file-cotizacion', 'comprobante': 'file-comprobante', 'factura': 'file-factura' };
+    const inputIds = { 
+        'cotizacion': 'file-cotizacion', 
+        'comprobante': 'file-comprobante', 
+        'factura': 'file-factura',
+        'complemento': 'file-complemento'
+    };
     const input = document.getElementById(inputIds[type]);
     if(input) input.value = '';
 
@@ -778,8 +786,31 @@ window.removeFile = function(type) {
     if(btn) {
         btn.classList.remove('bg-green-50', 'text-green-700', 'border-green-400');
         btn.classList.add('bg-white');
-        if(type === 'cotizacion') { btn.classList.add('text-green-600', 'border-green-300'); btn.innerHTML = '📂 Seleccionar Cotizaciones'; }
-        else if(type === 'comprobante') { btn.classList.add('text-blue-600', 'border-blue-300'); btn.innerHTML = '📂 Seleccionar Comprobante'; }
-        else { btn.classList.add('text-indigo-600', 'border-indigo-300'); btn.innerHTML = '📂 Seleccionar Factura'; }
+        if(type === 'cotizacion') { 
+            btn.classList.add('text-green-600', 'border-green-300'); 
+            btn.innerHTML = '📂 Seleccionar Cotizaciones'; 
+        } else if(type === 'comprobante') { 
+            btn.classList.add('text-blue-600', 'border-blue-300'); 
+            btn.innerHTML = '📂 Seleccionar Comprobante'; 
+        } else if(type === 'complemento') {
+            btn.classList.add('text-orange-600', 'border-orange-300'); 
+            btn.innerHTML = '📂 Seleccionar';
+        } else { 
+            btn.classList.add('text-indigo-600', 'border-indigo-300'); 
+            btn.innerHTML = '📂 Seleccionar Factura'; 
+        }
+    }
+}
+
+window.toggleComplementoInput = function(valor) {
+    const container = document.getElementById('container-file-complemento');
+    if (container) {
+        if (valor == '1') {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+            // Si lo oculta, opcionalmente limpiamos lo seleccionado
+            window.removeFile('complemento');
+        }
     }
 }

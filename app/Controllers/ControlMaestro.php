@@ -373,6 +373,21 @@ class ControlMaestro extends BaseController
                             ]);
                         }
                     }
+
+                    // 3. PROCESAR COMPLEMENTO DE PAGO
+                    if ($f = $this->request->getFile('File_Complemento')) {
+                        if ($f->isValid() && !$f->hasMoved()) {
+                            $n = "Complemento-{$id_solicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$rnd}." . $f->getClientExtension();
+                            if (!is_dir(WRITEPATH . 'uploads/complementos/')) {
+                                mkdir(WRITEPATH . 'uploads/complementos/', 0777, true);
+                            }
+                            $f->move(WRITEPATH . 'uploads/complementos/', $n, true);
+
+                            $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $idOrdenCompra)->update([
+                                'File_Complemento' => $n
+                            ]);
+                        }
+                    }
                 }
 
                 // Archivos Cotización
