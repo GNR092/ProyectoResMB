@@ -78,7 +78,13 @@ class Modales extends BaseController
 
                 // Detección del departamento especial (Operacion o variantes)
                 $deptoLower = mb_strtolower(trim($nombreDepto));
-                $data['is_depto_especial'] = (strpos($deptoLower, 'operacion') !== false || strpos($deptoLower, 'operación') !== false || strpos($deptoLower, 'compras') !== false);
+                $data['is_depto_especial'] = (
+                    strpos($deptoLower, 'operacion') !== false || 
+                    strpos($deptoLower, 'operación') !== false || 
+                    strpos($deptoLower, 'compras') !== false ||
+                    strpos($deptoLower, 'contaduría') !== false ||
+                    strpos($deptoLower, 'contaduria') !== false
+                );
 
                 $db = \Config\Database::connect();
 

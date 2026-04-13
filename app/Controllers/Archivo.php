@@ -128,7 +128,13 @@ class Archivo extends BaseController
 
                 // Verificamos si es el departamento especial
                 $deptoLower = mb_strtolower(trim($nombreDeptoOrig));
-                $isDeptoEspecial = (strpos($deptoLower, 'operacion') !== false || strpos($deptoLower, 'operación') !== false || strpos($deptoLower, 'compras') !== false);
+                $isDeptoEspecial = (
+                    strpos($deptoLower, 'operacion') !== false || 
+                    strpos($deptoLower, 'operación') !== false || 
+                    strpos($deptoLower, 'compras') !== false ||
+                    strpos($deptoLower, 'contaduría') !== false ||
+                    strpos($deptoLower, 'contaduria') !== false
+                );
 
                 // 2. Buscar el ID_Dpto en la Razón Social seleccionada (Destino)
                 if (!empty($razon_social_id)) {
