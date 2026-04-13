@@ -2691,7 +2691,24 @@ class Api extends ResourceController
         if ($facName) {
             $facPath = 'facturas' . DIRECTORY_SEPARATOR . $facName;
             if (file_exists($basePath . $facPath)) {
-                $filePaths['06_' . $facName] = $basePath . $facPath;
+                $filePaths['07_' . $facName] = $basePath . $facPath;
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 6. COMPLEMENTO DE PAGO -> 06_
+        // ---------------------------------------------------------
+        $complementoName = null;
+        if (!empty($solicitudData['OrdenCompra']['File_Complemento'])) {
+            $complementoName = $solicitudData['OrdenCompra']['File_Complemento'];
+        } elseif (!empty($solicitudData['File_Complemento'])) {
+            $complementoName = $solicitudData['File_Complemento'];
+        }
+
+        if ($complementoName) {
+            $complementoPath = 'complementos' . DIRECTORY_SEPARATOR . $complementoName;
+            if (file_exists($basePath . $complementoPath)) {
+                $filePaths['06_' . $complementoName] = $basePath . $complementoPath;
             }
         }
 

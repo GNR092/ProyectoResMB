@@ -1062,6 +1062,7 @@ function generarSeccionAdjuntos(data) {
   const comprobanteFile =
     ordenObj.File_Comprobante || data.File_Comprobante || ordenObj.comprobante || data.comprobante
   const facturaFile = ordenObj.File_Factura || data.File_Factura || ordenObj.factura || data.factura
+  const complementoFile = ordenObj.File_Complemento || data.File_Complemento || ordenObj.complemento || data.complemento
   const idSolicitud = sol.ID_Solicitud || data.ID_Solicitud
 
   // VALIDACIÓN UNIVERSAL:
@@ -1147,7 +1148,20 @@ function generarSeccionAdjuntos(data) {
             }
 
             ${
-              /* 6. FACTURA */
+              /* 6. COMPLEMENTO DE PAGO (SOLO CRÉDITO) */
+              sol.MetodoPago == '1' && complementoFile
+                ? `
+            <div>
+                <strong>Complemento de Pago:</strong> 
+                <a href="${BASE_URL}api/storage/serve?path=complementos/${complementoFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                    ${complementoFile}
+                </a>
+            </div>`
+                : ''
+            }
+
+            ${
+              /* 7. FACTURA */
               facturaFile
                 ? `
             <div>

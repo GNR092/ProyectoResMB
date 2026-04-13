@@ -849,6 +849,7 @@ class Rest
                 // Archivos Orden
                 'OC.File_Factura',
                 'OC.File_Comprobante',
+                'OC.File_Complemento',
                 'OC.File_ReqPag',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
@@ -929,6 +930,7 @@ class Rest
                 'FechaPagoRealizado' => $solicitudData['FechaPagoRealizado'] ?? null,
                 'File_Factura'     => $solicitudData['File_Factura'],
                 'File_Comprobante' => $solicitudData['File_Comprobante'],
+                'File_Complemento' => $solicitudData['File_Complemento'] ?? null,
                 'File_ReqPag'      => $solicitudData['File_ReqPag'],
             ];
 
@@ -937,6 +939,7 @@ class Rest
             unset($solicitudData['FechaOrden']);
             unset($solicitudData['File_Factura']);
             unset($solicitudData['File_Comprobante']);
+            unset($solicitudData['File_Complemento']);
             unset($solicitudData['File_ReqPag']);
         }
 

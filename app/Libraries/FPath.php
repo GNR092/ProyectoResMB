@@ -21,4 +21,6 @@ class FPath
         WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'facturas_servicios' . DIRECTORY_SEPARATOR;
     public const FCOMPROBANTES =
         WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'comprobantes' . DIRECTORY_SEPARATOR;
+    public const FCOMPLEMENTOS =
+        WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'complementos' . DIRECTORY_SEPARATOR;
 }
