@@ -1415,15 +1415,21 @@ class Modales extends BaseController
     public function insertarGrupo()
     {
         $postData = $this->request->getPost();
+        $modeloReal = new \App\Models\GrupoPresupuestalModel();
+
+        // Obtener el ID máximo actual de forma manual para evitar error de secuencia
+        $db = \Config\Database::connect();
+        $builder = $db->table('GrupoPresupuestal');
+        $row = $builder->selectMax('ID_GrupoPresupuestal', 'max_id')->get()->getRow();
+        $nextId = (int)($row->max_id ?? 0) + 1;
         
         $data = [
-            'Nombre'             => $postData['Nombre'] ?? '',
-            'Descripcion'        => $postData['Descripcion'] ?? '',
-            'ID_UnidadOperativa' => !empty($postData['ID_UnidadOperativa']) ? $postData['ID_UnidadOperativa'] : null,
-            'activo'             => true
+            'ID_GrupoPresupuestal' => $nextId,
+            'Nombre'               => $postData['Nombre'] ?? '',
+            'Descripcion'          => $postData['Descripcion'] ?? '',
+            'ID_UnidadOperativa'   => !empty($postData['ID_UnidadOperativa']) ? $postData['ID_UnidadOperativa'] : null,
+            'activo'               => true
         ];
-
-        $modeloReal = new \App\Models\GrupoPresupuestalModel();
 
         if ($modeloReal->insert($data)) {
             return $this->response->setJSON(['success' => true, 'message' => 'Partida creada correctamente.']);
