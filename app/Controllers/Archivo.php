@@ -108,22 +108,18 @@ class Archivo extends BaseController
                 $nombreDeptoOrig = (string) ($deptoUsuario['Nombre'] ?? 'Desconocido');
                 $idUnidadFinal = $deptoUsuario['ID_UnidadOperativa'] ?? null; // Por defecto es la del usuario
                 
-                $razonSocialModel = new RazonSocialModel();
                 $placeModel = new PlacesModel();
                 $idPlaceOrig = $deptoUsuario['ID_Place'] ?? 0;
                 $placeOrig = $placeModel->find($idPlaceOrig);
                 
-                $nombreRSOrig = 'RS Desconocida';
                 if ($placeOrig) {
-                    $razonOrig = $razonSocialModel->find($placeOrig['ID_RazonSocial'] ?? 0);
-                    $nombreRSOrig = $razonOrig['Nombre'] ?? 'RS Desconocida';
                     // Actualizamos la RS original del usuario si no la teníamos
                     if (!$idRSOriginal) $idRSOriginal = $placeOrig['ID_RazonSocial'] ?? null;
                 }
 
                 // SOLO generamos etiqueta si la RS seleccionada es DISTINTA a la del usuario
                 if (!empty($razon_social_id) && $razon_social_id != $idRSOriginal) {
-                    $etiquetaTrazabilidad = "Solicitud originada por: [$nombreDeptoOrig - $nombreRSOrig].";
+                    $etiquetaTrazabilidad = "Solicitud originada por: [$nombreDeptoOrig].";
                 }
 
                 // Verificamos si es el departamento especial
