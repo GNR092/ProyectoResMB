@@ -47,7 +47,7 @@
                 </select>
             </div>
         </div>
-        <?php if (session('departamento_usuario') === 'Dirección'): ?>
+        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])): ?>
         <div class="self-end mb-1">
             <a href="#" id="btn-agregar-grupos" class="inline-block px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors uppercase text-sm">
                 AGREGAR
@@ -64,7 +64,7 @@
                 <th class="w-1/5 px-3 py-2 border-b text-left">Descripción</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Estado</th>
-                <?php if (session('departamento_usuario') === 'Dirección'): ?>
+                <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])): ?>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Acciones</th>
                 <?php endif; ?>
             </tr>
@@ -75,14 +75,13 @@
                     <?php 
                         $valActivo = $grupo['activo'];
                         $esActivo = ($valActivo === true || $valActivo === 't' || $valActivo === 1 || $valActivo === '1'); 
-                        $enRevision = isset($registros_bloqueados) && in_array($grupo['ID_GrupoPresupuestal'], $registros_bloqueados);
                     ?>
                     <tr data-id="<?= $grupo['ID_GrupoPresupuestal'] ?>"
                         data-nombre="<?= esc($grupo['Nombre']) ?>"
                         data-descripcion="<?= esc($grupo['Descripcion']) ?>"
                         data-id-unidad="<?= esc($grupo['ID_UnidadOperativa'] ?? '') ?>"
                         data-activo="<?= $esActivo ? '1' : '0' ?>"
-                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= !$esActivo ? 'opacity-60' : '' ?> <?= $enRevision ? 'bg-yellow-50 opacity-80' : '' ?>">
+                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= !$esActivo ? 'opacity-60' : '' ?>">
 
                         <td class="px-3 py-2 border-b nombre-grupo"><?= esc($grupo['Nombre']) ?></td>
                         <td class="px-3 py-2 border-b descripcion-grupo"><?= esc($grupo['Descripcion']) ?></td>
@@ -95,13 +94,8 @@
                             <?php endif; ?>
                         </td>
 
-                        <?php if (session('departamento_usuario') === 'Dirección'): ?>
+                        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
-                            <?php if ($enRevision): ?>
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-300">
-                                    ⏳ En Revisión
-                                </span>
-                            <?php else: ?>
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <a href="#"
                                    id="btn-editar-grupos-<?= $grupo['ID_GrupoPresupuestal'] ?>"
@@ -123,14 +117,13 @@
                                 </a>
                                 <?php endif; ?>
                             </div>
-                            <?php endif; ?>
                         </td>
                         <?php endif; ?>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="<?= (session('departamento_usuario') === 'Dirección') ? '5' : '4' ?>" class="px-3 py-4 text-center text-gray-500">No hay partidas registradas</td>
+                    <td colspan="<?= (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])) ? '5' : '4' ?>" class="px-3 py-4 text-center text-gray-500">No hay partidas registradas</td>
                 </tr>
             <?php endif; ?>
             </tbody>
