@@ -1415,9 +1415,6 @@ class Modales extends BaseController
     public function insertarGrupo()
     {
         $postData = $this->request->getPost();
-        $modeloReal = new \App\Models\GrupoPresupuestalModel();
-
-        // Obtener el ID máximo actual de forma manual para evitar error de secuencia
         $db = \Config\Database::connect();
         $builder = $db->table('GrupoPresupuestal');
         $row = $builder->selectMax('ID_GrupoPresupuestal', 'max_id')->get()->getRow();
@@ -1431,10 +1428,10 @@ class Modales extends BaseController
             'activo'               => true
         ];
 
-        if ($modeloReal->insert($data)) {
+        if ($db->table('GrupoPresupuestal')->insert($data)) {
             return $this->response->setJSON(['success' => true, 'message' => 'Partida creada correctamente.']);
         } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al crear partida', 'errors' => $modeloReal->errors()]);
+            return $this->response->setJSON(['success' => false, 'message' => 'Error al crear partida']);
         }
     }
     
