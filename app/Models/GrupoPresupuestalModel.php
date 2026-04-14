@@ -12,7 +12,7 @@ class GrupoPresupuestalModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['Nombre', 'Descripcion','ID_UnidadOperativa', 'activo'];
+    protected $allowedFields    = ['ID_GrupoPresupuestal', 'Nombre', 'Descripcion','ID_UnidadOperativa', 'activo'];
 
     protected $useTimestamps = false;
     protected $dateFormat    = 'datetime';

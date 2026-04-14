@@ -1368,20 +1368,12 @@ function initSegmentosForm() {
     fAdd.onsubmit = async (e) => {
         e.preventDefault(); 
         
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de este cambio (Obligatorio):', true);
-        if (comentarios === null) return;
-        
         const fd = new FormData(fAdd);
-        fd.append('comentarios', comentarios);
 
         try {
             const res = await SendDataEnd('modales/crud_segmentos/insertar', { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Agregado ✅', 'success'); 
-                }
+                mostrarNotificacion('Agregado ✅', 'success'); 
                 abrirModal('SegmentoNegocio'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1392,22 +1384,14 @@ function initSegmentosEditarForm() {
     const fEdi = document.getElementById('form-editar-segmentos'); if (!fEdi) return;
     fEdi.onsubmit = async (e) => {
         e.preventDefault(); 
-        
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta edición (Obligatorio):', true);
-        if (comentarios === null) return;
 
         const fd = new FormData(fEdi); 
-        fd.append('comentarios', comentarios);
         const id = fd.get('id');
         
         try {
             const res = await SendDataEnd(`modales/crud_segmentos/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Edición enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Actualizado ✅', 'success'); 
-                }
+                mostrarNotificacion('Actualizado ✅', 'success'); 
                 abrirModal('SegmentoNegocio'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1419,20 +1403,12 @@ function initSegmentosActions(tabla) {
         const bE = e.target.closest("[id^='btn-editar-segmentos-']"), bD = e.target.closest("[id^='btn-eliminar-segmentos-']");
         if (bD) {
             e.preventDefault(); 
-            const comentarios = await InputPrompt('Confirmar Eliminación', 'Describe el motivo de la eliminación (Obligatorio):', true);
-            if (comentarios === null) return;
+            if (!confirm('¿Estás seguro de eliminar este segmento?')) return;
             
-            const fd = new FormData();
-            fd.append('comentarios', comentarios);
-            
-            const res = await SendDataEnd(`modales/crud_segmentos/eliminar/${bD.dataset.id}`, { method: 'POST', body: fd });
+            const res = await SendDataEnd(`modales/crud_segmentos/eliminar/${bD.dataset.id}`, { method: 'POST' });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Eliminación enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Eliminado ✅', 'success'); 
-                    bD.closest('tr').remove(); 
-                }
+                mostrarNotificacion('Eliminado ✅', 'success'); 
+                bD.closest('tr').remove(); 
                 abrirModal('SegmentoNegocio');
             }
         }
@@ -1538,20 +1514,12 @@ function initGruposForm() {
     fAdd.onsubmit = async (e) => {
         e.preventDefault(); 
         
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de este cambio (Obligatorio):', true);
-        if (comentarios === null) return;
-        
         const fd = new FormData(fAdd);
-        fd.append('comentarios', comentarios);
         
         try {
             const res = await SendDataEnd('modales/crud_grupos_presupuestales/insertar', { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Agregado ✅', 'success'); 
-                }
+                mostrarNotificacion('Agregado ✅', 'success'); 
                 abrirModal('GrupoPresupuestal'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1563,21 +1531,13 @@ function initGruposEditarForm() {
     fEdi.onsubmit = async (e) => {
         e.preventDefault(); 
         
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta edición (Obligatorio):', true);
-        if (comentarios === null) return;
-        
         const fd = new FormData(fEdi); 
-        fd.append('comentarios', comentarios);
         const id = fd.get('ID_GrupoPresupuestal');
         
         try {
             const res = await SendDataEnd(`modales/crud_grupos_presupuestales/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Edición enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Actualizado ✅', 'success'); 
-                }
+                mostrarNotificacion('Actualizado ✅', 'success'); 
                 abrirModal('GrupoPresupuestal'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1589,19 +1549,11 @@ function initGruposActions(tabla) {
         const bE = e.target.closest("[id^='btn-editar-grupos-']"), bD = e.target.closest("[id^='btn-eliminar-grupos-']");
         if (bD) {
             e.preventDefault(); 
-            const comentarios = await InputPrompt('Confirmar Desactivación', 'Describe el motivo de la desactivación (Obligatorio):', true);
-            if (comentarios === null) return;
+            if (!confirm('¿Estás seguro de desactivar esta partida?')) return;
             
-            const fd = new FormData();
-            fd.append('comentarios', comentarios);
-            
-            const res = await SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${bD.dataset.id}`, { method: 'POST', body: fd });
+            const res = await SendDataEnd(`modales/crud_grupos_presupuestales/eliminar/${bD.dataset.id}`, { method: 'POST' });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Desactivación enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Desactivado ✅', 'success'); 
-                }
+                mostrarNotificacion('Desactivado ✅', 'success'); 
                 abrirModal('GrupoPresupuestal'); 
             }
         }
@@ -1635,20 +1587,12 @@ function initCrudUnidades() {
     document.getElementById('form-agregar-unidad').onsubmit = async (e) => {
         e.preventDefault(); 
         
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de este cambio (Obligatorio):', true);
-        if (comentarios === null) return;
-        
         const fd = new FormData(e.target);
-        fd.append('comentarios', comentarios);
         
         try {
             const res = await SendDataEnd('modales/crud_unidades_operativas/insertar', { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Enviado a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Departamento agregado ✅', 'success'); 
-                }
+                mostrarNotificacion('Departamento agregado ✅', 'success'); 
                 abrirModal('UnidadOperativa'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1657,21 +1601,13 @@ function initCrudUnidades() {
     document.getElementById('form-editar-unidad').onsubmit = async (e) => {
         e.preventDefault(); 
         
-        const comentarios = await InputPrompt('Justificación del Cambio', 'Por favor, describe el motivo de esta edición (Obligatorio):', true);
-        if (comentarios === null) return;
-        
         const fd = new FormData(e.target); 
-        fd.append('comentarios', comentarios);
         const id = fd.get('ID_UnidadOperativa');
         
         try {
             const res = await SendDataEnd(`modales/crud_unidades_operativas/editar/${id}`, { method: 'POST', body: fd });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Edición enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Unidad actualizada ✅', 'success'); 
-                }
+                mostrarNotificacion('Unidad actualizada ✅', 'success'); 
                 abrirModal('UnidadOperativa'); 
             }
         } catch { mostrarNotificacion('Error ❌', 'error'); }
@@ -1689,19 +1625,12 @@ function initCrudUnidades() {
         }
         if (bD) {
             e.preventDefault(); 
-            const comentarios = await InputPrompt('Confirmar Desactivación', 'Describe el motivo de la desactivación (Obligatorio):', true);
-            if (comentarios === null) return;
+            if (!confirm('¿Estás seguro de desactivar este departamento de operación?')) return;
             
-            const fd = new FormData();
-            fd.append('comentarios', comentarios);
-            
-            const res = await SendDataEnd(`modales/crud_unidades_operativas/eliminar/${bD.dataset.id}`, { method: 'POST', body: fd });
+            const res = await SendDataEnd(`modales/crud_unidades_operativas/eliminar/${bD.dataset.id}`, { method: 'POST' });
             if (res.success) { 
-                if (res.pending_review) {
-                    mostrarNotificacion(res.message || 'Desactivación enviada a revisión ⏳', 'info');
-                } else {
-                    mostrarNotificacion('Desactivado ✅', 'success');
-                }                abrirModal('UnidadOperativa'); 
+                mostrarNotificacion('Desactivado ✅', 'success'); 
+                abrirModal('UnidadOperativa'); 
             }
         }
     });

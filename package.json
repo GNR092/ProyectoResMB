@@ -1,6 +1,8 @@
 {
   "name": "html",
+
   "version": "3.2.1",
+
   "description": "## What is CodeIgniter?",
   "main": "index.js",
   "directories": {
