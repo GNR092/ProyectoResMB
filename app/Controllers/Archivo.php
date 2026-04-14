@@ -114,27 +114,29 @@ class Archivo extends BaseController
                 $nombreDeptoOrig = (string) ($deptoUsuario['Nombre'] ?? 'Desconocido');
                 $idUnidadFinal = $deptoUsuario['ID_UnidadOperativa'] ?? null; // Por defecto es la del usuario
                 
-                $razonSocialModel = new RazonSocialModel();
                 $placeModel = new PlacesModel();
                 $idPlaceOrig = $deptoUsuario['ID_Place'] ?? 0;
                 $placeOrig = $placeModel->find($idPlaceOrig);
                 
-                $nombreRSOrig = 'RS Desconocida';
                 if ($placeOrig) {
-                    $razonOrig = $razonSocialModel->find($placeOrig['ID_RazonSocial'] ?? 0);
-                    $nombreRSOrig = $razonOrig['Nombre'] ?? 'RS Desconocida';
                     // Actualizamos la RS original del usuario si no la teníamos
                     if (!$idRSOriginal) $idRSOriginal = $placeOrig['ID_RazonSocial'] ?? null;
                 }
 
                 // SOLO generamos etiqueta si la RS seleccionada es DISTINTA a la del usuario
                 if (!empty($razon_social_id) && $razon_social_id != $idRSOriginal) {
-                    $etiquetaTrazabilidad = "Solicitud originada por: [$nombreDeptoOrig - $nombreRSOrig].";
+                    $etiquetaTrazabilidad = "Solicitud originada por: [$nombreDeptoOrig].";
                 }
 
                 // Verificamos si es el departamento especial
                 $deptoLower = mb_strtolower(trim($nombreDeptoOrig));
-                $isDeptoEspecial = (strpos($deptoLower, 'operacion') !== false || strpos($deptoLower, 'operación') !== false || strpos($deptoLower, 'compras') !== false);
+                $isDeptoEspecial = (
+                    strpos($deptoLower, 'operacion') !== false || 
+                    strpos($deptoLower, 'operación') !== false || 
+                    strpos($deptoLower, 'compras') !== false ||
+                    strpos($deptoLower, 'contaduría') !== false ||
+                    strpos($deptoLower, 'contaduria') !== false
+                );
 
                 // 2. Buscar el ID_Dpto en la Razón Social seleccionada (Destino)
                 if (!empty($razon_social_id)) {
@@ -286,13 +288,23 @@ class Archivo extends BaseController
                 }
             }
 
-            $adjunto = $this->request->getFile('archivo');
-            if ($adjunto && $adjunto->isValid()) {
-                $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
+            $archivos = $this->request->getFiles();
+            if (isset($archivos['archivo'])) {
+                $nombresArchivos = [];
                 $folder = FPath::FSOLICITUD . $fecha;
                 $this->api->CreateFolder($folder);
-                $adjunto->move($folder, $nuevoNombre);
-                $solicitud->update($solicitudId, ['Archivo' => $nuevoNombre]);
+
+                foreach ($archivos['archivo'] as $adjunto) {
+                    if ($adjunto->isValid() && !$adjunto->hasMoved()) {
+                        $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
+                        $adjunto->move($folder, $nuevoNombre);
+                        $nombresArchivos[] = $nuevoNombre;
+                    }
+                }
+
+                if (!empty($nombresArchivos)) {
+                    $solicitud->update($solicitudId, ['Archivo' => implode(',', $nombresArchivos)]);
+                }
             }
 
             return $this->response->setJSON([
@@ -320,7 +332,7 @@ class Archivo extends BaseController
         }
     }
 
-    public function descargar($idSolicitud)
+    public function descargar($idSolicitud, $fileName = null)
     {
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel->find($idSolicitud);
@@ -331,7 +343,21 @@ class Archivo extends BaseController
             );
         }
 
-        $filePath = WRITEPATH . 'uploads/solicitud/' . $solicitud['Fecha'] . '/' . $solicitud['Archivo'];
+        $archivos = explode(',', $solicitud['Archivo']);
+
+        if ($fileName === null) {
+            // Si no se especifica, tomamos el primero para mantener compatibilidad
+            $fileName = $archivos[0];
+        } else {
+            // Verificamos que el archivo solicitado realmente pertenezca a la solicitud
+            if (!in_array($fileName, $archivos)) {
+                throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(
+                    'El archivo solicitado no pertenece a esta solicitud.',
+                );
+            }
+        }
+
+        $filePath = WRITEPATH . 'uploads/solicitud/' . $solicitud['Fecha'] . '/' . $fileName;
 
         if (!file_exists($filePath)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(

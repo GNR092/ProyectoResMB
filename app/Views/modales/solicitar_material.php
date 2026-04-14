@@ -174,9 +174,9 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <div class="mt-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-2">Referencia o cotización</h2>
                 <p class="text-orange-500 text-xs mt-1">Evite caracteres especiales en el nombre  (como `;`, `&`, `#`)  para prevenir errores.</p>
-                <input type="file" name="archivo"
+                <input type="file" name="archivo[]"
                     class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
-                    accept="image/jpg,image/jpeg,image/png,application/pdf">
+                    accept="image/jpg,image/jpeg,image/png,application/pdf" multiple>
             </div>
             <!-- Contenedor para mensajes -->
             <div class="my-2 form-message-container"></div>
@@ -325,9 +325,9 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <div class="mt-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-2">Referencia o cotización</h2>
                 <p class="text-orange-500 text-xs mt-1">Evite caracteres especiales en el nombre  (como `;`, `&`, `#`)  para prevenir errores.</p>
-                <input type="file" name="archivo"
+                <input type="file" name="archivo[]"
                     class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
-                    accept="image/jpg,image/jpeg,image/png,application/pdf">
+                    accept="image/jpg,image/jpeg,image/png,application/pdf" multiple>
             </div>
 
             <!-- Contenedor para mensajes -->
@@ -500,9 +500,9 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <div class="mt-6">
                 <h2 class="text-lg font-semibold text-gray-800 mb-2">Factura</h2>
                 <p class="text-orange-500 text-xs mt-1">Evite caracteres especiales en el nombre  (como `;`, `&`, `#`) para prevenir errores.</p>
-                <input type="file" name="archivo"
+                <input type="file" name="archivo[]"
                        class="block w-full text-sm text-gray-700 border border-gray-300 rounded px-3 py-2"
-                       accept="image/jpg,image/jpeg,image/png,application/pdf,text/xml">
+                       accept="image/jpg,image/jpeg,image/png,application/pdf,text/xml" multiple>
             </div>
 
             <!-- Contenedor para mensajes -->

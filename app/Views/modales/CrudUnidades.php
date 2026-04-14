@@ -1,6 +1,6 @@
 <?php 
     $deptoUsuario = session('departamento_usuario');
-    $tieneAccesoEdicion = in_array($deptoUsuario, ['Administración', 'Direccion', 'Dirección']);
+    $tieneAccesoEdicion = in_array($deptoUsuario, ['Administración', 'Direccion', 'Dirección', 'Contaduría']);
 ?>
 <!-- Pantalla 1: lista de departamentos de operación -->
 <div id="pantalla-lista-unidades" class="p-6 bg-white rounded-xl shadow-md">
@@ -40,13 +40,12 @@
                     <?php 
                         $valActivo = $uni['activo'];
                         $esActivo = ($valActivo === true || $valActivo === 't' || $valActivo === 1 || $valActivo === '1'); 
-                        $enRevision = isset($registros_bloqueados) && in_array($uni['ID_UnidadOperativa'], $registros_bloqueados);
                     ?>
                     <tr data-id="<?= $uni['ID_UnidadOperativa'] ?>"
                         data-nombre="<?= esc($uni['Nombre']) ?>"
                         data-id-place="<?= esc($uni['ID_Place']) ?>"
                         data-activo="<?= $esActivo ? '1' : '0' ?>"
-                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= !$esActivo ? 'opacity-60' : '' ?> <?= $enRevision ? 'bg-yellow-50 opacity-80' : '' ?>">
+                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= !$esActivo ? 'opacity-60' : '' ?>">
 
                         <td class="px-3 py-2 border-b nombre-unidad"><?= esc($uni['Nombre']) ?></td>
                         <td class="px-3 py-2 border-b lugar-unidad"><?= esc($uni['PlaceNombre'] ?? 'N/A') ?></td>
@@ -58,11 +57,6 @@
 
                         <?php if ($tieneAccesoEdicion): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
-                            <?php if ($enRevision): ?>
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-300">
-                                    ⏳ En Revisión
-                                </span>
-                            <?php else: ?>
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <a href="#" id="btn-editar-unidad-<?= $uni['ID_UnidadOperativa'] ?>" class="btn-editar text-green-600 hover:text-green-800" data-id="<?= $uni['ID_UnidadOperativa'] ?>">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
@@ -73,7 +67,6 @@
                                 </a>
                                 <?php endif; ?>
                             </div>
-                            <?php endif; ?>
                         </td>
                         <?php endif; ?>
                     </tr>

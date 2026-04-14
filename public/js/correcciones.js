@@ -352,7 +352,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-gray-100">
             <div>
-                <label class="${labelClass} text-blue-700">Fecha Ref. Pago</label>
+                <label class="${labelClass} text-blue-700">Fecha Aprobacion</label>
                 <input type="date" name="FechaRefPago" value="${valorFechaRefPago}" ${disabledFechasOrden} class="${baseInputClass} ${classInputRefPago}">
             </div>
             <div>

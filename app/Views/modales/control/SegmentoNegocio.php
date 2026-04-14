@@ -34,14 +34,11 @@
             <tbody id="tabla-segmentos">
             <?php if (!empty($segmentos)): ?>
                 <?php foreach ($segmentos as $index => $s): ?>
-                    <?php 
-                        $enRevision = isset($registros_bloqueados) && in_array($s['id'], $registros_bloqueados);
-                    ?>
                     <tr data-id="<?= $s['id'] ?>"
                         data-nombre="<?= esc($s['nombre']) ?>"
                         data-descripcion="<?= esc($s['descripcion']) ?>"
                         data-id-rs="<?= esc($s['id_razon_social']) ?>"
-                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= $enRevision ? 'bg-yellow-50 opacity-80' : '' ?>">
+                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
 
                         <td class="px-3 py-2 border-b nombre-segmento"><?= esc($s['nombre']) ?></td>
                         <td class="px-3 py-2 border-b descripcion-segmento"><?= esc($s['descripcion']) ?></td>
@@ -49,11 +46,6 @@
 
                         <?php if ($tieneAccesoEdicion): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
-                            <?php if ($enRevision): ?>
-                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full border border-yellow-300">
-                                    ⏳ En Revisión
-                                </span>
-                            <?php else: ?>
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <a href="#" id="btn-editar-segmentos-<?= $s['id'] ?>" class="btn-editar text-green-600 hover:text-green-800" data-id="<?= $s['id'] ?>">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -66,7 +58,6 @@
                                     </svg>
                                 </a>
                             </div>
-                            <?php endif; ?>
                         </td>
                         <?php endif; ?>
                     </tr>

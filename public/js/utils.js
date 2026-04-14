@@ -1077,14 +1077,31 @@ function generarSeccionAdjuntos(data) {
             
             ${
               /* 1. REQUISICIÓN (SOLICITUD) */
-              folio
+              idSolicitud
                 ? `
             <div>
-                <strong>Solicitud:</strong> 
-                <a href="${BASE_URL}api/storage/serve?path=pdf_solicitudes/Requisicion-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                    Requisicion-${folio}.pdf
+                <strong>Solicitud (PDF):</strong> 
+                <a href="${BASE_URL}api/solicitud/pdf/${idSolicitud}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                    Requisicion-${folio || idSolicitud}.pdf
                 </a>
             </div>`
+                : ''
+            }
+
+            ${
+              /* 1.1 ARCHIVOS DE REFERENCIA (SOLICITANTE) */
+              sol.Archivo
+                ? sol.Archivo.split(',').map((file, index) => {
+                    const trimmedFile = file.trim()
+                    if (!trimmedFile) return ''
+                    return `
+                <div>
+                    <strong>Referencia ${index > 0 ? index + 1 : ''}:</strong> 
+                    <a href="${BASE_URL}solicitudes/archivo/${idSolicitud}/${trimmedFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                        ${trimmedFile}
+                    </a>
+                </div>`
+                  }).join('')
                 : ''
             }
 
@@ -1175,11 +1192,19 @@ function generarSeccionAdjuntos(data) {
 
         </div>
         
-        <div class="mt-4 mb-4 flex justify-start">
+        <div class="mt-4 mb-4 flex justify-start space-x-2">
+            <button onclick="mostrarExpedientePdf(${idSolicitud})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
+                Ver Expediente (PDF)
+            </button>
             <a href="${BASE_URL}api/download-attachments/${idSolicitud}" class="bg-carbon-700 hover:bg-carbon-800 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
                 Descargar Todo (ZIP)
             </a>
         </div>
     </div>
     `
+}
+
+function mostrarExpedientePdf(idSolicitud) {
+  const url = `${BASE_URL}api/solicitud/pdf-consolidado/${idSolicitud}`
+  window.open(url, '_blank')
 }

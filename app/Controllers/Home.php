@@ -187,7 +187,7 @@ class Home extends BaseController
             'Administración' => array_values($opcionesAjustes),
             'Compras' => array_values(array_diff($opcionesAjustes, $opcionesCatalogos)),
             'Direccion' => array_values($opcionesAjustes),
-            'Contaduría' => array_values(array_diff($opcionesAjustes, $opcionesCatalogos)),
+            'Contaduría' => array_values($opcionesAjustes),
             'default' => [
                 null
             ]
