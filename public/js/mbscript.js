@@ -3480,12 +3480,33 @@ async function cargarCuentasDeProveedor(idProveedor) {
   }
 }
 
+let choicesUnidadAdd = null;
+let choicesUnidadEdit = null;
+
 /**
  * Lógica para el CRUD de cuentas de Grupos Presupuestales
  */
 function initCrudGrupos() {
   const tabla = document.getElementById('tabla-grupos')
   if (!tabla) return
+
+  // Destruir instancias previas si existen para evitar duplicados
+  if (choicesUnidadAdd) choicesUnidadAdd.destroy();
+  if (choicesUnidadEdit) choicesUnidadEdit.destroy();
+
+  const selAdd = document.getElementById('ID_UnidadOperativa');
+  const selEdit = document.getElementById('editar-ID_UnidadOperativa');
+
+  const configSearch = {
+    removeItemButton: false,
+    itemSelectText: '',
+    placeholderValue: 'Seleccionar...',
+    searchPlaceholderValue: 'Buscar departamento...',
+    fuseOptions: { threshold: 0.2, distance: 100 }
+  };
+
+  if (selAdd) choicesUnidadAdd = new Choices(selAdd, configSearch);
+  if (selEdit) choicesUnidadEdit = new Choices(selEdit, configSearch);
 
   initGruposTabla()
   initGruposPantallas()
@@ -3495,22 +3516,81 @@ function initCrudGrupos() {
 }
 
 function initGruposTabla() {
+  const container = document.getElementById('pantalla-lista-grupos');
+  if (!container) return;
+
+  const unidadesData = JSON.parse(container.dataset.unidadesJson || '[]');
+
+  // Inicializar Choices para los filtros
+  const refLugar = document.getElementById('filtro-lugar-grupo');
+  const refUnidad = document.getElementById('filtro-unidad-grupo');
+  let choicesLugar = null;
+  let choicesUnidad = null;
+
+  if (refLugar) {
+    choicesLugar = new Choices(refLugar, { 
+      removeItemButton: true, 
+      itemSelectText: '', 
+      placeholderValue: 'Todos los complejos', 
+      searchPlaceholderValue: 'Buscar...',
+      fuseOptions: { threshold: 0.2, distance: 100 }
+    });
+  }
+  if (refUnidad) {
+    choicesUnidad = new Choices(refUnidad, { 
+      removeItemButton: true, 
+      itemSelectText: '', 
+      placeholderValue: 'Todos los departamentos', 
+      searchPlaceholderValue: 'Buscar...',
+      fuseOptions: { threshold: 0.2, distance: 100 }
+    });
+  }
+
+  // Lógica de Sincronización de Filtros
+  if (refLugar && refUnidad) {
+    refLugar.addEventListener('change', () => {
+      const lugaresSeleccionados = choicesLugar.getValue(true);
+      let deptosFiltrados = [];
+      if (lugaresSeleccionados.length === 0) {
+        deptosFiltrados = [...new Set(unidadesData.map(u => u.Nombre))];
+      } else {
+        deptosFiltrados = [...new Set(
+          unidadesData
+            .filter(u => lugaresSeleccionados.includes(u.PlaceNombre))
+            .map(u => u.Nombre)
+        )];
+      }
+      choicesUnidad.clearStore();
+      const nuevasOpciones = deptosFiltrados.sort().map(nombre => ({
+        value: nombre,
+        label: nombre,
+        selected: false,
+        disabled: false
+      }));
+      choicesUnidad.setChoices(nuevasOpciones, 'value', 'label', true);
+      refUnidad.dispatchEvent(new Event('change'));
+    });
+  }
+
   setupClientSideTable({
     rowsSelector: '#tabla-grupos tr[data-id]',
     paginationSelector: 'paginacion-grupos',
     filterFormSelector: '#form-filtros-grupos',
     filterFunction: (row, form) => {
-      const nombreFiltro = (
-        document.getElementById('buscar-nombre-grupo')?.value || ''
-      ).toLowerCase()
-      const descFiltro = (
-        document.getElementById('buscar-descripcion-grupo')?.value || ''
-      ).toLowerCase()
+      const nomFiltro = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase();
+      const lugaresSel = choicesLugar ? choicesLugar.getValue(true).map(v => v.toLowerCase()) : [];
+      const unidadesSel = choicesUnidad ? choicesUnidad.getValue(true).map(v => v.toLowerCase()) : [];
+      
+      const textoCelda = row.querySelector('.unidad-grupo')?.textContent.toLowerCase() || '';
+      const nombreRow = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || '';
+      
+      const matchNombre = nombreRow.includes(nomFiltro);
+      const matchLugar = lugaresSel.length === 0 || lugaresSel.some(l => textoCelda.includes(`(${l})`));
+      
+      const nombreUnidadEnCelda = textoCelda.split(' (')[0];
+      const matchUnidad = unidadesSel.length === 0 || unidadesSel.some(u => nombreUnidadEnCelda.includes(u));
 
-      const nombre = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || ''
-      const descripcion = row.querySelector('.descripcion-grupo')?.textContent.toLowerCase() || ''
-
-      return nombre.includes(nombreFiltro) && descripcion.includes(descFiltro)
+      return matchNombre && matchLugar && matchUnidad;
     },
     rowsPerPage: 10,
   })
@@ -3667,6 +3747,11 @@ function initGruposActions(tabla) {
     document.getElementById('editar-ID_GrupoPresupuestal').value = fila.dataset.id
     document.getElementById('editar-Nombre').value = fila.dataset.nombre
     document.getElementById('editar-Descripcion').value = fila.dataset.descripcion
+
+    // Sincronizar el selector Choices para la edición
+    if (choicesUnidadEdit && fila.dataset.idUnidad) {
+      choicesUnidadEdit.setChoiceByValue(String(fila.dataset.idUnidad));
+    }
 
     document.getElementById('pantalla-lista-grupos').classList.add('hidden')
     document.getElementById('pantalla-editar-grupos').classList.remove('hidden')
