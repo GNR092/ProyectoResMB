@@ -47,7 +47,7 @@
                 </select>
             </div>
         </div>
-        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])): ?>
+        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])): ?>
         <div class="self-end mb-1">
             <a href="#" id="btn-agregar-grupos" class="inline-block px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors uppercase text-sm">
                 AGREGAR
@@ -64,7 +64,7 @@
                 <th class="w-1/5 px-3 py-2 border-b text-left">Descripción</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Estado</th>
-                <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])): ?>
+                <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])): ?>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Acciones</th>
                 <?php endif; ?>
             </tr>
@@ -94,7 +94,7 @@
                             <?php endif; ?>
                         </td>
 
-                        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])): ?>
+                        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <a href="#"
@@ -123,7 +123,7 @@
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
-                    <td colspan="<?= (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])) ? '5' : '4' ?>" class="px-3 py-4 text-center text-gray-500">No hay partidas registradas</td>
+                    <td colspan="<?= (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])) ? '5' : '4' ?>" class="px-3 py-4 text-center text-gray-500">No hay partidas registradas</td>
                 </tr>
             <?php endif; ?>
             </tbody>

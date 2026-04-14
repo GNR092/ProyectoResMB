@@ -9,7 +9,7 @@
             <input type="text" id="buscar-nombre-unidad" placeholder="Buscar unidad..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
             <input type="text" id="buscar-lugar-unidad" placeholder="Buscar por lugar..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
         </div>
-        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])): ?>
+        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])): ?>
         <div>
             <a href="#" id="btn-agregar-unidad" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
                 AGREGAR
@@ -25,7 +25,7 @@
                 <th class="w-1/3 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/3 px-3 py-2 border-b text-left">Lugar (Complejo)</th>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Estado</th>
-                <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])): ?>
+                <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])): ?>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
                 <?php endif; ?>
             </tr>
@@ -51,7 +51,7 @@
                             </span>
                         </td>
 
-                        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])): ?>
+                        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <a href="#" id="btn-editar-unidad-<?= $uni['ID_UnidadOperativa'] ?>" class="btn-editar text-green-600 hover:text-green-800" data-id="<?= $uni['ID_UnidadOperativa'] ?>">
@@ -68,7 +68,7 @@
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
-                <tr><td colspan="<?= (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría'])) ? '4' : '3' ?>" class="px-3 py-4 text-center text-gray-500">No hay departamentos registrados</td></tr>
+                <tr><td colspan="<?= (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])) ? '4' : '3' ?>" class="px-3 py-4 text-center text-gray-500">No hay departamentos registrados</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
