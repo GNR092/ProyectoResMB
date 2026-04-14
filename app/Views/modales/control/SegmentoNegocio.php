@@ -2,12 +2,24 @@
     <h2 class="text-2xl font-semibold mb-4 text-center">Segmentos de Negocio</h2>
 
     <div id="form-filtros-segmentos" class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-        <div class="flex flex-1 gap-4">
-            <label for="buscar-nombre-segmento" class="sr-only">Buscar por nombre</label>
-            <input type="text" id="buscar-nombre-segmento" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+        <div class="flex flex-1 gap-4 items-end">
+            <div class="flex-1">
+                <label for="buscar-nombre-segmento" class="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre</label>
+                <input type="text" id="buscar-nombre-segmento" placeholder="Buscar por nombre..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label for="filtro-rs-segmento" class="block text-xs font-bold text-gray-500 uppercase mb-1">Razón Social</label>
+                <select id="filtro-rs-segmento" multiple>
+                    <?php if (!empty($razones_sociales)): ?>
+                        <?php foreach ($razones_sociales as $rs): ?>
+                            <option value="<?= esc($rs['Nombre']) ?>"><?= esc($rs['Nombre']) ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
         </div>
-        <div>
-            <a href="#" id="btn-agregar-segmentos" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
+        <div class="self-end mb-1">
+            <a href="#" id="btn-agregar-segmentos" class="inline-block px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors uppercase text-sm">
                 AGREGAR
             </a>
         </div>

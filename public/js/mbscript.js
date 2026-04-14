@@ -3482,6 +3482,339 @@ async function cargarCuentasDeProveedor(idProveedor) {
 
 let choicesUnidadAdd = null;
 let choicesUnidadEdit = null;
+let choicesLugarFiltro = null;
+let choicesUnidadFiltro = null;
+
+let choicesPlaceAdd = null;
+let choicesPlaceEdit = null;
+let choicesLugarUnidadFiltro = null;
+
+// Objeto para persistir filtros de Partidas Presupuestales
+let filtrosPersistidosGrupos = {
+  nombre: '',
+  lugares: [],
+  unidades: []
+};
+
+// Objeto para persistir filtros de Departamentos de Operación
+let filtrosPersistidosUnidades = {
+  nombre: '',
+  lugares: []
+};
+
+/**
+ * Guarda el estado actual de los filtros de Unidades
+ */
+function guardarFiltrosUnidades() {
+  const inputNombre = document.getElementById('buscar-nombre-unidad');
+  filtrosPersistidosUnidades = {
+    nombre: inputNombre ? inputNombre.value : '',
+    lugares: choicesLugarUnidadFiltro ? choicesLugarUnidadFiltro.getValue(true) : []
+  };
+}
+
+let choicesRSAdd = null;
+let choicesRSEdit = null;
+let choicesRSFiltro = null;
+
+// Objeto para persistir filtros de Segmentos de Negocio
+let filtrosPersistidosSegmentos = {
+  nombre: '',
+  razones: []
+};
+
+/**
+ * Guarda el estado actual de los filtros de Segmentos
+ */
+function guardarFiltrosSegmentos() {
+  const inputNombre = document.getElementById('buscar-nombre-segmento');
+  filtrosPersistidosSegmentos = {
+    nombre: inputNombre ? inputNombre.value : '',
+    razones: choicesRSFiltro ? choicesRSFiltro.getValue(true) : []
+  };
+}
+
+/**
+ * Lógica para el CRUD de Segmentos de Negocio (SegmentoNegocio)
+ */
+function initCrudSegmentos() {
+  const tabla = document.getElementById('tabla-segmentos')
+  if (!tabla) return
+
+  // Destruir instancias previas
+  if (choicesRSAdd) choicesRSAdd.destroy();
+  if (choicesRSEdit) choicesRSEdit.destroy();
+  if (choicesRSFiltro) choicesRSFiltro.destroy();
+
+  const selAdd = document.getElementById('id_razon_social');
+  const selEdit = document.getElementById('editar-id_razon_social');
+
+  const configSearch = {
+    removeItemButton: false,
+    itemSelectText: '',
+    placeholderValue: 'Seleccionar...',
+    searchPlaceholderValue: 'Buscar razón social...',
+    fuseOptions: { threshold: 0.2, distance: 100 }
+  };
+
+  if (selAdd) choicesRSAdd = new Choices(selAdd, configSearch);
+  if (selEdit) choicesRSEdit = new Choices(selEdit, configSearch);
+
+  initSegmentosTabla()
+  initSegmentosPantallas()
+  initSegmentosForm()
+  initSegmentosEditarForm()
+  initSegmentosActions(tabla)
+
+  // Restaurar filtros
+  const inputNombre = document.getElementById('buscar-nombre-segmento');
+  if (inputNombre && filtrosPersistidosSegmentos.nombre) {
+    inputNombre.value = filtrosPersistidosSegmentos.nombre;
+  }
+
+  setTimeout(() => {
+    if (choicesRSFiltro && filtrosPersistidosSegmentos.razones.length > 0) {
+      choicesRSFiltro.setChoiceByValue(filtrosPersistidosSegmentos.razones);
+    }
+    const formFiltros = document.getElementById('form-filtros-segmentos');
+    if (formFiltros) {
+      formFiltros.dispatchEvent(new Event('input', { bubbles: true }));
+      formFiltros.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }, 200);
+}
+
+function initSegmentosTabla() {
+  const refRS = document.getElementById('filtro-rs-segmento');
+  if (refRS) {
+    choicesRSFiltro = new Choices(refRS, { 
+      removeItemButton: true, 
+      itemSelectText: '', 
+      placeholderValue: 'Todas las Razones Sociales', 
+      searchPlaceholderValue: 'Buscar...',
+      fuseOptions: { threshold: 0.2, distance: 100 }
+    });
+  }
+
+  setupClientSideTable({
+    rowsSelector: '#tabla-segmentos tr[data-id]',
+    paginationSelector: 'paginacion-segmentos',
+    filterFormSelector: '#form-filtros-segmentos',
+    filterFunction: (row, form) => {
+      const nomFiltro = (document.getElementById('buscar-nombre-segmento')?.value || '').toLowerCase();
+      const rsSel = choicesRSFiltro ? choicesRSFiltro.getValue(true).map(v => v.toLowerCase()) : [];
+      
+      const nombreRow = row.querySelector('.nombre-segmento')?.textContent.toLowerCase() || '';
+      const rsRow = row.querySelector('.razon-social-segmento')?.textContent.toLowerCase() || '';
+      
+      const matchNombre = nombreRow.includes(nomFiltro);
+      const matchRS = rsSel.length === 0 || rsSel.some(rs => rsRow.includes(rs));
+
+      return matchNombre && matchRS;
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initSegmentosPantallas() {
+  const pLis = document.getElementById('pantalla-lista-segmentos'), pAdd = document.getElementById('pantalla-agregar-segmentos'), pEdi = document.getElementById('pantalla-editar-segmentos');
+  const btnAdd = document.getElementById('btn-agregar-segmentos');
+  if (btnAdd) btnAdd.onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
+  document.getElementById('btn-regresar-lista-segmentos').onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); };
+  document.getElementById('btn-regresar-lista-editar-segmentos').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
+}
+
+function initSegmentosForm() {
+  const fAdd = document.getElementById('form-agregar-segmentos'); if (!fAdd) return;
+  fAdd.onsubmit = async (e) => {
+    e.preventDefault();
+    guardarFiltrosSegmentos();
+    try {
+      const res = await SendDataEnd('modales/crud_segmentos/insertar', { method: 'POST', body: new FormData(fAdd) });
+      if (res.success) { mostrarNotificacion('Segmento agregado ✅', 'success'); abrirModal('SegmentoNegocio'); }
+    } catch { mostrarNotificacion('Error ❌', 'error'); }
+  };
+}
+
+function initSegmentosEditarForm() {
+  const fEdi = document.getElementById('form-editar-segmentos'); if (!fEdi) return;
+  fEdi.onsubmit = async (e) => {
+    e.preventDefault();
+    guardarFiltrosSegmentos();
+    const fd = new FormData(fEdi);
+    try {
+      const res = await SendDataEnd(`modales/crud_segmentos/editar/${fd.get('id')}`, { method: 'POST', body: fd });
+      if (res.success) { mostrarNotificacion('Segmento actualizado ✅', 'success'); abrirModal('SegmentoNegocio'); }
+    } catch { mostrarNotificacion('Error ❌', 'error'); }
+  };
+}
+
+function initSegmentosActions(tabla) {
+  tabla.addEventListener('click', async (e) => {
+    const bE = e.target.closest("[id^='btn-editar-segmentos-']"), bD = e.target.closest("[id^='btn-eliminar-segmentos-']");
+    if (bE) {
+      e.preventDefault(); const f = bE.closest('tr');
+      document.getElementById('editar-id').value = f.dataset.id;
+      document.getElementById('editar-nombre').value = f.dataset.nombre;
+      if (choicesRSEdit && f.dataset.idRs) {
+        choicesRSEdit.setChoiceByValue(String(f.dataset.idRs));
+      }
+      document.getElementById('editar-descripcion').value = f.dataset.descripcion;
+      document.getElementById('pantalla-lista-segmentos').classList.add('hidden');
+      document.getElementById('pantalla-editar-segmentos').classList.remove('hidden');
+    }
+    if (bD) {
+      e.preventDefault();
+      if (!confirm('¿Estás seguro de eliminar este segmento?')) return;
+      guardarFiltrosSegmentos();
+      try {
+        const res = await SendDataEnd(`modales/crud_segmentos/eliminar/${bD.dataset.id}`, { method: 'POST' });
+        if (res.success) { mostrarNotificacion('Eliminado ✅', 'success'); abrirModal('SegmentoNegocio'); }
+      } catch { mostrarNotificacion('Error ❌', 'error'); }
+    }
+  });
+}
+
+/**
+ * Lógica para el CRUD de Departamentos de Operación (UnidadOperativa)
+ */
+function initCrudUnidades() {
+  const tabla = document.getElementById('tabla-unidades')
+  if (!tabla) return
+
+  // Destruir instancias previas
+  if (choicesPlaceAdd) choicesPlaceAdd.destroy();
+  if (choicesPlaceEdit) choicesPlaceEdit.destroy();
+  if (choicesLugarUnidadFiltro) choicesLugarUnidadFiltro.destroy();
+
+  const selAdd = document.getElementById('ID_Place');
+  const selEdit = document.getElementById('editar-ID_Place-unidad');
+
+  const configSearch = {
+    removeItemButton: false,
+    itemSelectText: '',
+    placeholderValue: 'Seleccionar...',
+    searchPlaceholderValue: 'Buscar lugar...',
+    fuseOptions: { threshold: 0.2, distance: 100 }
+  };
+
+  if (selAdd) choicesPlaceAdd = new Choices(selAdd, configSearch);
+  if (selEdit) choicesPlaceEdit = new Choices(selEdit, configSearch);
+
+  initUnidadesTabla()
+  initUnidadesPantallas()
+  initUnidadesForm()
+  initUnidadesEditarForm()
+  initUnidadesActions(tabla)
+
+  // Restaurar filtros
+  const inputNombre = document.getElementById('buscar-nombre-unidad');
+  if (inputNombre && filtrosPersistidosUnidades.nombre) {
+    inputNombre.value = filtrosPersistidosUnidades.nombre;
+  }
+
+  setTimeout(() => {
+    if (choicesLugarUnidadFiltro && filtrosPersistidosUnidades.lugares.length > 0) {
+      choicesLugarUnidadFiltro.setChoiceByValue(filtrosPersistidosUnidades.lugares);
+    }
+    const formFiltros = document.getElementById('form-filtros-unidades');
+    if (formFiltros) {
+      formFiltros.dispatchEvent(new Event('input', { bubbles: true }));
+      formFiltros.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }, 200);
+}
+
+function initUnidadesTabla() {
+  const refLugar = document.getElementById('filtro-lugar-unidad');
+  if (refLugar) {
+    choicesLugarUnidadFiltro = new Choices(refLugar, { 
+      removeItemButton: true, 
+      itemSelectText: '', 
+      placeholderValue: 'Todos los complejos', 
+      searchPlaceholderValue: 'Buscar...',
+      fuseOptions: { threshold: 0.2, distance: 100 }
+    });
+  }
+
+  setupClientSideTable({
+    rowsSelector: '#tabla-unidades tr[data-id]',
+    paginationSelector: 'paginacion-unidades',
+    filterFormSelector: '#form-filtros-unidades',
+    filterFunction: (row, form) => {
+      const nomFiltro = (document.getElementById('buscar-nombre-unidad')?.value || '').toLowerCase();
+      const lugaresSel = choicesLugarUnidadFiltro ? choicesLugarUnidadFiltro.getValue(true).map(v => v.toLowerCase()) : [];
+      
+      const nombreRow = row.querySelector('.nombre-unidad')?.textContent.toLowerCase() || '';
+      const lugarRow = row.querySelector('.lugar-unidad')?.textContent.toLowerCase() || '';
+      
+      const matchNombre = nombreRow.includes(nomFiltro);
+      const matchLugar = lugaresSel.length === 0 || lugaresSel.some(l => lugarRow.includes(l));
+
+      return matchNombre && matchLugar;
+    },
+    rowsPerPage: 10,
+  })
+}
+
+function initUnidadesPantallas() {
+  const pLis = document.getElementById('pantalla-lista-unidades'), pAdd = document.getElementById('pantalla-agregar-unidad'), pEdi = document.getElementById('pantalla-editar-unidad');
+  const btnAdd = document.getElementById('btn-agregar-unidad');
+  if (btnAdd) btnAdd.onclick = (e) => { e.preventDefault(); pLis.classList.add('hidden'); pAdd.classList.remove('hidden'); };
+  document.getElementById('btn-regresar-lista-unidad').onclick = (e) => { e.preventDefault(); pAdd.classList.add('hidden'); pLis.classList.remove('hidden'); };
+  document.getElementById('btn-regresar-lista-editar-unidad').onclick = (e) => { e.preventDefault(); pEdi.classList.add('hidden'); pLis.classList.remove('hidden'); };
+}
+
+function initUnidadesForm() {
+  const fAdd = document.getElementById('form-agregar-unidad'); if (!fAdd) return;
+  fAdd.onsubmit = async (e) => {
+    e.preventDefault();
+    guardarFiltrosUnidades();
+    try {
+      const res = await SendDataEnd('modales/crud_unidades_operativas/insertar', { method: 'POST', body: new FormData(fAdd) });
+      if (res.success) { mostrarNotificacion('Departamento agregado ✅', 'success'); abrirModal('UnidadOperativa'); }
+    } catch { mostrarNotificacion('Error ❌', 'error'); }
+  };
+}
+
+function initUnidadesEditarForm() {
+  const fEdi = document.getElementById('form-editar-unidad'); if (!fEdi) return;
+  fEdi.onsubmit = async (e) => {
+    e.preventDefault();
+    guardarFiltrosUnidades();
+    const fd = new FormData(fEdi);
+    try {
+      const res = await SendDataEnd(`modales/crud_unidades_operativas/editar/${fd.get('ID_UnidadOperativa')}`, { method: 'POST', body: fd });
+      if (res.success) { mostrarNotificacion('Unidad actualizada ✅', 'success'); abrirModal('UnidadOperativa'); }
+    } catch { mostrarNotificacion('Error ❌', 'error'); }
+  };
+}
+
+function initUnidadesActions(tabla) {
+  tabla.addEventListener('click', async (e) => {
+    const bE = e.target.closest("[id^='btn-editar-unidad-']"), bD = e.target.closest("[id^='btn-eliminar-unidad-']");
+    if (bE) {
+      e.preventDefault(); const f = bE.closest('tr');
+      document.getElementById('editar-ID_UnidadOperativa').value = f.dataset.id;
+      document.getElementById('editar-Nombre-unidad').value = f.dataset.nombre;
+      if (choicesPlaceEdit && f.dataset.idPlace) {
+        choicesPlaceEdit.setChoiceByValue(String(f.dataset.idPlace));
+      }
+      document.getElementById('editar-activo-unidad').checked = f.dataset.activo == '1';
+      document.getElementById('pantalla-lista-unidades').classList.add('hidden');
+      document.getElementById('pantalla-editar-unidad').classList.remove('hidden');
+    }
+    if (bD) {
+      e.preventDefault();
+      if (!confirm('¿Estás seguro de desactivar este departamento de operación?')) return;
+      guardarFiltrosUnidades();
+      try {
+        const res = await SendDataEnd(`modales/crud_unidades_operativas/eliminar/${bD.dataset.id}`, { method: 'POST' });
+        if (res.success) { mostrarNotificacion('Desactivado ✅', 'success'); abrirModal('UnidadOperativa'); }
+      } catch { mostrarNotificacion('Error ❌', 'error'); }
+    }
+  });
+}
 
 /**
  * Lógica para el CRUD de cuentas de Grupos Presupuestales
@@ -3493,6 +3826,8 @@ function initCrudGrupos() {
   // Destruir instancias previas si existen para evitar duplicados
   if (choicesUnidadAdd) choicesUnidadAdd.destroy();
   if (choicesUnidadEdit) choicesUnidadEdit.destroy();
+  if (choicesLugarFiltro) choicesLugarFiltro.destroy();
+  if (choicesUnidadFiltro) choicesUnidadFiltro.destroy();
 
   const selAdd = document.getElementById('ID_UnidadOperativa');
   const selEdit = document.getElementById('editar-ID_UnidadOperativa');
@@ -3513,6 +3848,30 @@ function initCrudGrupos() {
   initGruposForm()
   initGruposEditarForm()
   initGruposActions(tabla)
+
+  // Restaurar filtros si existen
+  const inputNombre = document.getElementById('buscar-nombre-grupo');
+
+  if (inputNombre && filtrosPersistidosGrupos.nombre) {
+    inputNombre.value = filtrosPersistidosGrupos.nombre;
+  }
+
+  // Esperar un momento a que las instancias de Choices se inicialicen
+  setTimeout(() => {
+    if (choicesLugarFiltro && filtrosPersistidosGrupos.lugares.length > 0) {
+      choicesLugarFiltro.setChoiceByValue(filtrosPersistidosGrupos.lugares);
+    }
+    if (choicesUnidadFiltro && filtrosPersistidosGrupos.unidades.length > 0) {
+      choicesUnidadFiltro.setChoiceByValue(filtrosPersistidosGrupos.unidades);
+    }
+
+    // Forzar la actualización de la tabla disparando 'input' y 'change' en el formulario de filtros
+    const formFiltros = document.getElementById('form-filtros-grupos');
+    if (formFiltros) {
+      formFiltros.dispatchEvent(new Event('input', { bubbles: true }));
+      formFiltros.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }, 200);
 }
 
 function initGruposTabla() {
@@ -3524,11 +3883,9 @@ function initGruposTabla() {
   // Inicializar Choices para los filtros
   const refLugar = document.getElementById('filtro-lugar-grupo');
   const refUnidad = document.getElementById('filtro-unidad-grupo');
-  let choicesLugar = null;
-  let choicesUnidad = null;
 
   if (refLugar) {
-    choicesLugar = new Choices(refLugar, { 
+    choicesLugarFiltro = new Choices(refLugar, { 
       removeItemButton: true, 
       itemSelectText: '', 
       placeholderValue: 'Todos los complejos', 
@@ -3537,7 +3894,7 @@ function initGruposTabla() {
     });
   }
   if (refUnidad) {
-    choicesUnidad = new Choices(refUnidad, { 
+    choicesUnidadFiltro = new Choices(refUnidad, { 
       removeItemButton: true, 
       itemSelectText: '', 
       placeholderValue: 'Todos los departamentos', 
@@ -3549,7 +3906,7 @@ function initGruposTabla() {
   // Lógica de Sincronización de Filtros
   if (refLugar && refUnidad) {
     refLugar.addEventListener('change', () => {
-      const lugaresSeleccionados = choicesLugar.getValue(true);
+      const lugaresSeleccionados = choicesLugarFiltro.getValue(true);
       let deptosFiltrados = [];
       if (lugaresSeleccionados.length === 0) {
         deptosFiltrados = [...new Set(unidadesData.map(u => u.Nombre))];
@@ -3560,14 +3917,14 @@ function initGruposTabla() {
             .map(u => u.Nombre)
         )];
       }
-      choicesUnidad.clearStore();
+      choicesUnidadFiltro.clearStore();
       const nuevasOpciones = deptosFiltrados.sort().map(nombre => ({
         value: nombre,
         label: nombre,
         selected: false,
         disabled: false
       }));
-      choicesUnidad.setChoices(nuevasOpciones, 'value', 'label', true);
+      choicesUnidadFiltro.setChoices(nuevasOpciones, 'value', 'label', true);
       refUnidad.dispatchEvent(new Event('change'));
     });
   }
@@ -3578,8 +3935,8 @@ function initGruposTabla() {
     filterFormSelector: '#form-filtros-grupos',
     filterFunction: (row, form) => {
       const nomFiltro = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase();
-      const lugaresSel = choicesLugar ? choicesLugar.getValue(true).map(v => v.toLowerCase()) : [];
-      const unidadesSel = choicesUnidad ? choicesUnidad.getValue(true).map(v => v.toLowerCase()) : [];
+      const lugaresSel = choicesLugarFiltro ? choicesLugarFiltro.getValue(true).map(v => v.toLowerCase()) : [];
+      const unidadesSel = choicesUnidadFiltro ? choicesUnidadFiltro.getValue(true).map(v => v.toLowerCase()) : [];
       
       const textoCelda = row.querySelector('.unidad-grupo')?.textContent.toLowerCase() || '';
       const nombreRow = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || '';
@@ -3648,6 +4005,9 @@ function initGruposForm() {
         pantallaAgregar?.classList.add('hidden')
         pantallaLista?.classList.remove('hidden')
         formAgregar.reset()
+        
+        // Guardar filtros antes de recargar
+        guardarFiltrosGrupos();
         // Recargamos el modal para ver los cambios
         abrirModal('GrupoPresupuestal')
       } else {
@@ -3679,17 +4039,10 @@ function initGruposEditarForm() {
 
       if (result.success) {
         mostrarNotificacion('Grupo actualizado correctamente ✅', 'success')
-
-        const fila = tabla.querySelector(`tr[data-id='${id}']`)
-        if (fila) {
-          // Actualizar textos básicos
-          fila.querySelector('.nombre-grupo').textContent = formData.get('Nombre')
-          fila.querySelector('.descripcion-grupo').textContent = formData.get('Descripcion')
-
-          // Actualizar Datasets
-          fila.dataset.nombre = formData.get('Nombre')
-          fila.dataset.descripcion = formData.get('Descripcion')
-        }
+        
+        // Guardar filtros antes de recargar
+        guardarFiltrosGrupos();
+        abrirModal('GrupoPresupuestal');
 
         pantallaEditar?.classList.add('hidden')
         pantallaLista?.classList.remove('hidden')
@@ -3726,7 +4079,8 @@ function initGruposActions(tabla) {
         .then((result) => {
           if (result.success) {
             mostrarNotificacion('Grupo eliminado ✅', 'success')
-            btnEliminar.closest('tr')?.remove()
+            // Guardar filtros antes de recargar
+            guardarFiltrosGrupos();
             abrirModal('GrupoPresupuestal')
           } else {
             mostrarNotificacion(result.message || 'No se pudo eliminar ❌', 'error')
