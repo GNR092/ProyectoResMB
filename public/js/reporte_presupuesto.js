@@ -47,6 +47,7 @@ function registrarComponenteReportePresupuesto() {
             filtrosRazonesVenc: [],
             filtrosPlacesVenc: [],
             filtrosDeptosVenc: [],
+            filtroEstatusVenc: '',
             
             choicesProvVenc: null,
             choicesRazonVenc: null,
@@ -377,25 +378,42 @@ function registrarComponenteReportePresupuesto() {
                                 const baseDate = new Date(baseDateStr.replace(/-/g, '/').split(' ')[0]);
                                 const fechaVencimiento = new Date(baseDate);
                                 fechaVencimiento.setDate(fechaVencimiento.getDate() + (parseInt(item.Dias_Credito) || 0));
-                                
+
+                                // Formatear fecha de vencimiento (DD/MM/YYYY)
+                                const fVencDay = String(fechaVencimiento.getDate()).padStart(2, '0');
+                                const fVencMonth = String(fechaVencimiento.getMonth() + 1).padStart(2, '0');
+                                const fVencYear = fechaVencimiento.getFullYear();
+                                item.fechaVencimientoStr = `${fVencDay}/${fVencMonth}/${fVencYear}`;
+
                                 const diffTime = hoy.getTime() - fechaVencimiento.getTime();
                                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
                                 if (diffDays > 0) {
                                     diasVencidos = diffDays;
                                     textoVencimiento = `${diasVencidos} d vencidos`;
+                                    item.estatusVencimiento = 'Vencido';
                                     if (diasVencidos > 15) claseSemaforo = 'bg-gray-900 text-white';
                                     else if (diasVencidos > 5) claseSemaforo = 'bg-red-100 text-red-800';
                                     else claseSemaforo = 'bg-yellow-100 text-yellow-800';
+                                } else if (diffDays === 0) {
+                                    textoVencimiento = 'Hoy';
+                                    item.estatusVencimiento = 'Pago Hoy';
+                                    claseSemaforo = 'bg-blue-50 text-blue-800 font-bold';
                                 } else {
-                                    textoVencimiento = `Vence en ${Math.abs(diffDays)} d`;
+                                    textoVencimiento = `${Math.abs(diffDays)} d`;
+                                    item.estatusVencimiento = 'Por Vencer';
                                 }
                             }
 
+                            const montoCredito = parseFloat(item.Monto_Credito) || 0;
+                            const porPagar = parseFloat(item.Total) || 0;
+                            const saldoCalculado = montoCredito - porPagar;
+
                             return {
                                 ...item,
-                                importePorPagar: parseFloat(item.Total) || 0,
-                                saldoCredito: (parseFloat(item.Monto_Credito) || 0) - (parseFloat(item.Total) || 0),
+                                importePorPagar: porPagar,
+                                saldoCredito: Math.max(0, saldoCalculado),
+                                importeExcedido: saldoCalculado < 0 ? Math.abs(saldoCalculado) : 0,
                                 diasVencidos: diasVencidos,
                                 textoVencimiento: textoVencimiento,
                                 claseSemaforo: claseSemaforo,
@@ -451,18 +469,27 @@ function registrarComponenteReportePresupuesto() {
 
                                 if (diffDays > 0) {
                                     diasVencidos = diffDays;
-                                    textoVencimiento = `${diasVencidos} d vencidos`;
+                                    textoVencimiento = `${diasVencidos} d`;
+                                    prov.estatusVencimiento = 'Vencido';
                                     if (diasVencidos > 15) claseSemaforo = 'bg-gray-900 text-white';
                                     else if (diasVencidos > 5) claseSemaforo = 'bg-red-100 text-red-800';
                                     else claseSemaforo = 'bg-yellow-100 text-yellow-800';
+                                } else if (diffDays === 0) {
+                                    textoVencimiento = 'Hoy';
+                                    prov.estatusVencimiento = 'Pago Hoy';
+                                    claseSemaforo = 'bg-blue-50 text-blue-800 font-bold';
                                 } else {
-                                    textoVencimiento = `Vence en ${Math.abs(diffDays)} d`;
+                                    textoVencimiento = `${Math.abs(diffDays)} d`;
+                                    prov.estatusVencimiento = 'Por Vencer';
                                 }
                             }
 
+                            const saldoCalculado = prov.Monto_Credito - prov.importePorPagar;
+
                             return {
                                 ...prov,
-                                saldoCredito: prov.Monto_Credito - prov.importePorPagar,
+                                saldoCredito: Math.max(0, saldoCalculado),
+                                importeExcedido: saldoCalculado < 0 ? Math.abs(saldoCalculado) : 0,
                                 diasVencidos: diasVencidos,
                                 textoVencimiento: textoVencimiento,
                                 claseSemaforo: claseSemaforo,
@@ -489,9 +516,13 @@ function registrarComponenteReportePresupuesto() {
                 const selRazones = (this.filtrosRazonesVenc || []).map(String);
                 const selPlaces = (this.filtrosPlacesVenc || []).map(String);
                 const selDeptos = (this.filtrosDeptosVenc || []).map(String);
+                const filterEstatus = this.filtroEstatusVenc;
 
                 return source.filter(v => {
-                    // Si es agrupado, chequeamos si alguna de sus solicitudes cumple los filtros
+                    // 1. Filtro por estatus a nivel de fila (agrupada o detallada)
+                    if (filterEstatus && v.estatusVencimiento !== filterEstatus) return false;
+
+                    // 2. Otros filtros a nivel de solicitudes
                     const itemsToCheck = this.reporteDetallado ? [v] : v.solicitudes;
 
                     return itemsToCheck.some(item => {
@@ -506,12 +537,34 @@ function registrarComponenteReportePresupuesto() {
                 });
             },
 
+            get resumenVencimientos() {
+                const data = this.vencimientosFiltrados;
+                const resumen = {
+                    vencido: 0,
+                    pagoHoy: 0,
+                    porVencer: 0,
+                    total: 0
+                };
+
+                data.forEach(v => {
+                    const importe = parseFloat(v.importePorPagar) || 0;
+                    resumen.total += importe;
+                    
+                    if (v.estatusVencimiento === 'Vencido') resumen.vencido += importe;
+                    else if (v.estatusVencimiento === 'Pago Hoy') resumen.pagoHoy += importe;
+                    else if (v.estatusVencimiento === 'Por Vencer') resumen.porVencer += importe;
+                });
+
+                return resumen;
+            },
+
             limpiarFiltrosVencimientos() {
                 this.filtrosFolioVenc = '';
                 this.filtrosProveedoresVenc = [];
                 this.filtrosRazonesVenc = [];
                 this.filtrosPlacesVenc = [];
                 this.filtrosDeptosVenc = [];
+                this.filtroEstatusVenc = '';
                 
                 if (this.choicesProvVenc) this.choicesProvVenc.removeActiveItems();
                 if (this.choicesRazonVenc) this.choicesRazonVenc.removeActiveItems();
@@ -550,6 +603,10 @@ function registrarComponenteReportePresupuesto() {
             get paginatedVencimientos() {
                 const start = (this.currentPageVencimientos - 1) * this.rowsPerPageVencimientos;
                 return this.vencimientosFiltrados.slice(start, start + this.rowsPerPageVencimientos);
+            },
+
+            get hayExcedidosVencimientos() {
+                return this.vencimientosFiltrados.some(v => (v.importeExcedido || 0) > 0);
             },
 
             cambiarPaginaVencimientos(page) {
@@ -1143,9 +1200,17 @@ function registrarComponenteReportePresupuesto() {
 
                 const notif = mostrarNotificacion('Generando Excel de Vencimientos...', 'info', 0);
                 try {
+                    let nombreEmpresa = 'Corporativo MBM';
+                    if (this.filtrosRazonesVenc && this.filtrosRazonesVenc.length === 1) {
+                        const idRS = parseInt(this.filtrosRazonesVenc[0]);
+                        const rsObj = this.razonesSociales.find(r => parseInt(r.ID_RazonSocial) === idRS);
+                        if (rsObj) nombreEmpresa = rsObj.Nombre;
+                    }
+
                     const payload = {
                         reporteDetallado: this.reporteDetallado,
-                        datos: filteredData
+                        datos: filteredData,
+                        nombreEmpresa: nombreEmpresa
                     };
 
                     const res = await fetch(`${BASE_URL}api/vencimientos/exportar-datos`, {

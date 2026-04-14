@@ -521,12 +521,24 @@ class ReportesController extends ResourceController
             $json = $this->request->getJSON(true);
             $datos = $json['datos'] ?? [];
             $esDetallado = $json['reporteDetallado'] ?? false;
+            $nombreEmpresa = $json['nombreEmpresa'] ?? 'Corporativo MBM';
+            $fechaHoy = date('d/m/Y H:i:s');
             
             if (empty($datos)) return $this->fail('No hay datos');
 
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle('Vencimientos');
+
+            // --- DISEÑO DEL ENCABEZADO ---
+            $sheet->setCellValue('A1', $nombreEmpresa);
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            
+            $sheet->setCellValue('A2', 'REPORTE DE VENCIMIENTOS (' . ($esDetallado ? 'DETALLADO' : 'AGRUPADO') . ')');
+            $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12);
+
+            $sheet->setCellValue('A3', 'Fecha de creación: ' . $fechaHoy);
+            $sheet->getStyle('A3')->getFont()->setItalic(true)->setSize(10);
 
             $headers = ['Cód.', 'RFC', 'Razón Social'];
             if ($esDetallado) {
@@ -538,6 +550,19 @@ class ReportesController extends ResourceController
             }
             
             $headers[] = 'Importe Por Pagar';
+
+            // Detectar si hay excedidos para añadir la columna
+            $hayExcedidos = false;
+            foreach ($datos as $v) {
+                if ((float)($v['importeExcedido'] ?? 0) > 0) {
+                    $hayExcedidos = true;
+                    break;
+                }
+            }
+
+            if ($hayExcedidos) {
+                $headers[] = 'Importe Excedido';
+            }
             
             if (!$esDetallado) {
                 $headers[] = 'Saldo Crédito';
@@ -546,9 +571,11 @@ class ReportesController extends ResourceController
             $headers[] = 'Días Créd.';
             
             if ($esDetallado) {
-                $headers[] = 'Fecha Ref.';
+                $headers[] = 'Fecha Aprobacion.';
+                $headers[] = 'Fecha Venc.';
             }
             
+            $headers[] = 'Estatus';
             $headers[] = 'Días Vencido';
 
             $cols = [];
@@ -566,12 +593,12 @@ class ReportesController extends ResourceController
             ];
 
             foreach ($headers as $i => $h) {
-                $sheet->setCellValue($cols[$i].'1', $h);
-                $sheet->getStyle($cols[$i].'1')->applyFromArray($headerStyle);
+                $sheet->setCellValue($cols[$i].'5', $h);
+                $sheet->getStyle($cols[$i].'5')->applyFromArray($headerStyle);
                 $sheet->getColumnDimension($cols[$i])->setAutoSize(true);
             }
 
-            $row = 2;
+            $row = 6;
             foreach ($datos as $v) {
                 $c = 0;
                 $sheet->setCellValue($cols[$c++].$row, $v['ID_Proveedor']);
@@ -586,6 +613,10 @@ class ReportesController extends ResourceController
                 }
                 
                 $sheet->setCellValue($cols[$c++].$row, (float)$v['importePorPagar']);
+
+                if ($hayExcedidos) {
+                    $sheet->setCellValue($cols[$c++].$row, (float)($v['importeExcedido'] ?? 0));
+                }
                 
                 if (!$esDetallado) {
                     $sheet->setCellValue($cols[$c++].$row, (float)$v['saldoCredito']);
@@ -595,8 +626,10 @@ class ReportesController extends ResourceController
                 
                 if ($esDetallado) {
                     $sheet->setCellValue($cols[$c++].$row, $v['fechaReferenciaStr']);
+                    $sheet->setCellValue($cols[$c++].$row, $v['fechaVencimientoStr'] ?? 'N/A');
                 }
                 
+                $sheet->setCellValue($cols[$c++].$row, $v['estatusVencimiento'] ?? 'N/A');
                 $sheet->setCellValue($cols[$c++].$row, $v['textoVencimiento']);
 
                 // Estilos de semáforo
@@ -622,16 +655,55 @@ class ReportesController extends ResourceController
             }
 
             // Formato de moneda para columnas de dinero
-            // Dinero suele estar en:
-            // Agrupado: D (Monto_Credito), E (importePorPagar), F (saldoCredito)
-            // Detallado: D (importePorPagar)
             if ($esDetallado) {
-                $sheet->getStyle('E2:E'.($row-1))->getNumberFormat()->setFormatCode('$#,##0.00');
+                // Si es detallado, el dinero está en D (Folio no, RFC no...)
+                // Vamos a usar un bucle para detectar qué letras son moneda
+                foreach($headers as $idx => $h) {
+                    if (in_array($h, ['Importe Crédito', 'Importe Por Pagar', 'Importe Excedido', 'Saldo Crédito'])) {
+                        $colLetter = $cols[$idx];
+                        $sheet->getStyle($colLetter.'6:'.$colLetter.($row-1))->getNumberFormat()->setFormatCode('$#,##0.00');
+                    }
+                }
             } else {
-                $sheet->getStyle('D2:F'.($row-1))->getNumberFormat()->setFormatCode('$#,##0.00');
+                foreach($headers as $idx => $h) {
+                    if (in_array($h, ['Importe Crédito', 'Importe Por Pagar', 'Importe Excedido', 'Saldo Crédito'])) {
+                        $colLetter = $cols[$idx];
+                        $sheet->getStyle($colLetter.'6:'.$colLetter.($row-1))->getNumberFormat()->setFormatCode('$#,##0.00');
+                    }
+                }
             }
 
-            $sheet->getStyle('A1:'.$cols[count($headers)-1].($row-1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+            $sheet->getStyle('A5:'.$cols[count($headers)-1].($row-1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+            // --- BLOQUE DE RESUMEN FINAL ---
+            $totalVencido = 0; $totalPagoHoy = 0; $totalPorVencer = 0; $totalGeneral = 0;
+            foreach ($datos as $v) {
+                $monto = (float)($v['importePorPagar'] ?? 0);
+                $totalGeneral += $monto;
+                $est = $v['estatusVencimiento'] ?? '';
+                if ($est === 'Vencido') $totalVencido += $monto;
+                elseif ($est === 'Pago Hoy') $totalPagoHoy += $monto;
+                elseif ($est === 'Por Vencer') $totalPorVencer += $monto;
+            }
+
+            $row += 2;
+            $resumenRows = [
+                ['Total Vencido', $totalVencido, 'FEE2E2', '991B1B'],
+                ['Pago Hoy', $totalPagoHoy, 'DBEAFE', '1E40AF'],
+                ['Por Vencer', $totalPorVencer, 'DCFCE7', '166534'],
+                ['Total General', $totalGeneral, '1F2937', 'FFFFFF']
+            ];
+
+            foreach ($resumenRows as $res) {
+                $sheet->setCellValue('B'.$row, $res[0]);
+                $sheet->setCellValue('C'.$row, $res[1]);
+                $sheet->getStyle('B'.$row.':C'.$row)->getFont()->setBold(true);
+                $sheet->getStyle('B'.$row.':C'.$row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($res[2]);
+                $sheet->getStyle('B'.$row.':C'.$row)->getFont()->getColor()->setRGB($res[3]);
+                $sheet->getStyle('C'.$row)->getNumberFormat()->setFormatCode('$#,##0.00');
+                $sheet->getStyle('B'.$row.':C'.$row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                $row++;
+            }
 
             $writer = new Xlsx($spreadsheet);
             $filename = 'reporte_vencimientos_'.($esDetallado ? 'detallado_' : 'agrupado_').date('Ymd_His').'.xlsx';

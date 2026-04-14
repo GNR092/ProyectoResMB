@@ -1059,6 +1059,9 @@
   .border-orange-100 {
     border-color: var(--color-orange-100);
   }
+  .border-orange-300 {
+    border-color: var(--color-orange-300);
+  }
   .border-orange-400 {
     border-color: var(--color-orange-400);
   }
@@ -2759,9 +2762,9 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
-  .md\:grid-cols-5 {
+  .md\:grid-cols-6 {
     @media (width >= 48rem) {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
     }
   }
   .md\:flex-row {

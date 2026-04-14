@@ -610,7 +610,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
                         <!-- Panel de Filtros Avanzados -->
                         <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
-                            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
                                 <!-- Folio -->
                                 <div class="flex flex-col gap-1">
                                     <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Folio</label>
@@ -665,6 +665,18 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                         <?php endif; ?>
                                     </select>
                                 </div>
+
+                                <!-- Estatus -->
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Estatus</label>
+                                    <select x-model="filtroEstatusVenc" @change="currentPageVencimientos = 1"
+                                            class="px-3 py-2 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
+                                        <option value="">Todos</option>
+                                        <option value="Vencido">Vencido</option>
+                                        <option value="Pago Hoy">Pago Hoy</option>
+                                        <option value="Por Vencer">Por Vencer</option>
+                                    </select>
+                                </div>
                             </div>
                             
                             <div class="flex justify-end mt-4">
@@ -685,21 +697,24 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                         <th class="border px-3 py-2 text-left">Razón Social</th>
                                         <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Importe Crédito</th>
                                         <th class="border px-3 py-2 text-right">Importe Por Pagar</th>
+                                        <th class="border px-3 py-2 text-right" x-show="hayExcedidosVencimientos" x-cloak>Importe Excedido</th>
                                         <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Saldo Crédito</th>
                                         <th class="border px-3 py-2 text-center">Días Créd.</th>
-                                        <th class="border px-3 py-2 text-center" x-show="reporteDetallado">Fecha Ref.</th>
+                                        <th class="border px-3 py-2 text-center" x-show="reporteDetallado">Fecha Aprobacion</th>
+                                        <th class="border px-3 py-2 text-center" x-show="reporteDetallado">Fecha Vencimiento</th>
+                                        <th class="border px-3 py-2 text-center">Estatus</th>
                                         <th class="border px-3 py-2 text-center">Días Vencido</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white">
                                     <template x-if="cargando">
                                         <tr>
-                                            <td colspan="10" class="text-center py-12 text-gray-500 italic">Cargando reporte de vencimientos...</td>
+                                            <td colspan="11" class="text-center py-12 text-gray-500 italic">Cargando reporte de vencimientos...</td>
                                         </tr>
                                     </template>
                                     <template x-if="!cargando && paginatedVencimientos.length === 0">
                                         <tr>
-                                            <td colspan="10" class="text-center py-12 text-gray-400 italic">No se encontraron datos para mostrar.</td>
+                                            <td colspan="11" class="text-center py-12 text-gray-400 italic">No se encontraron datos para mostrar.</td>
                                         </tr>
                                     </template>
                                     <template x-for="(v, index) in paginatedVencimientos" :key="reporteDetallado ? 'venc-det-' + v.ID_Solicitud : 'venc-prov-' + v.ID_Proveedor">
@@ -711,9 +726,12 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                             <td class="px-3 py-2 text-left font-bold" x-text="v.RazonSocial"></td>
                                             <td class="px-3 py-2 text-right" x-show="!reporteDetallado" x-text="formatearMoneda(v.Monto_Credito)"></td>
                                             <td class="px-3 py-2 text-right font-bold" :class="reporteDetallado ? 'text-gray-700' : 'text-blue-700'" x-text="formatearMoneda(v.importePorPagar)"></td>
-                                            <td class="px-3 py-2 text-right font-black" x-show="!reporteDetallado" :class="v.saldoCredito < 0 ? 'text-red-600' : 'text-green-700'" x-text="formatearMoneda(v.saldoCredito)"></td>
+                                            <td class="px-3 py-2 text-right font-bold text-red-600" x-show="hayExcedidosVencimientos" x-cloak x-text="formatearMoneda(v.importeExcedido)"></td>
+                                            <td class="px-3 py-2 text-right font-black" x-show="!reporteDetallado" :class="v.saldoCredito <= 0 ? 'text-gray-400' : 'text-green-700'" x-text="formatearMoneda(v.saldoCredito)"></td>
                                             <td class="px-3 py-2" x-text="v.Dias_Credito"></td>
                                             <td class="px-3 py-2" x-show="reporteDetallado" x-text="v.fechaReferenciaStr"></td>
+                                            <td class="px-3 py-2 font-bold" x-show="reporteDetallado" x-text="v.fechaVencimientoStr"></td>
+                                            <td class="px-3 py-2 font-bold" x-text="v.estatusVencimiento"></td>
                                             <td class="px-3 py-2 font-black uppercase tracking-tighter">
                                                 <span x-text="v.textoVencimiento"></span>
                                             </td>
@@ -721,7 +739,29 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                     </template>
                                 </tbody>
                             </table>
-                        </div>                    <!-- Controles de Paginación -->
+                        </div>
+
+                        <!-- Resumen de Estados de Vencimiento -->
+                        <div class="mt-8 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm" x-show="!cargando && vencimientosFiltrados.length > 0">
+                            <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-red-500 shadow-sm">
+                                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Vencido</span>
+                                <span class="text-lg font-black text-red-700" x-text="formatearMoneda(resumenVencimientos.vencido)"></span>
+                            </div>
+                            <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-blue-500 shadow-sm">
+                                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pago Hoy</span>
+                                <span class="text-lg font-black text-blue-700" x-text="formatearMoneda(resumenVencimientos.pagoHoy)"></span>
+                            </div>
+                            <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-green-500 shadow-sm">
+                                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Por Vencer</span>
+                                <span class="text-lg font-black text-green-700" x-text="formatearMoneda(resumenVencimientos.porVencer)"></span>
+                            </div>
+                            <div class="flex flex-col p-3 bg-gray-800 rounded-lg shadow-sm">
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total General</span>
+                                <span class="text-lg font-black text-white" x-text="formatearMoneda(resumenVencimientos.total)"></span>
+                            </div>
+                        </div>
+
+                        <!-- Controles de Paginación -->
                         <div class="flex justify-between items-center mt-4" x-show="totalPagesVencimientos > 1">
                             <span class="text-xs text-gray-600 font-medium">
                                 Página <span x-text="currentPageVencimientos"></span> de <span x-text="totalPagesVencimientos"></span>
