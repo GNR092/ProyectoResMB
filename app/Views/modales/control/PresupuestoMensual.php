@@ -186,7 +186,24 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
            :class="error ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'"
            x-text="mensaje"></p>
 
-        <div x-show="mensaje === ''"></div>
+        <div class="flex gap-2" x-show="departamentos.length > 0" x-cloak>
+            <button @click="guardarMasivo(true)"
+                    :disabled="guardando"
+                    title="Aplica los montos asignados a este mes y a todos los meses restantes del año"
+                    class="px-4 py-2 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2 text-xs">
+                <span x-text="guardando ? 'Procesando...' : 'Asignar Resto del Año'"></span>
+            </button>
+            
+            <button @click="guardarMasivo(false)"
+                    :disabled="guardando"
+                    class="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center gap-2 text-xs">
+                <svg x-show="guardando" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span x-text="guardando ? 'Guardando...' : 'Guardar Presupuestos'"></span>
+            </button>
+        </div>
     </div>
 
 </div>
