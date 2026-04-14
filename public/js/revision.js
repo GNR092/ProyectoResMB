@@ -392,13 +392,17 @@ function RevisionX() {
               }
 
               if (data.Archivo) {
-                  const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
-                  html += `
-                    <div class="mt-6">
-                        <h4 class="text-md font-bold mb-2">Archivo Adjunto (Solicitante)</h4>
-                        <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
-                    </div>
-                `
+                  const archivos = data.Archivo.split(',')
+                  html += `<div class="mt-6">
+                            <h4 class="text-md font-bold mb-2">Archivos Adjuntos (Solicitante)</h4>
+                            <div class="flex flex-col gap-2">`
+                  archivos.forEach((archivo, index) => {
+                      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}/${archivo}`
+                      html += `<a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">
+                                 Archivo ${index + 1}: ${archivo}
+                              </a>`
+                  })
+                  html += `</div></div>`
               }
 
               html += `

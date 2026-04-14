@@ -16,8 +16,8 @@
 <?php endif; ?>
 
 <form action="<?= base_url('solicitudes/registrar') ?>" method="post" enctype="multipart/form-data">
-    <label for="archivo_input" class="block text-gray-700 text-sm font-bold mb-2">Seleccionar archivo:</label>
-    <input type="file" id="archivo_input" name="archivo" required class="block mb-4">
+    <label for="archivo_input" class="block text-gray-700 text-sm font-bold mb-2">Seleccionar archivos:</label>
+    <input type="file" id="archivo_input" name="archivo[]" required class="block mb-4" multiple>
     <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Subir</button>
 </form>
 </body>

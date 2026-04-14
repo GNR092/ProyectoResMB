@@ -1137,16 +1137,6 @@ async function mostrarVer(idSolicitud) {
             </div>`
     }
 
-    if (data.Archivo) {
-      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}`
-      html += `
-                <div class="mt-6">
-                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
-                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
-                </div>
-            `
-    }
-
     html += `
               <div class="mt-6">
                 <h4 class="text-md font-bold mb-2">Acciones</h4>
@@ -2014,16 +2004,6 @@ async function mostrarVerOrdenCompra(idOrden, $idsession) {
 
     html += generarProductosServiciosHTML(data)
 
-    if (data.Archivo) {
-      const archivoUrl = `${BASE_URL}solicitudes/archivo/${idOrden}`
-      html += `
-                <div class="mt-6">
-                    <h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
-                    <a href="${archivoUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.Archivo}</a>
-                </div>
-            `
-    }
-
     if (typeof generarSeccionAdjuntos === 'function') {
       html += generarSeccionAdjuntos(data)
     }
@@ -2527,8 +2507,13 @@ function aprobarSolicitudes() {
         html += `</tbody></table></div>`
 
         if (data.Archivo) {
-          html += `<div class="mt-6"><h4 class="text-md font-bold mb-2">Archivo Adjunto</h4>
-                     <a href="${BASE_URL}solicitudes/archivo/${idSolicitud}" target="_blank" class="text-blue-600 hover:underline">${data.Archivo}</a></div>`
+          const archivos = data.Archivo.split(',')
+          html += `<div class="mt-6"><h4 class="text-md font-bold mb-2">Archivos Adjuntos</h4>`
+          archivos.forEach((archivo, index) => {
+            const archivoUrl = `${BASE_URL}solicitudes/archivo/${idSolicitud}/${archivo}`
+            html += `<div><a href="${archivoUrl}" target="_blank" class="text-blue-600 hover:underline">Archivo ${index + 1}: ${archivo}</a></div>`
+          })
+          html += `</div>`
         }
 
         if (data.ComentariosUser) {

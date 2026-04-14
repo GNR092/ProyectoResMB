@@ -2571,19 +2571,39 @@ class Api extends ResourceController
         // Ese será el nombre que tendrá el archivo DENTRO del ZIP.
 
         // ---------------------------------------------------------
-        // 1. REQUISICIÓN (SOLICITUD ORIGINAL) -> 01_
+        // 1. REQUISICIÓN (PDF GENERADO) -> 1_
         // ---------------------------------------------------------
         if (!empty($folio)) {
             $reqName = 'Requisicion-' . $folio . '.pdf';
             $reqPath = 'pdf_solicitudes' . DIRECTORY_SEPARATOR . $reqName;
             if (file_exists($basePath . $reqPath)) {
-                // Nombre en el ZIP: 01_Requisicion-...
-                $filePaths['01_' . $reqName] = $basePath . $reqPath;
+                $filePaths['1_' . $reqName] = $basePath . $reqPath;
             }
         }
 
         // ---------------------------------------------------------
-        // 2. COTIZACIÓN -> 02_
+        // 1.1 REQUISICIÓN ORIGINAL (ARCHIVOS SUBIDOS) -> 2_ o 2.x_
+        // ---------------------------------------------------------
+        if (!empty($solicitudData['Archivo']) && !empty($solicitudData['Fecha'])) {
+            $fechaCarpeta = date('Y-m-d', strtotime($solicitudData['Fecha']));
+            $refFiles = array_filter(explode(',', $solicitudData['Archivo']));
+            $totalRef = count($refFiles);
+
+            foreach ($refFiles as $index => $file) {
+                $trimmedFile = trim($file);
+                if (empty($trimmedFile)) continue;
+
+                $refPath = 'solicitud' . DIRECTORY_SEPARATOR . $fechaCarpeta . DIRECTORY_SEPARATOR . $trimmedFile;
+
+                if (file_exists($basePath . $refPath)) {
+                    $prefix = ($totalRef > 1) ? '2.' . ($index + 1) . '_' : '2_';
+                    $filePaths[$prefix . $trimmedFile] = $basePath . $refPath;
+                }
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 2. COTIZACIÓN -> 3_ o 3.x_
         // ---------------------------------------------------------
         $archivosCotizacionString = null;
         if (!empty($solicitudData['cotizacion']) && is_array($solicitudData['cotizacion']) && !empty($solicitudData['cotizacion']['Cotizacion_Files'])) {
@@ -2594,45 +2614,46 @@ class Api extends ResourceController
 
         if (!empty($archivosCotizacionString) && !empty($solicitudData['Fecha'])) {
             $fechaCarpeta = date('Y-m-d', strtotime($solicitudData['Fecha']));
-            $cotFiles = explode(',', $archivosCotizacionString);
+            $cotFiles = array_filter(explode(',', $archivosCotizacionString));
+            $totalCot = count($cotFiles);
 
-            foreach ($cotFiles as $file) {
+            foreach ($cotFiles as $index => $file) {
                 $trimmedFile = trim($file);
                 if (empty($trimmedFile)) continue;
 
                 $cotizacionPath = 'cotizaciones' . DIRECTORY_SEPARATOR . $fechaCarpeta . DIRECTORY_SEPARATOR . $trimmedFile;
 
                 if (file_exists($basePath . $cotizacionPath)) {
-                    // Nombre en el ZIP: 02_NombreArchivoOriginal
-                    $filePaths['02_' . $trimmedFile] = $basePath . $cotizacionPath;
+                    $prefix = ($totalCot > 1) ? '3.' . ($index + 1) . '_' : '3_';
+                    $filePaths[$prefix . $trimmedFile] = $basePath . $cotizacionPath;
                 }
             }
         }
 
         // ---------------------------------------------------------
-        // 3. ORDEN DE COMPRA -> 03_
+        // 3. ORDEN DE COMPRA -> 4_
         // ---------------------------------------------------------
         if (!empty($folio)) {
             $ocName = 'OrdenCompra-' . $folio . '.pdf';
             $ocPath = 'pdf_ordenes' . DIRECTORY_SEPARATOR . $ocName;
             if (file_exists($basePath . $ocPath)) {
-                $filePaths['03_' . $ocName] = $basePath . $ocPath;
+                $filePaths['4_' . $ocName] = $basePath . $ocPath;
             }
         }
 
         // ---------------------------------------------------------
-        // 4. REQUISICIÓN DE PAGO -> 04_
+        // 4. REQUISICIÓN DE PAGO -> 5_
         // ---------------------------------------------------------
         if (!empty($folio)) {
             $reqPagoName = 'RequisicionPago-' . $folio . '.pdf';
             $reqPagoPath = 'pdf_req_pago' . DIRECTORY_SEPARATOR . $reqPagoName;
             if (file_exists($basePath . $reqPagoPath)) {
-                $filePaths['04_' . $reqPagoName] = $basePath . $reqPagoPath;
+                $filePaths['5_' . $reqPagoName] = $basePath . $reqPagoPath;
             }
         }
 
         // ---------------------------------------------------------
-        // 5. FICHA DE PAGO -> 05_
+        // 5. FICHA DE PAGO -> 6_
         // ---------------------------------------------------------
         $compName = null;
         if (!empty($solicitudData['OrdenCompra']['File_Comprobante'])) {
@@ -2644,13 +2665,12 @@ class Api extends ResourceController
         if ($compName) {
             $compPath = 'comprobantes' . DIRECTORY_SEPARATOR . $compName;
             if (file_exists($basePath . $compPath)) {
-                // Forzamos que se llame FichaPago para que sea claro
-                $filePaths['05_FichaPago-' . $compName] = $basePath . $compPath;
+                $filePaths['6_FichaPago-' . $compName] = $basePath . $compPath;
             }
         }
 
         // ---------------------------------------------------------
-        // 6. FACTURA -> 06_
+        // 6. FACTURA -> 7_
         // ---------------------------------------------------------
         $facName = null;
         if (!empty($solicitudData['OrdenCompra']['File_Factura'])) {
@@ -2662,12 +2682,12 @@ class Api extends ResourceController
         if ($facName) {
             $facPath = 'facturas' . DIRECTORY_SEPARATOR . $facName;
             if (file_exists($basePath . $facPath)) {
-                $filePaths['07_' . $facName] = $basePath . $facPath;
+                $filePaths['7_' . $facName] = $basePath . $facPath;
             }
         }
 
         // ---------------------------------------------------------
-        // 6. COMPLEMENTO DE PAGO -> 06_
+        // 6. COMPLEMENTO DE PAGO -> 8_
         // ---------------------------------------------------------
         $complementoName = null;
         if (!empty($solicitudData['OrdenCompra']['File_Complemento'])) {
@@ -2679,7 +2699,7 @@ class Api extends ResourceController
         if ($complementoName) {
             $complementoPath = 'complementos' . DIRECTORY_SEPARATOR . $complementoName;
             if (file_exists($basePath . $complementoPath)) {
-                $filePaths['06_' . $complementoName] = $basePath . $complementoPath;
+                $filePaths['8_' . $complementoName] = $basePath . $complementoPath;
             }
         }
 

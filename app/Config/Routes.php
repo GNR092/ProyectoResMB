@@ -68,8 +68,8 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/solicitud/aprobar-y-cotizar', 'Api::aprobarYCotizar');
         $routes->post('api/orden/generar/(:num)', 'Api::GenerarOrden/$1');
         $routes->post('solicitudes/registrar', 'Archivo::subir');
-        $routes->get('solicitudes/archivo/(:num)', 'Archivo::descargar/$1');
-        $routes->get(
+        $routes->get('solicitudes/archivo/(:num)/(:any)', 'Archivo::descargar/$1/$2');
+        $routes->get('solicitudes/archivo/(:num)', 'Archivo::descargar/$1');        $routes->get(
             'cotizaciones/archivo/(:num)/(:segment)',
             'Archivo::descargarCotizacion/$1/$2',
         );

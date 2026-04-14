@@ -1077,14 +1077,31 @@ function generarSeccionAdjuntos(data) {
             
             ${
               /* 1. REQUISICIÓN (SOLICITUD) */
-              folio
+              idSolicitud
                 ? `
             <div>
-                <strong>Solicitud:</strong> 
-                <a href="${BASE_URL}api/storage/serve?path=pdf_solicitudes/Requisicion-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                    Requisicion-${folio}.pdf
+                <strong>Solicitud (PDF):</strong> 
+                <a href="${BASE_URL}api/solicitud/pdf/${idSolicitud}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                    Requisicion-${folio || idSolicitud}.pdf
                 </a>
             </div>`
+                : ''
+            }
+
+            ${
+              /* 1.1 ARCHIVOS DE REFERENCIA (SOLICITANTE) */
+              sol.Archivo
+                ? sol.Archivo.split(',').map((file, index) => {
+                    const trimmedFile = file.trim()
+                    if (!trimmedFile) return ''
+                    return `
+                <div>
+                    <strong>Referencia ${index > 0 ? index + 1 : ''}:</strong> 
+                    <a href="${BASE_URL}solicitudes/archivo/${idSolicitud}/${trimmedFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                        ${trimmedFile}
+                    </a>
+                </div>`
+                  }).join('')
                 : ''
             }
 

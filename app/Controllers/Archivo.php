@@ -286,13 +286,23 @@ class Archivo extends BaseController
                 }
             }
 
-            $adjunto = $this->request->getFile('archivo');
-            if ($adjunto && $adjunto->isValid()) {
-                $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
+            $archivos = $this->request->getFiles();
+            if (isset($archivos['archivo'])) {
+                $nombresArchivos = [];
                 $folder = FPath::FSOLICITUD . $fecha;
                 $this->api->CreateFolder($folder);
-                $adjunto->move($folder, $nuevoNombre);
-                $solicitud->update($solicitudId, ['Archivo' => $nuevoNombre]);
+
+                foreach ($archivos['archivo'] as $adjunto) {
+                    if ($adjunto->isValid() && !$adjunto->hasMoved()) {
+                        $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
+                        $adjunto->move($folder, $nuevoNombre);
+                        $nombresArchivos[] = $nuevoNombre;
+                    }
+                }
+
+                if (!empty($nombresArchivos)) {
+                    $solicitud->update($solicitudId, ['Archivo' => implode(',', $nombresArchivos)]);
+                }
             }
 
             return $this->response->setJSON([
@@ -310,7 +320,7 @@ class Archivo extends BaseController
         }
     }
 
-    public function descargar($idSolicitud)
+    public function descargar($idSolicitud, $fileName = null)
     {
         $solicitudModel = new SolicitudModel();
         $solicitud = $solicitudModel->find($idSolicitud);
@@ -321,7 +331,21 @@ class Archivo extends BaseController
             );
         }
 
-        $filePath = WRITEPATH . 'uploads/solicitud/' . $solicitud['Fecha'] . '/' . $solicitud['Archivo'];
+        $archivos = explode(',', $solicitud['Archivo']);
+
+        if ($fileName === null) {
+            // Si no se especifica, tomamos el primero para mantener compatibilidad
+            $fileName = $archivos[0];
+        } else {
+            // Verificamos que el archivo solicitado realmente pertenezca a la solicitud
+            if (!in_array($fileName, $archivos)) {
+                throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(
+                    'El archivo solicitado no pertenece a esta solicitud.',
+                );
+            }
+        }
+
+        $filePath = WRITEPATH . 'uploads/solicitud/' . $solicitud['Fecha'] . '/' . $fileName;
 
         if (!file_exists($filePath)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(

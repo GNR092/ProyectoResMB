@@ -43,12 +43,20 @@ class GenerarPDF extends BaseController
         $total = $this->_generarTablaProductos($pdf, $solicitud);
         $this->_generarTotales($pdf, $solicitud, $total);
         $this->_mostrarComentarios($pdf, $solicitud);
-        $this->_adjuntarArchivo(
-            $pdf,
-            FPath::FSOLICITUD . $solicitud['Fecha'] . '/',
-            $solicitud['Archivo'],
-            'Referencia',
-        );
+        if (!empty($solicitud['Archivo'])) {
+            $archivos = explode(',', $solicitud['Archivo']);
+            foreach ($archivos as $index => $file) {
+                $trimmedFile = trim($file);
+                if (empty($trimmedFile)) continue;
+                
+                $this->_adjuntarArchivo(
+                    $pdf,
+                    FPath::FSOLICITUD . $solicitud['Fecha'] . '/',
+                    $trimmedFile,
+                    'Referencia ' . ($index + 1),
+                );
+            }
+        }
 
         if ($dictamen && !empty($solicitud['cotizacion']['Cotizacion_Files'])) {
             $cfiles = explode(',', $solicitud['cotizacion']['Cotizacion_Files']);
@@ -101,13 +109,19 @@ class GenerarPDF extends BaseController
         $total = $this->_generarTablaProductos($pdf, $solicitud);
         $this->_generarTotales($pdf, $solicitud, $total);
         $this->_mostrarComentarios($pdf, $solicitud);
-        if ($adjuntararchivo) {
-            $this->_adjuntarArchivo(
-                $pdf,
-                FPath::FSOLICITUD . $solicitud['Fecha'] . '/',
-                $solicitud['Archivo'],
-                'Referencia',
-            );
+        if ($adjuntararchivo && !empty($solicitud['Archivo'])) {
+            $archivos = explode(',', $solicitud['Archivo']);
+            foreach ($archivos as $index => $file) {
+                $trimmedFile = trim($file);
+                if (empty($trimmedFile)) continue;
+
+                $this->_adjuntarArchivo(
+                    $pdf,
+                    FPath::FSOLICITUD . $solicitud['Fecha'] . '/',
+                    $trimmedFile,
+                    'Referencia ' . ($index + 1),
+                );
+            }
         }
 
         if ($dictamen && !empty($solicitud['cotizacion']['Cotizacion_Files'])) {
