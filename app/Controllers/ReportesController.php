@@ -77,6 +77,100 @@ class ReportesController extends ResourceController
     }
 
     /**
+     * REPORTE COMPARATIVO MENSUAL (PANTALLA 1 - SOLO PRESUPUESTO)
+     */
+    public function getComparativoMensual($idPlace, $anio, $mes)
+    {
+        try {
+            $unidadModel = new UnidadOperativaModel();
+            $presupuestoMensualModel = new PresupuestoMensualModel();
+            $grupoModel = new GrupoPresupuestalModel();
+
+            if (empty($mes)) return $this->respond(['departamentos' => [], 'totales_generales' => $this->getTotalesCero()]);
+            $meses = array_map('intval', explode(',', $mes));
+
+            // 1. Obtener Unidades
+            $builder = $unidadModel->select('UnidadOperativa.ID_UnidadOperativa, UnidadOperativa.Nombre, UnidadOperativa.ID_Place, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial, Razon_Social.Nombre as RazonSocialNombre, segmento_negocio.nombre as SegmentoNombre')
+                ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')
+                ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Places.ID_RazonSocial')
+                ->join('segmento_negocio', 'segmento_negocio.id = Places.id_segmento', 'left');
+
+            if (!empty($idPlace) && $idPlace != '0') {
+                $placeIds = array_filter(array_map('intval', explode(',', (string)$idPlace)));
+                if (!empty($placeIds)) $builder->whereIn('UnidadOperativa.ID_Place', $placeIds);
+            }
+
+            $unidadesRaw = $builder->orderBy('Razon_Social.Nombre', 'ASC')->orderBy('Places.Nombre_Corto', 'ASC')->orderBy('UnidadOperativa.Nombre', 'ASC')->findAll();
+            if (empty($unidadesRaw)) return $this->respond(['departamentos' => [], 'totales_generales' => $this->getTotalesCero()]);
+
+            $unidadesIds = array_column($unidadesRaw, 'ID_UnidadOperativa');
+
+            // 2. Obtener Grupos (Partidas)
+            $gruposAll = $grupoModel->whereIn('ID_UnidadOperativa', $unidadesIds)->where('activo', true)->findAll();
+
+            // 3. Obtener Presupuestos para esos meses
+            $presupuestosRaw = $presupuestoMensualModel->whereIn('ID_UnidadOperativa', $unidadesIds)->where('Anio', $anio)->whereIn('Mes', $meses)->findAll();
+
+            // Indexar presupuestos
+            $presIndex = [];
+            foreach ($presupuestosRaw as $p) {
+                $presIndex[$p['ID_UnidadOperativa'] . '_' . $p['ID_GrupoPresupuestal'] . '_' . $p['Mes']] = $p;
+            }
+
+            $gtAsignado = 0; $gtEjecutado = 0; $estructura = [];
+
+            foreach ($unidadesRaw as $uni) {
+                $idU = (int)$uni['ID_UnidadOperativa'];
+                $detallesMensuales = [];
+                $tUniAsignado = 0; $tUniEjecutado = 0;
+
+                foreach ($gruposAll as $g) {
+                    if ((int)$g['ID_UnidadOperativa'] === $idU) {
+                        $idG = (int)$g['ID_GrupoPresupuestal'];
+                        foreach ($meses as $m) {
+                            $p = $presIndex[$idU . '_' . $idG . '_' . $m] ?? null;
+                            if (!$p) continue;
+                            
+                            $asig = (float)($p['Monto_Asignado'] ?? 0);
+                            $ejec = (float)($p['Monto_Ejecutado'] ?? 0);
+                            
+                            if ($asig == 0 && $ejec == 0) continue;
+
+                            $detallesMensuales[] = [
+                                'etiqueta' => $g['Nombre'], 
+                                'mes'      => $m, 
+                                'asignado' => $asig,
+                                'ejecutado' => $ejec
+                            ];
+                            $tUniAsignado += $asig;
+                            $tUniEjecutado += $ejec;
+                        }
+                    }
+                }
+
+                $uni['detalles'] = $detallesMensuales;
+                $uni['totales']  = [
+                    'asignado'  => $tUniAsignado,
+                    'ejecutado' => $tUniEjecutado
+                ];
+                $estructura[] = $uni;
+                $gtAsignado  += $tUniAsignado;
+                $gtEjecutado += $tUniEjecutado;
+            }
+
+            return $this->respond([
+                'departamentos' => $estructura,
+                'totales_generales' => [
+                    'asignado'  => $gtAsignado,
+                    'ejecutado' => $gtEjecutado
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    /**
      * EXPORTAR COMPARATIVO (PANTALLA 2 - GET)
      */
     public function exportarComparativo($idPlace, $anio, $mes)
@@ -97,6 +191,15 @@ class ReportesController extends ResourceController
     /**
      * Auxiliar para inicializar totales en cero
      */
+    private function getMesNombre($m) {
+        $meses = [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+        ];
+        return $meses[(int)$m] ?? 'N/A';
+    }
+
     private function getTotalesCero() { 
         return [
             'asignado' => 0, 'comprometido' => 0, 'ejecutado' => 0, 
@@ -418,34 +521,166 @@ class ReportesController extends ResourceController
     public function exportarDatosJson()
     {
         try {
-            $json = $this->request->getJSON(true); $datos = $json['datos'] ?? []; $hayExcedidos = $json['hayExcedidos'] ?? false;
+            $json = $this->request->getJSON(true); 
+            $datos = $json['datos'] ?? []; 
+            $hayExcedidos = $json['hayExcedidos'] ?? false;
+            $pantalla = $json['pantalla'] ?? 'presupuesto';
+            $mesesSeleccionados = $json['mesesSeleccionados'] ?? [];
+
             if (empty($datos)) return $this->fail('No hay datos');
 
-            $spreadsheet = new Spreadsheet(); $sheet = $spreadsheet->getActiveSheet(); $sheet->setTitle('Presupuesto');
-            $headers = ['Departamento / Partida', 'Importe Asignado', 'Importe Comprometido', 'Importe Pagado', 'Compras del mes', 'Importe Disponible'];
-            if ($hayExcedidos) $headers[] = 'Importe Excedido';
-            $headers[] = '% Ejecución';
+            $spreadsheet = new Spreadsheet(); 
+            $sheet = $spreadsheet->getActiveSheet(); 
+            $sheet->setTitle('Presupuesto');
 
-            $cols = ['A','B','C','D','E','F','G','H'];
+            $isMensual = ($pantalla === 'solo_presupuesto' && count($mesesSeleccionados) > 1);
+            
+            if ($isMensual) {
+                $headers = ['Departamento / Partida'];
+                foreach ($mesesSeleccionados as $m) { $headers[] = $m['nombre']; }
+                $headers[] = 'Total Asignado';
+            } else {
+                $headers = ['Departamento / Partida', 'Importe Asignado', 'Importe Comprometido', 'Importe Pagado', 'Compras del mes', 'Importe Disponible'];
+                if ($hayExcedidos) $headers[] = 'Importe Excedido';
+                $headers[] = '% Ejecución';
+            }
+
             $headerStyle = ['font'=>['bold'=>true,'color'=>['rgb'=>'FFFFFF']],'fill'=>['fillType'=>Fill::FILL_SOLID,'startColor'=>['rgb'=>'1F2937']],'alignment'=>['horizontal'=>Alignment::HORIZONTAL_CENTER]];
-            foreach ($headers as $i => $h) { $sheet->setCellValue($cols[$i].'1', $h); $sheet->getStyle($cols[$i].'1')->applyFromArray($headerStyle); $sheet->getColumnDimension($cols[$i])->setAutoSize(true); }
+            foreach ($headers as $i => $h) { 
+                $colLetter = $this->getColumnLetter($i);
+                $sheet->setCellValue($colLetter.'1', $h); 
+                $sheet->getStyle($colLetter.'1')->applyFromArray($headerStyle); 
+                $sheet->getColumnDimension($colLetter)->setAutoSize(true); 
+            }
 
             $row = 2;
             foreach ($datos as $rs) {
-                $this->excelWriteJsonRow($sheet, $row, $rs['nombre'], $rs['totales'], $hayExcedidos, 'E5E7EB', true); $row++;
+                $this->excelWriteDynamicRow($sheet, $row, $rs['nombre'], $rs['totales'], $isMensual, $mesesSeleccionados, $hayExcedidos, 'E5E7EB', true); $row++;
                 foreach ($rs['segmentos'] as $seg) {
-                    $this->excelWriteJsonRow($sheet, $row, '  '.$seg['nombre'], $seg['totales'], $hayExcedidos, 'DBEAFE', true, '1E3A8A'); $row++;
+                    $this->excelWriteDynamicRow($sheet, $row, '  '.$seg['nombre'], $seg['totales'], $isMensual, $mesesSeleccionados, $hayExcedidos, 'DBEAFE', true, '1E3A8A'); $row++;
                     foreach ($seg['complejos'] as $comp) {
-                        $this->excelWriteJsonRow($sheet, $row, '    '.$comp['nombre'], $comp['totales'], $hayExcedidos, null, false, null, true); $row++;
+                        $this->excelWriteDynamicRow($sheet, $row, '    '.$comp['nombre'], $comp['totales'], $isMensual, $mesesSeleccionados, $hayExcedidos, null, false, null, true); $row++;
                         foreach ($comp['departamentos'] as $un) {
-                            $this->excelWriteJsonRow($sheet, $row, '      '.$un['Nombre'], $un['totales'], $hayExcedidos, null, true); $row++;
-                            foreach ($un['detalles'] as $dt) { $this->excelWriteJsonRow($sheet, $row, '        '.$dt['etiqueta'], $dt, $hayExcedidos, null, false, '6B7280'); $row++; }
+                            $this->excelWriteDynamicRow($sheet, $row, '      '.$un['Nombre'], $un['totales'], $isMensual, $mesesSeleccionados, $hayExcedidos, null, true); $row++;
+                            foreach ($un['detalles'] as $dt) { 
+                                $this->excelWriteDynamicRow($sheet, $row, '        '.$dt['etiqueta'], $dt, $isMensual, $mesesSeleccionados, $hayExcedidos, null, false, '6B7280'); $row++; 
+                            }
                         }
                     }
                 }
             }
-            $this->excelFinalStyle($sheet, $row-1, 'presupuesto_ui', $hayExcedidos ? 'H' : 'G');
+            $lastCol = $this->getColumnLetter(count($headers) - 1);
+            $this->excelFinalStyleDynamic($sheet, $row-1, 'presupuesto_export', $lastCol, $isMensual);
         } catch (\Throwable $e) { return $this->failServerError($e->getMessage()); }
+    }
+
+    /**
+     * EXPORTAR REPORTE MENSUAL (PANTALLA 1 y SOLO EJECUTADO)
+     */
+    public function exportarMensualJson()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+            $datos = $json['datos'] ?? [];
+            $mesesSeleccionados = $json['mesesSeleccionados'] ?? [];
+            $titulo = $json['titulo'] ?? 'Reporte Mensual';
+            $campo  = $json['campo'] ?? 'asignado'; // 'asignado' o 'ejecutado'
+
+            if (empty($datos)) return $this->fail('No hay datos');
+
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Reporte');
+
+            $headers = ['Departamento / Partida'];
+            $countMeses = count($mesesSeleccionados);
+
+            $labelCampo = ($campo === 'asignado') ? 'Asignado' : 'Ejecutado';
+
+            if ($countMeses > 1) {
+                foreach ($mesesSeleccionados as $m) {
+                    $headers[] = $m['nombre'];
+                }
+                $headers[] = 'Total ' . $labelCampo;
+            } else {
+                $headers[] = 'Importe ' . $labelCampo;
+            }
+
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '1F2937']
+                ],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+            ];
+
+            foreach ($headers as $i => $h) {
+                $colLetter = $this->getColumnLetter($i);
+                $sheet->setCellValue($colLetter . '1', $h);
+                $sheet->getStyle($colLetter . '1')->applyFromArray($headerStyle);
+                $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+            }
+
+            $row = 2;
+            foreach ($datos as $rs) {
+                $this->excelWriteMensualRow($sheet, $row, $rs['nombre'], $rs['totales'], $mesesSeleccionados, $campo, 'E5E7EB', true);
+                $row++;
+                foreach ($rs['segmentos'] as $seg) {
+                    $this->excelWriteMensualRow($sheet, $row, '  ' . $seg['nombre'], $seg['totales'], $mesesSeleccionados, $campo, 'DBEAFE', true, '1E3A8A');
+                    $row++;
+                    foreach ($seg['complejos'] as $comp) {
+                        $this->excelWriteMensualRow($sheet, $row, '    ' . $comp['nombre'], $comp['totales'], $mesesSeleccionados, $campo, null, false, null, true);
+                        $row++;
+                        foreach ($comp['departamentos'] as $un) {
+                            $unTotales = $un['totales'] ?? [];
+                            $this->excelWriteMensualRow($sheet, $row, '      ' . $un['Nombre'], $unTotales, $mesesSeleccionados, $campo, null, true);
+                            $row++;
+                            foreach ($un['detalles'] as $dt) {
+                                $this->excelWriteMensualRow($sheet, $row, '        ' . $dt['etiqueta'], $dt, $mesesSeleccionados, $campo, null, false, '6B7280');
+                                $row++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            $lastCol = $this->getColumnLetter(count($headers) - 1);
+            $sheet->getStyle('B2:' . $lastCol . ($row - 1))->getNumberFormat()->setFormatCode('$#,##0.00');
+            $sheet->getStyle('A1:' . $lastCol . ($row - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+            $writer = new Xlsx($spreadsheet);
+            $filename = str_replace(' ', '_', strtolower($titulo)) . '_' . date('Ymd_His') . '.xlsx';
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            $writer->save('php://output');
+            exit();
+
+        } catch (\Throwable $e) {
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    private function excelWriteMensualRow($sheet, $row, $label, $t, $meses, $campo, $bgColor = null, $bold = false, $fColor = null, $italic = false)
+    {
+        $sheet->setCellValue('A' . $row, $label);
+        $colIdx = 1;
+
+        if (count($meses) > 1) {
+            foreach ($meses as $m) {
+                $val = (float)($t['importesPorMes'][$m['id']] ?? 0);
+                $sheet->setCellValue($this->getColumnLetter($colIdx++) . $row, $val);
+            }
+        }
+        
+        $sheet->setCellValue($this->getColumnLetter($colIdx++) . $row, (float)($t[$campo] ?? 0));
+
+        $lastCol = $this->getColumnLetter($colIdx - 1);
+        $style = $sheet->getStyle('A' . $row . ':' . $lastCol . $row);
+        if ($bold) $style->getFont()->setBold(true);
+        if ($italic) $style->getFont()->setItalic(true);
+        if ($fColor) $style->getFont()->getColor()->setRGB($fColor);
+        if ($bgColor) $style->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($bgColor);
     }
 
     /**
@@ -454,34 +689,55 @@ class ReportesController extends ResourceController
     public function exportarReporteCompletoJson()
     {
         try {
-            $json = $this->request->getJSON(true); $datos = $json['datos'] ?? []; $hayExcedidos = $json['hayExcedidos'] ?? false;
+            $json = $this->request->getJSON(true); 
+            $datos = $json['datos'] ?? []; 
+            $hayExcedidos = $json['hayExcedidos'] ?? false;
+            $pantalla = $json['pantalla'] ?? 'completo';
+            $mesesSeleccionados = $json['mesesSeleccionados'] ?? [];
+
             if (empty($datos)) return $this->fail('No hay datos');
 
             $spreadsheet = new Spreadsheet(); $sheet = $spreadsheet->getActiveSheet(); $sheet->setTitle('Consolidado');
-            $headers = ['Departamento / Partida', 'Importe Asignado', 'Importe Comprometido', 'Importe Pagado', 'Compras del mes', 'Importe Disponible'];
-            if ($hayExcedidos) $headers[] = 'Importe Excedido';
-            $headers = array_merge($headers, ['% Ejec.', 'B. Inicial', 'B. Final', 'B. Diferencia']);
 
-            $cols = ['A','B','C','D','E','F','G','H','I','J','K'];
-            $lastCol = $cols[count($headers)-1];
+            $isMensual = ($pantalla === 'solo_presupuesto' && count($mesesSeleccionados) > 1);
+
+            if ($isMensual) {
+                $headers = ['Departamento / Partida'];
+                foreach ($mesesSeleccionados as $m) { $headers[] = $m['nombre']; }
+                $headers[] = 'Total Asignado';
+            } else {
+                $headers = ['Departamento / Partida', 'Importe Asignado', 'Importe Comprometido', 'Importe Pagado', 'Compras del mes', 'Importe Disponible'];
+                if ($hayExcedidos) $headers[] = 'Importe Excedido';
+                $headers = array_merge($headers, ['% Ejec.', 'B. Inicial', 'B. Final', 'B. Diferencia']);
+            }
+
             $headerStyle = ['font'=>['bold'=>true,'color'=>['rgb'=>'FFFFFF']],'fill'=>['fillType'=>Fill::FILL_SOLID,'startColor'=>['rgb'=>'1F2937']],'alignment'=>['horizontal'=>Alignment::HORIZONTAL_CENTER]];
-            foreach ($headers as $i => $h) { $sheet->setCellValue($cols[$i].'1', $h); $sheet->getStyle($cols[$i].'1')->applyFromArray($headerStyle); $sheet->getColumnDimension($cols[$i])->setAutoSize(true); }
+            foreach ($headers as $i => $h) { 
+                $colLetter = $this->getColumnLetter($i);
+                $sheet->setCellValue($colLetter.'1', $h); 
+                $sheet->getStyle($colLetter.'1')->applyFromArray($headerStyle); 
+                $sheet->getColumnDimension($colLetter)->setAutoSize(true); 
+            }
 
             $row = 2;
             foreach ($datos as $rs) {
-                $this->excelWriteJsonRow($sheet, $row, $rs['nombre'], $rs['totales'], $hayExcedidos, 'E5E7EB', true, '000000', false, true); $row++;
+                $this->excelWriteDynamicRow($sheet, $row, $rs['nombre'], $rs['totales'], $isMensual, $mesesSeleccionados, $hayExcedidos, 'E5E7EB', true, '000000', false, true); $row++;
                 foreach ($rs['segmentos'] as $seg) {
-                    $this->excelWriteJsonRow($sheet, $row, '  '.$seg['nombre'], $seg['totales'], $hayExcedidos, 'DBEAFE', true, '1E3A8A', false, true); $row++;
+                    $this->excelWriteDynamicRow($sheet, $row, '  '.$seg['nombre'], $seg['totales'], $isMensual, $mesesSeleccionados, $hayExcedidos, 'DBEAFE', true, '1E3A8A', false, true); $row++;
                     foreach ($seg['complejos'] as $comp) {
-                        $this->excelWriteJsonRow($sheet, $row, '    '.$comp['nombre'], $comp['totales'], $hayExcedidos, null, false, null, true, true); $row++;
+                        $this->excelWriteDynamicRow($sheet, $row, '    '.$comp['nombre'], $comp['totales'], $isMensual, $mesesSeleccionados, $hayExcedidos, null, false, null, true, true); $row++;
                         foreach ($comp['departamentos'] as $un) {
-                            $this->excelWriteJsonRow($sheet, $row, '      '.$un['Nombre'], $un['totales'], $hayExcedidos, null, true, null, false, true); $row++;
-                            foreach ($un['detalles'] as $dt) { $this->excelWriteJsonRow($sheet, $row, '        '.$dt['etiqueta'], $dt, $hayExcedidos, null, false, '6B7280', false, false); $row++; }
+                            $unTotales = $un['presupuesto'] ?? $un['totales'] ?? [];
+                            $this->excelWriteDynamicRow($sheet, $row, '      '.$un['Nombre'], $unTotales, $isMensual, $mesesSeleccionados, $hayExcedidos, null, true, null, false, true); $row++;
+                            foreach ($un['detalles'] as $dt) { 
+                                $this->excelWriteDynamicRow($sheet, $row, '        '.$dt['etiqueta'], $dt, $isMensual, $mesesSeleccionados, $hayExcedidos, null, false, '6B7280', false, false); $row++; 
+                            }
                         }
                     }
                 }
             }
-            $this->excelFinalStyle($sheet, $row-1, 'consolidado_ui', $lastCol);
+            $lastCol = $this->getColumnLetter(count($headers) - 1);
+            $this->excelFinalStyleDynamic($sheet, $row-1, 'consolidado_export', $lastCol, $isMensual, !$isMensual);
         } catch (\Throwable $e) { return $this->failServerError($e->getMessage()); }
     }
 
@@ -720,39 +976,73 @@ class ReportesController extends ResourceController
         }
     }
 
-    private function excelWriteJsonRow($sheet, $row, $label, $t, $hayExcedidos, $bgColor=null, $bold=false, $fColor=null, $italic=false, $isFull=false)
-    {
-        $asig = (float)($t['asignado'] ?? $t['pAsignado'] ?? 0);
-        $comp = (float)($t['comprometido'] ?? $t['pComprometido'] ?? 0);
-        $ejec = (float)($t['ejecutado'] ?? $t['pEjecutado'] ?? 0);
-        $disp = (float)($t['disponible'] ?? $t['pDisponible'] ?? 0);
-        $exced = (float)($t['excedido'] ?? $t['pExcedido'] ?? 0);
-        $perc = (float)($t['porcentaje'] ?? $t['pPorcentaje'] ?? 0);
-        $compras = $comp + $ejec;
-
-        $sheet->setCellValue('A'.$row, $label); $sheet->setCellValue('B'.$row, $asig); $sheet->setCellValue('C'.$row, $comp); $sheet->setCellValue('D'.$row, $ejec); $sheet->setCellValue('E'.$row, $compras); $sheet->setCellValue('F'.$row, $disp);
-        $idx = 6;
-        if ($hayExcedidos) { $sheet->setCellValue('G'.$row, $exced); if ($exced>0) $sheet->getStyle('G'.$row)->getFont()->getColor()->setRGB('FF0000'); $idx++; }
-        $colP = chr(65 + $idx); $sheet->setCellValue($colP.$row, $perc / 100); $idx++;
-        $last = $colP;
-        if ($isFull && isset($t['bInicial'])) {
-            $colI = chr(65 + $idx); $sheet->setCellValue($colI.$row, $t['bInicial']); $idx++;
-            $colF = chr(65 + $idx); $sheet->setCellValue($colF.$row, $t['bFinal']); $idx++;
-            $colD = chr(65 + $idx); $sheet->setCellValue($colD.$row, $t['bInicial'] - $t['bFinal']);
-            $last = $colD;
+    private function getColumnLetter($index) {
+        $letter = '';
+        while ($index >= 0) {
+            $letter = chr($index % 26 + 65) . $letter;
+            $index = floor($index / 26) - 1;
         }
-        $style = $sheet->getStyle('A'.$row.':'.$last.$row);
-        if($bold) $style->getFont()->setBold(true); if($italic) $style->getFont()->setItalic(true); if($fColor) $style->getFont()->getColor()->setRGB($fColor);
+        return $letter;
+    }
+
+    private function excelWriteDynamicRow($sheet, $row, $label, $t, $isMensual, $meses, $hayExcedidos, $bgColor=null, $bold=false, $fColor=null, $italic=false, $isFull=false) {
+        $sheet->setCellValue('A'.$row, $label);
+        $colIdx = 1;
+
+        if ($isMensual) {
+            foreach ($meses as $m) {
+                $val = (float)($t['importesPorMes'][$m['id']] ?? 0);
+                $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, $val);
+            }
+            $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, (float)($t['asignado'] ?? 0));
+        } else {
+            $asig = (float)($t['asignado'] ?? $t['pAsignado'] ?? 0);
+            $comp = (float)($t['comprometido'] ?? $t['pComprometido'] ?? 0);
+            $ejec = (float)($t['ejecutado'] ?? $t['pEjecutado'] ?? 0);
+            $disp = (float)($t['disponible'] ?? $t['pDisponible'] ?? 0);
+            $exced = (float)($t['excedido'] ?? $t['pExcedido'] ?? 0);
+            $perc = (float)($t['porcentaje'] ?? $t['pPorcentaje'] ?? 0);
+            $compras = $comp + $ejec;
+
+            $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, $asig);
+            $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, $comp);
+            $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, $ejec);
+            $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, $compras);
+            $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, $disp);
+            if ($hayExcedidos) { 
+                $colLetter = $this->getColumnLetter($colIdx++);
+                $sheet->setCellValue($colLetter.$row, $exced); 
+                if ($exced > 0) $sheet->getStyle($colLetter.$row)->getFont()->getColor()->setRGB('FF0000'); 
+            }
+            
+            $percCol = $this->getColumnLetter($colIdx++);
+            $sheet->setCellValue($percCol.$row, $perc / 100);
+
+            if ($isFull) {
+                $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, (float)($t['bInicial'] ?? 0));
+                $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, (float)($t['bFinal'] ?? 0));
+                $sheet->setCellValue($this->getColumnLetter($colIdx++).$row, (float)(($t['bInicial'] ?? 0) - ($t['bFinal'] ?? 0)));
+            }
+        }
+
+        $lastCol = $this->getColumnLetter($colIdx - 1);
+        $style = $sheet->getStyle('A'.$row.':'.$lastCol.$row);
+        if($bold) $style->getFont()->setBold(true); 
+        if($italic) $style->getFont()->setItalic(true); 
+        if($fColor) $style->getFont()->getColor()->setRGB($fColor);
         if($bgColor) $style->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($bgColor);
     }
 
-    private function excelFinalStyle($sheet, $lastRow, $name, $lastCol)
-    {
-        $sheet->getStyle('B2:'.chr(ord($lastCol)-1).$lastRow)->getNumberFormat()->setFormatCode('$#,##0.00');
-        $headers = $sheet->rangeToArray('A1:'.$lastCol.'1')[0];
-        $percCol = 'H';
-        foreach($headers as $i=>$h) { if($h == '% Ejec.' || $h == '% Ejecución') $percCol = chr(65+$i); }
-        $sheet->getStyle($percCol.'2:'.$percCol.$lastRow)->getNumberFormat()->setFormatCode('0.0%');
+    private function excelFinalStyleDynamic($sheet, $lastRow, $name, $lastCol, $isMensual, $isFull=false) {
+        $sheet->getStyle('B2:'.$lastCol.$lastRow)->getNumberFormat()->setFormatCode('$#,##0.00');
+        
+        if (!$isMensual) {
+            $headers = $sheet->rangeToArray('A1:'.$lastCol.'1')[0];
+            $percCol = 'H';
+            foreach($headers as $i=>$h) { if($h == '% Ejec.' || $h == '% Ejecución') $percCol = $this->getColumnLetter($i); }
+            $sheet->getStyle($percCol.'2:'.$percCol.$lastRow)->getNumberFormat()->setFormatCode('0.0%');
+        }
+
         $sheet->getStyle('A1:'.$lastCol.$lastRow)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         $writer = new Xlsx($sheet->getParent());
         $filename = $name.'_'.date('Ymd_His').'.xlsx';

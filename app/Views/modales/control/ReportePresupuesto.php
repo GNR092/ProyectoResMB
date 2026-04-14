@@ -20,6 +20,22 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             <span class="text-blue-600">📊</span> Central de Reportes
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button @click="irAPantalla('solo_presupuesto')" class="flex flex-col items-center p-4 border-2 border-indigo-100 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-all group">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-indigo-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#ReportePresupuesto"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-indigo-700 text-xs">Presupuesto</span>
+            </button>
+            <button @click="irAPantalla('solo_ejecutado')" class="flex flex-col items-center p-4 border-2 border-cyan-100 rounded-xl hover:border-cyan-500 hover:bg-cyan-50 transition-all group">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-cyan-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#ReporteEjecutado"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-cyan-700 text-xs">Ejecutado</span>
+            </button>
             <button @click="irAPantalla('presupuesto')" class="flex flex-col items-center p-4 border-2 border-blue-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-blue-600" fill="none" stroke-width="1.5" stroke="currentColor">
@@ -800,7 +816,347 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
             </template>
 
-            <!-- Pantalla 2: Reporte Presupuesto vs Ejecutado -->
+            <!-- Pantalla: Solo Ejecutado -->
+    <template x-if="pantalla === 'solo_ejecutado'">
+        <div class="animate-fadeIn">
+            <div class="flex items-center justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-cyan-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <div class="flex items-center gap-4">
+                    <button x-show="departamentos.length > 0" @click="exportarSoloEjecutadoExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exportar Excel
+                    </button>
+                    <h2 class="text-xl font-bold text-gray-800">Importe Ejecutado</h2>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Razón Social</label>
+                    <select x-model="idRazonSocial" @change="actualizarRazonSocial('solo_ejecutado')" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-cyan-300 min-w-[200px] text-sm">
+                        <option value="">Seleccione Razón Social</option>
+                        <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial"><option :value="rs.ID_RazonSocial" x-text="rs.Nombre"></option></template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Place</label>
+                    <select x-ref="placesSelectorSoloEjecutado" multiple :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-cyan-300 min-w-[200px] text-sm disabled:bg-gray-100">
+                        <template x-for="place in placesFiltrados" :key="place.ID_Place"><option :value="place.ID_Place" x-text="place.Nombre_Corto"></option></template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Año</label>
+                    <select x-model="anio" @change="cargarComparativo()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-cyan-300 text-sm">
+                        <template x-for="a in years" :key="a">
+                            <option :value="a" x-text="a" :selected="a === anio"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 min-w-[220px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
+                    <select x-ref="mesesSelectorSoloEjecutado" multiple>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 self-center ml-auto">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" x-model="verGlobal" @change="cargarGlobal()" class="sr-only peer">
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                        <span class="ms-3 text-sm font-bold text-gray-700 uppercase tracking-tighter">🌍 Global</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="border border-gray-300 rounded-lg overflow-x-auto shadow-sm w-full">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-800 text-white text-[10px] uppercase tracking-wider">
+                        <tr>
+                            <th class="px-6 py-3 text-left">Departamento / Partida</th>
+                            <!-- Columnas dinámicas de meses -->
+                            <template x-if="mesesSeleccionados.length > 1">
+                                <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                    <th class="px-4 py-3 text-right" x-text="mes.nombre"></th>
+                                </template>
+                            </template>
+                            <th class="px-4 py-3 text-right" x-text="mesesSeleccionados.length > 1 ? 'Total Ejecutado' : 'Importe Ejecutado'"></th>
+                        </tr>
+                    </thead>
+
+                    <tbody x-show="cargando || departamentos.length === 0">
+                        <tr x-show="cargando"><td :colspan="mesesSeleccionados.length + 1" class="px-4 py-12 text-center text-gray-500 italic">Cargando datos...</td></tr>
+                        <tr x-show="!cargando && departamentos.length === 0"><td :colspan="mesesSeleccionados.length + 1" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el reporte.</td></tr>
+                    </tbody>
+
+                    <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
+                        <tbody class="border-t-4 border-gray-500" x-show="grupoRS.totales.ejecutado > 0">
+                            <tr class="bg-gray-200 font-black text-sm shadow-sm">
+                                <td class="px-6 py-3 text-gray-900 uppercase tracking-wider text-[11px]" x-text="grupoRS.nombre"></td>
+                                <template x-if="mesesSeleccionados.length > 1">
+                                    <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                        <td class="px-4 py-3 text-right text-gray-900 font-bold" x-text="formatearMoneda(grupoRS.totales.importesPorMes?.[mes.id] || 0)"></td>
+                                    </template>
+                                </template>
+                                <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.ejecutado)"></td>
+                            </tr>
+
+                            <template x-for="seg in grupoRS.segmentos" :key="seg.nombre">
+                                <tbody class="contents" x-show="seg.totales.ejecutado > 0">
+                                    <tr class="bg-cyan-50 border-l-4 border-cyan-500 font-bold text-xs">
+                                        <td class="px-10 py-2 text-cyan-900 uppercase tracking-tight border-l-4 border-cyan-600" x-text="'📁 ' + seg.nombre"></td>
+                                        <template x-if="mesesSeleccionados.length > 1">
+                                            <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                                <td class="px-4 py-2 text-right text-cyan-900 font-bold" x-text="formatearMoneda(seg.totales.importesPorMes?.[mes.id] || 0)"></td>
+                                            </template>
+                                        </template>
+                                        <td class="px-4 py-2 text-right text-cyan-900" x-text="formatearMoneda(seg.totales.ejecutado)"></td>
+                                    </tr>
+
+                                    <template x-for="complex in seg.complejos" :key="complex.nombre">
+                                        <tbody class="contents" x-show="complex.totales.ejecutado > 0">
+                                            <tr class="bg-white font-semibold text-[11px] text-gray-500 border-b border-gray-100">
+                                                <td class="px-14 py-1 uppercase tracking-tighter" x-text="'📍 ' + complex.nombre"></td>
+                                                <template x-if="mesesSeleccionados.length > 1">
+                                                    <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                                        <td class="px-4 py-1 text-right text-gray-700 font-bold" x-text="formatearMoneda(complex.totales.importesPorMes?.[mes.id] || 0)"></td>
+                                                    </template>
+                                                </template>
+                                                <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.ejecutado)"></td>
+                                            </tr>
+
+                                            <template x-for="uni in complex.departamentos" :key="uni.ID_UnidadOperativa">
+                                                <tbody class="contents" x-show="uni.totales?.ejecutado > 0">
+                                                    <template x-for="(item, index) in [uni, ...(uni.detalles || [])]" :key="index">
+                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold border-l-2 border-gray-300' : 'hover:bg-gray-50 border-b border-gray-50'"
+                                                            x-show="index === 0 ? (uni.totales?.ejecutado > 0) : (parseFloat(item.ejecutado) > 0)">
+                                                            <td class="px-6 py-2" :class="index === 0 ? 'text-gray-900 text-xs pl-20' : 'pl-28 text-gray-400 text-[11px]'">
+                                                                <span x-show="index === 0">⚙️ </span>
+                                                                <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
+                                                            </td>
+                                                            
+                                                            <!-- Celdas dinámicas para cada mes -->
+                                                            <template x-if="mesesSeleccionados.length > 1">
+                                                                <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                                                    <td class="px-4 py-2 text-right text-gray-600 text-[11px]">
+                                                                        <span :class="index === 0 ? 'font-bold text-gray-800' : ''" x-text="formatearMoneda(item.importesPorMes?.[mes.id] || 0)"></span>
+                                                                    </td>
+                                                                </template>
+                                                            </template>
+
+                                                            <td class="px-4 py-2 text-right text-gray-900 font-bold" x-text="index === 0 ? formatearMoneda(uni.totales?.ejecutado) : formatearMoneda(item.ejecutado)"></td>
+                                                        </tr>
+                                                    </template>
+                                                </tbody>
+                                            </template>
+                                        </tbody>
+                                    </template>
+                                </tbody>
+                            </template>
+                        </tbody>
+                    </template>
+
+                    <tfoot x-show="!cargando && departamentos.length > 0" class="bg-gray-800 text-white">
+                        <tr>
+                            <td class="px-6 py-4 font-black uppercase tracking-widest text-right">Total General:</td>
+                            
+                            <!-- Totales dinámicos por mes en el footer -->
+                            <template x-if="mesesSeleccionados.length > 1">
+                                <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                    <td class="px-4 py-4 text-right font-bold text-sm" x-text="formatearMoneda(totalesGeneralesCalculados.importesPorMes?.[mes.id] || 0)"></td>
+                                </template>
+                            </template>
+
+                            <td class="px-4 py-4 text-right font-bold text-lg" x-text="formatearMoneda(totalesGeneralesCalculados.ejecutado)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <!-- Pantalla: Solo Presupuesto -->
+    <template x-if="pantalla === 'solo_presupuesto'">
+        <div class="animate-fadeIn">
+            <div class="flex items-center justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-indigo-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <div class="flex items-center gap-4">
+                    <button x-show="departamentos.length > 0" @click="exportarSoloPresupuestoExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exportar Excel
+                    </button>
+                    <h2 class="text-xl font-bold text-gray-800">Presupuesto Asignado</h2>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Razón Social</label>
+                    <select x-model="idRazonSocial" @change="actualizarRazonSocial('solo_presupuesto')" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300 min-w-[200px] text-sm">
+                        <option value="">Seleccione Razón Social</option>
+                        <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial"><option :value="rs.ID_RazonSocial" x-text="rs.Nombre"></option></template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Place</label>
+                    <select x-ref="placesSelectorSoloPresupuesto" multiple :disabled="!idRazonSocial" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300 min-w-[200px] text-sm disabled:bg-gray-100">
+                        <template x-for="place in placesFiltrados" :key="place.ID_Place"><option :value="place.ID_Place" x-text="place.Nombre_Corto"></option></template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Año</label>
+                    <select x-model="anio" @change="cargarComparativo()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-300 text-sm">
+                        <template x-for="a in years" :key="a">
+                            <option :value="a" x-text="a" :selected="a === anio"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 min-w-[220px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
+                    <select x-ref="mesesSelectorSoloPresupuesto" multiple>
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 self-center ml-auto">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" x-model="verGlobal" @change="cargarGlobal()" class="sr-only peer">
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <span class="ms-3 text-sm font-bold text-gray-700 uppercase tracking-tighter">🌍 Global</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="border border-gray-300 rounded-lg overflow-x-auto shadow-sm w-full">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-800 text-white text-[10px] uppercase tracking-wider">
+                        <tr>
+                            <th class="px-6 py-3 text-left">Departamento / Partida</th>
+                            <!-- Columnas dinámicas de meses -->
+                            <template x-if="mesesSeleccionados.length > 1">
+                                <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                    <th class="px-4 py-3 text-right" x-text="mes.nombre"></th>
+                                </template>
+                            </template>
+                            <th class="px-4 py-3 text-right" x-text="mesesSeleccionados.length > 1 ? 'Total Asignado' : 'Importe Asignado'"></th>
+                        </tr>
+                    </thead>
+
+                    <tbody x-show="cargando || departamentos.length === 0">
+                        <tr x-show="cargando"><td :colspan="mesesSeleccionados.length + 1" class="px-4 py-12 text-center text-gray-500 italic">Cargando datos...</td></tr>
+                        <tr x-show="!cargando && departamentos.length === 0"><td :colspan="mesesSeleccionados.length + 1" class="px-4 py-12 text-center text-gray-400">Seleccione filtros para ver el reporte.</td></tr>
+                    </tbody>
+
+                    <template x-for="grupoRS in departamentosAgrupados" :key="grupoRS.nombre">
+                        <tbody class="border-t-4 border-gray-500" x-show="grupoRS.totales.asignado > 0">
+                            <tr class="bg-gray-200 font-black text-sm shadow-sm">
+                                <td class="px-6 py-3 text-gray-900 uppercase tracking-wider text-[11px]" x-text="grupoRS.nombre"></td>
+                                <template x-if="mesesSeleccionados.length > 1">
+                                    <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                        <td class="px-4 py-3 text-right text-gray-900 font-bold" x-text="formatearMoneda(grupoRS.totales.importesPorMes?.[mes.id] || 0)"></td>
+                                    </template>
+                                </template>
+                                <td class="px-4 py-3 text-right text-gray-900" x-text="formatearMoneda(grupoRS.totales.asignado)"></td>
+                            </tr>
+
+                            <template x-for="seg in grupoRS.segmentos" :key="seg.nombre">
+                                <tbody class="contents" x-show="seg.totales.asignado > 0">
+                                    <tr class="bg-indigo-50 border-l-4 border-indigo-500 font-bold text-xs">
+                                        <td class="px-10 py-2 text-indigo-900 uppercase tracking-tight border-l-4 border-indigo-600" x-text="'📁 ' + seg.nombre"></td>
+                                        <template x-if="mesesSeleccionados.length > 1">
+                                            <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                                <td class="px-4 py-2 text-right text-indigo-900 font-bold" x-text="formatearMoneda(seg.totales.importesPorMes?.[mes.id] || 0)"></td>
+                                            </template>
+                                        </template>
+                                        <td class="px-4 py-2 text-right text-indigo-900" x-text="formatearMoneda(seg.totales.asignado)"></td>
+                                    </tr>
+
+                                    <template x-for="complex in seg.complejos" :key="complex.nombre">
+                                        <tbody class="contents" x-show="complex.totales.asignado > 0">
+                                            <tr class="bg-white font-semibold text-[11px] text-gray-500 border-b border-gray-100">
+                                                <td class="px-14 py-1 uppercase tracking-tighter" x-text="'📍 ' + complex.nombre"></td>
+                                                <template x-if="mesesSeleccionados.length > 1">
+                                                    <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                                        <td class="px-4 py-1 text-right text-gray-700 font-bold" x-text="formatearMoneda(complex.totales.importesPorMes?.[mes.id] || 0)"></td>
+                                                    </template>
+                                                </template>
+                                                <td class="px-4 py-1 text-right" x-text="formatearMoneda(complex.totales.asignado)"></td>
+                                            </tr>
+
+                                            <template x-for="uni in complex.departamentos" :key="uni.ID_UnidadOperativa">
+                                                <tbody class="contents" x-show="uni.totales?.asignado > 0">
+                                                    <template x-for="(item, index) in [uni, ...(uni.detalles || [])]" :key="index">
+                                                        <tr :class="index === 0 ? 'bg-gray-50/30 font-bold border-l-2 border-gray-300' : 'hover:bg-gray-50 border-b border-gray-50'"
+                                                            x-show="index === 0 ? (uni.totales?.asignado > 0) : (parseFloat(item.asignado) > 0)">
+                                                            <td class="px-6 py-2" :class="index === 0 ? 'text-gray-900 text-xs pl-20' : 'pl-28 text-gray-400 text-[11px]'">
+                                                                <span x-show="index === 0">⚙️ </span>
+                                                                <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
+                                                            </td>
+                                                            
+                                                            <!-- Celdas dinámicas para cada mes -->
+                                                            <template x-if="mesesSeleccionados.length > 1">
+                                                                <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                                                    <td class="px-4 py-2 text-right text-gray-600 text-[11px]">
+                                                                        <span :class="index === 0 ? 'font-bold text-gray-800' : ''" x-text="formatearMoneda(item.importesPorMes?.[mes.id] || 0)"></span>
+                                                                    </td>
+                                                                </template>
+                                                            </template>
+
+                                                            <td class="px-4 py-2 text-right text-gray-900 font-bold" x-text="index === 0 ? formatearMoneda(uni.totales?.asignado) : formatearMoneda(item.asignado)"></td>
+                                                        </tr>
+                                                    </template>
+                                                </tbody>
+                                            </template>
+                                        </tbody>
+                                    </template>
+                                </tbody>
+                            </template>
+                        </tbody>
+                    </template>
+
+                    <tfoot x-show="!cargando && departamentos.length > 0" class="bg-gray-800 text-white">
+                        <tr>
+                            <td class="px-6 py-4 font-black uppercase tracking-widest text-right">Total General:</td>
+                            
+                            <!-- Totales dinámicos por mes en el footer -->
+                            <template x-if="mesesSeleccionados.length > 1">
+                                <template x-for="mes in mesesSeleccionados" :key="mes.id">
+                                    <td class="px-4 py-4 text-right font-bold text-sm" x-text="formatearMoneda(totalesGeneralesCalculados.importesPorMes?.[mes.id] || 0)"></td>
+                                </template>
+                            </template>
+
+                            <td class="px-4 py-4 text-right font-bold text-lg" x-text="formatearMoneda(totalesGeneralesCalculados.asignado)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <!-- Pantalla 2: Reporte Presupuesto vs Ejecutado -->
     <template x-if="pantalla === 'presupuesto'">
         <div class="animate-fadeIn">
             <div class="flex items-center justify-between mb-6">

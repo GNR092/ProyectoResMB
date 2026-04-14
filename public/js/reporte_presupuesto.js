@@ -4,7 +4,7 @@
 function registrarComponenteReportePresupuesto() {
     Alpine.data('reportePresupuestoComponent', function () {
         return {
-            pantalla: 'menu', // 'menu', 'presupuesto', 'cuentas', 'completo', 'proveedores', 'compras', 'movimientos'
+            pantalla: 'menu', // 'menu', 'presupuesto', 'cuentas', 'completo', 'proveedores', 'compras', 'movimientos', 'solo_presupuesto', 'solo_ejecutado'
             idRazonSocial: '',
             idPlace: [], // Ahora es un array para selecciones múltiples
             verGlobal: false,
@@ -17,6 +17,7 @@ function registrarComponenteReportePresupuesto() {
             departamentosBancos: [],
             departamentosCompleto: [],
             departamentosOriginales: [],
+            totalesGeneralesCalculados: { asignado: 0, importesPorMes: {} },
 
             // Nuevos arrays para las sub-pantallas
             listaProveedores: [],
@@ -137,7 +138,7 @@ function registrarComponenteReportePresupuesto() {
 
                 selectEl.addEventListener('change', () => {
                     this.meses = this.choicesMeses.getValue(true).map(String);
-                    if (this.pantalla === 'presupuesto') this.cargarComparativo();
+                    if (this.pantalla === 'presupuesto' || this.pantalla === 'solo_presupuesto' || this.pantalla === 'solo_ejecutado') this.cargarComparativo();
                     if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
                     if (this.pantalla === 'completo') this.cargarReporteCompleto();
 
@@ -176,7 +177,7 @@ function registrarComponenteReportePresupuesto() {
 
                 selectEl.addEventListener('change', () => {
                     this.idPlace = this.choicesPlaces.getValue(true).map(String);
-                    if (this.pantalla === 'presupuesto') this.cargarComparativo();
+                    if (this.pantalla === 'presupuesto' || this.pantalla === 'solo_presupuesto' || this.pantalla === 'solo_ejecutado') this.cargarComparativo();
                     if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
                     if (this.pantalla === 'completo') this.cargarReporteCompleto();
 
@@ -222,13 +223,17 @@ function registrarComponenteReportePresupuesto() {
                         const refMapMeses = {
                             'presupuesto': 'mesesSelectorPresupuesto',
                             'cuentas': 'mesesSelectorCuentas',
-                            'completo': 'mesesSelectorCompleto'
+                            'completo': 'mesesSelectorCompleto',
+                            'solo_presupuesto': 'mesesSelectorSoloPresupuesto',
+                            'solo_ejecutado': 'mesesSelectorSoloEjecutado'
                         };
                         const refMapPlaces = {
                             'presupuesto': 'placesSelectorPresupuesto',
                             'cuentas': 'placesSelectorCuentas',
                             'completo': 'placesSelectorCompleto',
-                            'movimientos': 'placesSelectorMovimientos'
+                            'movimientos': 'placesSelectorMovimientos',
+                            'solo_presupuesto': 'placesSelectorSoloPresupuesto',
+                            'solo_ejecutado': 'placesSelectorSoloEjecutado'
                         };
                         
                         if (refMapMeses[nueva]) this.initChoicesMeses(refMapMeses[nueva]);
@@ -256,7 +261,9 @@ function registrarComponenteReportePresupuesto() {
                     'presupuesto': 'placesSelectorPresupuesto',
                     'cuentas': 'placesSelectorCuentas',
                     'completo': 'placesSelectorCompleto',
-                    'movimientos': 'placesSelectorMovimientos'
+                    'movimientos': 'placesSelectorMovimientos',
+                    'solo_presupuesto': 'placesSelectorSoloPresupuesto',
+                    'solo_ejecutado': 'placesSelectorSoloEjecutado'
                 };
                 
                 this.$nextTick(() => {
@@ -609,6 +616,16 @@ function registrarComponenteReportePresupuesto() {
                 return this.vencimientosFiltrados.some(v => (v.importeExcedido || 0) > 0);
             },
 
+            get mesesSeleccionados() {
+                if (!this.meses || this.meses.length === 0) return [];
+                const nombres = {
+                    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+                    7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                };
+                // Ordenar numéricamente y devolver objeto con id y nombre
+                return [...this.meses].map(Number).sort((a,b) => a-b).map(m => ({ id: m, nombre: nombres[m] }));
+            },
+
             cambiarPaginaVencimientos(page) {
                 if (page < 1 || page > this.totalPagesVencimientos) return;
                 this.currentPageVencimientos = page;
@@ -954,6 +971,10 @@ function registrarComponenteReportePresupuesto() {
                 // 1. Filtrar Unidades Operativas con presupuesto > 0 (si no es bancos)
                 if (this.pantalla === 'presupuesto') {
                     fuente = fuente.filter(d => parseFloat(d.totales?.asignado || 0) > 0);
+                } else if (this.pantalla === 'solo_presupuesto') {
+                    fuente = fuente.filter(d => parseFloat(d.totales?.asignado || 0) > 0);
+                } else if (this.pantalla === 'solo_ejecutado') {
+                    fuente = fuente.filter(d => parseFloat(d.totales?.ejecutado || 0) > 0);
                 } else if (this.pantalla === 'completo') {
                     fuente = fuente.filter(d => parseFloat(d.presupuesto?.asignado || 0) > 0);
                 }
@@ -964,7 +985,7 @@ function registrarComponenteReportePresupuesto() {
                 const crearTotales = () => {
                     if (this.pantalla === 'cuentas') return { inicial: 0, final: 0, usado: 0, porcentaje: 0 };
                     if (this.pantalla === 'completo') return { pAsignado: 0, pComprometido: 0, pEjecutado: 0, pGastado: 0, bInicial: 0, bFinal: 0, pDisponible: 0, pExcedido: 0, pPorcentaje: 0 };
-                    return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, excedido: 0, porcentaje: 0 };
+                    return { asignado: 0, comprometido: 0, ejecutado: 0, disponible: 0, excedido: 0, porcentaje: 0, importesPorMes: {} };
                 };
 
                 const sumar = (totales, d) => {
@@ -982,6 +1003,14 @@ function registrarComponenteReportePresupuesto() {
                         totales.asignado += parseFloat(src.asignado || 0);
                         totales.comprometido += parseFloat(src.comprometido || 0);
                         totales.ejecutado += parseFloat(src.ejecutado || 0);
+
+                        // SUMAR DESGLOSE MENSUAL
+                        if (d.importesPorMes) {
+                            if (!totales.importesPorMes) totales.importesPorMes = {};
+                            for (const mesId in d.importesPorMes) {
+                                totales.importesPorMes[mesId] = (totales.importesPorMes[mesId] || 0) + parseFloat(d.importesPorMes[mesId]);
+                            }
+                        }
                     }
                 };
 
@@ -1020,8 +1049,32 @@ function registrarComponenteReportePresupuesto() {
                     // CLONAMOS EL OBJETO para no mutar el array original 'this.departamentos'
                     const uniClon = { ...d };
                     
-                    // Filtrar detalles internos (partidas) que no tengan presupuesto asignado
-                    if (uniClon.detalles) {
+                    // Lógica especial para 'solo_presupuesto' / 'solo_ejecutado': Agrupar detalles por etiqueta (partida)
+                    if ((this.pantalla === 'solo_presupuesto' || this.pantalla === 'solo_ejecutado') && uniClon.detalles) {
+                        const campoVal = this.pantalla === 'solo_presupuesto' ? 'asignado' : 'ejecutado';
+                        const partidasAgrupadas = [];
+                        uniClon.importesPorMes = {}; 
+                        uniClon.detalles.forEach(det => {
+                            let partida = partidasAgrupadas.find(p => p.etiqueta === det.etiqueta);
+                            if (!partida) {
+                                partida = { 
+                                    etiqueta: det.etiqueta, 
+                                    asignado: 0, 
+                                    ejecutado: 0,
+                                    importesPorMes: {} 
+                                };
+                                partidasAgrupadas.push(partida);
+                            }
+                            const m = parseFloat(det[campoVal] || 0);
+                            partida[campoVal] += m;
+                            partida.importesPorMes[det.mes] = m;
+
+                            // Acumular al nivel de unidad operativa
+                            uniClon.importesPorMes[det.mes] = (uniClon.importesPorMes[det.mes] || 0) + m;
+                        });
+                        uniClon.detalles = partidasAgrupadas.filter(p => p[campoVal] > 0);
+                    } else if (uniClon.detalles) {
+                        // Filtrado normal para otras pantallas
                         uniClon.detalles = uniClon.detalles.filter(det => parseFloat(det.asignado || 0) > 0);
                     }
 
@@ -1062,6 +1115,20 @@ function registrarComponenteReportePresupuesto() {
                     });
                 });
 
+                // Calcular Totales Generales Consolidados (incluyendo meses)
+                const granTotal = crearTotales();
+                rsGrupos.forEach(rs => {
+                    granTotal.asignado += rs.totales.asignado;
+                    granTotal.comprometido += rs.totales.comprometido;
+                    granTotal.ejecutado += rs.totales.ejecutado;
+                    if (rs.totales.importesPorMes) {
+                        for (const mesId in rs.totales.importesPorMes) {
+                            granTotal.importesPorMes[mesId] = (granTotal.importesPorMes[mesId] || 0) + rs.totales.importesPorMes[mesId];
+                        }
+                    }
+                });
+                this.totalesGeneralesCalculados = granTotal;
+
                 return rsGrupos;
             },
 
@@ -1080,7 +1147,11 @@ function registrarComponenteReportePresupuesto() {
                 const targetPlaceId = this.verGlobal ? 0 : (Array.isArray(this.idPlace) ? this.idPlace.join(',') : this.idPlace);
 
                 try {
-                    const res = await fetch(`${BASE_URL}api/presupuesto/comparativo/${targetPlaceId}/${this.anio}/${stringMeses}`);
+                    const endpoint = (this.pantalla === 'solo_presupuesto' || this.pantalla === 'solo_ejecutado') 
+                                    ? 'api/presupuesto/comparativo-mensual' 
+                                    : 'api/presupuesto/comparativo';
+
+                    const res = await fetch(`${BASE_URL}${endpoint}/${targetPlaceId}/${this.anio}/${stringMeses}`);
 
                     if (res.ok) {
                         const data = await res.json();
@@ -1156,6 +1227,80 @@ function registrarComponenteReportePresupuesto() {
                 await this.cargarComparativo();
             },
 
+            async exportarSoloPresupuestoExcel() {
+                if (this.departamentos.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+                
+                const notif = typeof mostrarNotificacion !== 'undefined' ? mostrarNotificacion('Generando Excel de Presupuesto Asignado...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        titulo: 'Presupuesto Asignado',
+                        pantalla: this.pantalla,
+                        campo: 'asignado',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        mesesSeleccionados: this.mesesSeleccionados
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto/exportar-mensual-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `presupuesto_asignado_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif && typeof notif.click === 'function') notif.click(); }
+            },
+
+            async exportarSoloEjecutadoExcel() {
+                if (this.departamentos.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+                
+                const notif = typeof mostrarNotificacion !== 'undefined' ? mostrarNotificacion('Generando Excel de Importe Ejecutado...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        titulo: 'Importe Ejecutado',
+                        pantalla: this.pantalla,
+                        campo: 'ejecutado',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        mesesSeleccionados: this.mesesSeleccionados
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto/exportar-mensual-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `importe_ejecutado_${this.anio}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif && typeof notif.click === 'function') notif.click(); }
+            },
+
             async exportarExcel() {
                 if (this.departamentos.length === 0) {
                     alert("No hay datos para exportar.");
@@ -1165,10 +1310,12 @@ function registrarComponenteReportePresupuesto() {
                 const notif = mostrarNotificacion('Generando Excel de Presupuesto...', 'info', 0);
                 try {
                     const payload = {
-                        titulo: 'Presupuesto vs Ejecutado',
+                        titulo: this.pantalla === 'solo_presupuesto' ? 'Presupuesto Asignado' : 'Presupuesto vs Ejecutado',
+                        pantalla: this.pantalla,
                         mesAnio: this.anio + '-' + this.meses.join(','),
                         datos: this.departamentosAgrupados,
-                        hayExcedidos: this.hayExcedidos
+                        hayExcedidos: this.hayExcedidos,
+                        mesesSeleccionados: this.mesesSeleccionados // Enviamos nombres de meses para encabezados
                     };
 
                     const res = await fetch(`${BASE_URL}api/presupuesto/exportar-datos`, {
@@ -1279,9 +1426,11 @@ function registrarComponenteReportePresupuesto() {
                 try {
                     const payload = {
                         titulo: 'Reporte Consolidado Maestro',
+                        pantalla: this.pantalla,
                         mesAnio: this.anio + '-' + this.meses.join(','),
                         datos: this.departamentosAgrupados,
-                        hayExcedidos: this.hayExcedidos
+                        hayExcedidos: this.hayExcedidos,
+                        mesesSeleccionados: this.mesesSeleccionados
                     };
 
                     const res = await fetch(`${BASE_URL}api/reporte/completo/exportar-datos`, {

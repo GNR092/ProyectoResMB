@@ -214,8 +214,10 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/presupuesto-mensual/exportar-asignacion', 'PresupuestoApiController::exportarAsignacion');
         $routes->post('api/presupuesto-mensual/exportar-anual', 'PresupuestoApiController::exportarAnual');
         $routes->get('api/presupuesto/comparativo/(:any)/(:num)/(:any)', 'ReportesController::getComparativo/$1/$2/$3');
+        $routes->get('api/presupuesto/comparativo-mensual/(:any)/(:num)/(:any)', 'ReportesController::getComparativoMensual/$1/$2/$3');
         $routes->get('api/presupuesto/exportar/(:any)/(:num)/(:any)', 'ReportesController::exportarComparativo/$1/$2/$3');
         $routes->post('api/presupuesto/exportar-datos', 'ReportesController::exportarDatosJson');
+        $routes->post('api/presupuesto/exportar-mensual-datos', 'ReportesController::exportarMensualJson');
 
         // Rutas API Saldos Bancarios
         $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');
