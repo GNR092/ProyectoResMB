@@ -2633,9 +2633,15 @@ class Api extends ResourceController
         // ---------------------------------------------------------
         // 3. ORDEN DE COMPRA -> 4_
         // ---------------------------------------------------------
-        if (!empty($folio)) {
+        if (!empty($folio) && !empty($solicitudData['OrdenCompra'])) {
             $ocName = 'OrdenCompra-' . $folio . '.pdf';
             $ocPath = 'pdf_ordenes' . DIRECTORY_SEPARATOR . $ocName;
+            
+            if (!file_exists($basePath . $ocPath)) {
+                $generador = new GenerarPDF();
+                $generador->generarYGuardarOrden((int)$idSolicitud, session('id'));
+            }
+
             if (file_exists($basePath . $ocPath)) {
                 $filePaths['4_' . $ocName] = $basePath . $ocPath;
             }
@@ -2644,9 +2650,15 @@ class Api extends ResourceController
         // ---------------------------------------------------------
         // 4. REQUISICIÓN DE PAGO -> 5_
         // ---------------------------------------------------------
-        if (!empty($folio)) {
+        if (!empty($folio) && !empty($solicitudData['OrdenCompra'])) {
             $reqPagoName = 'RequisicionPago-' . $folio . '.pdf';
             $reqPagoPath = 'pdf_req_pago' . DIRECTORY_SEPARATOR . $reqPagoName;
+
+            if (!file_exists($basePath . $reqPagoPath)) {
+                $generador = new GenerarPDF();
+                $generador->generarYGuardarRequisicionPago((int)$idSolicitud);
+            }
+
             if (file_exists($basePath . $reqPagoPath)) {
                 $filePaths['5_' . $reqPagoName] = $basePath . $reqPagoPath;
             }

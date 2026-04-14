@@ -238,6 +238,7 @@ if (!file_exists($installerLockFile)) {
         //PDF
         $routes->get('api/solicitud/pdf/(:num)', 'GenerarPDF::GenerarRequisicion/$1');
         $routes->get('api/solicitud/pdf/(:num)/(:num)', 'GenerarPDF::GenerarRequisicion/$1/$2');
+        $routes->get('api/solicitud/pdf-consolidado/(:num)', 'GenerarPDF::GenerarPdfConsolidado/$1');
         $routes->get('api/orden/pdf/(:num)', 'GenerarPDF::GenerarOrden/$1');
         $routes->get('api/requisicionpago/pdf/(:num)', 'GenerarPDF::GenerarRequisicionPago/$1');
         $routes->post('api/entrega/pdf', 'GenerarPDF::GenerarEntregaMateriales');

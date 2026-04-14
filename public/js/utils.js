@@ -1192,11 +1192,19 @@ function generarSeccionAdjuntos(data) {
 
         </div>
         
-        <div class="mt-4 mb-4 flex justify-start">
+        <div class="mt-4 mb-4 flex justify-start space-x-2">
+            <button onclick="mostrarExpedientePdf(${idSolicitud})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
+                Ver Expediente (PDF)
+            </button>
             <a href="${BASE_URL}api/download-attachments/${idSolicitud}" class="bg-carbon-700 hover:bg-carbon-800 text-white font-semibold px-4 py-2 rounded-md transition text-sm">
                 Descargar Todo (ZIP)
             </a>
         </div>
     </div>
     `
+}
+
+function mostrarExpedientePdf(idSolicitud) {
+  const url = `${BASE_URL}api/solicitud/pdf-consolidado/${idSolicitud}`
+  window.open(url, '_blank')
 }

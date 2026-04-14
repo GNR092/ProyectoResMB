@@ -74,6 +74,94 @@ class GenerarPDF extends BaseController
         $pdf->Output('I', 'Requisicion-' . $solicitud['No_Folio'] . '.pdf');
     }
 
+    function GenerarPdfConsolidado(int $id)
+    {
+        try {
+            $solicitud = $this->api->getOrdenCompra($id);
+        } catch (\Exception $e) {
+            log_message('error', 'Error al conectar con el API: ' . $e->getMessage());
+            return 'Error al generar el PDF: No se pudo conectar al API.';
+        }
+
+        if (empty($solicitud)) {
+            return 'Error al generar el PDF: No se recibieron datos de la solicitud.';
+        }
+
+        $pdf = new PDF('P', 'mm', 'Letter');
+        $pdf->AliasNbPages();
+
+        // 1. Cabecera, Tabla y Comentarios (Cuerpo de la Requisición)
+        $this->_generarCabecera($pdf, $solicitud);
+        $total = $this->_generarTablaProductos($pdf, $solicitud);
+        $this->_generarTotales($pdf, $solicitud, $total);
+        $this->_mostrarComentarios($pdf, $solicitud);
+
+        // 2. Referencias del Solicitante
+        if (!empty($solicitud['Archivo'])) {
+            $archivos = explode(',', $solicitud['Archivo']);
+            foreach ($archivos as $index => $file) {
+                $trimmedFile = trim($file);
+                if (empty($trimmedFile)) continue;
+                $this->_adjuntarArchivo($pdf, FPath::FSOLICITUD . $solicitud['Fecha'] . '/', $trimmedFile, 'Referencia ' . ($index + 1));
+            }
+        }
+
+        // 3. Cotizaciones
+        $cotFileString = $solicitud['cotizacion']['Cotizacion_Files'] ?? ($solicitud['Cotizacion_Files'] ?? null);
+        if (!empty($cotFileString)) {
+            $cfiles = explode(',', $cotFileString);
+            foreach ($cfiles as $index => $file) {
+                $trimmedFile = trim($file);
+                if (empty($trimmedFile)) continue;
+                $this->_adjuntarArchivo($pdf, FPath::FCOTIZACION . $solicitud['Fecha'] . '/', $trimmedFile, 'Cotizacion ' . ($index + 1));
+            }
+        }
+
+        $folio = $solicitud['No_Folio'] ?? null;
+        $existeOrden = !empty($solicitud['OrdenCompra']);
+
+        // 4. Orden de Compra (PDF generado)
+        if ($folio && $existeOrden) {
+            $ocDir = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_ordenes' . DIRECTORY_SEPARATOR;
+            $ocFileName = 'OrdenCompra-' . $folio . '.pdf';
+            if (!file_exists($ocDir . $ocFileName)) {
+                $this->generarYGuardarOrden($id, session('id'));
+            }
+            $this->_adjuntarArchivo($pdf, $ocDir, $ocFileName, 'Orden de Compra');
+        }
+
+        // 5. Requisición de Pago (PDF generado)
+        if ($id && $existeOrden) {
+            $rpDir = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_req_pago' . DIRECTORY_SEPARATOR;
+            $rpFileName = 'RequisicionPago-' . $folio . '.pdf';
+            if (!file_exists($rpDir . $rpFileName)) {
+                $this->generarYGuardarRequisicionPago($id);
+            }
+            $this->_adjuntarArchivo($pdf, $rpDir, $rpFileName, 'Requisicion de Pago');
+        }
+
+        // 6. Ficha de Pago
+        $comprobante = $solicitud['OrdenCompra']['File_Comprobante'] ?? ($solicitud['File_Comprobante'] ?? null);
+        if ($comprobante) {
+            $this->_adjuntarArchivo($pdf, FPath::FCOMPROBANTES, $comprobante, 'Ficha de Pago');
+        }
+
+        // 7. Factura
+        $factura = $solicitud['OrdenCompra']['File_Factura'] ?? ($solicitud['File_Factura'] ?? null);
+        if ($factura) {
+            $this->_adjuntarArchivo($pdf, FPath::FFACTURAS, $factura, 'Factura');
+        }
+
+        // 8. Complemento de Pago
+        $complemento = $solicitud['OrdenCompra']['File_Complemento'] ?? ($solicitud['File_Complemento'] ?? null);
+        if ($complemento) {
+            $this->_adjuntarArchivo($pdf, FPath::FCOMPLEMENTOS, $complemento, 'Complemento de Pago');
+        }
+
+        $this->response->setHeader('Content-Type', 'application/pdf');
+        $pdf->Output('I', 'Expediente-' . ($folio ?? $id) . '.pdf');
+    }
+
     /**
      * Genera un PDF de requisición y lo guarda en el servidor.
      *
