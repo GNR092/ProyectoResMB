@@ -32,4 +32,17 @@ class ProveedorModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
-}
+
+    // Validation
+    protected $validationRules      = [
+        'RazonSocial' => 'required|is_unique[Proveedor.RazonSocial,ID_Proveedor,{ID_Proveedor}]',
+    ];
+    protected $validationMessages   = [
+        'RazonSocial' => [
+            'is_unique' => 'Ya existe un proveedor registrado con esta Razón Social.',
+            'required'  => 'La Razón Social es obligatoria.'
+        ]
+    ];
+    protected $skipValidation       = false;
+    protected $cleanValidationRules = true;
+    }
