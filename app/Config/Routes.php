@@ -56,6 +56,8 @@ if (!file_exists($installerLockFile)) {
         $routes->post('proveedores/insertar', 'Modales::insertarProveedor');
         $routes->post('proveedores/eliminarProveedor/(:num)', 'Modales::eliminarProveedor/$1');
         $routes->post('proveedores/editar/(:num)', 'Modales::editarProveedor/$1');
+        $routes->get('modales/proveedores/archivos/(:num)', 'Modales::getArchivosProveedor/$1');
+        $routes->post('modales/proveedores/eliminarArchivo/(:num)', 'Modales::eliminarArchivoProveedor/$1');
 
         // Solicitudes y Cotizaciones
         $routes->post('api/cotizacion/crear', 'Api::crearCotizacion');

@@ -2360,9 +2360,72 @@ function initProveedorActions(tabla) {
     dias_credito.value = credito ? fila.dataset.diasCredito : 0
     monto_credito.value = credito ? fila.dataset.montoCredito : 0
 
+    cargarArchivosProveedor(fila.dataset.id)
+
     document.getElementById('pantalla-lista-proveedores').classList.add('hidden')
     document.getElementById('pantalla-editar-proveedor').classList.remove('hidden')
   })
+}
+
+async function cargarArchivosProveedor(id) {
+  const container = document.getElementById('contenedor-archivos-existentes')
+  const lista = document.getElementById('lista-archivos-proveedor')
+
+  if (!container || !lista) return
+
+  try {
+    const archivos = await SendDataEnd(`modales/proveedores/archivos/${id}`)
+
+    lista.innerHTML = ''
+    if (archivos && archivos.length > 0) {
+      container.classList.remove('hidden')
+      archivos.forEach((archivo) => {
+        const item = document.createElement('div')
+        item.className =
+          'flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200 shadow-sm'
+        item.innerHTML = `
+          <div class="flex items-center space-x-2 truncate mr-2">
+            <svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+            <span class="text-xs text-gray-700 truncate" title="${archivo.nombre_archivo}">${archivo.nombre_archivo}</span>
+          </div>
+          <div class="flex items-center space-x-1 shrink-0">
+            <a href="${BASE_URL}api/storage/serve?path=proveedores/${archivo.nombre_archivo}" target="_blank" class="p-1 text-blue-600 hover:bg-blue-100 rounded transition" title="Ver archivo">
+               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+            </a>
+            <button type="button" onclick="eliminarArchivoProveedorJS(${archivo.id_archivo}, ${id})" class="p-1 text-red-600 hover:bg-red-100 rounded transition" title="Eliminar">
+               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
+        `
+        lista.appendChild(item)
+      })
+    } else {
+      container.classList.add('hidden')
+    }
+  } catch (error) {
+    console.error('Error al cargar archivos:', error)
+  }
+}
+
+async function eliminarArchivoProveedorJS(idArchivo, idProveedor) {
+  if (!(await Confirmar('Eliminar Archivo', '¿Seguro que deseas eliminar este archivo?'))) return
+
+  try {
+    const result = await SendDataEnd(`modales/proveedores/eliminarArchivo/${idArchivo}`, {
+      method: 'POST',
+    })
+
+    if (result.success) {
+      mostrarNotificacion('Archivo eliminado ✅', 'success')
+      cargarArchivosProveedor(idProveedor)
+    } else {
+      mostrarNotificacion(result.message || 'Error al eliminar archivo ❌', 'error')
+    }
+  } catch (error) {
+    mostrarNotificacion('Error de conexión ❌', 'error')
+  }
 }
 
 /**
