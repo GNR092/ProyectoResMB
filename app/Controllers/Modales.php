@@ -17,6 +17,8 @@ use CodeIgniter\Database\Exceptions\DatabaseException;
 use App\Models\PresupuestoMensualModel;
 use App\Models\SegmentoNegocioModel;
 use App\Models\UnidadOperativaModel;
+use App\Models\ProveedorArchivosModel;
+use App\Libraries\FPath;
 
 class Modales extends BaseController
 {
@@ -977,6 +979,7 @@ class Modales extends BaseController
     public function insertarProveedor()
     {
         $proveedorModel = new ProveedorModel();
+        $archivoModel = new ProveedorArchivosModel();
         $request = $this->request;
 
         $data = [
@@ -1002,13 +1005,35 @@ class Modales extends BaseController
         }
 
         try {
-            if ($proveedorModel->insert($data)) {
+            $idProveedor = $proveedorModel->insert($data, true);
+            if ($idProveedor) {
+                // Procesar archivos
+                $files = $request->getFiles();
+                if (isset($files['archivos_proveedor'])) {
+                    $allowedExtensions = ['pdf', 'docx', 'xml', 'jpg', 'jpeg', 'png', 'webp', 'svg'];
+                    foreach ($files['archivos_proveedor'] as $file) {
+                        if ($file->isValid() && !$file->hasMoved()) {
+                            $ext = strtolower($file->getExtension());
+                            if (in_array($ext, $allowedExtensions)) {
+                                $index = $archivoModel->getNextIndex($idProveedor);
+                                $newName = "DocumentoProveedor_{$idProveedor}_{$index}.{$ext}";
+                                
+                                if ($file->move(FPath::FPROVEEDORES, $newName)) {
+                                    $archivoModel->insert([
+                                        'id_proveedor' => $idProveedor,
+                                        'nombre_archivo' => $newName,
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                }
                 return $this->response->setJSON(['success' => true]);
             } else {
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'No se pudo insertar el proveedor. Verifique los datos.',
-                    'errors' => $proveedorModel->errors(), // Opcional: enviar errores de validación
+                    'errors' => $proveedorModel->errors(),
                 ]);
             }
         } catch (\Exception $e) {
@@ -1034,6 +1059,7 @@ class Modales extends BaseController
     public function editarProveedor($id)
     {
         $model = new ProveedorModel();
+        $archivoModel = new ProveedorArchivosModel();
         $request = $this->request;
 
         // Obtener datos del formulario
@@ -1060,6 +1086,29 @@ class Modales extends BaseController
 
         try {
             $model->update($id, $data);
+            
+            // Procesar nuevos archivos
+            $files = $request->getFiles();
+            if (isset($files['archivos_proveedor'])) {
+                $allowedExtensions = ['pdf', 'docx', 'xml', 'jpg', 'jpeg', 'png', 'webp', 'svg'];
+                foreach ($files['archivos_proveedor'] as $file) {
+                    if ($file->isValid() && !$file->hasMoved()) {
+                        $ext = strtolower($file->getExtension());
+                        if (in_array($ext, $allowedExtensions)) {
+                            $index = $archivoModel->getNextIndex($id);
+                            $newName = "DocumentoProveedor_{$id}_{$index}.{$ext}";
+
+                            if ($file->move(FPath::FPROVEEDORES, $newName)) {
+                                $archivoModel->insert([
+                                    'id_proveedor' => $id,
+                                    'nombre_archivo' => $newName,
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+            
             return $this->response->setJSON(['success' => true]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
@@ -1069,6 +1118,34 @@ class Modales extends BaseController
         }
     }
 
+    public function getArchivosProveedor($id)
+    {
+        $archivoModel = new ProveedorArchivosModel();
+        $archivos = $archivoModel->where('id_proveedor', $id)->findAll();
+        return $this->response->setJSON($archivos);
+    }
+
+    public function eliminarArchivoProveedor($idArchivo)
+    {
+        $archivoModel = new ProveedorArchivosModel();
+        $archivo = $archivoModel->find($idArchivo);
+        
+        if (!$archivo) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Archivo no encontrado']);
+        }
+        
+        $filePath = FPath::FPROVEEDORES . $archivo['nombre_archivo'];
+        
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+        
+        if ($archivoModel->delete($idArchivo)) {
+            return $this->response->setJSON(['success' => true]);
+        }
+        
+        return $this->response->setJSON(['success' => false, 'message' => 'No se pudo eliminar el registro del archivo']);
+    }
 
     //Funcion crud para razon social
     public function insertarRazonSocial()

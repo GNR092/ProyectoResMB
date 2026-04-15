@@ -6,45 +6,39 @@ use CodeIgniter\Model;
 
 class ProveedorArchivosModel extends Model
 {
-    protected $table            = 'Proveedor_Archivos';
-    protected $primaryKey       = 'ID_Archivo';
+    protected $table            = 'proveedor_archivos';
+    protected $primaryKey       = 'id_archivo';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'ID_Proveedor',
-        'Nombre_Archivo',
-        'Fecha_Subida',
+        'id_proveedor',
+        'nombre_archivo',
+        'fecha_subida',
     ];
 
     // Dates
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
-    protected $createdField  = 'Fecha_Subida';
-    protected $updatedField  = ''; // No necesitamos updated_at
+    protected $createdField  = 'fecha_subida';
+    protected $updatedField  = '';
     protected $deletedField  = '';
 
     /**
      * Obtiene el siguiente índice para el nombre del archivo de un proveedor.
-     * Nomenclatura: DocumentoProveedor_(IdProveedor)_(Index)
-     * 
-     * @param int $idProveedor
-     * @return int
      */
     public function getNextIndex(int $idProveedor): int
     {
-        $lastFile = $this->where('ID_Proveedor', $idProveedor)
-                         ->orderBy('ID_Archivo', 'DESC')
+        $lastFile = $this->where('id_proveedor', $idProveedor)
+                         ->orderBy('id_archivo', 'DESC')
                          ->first();
 
         if (!$lastFile) {
             return 1;
         }
 
-        // Intentar extraer el número del nombre del archivo actual
-        // Nombre_Archivo: DocumentoProveedor_5_1.pdf
-        $nombre = $lastFile['Nombre_Archivo'];
+        $nombre = $lastFile['nombre_archivo'];
         $parts = explode('_', pathinfo($nombre, PATHINFO_FILENAME));
         $lastIndex = (int) end($parts);
 

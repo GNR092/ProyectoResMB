@@ -144,6 +144,10 @@
                 <label for="Servicio" class="mb-1 font-medium">Servicio</label>
                 <input type="text" name="Servicio" id="Servicio" placeholder="Servicio" required class="w-full px-3 py-2 border rounded-lg">
             </div>
+            <div class="flex flex-col">
+                <label for="archivos_proveedor" class="mb-1 font-medium">Adjuntar Archivos</label>
+                <input type="file" name="archivos_proveedor[]" id="archivos_proveedor" multiple accept=".pdf,.docx,.xml,image/*" class="w-full px-3 py-2 border rounded-lg">
+            </div>
         </div>
 
         <div x-data="{ tiene_credito: false }" class="space-y-4 border-t pt-4">
@@ -214,6 +218,18 @@
             <div class="flex flex-col">
                 <label for="editar-Servicio" class="mb-1 font-medium">Servicio</label>
                 <input type="text" name="Servicio" id="editar-Servicio" required class="w-full px-3 py-2 border rounded-lg">
+            </div>
+            <div class="flex flex-col">
+                <label for="editar-archivos_proveedor" class="mb-1 font-medium">Adjuntar más Archivos</label>
+                <input type="file" name="archivos_proveedor[]" id="editar-archivos_proveedor" multiple accept=".pdf,.docx,.xml,image/*" class="w-full px-3 py-2 border rounded-lg">
+            </div>
+        </div>
+
+        <!-- Lista de archivos existentes -->
+        <div id="contenedor-archivos-existentes" class="hidden space-y-2 border-t pt-4">
+            <h3 class="font-medium text-gray-700">Archivos Adjuntos</h3>
+            <div id="lista-archivos-proveedor" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <!-- Se llenará vía JS -->
             </div>
         </div>
 
