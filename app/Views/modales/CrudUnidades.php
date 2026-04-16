@@ -1,3 +1,7 @@
+<?php 
+    $deptoUsuario = session('departamento_usuario');
+    $tieneAccesoEdicion = in_array($deptoUsuario, ['Administración', 'Direccion', 'Dirección', 'Contaduría']);
+?>
 <!-- Pantalla 1: lista de departamentos de operación -->
 <div id="pantalla-lista-unidades" 
      class="p-6 bg-white rounded-xl shadow-md"
@@ -23,7 +27,7 @@
                 </select>
             </div>
         </div>
-        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])): ?>
+        <?php if ($tieneAccesoEdicion): ?>
         <div>
             <a href="#" id="btn-agregar-unidad" class="inline-block mt-4 px-4 py-2 bg-green-500 text-black font-semibold rounded-md hover:bg-green-700 shadow-sm transition-colors">
                 AGREGAR
@@ -39,7 +43,7 @@
                 <th class="w-1/3 px-3 py-2 border-b text-left">Departamento De Operación</th>
                 <th class="w-1/3 px-3 py-2 border-b text-left">Lugar (Complejo)</th>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Estado</th>
-                <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])): ?>
+                <?php if ($tieneAccesoEdicion): ?>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
                 <?php endif; ?>
             </tr>
@@ -65,7 +69,7 @@
                             </span>
                         </td>
 
-                        <?php if (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])): ?>
+                        <?php if ($tieneAccesoEdicion): ?>
                         <td class="px-2 py-2 border-b align-top text-center acciones">
                             <div class="flex flex-col items-center space-y-1 h-full justify-center">
                                 <a href="#" id="btn-editar-unidad-<?= $uni['ID_UnidadOperativa'] ?>" class="btn-editar text-green-600 hover:text-green-800" data-id="<?= $uni['ID_UnidadOperativa'] ?>">
@@ -82,7 +86,7 @@
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
-                <tr><td colspan="<?= (in_array(session('departamento_usuario'), ['Dirección', 'Contaduría', 'Administración'])) ? '4' : '3' ?>" class="px-3 py-4 text-center text-gray-500">No hay departamentos registrados</td></tr>
+                <tr><td colspan="<?= ($tieneAccesoEdicion) ? '4' : '3' ?>" class="px-3 py-4 text-center text-gray-500">No hay departamentos registrados</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

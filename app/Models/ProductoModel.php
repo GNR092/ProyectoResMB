@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class ProductoModel extends Model
 {
+    use AuditTrait;
+
+    protected $auditClasificacion = 'Catálogos';
+
     protected $table            = 'Producto';
     protected $primaryKey       = 'ID_Producto';
     protected $useAutoIncrement = true;
@@ -13,4 +18,10 @@ class ProductoModel extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = ['Codigo', 'Nombre', 'Existencia'];
+
+    // Callbacks
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 }

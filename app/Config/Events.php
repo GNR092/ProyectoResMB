@@ -5,6 +5,7 @@ namespace Config;
 use CodeIgniter\Events\Events;
 use CodeIgniter\Exceptions\FrameworkException;
 use CodeIgniter\HotReloader\HotReloader;
+use App\Libraries\BitacoraService;
 
 /*
  * --------------------------------------------------------------------
@@ -22,6 +23,43 @@ use CodeIgniter\HotReloader\HotReloader;
  * Example:
  *      Events::on('create', [$myInstance, 'myMethod']);
  */
+
+/**
+ * Evento para registrar en la bitácora de forma centralizada
+ */
+Events::on('auditoria', static function (array $data): void {
+    BitacoraService::getInstance()->registrar($data);
+});
+
+/**
+ * Persistir todos los logs acumulados al finalizar la ejecución del sistema
+ */
+Events::on('post_system', static function (): void {
+    if (!is_cli()) {
+        BitacoraService::getInstance()->persistir();
+    }
+});
+
+/**
+ * Captura errores críticos del sistema y los registra en la bitácora
+ */
+Events::on('systemException', static function (\Throwable $e): void {
+    if (!is_cli()) {
+        Events::trigger('auditoria', [
+            'tipo_accion'    => 'SISTEMA_ERROR',
+            'modulo'         => 'Sistema',
+            'estado'         => 'fallido',
+            'valores_nuevos' => json_encode([
+                'excepcion' => get_class($e),
+                'mensaje'   => $e->getMessage(),
+                'archivo'   => $e->getFile(),
+                'linea'     => $e->getLine()
+            ])
+        ]);
+        // Aseguramos persistencia inmediata en caso de error fatal
+        BitacoraService::getInstance()->persistir();
+    }
+});
 
 Events::on('pre_system', static function (): void {
     if (ENVIRONMENT !== 'testing') {

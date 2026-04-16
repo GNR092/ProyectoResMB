@@ -145,6 +145,15 @@ class Inventario extends BaseController
             return $this->respond(['success' => true, 'message' => 'Ingreso registrado correctamente.']);
 
         } catch (\Exception $e) {
+            if ($this->db->transStatus() === false) {
+                $this->db->transRollback();
+            }
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'FALLO_INGRESO_INVENTARIO',
+                'modulo'         => 'Almacen',
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage()])
+            ]);
             return $this->failServerError('Error en el proceso: ' . $e->getMessage());
         }
     }
@@ -212,6 +221,12 @@ class Inventario extends BaseController
                 return $this->fail('No se pudo guardar el producto en BD.');
             }
         } catch (\Exception $e) {
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'FALLO_CREAR_PRODUCTO_RAPIDO',
+                'modulo'         => 'Almacen',
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage()])
+            ]);
             return $this->failServerError($e->getMessage());
         }
     }

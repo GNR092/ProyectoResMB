@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class SolicitudModel extends Model
 {
+    use AuditTrait;
+
+    protected $auditClasificacion = 'Operaciones';
+
     protected $table = 'Solicitud';
     protected $primaryKey = 'ID_Solicitud';
     protected $useAutoIncrement = true;
@@ -48,7 +53,10 @@ class SolicitudModel extends Model
     protected $cleanValidationRules = true;
 
     protected $beforeInsert = ['normalizeUnidadOperativa'];
-    protected $beforeUpdate = ['normalizeUnidadOperativaOnUpdate'];
+    protected $beforeUpdate = ['normalizeUnidadOperativaOnUpdate', 'captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 
     protected function normalizeUnidadOperativa(array $data): array
     {

@@ -40,6 +40,20 @@ class Api extends ResourceController
         $this->api = new Rest();
     }
 
+    /**
+     * Lanza un error de validación y lo registra en la bitácora como fallido.
+     */
+    private function failValidationAudit($message, $modulo = 'API')
+    {
+        \CodeIgniter\Events\Events::trigger('auditoria', [
+            'tipo_accion'    => 'FALLO_VALIDACION',
+            'modulo'         => $modulo,
+            'estado'         => 'fallido',
+            'valores_nuevos' => json_encode(['mensaje' => $message, 'url' => $this->request->getUri()->getPath()])
+        ]);
+        return $this->failValidationErrors($message);
+    }
+
     public function test($id)
     {
         return $this->respond($this->api->getSolicitudPago($id));
@@ -259,7 +273,7 @@ class Api extends ResourceController
     public function getSolicitudDetails($id = null)
     {
         if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+            return $this->failValidationAudit('Se requiere un ID de solicitud numérico.');
         }
 
         $details = $this->api->getSolicitudWithProducts((int) $id);
@@ -396,7 +410,7 @@ class Api extends ResourceController
     public function getSolicitudesUsers($id = null)
     {
         if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de usuario numérico.');
+            return $this->failValidationAudit('Se requiere un ID de usuario numérico.');
         }
 
         return $this->respond(
@@ -419,14 +433,14 @@ class Api extends ResourceController
         $json = $this->request->getJSON();
 
         if (!isset($json->ID_Solicitud)) {
-            return $this->failValidationErrors('Se requiere el ID de la solicitud.');
+            return $this->failValidationAudit('Se requiere el ID de la solicitud.', 'Compras');
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
         $comentarios = $json->ComentariosAdmin ?? null;
 
         if (empty($comentarios)) {
-            return $this->failValidationErrors('Se requiere un comentario.');
+            return $this->failValidationAudit('Se requiere un comentario.', 'Compras');
         }
 
         // 1. OBTENER USUARIO
@@ -450,7 +464,7 @@ class Api extends ResourceController
         try {
             // 1. PROTECCIÓN: No cancelar solicitudes PAGADAS
             if ($solicitud['Estado'] === Status::Pagada || $solicitud['Estado'] === 'Pagada') {
-                return $this->failValidationErrors('No se puede cancelar una solicitud que ya ha sido pagada (movimiento bancario realizado).');
+                return $this->failValidationAudit('No se puede cancelar una solicitud que ya ha sido pagada (movimiento bancario realizado).');
             }
 
             // 2. ACTUALIZAR LA SOLICITUD
@@ -491,6 +505,13 @@ class Api extends ResourceController
 
         } catch (\Exception $e) {
             $db->transRollback();
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'CANCELAR_SOLICITUD',
+                'modulo'         => 'Compras',
+                'solicitud_id'   => $idSolicitud,
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage()])
+            ]);
             log_message('error', '[cancelarSolicitud] ' . $e->getMessage());
             return $this->failServerError('Error: ' . $e->getMessage());
         }
@@ -506,7 +527,7 @@ class Api extends ResourceController
         $json = $this->request->getJSON();
 
         if (!isset($json->id_solicitud) || !isset($json->productos) || !is_array($json->productos)) {
-            return $this->failValidationErrors('Se requiere ID de solicitud y un array de productos/servicios.');
+            return $this->failValidationAudit('Se requiere ID de solicitud y un array de productos/servicios.', 'Compras');
         }
 
         $idSolicitud = (int) $json->id_solicitud;
@@ -543,11 +564,17 @@ class Api extends ResourceController
                 $cotizacionSeleccionada = $cotizacionModel->find($idCotizacionSeleccionada);
                 if ($cotizacionSeleccionada) {
                     $updateData['ID_Proveedor'] = $cotizacionSeleccionada['ID_Proveedor'];
+                    // Inyectamos el ID de cotización para que el AuditTrait lo detecte
+                    $updateData['ID_Cotizacion'] = (int) $idCotizacionSeleccionada;
                 }
             }
 
             if ($idCuenta) {
                 $updateData['ID_Cuenta'] = $idCuenta;
+            }
+
+            if ($comentarios) {
+                $updateData['ComentariosUser'] = $comentarios;
             }
 
             $solicitudModel->update($idSolicitud, $updateData);
@@ -718,6 +745,13 @@ class Api extends ResourceController
 
         } catch (\Exception $e) {
             $db->transRollback();
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'ACTUALIZAR_MONTOS',
+                'modulo'         => 'Compras',
+                'solicitud_id'   => $idSolicitud,
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage()])
+            ]);
             log_message('critical', '[actualizarMontos Error]: ' . $e->getMessage());
             return $this->failServerError('Error al guardar: ' . $e->getMessage());
         }
@@ -736,7 +770,7 @@ class Api extends ResourceController
         $json = $this->request->getJSON();
         // Validamos que exista ID y acción
         if (!isset($json->ID_Solicitud) || !isset($json->accion)) {
-            return $this->failValidationErrors(
+            return $this->failValidationAudit(
                 'Se requiere ID de solicitud y una acción (aprobar/rechazar).',
             );
         }
@@ -803,7 +837,7 @@ class Api extends ResourceController
 
         $json = $this->request->getJSON();
         if (!isset($json->ID_Solicitud)) {
-            return $this->failValidationErrors('Se requiere ID de solicitud.');
+            return $this->failValidationAudit('Se requiere ID de solicitud.');
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
@@ -886,8 +920,9 @@ class Api extends ResourceController
             empty($json->ID_Proveedores) ||
             !isset($json->ID_Usuario)
         ) {
-            return $this->failValidationErrors(
+            return $this->failValidationAudit(
                 'Se requiere ID de solicitud, un array de IDs de proveedor y el ID de usuario.',
+                'Compras'
             );
         }
 
@@ -1035,6 +1070,13 @@ class Api extends ResourceController
             ]);
         } catch (\Throwable $e) {
             $db->transRollback();
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'CREAR_COTIZACION',
+                'modulo'         => 'Compras',
+                'solicitud_id'   => $idSolicitud,
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage()])
+            ]);
             // ESTO ES CLAVE: Escribir el error real en el log para que puedas verlo si vuelve a fallar
             log_message(
                 'critical',
@@ -1060,7 +1102,7 @@ class Api extends ResourceController
         log_message('debug', "API: enviarSolicitudARevision llamada. Datos: " . json_encode($request));
 
         if (!isset($request['ID_Solicitud'])) {
-            return $this->failValidationErrors('Se requiere ID de solicitud.');
+            return $this->failValidationAudit('Se requiere ID de solicitud.');
         }
 
         $idSolicitud = (int) $request['ID_Solicitud'];
@@ -1365,7 +1407,7 @@ class Api extends ResourceController
         $json = $this->request->getJSON();
 
         if (!isset($json->ID_Solicitud) || !isset($json->Estado)) {
-            return $this->failValidationErrors('Se requiere ID de solicitud y el nuevo estado.');
+            return $this->failValidationAudit('Se requiere ID de solicitud y el nuevo estado.');
         }
 
         $idSolicitud = (int) $json->ID_Solicitud;
@@ -1505,6 +1547,7 @@ class Api extends ResourceController
         } catch (\Exception $e) {
             if (isset($db) && $db->transStatus() === false) $db->transRollback();
             log_message('error', '[dictaminarSolicitud] ' . $e->getMessage());
+
             return $this->failServerError('Ocurrió un error inesperado al guardar el dictamen: ' . $e->getMessage());
         }
     }
@@ -1521,7 +1564,7 @@ class Api extends ResourceController
     public function getCotizacionDetails($id = null)
     {
         if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de cotizacion numérico.');
+            return $this->failValidationAudit('Se requiere un ID de cotizacion numérico.');
         }
 
         $details = $this->api->getSolicitudWithCotizacion((int) $id);
@@ -1546,7 +1589,7 @@ class Api extends ResourceController
     public function GenerarOrden($id)
     {
         if (!is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+            return $this->failValidationAudit('Se requiere un ID de solicitud numérico.');
         }
 
         $solicitudModel = new SolicitudModel();
@@ -1597,6 +1640,17 @@ class Api extends ResourceController
                 );
             }
 
+            // Registro en Bitácora
+            Events::trigger('auditoria', [
+                'tipo_accion' => 'GENERAR_ORDEN',
+                'clasificacion' => 'Compras',
+                'modulo'      => 'Compras',
+                'solicitud_id'=> $id,
+                'orden_compra_id' => $idOrdenCompra,
+                'cotizacion_id'   => $cotizacion['ID_Cotizacion'] ?? null,
+                'estado'      => 'exito'
+            ]);
+
             return $this->respondCreated([
                 'success' => true,
                 'message' => 'Orden de Compra generada exitosamente.',
@@ -1604,6 +1658,17 @@ class Api extends ResourceController
             ]);
         } catch (\Exception $e) {
             log_message('error', '[GenerarOrden] ' . $e->getMessage());
+
+            // Registro de fallo en Bitácora
+            Events::trigger('auditoria', [
+                'tipo_accion' => 'GENERAR_ORDEN',
+                'clasificacion' => 'Compras',
+                'modulo'      => 'Compras',
+                'solicitud_id'=> $id ?? null,
+                'estado'      => 'fallido',
+                'valores_nuevos' => ['error' => $e->getMessage()]
+            ]);
+
             return $this->failServerError(
                 'Ocurrió un error inesperado al generar la Orden de Compra.',
             );
@@ -1619,7 +1684,7 @@ class Api extends ResourceController
     public function getOrdenCompraData($id = null)
     {
         if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de orden de compra numérico.');
+            return $this->failValidationAudit('Se requiere un ID de orden de compra numérico.');
         }
 
         $data = $this->api->getOrdenCompraData((int) $id);
@@ -1642,7 +1707,7 @@ class Api extends ResourceController
     public function getOrdenBySolicitudID($id = null)
     {
         if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+            return $this->failValidationAudit('Se requiere un ID de solicitud numérico.');
         }
 
         $data = $this->api->getOrdenByIDSolicitud((int) $id);
@@ -1680,7 +1745,7 @@ class Api extends ResourceController
     public function getOrdenCompra($id = null)
     {
         if ($id === null || !is_numeric($id)) {
-            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+            return $this->failValidationAudit('Se requiere un ID de solicitud numérico.');
         }
 
         $details = $this->api->getOrdenCompra((int) $id);
@@ -1864,7 +1929,7 @@ class Api extends ResourceController
         $comprobanteFile = $this->request->getFile('ficha');
 
         if (empty($nuevoEstado) && !$facturaFile && !$comprobanteFile) {
-            return $this->failValidationErrors(
+            return $this->failValidationAudit(
                 'No se especificó un nuevo estado ni se adjuntaron archivos.',
             );
         }
@@ -2000,7 +2065,7 @@ class Api extends ResourceController
                     }
 
                     if (!empty($missingFiles)) {
-                        return $this->failValidationErrors(
+                        return $this->failValidationAudit(
                             'No se puede cerrar la orden de compra. Faltan los siguientes archivos: ' .
                                 implode(' y ', $missingFiles) .
                                 '.',
@@ -2152,8 +2217,15 @@ class Api extends ResourceController
             ]);
         } catch (\Exception $e) {
             $db->transRollback();
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'FALLO_CAMBIO_ESTADO_ORDEN',
+                'modulo'         => 'Compras',
+                'solicitud_id'   => $idSolicitud,
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage()])
+            ]);
             log_message('error', '[cambiarEstadoOrden - Simple] ' . $e->getMessage());
-            return $this->failServerError($e->getMessage());
+            return $this->failServerError('Error: ' . $e->getMessage());
         }
     }
 
@@ -2164,10 +2236,10 @@ class Api extends ResourceController
     public function enviarOrdenAProveedor($idSolicitud = null, $userid = null)
     {
         if ($idSolicitud === null) {
-            return $this->failValidationErrors('Se requiere un ID de solicitud.');
+            return $this->failValidationAudit('Se requiere un ID de solicitud.');
         }
         if ($userid === null) {
-            return $this->failValidationErrors('Se requiere un ID.');
+            return $this->failValidationAudit('Se requiere un ID.');
         }
 
         $solicitudModel = new SolicitudModel();
@@ -2426,11 +2498,11 @@ class Api extends ResourceController
         $json = $this->request->getJSON();
 
         if (!isset($json->email) || !is_string($json->email)) {
-            return $this->failValidationErrors('Se requiere un correo electrónico válido.');
+            return $this->failValidationAudit('Se requiere un correo electrónico válido.');
         }
 
         if (!isset($json->data) || !is_object($json->data)) {
-            return $this->failValidationErrors(
+            return $this->failValidationAudit(
                 'Se requiere un objeto "data" con los campos a actualizar.',
             );
         }
@@ -2452,7 +2524,7 @@ class Api extends ResourceController
 
         if (isset($data['username'])) {
             if (empty($data['username'])) {
-                return $this->failValidationErrors('El nombre de usuario no puede estar vacío.');
+                return $this->failValidationAudit('El nombre de usuario no puede estar vacío.');
             }
             if ($data['username'] !== $user['Nombre']) {
                 $dataToUpdate['Nombre'] = $data['username'];
@@ -2461,10 +2533,10 @@ class Api extends ResourceController
 
         if (isset($data['password'])) {
             if (empty($data['password'])) {
-                return $this->failValidationErrors('La nueva contraseña no puede estar vacía.');
+                return $this->failValidationAudit('La nueva contraseña no puede estar vacía.');
             }
             if (strlen($data['password']) < 8) {
-                return $this->failValidationErrors(
+                return $this->failValidationAudit(
                     'La contraseña debe tener al menos 8 caracteres.',
                 );
             }
@@ -2482,12 +2554,12 @@ class Api extends ResourceController
 
         if (isset($data['password_g'])) {
             if (empty($data['password_g'])) {
-                return $this->failValidationErrors(
+                return $this->failValidationAudit(
                     'La nueva contraseña auxiliar no puede estar vacía.',
                 );
             }
             if (strlen($data['password_g']) < 8) {
-                return $this->failValidationErrors(
+                return $this->failValidationAudit(
                     'La contraseña auxiliar debe tener al menos 8 caracteres.',
                 );
             }
@@ -2537,7 +2609,7 @@ class Api extends ResourceController
         $file = $this->request->getFile('signature');
 
         if (!$file || !$file->isValid()) {
-            return $this->failValidationErrors(
+            return $this->failValidationAudit(
                 'No se ha subido ningún archivo o el archivo no es válido.',
             );
         }
@@ -2554,7 +2626,7 @@ class Api extends ResourceController
     public function downloadAttachmentsAsZip($idSolicitud = null)
     {
         if ($idSolicitud === null || !is_numeric($idSolicitud)) {
-            return $this->failValidationErrors('Se requiere un ID de solicitud numérico.');
+            return $this->failValidationAudit('Se requiere un ID de solicitud numérico.');
         }
 
         $solicitudData = $this->api->getOrdenCompra((int) $idSolicitud);
@@ -3009,14 +3081,14 @@ class Api extends ResourceController
         $remisionFile = $this->request->getFile('remision_file');
 
         if (!$idOrdenCompra || !$productosRecibidosJson) {
-            return $this->failValidationErrors(
+            return $this->failValidationAudit(
                 'Faltan datos de la orden de compra o productos recibidos.',
             );
         }
 
         $productosRecibidos = json_decode($productosRecibidosJson, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            return $this->failValidationErrors('Formato de productos recibidos inválido.');
+            return $this->failValidationAudit('Formato de productos recibidos inválido.');
         }
 
         $ordenCompra = $ordenCompraModel->find($idOrdenCompra);
@@ -3147,6 +3219,13 @@ class Api extends ResourceController
             ]);
         } catch (\Exception $e) {
             $db->transRollback();
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'FALLO_RECEPCION_PRODUCTOS',
+                'modulo'         => 'Almacen',
+                'orden_compra_id' => $idOrdenCompra ?? null,
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage()])
+            ]);
             log_message('error', '[confirmarRecepcion] ' . $e->getMessage());
             return $this->failServerError('Error al confirmar la recepción: ' . $e->getMessage());
         }
@@ -3164,7 +3243,7 @@ class Api extends ResourceController
         $idUsuario = session('id');
 
         if (!$idProducto || $cantidadBaja <= 0 || !$motivoBaja || !$fechaBaja || !$idUsuario) {
-            return $this->failValidationErrors('Faltan datos obligatorios o son inválidos.');
+            return $this->failValidationAudit('Faltan datos obligatorios o son inválidos.');
         }
 
         $producto = $productoModel->find($idProducto);
@@ -3173,7 +3252,7 @@ class Api extends ResourceController
         }
 
         if ($cantidadBaja > $producto['Existencia']) {
-            return $this->failValidationErrors(
+            return $this->failValidationAudit(
                 'La cantidad a dar de baja excede la existencia actual del producto.',
             );
         }
@@ -3213,6 +3292,12 @@ class Api extends ResourceController
             ]);
         } catch (\Exception $e) {
             $db->transRollback();
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'FALLO_BAJA_PRODUCTO',
+                'modulo'         => 'Almacen',
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage(), 'id_producto' => $idProducto ?? null])
+            ]);
             log_message('error', '[registrarBajaDestruccion] ' . $e->getMessage());
             return $this->failServerError(
                 'Error al registrar la baja por destrucción: ' . $e->getMessage(),
@@ -3313,7 +3398,7 @@ class Api extends ResourceController
     {
         $json = $this->request->getJSON();
         if (!isset($json->ids) || !is_array($json->ids)) {
-            return $this->failValidationErrors('Se requiere un array de IDs de solicitud.');
+            return $this->failValidationAudit('Se requiere un array de IDs de solicitud.');
         }
 
         $ids = $json->ids;
@@ -3326,10 +3411,12 @@ class Api extends ResourceController
             foreach ($ids as $idSolicitud) {
                 $cotizacion = $cotizacionModel->where('ID_Solicitud', $idSolicitud)->first();
                 if ($cotizacion) {
-                    $ordenCompraModel
-                        ->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])
-                        ->set(['Estado' => Status::Programada])
-                        ->update();
+                    $orden = $ordenCompraModel->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])->first();
+                    if ($orden) {
+                        $ordenCompraModel->update($orden['ID_OrdenCompra'], [
+                            'Estado' => Status::Programada
+                        ]);
+                    }
                 }
             }
             $db->transComplete();

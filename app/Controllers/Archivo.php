@@ -70,6 +70,12 @@ class Archivo extends BaseController
             $user = $this->api->getUserById((int)session('id'));
 
             if (empty($user)) {
+                \CodeIgniter\Events\Events::trigger('auditoria', [
+                    'tipo_accion'    => 'FALLO_SESION_SUBIDA',
+                    'modulo'         => 'Solicitudes',
+                    'estado'         => 'fallido',
+                    'valores_nuevos' => json_encode(['mensaje' => 'Sesión expirada al intentar subir solicitud'])
+                ]);
                 return $this->response->setJSON([
                     'success' => false,
                     'message' => 'Sesión expirada o usuario no encontrado. Por favor, inicie sesión de nuevo.',
@@ -308,6 +314,16 @@ class Archivo extends BaseController
             ]);
 
         } catch (\Exception $e) {
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'FALLO_REGISTRO_SOLICITUD',
+                'modulo'         => 'Solicitudes',
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode([
+                    'error'   => $e->getMessage(),
+                    'archivo' => $e->getFile(),
+                    'linea'   => $e->getLine()
+                ])
+            ]);
             log_message('error', '[Archivo::subir] ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->response->setJSON([
                 'success' => false,
