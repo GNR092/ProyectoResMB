@@ -28,7 +28,7 @@ class PlacesModel extends Model
 
     // Validación
     protected $validationRules      = [
-        'Nombre_Corto' => 'required|is_unique[Places.Nombre_Corto,ID_Place,{ID_Place}]',
+        'Nombre_Corto' => 'required|is_unique[Places.Nombre_Corto,ID_Place,{id}]',
         'Nombre_Completo' => 'required',
         'ID_RazonSocial' => 'required'
     ];

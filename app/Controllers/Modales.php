@@ -490,7 +490,7 @@ class Modales extends BaseController
                     ->select('GrupoPresupuestal.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
                     ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
                     ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
-                    ->orderBy('Nombre', 'ASC')
+                    ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
                     ->findAll();
 
                 $data['unidades_operativas'] = $unidadesModel
@@ -1207,9 +1207,6 @@ class Modales extends BaseController
         $placeActual = $model->find($id);
         if (!$placeActual) return $this->response->setJSON(['success' => false, 'message' => 'Lugar no encontrado']);
 
-        $valPost = $this->request->getPost('activo');
-        $esActivoPost = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
-
         $nuevoSegmento = !empty($postData['id_segmento']) ? (int)$postData['id_segmento'] : null;
         $segmentoAnterior = (int)($placeActual['id_segmento'] ?? 0);
 
@@ -1230,7 +1227,9 @@ class Modales extends BaseController
                 'id_segmento'     => $nuevoSegmento,
                 'activo'          => true
             ];
-            $idNuevoPlace = $model->insert($insertData, true);
+            
+            // Saltamos validación aquí porque el Nombre_Corto ya existe en el registro viejo (que acabamos de desactivar)
+            $idNuevoPlace = $model->skipValidation(true)->insert($insertData, true);
 
             // 3. Clonar Unidades Operativas y sus Grupos
             $unidadModel = new \App\Models\UnidadOperativaModel();
@@ -1273,10 +1272,25 @@ class Modales extends BaseController
                 'Nombre_Completo' => $postData['Nombre_Completo'] ?? '',
                 'ID_RazonSocial'  => $postData['ID_RazonSocial'] ?? '',
                 'id_segmento'     => $nuevoSegmento,
-                'activo'          => $esActivoPost
             ];
-            if ($model->update($id, $data)) return $this->response->setJSON(['success' => true]);
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al actualizar']);
+
+            // Solo actualizar 'activo' si viene en el post (para evitar desactivación accidental si no está el campo en el form)
+            if ($this->request->getPost('activo') !== null) {
+                $valPost = $this->request->getPost('activo');
+                $data['activo'] = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
+            }
+
+            // --- AJUSTE DINÁMICO DE VALIDACIÓN ---
+            // Sobreescribimos la regla para este caso específico inyectando el ID a ignorar
+            $model->setValidationRule('Nombre_Corto', "required|is_unique[Places.Nombre_Corto,ID_Place,$id]");
+
+            if ($model->update($id, $data)) {
+                return $this->response->setJSON(['success' => true]);
+            }
+
+            $errors = $model->errors();
+            $msg = !empty($errors) ? implode(', ', $errors) : 'Error al actualizar';
+            return $this->response->setJSON(['success' => false, 'message' => $msg]);
         }
     }
     public function eliminarPlace($id)
@@ -1459,50 +1473,70 @@ class Modales extends BaseController
     // ----------- Grupos Presupuestales ------------
     public function insertarGrupo()
     {
-        $postData = $this->request->getPost();
-        $db = \Config\Database::connect();
-        $builder = $db->table('GrupoPresupuestal');
-        $row = $builder->selectMax('ID_GrupoPresupuestal', 'max_id')->get()->getRow();
-        $nextId = (int)($row->max_id ?? 0) + 1;
-        
-        $data = [
-            'ID_GrupoPresupuestal' => $nextId,
-            'Nombre'               => $postData['Nombre'] ?? '',
-            'Descripcion'          => $postData['Descripcion'] ?? '',
-            'ID_UnidadOperativa'   => !empty($postData['ID_UnidadOperativa']) ? $postData['ID_UnidadOperativa'] : null,
-            'activo'               => true
-        ];
+        try {
+            $postData = $this->request->getPost();
+            $model = new \App\Models\GrupoPresupuestalModel();
 
-        if ($db->table('GrupoPresupuestal')->insert($data)) {
-            return $this->response->setJSON(['success' => true, 'message' => 'Partida creada correctamente.']);
-        } else {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error al crear partida']);
+            // Calculamos el siguiente ID manualmente
+            $db = \Config\Database::connect();
+            $builder = $db->table('GrupoPresupuestal');
+            $row = $builder->selectMax('ID_GrupoPresupuestal', 'max_id')->get()->getRow();
+            $nextId = (int)($row->max_id ?? 0) + 1;
+
+            $valManual = $this->request->getPost('es_manual');
+            $esManual = ($valManual === 'on' || $valManual === '1' || $valManual === 1 || $valManual === true);
+
+            $data = [
+                'ID_GrupoPresupuestal' => $nextId,
+                'Nombre'               => $postData['Nombre'] ?? '',
+                'Descripcion'          => $postData['Descripcion'] ?? '',
+                'ID_UnidadOperativa'   => !empty($postData['ID_UnidadOperativa']) ? $postData['ID_UnidadOperativa'] : null,
+                'activo'               => true,
+                'es_manual'            => $esManual
+            ];
+
+            if ($model->insert($data)) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Partida creada correctamente.']);
+            } else {
+                $errors = $model->errors();
+                $msg = !empty($errors) ? implode(', ', $errors) : 'Error de validación al crear partida';
+                return $this->response->setJSON(['success' => false, 'message' => $msg]);
+            }
+        } catch (\Exception $e) {
+            // Esto nos dirá exactamente qué está fallando (ej. "Columna 'es_manual' no encontrada")
+            return $this->response->setJSON(['success' => false, 'message' => 'Error de servidor: ' . $e->getMessage()]);
         }
-    }
-    
+    }    
     public function editarGrupo($id)
     {
         $postData = $this->request->getPost();
+        $model = new \App\Models\GrupoPresupuestalModel();
         
         $valPost = $this->request->getPost('activo');
         $esActivoPost = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
         
         $nuevaUnidad = !empty($postData['ID_UnidadOperativa']) ? (int)$postData['ID_UnidadOperativa'] : null;
 
+        $valManual = $this->request->getPost('es_manual');
+        $esManual = ($valManual === 'on' || $valManual === '1' || $valManual === 1 || $valManual === true);
+
         $data = [
             'Nombre'             => $postData['Nombre'] ?? '',
             'Descripcion'        => $postData['Descripcion'] ?? '',
             'ID_UnidadOperativa' => $nuevaUnidad,
-            'activo'             => $esActivoPost
+            'activo'             => $esActivoPost,
+            'es_manual'          => $esManual
         ];
 
-        $modeloReal = new \App\Models\GrupoPresupuestalModel();
-
         try {
-            $modeloReal->update($id, $data);
-            return $this->response->setJSON(['success' => true, 'message' => 'Partida actualizada correctamente.']);
+            if ($model->update($id, $data)) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Partida actualizada correctamente.']);
+            }
+            $errors = $model->errors();
+            $msg = !empty($errors) ? implode(', ', $errors) : 'Error al actualizar';
+            return $this->response->setJSON(['success' => false, 'message' => $msg]);
         } catch (\Exception $e) {
-            return $this->failAudit($e->getMessage(), 'Presupuestos', 'ERROR_SOLICITUD_GRUPO');
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
     }
     

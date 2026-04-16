@@ -8,7 +8,7 @@ class GrupoPresupuestalModel extends Model
 {
     protected $table            = 'GrupoPresupuestal';
     protected $primaryKey       = 'ID_GrupoPresupuestal';
-    protected $useAutoIncrement = true;
+    protected $useAutoIncrement = false;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;

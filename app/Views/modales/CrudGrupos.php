@@ -67,6 +67,7 @@
                 <th class="w-1/5 px-3 py-2 border-b text-left">Nombre</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Descripción</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Departamento De Operación</th>
+                <th class="w-1/5 px-3 py-2 border-b text-center">Manual</th>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Estado</th>
                 <?php if ($tieneAccesoEdicion): ?>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Acciones</th>
@@ -79,17 +80,26 @@
                     <?php 
                         $valActivo = $grupo['activo'];
                         $esActivo = ($valActivo === true || $valActivo === 't' || $valActivo === 1 || $valActivo === '1'); 
+                        $esManual = (!empty($grupo['es_manual']) && ($grupo['es_manual'] === true || $grupo['es_manual'] === 't' || $grupo['es_manual'] === 1 || $grupo['es_manual'] === '1'));
                     ?>
                     <tr data-id="<?= $grupo['ID_GrupoPresupuestal'] ?>"
                         data-nombre="<?= esc($grupo['Nombre']) ?>"
                         data-descripcion="<?= esc($grupo['Descripcion']) ?>"
                         data-id-unidad="<?= esc($grupo['ID_UnidadOperativa'] ?? '') ?>"
                         data-activo="<?= $esActivo ? '1' : '0' ?>"
+                        data-es-manual="<?= $esManual ? '1' : '0' ?>"
                         class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?> <?= !$esActivo ? 'opacity-60' : '' ?>">
 
                         <td class="px-3 py-2 border-b nombre-grupo"><?= esc($grupo['Nombre']) ?></td>
-                        <td class="px-3 py-2 border-b descripcion-grupo"><?= esc($grupo['Nombre']) ?></td>
+                        <td class="px-3 py-2 border-b descripcion-grupo"><?= esc($grupo['Descripcion']) ?></td>
                         <td class="px-3 py-2 border-b unidad-grupo"><?= esc($grupo['UnidadNombre'] ?? 'N/A') ?> (<?= esc($grupo['PlaceNombre'] ?? 'N/A') ?>)</td>
+                        <td class="px-3 py-2 border-b text-center">
+                            <?php if ($esManual): ?>
+                                <span class="text-blue-600 font-bold">SÍ</span>
+                            <?php else: ?>
+                                <span class="text-gray-400">NO</span>
+                            <?php endif; ?>
+                        </td>
                         <td class="px-3 py-2 border-b text-center">
                             <?php if ($esActivo): ?>
                                 <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">Activo</span>
@@ -166,6 +176,11 @@
                     <?php endif; ?>
                 </select>
             </div>
+
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="es_manual" id="es_manual" value="1" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label for="es_manual" class="font-medium text-gray-700">Partida de ingresos Manuales</label>
+            </div>
         </div>
         <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">Guardar</button>
     </form>
@@ -200,6 +215,11 @@
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="es_manual" id="editar-es_manual" value="1" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label for="editar-es_manual" class="font-medium text-gray-700">Partida de ingresos Manuales</label>
             </div>
 
             <div class="flex items-center gap-2">
