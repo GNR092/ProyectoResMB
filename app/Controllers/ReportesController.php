@@ -138,6 +138,7 @@ class ReportesController extends ResourceController
 
                             $detallesMensuales[] = [
                                 'etiqueta' => $g['Nombre'], 
+                                'es_manual' => $g['es_manual'],
                                 'mes'      => $m, 
                                 'asignado' => $asig,
                                 'ejecutado' => $ejec
@@ -284,10 +285,12 @@ class ReportesController extends ResourceController
 
                         $analisis[] = [
                             'etiqueta'     => $g['Nombre'],
+                            'es_manual'    => $g['es_manual'],
                             'asignado'     => $asig,
                             'comprometido' => $comp,
                             'ejecutado'    => $ejec,
                             'disponible'   => $disp,
+                            'exce'         => $exce, // Re-named to exce as per your pattern or consistency
                             'excedido'     => $exce,
                             'porcentaje'   => $asig > 0 ? round(($gasto / $asig) * 100, 2) : 0
                         ];
@@ -408,7 +411,7 @@ class ReportesController extends ResourceController
                         if ($gdisp < 0) { $gexce = abs($gdisp); $gdisp = 0; }
 
                         $analisisGrupos[] = [
-                            'etiqueta' => $g['Nombre'], 'asignado' => $gasig, 'comprometido' => $gcomp, 'ejecutado' => $gejec,
+                            'etiqueta' => $g['Nombre'], 'es_manual' => $g['es_manual'], 'asignado' => $gasig, 'comprometido' => $gcomp, 'ejecutado' => $gejec,
                             'gastado' => $ggast, 'disponible' => $gdisp, 'excedido' => $gexce,
                             'porcentaje' => $gasig > 0 ? round(($ggast / $gasig) * 100, 2) : 0
                         ];

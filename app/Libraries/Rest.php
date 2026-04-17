@@ -508,6 +508,7 @@ class Rest
                 ->select('GrupoPresupuestal.*, UnidadOperativa.ID_Place')
                 ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
                 ->where('GrupoPresupuestal.activo', true)
+                ->where('GrupoPresupuestal.es_manual', false)
                 ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
                 ->findAll();
         } else {
@@ -518,6 +519,7 @@ class Rest
                 ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
                 ->where('GrupoPresupuestal.ID_UnidadOperativa', $idUnidad)
                 ->where('GrupoPresupuestal.activo', true)
+                ->where('GrupoPresupuestal.es_manual', false)
                 ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
                 ->findAll();
         }

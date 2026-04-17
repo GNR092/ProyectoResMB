@@ -161,7 +161,14 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 
                 <template x-for="grupo in uni.grupos" :key="grupo.ID_GrupoPresupuestal">
                     <tr class="bg-white hover:bg-gray-50 transition-colors duration-150">
-                        <td class="px-6 py-2 border-b border-gray-200 text-gray-600 pl-12" x-text="grupo.Nombre"></td>
+                        <td class="px-6 py-2 border-b border-gray-200 text-gray-600 pl-12">
+                            <span x-text="grupo.Nombre"></span>
+                            <template x-if="grupo.es_manual == 1 || grupo.es_manual === true || grupo.es_manual === 't'">
+                                <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
+                                    ✍️ MANUAL
+                                </span>
+                            </template>
+                        </td>
                         <td class="px-6 py-2 border-b border-gray-200 border-l border-l-gray-200">
                             <div class="flex items-center justify-end gap-1">
                                 <span class="text-gray-500 font-medium">$</span>
