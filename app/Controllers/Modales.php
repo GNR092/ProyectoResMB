@@ -570,6 +570,15 @@ class Modales extends BaseController
 
                 return view('modales/control/AjustesPresupuesto', $data);
 
+            case 'GastoManual':
+                $razonSocialModel = new \App\Models\RazonSocialModel();
+                $placesModel      = new \App\Models\PlacesModel();
+
+                $data['razones_sociales'] = $razonSocialModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['places']           = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
+
+                return view('modales/control/GastoManual', $data);
+
             default:
                 return 'Opción no válida';
         }

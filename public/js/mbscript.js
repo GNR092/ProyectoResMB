@@ -102,6 +102,7 @@ function abrirModal(opcion) {
     SegmentoNegocio: 'Segmentos de Negocio',
     UnidadOperativa: 'Unidades operativas',
     AjustesPresupuesto: 'Ajustes presupuestales',
+    GastoManual: 'Registrar Gastos Manualemente',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -151,6 +152,7 @@ function abrirModal(opcion) {
         UnidadOperativa: initCrudUnidades,
         SegmentoNegocio: initCrudSegmentos,
         solicitar_material: initSolicitarMaterialTodo,
+        GastoManual: registrarComponenteGastoManual,
       }
 
       const inicializador = inicializadores[opcion]
