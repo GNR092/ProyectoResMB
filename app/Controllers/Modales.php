@@ -577,7 +577,7 @@ class Modales extends BaseController
                 $data['razones_sociales'] = $razonSocialModel->orderBy('Nombre', 'ASC')->findAll();
                 $data['places']           = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
 
-                return view('modales/control/GastoManual', $data);
+                return view('modales/control/gastomanual', $data);
 
             default:
                 return 'Opción no válida';
