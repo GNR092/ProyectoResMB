@@ -213,6 +213,7 @@ if (!file_exists($installerLockFile)) {
         // Rutas API Presupuesto Mensual
         $routes->get('api/presupuesto-mensual/estructura/(:any)/(:num)/(:num)', 'PresupuestoApiController::getEstructura/$1/$2/$3');
         $routes->post('api/presupuesto-mensual/guardar-masivo', 'PresupuestoApiController::saveMasivo');
+        $routes->post('api/presupuesto-mensual/save-gastos-manuales', 'PresupuestoApiController::saveGastosManuales');
         $routes->post('api/presupuesto-mensual/exportar-asignacion', 'PresupuestoApiController::exportarAsignacion');
         $routes->post('api/presupuesto-mensual/exportar-anual', 'PresupuestoApiController::exportarAnual');
         $routes->get('api/presupuesto/comparativo/(:any)/(:num)/(:any)', 'ReportesController::getComparativo/$1/$2/$3');

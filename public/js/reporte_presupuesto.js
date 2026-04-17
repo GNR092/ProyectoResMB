@@ -1059,6 +1059,7 @@ function registrarComponenteReportePresupuesto() {
                             if (!partida) {
                                 partida = { 
                                     etiqueta: det.etiqueta, 
+                                    es_manual: det.es_manual,
                                     asignado: 0, 
                                     ejecutado: 0,
                                     importesPorMes: {} 

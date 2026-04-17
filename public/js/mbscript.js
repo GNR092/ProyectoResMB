@@ -102,6 +102,7 @@ function abrirModal(opcion) {
     SegmentoNegocio: 'Segmentos de Negocio',
     UnidadOperativa: 'Unidades operativas',
     AjustesPresupuesto: 'Ajustes presupuestales',
+    GastoManual: 'Registrar Gastos Manualemente',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -151,6 +152,7 @@ function abrirModal(opcion) {
         UnidadOperativa: initCrudUnidades,
         SegmentoNegocio: initCrudSegmentos,
         solicitar_material: initSolicitarMaterialTodo,
+        GastoManual: registrarComponenteGastoManual,
       }
 
       const inicializador = inicializadores[opcion]
@@ -3572,7 +3574,19 @@ function guardarFiltrosUnidades() {
   const inputNombre = document.getElementById('buscar-nombre-unidad');
   filtrosPersistidosUnidades = {
     nombre: inputNombre ? inputNombre.value : '',
-    lugares: choicesLugarUnidadFiltro ? choicesLugarUnidadFiltro.getValue(true) : []
+    lugares: (choicesLugarUnidadFiltro && typeof choicesLugarUnidadFiltro.getValue === 'function') ? choicesLugarUnidadFiltro.getValue(true) : []
+  };
+}
+
+/**
+ * Guarda el estado actual de los filtros de Grupos Presupuestales
+ */
+function guardarFiltrosGrupos() {
+  const inputNombre = document.getElementById('buscar-nombre-grupo');
+  filtrosPersistidosGrupos = {
+    nombre: inputNombre ? inputNombre.value : '',
+    lugares: (choicesLugarFiltro && typeof choicesLugarFiltro.getValue === 'function') ? choicesLugarFiltro.getValue(true) : [],
+    unidades: (choicesUnidadFiltro && typeof choicesUnidadFiltro.getValue === 'function') ? choicesUnidadFiltro.getValue(true) : []
   };
 }
 
@@ -3593,7 +3607,7 @@ function guardarFiltrosSegmentos() {
   const inputNombre = document.getElementById('buscar-nombre-segmento');
   filtrosPersistidosSegmentos = {
     nombre: inputNombre ? inputNombre.value : '',
-    razones: choicesRSFiltro ? choicesRSFiltro.getValue(true) : []
+    razones: (choicesRSFiltro && typeof choicesRSFiltro.getValue === 'function') ? choicesRSFiltro.getValue(true) : []
   };
 }
 
@@ -3605,9 +3619,9 @@ function initCrudSegmentos() {
   if (!tabla) return
 
   // Destruir instancias previas
-  if (choicesRSAdd) choicesRSAdd.destroy();
-  if (choicesRSEdit) choicesRSEdit.destroy();
-  if (choicesRSFiltro) choicesRSFiltro.destroy();
+  if (choicesRSAdd) { choicesRSAdd.destroy(); choicesRSAdd = null; }
+  if (choicesRSEdit) { choicesRSEdit.destroy(); choicesRSEdit = null; }
+  if (choicesRSFiltro) { choicesRSFiltro.destroy(); choicesRSFiltro = null; }
 
   const selAdd = document.getElementById('id_razon_social');
   const selEdit = document.getElementById('editar-id_razon_social');
@@ -3746,9 +3760,9 @@ function initCrudUnidades() {
   if (!tabla) return
 
   // Destruir instancias previas
-  if (choicesPlaceAdd) choicesPlaceAdd.destroy();
-  if (choicesPlaceEdit) choicesPlaceEdit.destroy();
-  if (choicesLugarUnidadFiltro) choicesLugarUnidadFiltro.destroy();
+  if (choicesPlaceAdd) { choicesPlaceAdd.destroy(); choicesPlaceAdd = null; }
+  if (choicesPlaceEdit) { choicesPlaceEdit.destroy(); choicesPlaceEdit = null; }
+  if (choicesLugarUnidadFiltro) { choicesLugarUnidadFiltro.destroy(); choicesLugarUnidadFiltro = null; }
 
   const selAdd = document.getElementById('ID_Place');
   const selEdit = document.getElementById('editar-ID_Place-unidad');
@@ -3887,10 +3901,10 @@ function initCrudGrupos() {
   if (!tabla) return
 
   // Destruir instancias previas si existen para evitar duplicados
-  if (choicesUnidadAdd) choicesUnidadAdd.destroy();
-  if (choicesUnidadEdit) choicesUnidadEdit.destroy();
-  if (choicesLugarFiltro) choicesLugarFiltro.destroy();
-  if (choicesUnidadFiltro) choicesUnidadFiltro.destroy();
+  if (choicesUnidadAdd) { choicesUnidadAdd.destroy(); choicesUnidadAdd = null; }
+  if (choicesUnidadEdit) { choicesUnidadEdit.destroy(); choicesUnidadEdit = null; }
+  if (choicesLugarFiltro) { choicesLugarFiltro.destroy(); choicesLugarFiltro = null; }
+  if (choicesUnidadFiltro) { choicesUnidadFiltro.destroy(); choicesUnidadFiltro = null; }
 
   const selAdd = document.getElementById('ID_UnidadOperativa');
   const selEdit = document.getElementById('editar-ID_UnidadOperativa');
@@ -4164,6 +4178,14 @@ function initGruposActions(tabla) {
     document.getElementById('editar-ID_GrupoPresupuestal').value = fila.dataset.id
     document.getElementById('editar-Nombre').value = fila.dataset.nombre
     document.getElementById('editar-Descripcion').value = fila.dataset.descripcion
+
+    // Checkbox de manual
+    const checkManual = document.getElementById('editar-es_manual')
+    if (checkManual) checkManual.checked = fila.dataset.esManual === '1'
+
+    // Checkbox de activo
+    const checkActivo = document.getElementById('editar-activo')
+    if (checkActivo) checkActivo.checked = fila.dataset.activo === '1'
 
     // Sincronizar el selector Choices para la edición
     if (choicesUnidadEdit && fila.dataset.idUnidad) {

@@ -26,6 +26,12 @@ class AuthFilter implements FilterInterface
     public function before(RequestInterface $request, $arguments = null)
     {
         if (!session()->get('isLoggedIn')) {
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion' => 'ACCESO_DENEGADO',
+                'modulo'      => 'Seguridad',
+                'estado'      => 'fallido',
+                'valores_nuevos' => json_encode(['url' => $request->getUri()->getPath()])
+            ]);
             return redirect()->to(base_url('auth'));
         }
     }

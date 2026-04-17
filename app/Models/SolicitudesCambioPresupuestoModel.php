@@ -3,9 +3,13 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class SolicitudesCambioPresupuestoModel extends Model
 {
+    use AuditTrait;
+
+    protected $auditClasificacion = 'Finanzas';
     protected $table            = 'SolicitudesCambioPresupuesto';
     protected $primaryKey       = 'ID_SolicitudCambio';
     protected $useAutoIncrement = true;
@@ -30,6 +34,11 @@ class SolicitudesCambioPresupuestoModel extends Model
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
+
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 
     // Opcional: Join con usuario para vistas
     public function getPendientes()

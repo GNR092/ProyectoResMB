@@ -944,6 +944,11 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                             <td class="px-6 py-2" :class="index === 0 ? 'text-gray-900 text-xs pl-20' : 'pl-28 text-gray-400 text-[11px]'">
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
+                                                                <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
+                                                                        MANUAL
+                                                                    </span>
+                                                                </template>
                                                             </td>
                                                             
                                                             <!-- Celdas dinámicas para cada mes -->
@@ -1114,6 +1119,11 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                             <td class="px-6 py-2" :class="index === 0 ? 'text-gray-900 text-xs pl-20' : 'pl-28 text-gray-400 text-[11px]'">
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
+                                                                <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
+                                                                        MANUAL
+                                                                    </span>
+                                                                </template>
                                                             </td>
                                                             
                                                             <!-- Celdas dinámicas para cada mes -->
@@ -1298,6 +1308,11 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                             <td class="px-6 py-2" :class="index === 0 ? 'text-gray-900 text-xs pl-20' : 'pl-28 text-gray-400 text-[11px]'">
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
+                                                                <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
+                                                                        MANUAL
+                                                                    </span>
+                                                                </template>
                                                             </td>
                                                             <td class="px-4 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.totales?.asignado) : formatearMoneda(item.asignado)"></td>
                                                             <td class="px-4 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" x-text="index === 0 ? formatearMoneda(uni.totales?.comprometido) : formatearMoneda(item.comprometido)"></td>
@@ -1594,6 +1609,11 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                             <td class="px-6 py-2" :class="index === 0 ? 'text-blue-900 text-xs pl-20' : 'pl-28 text-gray-500 text-[10px]'">
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
+                                                                <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
+                                                                        MANUAL
+                                                                    </span>
+                                                                </template>
                                                             </td>
                                                             <td class="px-2 py-2 text-right text-gray-900" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.asignado) : formatearMoneda(item.asignado)"></td>
                                                             <td class="px-2 py-2 text-right" :class="index === 0 ? 'text-gray-900' : 'text-orange-600 italic'" x-text="index === 0 ? formatearMoneda(uni.presupuesto?.comprometido) : formatearMoneda(item.comprometido)"></td>

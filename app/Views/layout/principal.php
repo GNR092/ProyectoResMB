@@ -153,6 +153,9 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 <script src="<?= base_url() ?>js/correcciones.js?v=<?= filemtime(
     FCPATH . 'js/correcciones.js',
 ) ?>" defer></script>
+<script src="<?= base_url() ?>js/gasto_manual.js?v=<?= filemtime(
+    FCPATH . 'js/gasto_manual.js',
+) ?>" defer></script>
 </body>
 
 </html>

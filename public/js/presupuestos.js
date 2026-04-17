@@ -487,14 +487,18 @@ function registrarComponentePresupuesto() {
                         this.mensaje = result.message || 'Presupuestos guardados correctamente';
                         this.error = false;
                         this.usoCopia = false;
+                        mostrarNotificacion(this.mensaje, 'success');
                         await this.cargarEstructura();
                     } else {
-                        this.mensaje = 'Error al guardar los presupuestos';
+                        const errorData = await res.json().catch(() => ({}));
+                        this.mensaje = errorData.message || 'Error al guardar los presupuestos';
                         this.error = true;
+                        mostrarNotificacion(this.mensaje, 'error');
                     }
                 } catch (e) {
                     this.mensaje = 'Error de conexión al guardar.';
                     this.error = true;
+                    mostrarNotificacion(this.mensaje, 'error');
                 } finally {
                     this.guardando = false;
                     if (!this.error) {

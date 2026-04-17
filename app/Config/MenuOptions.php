@@ -170,6 +170,11 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#PresupuestoMensual"></use></svg>',
             ],
 
+            'GastoManual' => [
+                'label' => 'Gastos Manuales',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#GastosManuales"></use></svg>',
+            ],
+
 
             //**********BANCOS RAZON SOCIAL**********//
 

@@ -67,6 +67,16 @@ class MBSMail
             $this->mail->send();
             return true;
         } catch (Exception $e) {
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'ENVIO_CORREO',
+                'modulo'         => 'ServicioExterno',
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode([
+                    'destinatario' => $to,
+                    'asunto'       => $subject,
+                    'error'        => $this->mail->ErrorInfo
+                ])
+            ]);
             throw new Exception("Error al enviar el correo: " . $this->mail->ErrorInfo);
         }
     }

@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class ProveedorModel extends Model
 {
+    use AuditTrait;
+
+    protected $auditClasificacion = 'Catálogos';
+
     protected $table            = 'Proveedor';
     protected $primaryKey       = 'ID_Proveedor';
     protected $useAutoIncrement = true;
@@ -45,4 +50,10 @@ class ProveedorModel extends Model
     ];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
-    }
+
+    // Callbacks
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
+}

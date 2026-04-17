@@ -428,6 +428,13 @@ class ControlMaestro extends BaseController
             if ($this->db->transStatus() === false) {
                 $this->db->transRollback();
             }
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'FALLO_CONTROL_MAESTRO',
+                'modulo'         => 'Solicitudes',
+                'solicitud_id'   => $id_solicitud,
+                'estado'         => 'fallido',
+                'valores_nuevos' => json_encode(['error' => $e->getMessage()])
+            ]);
             log_message('error', '[ControlMaestro::update_master] ERROR: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $this->response->setStatusCode(500)->setJSON([
                 'success' => false,

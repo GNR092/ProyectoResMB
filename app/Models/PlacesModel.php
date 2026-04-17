@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class PlacesModel extends Model
 {
+    use AuditTrait;
+
+    protected $auditClasificacion = 'Catálogos';
+
     protected $table            = 'Places';
     protected $primaryKey       = 'ID_Place';
     protected $useAutoIncrement = true;
@@ -22,8 +27,65 @@ class PlacesModel extends Model
     protected $deletedField  = 'deleted_at';
 
     // Validación
-    protected $validationRules      = [];
-    protected $validationMessages   = [];
+    protected $validationRules      = [
+        'Nombre_Corto' => 'required|is_unique[Places.Nombre_Corto,ID_Place,{id}]',
+        'Nombre_Completo' => 'required',
+        'ID_RazonSocial' => 'required'
+    ];
+    protected $validationMessages   = [
+        'Nombre_Corto' => [
+            'is_unique' => 'El Nombre Corto ya está en uso por otro complejo.'
+        ]
+    ];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
+
+    // Callbacks
+    protected $beforeInsert = ['normalizeSegmento', 'normalizeUnidadOperativa'];
+    protected $beforeUpdate = ['captureOldData', 'normalizeSegmento', 'normalizeUnidadOperativaOnUpdate'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
+
+    protected function normalizeSegmento(array $data): array
+    {
+        if (! isset($data['data']['id_segmento'])) {
+            return $data;
+        }
+
+        $valor = $data['data']['id_segmento'];
+        if ($valor === '' || $valor === '0' || $valor === 0 || $valor === null) {
+            $data['data']['id_segmento'] = null;
+        } else {
+            $data['data']['id_segmento'] = (int) $valor;
+        }
+
+        return $data;
+    }
+
+    protected function normalizeUnidadOperativa(array $data): array
+    {
+        if (! array_key_exists('ID_UnidadOperativa', $data['data'] ?? [])) {
+            return $data;
+        }
+
+        $valor = $data['data']['ID_UnidadOperativa'];
+        if ($valor === '' || $valor === '0' || $valor === 0 || $valor === null) {
+            $data['data']['ID_UnidadOperativa'] = null;
+            return $data;
+        }
+
+        $unidad = (int) $valor;
+        $data['data']['ID_UnidadOperativa'] = $unidad > 0 ? $unidad : null;
+        return $data;
+    }
+
+    protected function normalizeUnidadOperativaOnUpdate(array $data): array
+    {
+        if (! isset($data['data']) || ! is_array($data['data'])) {
+            return $data;
+        }
+
+        return $this->normalizeUnidadOperativa($data);
+    }
 }
