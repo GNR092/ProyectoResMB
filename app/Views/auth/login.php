@@ -82,6 +82,7 @@
             @grid: 14x1 / 100vw 100vh;
             background-position: 50%;
             background: #0a0a0a;
+            perspective: 1000px;
             background-image: @svg(
                 viewBox: 0 0 1000 1000;
                 circle*240 {
@@ -112,6 +113,7 @@
         :after {
             content: '';
             position: absolute;
+            transform-style: preserve-3d;
 
             @size: @r(30vmin, 70vmin) @r(10vmin, 20vmin);
             border-left: @r(2px) solid var(--c);
@@ -123,9 +125,6 @@
                 linear-gradient(to right, var(--c), transparent @r(40%, 70%)) 0 50% / @r(30%, 50%) 1px no-repeat,
                 linear-gradient(to right, rgba(255, 255, 255, 0.01), transparent);
             
-            /* Movimiento en todas las direcciones usando rotaciones en múltiples ejes */
-            transform: rotateX(@r(360deg)) rotateY(@r(360deg)) rotateZ(@r(360deg)) scaleX(@p(--s)) translateZ(@r(20vmin, 60vmin));
-            transform-origin: center center;
             will-change: transform;
             animation: move @r(15s, 30s) linear infinite;
             animation-delay: -@r(50s);
@@ -134,68 +133,81 @@
 
         @keyframes move {
             0% {
-                transform: rotateX(@r(360deg)) rotateY(0deg) rotateZ(@r(360deg)) scaleX(@p(--s)) translateZ(@r(20vmin, 60vmin));
+                transform: rotateX(@r(360deg)) rotateY(0deg) rotateZ(@r(360deg)) scaleX(var(--s)) translateZ(-200px);
+                opacity: 0;
+            }
+            10% {
+                opacity: @r(0.2, 0.6);
+            }
+            90% {
+                opacity: @r(0.2, 0.6);
             }
             100% {
-                transform: rotateX(@r(360deg)) rotateY(360deg) rotateZ(@r(360deg)) scaleX(@p(--s)) translateZ(@r(20vmin, 60vmin));
+                transform: rotateX(@r(360deg)) rotateY(360deg) rotateZ(@r(360deg)) scaleX(var(--s)) translateZ(500px);
+                opacity: 0;
             }
         }
         </style>
     </css-doodle>
 
-    <div class="glass-card rounded-2xl p-10 w-full max-w-md font-montserrat transition-all duration-500">
-        <!-- Logo -->
-        <div class="text-center mb-10">
-            <img src="<?= base_url('images/logo.svg') ?>" alt="MB Signature Properties" class="mx-auto h-24 w-auto brightness-110">
-            <h2 class="text-white text-xs uppercase tracking-[0.3em] mt-4 opacity-60">Portal Corporativo</h2>
-        </div>
-
-        <?php if (!function_exists('form_open')) { helper('form'); } ?>
-        <?= form_open('auth/login', ['class' => 'space-y-6']) ?>
-        <?= csrf_field() ?>
-
-        <div>
-            <label for="email" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 ml-1">
-                Correo Electrónico
-            </label>
-            <input type="email" id="email" name="email" value="<?= old('email') ?>" required
-                class="w-full px-4 py-3 rounded-xl input-field text-sm" placeholder="ejemplo@mbsignature.com">
-        </div>
-
-        <div>
-            <label for="password" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 ml-1">
-                Contraseña
-            </label>
-            <input type="password" id="password" name="password" required
-                class="w-full px-4 py-3 rounded-xl input-field text-sm" placeholder="••••••••">
-        </div>
-
-        <?php if (isset($error)): ?>
-        <div class="bg-red-500/10 text-red-400 p-4 rounded-xl border border-red-500/20 text-sm">
-            <?= esc($error) ?>
-        </div>
-        <?php endif; ?>
-
-        <div class="flex items-center justify-between">
-            <div class="flex items-center">
-                <input id="login_as_employee" name="login_as_employee" type="checkbox" value="1" <?= set_checkbox('login_as_employee', '1') ?> 
-                    class="h-4 w-4 bg-transparent border-white/20 rounded text-[#efb810] focus:ring-[#efb810]">
-                <label for="login_as_employee" class="ml-2 block text-xs text-gray-400">
-                    Acceso Auxiliar
-                </label>
+    <div class="glass-card rounded-3xl px-12 py-16 w-full max-w-md font-montserrat transition-all duration-500">
+        <!-- Contenedor interno para centrar y estrechar el contenido -->
+        <div class="max-w-[340px] mx-auto">
+            <!-- Logo -->
+            <div class="text-center mb-12">
+                <img src="<?= base_url('images/logo.svg') ?>" alt="MB Signature Properties" class="mx-auto h-24 w-auto brightness-110">
+                <h2 class="text-white text-[10px] font-medium uppercase tracking-[0.4em] mt-6 opacity-50">Portal Corporativo</h2>
             </div>
-        </div>
 
-        <button type="submit" class="w-full btn-primary py-4 rounded-xl text-sm uppercase tracking-widest mt-4">
-            Iniciar Sesión
-        </button>
-        
-        <div class="mt-8 text-center">
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest">
-                &copy; <?= date('Y') ?> MB Signature Properties
-            </p>
+            <?php if (!function_exists('form_open')) { helper('form'); } ?>
+            <?= form_open('auth/login', ['class' => 'space-y-8']) ?>
+            <?= csrf_field() ?>
+
+            <div class="space-y-3">
+                <label for="email" class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest ml-1">
+                    Correo Electrónico
+                </label>
+                <input type="email" id="email" name="email" value="<?= old('email') ?>" required
+                    class="w-full px-5 py-4 rounded-2xl input-field text-sm" placeholder="ejemplo@mbsignature.com">
+            </div>
+
+            <div class="space-y-3">
+                <label for="password" class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest ml-1">
+                    Contraseña
+                </label>
+                <input type="password" id="password" name="password" required
+                    class="w-full px-5 py-4 rounded-2xl input-field text-sm" placeholder="••••••••">
+            </div>
+
+            <?php if (isset($error)): ?>
+            <div class="bg-red-500/10 text-red-400 p-4 rounded-2xl border border-red-500/20 text-xs text-center">
+                <?= esc($error) ?>
+            </div>
+            <?php endif; ?>
+
+            <div class="flex items-center justify-between pt-2">
+                <div class="flex items-center group cursor-pointer">
+                    <input id="login_as_employee" name="login_as_employee" type="checkbox" value="1" <?= set_checkbox('login_as_employee', '1') ?> 
+                        class="h-4 w-4 bg-transparent border-white/20 rounded-md text-[#efb810] focus:ring-[#efb810] transition-colors">
+                    <label for="login_as_employee" class="ml-3 block text-[11px] text-gray-400 group-hover:text-gray-300 transition-colors cursor-pointer">
+                        Acceso Auxiliar
+                    </label>
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <button type="submit" class="w-full btn-primary py-4 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em]">
+                    Iniciar Sesión
+                </button>
+            </div>
+            
+            <div class="mt-14 text-center">
+                <p class="text-[9px] text-gray-600 uppercase tracking-[0.3em] font-medium">
+                    &copy; <?= date('Y') ?> MB Signature Properties
+                </p>
+            </div>
+            <?= form_close() ?>
         </div>
-        <?= form_close() ?>
     </div>
 </body>
 
