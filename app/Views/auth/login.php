@@ -9,9 +9,20 @@
     <link rel="shortcut icon" type="image/png" href="/favicon.ico">
     <script src="https://unpkg.com/css-doodle@0.38.4/css-doodle.min.js"></script>
     <style>
+    body {
+        opacity: 0;
+        animation: fadeIn 0.4s ease-out forwards;
+        background-color: #121212 !important; /* Match splash screen background */
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
     html,
     body {
-        background-color: transparent;
+        background-color: #121212;
     }
 
     css-doodle {
