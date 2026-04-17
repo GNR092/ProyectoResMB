@@ -151,6 +151,7 @@ class Home extends BaseController
                 'SaldosBancarios',
                 'TituloReportes',
                 'ReportePresupuesto',
+                'GastoManual',
             ],
 
             // Rol por defecto (Jefes de Departamento)
