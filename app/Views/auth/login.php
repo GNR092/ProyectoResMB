@@ -11,8 +11,9 @@
     <style>
     body {
         opacity: 0;
-        animation: fadeIn 0.4s ease-out forwards;
-        background-color: #121212 !important; /* Match splash screen background */
+        animation: fadeIn 0.8s ease-out forwards;
+        background-color: #0a0a0a !important;
+        overflow: hidden;
     }
 
     @keyframes fadeIn {
@@ -22,7 +23,7 @@
 
     html,
     body {
-        background-color: #121212;
+        background-color: #0a0a0a;
     }
 
     css-doodle {
@@ -33,126 +34,167 @@
         height: 100%;
         z-index: -1;
     }
+
+    /* Glassmorphism accent */
+    .glass-card {
+        background: rgba(18, 18, 18, 0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+    }
+
+    .input-field {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        transition: all 0.3s ease;
+    }
+
+    .input-field:focus {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: #efb810;
+        box-shadow: 0 0 0 2px rgba(239, 184, 16, 0.2);
+        outline: none;
+    }
+
+    .btn-primary {
+        background: #efb810;
+        color: #000;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background: #fccb35;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(239, 184, 16, 0.3);
+    }
     </style>
 </head>
 
-<body class="min-h-screen flex items-center justify-center p-4 bg-carbon-500">
+<body class="min-h-screen flex items-center justify-center p-4">
     <css-doodle>
         <style>
-         --color: #efb810, #efb810, #efb810, #efb810;
+        --color: #efb810, #d4af37, #b8860b, #efb810;
 
         :doodle {
-    @grid: 12x1 / 100vw 100vh;
-    background-position: 50%;
-    background: #3c3c3c;
-    background-image: @svg(
-      viewBox: 0 0 1000 1000;
-      circle*240 {
-        cx: @r(20, 980);
-        cy: @r(20, 980);
-        r: @r(.01, 10);
-        fill: @p(--color);
-        fill-opacity: @r.5;
-      }
-      path*100 {
-        d: M @r(1000) @r(1000) l @r(-30, 30) @r(-200, 500);
-        stroke: @p(--color);
-        stroke-width: @r(.01, .6);
-        stroke-dasharray: 5 @round.r(5, 20)
-      }
-      path*20 {
-        d: M @r(1000) @r(1000) l @r(-30, 30) @r(-20, 50);
-        stroke: @p(--color);
-        stroke-width: @r(8, 15);
-        stroke-dasharray: 5 @round.r(5, 20);
-      }
-    );
-  }
+            @grid: 14x1 / 100vw 100vh;
+            background-position: 50%;
+            background: #0a0a0a;
+            background-image: @svg(
+                viewBox: 0 0 1000 1000;
+                circle*240 {
+                    cx: @r(20, 980);
+                    cy: @r(20, 980);
+                    r: @r(.01, 8);
+                    fill: @p(--color);
+                    fill-opacity: @r.4;
+                }
+                path*80 {
+                    d: M @r(1000) @r(1000) l @r(-50, 50) @r(-300, 600);
+                    stroke: @p(--color);
+                    stroke-width: @r(.01, .4);
+                    stroke-dasharray: 5 @round.r(5, 15)
+                }
+            );
+        }
 
-        @size: 100% 50%;
+        @size: 100% 60%;
         position: absolute;
-        top: 25%;
-        rotate: @iI(*360deg);
+        top: 20%;
+        left: 0;
+        rotate: @r(360deg);
 
-        --s: @r5;
+        --s: @r(1, 4);
         --c: @p(--color);
 
         :after {
             content: '';
             position: absolute;
 
-            @size: @r(40vmin, 61vmin) @r(12vmin, 17vmin);
-            border-left: @r(3px) solid var(--c);
+            @size: @r(30vmin, 70vmin) @r(10vmin, 20vmin);
+            border-left: @r(2px) solid var(--c);
             border-radius: 50vmin;
             background:
-                radial-gradient(var(--c) 50%, transparent 0%) 1vmin 42% / 3px 6px no-repeat,
-                radial-gradient(var(--c) 50%, transparent 0%) 1vmin 58% / 3px 6px no-repeat,
-                @m20(linear-gradient(to right, var(--c), transparent @r(50%, 80%)) 0 @r(100%) / @r(20%) 1px no-repeat),
-                linear-gradient(to right, var(--c), transparent @r(50%, 80%)) 0 50% / @r(40%, 60%) 1px no-repeat,
-                linear-gradient(to right, rgba(255, 255, 255, .015), transparent);
-            transform: rotateY(0) scaleX(@p(--s)) translateZ(50vmin);
-            transform-origin: 0 50%;
+                radial-gradient(var(--c) 50%, transparent 0%) 1vmin 42% / 2px 4px no-repeat,
+                radial-gradient(var(--c) 50%, transparent 0%) 1vmin 58% / 2px 4px no-repeat,
+                @m15(linear-gradient(to right, var(--c), transparent @r(40%, 70%)) 0 @r(100%) / @r(15%) 1px no-repeat),
+                linear-gradient(to right, var(--c), transparent @r(40%, 70%)) 0 50% / @r(30%, 50%) 1px no-repeat,
+                linear-gradient(to right, rgba(255, 255, 255, 0.01), transparent);
+            
+            /* Movimiento en todas las direcciones usando rotaciones en múltiples ejes */
+            transform: rotateX(@r(360deg)) rotateY(@r(360deg)) rotateZ(@r(360deg)) scaleX(@p(--s)) translateZ(@r(20vmin, 60vmin));
+            transform-origin: center center;
             will-change: transform;
-            animation: r @r(10s, 20s) linear infinite;
+            animation: move @r(15s, 30s) linear infinite;
             animation-delay: -@r(50s);
+            opacity: @r(0.2, 0.6);
         }
 
-        @keyframes r {
-            to {
-                transform: rotateY(-1turn) scaleX(@p(--s)) translateZ(50vmin)
+        @keyframes move {
+            0% {
+                transform: rotateX(@r(360deg)) rotateY(0deg) rotateZ(@r(360deg)) scaleX(@p(--s)) translateZ(@r(20vmin, 60vmin));
+            }
+            100% {
+                transform: rotateX(@r(360deg)) rotateY(360deg) rotateZ(@r(360deg)) scaleX(@p(--s)) translateZ(@r(20vmin, 60vmin));
             }
         }
         </style>
     </css-doodle>
 
-    <div class="bg-gray-200 opacity-95 rounded-lg shadow-lg p-8 w-full max-w-md font-montserrat">
+    <div class="glass-card rounded-2xl p-10 w-full max-w-md font-montserrat transition-all duration-500">
         <!-- Logo -->
-        <div class="text-center mb-8">
-            <img src="<?= base_url(
-                'images/logo.svg',
-            ) ?>" alt="MB Signature Properties" class="mx-auto h-20 w-auto">
+        <div class="text-center mb-10">
+            <img src="<?= base_url('images/logo.svg') ?>" alt="MB Signature Properties" class="mx-auto h-24 w-auto brightness-110">
+            <h2 class="text-white text-xs uppercase tracking-[0.3em] mt-4 opacity-60">Portal Corporativo</h2>
         </div>
-        <?php if (!function_exists('form_open')) {
-            helper('form');
-        } ?>
+
+        <?php if (!function_exists('form_open')) { helper('form'); } ?>
         <?= form_open('auth/login', ['class' => 'space-y-6']) ?>
         <?= csrf_field() ?>
+
         <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 mb-2 ">
-                Correo *
+            <label for="email" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 ml-1">
+                Correo Electrónico
             </label>
             <input type="email" id="email" name="email" value="<?= old('email') ?>" required
-                class="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focusring-orange-400 focus:border-transparent">
+                class="w-full px-4 py-3 rounded-xl input-field text-sm" placeholder="ejemplo@mbsignature.com">
         </div>
 
         <div>
-            <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Contraseña *</label>
-            <input type="password" id="password" name="password" required
-                class="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent">
-            <p class="text-red-500 text-sm mt-1"></p>
-        </div>
-        <div class="space-y-4 mb-6">
-            <?php if (isset($error)): ?>
-            <div class="bg-red-100 text-red-700 p-4 rounded-md border border-red-400">
-                <?= esc($error) ?>
-            </div>
-            <?php endif; ?>
-        </div>
-
-        <div class="flex items-center">
-            <input id="login_as_employee" name="login_as_employee" type="checkbox" value="1" <?= set_checkbox(
-                'login_as_employee',
-                '1',
-            ) ?> class="h-4 w-4 text-gray-800 focus:ring-gray-900 border-gray-300 rounded">
-            <label for="login_as_employee" class="ml-2 block text-sm text-gray-900">
-                Auxiliar
+            <label for="password" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 ml-1">
+                Contraseña
             </label>
+            <input type="password" id="password" name="password" required
+                class="w-full px-4 py-3 rounded-xl input-field text-sm" placeholder="••••••••">
         </div>
 
-        <button type="submit"
-            class="w-full bg-gray-800 text-white py-3 px-4 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 transition duration-200">
-            Iniciar sesión
+        <?php if (isset($error)): ?>
+        <div class="bg-red-500/10 text-red-400 p-4 rounded-xl border border-red-500/20 text-sm">
+            <?= esc($error) ?>
+        </div>
+        <?php endif; ?>
+
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <input id="login_as_employee" name="login_as_employee" type="checkbox" value="1" <?= set_checkbox('login_as_employee', '1') ?> 
+                    class="h-4 w-4 bg-transparent border-white/20 rounded text-[#efb810] focus:ring-[#efb810]">
+                <label for="login_as_employee" class="ml-2 block text-xs text-gray-400">
+                    Acceso Auxiliar
+                </label>
+            </div>
+        </div>
+
+        <button type="submit" class="w-full btn-primary py-4 rounded-xl text-sm uppercase tracking-widest mt-4">
+            Iniciar Sesión
         </button>
+        
+        <div class="mt-8 text-center">
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest">
+                &copy; <?= date('Y') ?> MB Signature Properties
+            </p>
+        </div>
         <?= form_close() ?>
     </div>
 </body>
