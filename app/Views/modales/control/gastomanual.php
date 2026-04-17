@@ -85,8 +85,9 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         <table class="min-w-full text-sm">
             <thead class="bg-amber-50">
             <tr>
-                <th class="w-2/3 px-6 py-3 border-b border-gray-300 text-left font-semibold text-gray-700 uppercase tracking-tighter">Departamento / Partida de Gasto Manual</th>
-                <th class="w-1/3 px-6 py-3 border-b border-gray-300 text-right font-semibold text-gray-700 border-l border-l-gray-300 uppercase tracking-tighter">Importe Ejecutado</th>
+                <th class="w-1/2 px-6 py-3 border-b border-gray-300 text-left font-semibold text-gray-700 uppercase tracking-tighter">Departamento / Partida de Gasto Manual</th>
+                <th class="w-1/4 px-6 py-3 border-b border-gray-300 text-right font-semibold text-gray-700 border-l border-l-gray-300 uppercase tracking-tighter">Importe Ejecutado (Actual)</th>
+                <th class="w-1/4 px-6 py-3 border-b border-gray-300 text-right font-semibold text-gray-700 border-l border-l-gray-300 uppercase tracking-tighter bg-amber-100/50">Nuevos Gastos (+)</th>
             </tr>
             </thead>
 
@@ -122,17 +123,20 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <td class="px-6 py-2 border-b border-gray-200 text-gray-600 pl-12">
                                 <span x-text="grupo.Nombre"></span>
                                 <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                                    ✍️ MANUAL
+                                    MANUAL
                                 </span>
                             </td>
-                            <td class="px-6 py-2 border-b border-gray-200 border-l border-l-gray-200">
+                            <td class="px-6 py-2 border-b border-gray-200 border-l border-l-gray-200 text-right font-medium text-gray-500 bg-gray-50/50">
+                                <span x-text="formatearMoneda(grupo.Monto_Ejecutado)"></span>
+                            </td>
+                            <td class="px-6 py-2 border-b border-gray-200 border-l border-l-gray-200 bg-amber-50/20">
                                 <div class="flex items-center justify-end gap-1">
-                                    <span class="text-gray-500 font-medium">$</span>
+                                    <span class="text-amber-600 font-bold">+ $</span>
                                     <input type="number"
                                            min="0" step="0.01"
-                                           x-model="grupo.Monto_Ejecutado"
+                                           x-model="grupo.monto_ingresado"
                                            placeholder="0.00"
-                                           class="w-32 px-2 py-1.5 border border-gray-300 rounded-md text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent">
+                                           class="w-32 px-2 py-1.5 border border-amber-300 rounded-md text-right focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent font-bold text-amber-900">
                                 </div>
                             </td>
                         </tr>

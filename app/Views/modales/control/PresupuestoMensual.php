@@ -165,7 +165,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <span x-text="grupo.Nombre"></span>
                             <template x-if="grupo.es_manual == 1 || grupo.es_manual === true || grupo.es_manual === 't'">
                                 <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
-                                    ✍️ MANUAL
+                                    MANUAL
                                 </span>
                             </template>
                         </td>

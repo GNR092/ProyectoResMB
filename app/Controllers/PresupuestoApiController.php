@@ -78,6 +78,8 @@ class PresupuestoApiController extends ResourceController
 
                         if (!$esActivo && !$p) continue;
                         $grupo['Monto_Asignado'] = $p ? $p['Monto_Asignado'] : '';
+                        $grupo['Monto_Comprometido'] = $p ? $p['Monto_Comprometido'] : 0;
+                        $grupo['Monto_Ejecutado'] = $p ? $p['Monto_Ejecutado'] : 0;
                         $grupo['ID_PresupuestoMensual'] = $p ? $p['ID_PresupuestoMensual'] : null;
                         $gruposDeLaUnidad[] = $grupo;
                     }
@@ -131,6 +133,76 @@ class PresupuestoApiController extends ResourceController
                 'valores_nuevos' => json_encode(['error' => $e->getMessage(), 'post' => $json])
             ]);
             return $this->failServerError($e->getMessage());
+        }
+    }
+
+    /**
+     * GUARDA GASTOS MANUALES (SUMA INCREMENTAL)
+     */
+    public function saveGastosManuales()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+            if (!isset($json['anio']) || !isset($json['mes']) || !isset($json['grupos']) || !is_array($json['grupos'])) {
+                return $this->failValidationErrors('Datos incompletos.');
+            }
+
+            $pmModel = new PresupuestoMensualModel();
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            $anio = (int)$json['anio'];
+            $mes  = (int)$json['mes'];
+
+            foreach ($json['grupos'] as $g) {
+                $idUnidad = (int)$g['id_unidad'];
+                $idGrupo  = (int)$g['id_grupo'];
+                $incremento = (float)$g['monto_incremento'];
+
+                if ($incremento <= 0) continue;
+
+                // Buscar si ya existe el registro para ese mes/unidad/partida
+                $exists = $pmModel->where([
+                    'ID_UnidadOperativa'   => $idUnidad,
+                    'ID_GrupoPresupuestal' => $idGrupo,
+                    'Anio'                 => $anio,
+                    'Mes'                  => $mes
+                ])->first();
+
+                if ($exists) {
+                    // SUMAR al valor existente
+                    $nuevoTotal = (float)$exists['Monto_Ejecutado'] + $incremento;
+                    $pmModel->update($exists['ID_PresupuestoMensual'], [
+                        'Monto_Ejecutado' => $nuevoTotal
+                    ]);
+                } else {
+                    // CREAR nuevo registro (el monto asignado será 0 por defecto)
+                    $this->syncPresupuestoMensualSequenceIfNeeded($db);
+                    $pmModel->insert([
+                        'ID_UnidadOperativa'   => $idUnidad,
+                        'ID_GrupoPresupuestal' => $idGrupo,
+                        'Anio'                 => $anio,
+                        'Mes'                  => $mes,
+                        'Monto_Asignado'       => 0,
+                        'Monto_Comprometido'   => 0,
+                        'Monto_Ejecutado'      => $incremento
+                    ]);
+                }
+            }
+
+            $db->transComplete();
+            if ($db->transStatus() === false) {
+                throw new \Exception('Error al actualizar los gastos en la base de datos.');
+            }
+
+            return $this->respond([
+                'success' => true, 
+                'message' => 'Gastos registrados y acumulados correctamente ✅'
+            ]);
+
+        } catch (\Throwable $e) {
+            log_message('error', '[saveGastosManuales] ' . $e->getMessage());
+            return $this->failServerError('Error al procesar el registro de gastos: ' . $e->getMessage());
         }
     }
 

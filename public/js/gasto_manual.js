@@ -78,7 +78,7 @@ function registrarComponenteGastoManual() {
                     this.departamentos.forEach(uni => {
                         uni.grupos.forEach(grupo => {
                             if (grupo.es_manual == 1 || grupo.es_manual === true || grupo.es_manual === 't') {
-                                total += parseFloat(grupo.Monto_Ejecutado) || 0;
+                                total += parseFloat(grupo.monto_ingresado) || 0;
                             }
                         });
                     });
@@ -90,7 +90,7 @@ function registrarComponenteGastoManual() {
                     if (uni.grupos) {
                         uni.grupos.forEach(grupo => {
                             if (grupo.es_manual == 1 || grupo.es_manual === true || grupo.es_manual === 't') {
-                                total += parseFloat(grupo.Monto_Ejecutado) || 0;
+                                total += parseFloat(grupo.monto_ingresado) || 0;
                             }
                         });
                     }
@@ -114,13 +114,9 @@ function registrarComponenteGastoManual() {
 
                         if (res.ok) {
                             const data = await res.json();
-                            // Nos aseguramos de que Monto_Ejecutado esté inicializado
                             const dptos = (data.departamentos || []).map(uni => {
                                 uni.grupos = uni.grupos.map(g => {
-                                    if (!g.hasOwnProperty('Monto_Ejecutado')) {
-                                        // Si la API no lo trae, intentamos usar el valor que ya exista o 0
-                                        g.Monto_Ejecutado = g.Monto_Ejecutado || 0;
-                                    }
+                                    g.monto_ingresado = ''; 
                                     return g;
                                 });
                                 return uni;
@@ -180,17 +176,24 @@ function registrarComponenteGastoManual() {
                         grupos: []
                     };
 
-                    this.departamentosOriginales.forEach(uni => {
+                    this.departamentos.forEach(uni => {
                         uni.grupos.forEach(g => {
-                            if (g.es_manual == 1 || g.es_manual === true || g.es_manual === 't') {
+                            if ((g.es_manual == 1 || g.es_manual === true || g.es_manual === 't') && parseFloat(g.monto_ingresado) > 0) {
                                 datos.grupos.push({
                                     id_unidad: uni.ID_UnidadOperativa,
                                     id_grupo: g.ID_GrupoPresupuestal,
-                                    monto_ejecutado: parseFloat(g.Monto_Ejecutado) || 0
+                                    monto_incremento: parseFloat(g.monto_ingresado)
                                 });
                             }
                         });
                     });
+
+                    if (datos.grupos.length === 0) {
+                        this.mensaje = 'No hay nuevos gastos para registrar.';
+                        this.error = true;
+                        this.guardando = false;
+                        return;
+                    }
 
                     try {
                         const res = await fetch(`${BASE_URL}api/presupuesto-mensual/save-gastos-manuales`, {
@@ -203,6 +206,8 @@ function registrarComponenteGastoManual() {
                         if (res.ok && resData.success) {
                             this.mensaje = resData.message || 'Gastos registrados correctamente ✅';
                             this.error = false;
+                            // Recargar la estructura para ver los nuevos totales actualizados
+                            setTimeout(() => this.cargarEstructura(), 1500);
                         } else {
                             this.mensaje = resData.error || 'Error al guardar.';
                             this.error = true;
