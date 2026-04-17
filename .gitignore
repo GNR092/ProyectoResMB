@@ -181,3 +181,4 @@ Pruebas/PresupuestoMensual.png
 *.sql
 writable/mantenimiento.json
 /.codesearch.db
+/.agents
