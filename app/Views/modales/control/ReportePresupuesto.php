@@ -945,8 +945,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                                 <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
-                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
-                                                                        MANUAL
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados como indirectos">
+                                                                        INDIRECTO
                                                                     </span>
                                                                 </template>
                                                             </td>
@@ -1120,8 +1120,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                                 <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
-                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
-                                                                        MANUAL
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados como indirectos">
+                                                                        INDIRECTO
                                                                     </span>
                                                                 </template>
                                                             </td>
@@ -1309,8 +1309,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                                 <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
-                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
-                                                                        MANUAL
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados como indirectos">
+                                                                        INDIRECTO
                                                                     </span>
                                                                 </template>
                                                             </td>
@@ -1610,8 +1610,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                                 <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
-                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
-                                                                        MANUAL
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados como indirectos">
+                                                                        INDIRECTO
                                                                     </span>
                                                                 </template>
                                                             </td>
