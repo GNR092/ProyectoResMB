@@ -566,7 +566,8 @@ class ReportesController extends ResourceController
                         foreach ($comp['departamentos'] as $un) {
                             $this->excelWriteDynamicRow($sheet, $row, '      '.$un['Nombre'], $un['totales'], $isMensual, $mesesSeleccionados, $hayExcedidos, null, true); $row++;
                             foreach ($un['detalles'] as $dt) { 
-                                $this->excelWriteDynamicRow($sheet, $row, '        '.$dt['etiqueta'], $dt, $isMensual, $mesesSeleccionados, $hayExcedidos, null, false, '6B7280'); $row++; 
+                                $isIndirecto = !empty($dt['es_manual']) && ($dt['es_manual'] == 1 || $dt['es_manual'] === true || $dt['es_manual'] === 't');
+                                $this->excelWriteDynamicRow($sheet, $row, '        '.$dt['etiqueta'], $dt, $isMensual, $mesesSeleccionados, $hayExcedidos, $isIndirecto ? 'FEF3C7' : null, false, '6B7280'); $row++; 
                             }
                         }
                     }
@@ -640,7 +641,8 @@ class ReportesController extends ResourceController
                             $this->excelWriteMensualRow($sheet, $row, '      ' . $un['Nombre'], $unTotales, $mesesSeleccionados, $campo, null, true);
                             $row++;
                             foreach ($un['detalles'] as $dt) {
-                                $this->excelWriteMensualRow($sheet, $row, '        ' . $dt['etiqueta'], $dt, $mesesSeleccionados, $campo, null, false, '6B7280');
+                                $isIndirecto = !empty($dt['es_manual']) && ($dt['es_manual'] == 1 || $dt['es_manual'] === true || $dt['es_manual'] === 't');
+                                $this->excelWriteMensualRow($sheet, $row, '        ' . $dt['etiqueta'], $dt, $mesesSeleccionados, $campo, $isIndirecto ? 'FEF3C7' : null, false, '6B7280');
                                 $row++;
                             }
                         }
@@ -733,7 +735,8 @@ class ReportesController extends ResourceController
                             $unTotales = $un['presupuesto'] ?? $un['totales'] ?? [];
                             $this->excelWriteDynamicRow($sheet, $row, '      '.$un['Nombre'], $unTotales, $isMensual, $mesesSeleccionados, $hayExcedidos, null, true, null, false, true); $row++;
                             foreach ($un['detalles'] as $dt) { 
-                                $this->excelWriteDynamicRow($sheet, $row, '        '.$dt['etiqueta'], $dt, $isMensual, $mesesSeleccionados, $hayExcedidos, null, false, '6B7280', false, false); $row++; 
+                                $isIndirecto = !empty($dt['es_manual']) && ($dt['es_manual'] == 1 || $dt['es_manual'] === true || $dt['es_manual'] === 't');
+                                $this->excelWriteDynamicRow($sheet, $row, '        '.$dt['etiqueta'], $dt, $isMensual, $mesesSeleccionados, $hayExcedidos, $isIndirecto ? 'FEF3C7' : null, false, '6B7280', false, false); $row++; 
                             }
                         }
                     }

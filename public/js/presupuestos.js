@@ -285,7 +285,8 @@ function registrarComponentePresupuesto() {
                         place: uni.PlaceNombre || '',
                         grupos: uni.grupos.map(g => ({
                             nombre: g.Nombre,
-                            monto: parseFloat(g.Monto_Asignado) || 0
+                            monto: parseFloat(g.Monto_Asignado) || 0,
+                            es_manual: g.es_manual
                         }))
                     }));
 

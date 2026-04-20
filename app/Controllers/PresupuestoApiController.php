@@ -264,6 +264,13 @@ class PresupuestoApiController extends ResourceController
                 foreach ($uni['grupos'] as $g) {
                     $sheet->setCellValue('B' . $row, '    ' . $g['nombre']);
                     $sheet->setCellValue('C' . $row, (float)$g['monto']);
+
+                    $isIndirecto = !empty($g['es_manual']) && ($g['es_manual'] == 1 || $g['es_manual'] === true || $g['es_manual'] === 't');
+                    if ($isIndirecto) {
+                        $sheet->getStyle("A$row:C$row")->applyFromArray([
+                            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FEF3C7']]
+                        ]);
+                    }
                     $row++;
                 }
             }
