@@ -50,7 +50,7 @@ class CreateEntregasTable extends Migration
 
         $this->forge->addPrimaryKey('ID_Entrega');
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('Entregas');
+        $this->forge->createTable('Entregas', true);
     }
 
     public function down()

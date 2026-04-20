@@ -9,42 +9,52 @@ class AddGrupoToOrdenCompra extends Migration
     public function up()
     {
         // 1. Definir la columna nueva
-        $fields = [
-            'ID_GrupoPresupuestal' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true, // Debe ser igual al ID de la tabla nueva
-                'null'       => true, // Permitir NULL inicialmente
-            ],
-        ];
+        if (!$this->db->fieldExists('ID_GrupoPresupuestal', 'OrdenCompra')) {
+            $this->forge->addColumn('OrdenCompra', [
+                'ID_GrupoPresupuestal' => [
+                    'type'       => 'INT',
+                    'constraint' => 11,
+                    'unsigned'   => true,
+                    'null'       => true,
+                ],
+            ]);
+        }
 
-        // 2. Agregar la columna (Sin 'after' para compatibilidad Postgres)
-        $this->forge->addColumn('OrdenCompra', $fields);
+        $fkExists = $this->foreignKeyExists($this->db, 'OrdenCompra', 'ordencompra_grupo_fk');
 
-        // 3. Agregar la FK con nombre específico para evitar colisiones
-        $this->forge->addForeignKey(
-            'ID_GrupoPresupuestal',  // Columna en OrdenCompra
-            'GrupoPresupuestal',     // Tabla destino
-            'ID_GrupoPresupuestal',  // ID destino
-            'CASCADE',               // Al actualizar
-            'SET NULL',              // Al borrar
-            'ordencompra_grupo_fk'   // Nombre único del constraint
-        );
-
-        // 4. Procesar índices
-        $this->forge->processIndexes('OrdenCompra');
+        if ($fkExists === 0) {
+            try {
+                $this->forge->addForeignKey(
+                    'ID_GrupoPresupuestal',
+                    'GrupoPresupuestal',
+                    'ID_GrupoPresupuestal',
+                    'CASCADE',
+                    'SET NULL',
+                    'ordencompra_grupo_fk'
+                );
+                $this->forge->processIndexes('OrdenCompra');
+            } catch (\Throwable $e) {}
+        }
     }
 
     public function down()
     {
-        // Borrar FK primero usando el nombre específico (con try-catch por si no existe)
-        try {
-            $this->forge->dropForeignKey('OrdenCompra', 'ordencompra_grupo_fk');
-        } catch (\Throwable $e) {
-            // Ignoramos si no existe
+        try { $this->forge->dropForeignKey('OrdenCompra', 'ordencompra_grupo_fk'); } catch (\Throwable $e) {}
+        $this->forge->dropColumn('OrdenCompra', 'ID_GrupoPresupuestal');
+    }
+
+    private function foreignKeyExists($db, string $tableName, string $constraintName): int
+    {
+        if ($db->DBDriver === 'Postgre') {
+            return (int) ($db->query(
+                "SELECT COUNT(*) AS total FROM information_schema.table_constraints WHERE table_catalog = current_database() AND table_schema = current_schema() AND LOWER(table_name) = LOWER(?) AND LOWER(constraint_name) = LOWER(?) AND constraint_type = 'FOREIGN KEY'",
+                [$tableName, $constraintName],
+            )->getRow('total') ?? 0);
         }
 
-        // Borrar columna después
-        $this->forge->dropColumn('OrdenCompra', 'ID_GrupoPresupuestal');
+        return (int) ($db->query(
+            "SELECT COUNT(*) AS total FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = LOWER(?) AND LOWER(CONSTRAINT_NAME) = LOWER(?) AND CONSTRAINT_TYPE = 'FOREIGN KEY'",
+            [$tableName, $constraintName],
+        )->getRow('total') ?? 0);
     }
 }

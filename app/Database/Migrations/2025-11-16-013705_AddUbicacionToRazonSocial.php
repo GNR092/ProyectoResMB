@@ -8,13 +8,15 @@ class AddUbicacionToRazonSocial extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('Razon_Social', [
-            'Ubicacion' => [
-                'type'       => 'VARCHAR',
-                'constraint' => '255',
-                'null'       => true,
-            ],
-        ]);
+        if (!$this->db->fieldExists('Ubicacion', 'Razon_Social')) {
+            $this->forge->addColumn('Razon_Social', [
+                'Ubicacion' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => '255',
+                    'null'       => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

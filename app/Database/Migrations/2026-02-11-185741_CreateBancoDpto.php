@@ -43,7 +43,7 @@ class CreateBancoDpto extends Migration
             'bancodpto_dpto_fk'  // Nombre único para evitar conflicto en Postgres
         );
 
-        $this->forge->createTable('BancoDpto');
+        $this->forge->createTable('BancoDpto', true);
     }
 
     public function down()

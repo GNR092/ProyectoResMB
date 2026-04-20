@@ -50,7 +50,7 @@ class AddMapeoProductos extends Migration
         $this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'RESTRICT');
         $this->forge->addForeignKey('ID_Producto', 'Producto', 'ID_Producto', 'CASCADE', 'RESTRICT');
 
-        $this->forge->createTable('MapeoProductos');
+        $this->forge->createTable('MapeoProductos', true);
     }
 
     public function down()

@@ -8,14 +8,15 @@ class AddTipoComentarioToSolicitud extends Migration
 {
     public function up()
     {
-        $fields = [
-            'TipoComentarioAdmin' => [
-                'type' => 'VARCHAR',
-                'constraint' => 20,
-                'null' => true,
-            ],
-        ];
-        $this->forge->addColumn('Solicitud', $fields);
+        if (!$this->db->fieldExists('TipoComentarioAdmin', 'Solicitud')) {
+            $this->forge->addColumn('Solicitud', [
+                'TipoComentarioAdmin' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 20,
+                    'null' => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

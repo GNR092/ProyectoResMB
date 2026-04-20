@@ -61,7 +61,7 @@ class CreateSolicitudesCambioPresupuesto extends Migration
         // Asumiendo que la tabla Usuarios existe. Ajustar si el nombre difiere (ej. 'usuarios' vs 'Usuarios')
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
         
-        $this->forge->createTable('SolicitudesCambioPresupuesto');
+        $this->forge->createTable('SolicitudesCambioPresupuesto', true);
     }
 
     public function down()

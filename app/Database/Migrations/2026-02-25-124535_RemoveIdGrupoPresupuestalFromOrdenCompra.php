@@ -12,12 +12,8 @@ class RemoveIdGrupoPresupuestalFromOrdenCompra extends Migration
         // Usamos try-catch para ignorar el error si la llave no existe en la BD
         try {
             $this->forge->dropForeignKey('OrdenCompra', 'ordencompra_grupo_fk');
-        } catch (\Throwable $e) {
-            // Si falla (porque no existe), no hacemos nada y continuamos.
-        }
+        } catch (\Throwable $e) {}
 
-        // 2. Ahora borramos la columna (si existe)
-        // Verificamos si la columna existe antes de intentar borrarla para evitar otro error
         if ($this->db->fieldExists('ID_GrupoPresupuestal', 'OrdenCompra')) {
             $this->forge->dropColumn('OrdenCompra', 'ID_GrupoPresupuestal');
         }
@@ -25,27 +21,46 @@ class RemoveIdGrupoPresupuestalFromOrdenCompra extends Migration
 
     public function down()
     {
-        // Re-add the column 'ID_GrupoPresupuestal' for rollback
-        $fields = [
-            'ID_GrupoPresupuestal' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-            ],
-        ];
-        $this->forge->addColumn('OrdenCompra', $fields);
+        if (!$this->db->fieldExists('ID_GrupoPresupuestal', 'OrdenCompra')) {
+            $this->forge->addColumn('OrdenCompra', [
+                'ID_GrupoPresupuestal' => [
+                    'type'       => 'INT',
+                    'constraint' => 11,
+                    'unsigned'   => true,
+                    'null'       => true,
+                ],
+            ]);
+        }
 
-        // Re-add the foreign key constraint
-        // Nota: Esto solo funcionará si 'OrdenCompra' es InnoDB.
-        // Si sigue siendo MyISAM, fallará silenciosamente (lo cual está bien para un rollback).
-        $this->forge->addForeignKey(
-            'ID_GrupoPresupuestal',
-            'GrupoPresupuestal',
-            'ID_GrupoPresupuestal',
-            'CASCADE',
-            'SET NULL',
-            'ordencompra_grupo_fk'
-        );
+        $fkExists = $this->foreignKeyExists($this->db, 'OrdenCompra', 'ordencompra_grupo_fk');
+
+        if ($fkExists === 0) {
+            try {
+                $this->forge->addForeignKey(
+                    'ID_GrupoPresupuestal',
+                    'GrupoPresupuestal',
+                    'ID_GrupoPresupuestal',
+                    'CASCADE',
+                    'SET NULL',
+                    'ordencompra_grupo_fk'
+                );
+                $this->forge->processIndexes('OrdenCompra');
+            } catch (\Throwable $e) {}
+        }
+    }
+
+    private function foreignKeyExists($db, string $tableName, string $constraintName): int
+    {
+        if ($db->DBDriver === 'Postgre') {
+            return (int) ($db->query(
+                "SELECT COUNT(*) AS total FROM information_schema.table_constraints WHERE table_catalog = current_database() AND table_schema = current_schema() AND LOWER(table_name) = LOWER(?) AND LOWER(constraint_name) = LOWER(?) AND constraint_type = 'FOREIGN KEY'",
+                [$tableName, $constraintName],
+            )->getRow('total') ?? 0);
+        }
+
+        return (int) ($db->query(
+            "SELECT COUNT(*) AS total FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = LOWER(?) AND LOWER(CONSTRAINT_NAME) = LOWER(?) AND CONSTRAINT_TYPE = 'FOREIGN KEY'",
+            [$tableName, $constraintName],
+        )->getRow('total') ?? 0);
     }
 }

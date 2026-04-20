@@ -18,31 +18,51 @@ class AddIdDptoToGrupoPresupuestal extends Migration
             $field['after'] = 'Descripcion';
         }
 
-        $fields = [
-            'ID_Dpto' => $field,
-        ];
+        if (!$this->db->fieldExists('ID_Dpto', 'GrupoPresupuestal')) {
+            $this->forge->addColumn('GrupoPresupuestal', [
+                'ID_Dpto' => [
+                    'type'       => 'INT',
+                    'constraint' => 11,
+                    'unsigned'   => true,
+                    'null'       => true,
+                ],
+            ]);
+        }
 
-        // 1. Agregamos la columna a la tabla 'GrupoPresupuestal'
-        $this->forge->addColumn('GrupoPresupuestal', $fields);
+        $fkExists = $this->foreignKeyExists($this->db, 'GrupoPresupuestal', 'grupopresupuestal_id_dpto_fk');
 
-        // 2. Definimos la llave foránea
-        // Estructura: addForeignKey(columna_local, tabla_referencia, columna_referencia, onUpdate, onDelete, nombre_fk)
-        $this->forge->addForeignKey(
-            'ID_Dpto',           // Columna en GrupoPresupuestal
-            'Departamentos',     // Tabla externa
-            'ID_Dpto',           // Columna en Departamentos
-            'CASCADE',           // Si cambia el ID del dpto, se actualiza aquí
-            'SET NULL',          // Si se borra el dpto, aquí se pone NULL (más seguro que borrar el grupo)
-            'grupopresupuestal_id_dpto_fk' // Nombre clave para la restricción
-        );
+        if ($fkExists === 0) {
+            try {
+                $this->forge->addForeignKey(
+                    'ID_Dpto',
+                    'Departamentos',
+                    'ID_Dpto',
+                    'CASCADE',
+                    'SET NULL',
+                    'grupopresupuestal_id_dpto_fk'
+                );
+                $this->forge->processIndexes('GrupoPresupuestal');
+            } catch (\Throwable $e) {}
+        }
+    }
 
-        // 3. Procesamos los índices
-        $this->forge->processIndexes('GrupoPresupuestal');
+    private function foreignKeyExists($db, string $tableName, string $constraintName): int
+    {
+        if ($db->DBDriver === 'Postgre') {
+            return (int) ($db->query(
+                "SELECT COUNT(*) AS total FROM information_schema.table_constraints WHERE table_catalog = current_database() AND table_schema = current_schema() AND LOWER(table_name) = LOWER(?) AND LOWER(constraint_name) = LOWER(?) AND constraint_type = 'FOREIGN KEY'",
+                [$tableName, $constraintName],
+            )->getRow('total') ?? 0);
+        }
+
+        return (int) ($db->query(
+            "SELECT COUNT(*) AS total FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND LOWER(TABLE_NAME) = LOWER(?) AND LOWER(CONSTRAINT_NAME) = LOWER(?) AND CONSTRAINT_TYPE = 'FOREIGN KEY'",
+            [$tableName, $constraintName],
+        )->getRow('total') ?? 0);
     }
 
     public function down()
     {
-        // IMPORTANTE: Primero borrar la FK, luego la columna
         try { $this->forge->dropForeignKey('GrupoPresupuestal', 'grupopresupuestal_id_dpto_fk'); } catch (\Throwable $e) {}
         $this->forge->dropColumn('GrupoPresupuestal', 'ID_Dpto');
     }

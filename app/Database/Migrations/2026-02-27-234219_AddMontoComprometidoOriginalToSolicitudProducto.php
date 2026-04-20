@@ -18,10 +18,16 @@ class AddMontoComprometidoOriginalToSolicitudProducto extends Migration
             $field['after'] = 'Importe';
         }
 
-        $fields = [
-            'Monto_Comprometido_Original' => $field,
-        ];
-        $this->forge->addColumn('Solicitud_Producto', $fields);
+        if (!$this->db->fieldExists('Monto_Comprometido_Original', 'Solicitud_Producto')) {
+            $this->forge->addColumn('Solicitud_Producto', [
+                'Monto_Comprometido_Original' => [
+                    'type'       => 'DECIMAL',
+                    'constraint' => '15,2',
+                    'default'    => 0.00,
+                    'null'       => false,
+                ],
+            ]);
+        }
     }
 
     public function down()

@@ -105,7 +105,7 @@ class CreateBitacoraTable extends Migration
         $this->forge->addKey('solicitud_id');
         $this->forge->addKey('orden_compra_id');
         $this->forge->addKey('clasificacion');
-        $this->forge->createTable('bitacora');
+        $this->forge->createTable('bitacora', true);
     }
 
     public function down()

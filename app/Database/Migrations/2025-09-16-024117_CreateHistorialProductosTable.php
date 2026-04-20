@@ -75,7 +75,7 @@ class CreateHistorialProductosTable extends Migration
         $this->forge->addPrimaryKey('ID_HistorialP');
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('ID_Producto', 'Producto', 'ID_Producto', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('HistorialProductos');
+        $this->forge->createTable('HistorialProductos', true);
     }
 
     public function down()

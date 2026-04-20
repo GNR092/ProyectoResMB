@@ -33,7 +33,7 @@ class CreateTableProducto extends Migration
             ],
         ]);
         $this->forge->addKey('ID_Producto', true);
-        $this->forge->createTable('Producto');
+        $this->forge->createTable('Producto', true);
     }
 
     public function down()

@@ -35,7 +35,7 @@ class AddIdUnidadToSolicitud extends Migration
             ]);
             $this->forge->addKey('ID_UnidadOperativa', true);
             $this->forge->addForeignKey('ID_Place', 'Places', 'ID_Place', 'CASCADE', 'CASCADE');
-            $this->forge->createTable('UnidadOperativa');
+            $this->forge->createTable('UnidadOperativa', true);
         }
 
         if (! $db->fieldExists('ID_UnidadOperativa', 'Solicitud')) {

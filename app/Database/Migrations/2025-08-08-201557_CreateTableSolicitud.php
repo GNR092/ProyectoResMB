@@ -91,7 +91,7 @@ class CreateTableSolicitudProd extends Migration
         $this->forge->addForeignKey('ID_RazonSocial', 'Razon_Social', 'ID_RazonSocial', 'CASCADE', 'SET NULL');
         //$this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
         //$this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('Solicitud');
+        $this->forge->createTable('Solicitud', true);
     }
 
     public function down()

@@ -8,14 +8,15 @@ class AddActivoToPlaces extends Migration
 {
     public function up()
     {
-        $fields = [
-            'activo' => [
-                'type'    => 'BOOLEAN',
-                'default' => true,
-                'null'    => false,
-            ],
-        ];
-        $this->forge->addColumn('Places', $fields);
+        if (!$this->db->fieldExists('activo', 'Places')) {
+            $this->forge->addColumn('Places', [
+                'activo' => [
+                    'type'    => 'BOOLEAN',
+                    'default' => true,
+                    'null'    => false,
+                ],
+            ]);
+        }
     }
 
     public function down()

@@ -8,20 +8,14 @@ class AddComentarioCotizacionToSolicitud extends Migration
 {
     public function up()
     {
-        $field = [
-            'type'       => 'TEXT',
-            'null'       => true,
-        ];
-        if ($this->db->DBDriver === 'MySQLi') {
-            $field['after'] = 'ID_Usuario_Autoriza';
+        if (!$this->db->fieldExists('ComentarioCotizacion', 'Solicitud')) {
+            $this->forge->addColumn('Solicitud', [
+                'ComentarioCotizacion' => [
+                    'type'       => 'TEXT',
+                    'null'       => true,
+                ],
+            ]);
         }
-
-        $fields = [
-            'ComentarioCotizacion' => $field,
-        ];
-
-        // Agregamos la columna a la tabla 'Solicitud'
-        $this->forge->addColumn('Solicitud', $fields);
     }
 
     public function down()

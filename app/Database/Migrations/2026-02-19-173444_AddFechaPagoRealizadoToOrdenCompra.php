@@ -8,14 +8,14 @@ class AddFechaPagoRealizadoToOrdenCompra extends Migration
 {
     public function up()
     {
-        $fields = [
-            'FechaPagoRealizado' => [
-                'type' => 'DATETIME', // Puedes usar 'DATE' si no requieres la hora exacta
-                'null' => true,
-            ],
-        ];
-
-        $this->forge->addColumn('OrdenCompra', $fields);
+        if (!$this->db->fieldExists('FechaPagoRealizado', 'OrdenCompra')) {
+            $this->forge->addColumn('OrdenCompra', [
+                'FechaPagoRealizado' => [
+                    'type' => 'DATETIME',
+                    'null' => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

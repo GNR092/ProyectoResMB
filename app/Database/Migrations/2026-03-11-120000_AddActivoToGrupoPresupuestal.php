@@ -8,19 +8,15 @@ class AddActivoToGrupoPresupuestal extends Migration
 {
     public function up()
     {
-        $field = [
-            'type'       => 'BOOLEAN',
-            'default'    => true,
-            'null'       => false,
-        ];
-        if ($this->db->DBDriver === 'MySQLi') {
-            $field['after'] = 'ID_Dpto';
+        if (!$this->db->fieldExists('activo', 'GrupoPresupuestal')) {
+            $this->forge->addColumn('GrupoPresupuestal', [
+                'activo' => [
+                    'type'       => 'BOOLEAN',
+                    'default'    => true,
+                    'null'       => false,
+                ],
+            ]);
         }
-
-        $fields = [
-            'activo' => $field,
-        ];
-        $this->forge->addColumn('GrupoPresupuestal', $fields);
     }
 
     public function down()

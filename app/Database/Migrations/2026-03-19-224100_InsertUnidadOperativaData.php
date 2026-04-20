@@ -9,61 +9,43 @@ class InsertUnidadOperativaData extends Migration
     public function up()
     {
         $db = \Config\Database::connect();
-        
-        // Obtener ID_Place de 'Gastos' y 'Transporte' dinámicamente
-        $gastosPlace = $db->table('Places')->where('Nombre_Corto', 'Gastos')->get()->getRowArray();
-        $transportePlace = $db->table('Places')->where('Nombre_Corto', 'Transporte')->get()->getRowArray();
+
+        // Esperar a que existan los Places necesarios (creados por InsertMissingPlaces)
+        $maxAttempts = 30;
+        $attempt = 0;
+        while ($attempt < $maxAttempts) {
+            $gastosPlace = $db->table('Places')->where('Nombre_Corto', 'Gastos')->get()->getRowArray();
+            $transportePlace = $db->table('Places')->where('Nombre_Corto', 'Transporte')->get()->getRowArray();
+            if ($gastosPlace && $transportePlace) break;
+            $attempt++;
+            usleep(200000); // 200ms
+        }
 
         $gastosPlaceId = $gastosPlace['ID_Place'] ?? null;
         $transportePlaceId = $transportePlace['ID_Place'] ?? null;
 
         $data = [
             ['ID_UnidadOperativa' => 1, 'Nombre' => 'Prestamos', 'ID_Place' => 1, 'activo' => true],
-            ['ID_UnidadOperativa' => 2, 'Nombre' => 'Gastos', 'ID_Place' => 3, 'activo' => true],
-            ['ID_UnidadOperativa' => 3, 'Nombre' => 'Transporte Campus', 'ID_Place' => 2, 'activo' => true],
-            ['ID_UnidadOperativa' => 4, 'Nombre' => 'Presupuesto del área de atención a residentes', 'ID_Place' => 2, 'activo' => true],
-            ['ID_UnidadOperativa' => 5, 'Nombre' => 'Presupuesto del área de Mantenimiento', 'ID_Place' => 2, 'activo' => true],
-            ['ID_UnidadOperativa' => 6, 'Nombre' => 'Presupuesto del área de Sistemas', 'ID_Place' => 2, 'activo' => true],
-            ['ID_UnidadOperativa' => 7, 'Nombre' => 'Presupuesto del área de Seguridad', 'ID_Place' => 2, 'activo' => true],
-            ['ID_UnidadOperativa' => 8, 'Nombre' => 'Presupuesto de operadora general', 'ID_Place' => 2, 'activo' => true],
+            ['ID_UnidadOperativa' => 2, 'Nombre' => 'Gastos', 'ID_Place' => $gastosPlaceId, 'activo' => true],
+            ['ID_UnidadOperativa' => 3, 'Nombre' => 'Transporte Campus', 'ID_Place' => $transportePlaceId, 'activo' => true],
+            ['ID_UnidadOperativa' => 4, 'Nombre' => 'Presupuesto del área de atención a residentes', 'ID_Place' => $transportePlaceId, 'activo' => true],
+            ['ID_UnidadOperativa' => 5, 'Nombre' => 'Presupuesto del área de Mantenimiento', 'ID_Place' => $transportePlaceId, 'activo' => true],
+            ['ID_UnidadOperativa' => 6, 'Nombre' => 'Presupuesto del área de Sistemas', 'ID_Place' => $transportePlaceId, 'activo' => true],
+            ['ID_UnidadOperativa' => 7, 'Nombre' => 'Presupuesto del área de Seguridad', 'ID_Place' => $transportePlaceId, 'activo' => true],
+            ['ID_UnidadOperativa' => 8, 'Nombre' => 'Presupuesto de operadora general', 'ID_Place' => $transportePlaceId, 'activo' => true],
             ['ID_UnidadOperativa' => 9, 'Nombre' => 'Equipo de transporte', 'ID_Place' => 1, 'activo' => true],
             ['ID_UnidadOperativa' => 10, 'Nombre' => 'Mobiliario y Equipo', 'ID_Place' => 1, 'activo' => true],
             ['ID_UnidadOperativa' => 11, 'Nombre' => 'Renta Oficinas Empresas asociadas', 'ID_Place' => 1, 'activo' => true],
             ['ID_UnidadOperativa' => 12, 'Nombre' => 'Gastos de avion', 'ID_Place' => 1, 'activo' => true],
             ['ID_UnidadOperativa' => 13, 'Nombre' => 'Gastos de Administración/Operación', 'ID_Place' => 1, 'activo' => true],
-            ['ID_UnidadOperativa' => 14, 'Nombre' => 'mtto de instalaciones y amenidades', 'ID_Place' => 4, 'activo' => true],
-            ['ID_UnidadOperativa' => 15, 'Nombre' => 'Gastos servicios operativos', 'ID_Place' => 4, 'activo' => true],
-            ['ID_UnidadOperativa' => 16, 'Nombre' => 'Gastos prevencios y proteccion', 'ID_Place' => 4, 'activo' => true],
-            ['ID_UnidadOperativa' => 17, 'Nombre' => 'Gastos Servicios Basicos', 'ID_Place' => 4, 'activo' => true],
-            ['ID_UnidadOperativa' => 18, 'Nombre' => 'Gastos administrativos', 'ID_Place' => 4, 'activo' => true],
-            ['ID_UnidadOperativa' => 19, 'Nombre' => 'Insumos, materiales y refacciones menores', 'ID_Place' => 4, 'activo' => true],
-            ['ID_UnidadOperativa' => 20, 'Nombre' => 'Gastos administrativos', 'ID_Place' => 5, 'activo' => true],
-            ['ID_UnidadOperativa' => 21, 'Nombre' => 'Gastos de servicios basicos', 'ID_Place' => 5, 'activo' => true],
-            ['ID_UnidadOperativa' => 22, 'Nombre' => 'Gastos de prevencion y proteccion', 'ID_Place' => 5, 'activo' => true],
-            ['ID_UnidadOperativa' => 23, 'Nombre' => 'Gastos servicios operativos', 'ID_Place' => 5, 'activo' => true],
-            ['ID_UnidadOperativa' => 24, 'Nombre' => 'insumos, materiales y refacciones menores', 'ID_Place' => 5, 'activo' => true],
-            ['ID_UnidadOperativa' => 25, 'Nombre' => 'mtto instalaciones y amenidades', 'ID_Place' => 5, 'activo' => true],
-            ['ID_UnidadOperativa' => 26, 'Nombre' => 'Gastos administrativos', 'ID_Place' => 6, 'activo' => true],
-            ['ID_UnidadOperativa' => 27, 'Nombre' => 'Gastos Servicios Basicos', 'ID_Place' => 6, 'activo' => true],
-            ['ID_UnidadOperativa' => 28, 'Nombre' => 'Gastos prevencios y proteccion', 'ID_Place' => 6, 'activo' => true],
-            ['ID_UnidadOperativa' => 29, 'Nombre' => 'Gastos servicios operativos', 'ID_Place' => 6, 'activo' => true],
-            ['ID_UnidadOperativa' => 30, 'Nombre' => 'Insumos, materiales y refacciones menores', 'ID_Place' => 6, 'activo' => true],
-            ['ID_UnidadOperativa' => 31, 'Nombre' => 'mtto de instalaciones y amenidades', 'ID_Place' => 6, 'activo' => true],
-            ['ID_UnidadOperativa' => 32, 'Nombre' => 'Gastos administrativos', 'ID_Place' => 7, 'activo' => true],
-            ['ID_UnidadOperativa' => 33, 'Nombre' => 'Gastos Servicios Basicos', 'ID_Place' => 7, 'activo' => true],
-            ['ID_UnidadOperativa' => 34, 'Nombre' => 'Gastos prevencios y proteccion', 'ID_Place' => 7, 'activo' => true],
-            ['ID_UnidadOperativa' => 35, 'Nombre' => 'Gastos servicios operativos', 'ID_Place' => 7, 'activo' => true],
-            ['ID_UnidadOperativa' => 36, 'Nombre' => 'Insumos, materiales y refacciones menores', 'ID_Place' => 7, 'activo' => true],
-            ['ID_UnidadOperativa' => 37, 'Nombre' => 'mtto de instalaciones y amenidades', 'ID_Place' => 7, 'activo' => true],
-            ['ID_UnidadOperativa' => 38, 'Nombre' => 'Gastos administrativos', 'ID_Place' => 8, 'activo' => true],
-            ['ID_UnidadOperativa' => 39, 'Nombre' => 'Gastos servicios operativos', 'ID_Place' => 8, 'activo' => true],
-            ['ID_UnidadOperativa' => 40, 'Nombre' => 'Gastos prevencios y proteccion', 'ID_Place' => 8, 'activo' => true],
-            ['ID_UnidadOperativa' => 41, 'Nombre' => 'Insumos, materiales y refacciones menores', 'ID_Place' => 8, 'activo' => true],
-            ['ID_UnidadOperativa' => 42, 'Nombre' => 'mtto de instalaciones y amenidades', 'ID_Place' => 8, 'activo' => true],
-            ['ID_UnidadOperativa' => 43, 'Nombre' => 'Gastos Servicios Basicos', 'ID_Place' => 8, 'activo' => true],
         ];
 
         foreach ($data as $row) {
+            if ($row['ID_Place'] === null) continue;
+
+            $placeExists = $db->table('Places')->where('ID_Place', $row['ID_Place'])->countAllResults() > 0;
+            if (!$placeExists) continue;
+
             $exists = $this->db->table('UnidadOperativa')
                 ->where('ID_UnidadOperativa', $row['ID_UnidadOperativa'])
                 ->countAllResults();
@@ -71,7 +53,6 @@ class InsertUnidadOperativaData extends Migration
             if ($exists === 0) {
                 $this->db->table('UnidadOperativa')->insert($row);
             } else {
-                // Si el ID ya existe (creado por la migración de reestructuración), actualizamos sus datos
                 $this->db->table('UnidadOperativa')
                     ->where('ID_UnidadOperativa', $row['ID_UnidadOperativa'])
                     ->update($row);

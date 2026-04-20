@@ -40,7 +40,7 @@ class CreateTableDetalle_Prodcutos extends Migration
 
         $this->forge->addKey('ID_DetalleProd', primary: true);
         $this->forge->addForeignKey('ID_SolicitudProd', 'Solicitud_Producto', 'ID_SolicitudProd', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('Detalle_Producto');
+        $this->forge->createTable('Detalle_Producto', true);
     }
 
     public function down()

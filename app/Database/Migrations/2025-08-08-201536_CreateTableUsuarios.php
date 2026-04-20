@@ -59,7 +59,7 @@ class CreateTableUsuarios extends Migration
         $this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('ID_RazonSocial', 'Razon_Social', 'ID_RazonSocial', 'CASCADE', 'CASCADE');
 
-        $this->forge->createTable('Usuarios');
+        $this->forge->createTable('Usuarios', true);
     }
 
     public function down()

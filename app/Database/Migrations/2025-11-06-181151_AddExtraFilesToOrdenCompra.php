@@ -8,23 +8,35 @@ class AddExtraFilesToOrdenCompra extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('OrdenCompra', [
-            'File_Factura' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-                'null' => true,
-            ],
-            'File_Comprobante' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-                'null' => true,
-            ],
-            'File_ReqPag' => [
-                'type' => 'VARCHAR',
-                'constraint' => 255,
-                'null' => true,
-            ],
-        ]);
+        if (!$this->db->fieldExists('File_Factura', 'OrdenCompra')) {
+            $this->forge->addColumn('OrdenCompra', [
+                'File_Factura' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 255,
+                    'null' => true,
+                ],
+            ]);
+        }
+
+        if (!$this->db->fieldExists('File_Comprobante', 'OrdenCompra')) {
+            $this->forge->addColumn('OrdenCompra', [
+                'File_Comprobante' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 255,
+                    'null' => true,
+                ],
+            ]);
+        }
+
+        if (!$this->db->fieldExists('File_ReqPag', 'OrdenCompra')) {
+            $this->forge->addColumn('OrdenCompra', [
+                'File_ReqPag' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => 255,
+                    'null' => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

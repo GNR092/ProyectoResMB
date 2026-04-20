@@ -34,7 +34,7 @@ class CreateDetalleServicioTable extends Migration
         ]);
         $this->forge->addPrimaryKey('ID_DetalleServ');
         $this->forge->addForeignKey('ID_SolicitudServ', 'Solicitud_Servicios', 'ID_SolicitudServ', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('Detalle_Servicio');
+        $this->forge->createTable('Detalle_Servicio', true);
     }
 
     public function down()

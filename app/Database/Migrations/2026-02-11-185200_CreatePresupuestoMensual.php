@@ -46,7 +46,7 @@ class CreatePresupuestoMensual extends Migration
             'fk_presupuesto_dpto_innodb'
         );
 
-        $this->forge->createTable('PresupuestoMensual');
+        $this->forge->createTable('PresupuestoMensual', true);
     }
 
     public function down()

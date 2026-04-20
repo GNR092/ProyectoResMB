@@ -69,14 +69,41 @@ class InsertMissingPlaces extends Migration
     public function down()
     {
         $db = \Config\Database::connect();
-        // Eliminar los Places que insertamos
+
+        $transportePlace = $db->table('Places')->where('Nombre_Corto', 'Transporte')->get()->getRowArray();
+        $gastosPlace = $db->table('Places')->where('Nombre_Corto', 'Gastos')->get()->getRowArray();
+        $transportePlaceId = $transportePlace['ID_Place'] ?? null;
+        $gastosPlaceId = $gastosPlace['ID_Place'] ?? null;
+
+        if ($transportePlaceId) {
+            $db->table('UnidadOperativa')
+               ->where('Nombre', 'Transporte Campus')
+               ->update(['ID_Place' => 1]);
+            $db->table('UnidadOperativa')
+               ->where('Nombre', 'Presupuesto del área de atención a residentes')
+               ->update(['ID_Place' => 1]);
+            $db->table('UnidadOperativa')
+               ->where('Nombre', 'Presupuesto del área de Mantenimiento')
+               ->update(['ID_Place' => 1]);
+            $db->table('UnidadOperativa')
+               ->where('Nombre', 'Presupuesto del área de Sistemas')
+               ->update(['ID_Place' => 1]);
+            $db->table('UnidadOperativa')
+               ->where('Nombre', 'Presupuesto del área de Seguridad')
+               ->update(['ID_Place' => 1]);
+            $db->table('UnidadOperativa')
+               ->where('Nombre', 'Presupuesto de operadora general')
+               ->update(['ID_Place' => 1]);
+        }
+
+        if ($gastosPlaceId) {
+            $db->table('UnidadOperativa')
+               ->where('Nombre', 'Gastos')
+               ->update(['ID_Place' => 1]);
+        }
+
         $db->table('Places')
            ->whereIn('Nombre_Corto', ['Transporte', 'Gastos'])
            ->delete();
-        
-        // Revertir los cambios en UnidadOperativa (opcional, depende de la complejidad de down)
-        // En este caso, como los IDs originales 4 y 5 ya estaban ocupados en el servidor,
-        // no hay un "ID original" simple para devolver.
-        // Si fuera necesario, se debería restaurar el ID_Place a un valor "seguro" o NULL.
     }
 }
