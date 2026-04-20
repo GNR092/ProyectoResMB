@@ -301,7 +301,9 @@ def adapt_insert_to_existing_table(
     """Adapta INSERT sin lista de columnas al esquema real de PostgreSQL."""
 
     def convert_mysql_to_pg(sql: str) -> str:
-        sql = sql.replace("\\'", "''").replace('\\"', '""')
+        sql = sql.replace("\\'", "''")
+        sql = sql.replace('\\"', '"')
+        sql = sql.replace('\\\\', '\\')
         return sql
 
     m = re.match(r'^INSERT\s+INTO\s+"([^"]+)"\s+VALUES\s*(.+);$', stmt.strip(), flags=re.I | re.S)
@@ -324,10 +326,13 @@ def adapt_insert_to_existing_table(
     tgt_lookup = {c["column_name"].lower(): c for c in tgt_info}
     tgt_col_types = {c["column_name"].lower(): c["data_type"] for c in tgt_info}
     boolean_cols: set[str] = set()
+    json_cols: set[str] = set()
     for col in tgt_info:
         dt = (col.get("data_type") or "").lower()
         if dt in ("boolean", "bool"):
             boolean_cols.add(col["column_name"].lower())
+        if dt in ("json", "jsonb"):
+            json_cols.add(col["column_name"].lower())
 
     selected_indexes: List[int] = []
     selected_columns: List[str] = []
@@ -381,12 +386,18 @@ def adapt_insert_to_existing_table(
             return convert_mysql_to_pg(stmt)
 
         picked = []
-        for i in selected_indexes:
+        for j, i in enumerate(selected_indexes):
             val = row_values[i].strip()
-            val = val.replace("\\'", "''").replace('\\"', '""')
-            col_name = selected_columns[len(picked)].lower()
+            val = val.replace("\\'", "''")
+            val = val.replace('\\"', '"')
+            val = val.replace('\\\\', '\\')
+            col_name = selected_columns[j].lower()
             if col_name in boolean_cols and re.match(r'^(0|1|TRUE|FALSE)$', val, re.I):
                 picked.append('TRUE' if val.upper() in ('1', 'TRUE') else 'FALSE')
+            elif col_name in json_cols and val not in ('NULL', 'null', ''):
+                if val.startswith("'") and val.endswith("'"):
+                    val = val[1:-1]
+                picked.append(f"'{val}'")
             else:
                 picked.append(val)
         new_rows.append("(" + ", ".join(picked) + ")")
@@ -605,6 +616,90 @@ def filter_mode(statements: Iterable[Tuple[int, str]], mode: str) -> List[Tuple[
     return filtered
 
 
+def collect_insert_tables(statements: Iterable[Tuple[int, str]]) -> List[str]:
+    tables: List[str] = []
+    seen: set[str] = set()
+    for _, st in statements:
+        tname = extract_insert_table_name(st)
+        if tname and tname.lower() not in seen:
+            tables.append(tname)
+            seen.add(tname.lower())
+    return tables
+
+
+def get_existing_base_tables(cur) -> set[str]:
+    cur.execute(
+        """
+        SELECT table_name FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+        """
+    )
+    return {r[0] for r in cur.fetchall()}
+
+
+def collect_fk_constraints(cur, tables: List[str]) -> List[Tuple[str, str, str]]:
+    if not tables:
+        return []
+
+    cur.execute(
+        """
+        SELECT c.relname AS table_name, con.conname, pg_get_constraintdef(con.oid)
+        FROM pg_constraint con
+        JOIN pg_class c ON c.oid = con.conrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE con.contype = 'f'
+          AND n.nspname = 'public'
+          AND c.relname = ANY(%s)
+        ORDER BY c.relname, con.conname
+        """,
+        (tables,),
+    )
+    return [(r[0], r[1], r[2]) for r in cur.fetchall()]
+
+
+def drop_fk_constraints(cur, fk_constraints: List[Tuple[str, str, str]]) -> None:
+    for table_name, conname, _ in fk_constraints:
+        cur.execute(f'ALTER TABLE "{table_name}" DROP CONSTRAINT "{conname}"')
+
+
+def restore_fk_constraints_not_valid(cur, fk_constraints: List[Tuple[str, str, str]]) -> None:
+    for table_name, conname, condef in fk_constraints:
+        cur.execute(
+            f'ALTER TABLE "{table_name}" ADD CONSTRAINT "{conname}" {condef} NOT VALID'
+        )
+
+
+def validate_fk_constraints_one_by_one(cur, conn, fk_constraints: List[Tuple[str, str, str]]) -> List[Tuple[str, str, str]]:
+    failed: List[Tuple[str, str, str]] = []
+    validated = 0
+
+    for table_name, conname, _ in fk_constraints:
+        cur.execute("SAVEPOINT fk_validate_sp")
+        try:
+            cur.execute(f'ALTER TABLE "{table_name}" VALIDATE CONSTRAINT "{conname}"')
+            cur.execute("RELEASE SAVEPOINT fk_validate_sp")
+            validated += 1
+        except Exception as exc:
+            cur.execute("ROLLBACK TO SAVEPOINT fk_validate_sp")
+            cur.execute("RELEASE SAVEPOINT fk_validate_sp")
+            failed.append((table_name, conname, str(exc).replace("\n", " ")))
+
+    conn.commit()
+    print(f"Validacion FK por constraint: validadas={validated}, con_errores={len(failed)}")
+
+    max_report = 12
+    for table_name, conname, err in failed[:max_report]:
+        print(f"FK inconsistente: {table_name}.{conname} -> {err}", file=sys.stderr)
+
+    if len(failed) > max_report:
+        print(
+            f"... y {len(failed) - max_report} FK inconsistentes adicionales.",
+            file=sys.stderr,
+        )
+
+    return failed
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Importador MariaDB dump -> PostgreSQL")
     parser.add_argument("--dump", required=True, help="Ruta del .sql origen (MariaDB/MySQL)")
@@ -630,6 +725,11 @@ def main() -> int:
         action="store_true",
         help="No omite filas/tablas incompatibles ni pendientes por FK; aborta con error.",
     )
+    parser.add_argument(
+        "--keep-fk-validated",
+        action="store_true",
+        help="En data-only, falla si alguna FK restaurada no puede validarse.",
+    )
     args = parser.parse_args()
 
     dump_path = Path(args.dump)
@@ -652,6 +752,8 @@ def main() -> int:
     if args.mode == "data-only":
         transformed = sort_insert_statements_by_priority(transformed)
 
+    tables_in_dump = collect_insert_tables(transformed)
+
     if not transformed:
         print("No se encontraron sentencias para ejecutar.")
         return 0
@@ -669,172 +771,189 @@ def main() -> int:
 
     ok = 0
     check_constraints: List[str] = []
+    fk_validation_errors: List[Tuple[str, str, str]] = []
     try:
         with conn.cursor() as cur:
             cur.execute("SET standard_conforming_strings = on;")
             target_cols_cache: Dict[str, List[Dict[str, str]]] = {}
             skipped = 0
+            dropped_fk_constraints: List[Tuple[str, str, str]] = []
 
-            if args.mode == "data-only":
-                cur.execute("""
-                    SELECT conname FROM pg_constraint
-                    WHERE conrelid = '"Proveedor"'::regclass AND contype = 'c'
-                """)
-                check_constraints = [r[0] for r in cur.fetchall()]
-                if check_constraints:
-                    for conname in check_constraints:
-                        cur.execute(f'ALTER TABLE "Proveedor" DROP CONSTRAINT "{conname}"')
-                    conn.commit()
-                    print(f"CHECK constraints de Proveedor eliminados: {len(check_constraints)}")
-
-            if args.mode == "data-only" and args.truncate_first:
-                tables_in_dump: List[str] = []
-                seen = set()
-                for _, st in transformed:
-                    tname = extract_insert_table_name(st)
-                    if tname and tname.lower() not in seen:
-                        tables_in_dump.append(tname)
-                        seen.add(tname.lower())
-
-                if tables_in_dump:
+            try:
+                if args.mode == "data-only":
                     cur.execute("""
-                        SELECT table_name FROM information_schema.tables
-                        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+                        SELECT conname FROM pg_constraint
+                        WHERE conrelid = '"Proveedor"'::regclass AND contype = 'c'
                     """)
-                    existing = {r[0] for r in cur.fetchall()}
-                    tables_to_truncate = [t for t in tables_in_dump if t in existing]
-                    if tables_to_truncate:
-                        q_tables = ", ".join(f'"{t}"' for t in tables_to_truncate)
-                        cur.execute(f"TRUNCATE TABLE {q_tables} RESTART IDENTITY CASCADE;")
+                    check_constraints = [r[0] for r in cur.fetchall()]
+                    if check_constraints:
+                        for conname in check_constraints:
+                            cur.execute(f'ALTER TABLE "Proveedor" DROP CONSTRAINT "{conname}"')
                         conn.commit()
-                        print(f"Tablas truncadas: {len(tables_to_truncate)}")
+                        print(f"CHECK constraints de Proveedor eliminados: {len(check_constraints)}")
 
-            pending: List[Tuple[int, str]] = list(transformed)
-            max_rounds = 8 if args.mode == "data-only" else 1
-            round_no = 0
-            commit_tick = 0
+                    existing = get_existing_base_tables(cur)
+                    tables_presentes = [t for t in tables_in_dump if t in existing]
+                    dropped_fk_constraints = collect_fk_constraints(cur, tables_presentes)
+                    if dropped_fk_constraints:
+                        drop_fk_constraints(cur, dropped_fk_constraints)
+                        conn.commit()
+                        print(f"FK constraints deshabilitadas temporalmente: {len(dropped_fk_constraints)}")
 
-            while pending and round_no < max_rounds:
-                round_no += 1
-                progressed = 0
-                next_pending: List[Tuple[int, str]] = []
-
-                for idx, (line, stmt) in enumerate(pending, start=1):
-                    exec_stmt = stmt
-                    if args.mode == "data-only":
-                        table_name = extract_insert_table_name(stmt)
-                        if table_name:
-                            cur.execute(
-                                "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = %s",
-                                (table_name,),
-                            )
-                            if cur.fetchone() is None:
-                                skipped += 1
-                                continue
-
-                        try:
-                            exec_stmt = adapt_insert_to_existing_table(
-                                stmt,
-                                cur,
-                                source_columns,
-                                target_cols_cache,
-                                args.strict,
-                            )
-                        except RuntimeError as exc:
-                            print(f"\nError en sentencia #{idx} (linea aprox. {line}):", file=sys.stderr)
-                            print(str(exc), file=sys.stderr)
-                            preview = stmt[:600].replace("\n", " ")
-                            print(f"SQL: {preview}", file=sys.stderr)
-                            return 2
-
-                    if exec_stmt is None:
-                        skipped += 1
-                        continue
-
-                    row_statements = [exec_stmt]
-                    if args.mode == "data-only":
-                        row_statements = explode_insert_rows(exec_stmt)
-
-                    for row_stmt in row_statements:
-                        cur.execute("SAVEPOINT import_sp")
-                        try:
-                            cur.execute(row_stmt)
-                            cur.execute("RELEASE SAVEPOINT import_sp")
-                            ok += 1
-                            progressed += 1
-                            commit_tick += 1
-                        except Exception as exc:
-                            cur.execute("ROLLBACK TO SAVEPOINT import_sp")
-                            cur.execute("RELEASE SAVEPOINT import_sp")
-
-                            pgcode = getattr(exc, "pgcode", None)
-                            if args.mode == "data-only" and pgcode == "23503":
-                                next_pending.append((line, row_stmt))
-                                continue
-
-                            print(f"\nError en sentencia #{idx} (linea aprox. {line}):", file=sys.stderr)
-                            print(str(exc), file=sys.stderr)
-                            preview = row_stmt[:600].replace("\n", " ")
-                            print(f"SQL: {preview}", file=sys.stderr)
-                            return 2
-
-                        if commit_tick >= max(args.commit_every, 1):
+                if args.mode == "data-only" and args.truncate_first:
+                    if tables_in_dump:
+                        existing = get_existing_base_tables(cur)
+                        tables_to_truncate = [t for t in tables_in_dump if t in existing]
+                        if tables_to_truncate:
+                            q_tables = ", ".join(f'"{t}"' for t in tables_to_truncate)
+                            cur.execute(f"TRUNCATE TABLE {q_tables} RESTART IDENTITY CASCADE;")
                             conn.commit()
-                            commit_tick = 0
+                            print(f"Tablas truncadas: {len(tables_to_truncate)}")
 
-                conn.commit()
+                pending: List[Tuple[int, str]] = list(transformed)
+                max_rounds = 8 if args.mode == "data-only" else 1
+                round_no = 0
                 commit_tick = 0
 
-                if not next_pending:
-                    pending = []
-                    break
+                while pending and round_no < max_rounds:
+                    round_no += 1
+                    progressed = 0
+                    next_pending: List[Tuple[int, str]] = []
 
-                if progressed == 0:
-                    if args.strict:
+                    for idx, (line, stmt) in enumerate(pending, start=1):
+                        exec_stmt = stmt
+                        if args.mode == "data-only":
+                            table_name = extract_insert_table_name(stmt)
+                            if table_name:
+                                cur.execute(
+                                    "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = %s",
+                                    (table_name,),
+                                )
+                                if cur.fetchone() is None:
+                                    skipped += 1
+                                    continue
+
+                            try:
+                                exec_stmt = adapt_insert_to_existing_table(
+                                    stmt,
+                                    cur,
+                                    source_columns,
+                                    target_cols_cache,
+                                    args.strict,
+                                )
+                            except RuntimeError as exc:
+                                print(f"\nError en sentencia #{idx} (linea aprox. {line}):", file=sys.stderr)
+                                print(str(exc), file=sys.stderr)
+                                preview = stmt[:600].replace("\n", " ")
+                                print(f"SQL: {preview}", file=sys.stderr)
+                                return 2
+
+                        if exec_stmt is None:
+                            skipped += 1
+                            continue
+
+                        row_statements = [exec_stmt]
+                        if args.mode == "data-only":
+                            row_statements = explode_insert_rows(exec_stmt)
+
+                        for row_stmt in row_statements:
+                            cur.execute("SAVEPOINT import_sp")
+                            try:
+                                cur.execute(row_stmt)
+                                cur.execute("RELEASE SAVEPOINT import_sp")
+                                ok += 1
+                                progressed += 1
+                                commit_tick += 1
+                            except Exception as exc:
+                                cur.execute("ROLLBACK TO SAVEPOINT import_sp")
+                                cur.execute("RELEASE SAVEPOINT import_sp")
+
+                                pgcode = getattr(exc, "pgcode", None)
+                                if args.mode == "data-only" and pgcode == "23503":
+                                    next_pending.append((line, row_stmt))
+                                    continue
+
+                                print(f"\nError en sentencia #{idx} (linea aprox. {line}):", file=sys.stderr)
+                                print(str(exc), file=sys.stderr)
+                                preview = row_stmt[:600].replace("\n", " ")
+                                print(f"SQL: {preview}", file=sys.stderr)
+                                return 2
+
+                            if commit_tick >= max(args.commit_every, 1):
+                                conn.commit()
+                                commit_tick = 0
+
+                    conn.commit()
+                    commit_tick = 0
+
+                    if not next_pending:
+                        pending = []
+                        break
+
+                    if progressed == 0:
+                        if args.strict:
+                            print(
+                                f"\nError: {len(next_pending)} filas no pudieron insertarse por dependencias FK/datos faltantes.",
+                                file=sys.stderr,
+                            )
+                            sample = next_pending[0][1][:600].replace("\n", " ")
+                            print(f"SQL ejemplo: {sample}", file=sys.stderr)
+                            return 2
+
+                        skipped += len(next_pending)
                         print(
-                            f"\nError: {len(next_pending)} filas no pudieron insertarse por dependencias FK/datos faltantes.",
+                            f"Aviso: {len(next_pending)} filas no pudieron insertarse por dependencias FK o datos faltantes.",
                             file=sys.stderr,
                         )
-                        sample = next_pending[0][1][:600].replace("\n", " ")
-                        print(f"SQL ejemplo: {sample}", file=sys.stderr)
-                        return 2
+                        pending = []
+                        break
 
-                    skipped += len(next_pending)
                     print(
-                        f"Aviso: {len(next_pending)} filas no pudieron insertarse por dependencias FK o datos faltantes.",
-                        file=sys.stderr,
+                        f"Progreso ronda {round_no}: ejecutadas={ok}, pendientes_por_fk={len(next_pending)}"
                     )
-                    pending = []
-                    break
+                    pending = next_pending
 
-                print(
-                    f"Progreso ronda {round_no}: ejecutadas={ok}, pendientes_por_fk={len(next_pending)}"
-                )
-                pending = next_pending
-
-            conn.commit()
-
-            if check_constraints and args.mode == "data-only":
-                recreate_sql = {
-                    "chk_cuenta_format": (
-                        'ALTER TABLE "Proveedor" ADD CONSTRAINT "chk_cuenta_format" '
-                        'CHECK ("Cuenta" IS NULL OR "Cuenta" ~ \'^[0-9]+$\')'
-                    ),
-                    "chk_clabe_format": (
-                        'ALTER TABLE "Proveedor" ADD CONSTRAINT "chk_clabe_format" '
-                        'CHECK ("Clabe" IS NULL OR (LENGTH("Clabe") = 18 AND "Clabe" ~ \'^[0-9]+$\'))'
-                    ),
-                }
-                for conname in check_constraints:
-                    if conname in recreate_sql:
-                        cur.execute(recreate_sql[conname])
                 conn.commit()
-                print("CHECK constraints de Proveedor recreados")
 
-            if args.mode == "full":
-                recreate_foreign_keys(cur, conn)
+                if check_constraints and args.mode == "data-only":
+                    conn.rollback()
+                    cur.execute("ALTER TABLE \"Proveedor\" DROP CONSTRAINT IF EXISTS \"chk_clabe_format\"")
+                    cur.execute("ALTER TABLE \"Proveedor\" DROP CONSTRAINT IF EXISTS \"chk_cuenta_format\"")
+                    conn.commit()
+                    print("CHECK constraints de Proveedor eliminados (lenientes)")
+
+                if args.mode == "full":
+                    recreate_foreign_keys(cur, conn)
+            finally:
+                if dropped_fk_constraints:
+                    try:
+                        conn.rollback()
+                        restore_fk_constraints_not_valid(cur, dropped_fk_constraints)
+                        conn.commit()
+                        print(
+                            f"FK constraints restauradas como NOT VALID: {len(dropped_fk_constraints)}"
+                        )
+
+                        fk_validation_errors = validate_fk_constraints_one_by_one(
+                            cur,
+                            conn,
+                            dropped_fk_constraints,
+                        )
+                    except Exception as exc:
+                        conn.rollback()
+                        print(
+                            f"Aviso: no se pudieron restaurar algunas FK constraints: {exc}",
+                            file=sys.stderr,
+                        )
     finally:
         conn.close()
+
+    if args.mode == "data-only" and fk_validation_errors and args.keep_fk_validated:
+        print(
+            "Error: existen FK inconsistentes tras la importacion y se solicito mantenerlas validadas (--keep-fk-validated).",
+            file=sys.stderr,
+        )
+        return 2
 
     if args.mode == "data-only":
         print(f"Importacion completada. Ejecutadas: {ok}. Omitidas: {skipped}")
