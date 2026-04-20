@@ -35,6 +35,27 @@
                 <h2 class="text-lg font-semibold">Pago de contado</h2>
             </div>
 
+            <!-- Filtros -->
+            <div class="flex flex-col md:flex-row gap-4 mb-4">
+                <div class="flex-grow">
+                    <input type="text" id="filter-search-contado" placeholder="Buscar por Folio o Proveedor..." 
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
+                           onkeyup="filtrarFichasPago('0')">
+                </div>
+                <div class="w-full md:w-48">
+                    <select id="filter-depto-contado" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
+                            onchange="filtrarFichasPago('0')">
+                        <option value="">Todos los Deptos</option>
+                    </select>
+                </div>
+                <div class="w-full md:w-48">
+                    <select id="filter-complejo-contado" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
+                            onchange="filtrarFichasPago('0')">
+                        <option value="">Todos los Complejos</option>
+                    </select>
+                </div>
+            </div>
+
             <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
                 <thead class="bg-gray-100 text-gray-800">
                 <tr>
@@ -67,6 +88,27 @@
                 <button @click="screen = 'menu'" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
                 <h2 class="text-lg font-semibold">Pago a crédito</h2>
                 <div></div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="flex flex-col md:flex-row gap-4 mb-4">
+                <div class="flex-grow">
+                    <input type="text" id="filter-search-credito" placeholder="Buscar por Folio o Proveedor..." 
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
+                           onkeyup="filtrarFichasPago('1')">
+                </div>
+                <div class="w-full md:w-48">
+                    <select id="filter-depto-credito" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
+                            onchange="filtrarFichasPago('1')">
+                        <option value="">Todos los Deptos</option>
+                    </select>
+                </div>
+                <div class="w-full md:w-48">
+                    <select id="filter-complejo-credito" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" 
+                            onchange="filtrarFichasPago('1')">
+                        <option value="">Todos los Complejos</option>
+                    </select>
+                </div>
             </div>
 
             <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">

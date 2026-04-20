@@ -403,8 +403,11 @@ function ListaPagos() {
     pagos: [],
     loading: true,
     filtroMetodoPago: 'todos',
+    filtroSearch: '',
+    filtroDepto: '',
+    filtroRazonSocial: '',
     currentPage: 1,
-    rowsPerPage: 5,
+    rowsPerPage: 10,
 
     get conteoContado() {
       return this.pagos.filter((p) => String(p.MetodoPago) === '0').length
@@ -414,11 +417,43 @@ function ListaPagos() {
       return this.pagos.filter((p) => String(p.MetodoPago) === '1').length
     },
 
+    get listDeptos() {
+      return [...new Set(this.pagos.map((p) => p.Departamento))].filter(Boolean).sort()
+    },
+
+    get listRazonSocial() {
+      return [...new Set(this.pagos.map((p) => p.RazonSocial))].filter(Boolean).sort()
+    },
+
     get pagosFiltrados() {
-      if (this.filtroMetodoPago === 'todos') {
-        return this.pagos
+      let result = this.pagos
+
+      // Filtro Método Pago
+      if (this.filtroMetodoPago !== 'todos') {
+        result = result.filter((p) => String(p.MetodoPago) === String(this.filtroMetodoPago))
       }
-      return this.pagos.filter((p) => p.MetodoPago == this.filtroMetodoPago)
+
+      // Filtro Búsqueda (Folio o Proveedor)
+      if (this.filtroSearch) {
+        const query = this.filtroSearch.toLowerCase()
+        result = result.filter(
+          (p) =>
+            (p.No_Folio && p.No_Folio.toLowerCase().includes(query)) ||
+            (p.Proveedor && p.Proveedor.toLowerCase().includes(query)),
+        )
+      }
+
+      // Filtro Departamento
+      if (this.filtroDepto) {
+        result = result.filter((p) => p.Departamento === this.filtroDepto)
+      }
+
+      // Filtro Razón Social
+      if (this.filtroRazonSocial) {
+        result = result.filter((p) => p.RazonSocial === this.filtroRazonSocial)
+      }
+
+      return result
     },
 
     get totalPages() {
@@ -835,6 +870,8 @@ function verRequisicionPago(id) {
  * Lógica para el modal "Facturas pendientes"
  */
 
+let allFichasPago = []
+
 async function initFichasPago() {
   const tbodyContado = document.getElementById('body-contado')
   const tbodyCredito = document.getElementById('body-credito')
@@ -847,83 +884,160 @@ async function initFichasPago() {
   if (badgeContado) badgeContado.textContent = 'Cargando...'
   if (badgeCredito) badgeCredito.textContent = 'Cargando...'
 
-  tbodyContado.innerHTML =
-    '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
-  tbodyCredito.innerHTML =
-    '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
-  // --- Funciones auxiliares conservadas ---
-  function calcularFechaVencimiento(fechaStr, diasStr) {
-    if (!fechaStr) return new Date('2999-12-31')
-    const fechaSimple = fechaStr.split(' ')[0]
-    const partes = fechaSimple.split('-')
-    if (partes.length !== 3) return new Date('2999-12-31')
-
-    const anio = parseInt(partes[0])
-    const mes = parseInt(partes[1]) - 1
-    const dia = parseInt(partes[2])
-
-    const fechaAprobacion = new Date(anio, mes, dia)
-    const diasCredito = parseInt(diasStr) || 0
-
-    fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito)
-    return fechaAprobacion
-  }
-
-  function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
-    const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime()
-    const diasDiferencia = Math.floor(diffMs / 86400000)
-
-    if (diasDiferencia < 0) return 'bg-gray-900 text-white hover:bg-gray-800'
-    if (diasDiferencia < 5) return 'bg-red-100 text-red-800 hover:bg-red-200'
-    if (diasDiferencia < 15) return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-    return 'hover:bg-gray-50'
-  }
+  if (tbodyContado)
+    tbodyContado.innerHTML =
+      '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
+  if (tbodyCredito)
+    tbodyCredito.innerHTML =
+      '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">Cargando datos...</td></tr>'
 
   try {
     // 1. PETICIÓN OPTIMIZADA (Una sola llamada)
     const ordenes = await SendDataEnd('api/facturas-por-pagar')
+    allFichasPago = ordenes || []
 
-    if (!ordenes || ordenes.length === 0) {
+    if (!allFichasPago || allFichasPago.length === 0) {
       if (badgeContado) badgeContado.textContent = '0 pendientes'
       if (badgeCredito) badgeCredito.textContent = '0 pendientes'
-      tbodyContado.innerHTML =
-        '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
-      tbodyCredito.innerHTML =
-        '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
+      if (tbodyContado)
+        tbodyContado.innerHTML =
+          '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
+      if (tbodyCredito)
+        tbodyCredito.innerHTML =
+          '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros disponibles.</td></tr>'
       return
     }
 
-    // 2. Filtrado en memoria
-    let ordenesContado = ordenes.filter((o) => o.MetodoPago == '0')
-    let ordenesCredito = ordenes.filter((o) => o.MetodoPago == '1')
+    // Llenar los select de filtros con datos únicos
+    llenarFiltrosFichas()
+
+    // Renderizar inicialmente ambas tablas
+    renderFichasPago('0')
+    renderFichasPago('1')
 
     // Actualizar contenedores del menu
-    if (badgeContado) badgeContado.textContent = `${ordenesContado.length} pendientes`
-    if (badgeCredito) badgeCredito.textContent = `${ordenesCredito.length} pendientes`
+    actualizarBadgesFichas()
+  } catch (error) {
+    console.error(error)
+    if (tbodyContado)
+      tbodyContado.innerHTML =
+        '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>'
+    if (tbodyCredito)
+      tbodyCredito.innerHTML =
+        '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>'
+  }
+}
 
-    // Ordenar Crédito por fecha
-    ordenesCredito.sort((a, b) => {
+function actualizarBadgesFichas() {
+  const badgeContado = document.getElementById('count-contado-fichas')
+  const badgeCredito = document.getElementById('count-credito-fichas')
+
+  const countContado = allFichasPago.filter((o) => o.MetodoPago == '0').length
+  const countCredito = allFichasPago.filter((o) => o.MetodoPago == '1').length
+
+  if (badgeContado) badgeContado.textContent = `${countContado} pendientes`
+  if (badgeCredito) badgeCredito.textContent = `${countCredito} pendientes`
+}
+
+function llenarFiltrosFichas() {
+  const deptos = [...new Set(allFichasPago.map((o) => o.DepartamentoNombre))].filter(Boolean).sort()
+  const complejos = [...new Set(allFichasPago.map((o) => o.Complejo))].filter(Boolean).sort()
+
+  const selects = [
+    { idDepto: 'filter-depto-contado', idComp: 'filter-complejo-contado' },
+    { idDepto: 'filter-depto-credito', idComp: 'filter-complejo-credito' },
+  ]
+
+  selects.forEach((pair) => {
+    const sDepto = document.getElementById(pair.idDepto)
+    const sComp = document.getElementById(pair.idComp)
+
+    if (sDepto) {
+      const currentVal = sDepto.value
+      sDepto.innerHTML = '<option value="">Todos los Deptos</option>'
+      deptos.forEach((d) => {
+        const opt = document.createElement('option')
+        opt.value = d
+        opt.textContent = d
+        if (d === currentVal) opt.selected = true
+        sDepto.appendChild(opt)
+      })
+    }
+
+    if (sComp) {
+      const currentVal = sComp.value
+      sComp.innerHTML = '<option value="">Todos los Complejos</option>'
+      complejos.forEach((c) => {
+        const opt = document.createElement('option')
+        opt.value = c
+        opt.textContent = c
+        if (c === currentVal) opt.selected = true
+        sComp.appendChild(opt)
+      })
+    }
+  })
+}
+
+function filtrarFichasPago(metodoPago) {
+  renderFichasPago(metodoPago)
+}
+
+function renderFichasPago(metodoPago) {
+  const suffix = metodoPago == '0' ? 'contado' : 'credito'
+  const tbody = document.getElementById(`body-${suffix}`)
+  if (!tbody) return
+
+  const searchValue = document.getElementById(`filter-search-${suffix}`)?.value.toLowerCase() || ''
+  const deptoValue = document.getElementById(`filter-depto-${suffix}`)?.value || ''
+  const complejoValue = document.getElementById(`filter-complejo-${suffix}`)?.value || ''
+
+  let filtered = allFichasPago.filter((o) => o.MetodoPago == metodoPago)
+
+  if (searchValue) {
+    filtered = filtered.filter(
+      (o) =>
+        (o.No_Folio && o.No_Folio.toLowerCase().includes(searchValue)) ||
+        (o.RazonSocial && o.RazonSocial.toLowerCase().includes(searchValue)),
+    )
+  }
+
+  if (deptoValue) {
+    filtered = filtered.filter((o) => o.DepartamentoNombre === deptoValue)
+  }
+
+  if (complejoValue) {
+    filtered = filtered.filter((o) => o.Complejo === complejoValue)
+  }
+
+  // Ordenar Crédito por fecha si aplica
+  if (metodoPago == '1') {
+    filtered.sort((a, b) => {
       const fechaA = calcularFechaVencimiento(a.Fecha_Aprobacion, a.Dias_Credito)
       const fechaB = calcularFechaVencimiento(b.Fecha_Aprobacion, b.Dias_Credito)
       return fechaA - fechaB
     })
+  }
 
-    // Limpiar tablas
-    tbodyContado.innerHTML = ''
-    tbodyCredito.innerHTML = ''
+  tbody.innerHTML = ''
 
-    // --- RENDERIZADO TABLA CONTADO ---
-    if (ordenesContado.length === 0) {
-      tbodyContado.innerHTML =
-        '<tr><td colspan="7" class="px-4 py-3 text-center text-gray-500">No hay registros de contado.</td></tr>'
-    } else {
-      ordenesContado.forEach((det) => {
-        // Nota: Usamos det.Total y det.RazonSocial directamente (ya no det.cotizacion.Total)
-        const total = det.Total
-          ? parseFloat(det.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-          : '-'
+  if (filtered.length === 0) {
+    const colspan = metodoPago == '0' ? 7 : 8
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="px-4 py-3 text-center text-gray-500">No hay registros que coincidan con los filtros.</td></tr>`
+    return
+  }
 
-        const fila = `
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+
+  filtered.forEach((det) => {
+    const total = det.Total
+      ? parseFloat(det.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+      : '-'
+
+    let fila = ''
+
+    if (metodoPago == '0') {
+      fila = `
           <tr class="hover:bg-gray-50 transition border-b">
             <td class="px-4 py-2">${det.DepartamentoNombre || '-'}</td>
             <td class="px-4 py-2">${det.Complejo || '-'}</td>
@@ -938,36 +1052,20 @@ async function initFichasPago() {
               </button>
             </td>
           </tr>`
-        tbodyContado.insertAdjacentHTML('beforeend', fila)
-      })
-    }
-
-    // --- RENDERIZADO TABLA CRÉDITO ---
-    const hoy = new Date()
-    hoy.setHours(0, 0, 0, 0)
-
-    if (ordenesCredito.length === 0) {
-      tbodyCredito.innerHTML =
-        '<tr><td colspan="8" class="px-4 py-3 text-center text-gray-500">No hay registros a crédito.</td></tr>'
     } else {
-      ordenesCredito.forEach((det) => {
-        const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.Dias_Credito)
-        const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
+      const fechaVencimiento = calcularFechaVencimiento(det.Fecha_Aprobacion, det.Dias_Credito)
+      const claseFila = getClaseSemaforo(fechaVencimiento, hoy)
 
-        const diffTime = fechaVencimiento.getTime() - hoy.getTime()
-        const diffDays = Math.floor(diffTime / 86400000)
+      const diffTime = fechaVencimiento.getTime() - hoy.getTime()
+      const diffDays = Math.floor(diffTime / 86400000)
 
-        let diasTexto = ''
-        if (diffDays < 0)
-          diasTexto = `<span class="font-bold">Vencido (${Math.abs(diffDays)} días)</span>`
-        else if (diffDays === 0) diasTexto = `<span class="font-bold">Vence hoy</span>`
-        else diasTexto = `${diffDays} días`
+      let diasTexto = ''
+      if (diffDays < 0)
+        diasTexto = `<span class="font-bold">Vencido (${Math.abs(diffDays)} días)</span>`
+      else if (diffDays === 0) diasTexto = `<span class="font-bold">Vence hoy</span>`
+      else diasTexto = `${diffDays} días`
 
-        const total = det.Total
-          ? parseFloat(det.Total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-          : '-'
-
-        const fila = `
+      fila = `
           <tr class="${claseFila} transition border-b">
             <td class="px-4 py-2">${det.DepartamentoNombre || '-'}</td>
             <td class="px-4 py-2">${det.Complejo || '-'}</td>
@@ -983,16 +1081,37 @@ async function initFichasPago() {
               </button>
             </td>
           </tr>`
-        tbodyCredito.insertAdjacentHTML('beforeend', fila)
-      })
     }
-  } catch (error) {
-    console.error(error)
-    tbodyContado.innerHTML =
-      '<tr><td colspan="7" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>'
-    tbodyCredito.innerHTML =
-      '<tr><td colspan="8" class="px-4 py-3 text-center text-red-500">Error al cargar datos.</td></tr>'
-  }
+    tbody.insertAdjacentHTML('beforeend', fila)
+  })
+}
+
+// --- Funciones auxiliares conservadas ---
+function calcularFechaVencimiento(fechaStr, diasStr) {
+  if (!fechaStr) return new Date('2999-12-31')
+  const fechaSimple = fechaStr.split(' ')[0]
+  const partes = fechaSimple.split('-')
+  if (partes.length !== 3) return new Date('2999-12-31')
+
+  const anio = parseInt(partes[0])
+  const mes = parseInt(partes[1]) - 1
+  const dia = parseInt(partes[2])
+
+  const fechaAprobacion = new Date(anio, mes, dia)
+  const diasCredito = parseInt(diasStr) || 0
+
+  fechaAprobacion.setDate(fechaAprobacion.getDate() + diasCredito)
+  return fechaAprobacion
+}
+
+function getClaseSemaforo(fechaVencimiento, hoyNormalizado) {
+  const diffMs = fechaVencimiento.getTime() - hoyNormalizado.getTime()
+  const diasDiferencia = Math.floor(diffMs / 86400000)
+
+  if (diasDiferencia < 0) return 'bg-gray-900 text-white hover:bg-gray-800'
+  if (diasDiferencia < 5) return 'bg-red-100 text-red-800 hover:bg-red-200'
+  if (diasDiferencia < 15) return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+  return 'hover:bg-gray-50'
 }
 
 async function mostrarDetalleFicha(id, metodoPago) {
