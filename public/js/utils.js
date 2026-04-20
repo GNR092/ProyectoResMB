@@ -1033,6 +1033,19 @@ function initAccumulatedFileInputs(formulario) {
   })
 }
 
+function initGlobalAccumulatedFileInputs() {
+  const selectors = [
+    'input[type="file"][name="archivo[]"]',
+    'input[type="file"][name="archivos[]"]',
+    'input[type="file"][name="cotizacion_files[]"]',
+  ]
+
+  const inputs = document.querySelectorAll(selectors.join(','))
+  inputs.forEach((input) => setupAccumulatedFileInput(input))
+}
+
+document.addEventListener('DOMContentLoaded', initGlobalAccumulatedFileInputs)
+
 /**
  * SendData: Función para manejar el envío del formulario de manera asíncrona
  * @param {*} event - El evento de envío del formulario
