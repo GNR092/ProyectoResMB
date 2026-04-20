@@ -1068,6 +1068,7 @@ class Modales extends BaseController
 
         // Obtener datos del formulario
         $data = [
+            'ID_Proveedor' => (int) $id,
             'RazonSocial' => $request->getPost('RazonSocial'),
             'RFC' => $request->getPost('RFC'),
             'Correo' => $request->getPost('correo'),
@@ -1089,7 +1090,13 @@ class Modales extends BaseController
         }
 
         try {
-            $model->update($id, $data);
+            if (!$model->update($id, $data)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'No se pudo actualizar el proveedor. Verifique los datos.',
+                    'errors' => $model->errors(),
+                ]);
+            }
             
             // Procesar nuevos archivos
             $files = $request->getFiles();

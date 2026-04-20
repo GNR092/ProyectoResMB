@@ -182,3 +182,4 @@ Pruebas/PresupuestoMensual.png
 writable/mantenimiento.json
 /.codesearch.db
 /.agents
+/__pycache__
