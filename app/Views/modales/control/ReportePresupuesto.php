@@ -734,7 +734,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                         </tr>
                                     </template>
                                     <template x-for="(v, index) in paginatedVencimientos" :key="reporteDetallado ? 'venc-det-' + v.ID_Solicitud : 'venc-prov-' + v.ID_Proveedor">
-                                        <tr class="text-center hover:bg-gray-50 text-xs border-b transition-colors" :class="v.claseSemaforo + (reporteDetallado ? ' cursor-pointer' : '')"
+                                        <tr class="text-center text-xs border-b transition-colors" :class="v.claseSemaforo + (reporteDetallado ? ' cursor-pointer' : '')"
                                             @click="reporteDetallado && v.ID_Solicitud && mostrarVerMovimiento(v.ID_Solicitud)">
                                             <td class="px-2 py-2 font-mono font-bold" x-text="v.ID_Proveedor"></td>
                                             <td class="px-3 py-2 text-left font-bold text-blue-800" x-show="reporteDetallado" x-text="v.No_Folio"></td>
@@ -803,7 +803,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <div id="div-ver-vencimiento" class="hidden">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-xl font-bold text-gray-800">Detalles de la Solicitud</h3>
-                            <div class="cursor-pointer p-2 rounded-full hover:bg-gray-200 transition-colors" @click="regresarAMovimientos()" title="Regresar a la lista">
+                            <div class="cursor-pointer p-2 rounded-full  transition-colors" @click="regresarAMovimientos()" title="Regresar a la lista">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-gray-600">
                                     <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-4.28 9.22a.75.75 0 0 0 0 1.06l3 3a.75.75 0 1 0 1.06-1.06l-1.72-1.72h5.69a.75.75 0 0 0 0-1.5h-5.69l1.72-1.72a.75.75 0 0 0-1.06-1.06l-3 3Z" clip-rule="evenodd" />
                                 </svg>

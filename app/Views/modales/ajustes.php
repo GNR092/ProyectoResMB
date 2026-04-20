@@ -8,17 +8,6 @@ $login_type = session('login_type');
 ?>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-    <?php if (in_array('reportes', $ajustes)): ?>
-    <!-- Reportes/Auditorias -->
-    <button onclick="abrirModal('reportes')"
-        class="p-4 bg-gray-100 hover:bg-gray-200 rounded-lg shadow transition flex items-center space-x-2">
-        <svg class="size-6" fill="none" stroke-width="1.5">
-            <use xlink:href="<?= $iconUrl ?>#reportes"></use>
-        </svg>
-        <span>Reportes/Auditorias</span>
-    </button>
-    <?php endif; ?>
-
 
     <?php if ($login_type === 'boss'): ?>
     <button onclick="abrirModal('micuenta')"
