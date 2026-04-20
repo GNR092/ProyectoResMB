@@ -49,7 +49,7 @@ class ReportesController extends ResourceController
         $data['razones_sociales'] = $razonSocialModel->orderBy('Nombre', 'ASC')->findAll();
         $data['places']           = $placesModel->orderBy('Nombre_Corto', 'ASC')->findAll();
 
-        // Datos para el Reporte de Compras (Pantalla 6)
+        // Datos para el Reporte de Pagado/Por Pagar (Pantalla 6)
         $data['departamentos'] = $departamentoModel
             ->select('ID_Dpto, Nombre')
             ->orderBy('Nombre', 'ASC')

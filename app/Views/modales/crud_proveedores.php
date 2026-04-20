@@ -8,7 +8,7 @@
         </button>
     </div>
 
-    <h2 class="text-2xl font-semibold mb-4 text-center">Lista de Proveedores</h2>
+    <h2 class="text-2xl font-semibold mb-4 text-center">Directorio de Proveedores</h2>
 
 
     <!-- Buscadores y botón AGREGAR -->

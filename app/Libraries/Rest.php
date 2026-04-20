@@ -1902,7 +1902,7 @@ class Rest
     
     /**
      * Obtiene todas las solicitudes con la información detallada de sus claves foráneas
-     * para el reporte de Movimientos de Proveedor.
+     * para el reporte de Pagado/Por Pagar Detallado.
      *
      * @return array Un array con los datos completos de las solicitudes.
      */
