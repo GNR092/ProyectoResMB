@@ -866,7 +866,6 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </select>
                     </div>
                 </div>
-                </div>
             </div>
 
             <!-- Filtros Locales (Dptos y Partidas) -->
@@ -1528,7 +1527,6 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <label class="text-xs font-bold text-gray-500 uppercase">Razón Social</label>
                     <select x-model="idRazonSocial" @change="actualizarRazonSocial('completo')" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 min-w-[200px] text-sm">
                         <option value="">Seleccione Razón Social</option>
-                        <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial"><option :value="rs.ID_RazonSocial" x-text="rs.Nombre"></option></template>
                     </select>
                 </div>
                 <div class="flex flex-col gap-1">
