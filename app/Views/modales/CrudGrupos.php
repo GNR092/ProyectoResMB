@@ -67,8 +67,7 @@
                 <th class="w-1/5 px-3 py-2 border-b text-left">Nombre</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Descripción</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Departamento De Operación</th>
-                <th class="w-1/5 px-3 py-2 border-b text-center">Manual</th>
-                <th class="w-1/5 px-3 py-2 border-b text-center">Estado</th>
+                <th class="w-1/5 px-3 py-2 border-b text-center">Indirecto</th>                <th class="w-1/5 px-3 py-2 border-b text-center">Estado</th>
                 <?php if ($tieneAccesoEdicion): ?>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Acciones</th>
                 <?php endif; ?>
@@ -179,7 +178,7 @@
 
             <div class="flex items-center gap-2">
                 <input type="checkbox" name="es_manual" id="es_manual" value="1" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                <label for="es_manual" class="font-medium text-gray-700">Partida de ingresos Manuales</label>
+                <label for="es_manual" class="font-medium text-gray-700">Partida de Gastos Indirectos</label>
             </div>
         </div>
         <button type="submit" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition">Guardar</button>
@@ -219,7 +218,7 @@
 
             <div class="flex items-center gap-2">
                 <input type="checkbox" name="es_manual" id="editar-es_manual" value="1" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                <label for="editar-es_manual" class="font-medium text-gray-700">Partida de ingresos Manuales</label>
+                <label for="editar-es_manual" class="font-medium text-gray-700">Partida de ingresos Indirectos</label>
             </div>
 
             <div class="flex items-center gap-2">

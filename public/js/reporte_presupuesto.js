@@ -9,6 +9,8 @@ function registrarComponenteReportePresupuesto() {
             idPlace: [], // Ahora es un array para selecciones múltiples
             verGlobal: false,
             anio: '',
+            mesInicio: '',
+            mesFin: '',
             meses: [],
 
             razonesSociales: [],
@@ -17,6 +19,11 @@ function registrarComponenteReportePresupuesto() {
             departamentosBancos: [],
             departamentosCompleto: [],
             departamentosOriginales: [],
+            gruposUnicos: [],
+            unidadesSeleccionadas: [],
+            gruposSeleccionados: [],
+            choicesUnidad: null,
+            choicesGrupo: null,
             totalesGeneralesCalculados: { asignado: 0, importesPorMes: {} },
 
             // Nuevos arrays para las sub-pantallas
@@ -97,7 +104,10 @@ function registrarComponenteReportePresupuesto() {
 
                 // 2. Establecer valores por defecto al final para asegurar el vínculo reactivo
                 this.anio = String(currentYear);
-                this.meses = [String(now.getMonth() + 1)];
+                const currentMonth = now.getMonth() + 1;
+                this.mesInicio = String(currentMonth);
+                this.mesFin = String(currentMonth);
+                this.actualizarMesesDesdeIntervalo(false);
                 this.idPlace = [];
                 
                 // Rango por defecto para movimientos: Año completo actual
@@ -105,47 +115,34 @@ function registrarComponenteReportePresupuesto() {
                 this.fechaFinMovimientos = `${currentYear}-12-31`;
             },
 
-            initChoicesMeses(refName) {
-                if (typeof Choices === 'undefined') {
-                    console.error('Choices.js no está cargada.');
-                    return;
+            actualizarMesesDesdeIntervalo(cargar = true) {
+                let inicio = parseInt(this.mesInicio);
+                let fin = parseInt(this.mesFin);
+                if (isNaN(inicio) || isNaN(fin)) return;
+
+                // Validar lógica: si inicio > fin, ajustamos el fin para que sea igual al inicio
+                if (inicio > fin) {
+                    this.mesFin = String(inicio);
+                    fin = inicio;
                 }
                 
-                if (this.choicesMeses) {
-                    this.choicesMeses.destroy();
-                    this.choicesMeses = null;
+                this.meses = [];
+                for (let i = inicio; i <= fin; i++) {
+                    this.meses.push(String(i));
                 }
 
-                if (!refName) return; // Salir si no hay nombre de referencia
+                if (!cargar) return;
 
-                const selectEl = this.$refs[refName];
-                if (!selectEl) return;
+                // Disparar carga de datos según la pantalla
+                if (this.pantalla === 'presupuesto' || this.pantalla === 'solo_presupuesto' || this.pantalla === 'solo_ejecutado') this.cargarComparativo();
+                if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
+                if (this.pantalla === 'completo') this.cargarReporteCompleto();
+                if (this.pantalla === 'compras') this.cargarReporteCompras();
+                if (this.pantalla === 'movimientos') this.cargarMovimientosProveedor();
+            },
 
-                this.choicesMeses = new Choices(selectEl, {
-                    removeItemButton: true,
-                    itemSelectText: '',
-                    placeholderValue: 'Seleccione meses',
-                    searchEnabled: false,
-                    shouldSort: false,
-                    allowHTML: true
-                });
-
-                // Establecer valor inicial (asegurarse de que sean strings)
-                if (this.meses && this.meses.length > 0) {
-                    this.choicesMeses.removeActiveItems();
-                    this.choicesMeses.setChoiceByValue(this.meses.map(String));
-                }
-
-                selectEl.addEventListener('change', () => {
-                    this.meses = this.choicesMeses.getValue(true).map(String);
-                    if (this.pantalla === 'presupuesto' || this.pantalla === 'solo_presupuesto' || this.pantalla === 'solo_ejecutado') this.cargarComparativo();
-                    if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
-                    if (this.pantalla === 'completo') this.cargarReporteCompleto();
-
-                    // Cargadores para las nuevas pantallas
-                    if (this.pantalla === 'compras') this.cargarReporteCompras();
-                    if (this.pantalla === 'movimientos') this.cargarMovimientosProveedor();
-                });
+            initChoicesMeses(refName) {
+                // Función depreciada, ahora usamos selectores de intervalo mesInicio/mesFin
             },
 
             initChoicesPlaces(refName) {
@@ -177,12 +174,7 @@ function registrarComponenteReportePresupuesto() {
 
                 selectEl.addEventListener('change', () => {
                     this.idPlace = this.choicesPlaces.getValue(true).map(String);
-                    if (this.pantalla === 'presupuesto' || this.pantalla === 'solo_presupuesto' || this.pantalla === 'solo_ejecutado') this.cargarComparativo();
-                    if (this.pantalla === 'cuentas') this.cargarComparativoBancos();
-                    if (this.pantalla === 'completo') this.cargarReporteCompleto();
-
-                    if (this.pantalla === 'compras') this.cargarReporteCompras();
-                    if (this.pantalla === 'movimientos') this.cargarMovimientosProveedor();
+                    this.actualizarMesesDesdeIntervalo();
                 });
             },
 
@@ -192,6 +184,9 @@ function registrarComponenteReportePresupuesto() {
                 this.departamentosBancos = [];
                 this.departamentosCompleto = [];
                 this.departamentosOriginales = [];
+                this.gruposUnicos = [];
+                this.unidadesSeleccionadas = [];
+                this.gruposSeleccionados = [];
 
                 this.listaProveedores = [];
                 this.listaProveedoresFiltrada = [];
@@ -202,17 +197,17 @@ function registrarComponenteReportePresupuesto() {
                 this.dptosSeleccionados = [];
                 this.verGlobal = false;
                 
-                if (this.choicesDpto) {
-                    this.choicesDpto.destroy();
-                    this.choicesDpto = null;
-                }
-                if (this.choicesMeses) {
-                    this.choicesMeses.destroy();
-                    this.choicesMeses = null;
-                }
                 if (this.choicesPlaces) {
                     this.choicesPlaces.destroy();
                     this.choicesPlaces = null;
+                }
+                if (this.choicesUnidad) {
+                    this.choicesUnidad.destroy();
+                    this.choicesUnidad = null;
+                }
+                if (this.choicesGrupo) {
+                    this.choicesGrupo.destroy();
+                    this.choicesGrupo = null;
                 }
                 
                 this.idPlace = [];
@@ -220,13 +215,6 @@ function registrarComponenteReportePresupuesto() {
 
                 if (nueva !== 'menu') {
                     this.$nextTick(() => {
-                        const refMapMeses = {
-                            'presupuesto': 'mesesSelectorPresupuesto',
-                            'cuentas': 'mesesSelectorCuentas',
-                            'completo': 'mesesSelectorCompleto',
-                            'solo_presupuesto': 'mesesSelectorSoloPresupuesto',
-                            'solo_ejecutado': 'mesesSelectorSoloEjecutado'
-                        };
                         const refMapPlaces = {
                             'presupuesto': 'placesSelectorPresupuesto',
                             'cuentas': 'placesSelectorCuentas',
@@ -236,8 +224,8 @@ function registrarComponenteReportePresupuesto() {
                             'solo_ejecutado': 'placesSelectorSoloEjecutado'
                         };
                         
-                        if (refMapMeses[nueva]) this.initChoicesMeses(refMapMeses[nueva]);
                         if (refMapPlaces[nueva]) this.initChoicesPlaces(refMapPlaces[nueva]);
+                        this.actualizarMesesDesdeIntervalo();
 
                         // Carga automática si aplica
                         if (nueva === 'proveedores') this.cargarListaProveedores();
@@ -256,7 +244,13 @@ function registrarComponenteReportePresupuesto() {
                 this.departamentosBancos = [];
                 this.departamentosCompleto = [];
                 this.departamentosOriginales = [];
+                this.gruposUnicos = [];
+                this.unidadesSeleccionadas = [];
+                this.gruposSeleccionados = [];
                 
+                if (this.choicesUnidad) { this.choicesUnidad.destroy(); this.choicesUnidad = null; }
+                if (this.choicesGrupo) { this.choicesGrupo.destroy(); this.choicesGrupo = null; }
+
                 const refMap = {
                     'presupuesto': 'placesSelectorPresupuesto',
                     'cuentas': 'placesSelectorCuentas',
@@ -268,6 +262,7 @@ function registrarComponenteReportePresupuesto() {
                 
                 this.$nextTick(() => {
                     if (refMap[pantalla]) this.initChoicesPlaces(refMap[pantalla]);
+                    this.actualizarMesesDesdeIntervalo();
                 });
             },
 
@@ -332,7 +327,7 @@ function registrarComponenteReportePresupuesto() {
             async cargarReporteCompras() {
                 if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0)) return;
                 this.cargando = true;
-                console.log("Cargando reporte de compras...");
+                console.log("Cargando reporte de pagado/por pagar...");
                 setTimeout(() => { this.cargando = false; }, 500);
             },
 
@@ -696,7 +691,7 @@ function registrarComponenteReportePresupuesto() {
                 
                 try {
                     const payload = {
-                        titulo: 'Reporte Detallado de Movimientos de Proveedor',
+                        titulo: 'Reporte Pagado/Por Pagar Detallado',
                         filtros: {
                             texto: this.filtroTextoMovimientos,
                             desde: this.fechaInicioMovimientos,
@@ -1160,7 +1155,8 @@ function registrarComponenteReportePresupuesto() {
                         this.departamentos = [...this.departamentosOriginales];
                         this.totalesGenerales = data.totales_generales || this.getTotalesCero();
                         
-                        this.$nextTick(() => this.initChoicesDpto());
+                        this.extraerGruposUnicos();
+                        this.$nextTick(() => this.initChoicesFiltros());
                     } else {
                         this.mensaje = 'Error al cargar los datos del servidor.';
                         this.error = true;
@@ -1202,7 +1198,11 @@ function registrarComponenteReportePresupuesto() {
                     const res = await fetch(`${BASE_URL}api/reporte/completo/${targetPlaceId}/${this.anio}/${stringMeses}`);
                     if (res.ok) {
                         const data = await res.json();
+                        this.departamentosOriginales = data.departamentos || [];
                         this.departamentosCompleto = data.departamentos || [];
+
+                        this.extraerGruposUnicos();
+                        this.$nextTick(() => this.initChoicesFiltros());
                     }
                 } catch (e) { console.error(e); }
                 finally { this.cargando = false; }
@@ -1454,41 +1454,140 @@ function registrarComponenteReportePresupuesto() {
                 finally { if (notif) notif.click(); }
             },
 
-            initChoicesDpto() {
-                if (this.choicesDpto) this.choicesDpto.destroy();
-                const selectEl = this.$refs.filtroDptos;
-                if (!selectEl) return;
+            extraerGruposUnicos() {
+                const map = new Map();
+                const fuente = this.departamentosOriginales;
 
-                this.choicesDpto = new Choices(selectEl, {
-                    removeItemButton: true,
-                    itemSelectText: '',
-                    placeholderValue: 'Todas las Unidades',
-                    searchPlaceholderValue: 'Buscar unidad...'
+                fuente.forEach(uni => {
+                    if (this.unidadesSeleccionadas.length > 0 && !this.unidadesSeleccionadas.includes(String(uni.ID_UnidadOperativa))) {
+                        return;
+                    }
+
+                    const grupos = uni.grupos || uni.detalles;
+                    if (grupos) {
+                        grupos.forEach(g => {
+                            const id = g.ID_GrupoPresupuestal || g.id_grupo || g.etiqueta;
+                            const nombre = g.Nombre || g.etiqueta;
+                            if (id && !map.has(id)) {
+                                map.set(id, nombre);
+                            }
+                        });
+                    }
                 });
-
-                selectEl.onchange = () => {
-                    this.dptosSeleccionados = this.choicesDpto.getValue(true).map(String);
-                    this.aplicarFiltroLocal();
-                };
+                this.gruposUnicos = Array.from(map, ([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
             },
 
-            aplicarFiltroLocal() {
-                if (this.dptosSeleccionados.length === 0) {
-                    this.departamentos = [...this.departamentosOriginales];
-                } else {
-                    this.departamentos = this.departamentosOriginales.filter(d => 
-                        this.dptosSeleccionados.includes(String(d.ID_UnidadOperativa))
-                    );
+            actualizarOpcionesGrupo() {
+                if (!this.choicesGrupo) return;
+                const seleccionActual = this.choicesGrupo.getValue(true).map(String);
+                this.choicesGrupo.clearChoices();
+                const nuevasOpciones = this.gruposUnicos.map(g => ({
+                    value: String(g.id),
+                    label: g.nombre,
+                    selected: seleccionActual.includes(String(g.id))
+                }));
+                this.choicesGrupo.setChoices(nuevasOpciones, 'value', 'label', true);
+                this.gruposSeleccionados = this.choicesGrupo.getValue(true).map(String);
+            },
+
+            initChoicesFiltros() {
+                if (typeof Choices === 'undefined') return;
+
+                if (this.choicesUnidad) { this.choicesUnidad.destroy(); this.choicesUnidad = null; }
+                if (this.choicesGrupo) { this.choicesGrupo.destroy(); this.choicesGrupo = null; }
+
+                const refUnidad = this.$refs.filtroUnidad;
+                const refGrupo = this.$refs.filtroGrupo;
+
+                if (refUnidad) {
+                    this.choicesUnidad = new Choices(refUnidad, {
+                        removeItemButton: true,
+                        itemSelectText: '',
+                        placeholderValue: 'Todas las Unidades',
+                        searchPlaceholderValue: 'Buscar unidad...',
+                        allowHTML: true
+                    });
+                    refUnidad.onchange = () => {
+                        this.unidadesSeleccionadas = this.choicesUnidad.getValue(true).map(String);
+                        this.extraerGruposUnicos();
+                        this.actualizarOpcionesGrupo();
+                        this.aplicarFiltrosLocales();
+                    };
                 }
+
+                if (refGrupo) {
+                    this.choicesGrupo = new Choices(refGrupo, {
+                        removeItemButton: true,
+                        itemSelectText: '',
+                        placeholderValue: 'Todas las Partidas',
+                        searchPlaceholderValue: 'Buscar partida...',
+                        allowHTML: true
+                    });
+                    refGrupo.onchange = () => {
+                        this.gruposSeleccionados = this.choicesGrupo.getValue(true).map(String);
+                        this.aplicarFiltrosLocales();
+                    };
+                }
+            },
+
+            aplicarFiltrosLocales() {
+                let filtrados = [];
+                this.departamentosOriginales.forEach(uni => {
+                    if (this.unidadesSeleccionadas.length > 0 && !this.unidadesSeleccionadas.includes(String(uni.ID_UnidadOperativa))) {
+                        return;
+                    }
+
+                    let uniClon = JSON.parse(JSON.stringify(uni));
+                    const propGrupos = uniClon.grupos ? 'grupos' : (uniClon.detalles ? 'detalles' : null);
+
+                    if (this.gruposSeleccionados.length > 0 && propGrupos) {
+                        uniClon[propGrupos] = uniClon[propGrupos].filter(g => {
+                            const id = g.ID_GrupoPresupuestal || g.id_grupo || g.etiqueta;
+                            return this.gruposSeleccionados.includes(String(id));
+                        });
+                    }
+
+                    if (!propGrupos || (uniClon[propGrupos] && uniClon[propGrupos].length > 0)) {
+                        filtrados.push(uniClon);
+                    }
+                });
+
+                if (this.pantalla === 'completo') {
+                    this.departamentosCompleto = filtrados;
+                } else if (this.pantalla === 'cuentas') {
+                    this.departamentosBancos = filtrados;
+                } else {
+                    this.departamentos = filtrados;
+                }
+                
                 this.recalcularTotales();
+            },
+
+            limpiarFiltros() {
+                if (this.choicesUnidad) this.choicesUnidad.removeActiveItems();
+                if (this.choicesGrupo) this.choicesGrupo.removeActiveItems();
+                this.unidadesSeleccionadas = [];
+                this.gruposSeleccionados = [];
+                this.extraerGruposUnicos();
+                this.actualizarOpcionesGrupo();
+                this.aplicarFiltrosLocales();
             },
 
             recalcularTotales() {
                 let asignado = 0, comprometido = 0, ejecutado = 0;
-                this.departamentos.forEach(d => {
-                    asignado += parseFloat(d.totales?.asignado || 0);
-                    comprometido += parseFloat(d.totales?.comprometido || 0);
-                    ejecutado += parseFloat(d.totales?.ejecutado || 0);
+                const fuente = this.pantalla === 'completo' ? this.departamentosCompleto : 
+                             (this.pantalla === 'cuentas' ? this.departamentosBancos : this.departamentos);
+
+                fuente.forEach(d => {
+                    if (this.pantalla === 'completo') {
+                        asignado += parseFloat(d.presupuesto?.asignado || 0);
+                        comprometido += parseFloat(d.presupuesto?.comprometido || 0);
+                        ejecutado += parseFloat(d.presupuesto?.ejecutado || 0);
+                    } else {
+                        asignado += parseFloat(d.totales?.asignado || d.asignado || 0);
+                        comprometido += parseFloat(d.totales?.comprometido || d.comprometido || 0);
+                        ejecutado += parseFloat(d.totales?.ejecutado || d.ejecutado || 0);
+                    }
                 });
                 const totalGasto = comprometido + ejecutado;
                 this.totalesGenerales = {

@@ -51,7 +51,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span x-text="guardando ? 'Guardando...' : 'Registrar Gastos Manuales'"></span>
+                    <span x-text="guardando ? 'Guardando...' : 'Registrar Gastos Indirectos'"></span>
                 </button>
             </div>
         </div>
@@ -76,7 +76,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 
     <div class="flex justify-end mb-4" x-show="!cargando && departamentos.length > 0" x-cloak>
         <h3 class="text-lg font-semibold text-gray-800 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200 shadow-sm flex items-center gap-2">
-            Total Gastos Manuales del Mes:
+            Total Gastos Indirectos del Mes:
             <span class="text-amber-700 font-bold text-xl" x-text="formatearMoneda(sumaTotal)">$0.00</span>
         </h3>
     </div>
@@ -85,7 +85,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
         <table class="min-w-full text-sm">
             <thead class="bg-amber-50">
             <tr>
-                <th class="w-1/2 px-6 py-3 border-b border-gray-300 text-left font-semibold text-gray-700 uppercase tracking-tighter">Departamento / Partida de Gasto Manual</th>
+                <th class="w-1/2 px-6 py-3 border-b border-gray-300 text-left font-semibold text-gray-700 uppercase tracking-tighter">Departamento / Partida de Gasto Indirecto</th>
                 <th class="w-1/4 px-6 py-3 border-b border-gray-300 text-right font-semibold text-gray-700 border-l border-l-gray-300 uppercase tracking-tighter">Importe Ejecutado (Actual)</th>
                 <th class="w-1/4 px-6 py-3 border-b border-gray-300 text-right font-semibold text-gray-700 border-l border-l-gray-300 uppercase tracking-tighter bg-amber-100/50">Nuevos Gastos (+)</th>
             </tr>
@@ -123,7 +123,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                             <td class="px-6 py-2 border-b border-gray-200 text-gray-600 pl-12">
                                 <span x-text="grupo.Nombre"></span>
                                 <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                                    MANUAL
+                                    INDIRECTO
                                 </span>
                             </td>
                             <td class="px-6 py-2 border-b border-gray-200 border-l border-l-gray-200 text-right font-medium text-gray-500 bg-gray-50/50">
@@ -162,7 +162,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span x-text="guardando ? 'Guardando...' : 'Registrar Gastos Manuales'"></span>
+                <span x-text="guardando ? 'Guardando...' : 'Registrar Gastos Indirectos'"></span>
             </button>
         </div>
     </div>

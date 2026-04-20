@@ -59,11 +59,12 @@ class GenerarPDF extends BaseController
         }
 
         if ($dictamen && !empty($solicitud['cotizacion']['Cotizacion_Files'])) {
+            $safeDate = explode(' ', $solicitud['Fecha'])[0];
             $cfiles = explode(',', $solicitud['cotizacion']['Cotizacion_Files']);
             foreach ($cfiles as $file) {
                 $this->_adjuntarArchivo(
                     $pdf,
-                    FPath::FCOTIZACION . $solicitud['Fecha'] . '/',
+                    FPath::FCOTIZACION . $safeDate . DIRECTORY_SEPARATOR,
                     $file,
                     'Cotizacion adjunta',
                 );
@@ -109,11 +110,12 @@ class GenerarPDF extends BaseController
         // 3. Cotizaciones
         $cotFileString = $solicitud['cotizacion']['Cotizacion_Files'] ?? ($solicitud['Cotizacion_Files'] ?? null);
         if (!empty($cotFileString)) {
+            $safeDate = explode(' ', $solicitud['Fecha'])[0];
             $cfiles = explode(',', $cotFileString);
             foreach ($cfiles as $index => $file) {
                 $trimmedFile = trim($file);
                 if (empty($trimmedFile)) continue;
-                $this->_adjuntarArchivo($pdf, FPath::FCOTIZACION . $solicitud['Fecha'] . '/', $trimmedFile, 'Cotizacion ' . ($index + 1));
+                $this->_adjuntarArchivo($pdf, FPath::FCOTIZACION . $safeDate . DIRECTORY_SEPARATOR, $trimmedFile, 'Cotizacion ' . ($index + 1));
             }
         }
 
@@ -213,11 +215,12 @@ class GenerarPDF extends BaseController
         }
 
         if ($dictamen && !empty($solicitud['cotizacion']['Cotizacion_Files'])) {
+            $safeDate = explode(' ', $solicitud['Fecha'])[0];
             $cfiles = explode(',', $solicitud['cotizacion']['Cotizacion_Files']);
             foreach ($cfiles as $file) {
                 $this->_adjuntarArchivo(
                     $pdf,
-                    FPath::FCOTIZACION . $solicitud['Fecha'] . '/',
+                    FPath::FCOTIZACION . $safeDate . DIRECTORY_SEPARATOR,
                     $file,
                     'Cotizacion adjunta',
                 );

@@ -102,7 +102,7 @@ function abrirModal(opcion) {
     SegmentoNegocio: 'Segmentos de Negocio',
     UnidadOperativa: 'Unidades operativas',
     AjustesPresupuesto: 'Ajustes presupuestales',
-    GastoManual: 'Registrar Gastos Manualemente',
+    GastoManual: 'Registrar Gastos Indirectos',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 

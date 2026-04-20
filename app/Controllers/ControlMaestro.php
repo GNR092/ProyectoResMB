@@ -314,6 +314,16 @@ class ControlMaestro extends BaseController
             }
 
             // 6. ORDEN DE COMPRA Y ARCHIVOS
+            if (!$idCotizacion && !empty($idProveedor)) {
+                $this->db->table('Cotizacion')->insert([
+                    'ID_Solicitud' => $id_solicitud,
+                    'ID_Proveedor' => $idProveedor,
+                    'Total' => $montoNuevo,
+                    'ID_Usuario_Cotiza' => session('id') ?? 1
+                ]);
+                $idCotizacion = $this->db->insertID();
+            }
+
             if ($idCotizacion && !empty($idProveedor)) {
                 $orden = $this->db->table('OrdenCompra')->where('ID_Cotizacion', $idCotizacion)->get()->getRowArray();
 
@@ -393,12 +403,13 @@ class ControlMaestro extends BaseController
                 // Archivos Cotización
                 $allFiles = $this->request->getFiles();
                 if (isset($allFiles['cotizacion_files'])) {
-                    $cPath = 'uploads/cotizaciones/' . $solicitudOriginal->Fecha . '/';
+                    $safeDate = explode(' ', $solicitudOriginal->Fecha)[0];
+                    $cPath = 'uploads/cotizaciones/' . $safeDate . '/';
                     if (!is_dir(WRITEPATH . $cPath)) mkdir(WRITEPATH . $cPath, 0777, true);
                     $tmpN = []; $cnt = 0;
                     $cfiles = is_array($allFiles['cotizacion_files']) ? $allFiles['cotizacion_files'] : [$allFiles['cotizacion_files']];
                     foreach ($cfiles as $cf) if ($cf->isValid() && !$cf->hasMoved()) {
-                        $cN = "cotizacion_{$idCotizacion}_{$solicitudOriginal->Fecha}_{$cnt}." . $cf->getClientExtension();
+                        $cN = "cotizacion_{$idCotizacion}_{$safeDate}_{$cnt}." . $cf->getClientExtension();
                         if ($cf->move(WRITEPATH . $cPath, $cN, true)) { $tmpN[] = $cN; $cnt++; }
                     }
                     if (!empty($tmpN)) $this->db->table('Cotizacion')->where('ID_Cotizacion', $idCotizacion)->update(['Cotizacion_Files' => implode(',', $tmpN)]);

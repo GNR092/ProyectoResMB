@@ -15,7 +15,23 @@ class ImageProcessor
      */
     public static function processAndSave(?\CodeIgniter\HTTP\Files\UploadedFile $file, string $targetDir, string $newNameWithoutExt): ?string
     {
-        if (!$file || !$file->isValid() || $file->hasMoved()) {
+        if (!$file) {
+            log_message('error', '[ImageProcessor] El archivo es nulo.');
+            return null;
+        }
+
+        if (!$file->isValid()) {
+            log_message('error', sprintf(
+                '[ImageProcessor] El archivo no es válido. Error PHP: %s (%d). Nombre original: %s',
+                $file->getErrorString(),
+                $file->getError(),
+                $file->getName()
+            ));
+            return null;
+        }
+
+        if ($file->hasMoved()) {
+            log_message('error', '[ImageProcessor] El archivo ya ha sido movido.');
             return null;
         }
 
@@ -49,7 +65,7 @@ class ImageProcessor
                 if (!$imageService->save($destinationPath, 80)) {
                     log_message('error', 'Image compression/saving failed for ' . $destinationPath . '. Errors: ' . print_r($imageService->getErrors(), true));
                     // Fallback to simple move if compression fails
-                    if (!$file->move($targetDir, $newName)) {
+                    if (!$file->move($targetDir, $newName, true)) {
                          log_message('error', 'Fallback file move failed for: ' . $newName);
                         return null;
                     }
@@ -57,7 +73,7 @@ class ImageProcessor
             } catch (\Throwable $e) {
                 log_message('error', 'Image processing failed for ' . $newName . ': ' . $e->getMessage() . '. Falling back to moving file.');
                 // Fallback to simple move on any processing error
-                if (!$file->move($targetDir, $newName)) {
+                if (!$file->move($targetDir, $newName, true)) {
                     log_message('error', 'Fallback file move on exception failed for: ' . $newName);
                     return null;
                 }
@@ -67,7 +83,7 @@ class ImageProcessor
             }
         } else {
             // Not a bitmap image (e.g., PDF, SVG, DOCX), just move the file
-            if (!$file->move($targetDir, $newName)) {
+            if (!$file->move($targetDir, $newName, true)) {
                 log_message('error', 'File move failed for: ' . $newName);
                 return null;
             }

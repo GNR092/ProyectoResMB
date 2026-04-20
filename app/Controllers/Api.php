@@ -1197,7 +1197,8 @@ class Api extends ResourceController
 
             // === PROCESAMIENTO DE ARCHIVOS ===
             $files = $this->request->getFiles();
-            $folder = FPath::FCOTIZACION . $solicitud['Fecha'];
+            $safeDate = explode(' ', $solicitud['Fecha'])[0];
+            $folder = FPath::FCOTIZACION . $safeDate;
 
             if ($files && isset($files['cotizacion_files'])) {
                 $idCotizacion = $idCotizacionSeleccionada;
@@ -1208,23 +1209,43 @@ class Api extends ResourceController
                     $idCotizacion = $cot ? $cot['ID_Cotizacion'] : null;
                 }
 
+                // SI SIGUE SIENDO NULL, CREAMOS EL REGISTRO DE COTIZACIÓN
+                if (!$idCotizacion && $idProveedorGanador) {
+                    $idCotizacion = $cotizacionModel->insert([
+                        'ID_Solicitud' => $idSolicitud,
+                        'ID_Proveedor' => $idProveedorGanador,
+                        'Total' => 0, // Se puede actualizar después
+                        'ID_Usuario_Cotiza' => session('id') ?? 1
+                    ]);
+                }
+
                 $tmp = [];
                 $count = 0;
                 $archivosAProcesar = is_array($files['cotizacion_files']) ? $files['cotizacion_files'] : [$files['cotizacion_files']];
 
                 foreach ($archivosAProcesar as $file) {
-                    // Si no hay idCotizacion, le ponemos un identificador temporal para que no falle el string
-                    $baseFileName = 'cotizacion_' . ($idCotizacion ?? 'directa') . '_' . $solicitud['Fecha'] . '_' . $count++;
+                    // Usamos un identificador único (uniqid) para evitar colisiones de archivos
+                    $baseFileName = 'cotizacion_' . ($idCotizacion ?? 'directa') . '_' . $safeDate . '_' . $count++ . '_' . uniqid();
                     $savedFileName = ImageProcessor::processAndSave($file, $folder, $baseFileName);
                     if ($savedFileName) {
                         $tmp[] = $savedFileName;
                     }
                 }
 
+                // SI SE ENVIARON ARCHIVOS PERO NINGUNO SE PUDO GUARDAR
+                if (empty($tmp) && !empty($archivosAProcesar)) {
+                    // Verificamos el primer archivo para ver si el error fue por tamaño
+                    $primerArchivo = $archivosAProcesar[0];
+                    if ($primerArchivo && !$primerArchivo->isValid()) {
+                         return $this->fail('No se pudo guardar el archivo: ' . $primerArchivo->getErrorString() . '. Verifique que el archivo no exceda los 2MB.', HttpStatus::BAD_REQUEST);
+                    }
+                    return $this->fail('No se pudieron procesar los archivos adjuntos.', HttpStatus::BAD_REQUEST);
+                }
+
                 // CORRECCIÓN: Solo actualizamos la tabla cotizaciones si realmente tenemos un ID válido
                 if (!empty($tmp) && $idCotizacion) {
-                    $cfls['Cotizacion_Files'] = implode(',', $tmp);
-                    $this->api->updateCotizacionById($idCotizacion, $cfls);
+                    $cfls = ['Cotizacion_Files' => implode(',', $tmp)];
+                    $this->api->updateCotizacionById((int)$idCotizacion, $cfls);
                 }
             }
 

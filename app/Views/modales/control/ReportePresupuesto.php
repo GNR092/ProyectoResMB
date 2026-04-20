@@ -26,7 +26,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ReportePresupuesto"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-indigo-700 text-xs">Presupuesto</span>
+                <span class="font-bold text-gray-700 group-hover:text-indigo-700 text-xs">Presupuesto Mensual</span>
             </button>
             <button @click="irAPantalla('solo_ejecutado')" class="flex flex-col items-center p-4 border-2 border-cyan-100 rounded-xl hover:border-cyan-500 hover:bg-cyan-50 transition-all group">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -34,7 +34,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ReporteEjecutado"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-cyan-700 text-xs">Ejecutado</span>
+                <span class="font-bold text-gray-700 group-hover:text-cyan-700 text-xs">Ejecutado Mensual</span>
             </button>
             <button @click="irAPantalla('presupuesto')" class="flex flex-col items-center p-4 border-2 border-blue-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -42,7 +42,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#PresupuestoVsEjecutado"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-blue-700 text-xs">Presupuesto vs Ejecutado</span>
+                <span class="font-bold text-gray-700 group-hover:text-blue-700 text-xs">Presupuesto vs Ejecutado Mensual</span>
             </button>
             <button @click="irAPantalla('cuentas')" class="flex flex-col items-center p-4 border-2 border-green-100 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -50,7 +50,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#CuentasBancarias"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-green-700 text-xs">Cuentas Bancarias</span>
+                <span class="font-bold text-gray-700 group-hover:text-green-700 text-xs">Saldos Iniciales/Finales Bancarios</span>
             </button>
             <button @click="irAPantalla('completo')" class="flex flex-col items-center p-4 border-2 border-purple-100 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -58,7 +58,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ReporteCompleto"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-purple-700 text-xs">Reporte Completo</span>
+                <span class="font-bold text-gray-700 group-hover:text-purple-700 text-xs">Reporte Consolidado Mensual </span>
             </button>
             <button @click="irAPantalla('proveedores')" class="flex flex-col items-center p-4 border-2 border-orange-100 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -66,7 +66,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ListaProveedores"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-orange-700 text-xs">Lista De Proveedores</span>
+                <span class="font-bold text-gray-700 group-hover:text-orange-700 text-xs">Directorio De Proveedores</span>
             </button>
             <button @click="irAPantalla('compras')" class="flex flex-col items-center p-4 border-2 border-red-100 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all group">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -74,7 +74,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ReporteCompras"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-red-700 text-xs">Reporte De Compras</span>
+                <span class="font-bold text-gray-700 group-hover:text-red-700 text-xs">Reporte Pagado/Por Pagar</span>
             </button>
             <button @click="irAPantalla('movimientos')" class="flex flex-col items-center p-4 border-2 border-teal-100 rounded-xl hover:border-teal-500 hover:bg-teal-50 transition-all group">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -82,7 +82,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#MovimientosProveedor"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-teal-700 text-xs">Movimientos De Proveedor</span>
+                <span class="font-bold text-gray-700 group-hover:text-teal-700 text-xs">Reporte Pagado/Por Pagar Detallado</span>
             </button>
             <button @click="irAPantalla('vencimientos')" class="flex flex-col items-center p-4 border-2 border-yellow-100 rounded-xl hover:border-yellow-500 hover:bg-yellow-50 transition-all group">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -95,7 +95,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
         </div>
     </div>
 
-    <!-- Pantalla 5: Lista de Proveedores -->
+    <!-- Pantalla 5: Directorio de Proveedores -->
     <template x-if="pantalla === 'proveedores'">
         <div id="pantalla-lista-proveedores" class="animate-fadeIn bg-white rounded-xl shadow-md p-6">
             <div class="flex items-center justify-between mb-4">
@@ -107,7 +107,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </svg>
                         Exportar Excel
                     </button>
-                    <h2 class="text-2xl font-semibold text-center text-gray-800">Lista de Proveedores</h2>
+                    <h2 class="text-2xl font-semibold text-center text-gray-800">Directorio de Proveedores</h2>
                 </div>
             </div>
 
@@ -274,7 +274,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
         </div>
     </template>
 
-    <!-- Pantalla 6: Reporte de Compras -->
+    <!-- Pantalla 6: Reporte Pagado/Por Pagar -->
     <template x-if="pantalla === 'compras'">
         <div class="animate-fadeIn">
             <div id="div-reportes" x-data="Reportes(<?= htmlspecialchars(json_encode($tabledata ?? []), ENT_QUOTES, 'UTF-8') ?>)">
@@ -287,7 +287,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             </svg>
                             Exportar Excel
                         </button>
-                        <h2 class="text-xl font-bold text-gray-800">Reporte de Compras</h2>
+                        <h2 class="text-xl font-bold text-gray-800">Reporte Pagado/Por Pagar</h2>
                     </div>
                 </div>
 
@@ -454,7 +454,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
         </div>
     </template>
 
-    <!-- Pantalla 7: Movimientos de Proveedor -->
+    <!-- Pantalla 7: Pagado/Por Pagar Detallado -->
     <template x-if="pantalla === 'movimientos'">
         <div class="animate-fadeIn">
             
@@ -469,7 +469,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             </svg>
                             Exportar Excel
                         </button>
-                        <h2 class="text-xl font-bold text-gray-800">Movimientos de Proveedor</h2>
+                        <h2 class="text-xl font-bold text-gray-800">Reporte Pagado/Por Pagar Detallado</h2>
                     </div>
                 </div>
 
@@ -828,7 +828,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </svg>
                         Exportar Excel
                     </button>
-                    <h2 class="text-xl font-bold text-gray-800">Importe Ejecutado</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Importe Ejecutado Mensual</h2>
                 </div>
             </div>
 
@@ -854,29 +854,44 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </template>
                     </select>
                 </div>
-                <div class="flex flex-col gap-1 min-w-[220px]">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
-                    <select x-ref="mesesSelectorSoloEjecutado" multiple>
-                        <option value="1">Enero</option>
-                        <option value="2">Febrero</option>
-                        <option value="3">Marzo</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Mayo</option>
-                        <option value="6">Junio</option>
-                        <option value="7">Julio</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Septiembre</option>
-                        <option value="10">Octubre</option>
-                        <option value="11">Noviembre</option>
-                        <option value="12">Diciembre</option>
+                <div class="flex flex-col gap-1 min-w-[320px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Rango de Meses</label>
+                    <div class="flex items-center gap-2">
+                        <select x-model="mesInicio" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                        <span class="text-gray-400 font-bold">al</span>
+                        <select x-model="mesFin" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Filtros Locales (Dptos y Partidas) -->
+            <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-fadeIn" x-cloak>
+                <div class="flex flex-col gap-1 w-full md:w-[45%]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
+                    <select x-ref="filtroUnidad" multiple>
+                        <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
+                            <option :value="uni.ID_UnidadOperativa" x-text="(verGlobal ? uni.RazonSocialNombre + ' > ' + uni.PlaceNombre + ' > ' : '') + uni.Nombre"></option>
+                        </template>
                     </select>
                 </div>
-                <div class="flex flex-col gap-1 self-center ml-auto">
-                    <label class="inline-flex items-center cursor-pointer">
-                        <input type="checkbox" x-model="verGlobal" @change="cargarGlobal()" class="sr-only peer">
-                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
-                        <span class="ms-3 text-sm font-bold text-gray-700 uppercase tracking-tighter">🌍 Global</span>
-                    </label>
+                <div class="flex flex-col gap-1 w-full md:w-[40%]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Partidas </label>
+                    <select x-ref="filtroGrupo" multiple>
+                        <template x-for="g in gruposUnicos" :key="g.id">
+                            <option :value="g.id" x-text="g.nombre"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 self-end mb-1">
+                    <button @click="limpiarFiltros()" 
+                            class="px-4 py-2 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors uppercase">
+                        Limpiar Filtros
+                    </button>
                 </div>
             </div>
 
@@ -945,8 +960,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                                 <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
-                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
-                                                                        MANUAL
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados como indirectos">
+                                                                        INDIRECTO
                                                                     </span>
                                                                 </template>
                                                             </td>
@@ -1003,7 +1018,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </svg>
                         Exportar Excel
                     </button>
-                    <h2 class="text-xl font-bold text-gray-800">Presupuesto Asignado</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Presupuesto Asignado Mensual</h2>
                 </div>
             </div>
 
@@ -1029,22 +1044,17 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </template>
                     </select>
                 </div>
-                <div class="flex flex-col gap-1 min-w-[220px]">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
-                    <select x-ref="mesesSelectorSoloPresupuesto" multiple>
-                        <option value="1">Enero</option>
-                        <option value="2">Febrero</option>
-                        <option value="3">Marzo</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Mayo</option>
-                        <option value="6">Junio</option>
-                        <option value="7">Julio</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Septiembre</option>
-                        <option value="10">Octubre</option>
-                        <option value="11">Noviembre</option>
-                        <option value="12">Diciembre</option>
-                    </select>
+                <div class="flex flex-col gap-1 min-w-[320px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Rango de Meses</label>
+                    <div class="flex items-center gap-2">
+                        <select x-model="mesInicio" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                        <span class="text-gray-400 font-bold">al</span>
+                        <select x-model="mesFin" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="flex flex-col gap-1 self-center ml-auto">
                     <label class="inline-flex items-center cursor-pointer">
@@ -1052,6 +1062,32 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                         <span class="ms-3 text-sm font-bold text-gray-700 uppercase tracking-tighter">🌍 Global</span>
                     </label>
+                </div>
+            </div>
+
+            <!-- Filtros Locales (Dptos y Partidas) -->
+            <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-fadeIn" x-cloak>
+                <div class="flex flex-col gap-1 w-full md:w-[45%]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
+                    <select x-ref="filtroUnidad" multiple>
+                        <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
+                            <option :value="uni.ID_UnidadOperativa" x-text="(verGlobal ? uni.RazonSocialNombre + ' > ' + uni.PlaceNombre + ' > ' : '') + uni.Nombre"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 w-full md:w-[40%]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Partidas </label>
+                    <select x-ref="filtroGrupo" multiple>
+                        <template x-for="g in gruposUnicos" :key="g.id">
+                            <option :value="g.id" x-text="g.nombre"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 self-end mb-1">
+                    <button @click="limpiarFiltros()" 
+                            class="px-4 py-2 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors uppercase">
+                        Limpiar Filtros
+                    </button>
                 </div>
             </div>
 
@@ -1120,8 +1156,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                                 <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
-                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
-                                                                        MANUAL
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados como indirectos">
+                                                                        INDIRECTO
                                                                     </span>
                                                                 </template>
                                                             </td>
@@ -1178,7 +1214,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </svg>
                         Exportar Excel
                     </button>
-                    <h2 class="text-xl font-bold text-gray-800">Presupuesto vs Ejecutado</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Presupuesto vs Ejecutado Mensual</h2>
                 </div>
             </div>
 
@@ -1204,22 +1240,17 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </template>
                     </select>
                 </div>
-                <div class="flex flex-col gap-1 min-w-[220px]">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
-                    <select x-ref="mesesSelectorPresupuesto" multiple>
-                        <option value="1">Enero</option>
-                        <option value="2">Febrero</option>
-                        <option value="3">Marzo</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Mayo</option>
-                        <option value="6">Junio</option>
-                        <option value="7">Julio</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Septiembre</option>
-                        <option value="10">Octubre</option>
-                        <option value="11">Noviembre</option>
-                        <option value="12">Diciembre</option>
-                    </select>
+                <div class="flex flex-col gap-1 min-w-[320px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Rango de Meses</label>
+                    <div class="flex items-center gap-2">
+                        <select x-model="mesInicio" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                        <span class="text-gray-400 font-bold">al</span>
+                        <select x-model="mesFin" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="flex flex-col gap-1 self-center ml-auto">
                     <label class="inline-flex items-center cursor-pointer">
@@ -1230,14 +1261,29 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
             </div>
 
-            <div x-show="departamentosOriginales.length > 0" class="mb-6 animate-fadeIn" x-cloak>
-                <div class="flex flex-col gap-1 w-full md:w-1/2">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Unidades</label>
-                    <select x-ref="filtroDptos" multiple>
-                        <template x-for="d in departamentosOriginales" :key="d.ID_UnidadOperativa">
-                            <option :value="d.ID_UnidadOperativa" x-text="(verGlobal ? d.RazonSocialNombre + ' > ' + d.PlaceNombre + ' > ' : '') + d.Nombre"></option>
+            <!-- Filtros Locales (Dptos y Partidas) -->
+            <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-fadeIn" x-cloak>
+                <div class="flex flex-col gap-1 w-full md:w-[45%]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
+                    <select x-ref="filtroUnidad" multiple>
+                        <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
+                            <option :value="uni.ID_UnidadOperativa" x-text="(verGlobal ? uni.RazonSocialNombre + ' > ' + uni.PlaceNombre + ' > ' : '') + uni.Nombre"></option>
                         </template>
                     </select>
+                </div>
+                <div class="flex flex-col gap-1 w-full md:w-[40%]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Partidas </label>
+                    <select x-ref="filtroGrupo" multiple>
+                        <template x-for="g in gruposUnicos" :key="g.id">
+                            <option :value="g.id" x-text="g.nombre"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 self-end mb-1">
+                    <button @click="limpiarFiltros()" 
+                            class="px-4 py-2 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors uppercase">
+                        Limpiar Filtros
+                    </button>
                 </div>
             </div>
 
@@ -1309,8 +1355,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                                 <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
-                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
-                                                                        MANUAL
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados como indirectos">
+                                                                        INDIRECTO
                                                                     </span>
                                                                 </template>
                                                             </td>
@@ -1361,7 +1407,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </svg>
                         Exportar Excel
                     </button>
-                    <h2 class="text-xl font-bold text-gray-800">Reporte de Cuentas Bancarias</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Saldos Iniciales/Finales De Bancos</h2>
                 </div>
             </div>
 
@@ -1387,22 +1433,17 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </template>
                     </select>
                 </div>
-                <div class="flex flex-col gap-1 min-w-[220px]">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
-                    <select x-ref="mesesSelectorCuentas" multiple>
-                        <option value="1">Enero</option>
-                        <option value="2">Febrero</option>
-                        <option value="3">Marzo</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Mayo</option>
-                        <option value="6">Junio</option>
-                        <option value="7">Julio</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Septiembre</option>
-                        <option value="10">Octubre</option>
-                        <option value="11">Noviembre</option>
-                        <option value="12">Diciembre</option>
-                    </select>
+                <div class="flex flex-col gap-1 min-w-[320px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Rango de Meses</label>
+                    <div class="flex items-center gap-2">
+                        <select x-model="mesInicio" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                        <span class="text-gray-400 font-bold">al</span>
+                        <select x-model="mesFin" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="flex flex-col gap-1 self-center ml-auto">
                     <label class="inline-flex items-center cursor-pointer">
@@ -1478,7 +1519,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </svg>
                         Exportar Excel
                     </button>
-                    <h2 class="text-xl font-bold text-gray-800">Reporte Consolidado Maestro</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Reporte Consolidado Mensual</h2>
                 </div>
             </div>
 
@@ -1504,22 +1545,17 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </template>
                     </select>
                 </div>
-                <div class="flex flex-col gap-1 min-w-[220px]">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Meses</label>
-                    <select x-ref="mesesSelectorCompleto" multiple>
-                        <option value="1">Enero</option>
-                        <option value="2">Febrero</option>
-                        <option value="3">Marzo</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Mayo</option>
-                        <option value="6">Junio</option>
-                        <option value="7">Julio</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Septiembre</option>
-                        <option value="10">Octubre</option>
-                        <option value="11">Noviembre</option>
-                        <option value="12">Diciembre</option>
-                    </select>
+                <div class="flex flex-col gap-1 min-w-[320px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Rango de Meses</label>
+                    <div class="flex items-center gap-2">
+                        <select x-model="mesInicio" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                        <span class="text-gray-400 font-bold">al</span>
+                        <select x-model="mesFin" @change="actualizarMesesDesdeIntervalo()" class="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm font-bold text-gray-700">
+                            <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="flex flex-col gap-1 self-center ml-auto">
                     <label class="inline-flex items-center cursor-pointer">
@@ -1527,6 +1563,32 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                         <span class="ms-3 text-sm font-bold text-gray-700 uppercase tracking-tighter">🌍 Global</span>
                     </label>
+                </div>
+            </div>
+
+            <!-- Filtros Locales (Dptos y Partidas) -->
+            <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-fadeIn" x-cloak>
+                <div class="flex flex-col gap-1 w-full md:w-[45%]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
+                    <select x-ref="filtroUnidad" multiple>
+                        <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
+                            <option :value="uni.ID_UnidadOperativa" x-text="(verGlobal ? uni.RazonSocialNombre + ' > ' + uni.PlaceNombre + ' > ' : '') + uni.Nombre"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 w-full md:w-[40%]">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Partidas </label>
+                    <select x-ref="filtroGrupo" multiple>
+                        <template x-for="g in gruposUnicos" :key="g.id">
+                            <option :value="g.id" x-text="g.nombre"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 self-end mb-1">
+                    <button @click="limpiarFiltros()" 
+                            class="px-4 py-2 text-xs font-bold text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors uppercase">
+                        Limpiar Filtros
+                    </button>
                 </div>
             </div>
 
@@ -1610,8 +1672,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                                                 <span x-show="index === 0">⚙️ </span>
                                                                 <span x-text="index === 0 ? uni.Nombre : item.etiqueta"></span>
                                                                 <template x-if="index !== 0 && (item.es_manual == 1 || item.es_manual === true || item.es_manual === 't')">
-                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados manualmente">
-                                                                        MANUAL
+                                                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 border border-amber-200" title="Gastos ingresados como indirectos">
+                                                                        INDIRECTO
                                                                     </span>
                                                                 </template>
                                                             </td>

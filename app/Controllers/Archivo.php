@@ -378,7 +378,8 @@ class Archivo extends BaseController
             );
         }
 
-        $filePath = FPath::FCOTIZACION . $solicitud['Fecha'] . '/' . $file;
+        $safeDate = explode(' ', $solicitud['Fecha'])[0];
+        $filePath = FPath::FCOTIZACION . $safeDate . DIRECTORY_SEPARATOR . $file;
 
         if (!file_exists($filePath)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(
