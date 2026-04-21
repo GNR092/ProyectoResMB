@@ -105,6 +105,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/provider/(:num)', 'Api::getProviderById/$1');
 
         // Historial
+        $routes->get('api/bitacora', 'Api::bitacora');
         $routes->get('api/historic', 'Api::getHistorial');
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
         $routes->get('api/historic/movimientos-proveedor', 'Api::getMovimientosProveedor', ['filter' => 'mantenimiento']);

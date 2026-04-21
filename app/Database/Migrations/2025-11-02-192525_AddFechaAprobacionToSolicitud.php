@@ -8,12 +8,14 @@ class AddFechaAprobacionToSolicitud extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('Solicitud', [
-            'Fecha_Aprobacion' => [
-                'type' => 'DATETIME',
-                'null' => true,
-            ],
-        ]);
+        if (!$this->db->fieldExists('Fecha_Aprobacion', 'Solicitud')) {
+            $this->forge->addColumn('Solicitud', [
+                'Fecha_Aprobacion' => [
+                    'type' => 'DATETIME',
+                    'null' => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

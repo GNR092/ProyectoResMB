@@ -59,7 +59,7 @@ class AddIngresos extends Migration
         $this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'RESTRICT');
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'RESTRICT');
 
-        $this->forge->createTable('Ingresos');
+        $this->forge->createTable('Ingresos', true);
     }
 
     public function down()

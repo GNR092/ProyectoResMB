@@ -881,6 +881,15 @@ class Api extends ResourceController
                     ? 'Solicitud aprobada y enviada a etapa de Cotización.'
                     : 'Solicitud aprobada y enviada a Compras para su cotización.';
 
+            // Auditoría de acción relacionada a cotización
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'  => 'APROBAR_Y_COTIZAR',
+                'modulo'       => 'Cotizacion',
+                'solicitud_id' => $idSolicitud,
+                'estado'       => 'exito',
+                'valores_nuevos' => json_encode(['nuevo_estado' => $nuevoEstado, 'mensaje' => $mensajeExito])
+            ]);
+
             return $this->respondUpdated([
                 'success' => true,
                 'message' => $mensajeExito,
@@ -1063,6 +1072,15 @@ class Api extends ResourceController
             if ($db->transStatus() === false) {
                 return $this->failServerError('Error en la transacción de la base de datos.');
             }
+
+            // Auditoría de éxito
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'  => 'CREAR_COTIZACION_MASIVA',
+                'modulo'       => 'Cotizacion',
+                'solicitud_id' => $idSolicitud,
+                'estado'       => 'exito',
+                'valores_nuevos' => json_encode(['mensaje' => 'Cotizaciones enviadas a proveedores', 'data' => $json])
+            ]);
 
             return $this->respondCreated([
                 'success' => true,
@@ -3827,4 +3845,25 @@ class Api extends ResourceController
             return $this->failServerError('Excepción al enviar correo de prueba: ' . $e->getMessage());
         }
     }
-} //endregion
+    //endregion
+
+    //region Bitacora
+    public function bitacora()
+    {
+        $limit  = (int) ($this->request->getVar('limit') ?? 50);
+        $page   = (int) ($this->request->getVar('page') ?? 1);
+        $offset = ($page - 1) * $limit;
+
+        $filters = [
+            'usuario_id'   => $this->request->getVar('usuario_id'),
+            'modulo'       => $this->request->getVar('modulo'),
+            'tipo_accion'  => $this->request->getVar('tipo_accion'),
+            'fecha_inicio' => $this->request->getVar('fecha_inicio'),
+            'fecha_fin'    => $this->request->getVar('fecha_fin'),
+        ];
+
+        $result = $this->api->getBitacora($filters, $limit, $offset);
+        return $this->respond($result);
+    }
+    //endregion
+}

@@ -60,7 +60,7 @@ class CreateSaldosBancarios extends Migration
             'saldosbancarios_bancodpto_fk'
         );
 
-        $this->forge->createTable('SaldosBancarios');
+        $this->forge->createTable('SaldosBancarios', true);
     }
 
     public function down()

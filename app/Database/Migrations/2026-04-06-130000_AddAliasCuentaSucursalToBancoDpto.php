@@ -28,7 +28,35 @@ class AddAliasCuentaSucursalToBancoDpto extends Migration
                 'after'      => 'Cuenta'
             ],
         ];
-        $this->forge->addColumn('BancoDpto', $fields);
+        if (!$this->db->fieldExists('Alias', 'BancoDpto')) {
+            $this->forge->addColumn('BancoDpto', [
+                'Alias' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => '255',
+                    'null'       => true,
+                ],
+            ]);
+        }
+
+        if (!$this->db->fieldExists('Cuenta', 'BancoDpto')) {
+            $this->forge->addColumn('BancoDpto', [
+                'Cuenta' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => '16',
+                    'null'       => true,
+                ],
+            ]);
+        }
+
+        if (!$this->db->fieldExists('Sucursal', 'BancoDpto')) {
+            $this->forge->addColumn('BancoDpto', [
+                'Sucursal' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => '255',
+                    'null'       => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

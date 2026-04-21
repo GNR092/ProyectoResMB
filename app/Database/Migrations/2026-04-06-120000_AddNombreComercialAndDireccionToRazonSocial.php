@@ -22,7 +22,25 @@ class AddNombreComercialAndDireccionToRazonSocial extends Migration
                 'after'      => 'RFC'
             ],
         ];
-        $this->forge->addColumn('Razon_Social', $fields);
+        if (!$this->db->fieldExists('Nombre_Comercial', 'Razon_Social')) {
+            $this->forge->addColumn('Razon_Social', [
+                'Nombre_Comercial' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => '255',
+                    'null'       => true,
+                ],
+            ]);
+        }
+
+        if (!$this->db->fieldExists('Direccion', 'Razon_Social')) {
+            $this->forge->addColumn('Razon_Social', [
+                'Direccion' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => '255',
+                    'null'       => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

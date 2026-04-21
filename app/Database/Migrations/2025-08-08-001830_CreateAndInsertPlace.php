@@ -30,7 +30,7 @@ class CreateAndInsertPlace extends Migration
         ]);
 
         $this->forge->addKey('ID_Place', true);
-        $this->forge->createTable('Places');
+        $this->forge->createTable('Places', true);
 
         // Insertar los datos iniciales
         $data = [

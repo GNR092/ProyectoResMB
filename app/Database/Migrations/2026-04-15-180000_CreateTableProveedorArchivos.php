@@ -34,7 +34,7 @@ class CreateTableProveedorArchivos extends Migration
         $this->forge->addKey('id_archivo', true);
         // Usamos el nombre exacto de la tabla de proveedores según la migración original
         $this->forge->addForeignKey('id_proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('proveedor_archivos');
+        $this->forge->createTable('proveedor_archivos', true);
     }
 
     public function down()

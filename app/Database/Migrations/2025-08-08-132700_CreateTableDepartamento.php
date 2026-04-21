@@ -31,7 +31,7 @@ class CreateDepartamentosTable extends Migration
         ]);
         $this->forge->addPrimaryKey('ID_Dpto');
         $this->forge->addForeignKey('ID_Place', 'Places', 'ID_Place', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('Departamentos');
+        $this->forge->createTable('Departamentos', true);
     }
 
     public function down()

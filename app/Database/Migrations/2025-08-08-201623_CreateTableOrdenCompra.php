@@ -32,7 +32,7 @@ class CreateTableOrdenCompra extends Migration
         $this->forge->addKey('ID_OrdenCompra', true);
         $this->forge->addForeignKey('ID_Cotizacion', 'Cotizacion', 'ID_Cotizacion', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('OrdenCompra');
+        $this->forge->createTable('OrdenCompra', true);
     }
 
     public function down()

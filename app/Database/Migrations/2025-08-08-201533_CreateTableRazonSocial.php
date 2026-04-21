@@ -28,7 +28,7 @@ class CreateRazonSocialTable extends Migration
             ],
         ]);
         $this->forge->addPrimaryKey('ID_RazonSocial');
-        $this->forge->createTable('Razon_Social');
+        $this->forge->createTable('Razon_Social', true);
     }
 
     public function down()

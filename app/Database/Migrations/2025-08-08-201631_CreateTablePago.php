@@ -60,7 +60,7 @@ class CreateTablePago extends Migration
         $this->forge->addKey('ID_Pago', true);
         $this->forge->addForeignKey('ID_OrdenCompra', 'OrdenCompra', 'ID_OrdenCompra', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('Pago');
+        $this->forge->createTable('Pago', true);
     }
 
     public function down()

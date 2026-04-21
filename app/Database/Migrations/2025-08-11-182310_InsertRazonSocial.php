@@ -48,7 +48,10 @@ class InsertRazonSocial extends Migration
         if ($defaultDpto) {
             $departamentoId = $defaultDpto->ID_Dpto;
         } else {
-            $this->db->table('Departamentos')->insert(['Nombre' => 'Administración']);
+            $existsDpto = $this->db->table('Departamentos')->where('Nombre', 'Administración')->countAllResults();
+            if ($existsDpto === 0) {
+                $this->db->table('Departamentos')->insert(['Nombre' => 'Administración']);
+            }
             $departamentoId = $this->db->insertID();
         }
 
@@ -56,22 +59,28 @@ class InsertRazonSocial extends Migration
         if ($defaultRS) {
             $razonSocialId = $defaultRS->ID_RazonSocial;
         } else {
-            $this->db->table('Razon_Social')->insert(['Nombre' => 'MB SIGNATURE PROPERTIES', 'RFC' => 'MSP220504I99']);
+            $existsRS = $this->db->table('Razon_Social')->where('Nombre', 'MB SIGNATURE PROPERTIES')->countAllResults();
+            if ($existsRS === 0) {
+                $this->db->table('Razon_Social')->insert(['Nombre' => 'MB SIGNATURE PROPERTIES', 'RFC' => 'MSP220504I99']);
+            }
             $razonSocialId = $this->db->insertID();
         }
 
         $hashedPassword = password_hash('admin', PASSWORD_DEFAULT);
 
-        $data = [
-            'ID_Dpto'        => $departamentoId,
-            'ID_RazonSocial' => $razonSocialId,
-            'Nombre'         => 'Admin',
-            'Correo'         => 'admin@example.com',
-            'ContrasenaP'    => $hashedPassword,
-            'Numero'       => '+019999999999',
-        ];
+        $existsAdmin = $this->db->table('Usuarios')->where('Correo', 'admin@example.com')->countAllResults();
+        if ($existsAdmin === 0) {
+            $data = [
+                'ID_Dpto'        => $departamentoId,
+                'ID_RazonSocial' => $razonSocialId,
+                'Nombre'         => 'Admin',
+                'Correo'         => 'admin@example.com',
+                'ContrasenaP'    => $hashedPassword,
+                'Numero'       => '+019999999999',
+            ];
 
-        $this->db->table('Usuarios')->insert($data);
+            $this->db->table('Usuarios')->insert($data);
+        }
     }
 
     public function down()

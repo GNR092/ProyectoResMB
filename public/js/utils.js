@@ -879,6 +879,173 @@ async function loadDepartamentos() {
   }
 }
 
+const fileAccumulatorState = new WeakMap()
+
+function getFileKey(file) {
+  return [file.name, file.size, file.lastModified, file.type].join('::')
+}
+
+function syncFileInputFromState(input, state) {
+  const dt = new DataTransfer()
+  state.files.forEach((file) => dt.items.add(file))
+  input.files = dt.files
+}
+
+function renderAccumulatedFileSummary(state) {
+  if (!state.summaryText) return
+
+  const total = state.files.length
+  if (total === 0) {
+    state.summaryText.textContent = 'Sin archivos seleccionados'
+    return
+  }
+
+  if (total === 1) {
+    state.summaryText.textContent = state.files[0].name
+    return
+  }
+
+  state.summaryText.textContent = `${total} archivos seleccionados`
+}
+
+function renderAccumulatedFileList(input, state) {
+  if (!state.listContainer) return
+
+  state.listContainer.innerHTML = ''
+
+  if (state.files.length === 0) {
+    const empty = document.createElement('p')
+    empty.className = 'mt-2 text-xs text-gray-500'
+    empty.textContent = 'Sin archivos seleccionados.'
+    state.listContainer.appendChild(empty)
+    renderAccumulatedFileSummary(state)
+    return
+  }
+
+  const list = document.createElement('ul')
+  list.className = 'mt-2 space-y-1'
+
+  state.files.forEach((file, index) => {
+    const item = document.createElement('li')
+    item.className = 'flex items-center justify-between gap-2 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded px-2 py-1'
+
+    const label = document.createElement('span')
+    label.className = 'truncate'
+    label.title = file.name
+    label.textContent = file.name
+
+    const removeBtn = document.createElement('button')
+    removeBtn.type = 'button'
+    removeBtn.className = 'text-red-600 hover:text-red-800 shrink-0'
+    removeBtn.textContent = 'Quitar'
+    removeBtn.addEventListener('click', () => {
+      state.files.splice(index, 1)
+      syncFileInputFromState(input, state)
+      renderAccumulatedFileList(input, state)
+    })
+
+    item.appendChild(label)
+    item.appendChild(removeBtn)
+    list.appendChild(item)
+  })
+
+  state.listContainer.appendChild(list)
+  renderAccumulatedFileSummary(state)
+}
+
+function setupAccumulatedFileInput(input) {
+  if (!input || input.dataset.accumulateInit === '1') return
+  input.dataset.accumulateInit = '1'
+
+  const pickerShell = document.createElement('div')
+  pickerShell.className = 'mt-1 flex items-center gap-3'
+
+  const pickerButton = document.createElement('button')
+  pickerButton.type = 'button'
+  pickerButton.className =
+    'inline-flex items-center rounded border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50'
+  pickerButton.textContent = 'Agregar archivos'
+
+  const summaryText = document.createElement('span')
+  summaryText.className = 'text-sm text-gray-600 truncate'
+  summaryText.textContent = 'Sin archivos seleccionados'
+
+  pickerButton.addEventListener('click', () => input.click())
+
+  pickerShell.appendChild(pickerButton)
+  pickerShell.appendChild(summaryText)
+
+  input.style.display = 'none'
+  input.insertAdjacentElement('afterend', pickerShell)
+
+  const listContainer = document.createElement('div')
+  listContainer.className = 'archivo-acumulado-lista'
+  pickerShell.insertAdjacentElement('afterend', listContainer)
+
+  const state = {
+    files: [],
+    listContainer,
+    summaryText,
+  }
+  fileAccumulatorState.set(input, state)
+
+  input.addEventListener('change', () => {
+    const selected = Array.from(input.files || [])
+    const existing = new Set(state.files.map(getFileKey))
+
+    selected.forEach((file) => {
+      const key = getFileKey(file)
+      if (!existing.has(key)) {
+        state.files.push(file)
+        existing.add(key)
+      }
+    })
+
+    syncFileInputFromState(input, state)
+    renderAccumulatedFileList(input, state)
+  })
+
+  renderAccumulatedFileList(input, state)
+}
+
+function clearAccumulatedFileInput(input) {
+  const state = fileAccumulatorState.get(input)
+  if (!state) return
+  state.files = []
+  input.value = ''
+  syncFileInputFromState(input, state)
+  renderAccumulatedFileList(input, state)
+}
+
+function initAccumulatedFileInputs(formulario) {
+  if (!formulario) return
+
+  const fileInputs = Array.from(formulario.querySelectorAll('input[type="file"][name="archivo[]"]'))
+  if (fileInputs.length === 0) return
+
+  fileInputs.forEach((input) => setupAccumulatedFileInput(input))
+
+  if (formulario.dataset.accumulateResetInit === '1') return
+  formulario.dataset.accumulateResetInit = '1'
+
+  formulario.addEventListener('reset', () => {
+    fileInputs.forEach((input) => clearAccumulatedFileInput(input))
+  })
+}
+
+function initGlobalAccumulatedFileInputs() {
+  const selectors = [
+    'input[type="file"][name="archivo[]"]',
+    'input[type="file"][name="archivos[]"]',
+    'input[type="file"][name="cotizacion_files[]"]',
+  ]
+
+  const inputs = document.querySelectorAll(selectors.join(','))
+  inputs.forEach((input) => setupAccumulatedFileInput(input))
+}
+
+document.addEventListener('DOMContentLoaded', initGlobalAccumulatedFileInputs)
+
 /**
  * SendData: Función para manejar el envío del formulario de manera asíncrona
  * @param {*} event - El evento de envío del formulario

@@ -41,8 +41,28 @@ class UpdateProveedorConstraints extends Migration
     {
         if ($this->db->DBDriver === 'Postgre') {
             $this->db->query('ALTER TABLE "Proveedor" DROP CONSTRAINT IF EXISTS "proveedor_razonsocial_unique"');
-            $this->db->query('ALTER TABLE "Proveedor" ADD CONSTRAINT "Proveedor_RFC_key" UNIQUE ("RFC")');
-            $this->db->query('ALTER TABLE "Proveedor" ADD CONSTRAINT "Proveedor_Correo_key" UNIQUE ("Correo")');
+            $this->db->query('DO $$
+            DECLARE
+                dup_count INTEGER;
+            BEGIN
+                SELECT COUNT(*) INTO dup_count FROM (SELECT "RFC" FROM "Proveedor" GROUP BY "RFC" HAVING COUNT(*) > 1) AS dup;
+                IF dup_count = 0 THEN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = \'Proveedor_RFC_key\') THEN
+                        ALTER TABLE "Proveedor" ADD CONSTRAINT "Proveedor_RFC_key" UNIQUE ("RFC");
+                    END IF;
+                END IF;
+            END $$;');
+            $this->db->query('DO $$
+            DECLARE
+                dup_count INTEGER;
+            BEGIN
+                SELECT COUNT(*) INTO dup_count FROM (SELECT "Correo" FROM "Proveedor" GROUP BY "Correo" HAVING COUNT(*) > 1) AS dup;
+                IF dup_count = 0 THEN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = \'Proveedor_Correo_key\') THEN
+                        ALTER TABLE "Proveedor" ADD CONSTRAINT "Proveedor_Correo_key" UNIQUE ("Correo");
+                    END IF;
+                END IF;
+            END $$;');
         } else {
             $this->db->query('ALTER TABLE Proveedor DROP INDEX IF EXISTS RazonSocial');
             $this->db->query('ALTER TABLE Proveedor ADD UNIQUE (RFC)');

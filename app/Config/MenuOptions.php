@@ -109,7 +109,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'lista_pagos' => [
-                'label' => 'Lista de Pagos',
+                'label' => 'Pagos Programados',
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#list_alt"></use></svg>', // Placeholder icon
             ],
 
@@ -137,6 +137,11 @@ class MenuOptions extends BaseConfig
             'reportes' => [
                 'label' => 'Reportes/Auditoria',
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#reportes"></use></svg>',
+            ],
+
+            'bitacora' => [
+                'label' => 'Bitácora de Eventos',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#bitacora"></use></svg>',
             ],
 
             //**********PRESUPUESTOS**********//

@@ -58,9 +58,12 @@ class AddIdSegmentoToPlaces extends Migration
         ];
 
         foreach ($mapeo as $nombreCorto => $idSegmento) {
-            $db->table('Places')
-               ->where('Nombre_Corto', $nombreCorto)
-               ->update(['id_segmento' => $idSegmento]);
+            $exists = $db->table('segmento_negocio')->where('id', $idSegmento)->countAllResults() > 0;
+            if ($exists) {
+                $db->table('Places')
+                   ->where('Nombre_Corto', $nombreCorto)
+                   ->update(['id_segmento' => $idSegmento]);
+            }
         }
     }
 

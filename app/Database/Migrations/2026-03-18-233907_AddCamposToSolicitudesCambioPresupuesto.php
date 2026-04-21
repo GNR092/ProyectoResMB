@@ -8,17 +8,23 @@ class AddCamposToSolicitudesCambioPresupuesto extends Migration
 {
     public function up()
     {
-        $fields = [
-            'Comentarios_Solicitante' => [
-                'type' => 'TEXT',
-                'null' => true,
-            ],
-            'Datos_Antiguos' => [
-                'type' => 'JSON', // o TEXT dependiendo del soporte
-                'null' => true,
-            ],
-        ];
-        $this->forge->addColumn('SolicitudesCambioPresupuesto', $fields);
+        if (!$this->db->fieldExists('Comentarios_Solicitante', 'SolicitudesCambioPresupuesto')) {
+            $this->forge->addColumn('SolicitudesCambioPresupuesto', [
+                'Comentarios_Solicitante' => [
+                    'type' => 'TEXT',
+                    'null' => true,
+                ],
+            ]);
+        }
+
+        if (!$this->db->fieldExists('Datos_Antiguos', 'SolicitudesCambioPresupuesto')) {
+            $this->forge->addColumn('SolicitudesCambioPresupuesto', [
+                'Datos_Antiguos' => [
+                    'type' => 'JSON',
+                    'null' => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

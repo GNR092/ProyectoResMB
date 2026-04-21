@@ -52,7 +52,7 @@ class CreateTableApiToken extends Migration
 
         $this->forge->addPrimaryKey('ID_Token');
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('User_Tokens');
+        $this->forge->createTable('User_Tokens', true);
     }
 
     /**

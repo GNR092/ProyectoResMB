@@ -8,13 +8,15 @@ class AddFileRemisionToOrdenCompra extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('OrdenCompra', [
-            'File_Remision' => [
-                'type' => 'VARCHAR',
-                'constraint' => '255',
-                'null' => true,
-            ],
-        ]);
+        if (!$this->db->fieldExists('File_Remision', 'OrdenCompra')) {
+            $this->forge->addColumn('OrdenCompra', [
+                'File_Remision' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => '255',
+                    'null' => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

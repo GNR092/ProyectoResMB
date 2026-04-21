@@ -53,7 +53,7 @@ function abrirModal(opcion) {
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
 
-  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto']
+  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto', 'bitacora']
 
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
@@ -103,6 +103,7 @@ function abrirModal(opcion) {
     UnidadOperativa: 'Unidades operativas',
     AjustesPresupuesto: 'Ajustes presupuestales',
     GastoManual: 'Registrar Gastos Indirectos',
+    bitacora: 'Auditoría de Bitácora',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -268,6 +269,7 @@ async function initSolicitarMaterial() {
   if (formulario) {
     if (formulario.dataset.init === '1') return
     formulario.dataset.init = '1'
+    initAccumulatedFileInputs(formulario)
   }
 
   const tabla = document.getElementById('tabla-productos')
@@ -449,6 +451,7 @@ async function initSolicitarMaterialSinCotizar() {
   if (formulario) {
     if (formulario.dataset.init === '1') return
     formulario.dataset.init = '1'
+    initAccumulatedFileInputs(formulario)
   }
 
   const tabla = document.getElementById('tabla-productos-sin-cotizar')
@@ -543,6 +546,7 @@ async function initSolicitarServicio() {
   if (formulario) {
     if (formulario.dataset.init === '1') return
     formulario.dataset.init = '1'
+    initAccumulatedFileInputs(formulario)
   }
 
   const tabla = document.getElementById('tabla-servicios')

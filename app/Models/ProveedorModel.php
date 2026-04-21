@@ -40,6 +40,7 @@ class ProveedorModel extends Model
 
     // Validation
     protected $validationRules      = [
+        'ID_Proveedor' => 'permit_empty|is_natural_no_zero',
         'RazonSocial' => 'required|is_unique[Proveedor.RazonSocial,ID_Proveedor,{ID_Proveedor}]',
     ];
     protected $validationMessages   = [

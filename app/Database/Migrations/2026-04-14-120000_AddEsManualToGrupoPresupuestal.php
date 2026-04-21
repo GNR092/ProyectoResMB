@@ -21,7 +21,9 @@ class AddEsManualToGrupoPresupuestal extends Migration
             $fields['es_manual']['after'] = 'activo';
         }
 
-        $this->forge->addColumn('GrupoPresupuestal', $fields);
+        if (!$this->db->fieldExists('es_manual', 'GrupoPresupuestal')) {
+            $this->forge->addColumn('GrupoPresupuestal', $fields);
+        }
     }
 
     public function down()

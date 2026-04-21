@@ -49,7 +49,7 @@ class AddDetalleIngreso extends Migration
         $this->forge->addForeignKey('ID_Ingreso', 'Ingresos', 'ID_Ingreso', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('ID_Producto', 'Producto', 'ID_Producto', 'CASCADE', 'RESTRICT');
 
-        $this->forge->createTable('DetalleIngreso');
+        $this->forge->createTable('DetalleIngreso', true);
     }
 
     public function down()

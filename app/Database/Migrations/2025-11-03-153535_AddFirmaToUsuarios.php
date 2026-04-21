@@ -8,13 +8,15 @@ class AddFirmaToUsuarios extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('Usuarios', [
-            'Firma_digital' => [
-                'type' => 'VARCHAR',
-                'constraint' => '255',
-                'null' => true
-            ],
-        ]);
+        if (!$this->db->fieldExists('Firma_digital', 'Usuarios')) {
+            $this->forge->addColumn('Usuarios', [
+                'Firma_digital' => [
+                    'type' => 'VARCHAR',
+                    'constraint' => '255',
+                    'null' => true
+                ],
+            ]);
+        }
     }
 
     public function down()

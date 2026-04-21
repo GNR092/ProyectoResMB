@@ -48,7 +48,7 @@ class CreateDetalleEntregasTable extends Migration
         $this->forge->addPrimaryKey('ID_DetalleEntrega');
         $this->forge->addForeignKey('ID_Entrega', 'Entregas', 'ID_Entrega', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('ID_Producto', 'Producto', 'ID_Producto', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('DetalleEntrega');
+        $this->forge->createTable('DetalleEntrega', true);
     }
 
     public function down()

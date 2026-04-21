@@ -304,6 +304,15 @@ class Archivo extends BaseController
 
                 if (!empty($nombresArchivos)) {
                     $solicitud->update($solicitudId, ['Archivo' => implode(',', $nombresArchivos)]);
+
+                    // Auditoría de subida de cotización
+                    \CodeIgniter\Events\Events::trigger('auditoria', [
+                        'tipo_accion'  => 'SUBIR_ARCHIVOS_COTIZACION',
+                        'modulo'       => 'Cotizacion',
+                        'solicitud_id' => $solicitudId,
+                        'estado'       => 'exito',
+                        'valores_nuevos' => json_encode(['archivos' => $nombresArchivos, 'cantidad' => count($nombresArchivos)])
+                    ]);
                 }
             }
 

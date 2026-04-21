@@ -76,7 +76,7 @@ class CreateTableProveedor extends Migration
         ]);
 
         $this->forge->addKey('ID_Proveedor', true);
-        $this->forge->createTable('Proveedor');
+        $this->forge->createTable('Proveedor', true);
         if ($this->db->DBDriver === 'Postgre') {
             $this->db->query(
                 'ALTER TABLE "Proveedor" ADD CONSTRAINT "chk_cuenta_format" CHECK ("Cuenta" IS NULL OR "Cuenta" ~ \'^[0-9]+$\')'
@@ -89,6 +89,10 @@ class CreateTableProveedor extends Migration
 
     public function down()
     {
-        $this->forge->dropTable('Proveedor', true);
+        if ($this->db->DBDriver === 'Postgre') {
+            $this->db->query('DROP TABLE IF EXISTS "Proveedor" CASCADE');
+        } else {
+            $this->forge->dropTable('Proveedor', true);
+        }
     }
 }

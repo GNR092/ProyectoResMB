@@ -50,7 +50,7 @@ class CreateSegmentoNegocio extends Migration
             'segmento_negocio_rs_fk'
         );
 
-        $this->forge->createTable('segmento_negocio');
+        $this->forge->createTable('segmento_negocio', true);
     }
 
     public function down()

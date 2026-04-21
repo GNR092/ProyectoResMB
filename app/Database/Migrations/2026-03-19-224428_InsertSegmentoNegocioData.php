@@ -27,7 +27,7 @@ class InsertSegmentoNegocioData extends Migration
             ],
             [
                 'id'              => 3,
-                'id_razon_social' => 8,
+                'id_razon_social' => 2,
                 'nombre'          => 'Hotel',
                 'descripcion'     => 'Segmento de Hotel de la Razon social MBSP Rentas',
                 'created_at'      => '2026-03-10 17:03:56',

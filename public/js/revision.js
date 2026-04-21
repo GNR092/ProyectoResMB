@@ -448,6 +448,10 @@ function RevisionX() {
               const checkboxLabel = document.getElementById('adjuntar-solicitante-label')
               const inputArchivos = document.getElementById('archivos-revision')
 
+              if (inputArchivos && typeof setupAccumulatedFileInput === 'function') {
+                  setupAccumulatedFileInput(inputArchivos)
+              }
+
               // También limpiamos el nuevo input si existe (para que no tenga datos viejos)
               const nuevoInputComentario = document.getElementById('input-comentario-cotizacion-main');
               if (nuevoInputComentario) nuevoInputComentario.value = '';
@@ -456,7 +460,11 @@ function RevisionX() {
                   checkboxInput.checked = false
                   checkboxInput.disabled = false
                   inputArchivos.disabled = false
-                  inputArchivos.value = ''
+                  if (typeof clearAccumulatedFileInput === 'function') {
+                      clearAccumulatedFileInput(inputArchivos)
+                  } else {
+                      inputArchivos.value = ''
+                  }
                   inputArchivos.classList.remove('bg-gray-100', 'cursor-not-allowed')
                   checkboxLabel.classList.remove('text-gray-500', 'cursor-not-allowed')
 
@@ -464,16 +472,20 @@ function RevisionX() {
                       checkboxInput.classList.remove('text-indigo-600', 'focus:ring-indigo-500')
                       // Aquí tenías código comentado en tu versión original, lo dejo limpio.
                   } else {
-                      checkboxInput.onchange = (e) => {
-                          inputArchivos.disabled = e.target.checked
-                          inputArchivos.classList.toggle('bg-gray-100', e.target.checked)
-                          inputArchivos.classList.toggle('cursor-not-allowed', e.target.checked)
-                          if (e.target.checked) {
-                              inputArchivos.value = ''
-                          }
-                      }
-                  }
-              }
+                       checkboxInput.onchange = (e) => {
+                           inputArchivos.disabled = e.target.checked
+                           inputArchivos.classList.toggle('bg-gray-100', e.target.checked)
+                           inputArchivos.classList.toggle('cursor-not-allowed', e.target.checked)
+                           if (e.target.checked) {
+                               if (typeof clearAccumulatedFileInput === 'function') {
+                                   clearAccumulatedFileInput(inputArchivos)
+                               } else {
+                                   inputArchivos.value = ''
+                               }
+                           }
+                       }
+                   }
+               }
 
               // Listener para cambio de tipo de pago (si es múltiple proveedor)
               const radioCredito = form.querySelector('input[name="tipo_pago"][value="credito"]')

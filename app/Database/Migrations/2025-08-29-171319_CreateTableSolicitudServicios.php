@@ -37,7 +37,7 @@ class CreateSolicitudServiciosTable extends Migration
         $this->forge->addForeignKey('ID_Solicitud', 'Solicitud', 'ID_Solicitud', 'CASCADE', 'CASCADE');
         //$this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
         //$this->forge->addForeignKey('ID_Dpto', 'Departamentos', 'ID_Dpto', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('Solicitud_Servicios');
+        $this->forge->createTable('Solicitud_Servicios', true);
     }
 
     public function down()

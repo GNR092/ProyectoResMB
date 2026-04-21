@@ -29,7 +29,9 @@ class AddColumsOrden extends Migration
             ],
         ];
 
-        $this->forge->addColumn('OrdenCompra', $fields);
+        if (!$this->db->fieldExists('Estado', 'OrdenCompra')) {
+            $this->forge->addColumn('OrdenCompra', $fields);
+        }
     }
 
     /**

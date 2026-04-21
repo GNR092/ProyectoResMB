@@ -56,7 +56,7 @@ class CreatePresupuestoAnual extends Migration
             'fk_presupuesto_rs_innodb' // Nombre único nuevo para evitar basura de intentos previos
         );
 
-        $this->forge->createTable('PresupuestoAnual');
+        $this->forge->createTable('PresupuestoAnual', true);
     }
 
     public function down()

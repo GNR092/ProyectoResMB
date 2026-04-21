@@ -41,7 +41,7 @@ class CreateTableCotizacion extends Migration
         $this->forge->addKey('ID_Cotizacion', true);
         $this->forge->addForeignKey('ID_Solicitud', 'Solicitud', 'ID_Solicitud', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('ID_Proveedor', 'Proveedor', 'ID_Proveedor', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('Cotizacion');
+        $this->forge->createTable('Cotizacion', true);
     }
 
     public function down()
