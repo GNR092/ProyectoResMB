@@ -881,6 +881,15 @@ class Api extends ResourceController
                     ? 'Solicitud aprobada y enviada a etapa de Cotización.'
                     : 'Solicitud aprobada y enviada a Compras para su cotización.';
 
+            // Auditoría de acción relacionada a cotización
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'  => 'APROBAR_Y_COTIZAR',
+                'modulo'       => 'Cotizacion',
+                'solicitud_id' => $idSolicitud,
+                'estado'       => 'exito',
+                'valores_nuevos' => json_encode(['nuevo_estado' => $nuevoEstado, 'mensaje' => $mensajeExito])
+            ]);
+
             return $this->respondUpdated([
                 'success' => true,
                 'message' => $mensajeExito,
@@ -1063,6 +1072,14 @@ class Api extends ResourceController
             if ($db->transStatus() === false) {
                 return $this->failServerError('Error en la transacción de la base de datos.');
             }
+
+            // Auditoría de éxito
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'  => 'CREAR_COTIZACION_MASIVA',
+                'modulo'       => 'Cotizacion',
+                'estado'       => 'exito',
+                'valores_nuevos' => json_encode(['mensaje' => 'Cotizaciones enviadas a proveedores', 'data' => $json])
+            ]);
 
             return $this->respondCreated([
                 'success' => true,

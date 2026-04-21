@@ -105,6 +105,13 @@ class Auth extends BaseController
     {
         $userId = $this->session->get('id');
         if ($userId) {
+            // Registro de cierre de sesión en bitácora antes de destruir la sesión
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion' => 'LOGOUT',
+                'modulo'      => 'Autenticacion',
+                'estado'      => 'exito'
+            ]);
+
             $token = new Rest();
             $userModel = new UsuariosModel();
             $user = $userModel->find($userId);

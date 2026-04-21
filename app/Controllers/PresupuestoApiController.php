@@ -557,7 +557,7 @@ class PresupuestoApiController extends ResourceController
                     // Registro de Éxito en Bitácora
                     \CodeIgniter\Events\Events::trigger('auditoria', [
                         'tipo_accion'    => 'APROBAR_AJUSTE_PRESUPUESTO',
-                        'modulo'         => $modulo,
+                        'modulo'         => $modulo === 'PresupuestoAnual' ? 'PresupuestoAnual' : ($modulo === 'PresupuestoMensual' ? 'PresupuestoMensual' : 'Presupuesto'),
                         'estado'         => 'exito',
                         'solicitud_id'   => $id,
                         'valores_nuevos' => json_encode([

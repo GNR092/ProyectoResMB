@@ -7,6 +7,10 @@
                 <p class="text-sm text-slate-500 mt-1">Trazabilidad completa de eventos y cambios en el sistema.</p>
             </div>
             <div class="flex gap-3">
+                <button @click="clearFilters()" class="px-5 py-2.5 bg-white text-slate-600 border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm active:scale-95">
+                    <i class="fas fa-filter-circle-xmark text-slate-400"></i>
+                    Limpiar Filtros
+                </button>
                 <button @click="fetchData()" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100 active:scale-95">
                     <i class="fas fa-sync-alt" :class="loading ? 'animate-spin' : ''"></i>
                     Actualizar Datos

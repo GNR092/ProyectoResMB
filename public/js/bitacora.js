@@ -17,7 +17,20 @@ function bitacoraApp() {
             fecha_fin: ''
         },
         catalogos: {
-            modulos: ['Solicitud', 'OrdenCompra', 'Cotizacion', 'Usuarios', 'Productos', 'Presupuesto', 'Auth', 'Sistema']
+            // Unificados para mostrar lo que pidió el usuario
+            modulos: [
+                'Solicitud', 
+                'Cotizacion', 
+                'Compras', 
+                'OrdenCompra', 
+                'Usuarios', 
+                'Catalogos', 
+                'Autenticacion', 
+                'PresupuestoAnual', 
+                'PresupuestoMensual', 
+                'Presupuesto',
+                'Sistema'
+            ]
         },
 
         init() {
@@ -53,6 +66,18 @@ function bitacoraApp() {
             }
         },
 
+        clearFilters() {
+            this.filters = {
+                usuario_id: '',
+                modulo: '',
+                tipo_accion: '',
+                fecha_inicio: '',
+                fecha_fin: ''
+            };
+            this.pagination.page = 1;
+            this.fetchData();
+        },
+
         changePage(p) {
             if (p < 1 || p > this.pagination.totalPages) return;
             this.pagination.page = p;
@@ -70,7 +95,7 @@ function bitacoraApp() {
         formatDate(dateStr) {
             if (!dateStr) return '-';
             const date = new Date(dateStr);
-            if (isNaN(date.getTime())) return dateStr; // Si no es una fecha válida, mostrar el raw
+            if (isNaN(date.getTime())) return dateStr; 
             return date.toLocaleString('es-MX', { 
                 day: '2-digit', month: '2-digit', year: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
@@ -84,14 +109,17 @@ function bitacoraApp() {
 
         getActionClass(action) {
             const classes = {
-                'LOGIN': 'bg-blue-50 text-blue-600 border-blue-100',
-                'INSERT': 'bg-green-50 text-green-600 border-green-100',
-                'INSERTAR': 'bg-green-50 text-green-600 border-green-100',
-                'UPDATE': 'bg-amber-50 text-amber-600 border-amber-100',
-                'ACTUALIZAR': 'bg-amber-50 text-amber-600 border-amber-100',
-                'DELETE': 'bg-red-50 text-red-600 border-red-100',
-                'ELIMINAR': 'bg-red-50 text-red-600 border-red-100',
-                'SISTEMA_ERROR': 'bg-red-600 text-white border-red-700'
+                'LOGIN_EXITOSO': 'bg-blue-100 text-blue-700 border-blue-200',
+                'LOGOUT': 'bg-slate-100 text-slate-700 border-slate-200',
+                'LOGIN_FALLIDO': 'bg-red-100 text-red-700 border-red-200',
+                'INSERTAR': 'bg-green-100 text-green-700 border-green-200',
+                'ACTUALIZAR': 'bg-amber-100 text-amber-700 border-amber-200',
+                'ELIMINAR': 'bg-red-100 text-red-700 border-red-200',
+                'SISTEMA_ERROR': 'bg-red-600 text-white border-red-700',
+                'FALLO_LOGIN': 'bg-red-100 text-red-700 border-red-200',
+                'APROBAR_Y_COTIZAR': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+                'CREAR_COTIZACION': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                'SUBIR_ARCHIVOS_COTIZACION': 'bg-teal-100 text-teal-700 border-teal-200'
             };
             return classes[action] || 'bg-slate-50 text-slate-600 border-slate-100';
         },
