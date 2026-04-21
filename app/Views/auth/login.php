@@ -70,6 +70,23 @@
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(239, 184, 16, 0.3);
     }
+
+    .password-toggle {
+        background: transparent;
+        border: none;
+        color: #efb810;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        cursor: pointer;
+        opacity: 0.9;
+        transition: opacity 0.2s ease;
+    }
+
+    .password-toggle:hover {
+        opacity: 1;
+    }
     </style>
 </head>
 
@@ -175,8 +192,13 @@
                 <label for="password" class="block text-[10px] font-semibold text-gray-400 uppercase tracking-widest ml-1">
                     Contraseña
                 </label>
-                <input type="password" id="password" name="password" required
-                    class="w-full px-5 py-4 rounded-2xl input-field text-sm" placeholder="••••••••">
+                <div class="relative">
+                    <input type="password" id="password" name="password" required
+                        class="w-full px-5 py-4 pr-24 rounded-2xl input-field text-sm" placeholder="••••••••">
+                    <button type="button" id="toggle-password" class="password-toggle absolute right-5 top-1/2 -translate-y-1/2">
+                        Mostrar
+                    </button>
+                </div>
             </div>
 
             <?php if (isset($error)): ?>
@@ -209,6 +231,21 @@
             <?= form_close() ?>
         </div>
     </div>
+
+    <script>
+    (function() {
+        const passwordInput = document.getElementById('password');
+        const toggleButton = document.getElementById('toggle-password');
+
+        if (!passwordInput || !toggleButton) return;
+
+        toggleButton.addEventListener('click', function() {
+            const showing = passwordInput.type === 'text';
+            passwordInput.type = showing ? 'password' : 'text';
+            toggleButton.textContent = showing ? 'Mostrar' : 'Ocultar';
+        });
+    })();
+    </script>
 </body>
 
 </html>
