@@ -63,6 +63,17 @@ class ControlMaestro extends BaseController
         $this->db->transException(true)->transStart();
 
         try {
+            // Auditoría de Inicio de Cambio Maestro
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'  => 'CONTROL_MAESTRO_INICIO',
+                'modulo'       => 'Sistema',
+                'clasificacion'=> 'Administración',
+                'solicitud_id' => $id_solicitud,
+                'estado'       => 'exito',
+                'valores_antiguos' => json_encode($solicitudOriginal),
+                'valores_nuevos'   => json_encode($post)
+            ]);
+
             // ---------------------------------------------------------
             // 1. GESTIÓN DE ESTADOS
             // ---------------------------------------------------------
@@ -434,6 +445,17 @@ class ControlMaestro extends BaseController
             } catch (\Exception $e) {}
 
             $this->db->transComplete();
+
+            // Auditoría de Éxito de Cambio Maestro
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'  => 'CONTROL_MAESTRO_EXITO',
+                'modulo'       => 'Sistema',
+                'clasificacion'=> 'Administración',
+                'solicitud_id' => $id_solicitud,
+                'estado'       => 'exito',
+                'valores_nuevos'   => json_encode(['mensaje' => 'Cambio manual del Administrador aplicado correctamente'])
+            ]);
+
             return $this->respond(['success' => true, 'message' => 'Actualizado.']);
         } catch (\Exception $e) {
             if ($this->db->transStatus() === false) {

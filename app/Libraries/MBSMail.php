@@ -65,6 +65,18 @@ class MBSMail
             }
 
             $this->mail->send();
+
+            // Auditoría de éxito en envío
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'    => 'ENVIO_CORREO',
+                'modulo'         => 'ServicioExterno',
+                'estado'         => 'exito',
+                'valores_nuevos' => json_encode([
+                    'destinatario' => $to,
+                    'asunto'       => $subject
+                ])
+            ]);
+
             return true;
         } catch (Exception $e) {
             \CodeIgniter\Events\Events::trigger('auditoria', [

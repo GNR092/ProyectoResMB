@@ -3,9 +3,15 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class PresupuestoAnualModel extends Model
 {
+    use AuditTrait;
+
+    protected $auditClasificacion = 'Finanzas';
+    protected $auditIdentifyingFields = ['ID_RazonSocial', 'Anio'];
+
     protected $table            = 'PresupuestoAnual';
     protected $primaryKey       = 'ID_PresupuestoAnual';
     protected $useAutoIncrement = true;
@@ -25,6 +31,11 @@ class PresupuestoAnualModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
+
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 
     // Helper para obtener datos de la Razón Social
     public function withRazonSocial()

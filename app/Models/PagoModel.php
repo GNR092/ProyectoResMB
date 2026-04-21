@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class PagoModel extends Model
 {
+    use AuditTrait;
+
     protected $table            = 'Pago';
     protected $primaryKey       = 'ID_Pago';
     protected $useAutoIncrement = true;
@@ -20,4 +23,10 @@ class PagoModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
+
+    // Callbacks
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 }

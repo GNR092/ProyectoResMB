@@ -3,10 +3,16 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class CuentasModel extends Model
 {
+    use AuditTrait;
+
+    protected $auditClasificacion = 'Configuración';
+
     protected $table            = 'Cuentas';
+
     protected $primaryKey       = 'ID_Cuenta';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
@@ -33,11 +39,11 @@ class CuentasModel extends Model
     // Callbacks
     protected $allowCallbacks = true;
     protected $beforeInsert   = [];
-    protected $afterInsert    = [];
-    protected $beforeUpdate   = [];
-    protected $afterUpdate    = [];
+    protected $afterInsert    = ['auditInsert'];
+    protected $beforeUpdate   = ['captureOldData'];
+    protected $afterUpdate    = ['auditUpdate'];
     protected $beforeFind     = [];
     protected $afterFind      = [];
     protected $beforeDelete   = [];
-    protected $afterDelete    = [];
+    protected $afterDelete    = ['auditDelete'];
 }

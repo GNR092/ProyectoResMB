@@ -2220,8 +2220,25 @@ class Rest
     public function getBitacora($filters = [], $limit = 50, $offset = 0)
     {
         $builder = $this->db->table('bitacora b');
-        $builder->select('b.*, u.Nombre as nombre_usuario_real');
+        $builder->select('
+            b.*, 
+            u.Nombre as nombre_usuario_real, 
+            d.Nombre as departamento_nombre, 
+            p.Nombre_Corto as complejo_nombre, 
+            rs.Nombre as razon_social_nombre,
+            s.No_Folio as solicitud_folio,
+            gp.Nombre as grupo_presupuestal_nombre,
+            uo.Nombre as unidad_operativa_nombre
+        ');
         $builder->join('Usuarios u', 'u.ID_Usuario = b.usuario_id', 'left');
+        $builder->join('Departamentos d', 'd.ID_Dpto = b.departamento_id', 'left');
+        $builder->join('Places p', 'p.ID_Place = b.complejo_id', 'left');
+        $builder->join('Razon_Social rs', 'rs.ID_RazonSocial = b.razon_social_id', 'left');
+        $builder->join('Solicitud s', 's.ID_Solicitud = b.solicitud_id', 'left');
+        
+        // Joins adicionales para Presupuestos
+        $builder->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = (CAST(b.valores_nuevos->>\'ID_GrupoPresupuestal\' AS INTEGER))', 'left');
+        $builder->join('UnidadOperativa uo', 'uo.ID_UnidadOperativa = (CAST(b.valores_nuevos->>\'ID_UnidadOperativa\' AS INTEGER))', 'left');
 
         if (!empty($filters['usuario_id'])) {
             $builder->where('b.usuario_id', $filters['usuario_id']);
