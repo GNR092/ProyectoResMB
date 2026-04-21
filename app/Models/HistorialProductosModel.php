@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use App\Traits\AuditTrait;
 
 class HistorialProductosModel extends Model
 {
+    use AuditTrait;
+
     protected $table            = 'HistorialProductos';
     protected $primaryKey       = 'ID_HistorialP';
     protected $useAutoIncrement = true;
@@ -25,10 +28,16 @@ class HistorialProductosModel extends Model
     ];
 
     // Dates
-    protected $useTimestamps = true;
+    protected $useTimestamps = false;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
+
+    // Callbacks
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $afterInsert  = ['auditInsert'];
+    protected $afterDelete  = ['auditDelete'];
 }
 

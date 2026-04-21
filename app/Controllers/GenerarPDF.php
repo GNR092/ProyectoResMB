@@ -240,6 +240,15 @@ class GenerarPDF extends BaseController
 
         $pdf->Output('F', $filePath);
 
+        // Auditoría de generación de PDF
+        \CodeIgniter\Events\Events::trigger('auditoria', [
+            'tipo_accion'  => 'GENERAR_PDF',
+            'modulo'       => 'Sistema',
+            'solicitud_id' => $id,
+            'estado'       => 'exito',
+            'valores_nuevos' => json_encode(['archivo' => basename($filePath), 'tipo' => 'DocumentoOficial'])
+        ]);
+
         return $filePath;
     }
 
@@ -682,6 +691,15 @@ class GenerarPDF extends BaseController
         $filePath = $folderPath . DIRECTORY_SEPARATOR . $fileName;
 
         $pdf->Output('F', $filePath);
+
+        // Auditoría de generación de PDF
+        \CodeIgniter\Events\Events::trigger('auditoria', [
+            'tipo_accion'  => 'GENERAR_PDF',
+            'modulo'       => 'Sistema',
+            'solicitud_id' => $id,
+            'estado'       => 'exito',
+            'valores_nuevos' => json_encode(['archivo' => basename($filePath), 'tipo' => 'DocumentoOficial'])
+        ]);
 
         return $filePath;
     }

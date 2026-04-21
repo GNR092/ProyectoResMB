@@ -2237,6 +2237,7 @@ class Rest
         $builder->join('Solicitud s', 's.ID_Solicitud = b.solicitud_id', 'left');
         
         // Joins adicionales para Presupuestos
+        $builder->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = (CAST(b.valores_nuevos->>\'ID_GrupoPresupuestal\' AS INTEGER))', 'left');
         $builder->join('UnidadOperativa uo', 'uo.ID_UnidadOperativa = (CAST(b.valores_nuevos->>\'ID_UnidadOperativa\' AS INTEGER))', 'left');
 
         if (!empty($filters['usuario_id'])) {
