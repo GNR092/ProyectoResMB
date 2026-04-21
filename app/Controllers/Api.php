@@ -1077,6 +1077,7 @@ class Api extends ResourceController
             \CodeIgniter\Events\Events::trigger('auditoria', [
                 'tipo_accion'  => 'CREAR_COTIZACION_MASIVA',
                 'modulo'       => 'Cotizacion',
+                'solicitud_id' => $idSolicitud,
                 'estado'       => 'exito',
                 'valores_nuevos' => json_encode(['mensaje' => 'Cotizaciones enviadas a proveedores', 'data' => $json])
             ]);
