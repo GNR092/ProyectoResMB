@@ -450,6 +450,11 @@ function RevisionX() {
 
               if (inputArchivos && typeof setupAccumulatedFileInput === 'function') {
                   setupAccumulatedFileInput(inputArchivos)
+                  if (typeof clearAccumulatedFileInput === 'function') {
+                      clearAccumulatedFileInput(inputArchivos)
+                  } else {
+                      inputArchivos.value = ''
+                  }
               }
 
               // También limpiamos el nuevo input si existe (para que no tenga datos viejos)
@@ -657,6 +662,14 @@ function RevisionX() {
 
           const form = document.getElementById('form-enviar-revision')
           if (form) form.reset()
+
+          const inputArchivos = document.getElementById('archivos-revision')
+          if (inputArchivos && typeof clearAccumulatedFileInput === 'function') {
+              clearAccumulatedFileInput(inputArchivos)
+          } else if (inputArchivos) {
+              inputArchivos.value = ''
+          }
+
           const detalles = document.getElementById('detalles-para-revision')
           if (detalles) detalles.innerHTML = ''
           this.loadTable();
