@@ -16,27 +16,46 @@ function bitacoraApp() {
             fecha_inicio: '',
             fecha_fin: ''
         },
+        // Mapeos para transformar datos técnicos a lenguaje humano
+        friendly: {
+            modulos: {
+                'Solicitud': 'Requisiciones',
+                'Cotizacion': 'Cotizaciones',
+                'OrdenCompra': 'Órdenes de Compra',
+                'Usuarios': 'Gestión de Usuarios',
+                'Catalogos': 'Configuraciones',
+                'Autenticacion': 'Acceso al Sistema',
+                'PresupuestoAnual': 'Planeación Anual',
+                'PresupuestoMensual': 'Gasto Mensual',
+                'Presupuesto': 'Presupuestos',
+                'Sistema': 'Errores Críticos',
+                'GENERAL': 'General'
+            },
+            acciones: {
+                'INSERTAR': 'Creación de Registro',
+                'ACTUALIZAR': 'Modificación de Datos',
+                'ELIMINAR': 'Eliminación de Registro',
+                'LOGIN_EXITOSO': 'Inicio de Sesión',
+                'LOGOUT': 'Cierre de Sesión',
+                'LOGIN_FALLIDO': 'Intento Fallido',
+                'SISTEMA_ERROR': 'Fallo del Sistema',
+                'APROBAR_Y_COTIZAR': 'Aprobación de Solicitud',
+                'CREAR_COTIZACION_MASIVA': 'Generación de Cotizaciones',
+                'SUBIR_ARCHIVOS_COTIZACION': 'Carga de Documentos',
+                'FALLO_LOGIN': 'Error de Autenticación'
+            }
+        },
         catalogos: {
-            // Unificados para mostrar lo que pidió el usuario
             modulos: [
-                'Solicitud', 
-                'Cotizacion', 
-                'Compras', 
-                'OrdenCompra', 
-                'Usuarios', 
-                'Catalogos', 
-                'Autenticacion', 
-                'PresupuestoAnual', 
-                'PresupuestoMensual', 
-                'Presupuesto',
-                'Sistema'
+                'Solicitud', 'Cotizacion', 'Compras', 'OrdenCompra', 'Usuarios', 
+                'Catalogos', 'Autenticacion', 'PresupuestoAnual', 
+                'PresupuestoMensual', 'Presupuesto', 'Sistema'
             ]
         },
 
         init() {
             this.fetchData();
             
-            // Watchers para filtros automáticos (resetean a página 1)
             this.$watch('filters.modulo', () => { this.pagination.page = 1; this.fetchData(); });
             this.$watch('filters.tipo_accion', () => { this.pagination.page = 1; this.fetchData(); });
             this.$watch('filters.fecha_inicio', () => { this.pagination.page = 1; this.fetchData(); });
@@ -68,11 +87,7 @@ function bitacoraApp() {
 
         clearFilters() {
             this.filters = {
-                usuario_id: '',
-                modulo: '',
-                tipo_accion: '',
-                fecha_inicio: '',
-                fecha_fin: ''
+                usuario_id: '', modulo: '', tipo_accion: '', fecha_inicio: '', fecha_fin: ''
             };
             this.pagination.page = 1;
             this.fetchData();
@@ -90,6 +105,14 @@ function bitacoraApp() {
 
         closeDetails() {
             this.selectedItem = null;
+        },
+
+        getFriendlyModule(mod) {
+            return this.friendly.modulos[mod] || mod;
+        },
+
+        getFriendlyAction(acc) {
+            return this.friendly.acciones[acc] || acc;
         },
 
         formatDate(dateStr) {
@@ -118,7 +141,7 @@ function bitacoraApp() {
                 'SISTEMA_ERROR': 'bg-red-600 text-white border-red-700',
                 'FALLO_LOGIN': 'bg-red-100 text-red-700 border-red-200',
                 'APROBAR_Y_COTIZAR': 'bg-indigo-100 text-indigo-700 border-indigo-200',
-                'CREAR_COTIZACION': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                'CREAR_COTIZACION_MASIVA': 'bg-emerald-100 text-emerald-700 border-emerald-200',
                 'SUBIR_ARCHIVOS_COTIZACION': 'bg-teal-100 text-teal-700 border-teal-200'
             };
             return classes[action] || 'bg-slate-50 text-slate-600 border-slate-100';
@@ -128,7 +151,7 @@ function bitacoraApp() {
             if (!jsonStr) return '{}';
             try {
                 const obj = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
-                return JSON.stringify(obj, null, 2);
+                return JSON.stringify(obj, null, 4);
             } catch (e) {
                 return jsonStr;
             }

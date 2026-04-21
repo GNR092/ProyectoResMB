@@ -10,6 +10,7 @@ class PresupuestoMensualModel extends Model
     use AuditTrait;
 
     protected $auditClasificacion = 'Finanzas';
+    protected $auditIdentifyingFields = ['ID_UnidadOperativa', 'ID_GrupoPresupuestal', 'Anio', 'Mes'];
 
     protected $table            = 'PresupuestoMensual';
     protected $primaryKey       = 'ID_PresupuestoMensual';

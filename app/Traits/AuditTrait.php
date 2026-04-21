@@ -51,6 +51,16 @@ trait AuditTrait
             }
 
             if (!empty($changedNew)) {
+                // Incluir campos de identificación (si existen en el modelo) para dar contexto al registro
+                if (isset($this->auditIdentifyingFields) && is_array($this->auditIdentifyingFields)) {
+                    foreach ($this->auditIdentifyingFields as $idField) {
+                        if (isset($old[$idField])) {
+                            $changedNew[$idField] = $old[$idField];
+                            $changedOld[$idField] = $old[$idField];
+                        }
+                    }
+                }
+
                 Events::trigger('auditoria', [
                     'tipo_accion' => 'ACTUALIZAR',
                     'clasificacion' => $this->auditClasificacion ?? 'Operaciones',
