@@ -579,6 +579,9 @@ class Modales extends BaseController
 
                 return view('modales/control/gastomanual', $data);
 
+            case 'bitacora':
+                return $this->bitacora();
+
             default:
                 return 'Opción no válida';
         }
@@ -1661,5 +1664,10 @@ class Modales extends BaseController
         } catch (\Exception $e) {
             return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
         }
+    }
+
+    public function bitacora()
+    {
+        return view('modales/bitacora');
     }
 }

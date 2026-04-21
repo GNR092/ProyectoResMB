@@ -2212,4 +2212,44 @@ class Rest
         return $results;
     }
     //endregion
+
+    //region Bitacora
+    /**
+     * Obtiene registros de la bitácora con filtros opcionales.
+     */
+    public function getBitacora($filters = [], $limit = 50, $offset = 0)
+    {
+        $builder = $this->db->table('bitacora b');
+        $builder->select('b.*, u.Nombre as nombre_usuario_real');
+        $builder->join('Usuarios u', 'u.ID_Usuario = b.usuario_id', 'left');
+
+        if (!empty($filters['usuario_id'])) {
+            $builder->where('b.usuario_id', $filters['usuario_id']);
+        }
+        if (!empty($filters['modulo'])) {
+            $builder->where('b.modulo', $filters['modulo']);
+        }
+        if (!empty($filters['tipo_accion'])) {
+            $builder->where('b.tipo_accion', $filters['tipo_accion']);
+        }
+        if (!empty($filters['fecha_inicio'])) {
+            $builder->where('b.fecha_hora >=', $filters['fecha_inicio'] . ' 00:00:00');
+        }
+        if (!empty($filters['fecha_fin'])) {
+            $builder->where('b.fecha_hora <=', $filters['fecha_fin'] . ' 23:59:59');
+        }
+
+        // Para contar el total sin el límite
+        $totalBuilder = clone $builder;
+        $total = $totalBuilder->countAllResults();
+
+        $builder->orderBy('b.id', 'DESC');
+        $builder->limit($limit, $offset);
+
+        return [
+            'data' => $builder->get()->getResultArray(),
+            'total' => $total
+        ];
+    }
+    //endregion
 }

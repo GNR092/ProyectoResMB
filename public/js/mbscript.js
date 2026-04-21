@@ -53,7 +53,7 @@ function abrirModal(opcion) {
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
 
-  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto']
+  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto', 'bitacora']
 
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
@@ -103,6 +103,7 @@ function abrirModal(opcion) {
     UnidadOperativa: 'Unidades operativas',
     AjustesPresupuesto: 'Ajustes presupuestales',
     GastoManual: 'Registrar Gastos Indirectos',
+    bitacora: 'Auditoría de Bitácora',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 

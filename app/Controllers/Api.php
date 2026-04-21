@@ -3827,4 +3827,25 @@ class Api extends ResourceController
             return $this->failServerError('Excepción al enviar correo de prueba: ' . $e->getMessage());
         }
     }
-} //endregion
+    //endregion
+
+    //region Bitacora
+    public function bitacora()
+    {
+        $limit  = (int) ($this->request->getVar('limit') ?? 50);
+        $page   = (int) ($this->request->getVar('page') ?? 1);
+        $offset = ($page - 1) * $limit;
+
+        $filters = [
+            'usuario_id'   => $this->request->getVar('usuario_id'),
+            'modulo'       => $this->request->getVar('modulo'),
+            'tipo_accion'  => $this->request->getVar('tipo_accion'),
+            'fecha_inicio' => $this->request->getVar('fecha_inicio'),
+            'fecha_fin'    => $this->request->getVar('fecha_fin'),
+        ];
+
+        $result = $this->api->getBitacora($filters, $limit, $offset);
+        return $this->respond($result);
+    }
+    //endregion
+}
