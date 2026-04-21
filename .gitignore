@@ -182,3 +182,5 @@ Pruebas/PresupuestoMensual.png
 writable/mantenimiento.json
 /.codesearch.db
 /.agents
+/.gemini/skills
+ci4-expert.skill
