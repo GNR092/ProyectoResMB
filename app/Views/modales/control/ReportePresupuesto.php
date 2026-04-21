@@ -9,18 +9,19 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 ?>
 
 <div id="reporte-presupuesto-main-div"
-     class="p-6 bg-white rounded-xl shadow-md min-h-[400px]"
+     class="p-6 min-h-[400px] rounded-2xl bg-slate-50 border border-slate-200"
      x-data="reportePresupuestoComponent"
      data-razones-json='<?= esc($razonesJson) ?>'
      data-places-json='<?= esc($placesJson) ?>'>
 
     <!-- Pantalla 1: Menú Principal -->
     <div x-show="pantalla === 'menu'" x-cloak class="animate-fadeIn">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <span class="text-blue-600">📊</span> Central de Reportes
-        </h2>
+        <div class="mb-6">
+            <h2 class="text-2xl font-extrabold tracking-tight text-slate-800">Central de Reportes</h2>
+            <p class="mt-1 text-sm text-slate-600">Presupuesto, ejecución y tesorería en un solo espacio de consulta.</p>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button @click="irAPantalla('solo_presupuesto')" class="flex flex-col items-center p-4 border-2 border-indigo-100 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition-all group">
+            <button @click="irAPantalla('solo_presupuesto')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-indigo-600" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="<?= $iconUrl ?>#ReportePresupuesto"></use>
@@ -28,7 +29,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-indigo-700 text-xs">Presupuesto Mensual</span>
             </button>
-            <button @click="irAPantalla('solo_ejecutado')" class="flex flex-col items-center p-4 border-2 border-cyan-100 rounded-xl hover:border-cyan-500 hover:bg-cyan-50 transition-all group">
+            <button @click="irAPantalla('solo_ejecutado')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-cyan-300 hover:bg-cyan-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-cyan-600" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="<?= $iconUrl ?>#ReporteEjecutado"></use>
@@ -36,7 +37,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-cyan-700 text-xs">Ejecutado Mensual</span>
             </button>
-            <button @click="irAPantalla('presupuesto')" class="flex flex-col items-center p-4 border-2 border-blue-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group">
+            <button @click="irAPantalla('presupuesto')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-blue-600" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="<?= $iconUrl ?>#PresupuestoVsEjecutado"></use>
@@ -44,7 +45,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-blue-700 text-xs">Presupuesto vs Ejecutado Mensual</span>
             </button>
-            <button @click="irAPantalla('cuentas')" class="flex flex-col items-center p-4 border-2 border-green-100 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group">
+            <button @click="irAPantalla('cuentas')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-green-300 hover:bg-green-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-green-600" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="<?= $iconUrl ?>#CuentasBancarias"></use>
@@ -52,7 +53,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-green-700 text-xs">Saldos Iniciales/Finales Bancarios</span>
             </button>
-            <button @click="irAPantalla('completo')" class="flex flex-col items-center p-4 border-2 border-purple-100 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
+            <button @click="irAPantalla('completo')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-purple-600" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="<?= $iconUrl ?>#ReporteCompleto"></use>
@@ -60,7 +61,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-purple-700 text-xs">Reporte Consolidado Mensual </span>
             </button>
-            <button @click="irAPantalla('proveedores')" class="flex flex-col items-center p-4 border-2 border-orange-100 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group">
+            <button @click="irAPantalla('proveedores')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-orange-600" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="<?= $iconUrl ?>#ListaProveedores"></use>
@@ -68,7 +69,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-orange-700 text-xs">Directorio De Proveedores</span>
             </button>
-            <button @click="irAPantalla('compras')" class="flex flex-col items-center p-4 border-2 border-red-100 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all group">
+            <button @click="irAPantalla('compras')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-red-300 hover:bg-red-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-red-600" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="<?= $iconUrl ?>#ReporteCompras"></use>
@@ -76,7 +77,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-red-700 text-xs">Reporte Pagado/Por Pagar</span>
             </button>
-            <button @click="irAPantalla('movimientos')" class="flex flex-col items-center p-4 border-2 border-teal-100 rounded-xl hover:border-teal-500 hover:bg-teal-50 transition-all group">
+            <button @click="irAPantalla('movimientos')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-teal-600" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="<?= $iconUrl ?>#MovimientosProveedor"></use>
@@ -84,7 +85,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-teal-700 text-xs">Reporte Pagado/Por Pagar Detallado</span>
             </button>
-            <button @click="irAPantalla('vencimientos')" class="flex flex-col items-center p-4 border-2 border-yellow-100 rounded-xl hover:border-yellow-500 hover:bg-yellow-50 transition-all group">
+            <button @click="irAPantalla('vencimientos')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-yellow-300 hover:bg-yellow-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-yellow-600" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="<?= $iconUrl ?>#ReporteVencimientos"></use>
@@ -97,9 +98,9 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
     <!-- Pantalla 5: Directorio de Proveedores -->
     <template x-if="pantalla === 'proveedores'">
-        <div id="pantalla-lista-proveedores" class="animate-fadeIn bg-white rounded-xl shadow-md p-6">
+        <div id="pantalla-lista-proveedores" class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-6">
             <div class="flex items-center justify-between mb-4">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-orange-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-orange-600 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
                 <div class="flex items-center gap-4">
                     <button @click="exportarProveedoresExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,20 +120,20 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                            x-model="filtroNombreProveedor" 
                            @input.debounce.300ms="aplicarFiltrosProveedor()"
                            placeholder="Buscar por nombre..." 
-                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+                           class="w-full px-3 py-2 border border-slate-300 bg-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:bg-white">
                     <label for="buscar-servicio-rep" class="sr-only">Buscar por servicio</label>
                     <input type="text" id="buscar-servicio-rep" 
                            x-model="filtroServicioProveedor"
                            @input.debounce.300ms="aplicarFiltrosProveedor()"
                            placeholder="Buscar por servicio..." 
-                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300">
+                           class="w-full px-3 py-2 border border-slate-300 bg-slate-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:bg-white">
                 </div>
             </div>
 
             <!-- Tabla -->
             <div class="overflow-x-auto">
-                <table class="min-w-full border border-gray-300 rounded-lg table-fixed">
-                    <thead class="bg-gray-100">
+                <table class="min-w-full border border-slate-200 rounded-lg table-fixed overflow-hidden">
+                    <thead class="bg-slate-100/80">
                         <tr>
                             <th class="w-1/6 px-3 py-2 border-b text-left text-xs font-bold uppercase text-gray-600">Razón Social</th>
                             <th class="w-1/6 px-3 py-2 border-b text-left text-xs font-bold uppercase text-gray-600">RFC</th>
@@ -144,7 +145,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     </thead>
                     <tbody id="tabla-proveedores">
                         <template x-for="(prov, index) in paginatedProveedores" :key="prov.ID_Proveedor ? 'prov-' + prov.ID_Proveedor : 'prow-' + index">
-                            <tr :class="index % 2 === 0 ? 'bg-white' : 'bg-gray-50'" class="hover:bg-blue-50 transition-colors">
+                            <tr :class="index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'" class="hover:bg-emerald-50/60 transition-colors">
                                 <td class="px-3 py-2 border-b text-sm razonsocial" x-text="prov.RazonSocial"></td>
                                 <td class="px-3 py-2 border-b text-sm" x-text="prov.RFC || 'N/A'"></td>
                                 <td class="px-3 py-2 border-b text-sm" x-text="prov.Banco || 'N/A'"></td>
@@ -191,8 +192,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                  x-cloak 
                  class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 animate-fadeIn"
                  @click.self="proveedorSeleccionado = null">
-                <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                    <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+                <div class="bg-white rounded-xl border border-slate-200 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
                         <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
                             🔍 Detalles del Proveedor
                         </h3>
@@ -598,15 +599,15 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
             <!-- Pantalla 8: Reportes de Vencimiento -->
             <template x-if="pantalla === 'vencimientos'">
-                <div class="animate-fadeIn">
+                <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
                     <!-- CONTENEDOR PRINCIPAL: Tabla de Vencimientos -->
                     <div id="div-vencimientos">
-                        <div class="flex items-center justify-between mb-6">
-                            <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-yellow-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                            <div class="flex items-center gap-4">
+                        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                            <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-amber-700 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
+                            <div class="flex flex-wrap items-center gap-3 md:gap-4">
                                 <!-- Botón Exportar Excel -->
                                 <button @click="exportarVencimientosExcel()" 
-                                        class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
@@ -614,29 +615,30 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                 </button>
 
                                 <!-- Toggle Detallado (Estilo Presupuesto Global) -->
-                                <div class="flex items-center mr-2">                                <label class="inline-flex items-center cursor-pointer">
+                                <div class="flex items-center">
+                                    <label class="inline-flex items-center cursor-pointer">
                                         <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
-                                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
-                                        <span class="ms-3 text-[10px] font-bold text-gray-700 uppercase tracking-tighter">Reporte Detallado</span>
+                                        <div class="relative w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                                        <span class="ms-3 text-[10px] font-bold text-slate-700 uppercase tracking-tight">Reporte Detallado</span>
                                     </label>
                                 </div>
-                                <h2 class="text-xl font-bold text-gray-800">Reportes de Vencimiento</h2>
+                                <h2 class="text-xl font-bold text-slate-800">Reportes de Vencimiento</h2>
                             </div>
                         </div>
 
                         <!-- Panel de Filtros Avanzados -->
-                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
                             <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
                                 <!-- Folio -->
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Folio</label>
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Folio</label>
                                     <input type="text" x-model="filtrosFolioVenc" placeholder="Buscar folio..." 
-                                           class="px-3 py-2 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
+                                           class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-amber-400 bg-white">
                                 </div>
 
                                 <!-- Proveedor -->
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Proveedor</label>
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Proveedor</label>
                                     <select x-ref="choicesProvVenc" multiple>
                                         <?php if (!empty($proveedores)): ?>
                                             <?php foreach ($proveedores as $prov): ?>
@@ -648,7 +650,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
                                 <!-- Razón Social -->
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Razón Social</label>
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
                                     <select x-ref="choicesRazonVenc" multiple>
                                         <?php if (!empty($razones_sociales)): ?>
                                             <?php foreach ($razones_sociales as $rs): ?>
@@ -660,7 +662,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
                                 <!-- Complejo (Places) -->
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Complejo</label>
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Complejo</label>
                                     <select x-ref="choicesPlaceVenc" multiple>
                                         <?php if (!empty($places)): ?>
                                             <?php foreach ($places as $p): ?>
@@ -672,7 +674,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
                                 <!-- Departamento -->
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Departamento</label>
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
                                     <select x-ref="choicesDeptoVenc" multiple>
                                         <?php if (!empty($departamentos)): ?>
                                             <?php foreach ($departamentos as $d): ?>
@@ -684,9 +686,9 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
                                 <!-- Estatus -->
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Estatus</label>
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Estatus</label>
                                     <select x-model="filtroEstatusVenc" @change="currentPageVencimientos = 1"
-                                            class="px-3 py-2 border rounded-lg text-xs outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
+                                            class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-amber-400 bg-white">
                                         <option value="">Todos</option>
                                         <option value="Vencido">Vencido</option>
                                         <option value="Pago Hoy">Pago Hoy</option>
@@ -696,30 +698,30 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             </div>
                             
                             <div class="flex justify-end mt-4">
-                                <button @click="limpiarFiltrosVencimientos()" class="px-4 py-1.5 bg-gray-800 text-white text-[10px] font-bold rounded-lg hover:bg-gray-900 transition-all uppercase tracking-widest shadow-sm">
+                                <button @click="limpiarFiltrosVencimientos()" class="px-4 py-1.5 bg-slate-800 text-white text-[10px] font-bold rounded-lg hover:bg-slate-900 transition-all uppercase tracking-widest">
                                     Limpiar Filtros
                                 </button>
                             </div>
                         </div>
 
                         <!-- Tabla -->
-                        <div class="overflow-x-auto shadow rounded-lg border border-gray-300">
+                        <div class="overflow-x-auto rounded-lg border border-slate-200">
                             <table class="min-w-full border-collapse" id="tabla-vencimientos">
-                                <thead class="bg-gray-100 text-gray-600 uppercase text-[9px] font-bold">
+                                <thead class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">
                                     <tr>
-                                        <th class="border px-2 py-2 text-center">Cód.</th>
-                                        <th class="border px-3 py-2 text-left" x-show="reporteDetallado">Folio</th>
-                                        <th class="border px-3 py-2 text-left">RFC</th>
-                                        <th class="border px-3 py-2 text-left">Razón Social</th>
-                                        <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Importe Crédito</th>
-                                        <th class="border px-3 py-2 text-right">Importe Por Pagar</th>
-                                        <th class="border px-3 py-2 text-right" x-show="hayExcedidosVencimientos" x-cloak>Importe Excedido</th>
-                                        <th class="border px-3 py-2 text-right" x-show="!reporteDetallado">Saldo Crédito</th>
-                                        <th class="border px-3 py-2 text-center">Días Créd.</th>
-                                        <th class="border px-3 py-2 text-center" x-show="reporteDetallado">Fecha Aprobacion</th>
-                                        <th class="border px-3 py-2 text-center" x-show="reporteDetallado">Fecha Vencimiento</th>
-                                        <th class="border px-3 py-2 text-center">Estatus</th>
-                                        <th class="border px-3 py-2 text-center">Días Vencido</th>
+                                        <th class="border border-slate-200 px-2 py-2 text-center">Cód.</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-left" x-show="reporteDetallado">Folio</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-left">RFC</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-left">Razón Social</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-right" x-show="!reporteDetallado">Importe Crédito</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-right">Importe Por Pagar</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-right" x-show="hayExcedidosVencimientos" x-cloak>Importe Excedido</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-right" x-show="!reporteDetallado">Saldo Crédito</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-center">Días Créd.</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-center" x-show="reporteDetallado">Fecha Aprobación</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-center" x-show="reporteDetallado">Fecha Vencimiento</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-center">Estatus</th>
+                                        <th class="border border-slate-200 px-3 py-2 text-center">Días Vencido</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white">
@@ -734,7 +736,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                         </tr>
                                     </template>
                                     <template x-for="(v, index) in paginatedVencimientos" :key="reporteDetallado ? 'venc-det-' + v.ID_Solicitud : 'venc-prov-' + v.ID_Proveedor">
-                                        <tr class="text-center text-xs border-b transition-colors" :class="v.claseSemaforo + (reporteDetallado ? ' cursor-pointer' : '')"
+                                        <tr class="text-center text-xs border-b border-slate-100 transition-colors" :class="v.claseSemaforo + (reporteDetallado ? ' cursor-pointer' : '')"
                                             @click="reporteDetallado && v.ID_Solicitud && mostrarVerMovimiento(v.ID_Solicitud)">
                                             <td class="px-2 py-2 font-mono font-bold" x-text="v.ID_Proveedor"></td>
                                             <td class="px-3 py-2 text-left font-bold text-blue-800" x-show="reporteDetallado" x-text="v.No_Folio"></td>
@@ -758,20 +760,20 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </div>
 
                         <!-- Resumen de Estados de Vencimiento -->
-                        <div class="mt-8 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm" x-show="!cargando && vencimientosFiltrados.length > 0">
-                            <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-red-500 shadow-sm">
+                        <div class="mt-8 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" x-show="!cargando && vencimientosFiltrados.length > 0">
+                            <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-red-500">
                                 <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Vencido</span>
                                 <span class="text-lg font-black text-red-700" x-text="formatearMoneda(resumenVencimientos.vencido)"></span>
                             </div>
-                            <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-blue-500 shadow-sm">
+                            <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-blue-500">
                                 <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pago Hoy</span>
                                 <span class="text-lg font-black text-blue-700" x-text="formatearMoneda(resumenVencimientos.pagoHoy)"></span>
                             </div>
-                            <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-green-500 shadow-sm">
+                            <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-green-500">
                                 <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Por Vencer</span>
                                 <span class="text-lg font-black text-green-700" x-text="formatearMoneda(resumenVencimientos.porVencer)"></span>
                             </div>
-                            <div class="flex flex-col p-3 bg-gray-800 rounded-lg shadow-sm">
+                            <div class="flex flex-col p-3 bg-slate-800 rounded-lg">
                                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total General</span>
                                 <span class="text-lg font-black text-white" x-text="formatearMoneda(resumenVencimientos.total)"></span>
                             </div>
@@ -785,31 +787,31 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
                             <div class="flex items-center gap-1">
                                 <button @click="cambiarPaginaVencimientos(1)" :disabled="currentPageVencimientos === 1"
-                                        class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                                        class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
                                 <button @click="cambiarPaginaVencimientos(currentPageVencimientos - 1)" :disabled="currentPageVencimientos === 1"
-                                        class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+                                        class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
 
                                 <span class="px-3 py-1 border rounded bg-yellow-600 text-white text-xs font-bold" x-text="currentPageVencimientos"></span>
 
                                 <button @click="cambiarPaginaVencimientos(currentPageVencimientos + 1)" :disabled="currentPageVencimientos === totalPagesVencimientos"
-                                        class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                                        class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
                                 <button @click="cambiarPaginaVencimientos(totalPagesVencimientos)" :disabled="currentPageVencimientos === totalPagesVencimientos"
-                                        class="px-2 py-1 border rounded bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                                        class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
                             </div>
                         </div>
                     </div>
 
                     <!-- CONTENEDOR SECUNDARIO: Ver Detalles Completos -->
-                    <div id="div-ver-vencimiento" class="hidden">
+                    <div id="div-ver-vencimiento" class="hidden bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold text-gray-800">Detalles de la Solicitud</h3>
-                            <div class="cursor-pointer p-2 rounded-full  transition-colors" @click="regresarAMovimientos()" title="Regresar a la lista">
+                            <h3 class="text-xl font-bold text-slate-800">Detalles de la Solicitud</h3>
+                            <div class="cursor-pointer p-2 rounded-full hover:bg-slate-100 transition-colors" @click="regresarAMovimientos()" title="Regresar a la lista">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-gray-600">
                                     <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-4.28 9.22a.75.75 0 0 0 0 1.06l3 3a.75.75 0 1 0 1.06-1.06l-1.72-1.72h5.69a.75.75 0 0 0 0-1.5h-5.69l1.72-1.72a.75.75 0 0 0-1.06-1.06l-3 3Z" clip-rule="evenodd" />
                                 </svg>
                             </div>
                         </div>
-                        <div id="detalles-vencimiento-solicitud" class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm min-h-[50vh]">
+                        <div id="detalles-vencimiento-solicitud" class="bg-white p-6 rounded-xl border border-slate-200 min-h-[50vh]">
                             <!-- Renderizado dinámico desde JS -->
                         </div>
                     </div>
