@@ -2235,11 +2235,22 @@ class Rest
         $builder->join('Places p', 'p.ID_Place = b.complejo_id', 'left');
         $builder->join('Razon_Social rs', 'rs.ID_RazonSocial = b.razon_social_id', 'left');
         $builder->join('Solicitud s', 's.ID_Solicitud = b.solicitud_id', 'left');
-        
-        // Joins adicionales para Presupuestos
-        $builder->join('GrupoPresupuestal gp', 'gp.ID_GrupoPresupuestal = (CAST(b.valores_nuevos->>\'ID_GrupoPresupuestal\' AS INTEGER))', 'left');
-        $builder->join('UnidadOperativa uo', 'uo.ID_UnidadOperativa = (CAST(b.valores_nuevos->>\'ID_UnidadOperativa\' AS INTEGER))', 'left');
 
+        // --- COMPATIBILIDAD MULTI-DB (JSON EXTRACTION) ---
+        // Detectamos el driver para aplicar la sintaxis correcta de extracción de JSON
+        $dbDriver = $this->db->DBDriver;
+        if ($dbDriver === 'Postgre') {
+            $extractGrupo  = 'CAST(b.valores_nuevos->>\'ID_GrupoPresupuestal\' AS INTEGER)';
+            $extractUnidad = 'CAST(b.valores_nuevos->>\'ID_UnidadOperativa\' AS INTEGER)';
+        } else {
+            // Sintaxis para MySQL (MySQLi)
+            $extractGrupo  = 'CAST(JSON_UNQUOTE(JSON_EXTRACT(b.valores_nuevos, "$.ID_GrupoPresupuestal")) AS UNSIGNED)';
+            $extractUnidad = 'CAST(JSON_UNQUOTE(JSON_EXTRACT(b.valores_nuevos, "$.ID_UnidadOperativa")) AS UNSIGNED)';
+        }
+
+        // Joins adicionales para Presupuestos usando la extracción dinámica
+        $builder->join('GrupoPresupuestal gp', "gp.ID_GrupoPresupuestal = $extractGrupo", 'left');
+        $builder->join('UnidadOperativa uo', "uo.ID_UnidadOperativa = $extractUnidad", 'left');
         if (!empty($filters['usuario_id'])) {
             $builder->where('b.usuario_id', $filters['usuario_id']);
         }
