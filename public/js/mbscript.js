@@ -952,6 +952,7 @@ function initPaginacionHistorial() {
         <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
         <td class="border px-4 py-2 font-medium">${item.No_Folio || 'N/A'}</td>
         <td class="border px-4 py-2 text-sm">${item.Fecha}</td>
+        <td class="border px-4 py-2 text-xs font-semibold">${item.Complejo || '<span class="text-gray-400">N/A</span>'}</td>
         <td class="border px-4 py-2 text-xs text-gray-600">${item.DepartamentoNombre} - ${item.PlaceNombre}</td>
         
         <td class="border px-4 py-2 text-sm text-left px-6">${item.ProveedorNombre || '<span class="text-gray-400">N/A</span>'}</td>

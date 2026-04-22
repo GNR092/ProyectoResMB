@@ -95,6 +95,7 @@
                 <th class="hidden border px-4 py-2">ID</th>
                 <th class="border px-4 py-2">Folio</th>
                 <th class="border px-4 py-2">Fecha</th>
+                <th class="border px-4 py-2">Razón Social</th>
                 <th class="border px-4 py-2">Departamento</th>
                 <th class="border px-4 py-2">Proveedor</th>
                 <th class="border px-4 py-2">Monto</th>
