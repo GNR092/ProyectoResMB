@@ -441,8 +441,8 @@ function registrarComponentePresupuesto() {
                             }
                         }
 
-                        // Solo agregar si hubo un cambio real
-                        if (nuevoMonto !== montoOriginal) {
+                        // Solo agregar si hubo un cambio real o se asigna al resto del año
+                        if (nuevoMonto !== montoOriginal || esRestoAnio) {
                             gruposParaGuardar.push({
                                 id_unidad: uni.ID_UnidadOperativa,
                                 nombre_unidad: uni.Nombre,
@@ -456,7 +456,7 @@ function registrarComponentePresupuesto() {
                     });
                 });
 
-                if (gruposParaGuardar.length === 0) {
+                if (gruposParaGuardar.length === 0 && !esRestoAnio) {
                     mostrarNotificacion('No se detectaron cambios en los montos para guardar.', 'info');
                     this.guardando = false;
                     return;
