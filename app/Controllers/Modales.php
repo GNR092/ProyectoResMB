@@ -64,6 +64,7 @@ class Modales extends BaseController
             case 'ver_historial':
                 $departamentoModel = new DepartamentosModel();
                 $proveedorModel = new \App\Models\ProveedorModel();
+                $razonSocialModel = new RazonSocialModel();
                 $data['departamentos'] = $departamentoModel
                     ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
                     ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
@@ -73,6 +74,10 @@ class Modales extends BaseController
                 $data['proveedores'] = $proveedorModel
                     ->select('ID_Proveedor, RazonSocial')
                     ->orderBy('RazonSocial', 'ASC')
+                    ->findAll();
+                $data['razones_sociales'] = $razonSocialModel
+                    ->select('ID_RazonSocial, Nombre')
+                    ->orderBy('Nombre', 'ASC')
                     ->findAll();
                 return view('modales/ver_historial', $data);
 
@@ -479,7 +484,19 @@ class Modales extends BaseController
                 return view('modales/crud_cuentas', $data);
 
             case 'correcciones':
-                return view('modales/correcciones');
+                $razonSocialModel = new RazonSocialModel();
+                $departamentoModel = new DepartamentosModel();
+                $data['razones_sociales'] = $razonSocialModel
+                    ->select('ID_RazonSocial, Nombre')
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+                $data['departamentos'] = $departamentoModel
+                    ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
+                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
+                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+                    ->orderBy('Departamentos.Nombre', 'ASC')
+                    ->findAll();
+                return view('modales/correcciones', $data);
 
             case 'GrupoPresupuestal':
                 $grupoModel = new GrupoPresupuestalModel();

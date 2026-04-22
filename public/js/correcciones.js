@@ -1,4 +1,5 @@
 let choicesDeptoMaestro = null;
+let choicesRazonMaestro = null;
 
 function initControlMaestro() {
     const tabla = document.getElementById('tabla-maestro');
@@ -7,11 +8,6 @@ function initControlMaestro() {
     // 1. Configurar Choices
     const filtroEl = document.getElementById('filtroDepartamentoMaestro');
     if (filtroEl) {
-        const originalSelect = document.getElementById('filtroDepartamento');
-        if(originalSelect && filtroEl.options.length <= 1) {
-            filtroEl.innerHTML = originalSelect.innerHTML;
-        }
-
         if (!choicesDeptoMaestro) {
             choicesDeptoMaestro = new Choices(filtroEl, {
                 removeItemButton: true,
@@ -22,6 +18,19 @@ function initControlMaestro() {
             });
         }
         document.getElementById('wrapper-depto-maestro').classList.remove('hidden');
+    }
+
+    const filtroRazonEl = document.getElementById('filtro-razon-social-maestro');
+    if (filtroRazonEl) {
+        if (!choicesRazonMaestro) {
+            choicesRazonMaestro = new Choices(filtroRazonEl, {
+                removeItemButton: true,
+                placeholder: true,
+                placeholderValue: 'Todas las razones sociales',
+                itemSelectText: '',
+                noResultsText: 'No se encontraron resultados',
+            });
+        }
     }
 
     // 2. URL + Cache Buster
@@ -80,16 +89,18 @@ function initControlMaestro() {
             const fechaFiltro = document.getElementById('filtro-fecha-maestro').value;
             const filtrarPorMes = document.getElementById('filtrar-por-mes-maestro').checked;
             const estadoFiltro = document.getElementById('filtro-estado-maestro').value;
-            // 1. Capturamos el valor del nuevo filtro
             const metodoFiltro = document.getElementById('filtro-metodo-maestro').value;
+            const tipoFiltro = document.getElementById('filtro-tipo-maestro')?.value || '';
             const deptosSeleccionados = choicesDeptoMaestro ? choicesDeptoMaestro.getValue(true) : [];
+            const razonesSeleccionadas = choicesRazonMaestro ? choicesRazonMaestro.getValue(true) : [];
 
             return allData.filter((item) => {
                 const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
-
-                // 2. Evaluamos si coincide el método de pago.
-                // Usamos == en lugar de === por si el item.MetodoPago viene como entero (0 o 1) y metodoFiltro como string ("0" o "1")
                 const coincideMetodo = !metodoFiltro || item.MetodoPago == metodoFiltro;
+                
+                const coincideTipo = !tipoFiltro || 
+                    (tipoFiltro === 'Producto' && (item.Tipo == 0 || item.Tipo == 1)) || 
+                    (tipoFiltro === 'Servicio' && item.Tipo == 2);
 
                 let coincideDepto = true;
                 if (deptosSeleccionados.length > 0) {
@@ -99,13 +110,19 @@ function initControlMaestro() {
                     coincideDepto = true;
                 }
 
-                // 3. Agregamos coincideMetodo a las condiciones de retorno
-                if (!fechaFiltro) return coincideEstado && coincideDepto && coincideMetodo;
+                let coincideRazon = true;
+                if (razonesSeleccionadas.length > 0) {
+                    coincideRazon = razonesSeleccionadas.includes(item.Complejo);
+                }
+
+                const passesOtherFilters = coincideEstado && coincideDepto && coincideMetodo && coincideTipo && coincideRazon;
+
+                if (!fechaFiltro) return passesOtherFilters;
                 const fechaItem = item.Fecha;
                 if (filtrarPorMes) {
-                    return fechaItem.slice(0, 7) === fechaFiltro.slice(0, 7) && coincideEstado && coincideDepto && coincideMetodo;
+                    return fechaItem.slice(0, 7) === fechaFiltro.slice(0, 7) && passesOtherFilters;
                 }
-                return fechaItem === fechaFiltro && coincideEstado && coincideDepto && coincideMetodo;
+                return fechaItem === fechaFiltro && passesOtherFilters;
             });
         }
     });
@@ -122,14 +139,12 @@ async function cargarEditorMaestro(idSolicitud, folio) {
 
     const container = document.getElementById('contenido-editor-maestro');
 
-    // Spinner
     container.innerHTML = `
         <div class="flex flex-col items-center justify-center py-12">
             <p class="text-gray-500 font-medium animate-pulse">Cargando datos y archivos...</p>
         </div>`;
 
     try {
-        // Peticiones
         const [dataSolicitud, dataOrden, dataProveedores, dataRazones] = await Promise.all([
             SendDataEnd(`api/solicitud/details/${idSolicitud}`),
             SendDataEnd(`api/orden-compra/details/${idSolicitud}`).catch(() => null),
@@ -139,44 +154,29 @@ async function cargarEditorMaestro(idSolicitud, folio) {
 
         if (dataSolicitud.error) throw new Error(dataSolicitud.error);
 
-        // -----------------------------------------------------------
-        // CORRECCIÓN CRÍTICA: EXTRACCIÓN ROBUSTA DE LA ORDEN DE COMPRA
-        // -----------------------------------------------------------
         let ordenObjeto = null;
-
         if (dataOrden && !dataOrden.error) {
-            // Caso 1: La API devuelve un Array (ej. findAll) -> Tomamos el primero
             if (Array.isArray(dataOrden)) {
                 ordenObjeto = dataOrden.length > 0 ? dataOrden[0] : null;
-            }
-            // Caso 2: La API devuelve un objeto envuelto en "OrdenCompra" (ej. format standar)
-            else if (dataOrden.OrdenCompra) {
+            } else if (dataOrden.OrdenCompra) {
                 ordenObjeto = Array.isArray(dataOrden.OrdenCompra) ? dataOrden.OrdenCompra[0] : dataOrden.OrdenCompra;
-            }
-            // Caso 3: La API devuelve el objeto directo
-            else {
+            } else {
                 ordenObjeto = dataOrden;
             }
         }
 
-        // Inyectamos el objeto limpio (NO array) en la solicitud
         if (ordenObjeto) {
             dataSolicitud.OrdenCompra = ordenObjeto;
-
-            // Inyectamos cotización si viene dentro de la orden
             if (ordenObjeto.cotizacion) {
                 dataSolicitud.cotizacion = ordenObjeto.cotizacion;
             }
         }
-        // -----------------------------------------------------------
 
         const normalize = (d) => Array.isArray(d) ? d : (d.data || d.messages || []);
         const listaProveedores = normalize(dataProveedores);
         const listaRazones = normalize(dataRazones);
 
         document.getElementById('maestro_id_solicitud').value = idSolicitud;
-
-        // Renderizamos
         renderizarInputsDios(dataSolicitud, container, listaProveedores, listaRazones);
 
     } catch (error) {
@@ -191,7 +191,7 @@ async function cargarEditorMaestro(idSolicitud, folio) {
 }
 
 /**
- * RENDERIZADO DEL FORMULARIO CON CARGA DE ARCHIVOS VISUAL
+ * RENDERIZADO DEL FORMULARIO
  */
 
 function renderizarInputsDios(data, container, listaProveedores = [], listaRazones = []) {
@@ -199,13 +199,11 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     const orden = data.OrdenCompra || {};
     const coti = data.cotizacion || {};
 
-    // 0. ESTADO VISUAL
     let estadoVisual = sol.Estado;
     if (sol.Estado === 'Aprobada' && orden && orden.Estado) {
         estadoVisual = orden.Estado;
     }
 
-    // 1. REGLAS DE BLOQUEO
     const REGLAS_BLOQUEO = {
         'En espera':            { financiero: false, control: false },
         'Cotizando':            { financiero: false, control: false },
@@ -223,54 +221,32 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     const classFinanciero    = reglas.financiero ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white';
     const disabledControl    = reglas.control ? 'disabled' : '';
     const classControl       = reglas.control ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white';
-    
-    // Si es financiero (Pagada), ocultamos la fila de carga de archivos
     const classArchivos      = reglas.financiero ? 'hidden' : 'grid';
 
-    // ------------------------------------------------------------------------
-    // CANDADO DE SEGURIDAD PARA FECHAS DE ORDEN
-    // ------------------------------------------------------------------------
-    // Verificamos si la orden realmente existe en la base de datos
     const existeOrden = (orden && orden.Estado) ? true : false;
-
-    // Si no existe la orden o las reglas dicen que se bloquee, deshabilitamos
     const disabledFechasOrden = (!existeOrden || reglas.control) ? 'disabled' : '';
+    const classInputRefPago = (!existeOrden || reglas.control) ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-blue-50 border-blue-200';
+    const classInputPagoReal = (!existeOrden || reglas.control) ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-green-50 border-green-200';
 
-    // Clases dinámicas: Gris si está bloqueado, color original si está habilitado
-    const classInputRefPago = (!existeOrden || reglas.control)
-        ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 shadow-none'
-        : 'bg-blue-50 border-blue-200';
-
-    const classInputPagoReal = (!existeOrden || reglas.control)
-        ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 shadow-none'
-        : 'bg-green-50 border-green-200';
-    // ------------------------------------------------------------------------
-
-    // 2. PREPARACIÓN DE SELECT PROVEEDORES
     let idProveedorActual = sol.ID_Proveedor;
     if (!idProveedorActual && data.proveedor) idProveedorActual = data.proveedor.ID_Proveedor;
 
     let htmlProv = `<option value="" data-credito="0">-- Seleccionar --</option>`;
     listaProveedores.forEach(p => {
         const selected = (p.ID_Proveedor == idProveedorActual) ? 'selected' : '';
-        const diasRaw = p.Dias_Credito !== undefined ? p.Dias_Credito : (p.dias_credito || 0);
-        const dias = parseFloat(diasRaw);
-        const tieneCredito = (dias > 0) ? '1' : '0';
-        htmlProv += `<option value="${p.ID_Proveedor}" data-credito="${tieneCredito}" ${selected}>${p.RazonSocial}</option>`;
+        const dias = parseFloat(p.Dias_Credito || p.dias_credito || 0);
+        htmlProv += `<option value="${p.ID_Proveedor}" data-credito="${dias > 0 ? '1' : '0'}" ${selected}>${p.RazonSocial}</option>`;
     });
 
-    let idRazonActual = sol.ID_RazonSocial;
     let htmlRazon = `<option value="">-- Seleccionar Proyecto --</option>`;
     listaRazones.forEach(r => {
-        const selected = (r.ID_RazonSocial == idRazonActual) ? 'selected' : '';
+        const selected = (r.ID_RazonSocial == sol.ID_RazonSocial) ? 'selected' : '';
         htmlRazon += `<option value="${r.ID_RazonSocial}" ${selected}>${r.Nombre} (${r.RFC || ''})</option>`;
     });
 
-    const tieneIva = (sol.IVA == 1 || sol.IVA === 't' || sol.IVA === true);
-    const checkedIva = tieneIva ? 'checked' : '';
+    const checkedIva = (sol.IVA == 1 || sol.IVA === 't' || sol.IVA === true) ? 'checked' : '';
     const productos = Array.isArray(data.productos) ? data.productos : (Array.isArray(data.servicios) ? data.servicios : []);
 
-    // VARIABLES DE FECHAS
     const fechaRegistroVista = sol.Fecha ? sol.Fecha.split(' ')[0] : '';
     const valorFechaAprobacion = (orden.Fecha || sol.FechaOrden) ? (orden.Fecha || sol.FechaOrden).split(' ')[0] : '';
     const valorFechaRefPago = (orden.FechaRefPago || sol.FechaRefPago) ? (orden.FechaRefPago || sol.FechaRefPago).split(' ')[0] : '';
@@ -280,7 +256,26 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     const labelClass = "block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide";
     const sectionClass = "bg-white shadow rounded-lg p-6 border border-gray-200 mb-6";
 
-    // Adjuntos
+    // ASISTENTE DE LLENADO
+    let grupoGeneralHtml = '';
+    if (data.grupos_presupuestales && !reglas.financiero) {
+        const requestPlaceId = sol.ID_Place || data.ID_Place;
+        const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
+
+        if (gruposFiltrados.length > 0) {
+            grupoGeneralHtml = `
+            <div id="contenedor-grupo-general" class="mb-4 bg-blue-50 p-4 border border-blue-200 rounded-lg">
+                <label class="block text-xs font-bold text-blue-800 mb-1 tracking-wide">Asistente de Llenado: Asignar partida a todos los ítems</label>
+                <div id="select-grupo-general-container">
+                    <select id="select-grupo-presupuestal-general" class="w-full border rounded-md p-2 bg-white text-blue-900 text-xs font-semibold focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer" onchange="window.aplicarGrupoATodos(this.value)">
+                        <option value="">-- Seleccionar grupo para aplicar a todo --</option>
+                        ${gruposFiltrados.map(grupo => `<option value="${grupo.ID_GrupoPresupuestal}">${grupo.Nombre}</option>`).join('')}
+                    </select>
+                </div>
+            </div>`;
+        }
+    }
+
     let htmlAdjuntos = '';
     if (typeof generarSeccionAdjuntos === 'function') {
         try {
@@ -309,7 +304,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     <div class="${sectionClass}">
         <div class="flex justify-between items-center border-b pb-2 mb-4">
             <h4 class="text-sm font-bold text-gray-800">Control del Sistema</h4>
-            ${reglas.financiero ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded border border-yellow-200">🔒 Edición restringida por Estado</span>' : ''}
+            ${reglas.financiero ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded border border-yellow-200">🔒 Edición restringida</span>' : ''}
         </div>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
@@ -336,29 +331,18 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
                 </select>
             </div>
             <div>
-                <label class="${labelClass}">Fecha Registro (Solicitud)</label>
-                <div class="${baseInputClass} bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 shadow-none font-mono">
-                    ${fechaRegistroVista || 'N/A'}
-                </div>
+                <label class="${labelClass}">Fecha Registro</label>
+                <div class="${baseInputClass} bg-gray-100 text-gray-500 border-gray-200 font-mono">${fechaRegistroVista || 'N/A'}</div>
                 <input type="hidden" name="Fecha" value="${fechaRegistroVista}">
             </div>
             <div>
-                <label class="${labelClass}">Fecha Aprobación (Orden)</label>
-                <div class="${baseInputClass} bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 shadow-none font-mono">
-                    ${valorFechaAprobacion || 'Aún no generada'}
-                </div>
+                <label class="${labelClass}">Fecha Aprobación</label>
+                <div class="${baseInputClass} bg-gray-100 text-gray-500 border-gray-200 font-mono">${valorFechaAprobacion || 'Aún no generada'}</div>
             </div>
         </div>
-        
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-gray-100">
-            <div>
-                <label class="${labelClass} text-blue-700">Fecha Aprobacion</label>
-                <input type="date" name="FechaRefPago" value="${valorFechaRefPago}" ${disabledFechasOrden} class="${baseInputClass} ${classInputRefPago}">
-            </div>
-            <div>
-                <label class="${labelClass} text-green-700">Fecha Pago Realizado</label>
-                <input type="date" name="FechaPagoRealizado" value="${valorFechaPagoReal}" ${disabledFechasOrden} class="${baseInputClass} ${classInputPagoReal}">
-            </div>
+            <div><label class="${labelClass} text-blue-700">Fecha Ref Pago</label><input type="date" name="FechaRefPago" value="${valorFechaRefPago}" ${disabledFechasOrden} class="${baseInputClass} ${classInputRefPago}"></div>
+            <div><label class="${labelClass} text-green-700">Fecha Pago Realizado</label><input type="date" name="FechaPagoRealizado" value="${valorFechaPagoReal}" ${disabledFechasOrden} class="${baseInputClass} ${classInputPagoReal}"></div>
         </div>
     </div>
 
@@ -373,6 +357,8 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
         </div>
     </div>
 
+    ${grupoGeneralHtml}
+
     <div class="${sectionClass}">
         <div class="flex justify-between items-end mb-4 border-b pb-2">
             <h4 class="text-sm font-bold text-gray-800">Detalle de Productos / Servicios</h4>
@@ -380,13 +366,31 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
         </div>
         <table id="tabla-productos-editor" class="w-full text-xs text-left">
             <tbody class="divide-y">
-                ${productos.map((prod, index) => `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="p-2"><input type="hidden" name="productos[${index}][id]" value="${prod.ID_SolicitudProd || prod.ID_SolicitudServ || prod.ID_Detalle}"><input type="text" name="productos[${index}][nombre]" value="${prod.Nombre || ''}" ${disabledFinanciero} class="${baseInputClass} ${classFinanciero}"></td>
-                    <td class="p-2 w-24"><input type="number" step="1.00" min="1" name="productos[${index}][cantidad]" value="${parseFloat(prod.Cantidad)||1}" ${disabledFinanciero} class="${baseInputClass} text-center input-cantidad ${classFinanciero}" oninput="calcularTotalesUI()"></td>
-                    <td class="p-2 w-32"><input type="number" step="0.01" min="0" name="productos[${index}][precio]" value="${parseFloat(prod.Importe||prod.Precio)||0}" ${disabledFinanciero} class="${baseInputClass} text-right input-precio ${classFinanciero}" oninput="calcularTotalesUI()"></td>
-                    <td class="p-2 text-right td-subtotal font-mono text-gray-500">$0.00</td>
-                </tr>`).join('')}
+                ${productos.map((prod, index) => {
+                    let gruposHtml = '';
+                    if (data.grupos_presupuestales) {
+                        const requestPlaceId = sol.ID_Place || data.ID_Place;
+                        const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
+                        gruposHtml = `<select name="productos[${index}][id_grupo_presupuestal]" ${disabledFinanciero} class="${baseInputClass} ${classFinanciero} select-grupo-partida mt-1">`;
+                        gruposHtml += `<option value="">-- Sin partida asignada --</option>`;
+                        gruposFiltrados.forEach((grupo) => {
+                            const selected = prod.ID_GrupoPresupuestal == grupo.ID_GrupoPresupuestal ? 'selected' : '';
+                            gruposHtml += `<option value="${grupo.ID_GrupoPresupuestal}" ${selected}>${grupo.Nombre}</option>`;
+                        });
+                        gruposHtml += `</select>`;
+                    }
+                    return `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="p-2 align-top">
+                            <input type="hidden" name="productos[${index}][id]" value="${prod.ID_SolicitudProd || prod.ID_SolicitudServ || prod.ID_Detalle}">
+                            <input type="text" name="productos[${index}][nombre]" value="${prod.Nombre || ''}" ${disabledFinanciero} class="${baseInputClass} ${classFinanciero}">
+                            ${gruposHtml}
+                        </td>
+                        <td class="p-2 w-24 align-top"><input type="number" step="1.00" min="1" name="productos[${index}][cantidad]" value="${parseFloat(prod.Cantidad)||1}" ${disabledFinanciero} class="${baseInputClass} text-center input-cantidad ${classFinanciero}" oninput="calcularTotalesUI()"></td>
+                        <td class="p-2 w-32 align-top"><input type="number" step="0.01" min="0" name="productos[${index}][precio]" value="${parseFloat(prod.Importe||prod.Precio)||0}" ${disabledFinanciero} class="${baseInputClass} text-right input-precio ${classFinanciero}" oninput="calcularTotalesUI()"></td>
+                        <td class="p-2 text-right td-subtotal font-mono text-gray-500 align-top pt-4">$0.00</td>
+                    </tr>`;
+                }).join('')}
             </tbody>
         </table>
         <div class="mt-4 flex justify-end"><label class="flex items-center text-xs font-bold cursor-pointer"><input type="checkbox" name="IVA" id="chk_iva_maestro" value="1" ${checkedIva} ${disabledFinanciero} onchange="calcularTotalesUI()" class="mr-2"> + IVA (16%)</label></div>
@@ -399,10 +403,9 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
             ${htmlAdjuntos || '<span class="text-xs text-gray-400">Sin adjuntos previos.</span>'}
         </div>
         <div class="${classArchivos} grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-100">
-            <div><label class="block text-xs font-bold text-green-600 mb-2">Cargar Cotización</label><div id="preview-cotizacion" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 hover:bg-green-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
-            <div><label class="block text-xs font-bold text-blue-600 mb-2">Cargar Ficha De Pago</label><div id="preview-comprobante" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Comprobante" id="file-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'comprobante')"><button type="button" onclick="document.getElementById('file-comprobante').click()" class="w-full bg-white border border-blue-300 text-blue-600 hover:bg-blue-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
-            <div><label class="block text-xs font-bold text-indigo-600 mb-2">Cargar Factura</label><div id="preview-factura" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Factura" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 hover:bg-indigo-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
-            <div id="container-file-complemento" class="${sol.MetodoPago == '1' ? '' : 'hidden'}"><label class="block text-xs font-bold text-orange-600 mb-2">Complemento De Pago</label><div id="preview-complemento" class="hidden mb-2 p-2 border border-dashed rounded-lg bg-gray-50"></div><input type="file" name="File_Complemento" id="file-complemento" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFileSelect(this, 'complemento')"><button type="button" onclick="document.getElementById('file-complemento').click()" class="w-full bg-white border border-orange-300 text-orange-600 hover:bg-orange-50 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button></div>
+            <div><label class="block text-xs font-bold text-green-600 mb-2">Cargar Cotización</label><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="window.handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-cotizacion" class="mt-2"></div></div>
+            <div><label class="block text-xs font-bold text-blue-600 mb-2">Cargar Ficha Pago</label><input type="file" name="File_Comprobante" id="file-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'comprobante')"><button type="button" onclick="document.getElementById('file-comprobante').click()" class="w-full bg-white border border-blue-300 text-blue-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-comprobante" class="mt-2"></div></div>
+            <div><label class="block text-xs font-bold text-indigo-600 mb-2">Cargar Factura</label><input type="file" name="File_Factura" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-factura" class="mt-2"></div></div>
         </div>
     </div>
 
@@ -410,187 +413,82 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     <input type="hidden" id="flag-existe-cotizacion" value="${existeCotizacion}">
     <input type="hidden" id="flag-existe-ficha" value="${existeFicha}">
     <input type="hidden" id="flag-existe-factura" value="${existeFactura}">
-    <input type="hidden" id="flag-existe-complemento" value="${existeComplemento}">
     `;
 
     calcularTotalesUI();
-
-    setTimeout(() => {
-        window.validarCreditoProveedor();
-    }, 100);
+    setTimeout(() => { window.validarCreditoProveedor(); }, 100);
 }
 
-/**
- * FUNCIÓN GLOBAL: Validar si el proveedor seleccionado tiene crédito
- */
 window.validarCreditoProveedor = function() {
     const selectProv = document.getElementById('select-proveedor-maestro');
     const selectMetodo = document.getElementById('select-metodo-pago');
-
     if (!selectProv || !selectMetodo) return;
-
-    // Obtener la opción seleccionada
     const optionSelected = selectProv.options[selectProv.selectedIndex];
-
-    // Validar con seguridad (getAttribute puede ser null si es placeholder)
-    const dataCredito = optionSelected ? optionSelected.getAttribute('data-credito') : '0';
-    const tieneCredito = (dataCredito === '1');
-
-    // Buscar la opción de Crédito (value="1")
+    const tieneCredito = (optionSelected && optionSelected.getAttribute('data-credito') === '1');
     const optionCredito = selectMetodo.querySelector('option[value="1"]');
-
     if (optionCredito) {
         if (tieneCredito) {
-            // HABILITAR
             optionCredito.disabled = false;
-            // Restaurar texto limpio
             optionCredito.textContent = "Crédito";
         } else {
-            // BLOQUEAR
             optionCredito.disabled = true;
             optionCredito.textContent = "Crédito (No disponible)";
-
-            // Si estaba seleccionado Crédito, lo pasamos a Contado
-            if (selectMetodo.value === "1") {
-                selectMetodo.value = "0";
-            }
+            if (selectMetodo.value === "1") selectMetodo.value = "0";
         }
     }
 };
 
-/**
- * HELPER PARA SELECCIÓN DE ARCHIVOS (Estilo pago.js)
- */
 window.handleFileSelect = function(input, type) {
-    const file = input.files[0];
-    if (!file) {
-        window.removeFile(type);
-        return;
-    }
-
-    const previewContainer = document.getElementById(`preview-${type}`);
-    // Determinar icono
-    let icon = '📄';
-    if (file.type.startsWith('image/')) icon = '🖼️';
-    else if (file.type === 'application/pdf') icon = '📕';
-    else if (file.type.includes('xml')) icon = '🔗';
-
-    const fileSize = (file.size / 1024).toFixed(2) + ' KB';
-
-    previewContainer.innerHTML = `
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-xl">${icon}</span>
-                <div class="overflow-hidden">
-                    <p class="text-xs font-bold text-gray-700 truncate w-32">${file.name}</p>
-                    <p class="text-[10px] text-gray-500">${fileSize}</p>
-                </div>
-            </div>
-            <button type="button" onclick="removeFile('${type}')" class="text-red-400 hover:text-red-600 font-bold ml-2">&times;</button> 
-        </div>
-    `;
-    previewContainer.classList.remove('hidden');
-
-    // Cambiar estilo del botón para indicar éxito
-    const btn = input.nextElementSibling;
-    if(btn) {
-        btn.classList.remove('bg-white', 'text-blue-600', 'text-indigo-600');
-        btn.classList.add('bg-green-50', 'text-green-700', 'border-green-300');
-        btn.innerText = '✅ Archivo Listo';
-    }
+    const files = input.files;
+    const previewContainer = document.getElementById('preview-' + type);
+    if (!files || files.length === 0) { window.removeFile(type); return; }
+    let html = "";
+    Array.from(files).forEach(file => {
+        let icon = file.type.startsWith('image/') ? '🖼️' : (file.type === 'application/pdf' ? '📕' : '📄');
+        html += `<div class="flex items-center justify-between bg-white p-2 mb-1 rounded border text-[10px] shadow-sm">
+            <span class="truncate w-32">${icon} ${file.name}</span>
+            <button type="button" onclick="window.removeFile('${type}')" class="text-red-500 font-bold">&times;</button>
+        </div>`;
+    });
+    previewContainer.innerHTML = html;
 }
 
 window.removeFile = function(type) {
-    const input = document.getElementById(`file-${type}`);
+    const inputIds = { 'cotizacion': 'file-cotizacion', 'comprobante': 'file-comprobante', 'factura': 'file-factura' };
+    const input = document.getElementById(inputIds[type]);
     if(input) input.value = '';
-
-    const previewContainer = document.getElementById(`preview-${type}`);
-    if(previewContainer) {
-        previewContainer.innerHTML = '';
-        previewContainer.classList.add('hidden');
-    }
-
-    // Restaurar botón
-    const btn = input.nextElementSibling;
-    if(btn) {
-        btn.classList.remove('bg-green-50', 'text-green-700', 'border-green-300');
-        btn.classList.add('bg-white');
-        if(type === 'comprobante') btn.classList.add('text-blue-600', 'border-blue-300');
-        else btn.classList.add('text-indigo-600', 'border-indigo-300');
-
-        btn.innerText = `📂 Seleccionar ${type.charAt(0).toUpperCase() + type.slice(1)}`;
-    }
+    const preview = document.getElementById('preview-' + type);
+    if(preview) preview.innerHTML = '';
 }
 
 window.verificarImpactoPresupuestal = function() {
     const banner = document.getElementById('advertencia-presupuesto-maestro');
     if (!banner) return;
-
-    // Detectar tipo de solicitud (1 = Materiales)
-    // El tipo se puede sacar del select de productos o de un hidden si lo agregamos
-    // Por simplicidad, si hay inputs de "cantidad", es materiales.
     const esMateriales = document.querySelector('.input-cantidad') !== null;
     if (!esMateriales) return;
-
     const selectEstado = document.getElementById('select-estado-maestro');
-    const estadoNuevo = selectEstado.value;
-    
-    // Mapa de niveles local para el JS
-    const NIVELES = {
-        'En espera': 1, 'Cotizando': 2, 'En revision': 3, 'Aprobacion pendiente': 3,
-        'Aprobada': 4, 'Espera_Programacion': 5, 'Programada': 6, 'Por Pagar': 7, 'Pagada': 8
-    };
-
-    const nivelNuevo = NIVELES[estadoNuevo] || 0;
-    
-    // Si el nivel nuevo es 4 o superior, mostramos el aviso
-    if (nivelNuevo >= 4) {
-        banner.classList.remove('hidden');
-    } else {
-        banner.classList.add('hidden');
-    }
+    const NIVELES = { 'En espera': 1, 'Cotizando': 2, 'En revision': 3, 'Aprobacion pendiente': 3, 'Aprobada': 4, 'Espera_Programacion': 5, 'Programada': 6, 'Por Pagar': 7, 'Pagada': 8 };
+    if ((NIVELES[selectEstado.value] || 0) >= 4) banner.classList.remove('hidden');
+    else banner.classList.add('hidden');
 }
 
 function calcularTotalesUI() {
     const filas = document.querySelectorAll('#tabla-productos-editor tbody tr');
-    const chkIva = document.getElementById('chk_iva_maestro');
-    const spanTotal = document.getElementById('span-total-editor');
-
     let subtotalGlobal = 0;
-
     filas.forEach(fila => {
-        const inputCant = fila.querySelector('.input-cantidad');
-        const inputPrecio = fila.querySelector('.input-precio');
-        const tdSubtotal = fila.querySelector('.td-subtotal');
-
-        if (inputCant && inputPrecio) {
-            const cant = parseFloat(inputCant.value) || 0;
-            const precio = parseFloat(inputPrecio.value) || 0;
-            const subtotalFila = cant * precio;
-
-            subtotalGlobal += subtotalFila;
-            if(tdSubtotal) {
-                tdSubtotal.innerText = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(subtotalFila);
-            }
-        }
+        const cant = parseFloat(fila.querySelector('.input-cantidad')?.value) || 0;
+        const precio = parseFloat(fila.querySelector('.input-precio')?.value) || 0;
+        const subtotal = cant * precio;
+        subtotalGlobal += subtotal;
+        const td = fila.querySelector('.td-subtotal');
+        if(td) td.innerText = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(subtotal);
     });
-
-    let totalFinal = subtotalGlobal;
-    if (chkIva && chkIva.checked) {
-        totalFinal = subtotalGlobal * 1.16;
-    }
-
-    if (spanTotal) {
-        spanTotal.innerText = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalFinal);
-    }
-
-    // Al recular totales, también verificamos impacto si estamos en nivel presupuestal
+    const totalFinal = document.getElementById('chk_iva_maestro')?.checked ? subtotalGlobal * 1.16 : subtotalGlobal;
+    const spanTotal = document.getElementById('span-total-editor');
+    if (spanTotal) spanTotal.innerText = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalFinal);
     window.verificarImpactoPresupuestal();
 }
 
-/**
- * ACCIÓN DE GUARDADO CON VALIDACIONES DE NIVEL
- */
 async function guardarCambiosMaestros() {
     const form = document.getElementById('form-editor-maestro');
     const formData = new FormData(form);
@@ -598,8 +496,8 @@ async function guardarCambiosMaestros() {
 
     // --- MAPA DE NIVELES (Para lógica de validación) ---
     const NIVELES = {
-        'En espera': 1, 'Cotizando': 2, 'En revision': 3, 'Aprobada': 4,
-        'Espera_Programacion': 5, 'Programada': 6, 'Por Pagar': 7, 'Pagada': 8
+        'En espera': 1, 'Cotizando': 2, 'En revision': 3, 'Aprobacion pendiente': 3,
+        'Aprobada': 4, 'Espera_Programacion': 5, 'Programada': 6, 'Por Pagar': 7, 'Pagada': 8
     };
 
     // 1. OBTENER DATOS Y BANDERAS
@@ -635,7 +533,7 @@ async function guardarCambiosMaestros() {
     // REGLA 1: CAMBIO DE PROVEEDOR (Prioridad Alta)
     // ========================================================================
     const originalProveedorID = document.getElementById('original-id-proveedor').value;
-    const nuevoProveedorID = selectProveedor.value;
+    const nuevoProveedorID = selectProveedor ? selectProveedor.value : null;
 
     if (originalProveedorID && nuevoProveedorID && (originalProveedorID != nuevoProveedorID)) {
         if (!subiendoCoti) {
@@ -673,7 +571,7 @@ async function guardarCambiosMaestros() {
     // Validación de Proveedor para niveles que generan Orden (Nivel 4+)
     const estadosConOrden = ['Aprobada', 'Espera_Programacion', 'Programada', 'Por Pagar', 'Pagada'];
     if (estadosConOrden.includes(estadoSeleccionado)) {
-        if (!selectProveedor || !selectProveedor.value) {
+        if (!nuevoProveedorID) {
             errorValidacion = `El estado "${estadoSeleccionado}" requiere un Proveedor asignado para la Orden de Compra.`;
         }
     }
@@ -695,7 +593,11 @@ async function guardarCambiosMaestros() {
 
     // ENVÍO
     const btnGuardar = document.querySelector('#div-editor-maestro button.bg-blue-600');
-    if(btnGuardar) { btnGuardar.disabled = true; btnGuardar.innerText = "Guardando..."; }
+    if(btnGuardar) { 
+        btnGuardar.disabled = true; 
+        const originalText = btnGuardar.innerHTML;
+        btnGuardar.innerText = "Guardando..."; 
+    }
 
     try {
         const result = await SendDataEnd(`api/solicitudes/update_master/${idSolicitud}`, { method: 'POST', body: formData });
@@ -712,7 +614,10 @@ async function guardarCambiosMaestros() {
         console.error(e);
         alert('❌ Error de conexión.');
     } finally {
-        if(btnGuardar) { btnGuardar.disabled = false; btnGuardar.innerText = "Guardar Cambios"; }
+        if(btnGuardar) { 
+            btnGuardar.disabled = false; 
+            btnGuardar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> Guardar Cambios`;
+        }
     }
 }
 
@@ -721,96 +626,9 @@ function regresarMaestro() {
     document.getElementById('div-control-maestro').classList.remove('hidden');
 }
 
-// FUNCIONES GLOBALES PARA ARCHIVOS (Necesarias para el onclick en el HTML generado)
-window.handleFileSelect = function(input, type) {
-    const files = input.files;
-    const previewId = 'preview-' + type; // ID dinámico corregido
-    const previewContainer = document.getElementById(previewId);
-
-    if (!files || files.length === 0) {
-        window.removeFile(type);
-        return;
-    }
-
-    let html = "";
-    // Iteración para soportar múltiples archivos (especialmente para cotizaciones)
-    Array.from(files).forEach(file => {
-        let icon = '📄';
-        if (file.type.startsWith('image/')) icon = '🖼️';
-        else if (file.type === 'application/pdf') icon = '📕';
-        else if (file.type.includes('xml')) icon = '🔗';
-
-        const fileSize = (file.size / 1024).toFixed(2) + ' KB';
-
-        html += `
-            <div class="flex items-center justify-between bg-white p-2 mb-1 rounded border border-gray-200 shadow-sm">
-                <div class="flex items-center gap-2 overflow-hidden">
-                    <span class="text-xl">${icon}</span>
-                    <div class="overflow-hidden">
-                        <p class="text-xs font-bold text-gray-700 truncate w-40">${file.name}</p>
-                        <p class="text-[10px] text-gray-500">${fileSize}</p>
-                    </div>
-                </div>
-                <button type="button" onclick="window.removeFile('${type}')" class="text-red-400 hover:text-red-600 font-bold ml-2 text-lg">&times;</button> 
-            </div>`;
+window.aplicarGrupoATodos = function(valor) {
+    if (valor === '') return;
+    document.querySelectorAll('.select-grupo-partida').forEach(select => {
+        if (!select.disabled) select.value = valor;
     });
-
-    previewContainer.innerHTML = html;
-    previewContainer.classList.remove('hidden');
-
-    const btn = input.nextElementSibling;
-    if(btn) {
-        btn.classList.remove('bg-white', 'text-blue-600', 'text-indigo-600', 'text-green-600', 'border-blue-300', 'border-indigo-300', 'border-green-300');
-        btn.classList.add('bg-green-50', 'text-green-700', 'border-green-400');
-        btn.innerHTML = files.length > 1 ? `✅ ${files.length} Archivos Listos` : '✅ Archivo Listo';
-    }
-}
-
-window.removeFile = function(type) {
-    const inputIds = { 
-        'cotizacion': 'file-cotizacion', 
-        'comprobante': 'file-comprobante', 
-        'factura': 'file-factura',
-        'complemento': 'file-complemento'
-    };
-    const input = document.getElementById(inputIds[type]);
-    if(input) input.value = '';
-
-    const previewContainer = document.getElementById('preview-' + type);
-    if(previewContainer) {
-        previewContainer.innerHTML = '';
-        previewContainer.classList.add('hidden');
-    }
-
-    const btn = input ? input.nextElementSibling : null;
-    if(btn) {
-        btn.classList.remove('bg-green-50', 'text-green-700', 'border-green-400');
-        btn.classList.add('bg-white');
-        if(type === 'cotizacion') { 
-            btn.classList.add('text-green-600', 'border-green-300'); 
-            btn.innerHTML = '📂 Seleccionar Cotizaciones'; 
-        } else if(type === 'comprobante') { 
-            btn.classList.add('text-blue-600', 'border-blue-300'); 
-            btn.innerHTML = '📂 Seleccionar Comprobante'; 
-        } else if(type === 'complemento') {
-            btn.classList.add('text-orange-600', 'border-orange-300'); 
-            btn.innerHTML = '📂 Seleccionar';
-        } else { 
-            btn.classList.add('text-indigo-600', 'border-indigo-300'); 
-            btn.innerHTML = '📂 Seleccionar Factura'; 
-        }
-    }
-}
-
-window.toggleComplementoInput = function(valor) {
-    const container = document.getElementById('container-file-complemento');
-    if (container) {
-        if (valor == '1') {
-            container.classList.remove('hidden');
-        } else {
-            container.classList.add('hidden');
-            // Si lo oculta, opcionalmente limpiamos lo seleccionado
-            window.removeFile('complemento');
-        }
-    }
-}
+};

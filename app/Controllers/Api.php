@@ -685,8 +685,10 @@ class Api extends ResourceController
                     $nuevo = (float)($montosNuevosPorGrupo[$idGrupo] ?? 0);
                     $diferencia = $nuevo - $viejo;
 
-                    if (abs($diferencia) > 0.0001) { // Evitar micro-diferencias por coma flotante
-                        $campoAjustar = ($solicitud['Estado'] === 'Pagada' || $solicitud['Estado'] === Status::Pagada) ? 'Monto_Ejecutado' : 'Monto_Comprometido';
+                    if (abs($diferencia) > 0.0001) { 
+                        // REPARACIÓN: Detección robusta de nivel Pagada (8)
+                        $esPagada = (trim($solicitud['Estado']) === 'Pagada' || $solicitud['Estado'] === Status::Pagada);
+                        $campoAjustar = $esPagada ? 'Monto_Ejecutado' : 'Monto_Comprometido';
                         
                         // Encontrar la Unidad Operativa del grupo para el ajuste
                         $grupoInfo = $grupoModel->find($idGrupo);

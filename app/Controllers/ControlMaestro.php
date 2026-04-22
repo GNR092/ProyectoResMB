@@ -47,7 +47,18 @@ class ControlMaestro extends BaseController
         }
 
         // --- SNAPSHOT PRESUPUESTAL PREVIO ---
-        $nivelAnterior = $niveles[$solicitudOriginal->Estado] ?? 0;
+        $estadoSnapshot = trim((string)($solicitudOriginal->Estado ?? ''));
+        $nivelAnterior = $niveles[$estadoSnapshot] ?? 0;
+
+        // REPARACIÓN DE SEGURIDAD: Si tiene fecha de pago real, forzamos nivel 8 aunque el string falle
+        $idCotSnapshot = $this->db->table('Cotizacion')->select('ID_Cotizacion')->where('ID_Solicitud', $id_solicitud)->get()->getRow();
+        if ($idCotSnapshot) {
+            $ordenSnapshot = $this->db->table('OrdenCompra')->where('ID_Cotizacion', $idCotSnapshot->ID_Cotizacion)->get()->getRow();
+            if ($ordenSnapshot && !empty($ordenSnapshot->FechaPagoRealizado) && $nivelAnterior < 8 && $nivelAnterior >= 4) {
+                $nivelAnterior = 8;
+            }
+        }
+
         $esServicio = (int)$solicitudOriginal->Tipo === 2;
         $montosViejosPorGrupo = [];
         
@@ -78,8 +89,16 @@ class ControlMaestro extends BaseController
             // ---------------------------------------------------------
             // 1. GESTIÓN DE ESTADOS
             // ---------------------------------------------------------
-            $nuevoEstadoStr = $post['Estado'];
+            $nuevoEstadoStr = trim((string)($post['Estado'] ?? ''));
             $nivelNuevo     = $niveles[$nuevoEstadoStr] ?? 0;
+
+            // REPARACIÓN DE SEGURIDAD (Nivel Nuevo): Si ya tiene pago real y nivel >= 4, forzamos nivel 8 para el cerebro presupuestal
+            if ($idCotSnapshot && $nivelNuevo >= 4 && $nivelNuevo < 8) {
+                $ordenSnapshot = $this->db->table('OrdenCompra')->where('ID_Cotizacion', $idCotSnapshot->ID_Cotizacion)->get()->getRow();
+                if ($ordenSnapshot && !empty($ordenSnapshot->FechaPagoRealizado)) {
+                    $nivelNuevo = 8;
+                }
+            }
 
             $estadoSolicitud = $nuevoEstadoStr;
             $estadoOrden     = null;
@@ -316,12 +335,17 @@ class ControlMaestro extends BaseController
                             $builder->set('Monto_Ejecutado', "GREATEST(0, \"Monto_Ejecutado\" - $montoViejo)", false);
                             $aplicoReglaPresupuestal = true;
                         }
+                        // REGLA 8: Salto directo de Pre-presupuesto a Ejecutado (<4 -> 8)
+                        elseif ($nivelAnterior < 4 && $nivelNuevo == 8) {
+                            $builder->set('Monto_Ejecutado', "\"Monto_Ejecutado\" + $montoNuevo", false);
+                            $aplicoReglaPresupuestal = true;
+                        }
 
                         if ($aplicoReglaPresupuestal) {
                             $builder->update();
                         }
                     } 
-                    // Si no existe presupuesto y estamos entrando a nivel comprometido, lo creamos
+                    // Si no existe presupuesto y estamos en nivel presupuestal, lo creamos
                     elseif ($nivelNuevo >= 4) {
                         $comp = ($nivelNuevo == 8) ? 0 : $montoNuevo;
                         $ejec = ($nivelNuevo == 8) ? $montoNuevo : 0;
@@ -335,6 +359,10 @@ class ControlMaestro extends BaseController
                             'Monto_Ejecutado' => $ejec
                         ]);
                     }
+                    // NUEVO: Si no existe el presupuesto pero SÍ veníamos de un nivel presupuestal,
+                    // significa que estamos restando de algo que quizá ya no tiene registro (raro pero posible)
+                    // o que simplemente la partida antigua no tiene bolsa en este mes. 
+                    // No hacemos insert porque estaríamos insertando saldos negativos en Monto_Asignado=0.
                 }
             }
 

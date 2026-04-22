@@ -223,15 +223,15 @@ class Rest
         // PASO 1: Obtener Solicitudes (Datos Base)
         // ---------------------------------------------------------
         $solicitudes = $solicitudModel
-            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre')
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre, Razon_Social.Nombre as Complejo')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->whereNotIn('Solicitud.Estado', $excluded_statuses)
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
-
         if (empty($solicitudes)) {
             return []; // Retornamos array vacío, no response
         }
@@ -317,14 +317,14 @@ class Rest
         $proveedorModel = new ProveedorModel(); // <-- Instanciamos el modelo del proveedor
 
         $solicitudes = $solicitudModel
-            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre')
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as Complejo')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
             ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->where('Solicitud.ID_Dpto', $id)
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
-
         log_message('debug', print_r($solicitudes[0] ?? [], true));
         if (empty($solicitudes)) {
             return [];

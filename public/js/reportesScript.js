@@ -7,6 +7,7 @@ function Reportes(initialData = []) {
     fecha: '',
     porMes: false,
     estado: '',
+    tipo_solicitud: '',
     departamento: [],
     razonSocial: [],
     proveedor: [],
@@ -81,6 +82,7 @@ function Reportes(initialData = []) {
         this.applyFiltersAndPaginate()
       })
       this.$watch('estado', () => this.applyFiltersAndPaginate())
+      this.$watch('tipo_solicitud', () => this.applyFiltersAndPaginate())
       this.$watch('metodoPago', () => this.applyFiltersAndPaginate())
 
       // Nota: Se eliminaron los $watch de departamento, razonSocial y proveedor
@@ -116,6 +118,10 @@ function Reportes(initialData = []) {
         const estadoReal = item.EstadoOrden || item.Estado
         const estadoMatch = !this.estado || estadoReal === this.estado
         const metodoPagoMatch = !this.metodoPago || item.MetodoPago == this.metodoPago
+        
+        const tipoMatch = !this.tipo_solicitud || 
+            (this.tipo_solicitud === 'Producto' && (item.Tipo == 0 || item.Tipo == 1)) || 
+            (this.tipo_solicitud === 'Servicio' && item.Tipo == 2);
 
         // NUEVA LÓGICA PARA MÚLTIPLES SELECCIONES
         const deptoMatch =
@@ -128,6 +134,7 @@ function Reportes(initialData = []) {
         return (
           fechaMatch &&
           estadoMatch &&
+          tipoMatch &&
           deptoMatch &&
           razonSocialMatch &&
           proveedorMatch &&

@@ -35,6 +35,15 @@ $jsonData = !empty($tabledata) ? json_encode($tabledata) : '[]'; ?>
             </select>
         </div>
 
+        <!-- Filtro Tipo -->
+        <div class="w-full sm:w-auto shrink-0">
+            <select x-model="tipo_solicitud" id="filtro-tipo-reportes" class="border p-2 rounded w-full min-w-[150px]">
+                <option value="">Tipo (Todos)</option>
+                <option value="Producto">📦 Producto</option>
+                <option value="Servicio">🛠️ Servicio</option>
+            </select>
+        </div>
+
         <!-- Filtro Dpto -->
         <div class="w-full sm:w-auto shrink-0">
             <select x-ref="deptoSelect" id="filtroDepartamento-reportes" class="border p-2 rounded w-full min-w-[200px]" multiple>

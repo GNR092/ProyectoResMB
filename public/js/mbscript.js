@@ -787,6 +787,7 @@ function initSolicitarMaterialTodo() {
  */
 let choicesDepartamento = null
 let choicesProveedor = null
+let choicesRazonSocial = null
 function initPaginacionHistorial() {
   const tabla = document.getElementById('tabla-historial')
   if (!tabla) return
@@ -801,6 +802,30 @@ function initPaginacionHistorial() {
       itemSelectText: 'Seleccionar',
       noResultsText: 'No se encontraron resultados',
       noChoicesText: 'No hay más opciones para elegir',
+    })
+  }
+
+  const filtroProvEl = document.getElementById('filtro-proveedor')
+  if (filtroProvEl) {
+    choicesProveedor = new Choices(filtroProvEl, {
+      removeItemButton: true,
+      placeholder: true,
+      placeholderValue: 'Todos los proveedores',
+      searchPlaceholderValue: 'Buscar...',
+      itemSelectText: 'Seleccionar',
+      noResultsText: 'No se encontraron resultados',
+    })
+  }
+
+  const filtroRazonEl = document.getElementById('filtro-razon-social')
+  if (filtroRazonEl) {
+    choicesRazonSocial = new Choices(filtroRazonEl, {
+      removeItemButton: true,
+      placeholder: true,
+      placeholderValue: 'Todas las razones sociales',
+      searchPlaceholderValue: 'Buscar...',
+      itemSelectText: 'Seleccionar',
+      noResultsText: 'No se encontraron resultados',
     })
   }
 
@@ -966,13 +991,19 @@ function initPaginacionHistorial() {
       const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
       const estadoFiltro = document.getElementById('filtro-estado').value
       const folioFiltro = document.getElementById('filtro-folio')?.value.toLowerCase() || ''
+      const tipoFiltro = document.getElementById('filtro-tipo-historial')?.value || ''
       const departamentosSeleccionados = choicesDepartamento
         ? choicesDepartamento.getValue(true)
         : []
       const proveedoresSeleccionados = choicesProveedor ? choicesProveedor.getValue(true) : []
+      const razonesSeleccionadas = choicesRazonSocial ? choicesRazonSocial.getValue(true) : []
 
       return allData.filter((item) => {
         const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
+        
+        const coincideTipo = !tipoFiltro || 
+            (tipoFiltro === 'Producto' && (item.Tipo == 0 || item.Tipo == 1)) || 
+            (tipoFiltro === 'Servicio' && item.Tipo == 2);
 
         const coincideProveedor =
           proveedoresSeleccionados.length === 0 ||
@@ -989,12 +1020,19 @@ function initPaginacionHistorial() {
           coincideDepartamento = true
         }
 
+        let coincideRazon = true
+        if (razonesSeleccionadas.length > 0) {
+          coincideRazon = razonesSeleccionadas.includes(item.Complejo)
+        }
+
         if (choicesDepartamento && choicesDepartamento.getValue(true).length === 0) {
           coincideDepartamento = true
         }
 
+        const passesOtherFilters = coincideEstado && coincideDepartamento && coincideProveedor && coincideFolio && coincideTipo && coincideRazon
+
         if (!fechaFiltro) {
-          return coincideEstado && coincideDepartamento && coincideProveedor && coincideFolio
+          return passesOtherFilters
         }
 
         const fechaItem = item.Fecha
@@ -1003,18 +1041,12 @@ function initPaginacionHistorial() {
           const mesItem = fechaItem.slice(0, 7)
           return (
             mesItem === mesFiltro &&
-            coincideEstado &&
-            coincideDepartamento &&
-            coincideProveedor &&
-            coincideFolio
+            passesOtherFilters
           )
         } else {
           return (
             fechaItem === fechaFiltro &&
-            coincideEstado &&
-            coincideDepartamento &&
-            coincideProveedor &&
-            coincideFolio
+            passesOtherFilters
           )
         }
       })
@@ -1095,6 +1127,7 @@ function exportarHistorialExcel() {
   const fecha = document.getElementById('filtro-fecha').value
   const porMes = document.getElementById('filtrar-por-mes').checked
   const estado = document.getElementById('filtro-estado').value
+  const tipo = document.getElementById('filtro-tipo-historial')?.value || ''
 
   // Obtener valores de Choices.js
   const deptosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : []
@@ -1103,6 +1136,7 @@ function exportarHistorialExcel() {
   if (fecha) params.append('fecha', fecha)
   if (porMes) params.append('por_mes', '1')
   if (estado) params.append('estado', estado)
+  if (tipo) params.append('tipo', tipo)
   if (deptosSeleccionados.length > 0) {
     params.append('dpto', deptosSeleccionados.join(','))
   }

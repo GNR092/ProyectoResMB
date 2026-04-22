@@ -15,7 +15,14 @@
         </div>
 
         <!-- Filtro por Folio -->
-        <input type="text" id="filtro-folio" placeholder="Buscar folio..." class="border p-2 rounded w-full md:w-auto">
+        <input type="text" id="filtro-folio" placeholder="Buscar folio..." class="border p-2 rounded w-full md:w-auto text-sm">
+
+        <!-- Filtro por Tipo -->
+        <select id="filtro-tipo-historial" class="border p-2 rounded w-full md:w-auto text-sm">
+            <option value="">Tipo (Todos)</option>
+            <option value="Producto">📦 Producto</option>
+            <option value="Servicio">🛠️ Servicio</option>
+        </select>
 
         <!-- Filtro por Estado -->
         <select id="filtro-estado" class="border p-2 rounded w-full md:w-auto">
@@ -39,6 +46,18 @@
                 <?php foreach ($proveedores as $prov): ?>
                     <option value="<?= esc($prov['RazonSocial']) ?>">
                         <?= esc($prov['RazonSocial']) ?>
+                    </option>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </select>
+
+        <!-- Filtro por Razón Social -->
+        <select id="filtro-razon-social" class="border p-2 rounded w-full md:w-auto text-sm" multiple>
+            <option value="">Todas las razones sociales</option>
+            <?php if (isset($razones_sociales) && !empty($razones_sociales)): ?>
+                <?php foreach ($razones_sociales as $rs): ?>
+                    <option value="<?= esc($rs['Nombre']) ?>">
+                        <?= esc($rs['Nombre']) ?>
                     </option>
                 <?php endforeach; ?>
             <?php endif; ?>

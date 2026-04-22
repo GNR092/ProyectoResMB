@@ -27,15 +27,37 @@
             <option value="Pagada">🟢 Pagada</option>
         </select>
 
+        <select id="filtro-tipo-maestro" class="border border-gray-300 p-2 rounded w-full md:w-auto text-sm">
+            <option value="">Tipo (Todos)</option>
+            <option value="Producto">📦 Producto</option>
+            <option value="Servicio">🛠️ Servicio</option>
+        </select>
+
         <select id="filtro-metodo-maestro" class="border border-gray-300 p-2 rounded w-full md:w-auto text-sm">
             <option value="">Todos los métodos</option>
             <option value="0">Contado</option>
             <option value="1">Crédito</option>
         </select>
 
+        <select id="filtro-razon-social-maestro" class="border border-gray-300 p-2 rounded w-full md:w-auto text-sm" multiple>
+            <option value="">Todas las razones sociales</option>
+            <?php if (isset($razones_sociales) && !empty($razones_sociales)): ?>
+                <?php foreach ($razones_sociales as $rs): ?>
+                    <option value="<?= esc($rs['Nombre']) ?>"><?= esc($rs['Nombre']) ?></option>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </select>
+
         <div id="wrapper-depto-maestro" class="hidden w-full md:w-auto">
             <select id="filtroDepartamentoMaestro" class="border p-2 rounded w-full" multiple>
                 <option value="">Todos los departamentos</option>
+                <?php if (isset($departamentos) && !empty($departamentos)): ?>
+                    <?php foreach ($departamentos as $dpto): ?>
+                        <option value="<?= esc($dpto['Nombre']) ?>|<?= esc($dpto['PlaceNombre'] ?? '') ?>">
+                            <?= esc($dpto['Nombre']) ?> - <?= esc($dpto['PlaceNombre'] ?? '') ?>
+                        </option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </select>
         </div>
     </div>
