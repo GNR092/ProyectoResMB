@@ -814,6 +814,7 @@ function initPaginacionHistorial() {
       searchPlaceholderValue: 'Buscar...',
       itemSelectText: 'Seleccionar',
       noResultsText: 'No se encontraron resultados',
+      noChoicesText: 'No hay más opciones para elegir',
     })
   }
 
@@ -823,18 +824,6 @@ function initPaginacionHistorial() {
       removeItemButton: true,
       placeholder: true,
       placeholderValue: 'Todas las razones sociales',
-      searchPlaceholderValue: 'Buscar...',
-      itemSelectText: 'Seleccionar',
-      noResultsText: 'No se encontraron resultados',
-    })
-  }
-
-  const filtroProvEl = document.getElementById('filtro-proveedor')
-  if (filtroProvEl) {
-    choicesProveedor = new Choices(filtroProvEl, {
-      removeItemButton: true,
-      placeholder: true,
-      placeholderValue: 'Todos los proveedores',
       searchPlaceholderValue: 'Buscar...',
       itemSelectText: 'Seleccionar',
       noResultsText: 'No se encontraron resultados',
@@ -853,6 +842,7 @@ function initPaginacionHistorial() {
       'Tesoreria',
       'Direccion Campus',
       'Contaduría',
+      'Contaduria',
     ]
 
     const miDepto = typeof USER_DEPT_NAME !== 'undefined' ? USER_DEPT_NAME : ''
