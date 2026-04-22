@@ -51,6 +51,7 @@ class Archivo extends BaseController
                 $importes = $post['importe'];
                 $cantidades = array_fill(0, count($productos), 1);
                 $codigos = array_fill(0, count($productos), null);
+                $grupos_presupuestales = $post['id_grupo_presupuestal'] ?? [];
             } elseif (isset($post['sin_cotizar'])) {
                 $tipo = SolicitudTipo::NoCotizacion;
                 $productos = $post['producto'];
@@ -252,6 +253,7 @@ class Archivo extends BaseController
                         'ID_Solicitud' => $solicitudId,
                         'Nombre' => $productos[$i],
                         'Importe' => $importes[$i],
+                        'ID_GrupoPresupuestal' => $grupos_presupuestales[$i] ?? null,
                     ];
                     $solicitudServicio->insert($item);
                     $datosProductos[] = $item;

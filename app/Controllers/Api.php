@@ -583,38 +583,52 @@ class Api extends ResourceController
             $esServicio = (int) $solicitud['Tipo'] === 2;
             
             // --- NUEVA LÓGICA DE SINCRONIZACIÓN DE PRESUPUESTO ---
-            // Solo si es materiales y ya está en un estado que afectó presupuesto
+            // Solo si ya está en un estado que afectó presupuesto
             $estadosFinancieros = ['Aprobada', 'Por Pagar', 'En Proceso de Pago', Status::Pagada, 'Pagada'];
-            $afectaPresupuesto = (!$esServicio && in_array($solicitud['Estado'], $estadosFinancieros));
+            $afectaPresupuesto = in_array($solicitud['Estado'], $estadosFinancieros);
             $montosViejosPorGrupo = [];
             
             if ($afectaPresupuesto) {
-                $productModel = new SolicitudProductModel();
-                $productosPrevios = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
-                foreach ($productosPrevios as $pp) {
+                if ($esServicio) {
+                    $itemModelPrev = new SolicitudServiciosModel();
+                } else {
+                    $itemModelPrev = new SolicitudProductModel();
+                }
+
+                $itemsPrevios = $itemModelPrev->where('ID_Solicitud', $idSolicitud)->findAll();
+                foreach ($itemsPrevios as $pp) {
                     if ($pp['ID_GrupoPresupuestal']) {
                         $montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] = ($montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] ?? 0) + (float)$pp['Monto_Comprometido_Original'];
                     }
                 }
             }
 
+            $factorIvaActual = ($iva === true) ? 1.16 : 1.0;
+
             if ($esServicio) {
                 $solicitudServiciosModel = new SolicitudServiciosModel();
                 $solicitudItemsDB = $solicitudServiciosModel->where('ID_Solicitud', $idSolicitud)->findAll();
                 foreach ($itemsPayload as $index => $item) {
                     if(isset($solicitudItemsDB[$index])) {
-                        $solicitudServiciosModel->update($solicitudItemsDB[$index]['ID_SolicitudServ'], [
+                        $nuevoMontoComprometido = 1 * (float)$item->importe * $factorIvaActual;
+
+                        $updateDataServ = [
                             'Nombre' => (string) $item->nombre,
                             'Importe' => (float) $item->importe,
-                        ]);
+                            'Monto_Comprometido_Original' => $nuevoMontoComprometido
+                        ];
+
+                        if (isset($item->id_grupo_presupuestal)) {
+                            $updateDataServ['ID_GrupoPresupuestal'] = (int) $item->id_grupo_presupuestal;
+                        }
+
+                        $solicitudServiciosModel->update($solicitudItemsDB[$index]['ID_SolicitudServ'], $updateDataServ);
                     }
                 }
             } else {
                 $solicitudProductModel = new SolicitudProductModel();
                 $solicitudItemsDB = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
                 
-                $factorIvaActual = ($iva === true) ? 1.16 : 1.0;
-
                 foreach ($itemsPayload as $index => $p) {
                     if(isset($solicitudItemsDB[$index])) {
                         $nuevoMontoComprometido = (float)$p->cantidad * (float)$p->importe * $factorIvaActual;
@@ -638,11 +652,16 @@ class Api extends ResourceController
 
             // --- APLICAR AJUSTE AL PRESUPUESTO ATÓMICO Y CORRECTO ---
             if ($afectaPresupuesto) {
-                $solicitudProductModel = new SolicitudProductModel();
-                $productosNuevos = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
+                if ($esServicio) {
+                    $itemModelNew = new SolicitudServiciosModel();
+                } else {
+                    $itemModelNew = new SolicitudProductModel();
+                }
+
+                $itemsNuevos = $itemModelNew->where('ID_Solicitud', $idSolicitud)->findAll();
                 
                 $montosNuevosPorGrupo = [];
-                foreach ($productosNuevos as $pn) {
+                foreach ($itemsNuevos as $pn) {
                     if ($pn['ID_GrupoPresupuestal']) {
                         $montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] = ($montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] ?? 0) + (float)$pn['Monto_Comprometido_Original'];
                     }
@@ -1187,21 +1206,26 @@ class Api extends ResourceController
             }
 
             // === VALIDACIÓN Y ACTUALIZACIÓN DE PARTIDAS PRESUPUESTALES ===
-            if ((int)$solicitud['Tipo'] !== (int)SolicitudTipo::Servicios) {
-                $solicitudProductModel = new SolicitudProductModel();
-                $productosActuales = $solicitudProductModel->where('ID_Solicitud', $idSolicitud)->findAll();
-                
-                $nuevosGrupos = $request['id_grupo_presupuestal'] ?? [];
+            $esServicio = (int)$solicitud['Tipo'] === (int)SolicitudTipo::Servicios;
+            if ($esServicio) {
+                $itemModel = new SolicitudServiciosModel();
+                $primaryKey = 'ID_SolicitudServ';
+            } else {
+                $itemModel = new SolicitudProductModel();
+                $primaryKey = 'ID_SolicitudProd';
+            }
 
-                foreach ($productosActuales as $prod) {
-                    $idProd = $prod['ID_SolicitudProd'];
-                    
-                    // Actualizar solo si viene un nuevo valor en el request
-                    if (isset($nuevosGrupos[$idProd]) && !empty($nuevosGrupos[$idProd])) {
-                        $solicitudProductModel->update((int)$idProd, [
-                            'ID_GrupoPresupuestal' => (int)$nuevosGrupos[$idProd]
-                        ]);
-                    }
+            $itemsActuales = $itemModel->where('ID_Solicitud', $idSolicitud)->findAll();
+            $nuevosGrupos = $request['id_grupo_presupuestal'] ?? [];
+
+            foreach ($itemsActuales as $item) {
+                $idItem = $item[$primaryKey];
+                
+                // Actualizar solo si viene un nuevo valor en el request
+                if (isset($nuevosGrupos[$idItem]) && !empty($nuevosGrupos[$idItem])) {
+                    $itemModel->update((int)$idItem, [
+                        'ID_GrupoPresupuestal' => (int)$nuevosGrupos[$idItem]
+                    ]);
                 }
             }
 
@@ -1286,8 +1310,8 @@ class Api extends ResourceController
             $solicitudModel = new SolicitudModel();
             $solicitud = $solicitudModel->find($idSolicitud);
 
-            if (!$solicitud || (int)$solicitud['Tipo'] === (int)SolicitudTipo::Servicios) {
-                return; // Solo materiales
+            if (!$solicitud) {
+                return;
             }
 
             // --- PROTECCIÓN: Evitar doble ejecución si ya estaba en un estado final ---
@@ -1302,8 +1326,14 @@ class Api extends ResourceController
                 }
             }
 
-            $productModel = new SolicitudProductModel();
-            $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
+            $esServicio = (int)$solicitud['Tipo'] === (int)SolicitudTipo::Servicios;
+            if ($esServicio) {
+                $itemModel = new SolicitudServiciosModel();
+            } else {
+                $itemModel = new SolicitudProductModel();
+            }
+
+            $items = $itemModel->where('ID_Solicitud', $idSolicitud)->findAll();
             
             $montosADescontar = []; 
             $montosAEjecutar = [];   
@@ -1312,14 +1342,15 @@ class Api extends ResourceController
             $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
             $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
 
-            foreach ($productos as $p) {
+            foreach ($items as $p) {
                 $idGrupo = $p['ID_GrupoPresupuestal'];
                 if (!$idGrupo) continue;
 
-                $original = (float)$p['Monto_Comprometido_Original'];
+                $original = (float)($p['Monto_Comprometido_Original'] ?? 0);
                 $montosADescontar[$idGrupo] = ($montosADescontar[$idGrupo] ?? 0) + $original;
 
-                $actual = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
+                $cantidad = (float)($p['Cantidad'] ?? 1);
+                $actual = $cantidad * (float)$p['Importe'] * $factorIVA;
                 $montosAEjecutar[$idGrupo] = ($montosAEjecutar[$idGrupo] ?? 0) + $actual;
             }
 
@@ -1375,8 +1406,8 @@ class Api extends ResourceController
             $solicitudModel = new SolicitudModel();
             $solicitud = $solicitudModel->find($idSolicitud);
 
-            if (!$solicitud || (int)$solicitud['Tipo'] === (int)SolicitudTipo::Servicios) {
-                return; // Solo materiales manejan presupuesto automático por ahora
+            if (!$solicitud) {
+                return;
             }
 
             // Definir qué campos afectar según el estado en que estaba la solicitud
@@ -1388,15 +1419,21 @@ class Api extends ResourceController
                 return; // Estaba en un estado inicial que no bloqueaba dinero
             }
 
-            $productModel = new SolicitudProductModel();
-            $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
+            $esServicio = (int)$solicitud['Tipo'] === (int)SolicitudTipo::Servicios;
+            if ($esServicio) {
+                $itemModel = new SolicitudServiciosModel();
+            } else {
+                $itemModel = new SolicitudProductModel();
+            }
+
+            $items = $itemModel->where('ID_Solicitud', $idSolicitud)->findAll();
 
             $montosPorGrupo = [];
-            foreach ($productos as $p) {
+            foreach ($items as $p) {
                 $idGrupo = $p['ID_GrupoPresupuestal'];
                 if (!$idGrupo) continue;
 
-                $montoAReversar = (float)$p['Monto_Comprometido_Original'];
+                $montoAReversar = (float)($p['Monto_Comprometido_Original'] ?? 0);
                 $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoAReversar;
             }
 
@@ -1493,24 +1530,31 @@ class Api extends ResourceController
                 $dataToUpdate['ID_Usuario_Autoriza'] = session('id');
 
                 // === LÓGICA DE PRESUPUESTO COMPROMETIDO ATÓMICA ===
-                if ((int)$solicitud['Tipo'] !== (int)SolicitudTipo::Servicios) {
-                    $productModel = new SolicitudProductModel();
-                    $presupuestoModel = new \App\Models\PresupuestoMensualModel();
-                    $productos = $productModel->where('ID_Solicitud', $idSolicitud)->findAll();
-                    
-                    $ivaValue = $solicitud['IVA'] ?? false;
-                    $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
-                    $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
+                $ivaValue = $solicitud['IVA'] ?? false;
+                $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
+                $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
+                $esServicio = (int)$solicitud['Tipo'] === (int)SolicitudTipo::Servicios;
 
-                    $montosPorGrupo = [];
-                    foreach ($productos as $p) {
-                        $idGrupo = $p['ID_GrupoPresupuestal'];
-                        if (!$idGrupo) continue;
+                if ($esServicio) {
+                    $itemModel = new SolicitudServiciosModel();
+                } else {
+                    $itemModel = new SolicitudProductModel();
+                }
 
-                        $montoItem = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
-                        $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoItem;
-                    }
+                $presupuestoModel = new \App\Models\PresupuestoMensualModel();
+                $items = $itemModel->where('ID_Solicitud', $idSolicitud)->findAll();
+                
+                $montosPorGrupo = [];
+                foreach ($items as $p) {
+                    $idGrupo = $p['ID_GrupoPresupuestal'] ?? null;
+                    if (!$idGrupo) continue;
 
+                    $cantidad = (float)($p['Cantidad'] ?? 1);
+                    $montoItem = $cantidad * (float)$p['Importe'] * $factorIVA;
+                    $montosPorGrupo[$idGrupo] = ($montosPorGrupo[$idGrupo] ?? 0) + $montoItem;
+                }
+
+                if (!empty($montosPorGrupo)) {
                     // --- USAR EL MES Y AÑO DE LA APROBACIÓN, NO DE LA SOLICITUD ---
                     $mes = (int)date('n');
                     $anio = (int)date('Y');
@@ -1519,7 +1563,6 @@ class Api extends ResourceController
 
                     // --- VALIDACIÓN DE PRESUPUESTO EXISTENTE Y ASIGNADO ---
                     foreach ($montosPorGrupo as $idGrupo => $montoAComprometer) {
-                        // Encontrar la Unidad Operativa a la que pertenece este grupo (camino inverso)
                         $grupoInfo = $grupoModel->find($idGrupo);
                         $idUnidadDelGrupo = $grupoInfo['ID_UnidadOperativa'] ?? 0;
 
@@ -1541,12 +1584,15 @@ class Api extends ResourceController
                     }
 
                     // Si la validación pasa, guardamos los respaldos y aplicamos el compromiso
-                    foreach ($productos as $p) {
-                        $idGrupo = $p['ID_GrupoPresupuestal'];
+                    foreach ($items as $p) {
+                        $idGrupo = $p['ID_GrupoPresupuestal'] ?? null;
                         if (!$idGrupo) continue;
                         
-                        $montoItem = (float)$p['Cantidad'] * (float)$p['Importe'] * $factorIVA;
-                        $productModel->update($p['ID_SolicitudProd'], [
+                        $cantidad = (float)($p['Cantidad'] ?? 1);
+                        $montoItem = $cantidad * (float)$p['Importe'] * $factorIVA;
+                        
+                        $primaryKey = $esServicio ? 'ID_SolicitudServ' : 'ID_SolicitudProd';
+                        $itemModel->update($p[$primaryKey], [
                             'Monto_Comprometido_Original' => $montoItem
                         ]);
                     }

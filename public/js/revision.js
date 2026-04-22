@@ -276,14 +276,14 @@ function RevisionX() {
 
               // --- LÓGICA SELECTOR GRUPO GENERAL (ASISTENTE) ---
               let grupoGeneralHtml = '';
-              if (!isServicio && data.grupos_presupuestales) {
+              if (data.grupos_presupuestales) {
                   const requestPlaceId = data.ID_Place;
                   const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
 
                   if (gruposFiltrados.length > 0) {
                       grupoGeneralHtml = `
                         <div id="contenedor-grupo-general" class="mb-4 bg-blue-50 p-4 border border-blue-200 rounded-lg">
-                            <label class="block text-sm font-bold text-blue-800 mb-1">Asistente de Llenado: Seleccionar grupo para todos los productos</label>
+                            <label class="block text-sm font-bold text-blue-800 mb-1">Asistente de Llenado: Seleccionar grupo para todos los ítems</label>
                             <div id="select-grupo-general-container">
                                 <select id="select-grupo-presupuestal-general" class="w-full border rounded-md p-2 bg-white text-blue-900 font-semibold focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer">
                                     <option value="">-- Seleccionar grupo para aplicar a todo --</option>
@@ -321,7 +321,7 @@ function RevisionX() {
                       ? '<th class="py-2 px-4 text-right">Costo Total</th>'
                       : ''
               }
-                                ${!isServicio ? '<th class="py-2 px-4 text-left">Partida Presupuestal</th>' : ''}
+                                <th class="py-2 px-4 text-left">Partida Presupuestal</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -331,27 +331,26 @@ function RevisionX() {
                   const costoTotal = !isServicio ? (p.Cantidad * p.Importe * factorIVA).toFixed(2) : ''
 
                   let gruposHtml = '';
-                  if (!isServicio) {
-                      gruposHtml = `<select name="id_grupo_presupuestal[${p.ID_SolicitudProd}]" class="w-full border rounded px-2 py-1 text-sm grupo-presupuestal-select" required>`
-                      gruposHtml += `<option value="">Seleccione grupo</option>`
-                      if (data.grupos_presupuestales) {
-                          // Filtrar grupos por el ID_Place de la solicitud
-                          const requestPlaceId = data.ID_Place;
-                          
-                          const gruposFiltrados = data.grupos_presupuestales.filter(g => {
-                              // Si no tenemos ID_Place en la solicitud, NO mostramos nada por seguridad
-                              if (!requestPlaceId) return false;
-                              // Mostrar solo si coincide el ID_Place (usamos == para permitir string/int)
-                              return g.ID_Place == requestPlaceId;
-                          });
+                  const itemId = isServicio ? p.ID_SolicitudServ : p.ID_SolicitudProd;
+                  gruposHtml = `<select name="id_grupo_presupuestal[${itemId}]" class="w-full border rounded px-2 py-1 text-sm grupo-presupuestal-select" required>`
+                  gruposHtml += `<option value="">Seleccione grupo</option>`
+                  if (data.grupos_presupuestales) {
+                      // Filtrar grupos por el ID_Place de la solicitud
+                      const requestPlaceId = data.ID_Place;
+                      
+                      const gruposFiltrados = data.grupos_presupuestales.filter(g => {
+                          // Si no tenemos ID_Place en la solicitud, NO mostramos nada por seguridad
+                          if (!requestPlaceId) return false;
+                          // Mostrar solo si coincide el ID_Place (usamos == para permitir string/int)
+                          return g.ID_Place == requestPlaceId;
+                      });
 
-                          gruposFiltrados.forEach((grupo) => {
-                              const selected = p.ID_GrupoPresupuestal == grupo.ID_GrupoPresupuestal ? 'selected' : ''
-                              gruposHtml += `<option value="${grupo.ID_GrupoPresupuestal}" ${selected}>${grupo.Nombre}</option>`
-                          })
-                      }
-                      gruposHtml += `</select>`
+                      gruposFiltrados.forEach((grupo) => {
+                          const selected = p.ID_GrupoPresupuestal == grupo.ID_GrupoPresupuestal ? 'selected' : ''
+                          gruposHtml += `<option value="${grupo.ID_GrupoPresupuestal}" ${selected}>${grupo.Nombre}</option>`
+                      })
                   }
+                  gruposHtml += `</select>`
 
                   html += `
                     <tr class="hover:bg-gray-50">
@@ -372,7 +371,7 @@ function RevisionX() {
                           ? `<td class="py-2 px-4 border-t text-right">${costoTotal}</td>`
                           : ''
                   }
-                        ${!isServicio ? `<td class="py-2 px-4 border-t">${gruposHtml}</td>` : ''}
+                        <td class="py-2 px-4 border-t">${gruposHtml}</td>
                     </tr>
                 `
               })
@@ -577,8 +576,8 @@ function RevisionX() {
                       }
                   });
 
-                  if (!isServicio && !todasPartidasSeleccionadas) {
-                      mostrarNotificacion('Por favor, asigne una partida presupuestal a todos los productos que tengan opciones disponibles.', 'error');
+                  if (!todasPartidasSeleccionadas) {
+                      mostrarNotificacion('Por favor, asigne una partida presupuestal a todos los ítems que tengan opciones disponibles.', 'error');
                       return;
                   }
                   // ========================================

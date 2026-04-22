@@ -489,8 +489,10 @@ function generarProductosServiciosHTML(data) {
         `
 
   data.productos.forEach((p) => {
-    const costoTotal = iva ? 1.16 * (p.Cantidad * p.Importe) : p.Cantidad * p.Importe
-    
+    const cantidad = parseFloat(p.Cantidad || 1)
+    const importe = parseFloat(p.Importe || 0)
+    const costoTotal = iva ? 1.16 * (cantidad * importe) : (cantidad * importe)
+
     // Verificamos si este producto pertenece a un grupo sin presupuesto (solo para dictamen)
     let sinPresupuesto = false;
     if (data.presupuestos_detallados) {
@@ -499,7 +501,6 @@ function generarProductosServiciosHTML(data) {
             sinPresupuesto = true;
         }
     }
-
     const rowClass = sinPresupuesto ? 'bg-red-50 blink-row-red' : 'hover:bg-gray-50';
 
     html += `

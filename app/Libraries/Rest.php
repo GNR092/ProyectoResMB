@@ -536,68 +536,74 @@ class Rest
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
-
-            $ivaValue = $solicitud['IVA'] ?? false;
-            $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
-            $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
-
-            // --- LÓGICA DE PRESUPUESTO MULTI-GRUPO PARA DICTAMEN ---
-            $impactoPorGrupo = [];
-            foreach ($productos as $p) {
-                if (!empty($p['ID_GrupoPresupuestal'])) {
-                    $idG = $p['ID_GrupoPresupuestal'];
-                    if (!isset($impactoPorGrupo[$idG])) {
-                        $impactoPorGrupo[$idG] = [
-                            'ID_GrupoPresupuestal' => $idG,
-                            'Nombre' => $p['GrupoPresupuestalNombre'],
-                            'MontoImpacto' => 0
-                        ];
-                    }
-                    // Sumamos el importe del producto al impacto de este grupo (incluyendo IVA y Cantidad)
-                    $montoItem = (float)($p['Cantidad'] ?? 0) * (float)($p['Importe'] ?? 0) * $factorIVA;
-                    $impactoPorGrupo[$idG]['MontoImpacto'] += $montoItem;
-                }
-            }
-
-            if (!empty($impactoPorGrupo)) {
-                $presupuestoMensualModel = new \App\Models\PresupuestoMensualModel();
-                $fechaSolicitud = $solicitud['Fecha'] ?? date('Y-m-d');
-                $anio = date('Y', strtotime($fechaSolicitud));
-                $mes = date('n', strtotime($fechaSolicitud));
-
-                $solicitud['presupuestos_detallados'] = [];
-
-                foreach ($impactoPorGrupo as $idG => $info) {
-                    $presupuesto = $presupuestoMensualModel
-                        ->where('ID_GrupoPresupuestal', $idG)
-                        ->where('Anio', $anio)
-                        ->where('Mes', $mes)
-                        ->first();
-                    
-                    if ($presupuesto) {
-                        $presupuesto['GrupoNombre'] = $info['Nombre'];
-                        $presupuesto['ImpactoActual'] = $info['MontoImpacto'];
-                        $presupuesto['SinPresupuesto'] = false;
-                        $solicitud['presupuestos_detallados'][] = $presupuesto;
-                    } else {
-                        // Si no hay presupuesto asignado, devolvemos un objeto marcado
-                        $solicitud['presupuestos_detallados'][] = [
-                            'ID_GrupoPresupuestal' => $idG,
-                            'GrupoNombre' => $info['Nombre'],
-                            'ImpactoActual' => $info['MontoImpacto'],
-                            'SinPresupuesto' => true,
-                            'Monto_Asignado' => 0,
-                            'Monto_Comprometido' => 0,
-                            'Monto_Ejecutado' => 0
-                        ];
-                    }
-                }
-            }
-            // -------------------------------------------------------
         } else {
             $solicitudServicioModel = new SolicitudServiciosModel();
-            $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
+            $productos = $solicitudServicioModel
+                ->select('Solicitud_Servicios.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre')
+                ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Servicios.ID_GrupoPresupuestal', 'left')
+                ->where('ID_Solicitud', $id)
+                ->findAll();
         }
+
+        $ivaValue = $solicitud['IVA'] ?? false;
+        $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
+        $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
+
+        // --- LÓGICA DE PRESUPUESTO MULTI-GRUPO PARA DICTAMEN ---
+        $impactoPorGrupo = [];
+        foreach ($productos as $p) {
+            if (!empty($p['ID_GrupoPresupuestal'])) {
+                $idG = $p['ID_GrupoPresupuestal'];
+                if (!isset($impactoPorGrupo[$idG])) {
+                    $impactoPorGrupo[$idG] = [
+                        'ID_GrupoPresupuestal' => $idG,
+                        'Nombre' => $p['GrupoPresupuestalNombre'] ?? 'S/N',
+                        'MontoImpacto' => 0
+                    ];
+                }
+                // Sumamos el importe del producto/servicio al impacto de este grupo (incluyendo IVA y Cantidad)
+                // Para servicios, la cantidad suele ser 1 si no está definida
+                $cantidad = (float)($p['Cantidad'] ?? 1);
+                $montoItem = $cantidad * (float)($p['Importe'] ?? 0) * $factorIVA;
+                $impactoPorGrupo[$idG]['MontoImpacto'] += $montoItem;
+            }
+        }
+
+        if (!empty($impactoPorGrupo)) {
+            $presupuestoMensualModel = new \App\Models\PresupuestoMensualModel();
+            $fechaSolicitud = $solicitud['Fecha'] ?? date('Y-m-d');
+            $anio = date('Y', strtotime($fechaSolicitud));
+            $mes = date('n', strtotime($fechaSolicitud));
+
+            $solicitud['presupuestos_detallados'] = [];
+
+            foreach ($impactoPorGrupo as $idG => $info) {
+                $presupuesto = $presupuestoMensualModel
+                    ->where('ID_GrupoPresupuestal', $idG)
+                    ->where('Anio', $anio)
+                    ->where('Mes', $mes)
+                    ->first();
+                
+                if ($presupuesto) {
+                    $presupuesto['GrupoNombre'] = $info['Nombre'];
+                    $presupuesto['ImpactoActual'] = $info['MontoImpacto'];
+                    $presupuesto['SinPresupuesto'] = false;
+                    $solicitud['presupuestos_detallados'][] = $presupuesto;
+                } else {
+                    // Si no hay presupuesto asignado, devolvemos un objeto marcado
+                    $solicitud['presupuestos_detallados'][] = [
+                        'ID_GrupoPresupuestal' => $idG,
+                        'GrupoNombre' => $info['Nombre'],
+                        'ImpactoActual' => $info['MontoImpacto'],
+                        'SinPresupuesto' => true,
+                        'Monto_Asignado' => 0,
+                        'Monto_Comprometido' => 0,
+                        'Monto_Ejecutado' => 0
+                    ];
+                }
+            }
+        }
+        // -------------------------------------------------------
 
         $solicitud['productos'] = $productos;
 
@@ -736,68 +742,74 @@ class Rest
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
-
-            $ivaValue = $solicitud['IVA'] ?? false;
-            $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
-            $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
-
-            // --- LÓGICA DE PRESUPUESTO MULTI-GRUPO PARA DICTAMEN ---
-            $impactoPorGrupo = [];
-            foreach ($productos as $p) {
-                if (!empty($p['ID_GrupoPresupuestal'])) {
-                    $idG = $p['ID_GrupoPresupuestal'];
-                    if (!isset($impactoPorGrupo[$idG])) {
-                        $impactoPorGrupo[$idG] = [
-                            'ID_GrupoPresupuestal' => $idG,
-                            'Nombre' => $p['GrupoPresupuestalNombre'],
-                            'MontoImpacto' => 0
-                        ];
-                    }
-                    // Sumamos el importe del producto al impacto de este grupo (incluyendo IVA y Cantidad)
-                    $montoItem = (float)($p['Cantidad'] ?? 0) * (float)($p['Importe'] ?? 0) * $factorIVA;
-                    $impactoPorGrupo[$idG]['MontoImpacto'] += $montoItem;
-                }
-            }
-
-            if (!empty($impactoPorGrupo)) {
-                $presupuestoMensualModel = new \App\Models\PresupuestoMensualModel();
-                $fechaSolicitud = $solicitud['Fecha'] ?? date('Y-m-d');
-                $anio = date('Y', strtotime($fechaSolicitud));
-                $mes = date('n', strtotime($fechaSolicitud));
-
-                $solicitud['presupuestos_detallados'] = [];
-
-                foreach ($impactoPorGrupo as $idG => $info) {
-                    $presupuesto = $presupuestoMensualModel
-                        ->where('ID_GrupoPresupuestal', $idG)
-                        ->where('Anio', $anio)
-                        ->where('Mes', $mes)
-                        ->first();
-                    
-                    if ($presupuesto) {
-                        $presupuesto['GrupoNombre'] = $info['Nombre'];
-                        $presupuesto['ImpactoActual'] = $info['MontoImpacto'];
-                        $presupuesto['SinPresupuesto'] = false;
-                        $solicitud['presupuestos_detallados'][] = $presupuesto;
-                    } else {
-                        // Si no hay presupuesto asignado, devolvemos un objeto marcado
-                        $solicitud['presupuestos_detallados'][] = [
-                            'ID_GrupoPresupuestal' => $idG,
-                            'GrupoNombre' => $info['Nombre'],
-                            'ImpactoActual' => $info['MontoImpacto'],
-                            'SinPresupuesto' => true,
-                            'Monto_Asignado' => 0,
-                            'Monto_Comprometido' => 0,
-                            'Monto_Ejecutado' => 0
-                        ];
-                    }
-                }
-            }
-            // -------------------------------------------------------
         } else {
             $solicitudServicioModel = new SolicitudServiciosModel();
-            $productos = $solicitudServicioModel->where('ID_Solicitud', $id)->findAll();
+            $productos = $solicitudServicioModel
+                ->select('Solicitud_Servicios.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre')
+                ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Servicios.ID_GrupoPresupuestal', 'left')
+                ->where('ID_Solicitud', $id)
+                ->findAll();
         }
+
+        $ivaValue = $solicitud['IVA'] ?? false;
+        $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
+        $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
+
+        // --- LÓGICA DE PRESUPUESTO MULTI-GRUPO PARA DICTAMEN ---
+        $impactoPorGrupo = [];
+        foreach ($productos as $p) {
+            if (!empty($p['ID_GrupoPresupuestal'])) {
+                $idG = $p['ID_GrupoPresupuestal'];
+                if (!isset($impactoPorGrupo[$idG])) {
+                    $impactoPorGrupo[$idG] = [
+                        'ID_GrupoPresupuestal' => $idG,
+                        'Nombre' => $p['GrupoPresupuestalNombre'] ?? 'S/N',
+                        'MontoImpacto' => 0
+                    ];
+                }
+                // Sumamos el importe del producto/servicio al impacto de este grupo (incluyendo IVA y Cantidad)
+                // Para servicios, la cantidad suele ser 1 si no está definida
+                $cantidad = (float)($p['Cantidad'] ?? 1);
+                $montoItem = $cantidad * (float)($p['Importe'] ?? 0) * $factorIVA;
+                $impactoPorGrupo[$idG]['MontoImpacto'] += $montoItem;
+            }
+        }
+
+        if (!empty($impactoPorGrupo)) {
+            $presupuestoMensualModel = new \App\Models\PresupuestoMensualModel();
+            $fechaSolicitud = $solicitud['Fecha'] ?? date('Y-m-d');
+            $anio = date('Y', strtotime($fechaSolicitud));
+            $mes = date('n', strtotime($fechaSolicitud));
+
+            $solicitud['presupuestos_detallados'] = [];
+
+            foreach ($impactoPorGrupo as $idG => $info) {
+                $presupuesto = $presupuestoMensualModel
+                    ->where('ID_GrupoPresupuestal', $idG)
+                    ->where('Anio', $anio)
+                    ->where('Mes', $mes)
+                    ->first();
+                
+                if ($presupuesto) {
+                    $presupuesto['GrupoNombre'] = $info['Nombre'];
+                    $presupuesto['ImpactoActual'] = $info['MontoImpacto'];
+                    $presupuesto['SinPresupuesto'] = false;
+                    $solicitud['presupuestos_detallados'][] = $presupuesto;
+                } else {
+                    // Si no hay presupuesto asignado, devolvemos un objeto marcado
+                    $solicitud['presupuestos_detallados'][] = [
+                        'ID_GrupoPresupuestal' => $idG,
+                        'GrupoNombre' => $info['Nombre'],
+                        'ImpactoActual' => $info['MontoImpacto'],
+                        'SinPresupuesto' => true,
+                        'Monto_Asignado' => 0,
+                        'Monto_Comprometido' => 0,
+                        'Monto_Ejecutado' => 0
+                    ];
+                }
+            }
+        }
+        // -------------------------------------------------------
 
         $solicitud['productos'] = $productos;
 

@@ -48,14 +48,15 @@ class ControlMaestro extends BaseController
 
         // --- SNAPSHOT PRESUPUESTAL PREVIO ---
         $nivelAnterior = $niveles[$solicitudOriginal->Estado] ?? 0;
-        $esMateriales = (int)$solicitudOriginal->Tipo === 1;
+        $esServicio = (int)$solicitudOriginal->Tipo === 2;
         $montosViejosPorGrupo = [];
         
-        if ($esMateriales && $nivelAnterior >= 4) {
-            $prodsPrevios = $this->db->table('Solicitud_Producto')->where('ID_Solicitud', $id_solicitud)->get()->getResultArray();
+        if ($nivelAnterior >= 4) {
+            $tabla = $esServicio ? 'Solicitud_Servicios' : 'Solicitud_Producto';
+            $prodsPrevios = $this->db->table($tabla)->where('ID_Solicitud', $id_solicitud)->get()->getResultArray();
             foreach ($prodsPrevios as $pp) {
-                if ($pp['ID_GrupoPresupuestal']) {
-                    $montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] = ($montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] ?? 0) + (float)$pp['Monto_Comprometido_Original'];
+                if (!empty($pp['ID_GrupoPresupuestal'])) {
+                    $montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] = ($montosViejosPorGrupo[$pp['ID_GrupoPresupuestal']] ?? 0) + (float)($pp['Monto_Comprometido_Original'] ?? 0);
                 }
             }
         }
@@ -187,8 +188,17 @@ class ControlMaestro extends BaseController
                 foreach ($items as $item) {
                     if(!isset($item['id']) || !isset($item['precio'])) continue;
                     $id_fila = $item['id']; $precio = floatval($item['precio']); $nombre = $item['nombre'] ?? '';
+                    
                     if ($solicitudOriginal->Tipo == 2) {
-                        $this->db->table('Solicitud_Servicios')->where('ID_SolicitudServ', $id_fila)->update(['Importe' => $precio, 'Nombre' => $nombre]);
+                        $nuevoMontoComprometido = 1 * $precio * $factorIva;
+                        $updateServ = ['Importe' => $precio, 'Nombre' => $nombre];
+                        if ($nivelNuevo >= 4) {
+                            $updateServ['Monto_Comprometido_Original'] = $nuevoMontoComprometido;
+                        }
+                        if (isset($item['id_grupo_presupuestal'])) {
+                            $updateServ['ID_GrupoPresupuestal'] = (int)$item['id_grupo_presupuestal'];
+                        }
+                        $this->db->table('Solicitud_Servicios')->where('ID_SolicitudServ', $id_fila)->update($updateServ);
                     } else {
                         $cantidad = isset($item['cantidad']) ? floatval($item['cantidad']) : 1;
                         $nuevoMontoComprometido = $cantidad * $precio * $factorIva;
@@ -197,6 +207,9 @@ class ControlMaestro extends BaseController
                         // Si ya está en niveles presupuestales, actualizamos el respaldo
                         if ($nivelNuevo >= 4) {
                             $updateProd['Monto_Comprometido_Original'] = $nuevoMontoComprometido;
+                        }
+                        if (isset($item['id_grupo_presupuestal'])) {
+                            $updateProd['ID_GrupoPresupuestal'] = (int)$item['id_grupo_presupuestal'];
                         }
                         
                         $this->db->table('Solicitud_Producto')->where('ID_SolicitudProd', $id_fila)->update($updateProd);
@@ -225,12 +238,13 @@ class ControlMaestro extends BaseController
             // ---------------------------------------------------------
             // 5. SINCRONIZACIÓN DE PRESUPUESTO (EL CEREBRO)
             // ---------------------------------------------------------
-            if ($esMateriales) {
+            if (true) { // Ahora todos los tipos afectan presupuesto si tienen partida
                 $montosNuevosPorGrupo = [];
-                $prodsNuevos = $this->db->table('Solicitud_Producto')->where('ID_Solicitud', $id_solicitud)->get()->getResultArray();
+                $tablaNuevos = ((int)$solicitudOriginal->Tipo === 2) ? 'Solicitud_Servicios' : 'Solicitud_Producto';
+                $prodsNuevos = $this->db->table($tablaNuevos)->where('ID_Solicitud', $id_solicitud)->get()->getResultArray();
                 foreach ($prodsNuevos as $pn) {
-                    if ($pn['ID_GrupoPresupuestal']) {
-                        $montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] = ($montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] ?? 0) + (float)$pn['Monto_Comprometido_Original'];
+                    if (!empty($pn['ID_GrupoPresupuestal'])) {
+                        $montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] = ($montosNuevosPorGrupo[$pn['ID_GrupoPresupuestal']] ?? 0) + (float)($pn['Monto_Comprometido_Original'] ?? 0);
                     }
                 }
 

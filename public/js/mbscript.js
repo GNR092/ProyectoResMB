@@ -1762,8 +1762,8 @@ window.mostrarVerDictamen = async function (idSolicitud) {
         })
         presupuestoContainer.innerHTML = presupuestoHtml
         presupuestoContainer.classList.remove('hidden')
-      } else if (data.Tipo != 2) {
-        // Es material pero no tiene grupos asignados
+      } else {
+        // No tiene grupos asignados
         presupuestoContainer.innerHTML = `
           <div class="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6 shadow-sm">
             <div class="flex items-center">
@@ -1774,7 +1774,7 @@ window.mostrarVerDictamen = async function (idSolicitud) {
               </div>
               <div class="ml-3">
                 <p class="text-sm text-orange-700 font-bold">
-                  Aviso: Esta solicitud no tiene partidas presupuestales asignadas a sus productos.
+                  Aviso: Esta solicitud no tiene partidas presupuestales asignadas a sus ítems.
                 </p>
                 <p class="text-xs text-orange-600">
                   Podrá aprobarla, pero no se descontará de ningún presupuesto mensual.
@@ -1784,9 +1784,6 @@ window.mostrarVerDictamen = async function (idSolicitud) {
           </div>
         `
         presupuestoContainer.classList.remove('hidden')
-      } else {
-        presupuestoContainer.innerHTML = ''
-        presupuestoContainer.classList.add('hidden')
       }
     }
     // -----------------------------------------------------
