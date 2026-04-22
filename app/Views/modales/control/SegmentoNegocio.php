@@ -1,6 +1,6 @@
 <?php 
     $deptoUsuario = session('departamento_usuario');
-    $tieneAccesoEdicion = in_array($deptoUsuario, ['Administración', 'Direccion', 'Dirección']);
+    $tieneAccesoEdicion = in_array($deptoUsuario, ['Administración', 'Direccion', 'Dirección', 'Contaduría', 'Contaduria']);
 ?>
 <div id="pantalla-lista-segmentos" class="p-6 bg-white rounded-xl shadow-md">
     <h2 class="text-2xl font-semibold mb-4 text-center">Segmentos de Negocio</h2>
