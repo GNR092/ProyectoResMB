@@ -159,7 +159,7 @@
 
             <div class="flex flex-col">
                 <label for="Descripcion" class="mb-1 font-medium">Descripción</label>
-                <input type="text" name="Descripcion" id="Descripcion" placeholder="Ej. Grupo de materiales" required class="w-full px-3 py-2 border rounded-lg">
+                <input type="text" name="Descripcion" id="Descripcion" placeholder="Ej. Grupo de materiales" class="w-full px-3 py-2 border rounded-lg">
             </div>
 
             <div class="flex flex-col">

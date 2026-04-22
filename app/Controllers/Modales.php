@@ -607,7 +607,12 @@ class Modales extends BaseController
     // --- CRUD SEGMENTOS DE NEGOCIO ---
     public function insertarSegmento()
     {
-        $data = $this->request->getPost(['nombre', 'descripcion', 'id_razon_social']);
+        $postData = $this->request->getPost();
+        $data = [
+            'nombre'          => $postData['nombre'] ?? '',
+            'id_razon_social' => $postData['id_razon_social'] ?? null,
+            'descripcion'     => !empty($postData['descripcion']) ? $postData['descripcion'] : null
+        ];
         $modeloReal = new \App\Models\SegmentoNegocioModel();
 
         if ($modeloReal->insert($data)) {
@@ -619,7 +624,12 @@ class Modales extends BaseController
 
     public function editarSegmento($id)
     {
-        $data = $this->request->getPost(['nombre', 'descripcion', 'id_razon_social']);
+        $postData = $this->request->getPost();
+        $data = [
+            'nombre'          => $postData['nombre'] ?? '',
+            'id_razon_social' => $postData['id_razon_social'] ?? null,
+            'descripcion'     => !empty($postData['descripcion']) ? $postData['descripcion'] : null
+        ];
         $modeloReal = new \App\Models\SegmentoNegocioModel();
 
         try {
@@ -1525,7 +1535,7 @@ class Modales extends BaseController
             $data = [
                 'ID_GrupoPresupuestal' => $nextId,
                 'Nombre'               => $postData['Nombre'] ?? '',
-                'Descripcion'          => $postData['Descripcion'] ?? '',
+                'Descripcion'          => !empty($postData['Descripcion']) ? $postData['Descripcion'] : null,
                 'ID_UnidadOperativa'   => !empty($postData['ID_UnidadOperativa']) ? $postData['ID_UnidadOperativa'] : null,
                 'activo'               => true,
                 'es_manual'            => $esManual
@@ -1558,7 +1568,7 @@ class Modales extends BaseController
 
         $data = [
             'Nombre'             => $postData['Nombre'] ?? '',
-            'Descripcion'        => $postData['Descripcion'] ?? '',
+            'Descripcion'        => !empty($postData['Descripcion']) ? $postData['Descripcion'] : null,
             'ID_UnidadOperativa' => $nuevaUnidad,
             'activo'             => $esActivoPost,
             'es_manual'          => $esManual
