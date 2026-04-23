@@ -484,7 +484,8 @@ class Rest
             $solicitud['cuenta_details'] = $cuentasModel->find($solicitud['ID_Cuenta']);
         }
 
-        $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
+        $razonSocialTmp = !empty($solicitud['ID_RazonSocial']) ? $razonSocialModel->find($solicitud['ID_RazonSocial']) : null;
+        $solicitud['ComplejoRFC'] = $razonSocialTmp ? $razonSocialTmp['RFC'] : 'N/A';
 
         // Obtener grupos presupuestales asociados a la Unidad Operativa del departamento de la solicitud
         $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
@@ -673,7 +674,8 @@ class Rest
             return null;
         }
 
-        $solicitud['ComplejoRFC'] = $razonSocialModel->find($solicitud['ID_RazonSocial'])['RFC'];
+        $razonSocialTmp = !empty($solicitud['ID_RazonSocial']) ? $razonSocialModel->find($solicitud['ID_RazonSocial']) : null;
+        $solicitud['ComplejoRFC'] = $razonSocialTmp ? $razonSocialTmp['RFC'] : 'N/A';
         $solicitud['UsuarioRazon'] = $razonSocialModel->find($solicitud['ID_RazonSocial']); // Detalles completos de la razón social del complejo
 
         $solicitudServicioModel = new SolicitudServiciosModel();
@@ -904,7 +906,8 @@ class Rest
             $solicitudData['proveedor'] = $proveedor;
         }
 
-        $solicitudData['ComplejoRFC'] = $razonSocialModel->find($solicitudData['ID_RazonSocial'])['RFC'];
+        $razonSocial = !empty($solicitudData['ID_RazonSocial']) ? $razonSocialModel->find($solicitudData['ID_RazonSocial']) : null;
+        $solicitudData['ComplejoRFC'] = $razonSocial ? $razonSocial['RFC'] : 'N/A';
 
         // Productos
         $productos = [];
