@@ -134,10 +134,6 @@ class MenuOptions extends BaseConfig
                 'is_title' => true,
             ],
 
-            'reportes' => [
-                'label' => 'Reportes/Auditoria',
-                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#reportes"></use></svg>',
-            ],
 
             'bitacora' => [
                 'label' => 'Bitácora de Eventos',

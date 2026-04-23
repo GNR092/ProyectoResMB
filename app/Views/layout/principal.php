@@ -52,8 +52,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
         <hr class="border-gray-600 my-2">
 
         <?php if ($login_type === 'boss'): ?>
-            <?php if (count($ajustes) > 0): ?>
-                <?php if (array_intersect(['razonsocial', 'crud_places', 'crud_departamento', 'crud_usuarios', 'crud_proveedores'], $ajustes)): ?>
+            <?php if (count($ajustes) > 0 && array_intersect(['razonsocial', 'crud_places', 'crud_departamento', 'crud_usuarios', 'crud_proveedores'], $ajustes)): ?>
                 <a href="#" data-opcion="catalogos" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
                    onclick="abrirModal('catalogos')">
                     <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
@@ -61,16 +60,15 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
                     </svg>
                     <span>Catálogos</span>
                 </a>
-                <?php endif; ?>
-
-                <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
-                   onclick="abrirModal('ajustes')">
-                    <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
-                        <use xlink:href="/icons/icons.svg#settings"></use>
-                    </svg>
-                    <span>Ajustes</span>
-                </a>
             <?php endif; ?>
+
+            <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
+               onclick="abrirModal('ajustes')">
+                <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
+                    <use xlink:href="/icons/icons.svg#settings"></use>
+                </svg>
+                <span>Ajustes</span>
+            </a>
         <?php endif; ?>
 
         <a href="<?= base_url(
