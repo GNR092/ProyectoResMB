@@ -258,7 +258,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
 
     // ASISTENTE DE LLENADO
     let grupoGeneralHtml = '';
-    if (data.grupos_presupuestales && !reglas.financiero) {
+    if (data.grupos_presupuestales) {
         const requestPlaceId = sol.ID_Place || data.ID_Place;
         const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
 
@@ -371,7 +371,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
                     if (data.grupos_presupuestales) {
                         const requestPlaceId = sol.ID_Place || data.ID_Place;
                         const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
-                        gruposHtml = `<select name="productos[${index}][id_grupo_presupuestal]" ${disabledFinanciero} class="${baseInputClass} ${classFinanciero} select-grupo-partida mt-1">`;
+                        gruposHtml = `<select name="productos[${index}][id_grupo_presupuestal]" class="${baseInputClass} bg-white select-grupo-partida mt-1">`;
                         gruposHtml += `<option value="">-- Sin partida asignada --</option>`;
                         gruposFiltrados.forEach((grupo) => {
                             const selected = prod.ID_GrupoPresupuestal == grupo.ID_GrupoPresupuestal ? 'selected' : '';
@@ -665,6 +665,6 @@ function regresarMaestro() {
 window.aplicarGrupoATodos = function(valor) {
     if (valor === '') return;
     document.querySelectorAll('.select-grupo-partida').forEach(select => {
-        if (!select.disabled) select.value = valor;
+        select.value = valor;
     });
 };
