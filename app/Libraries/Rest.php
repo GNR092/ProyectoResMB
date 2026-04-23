@@ -467,11 +467,23 @@ class Rest
         // Fallback para ID_Place si el join falló (ej. ID_UnidadOperativa null en Solicitud)
         if (empty($solicitud['ID_Place'])) {
             $depto = (new DepartamentosModel())->find($solicitud['ID_Dpto'] ?? 0);
-            if ($depto && !empty($depto['ID_UnidadOperativa'])) {
-                $unidad = (new \App\Models\UnidadOperativaModel())->find($depto['ID_UnidadOperativa']);
-                if ($unidad) {
-                    $solicitud['ID_Place'] = $unidad['ID_Place'];
-                    $place = (new PlacesModel())->find($unidad['ID_Place']);
+            if ($depto) {
+                // Prioridad 1: Obtener Place desde la Unidad Operativa del departamento
+                if (!empty($depto['ID_UnidadOperativa'])) {
+                    $unidad = (new \App\Models\UnidadOperativaModel())->find($depto['ID_UnidadOperativa']);
+                    if ($unidad) {
+                        $solicitud['ID_Place'] = $unidad['ID_Place'];
+                    }
+                }
+
+                // Prioridad 2: Si aún no hay ID_Place, usar el ID_Place directo del departamento
+                if (empty($solicitud['ID_Place']) && !empty($depto['ID_Place'])) {
+                    $solicitud['ID_Place'] = $depto['ID_Place'];
+                }
+
+                // Cargar nombre del Place si se encontró un ID
+                if (!empty($solicitud['ID_Place'])) {
+                    $place = (new PlacesModel())->find($solicitud['ID_Place']);
                     if ($place) {
                         $solicitud['PlaceNombre'] = $place['Nombre_Corto'];
                     }
@@ -515,14 +527,24 @@ class Rest
         } else {
             // Lógica normal: filtrado por Unidad Operativa
             // También incluimos el ID_Place por consistencia
-            $solicitud['grupos_presupuestales'] = $grupoModel
+            $builder = $grupoModel
                 ->select('GrupoPresupuestal.*, UnidadOperativa.ID_Place')
                 ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
-                ->where('GrupoPresupuestal.ID_UnidadOperativa', $idUnidad)
                 ->where('GrupoPresupuestal.activo', true)
-                ->where('GrupoPresupuestal.es_manual', false)
-                ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
-                ->findAll();
+                ->where('GrupoPresupuestal.es_manual', false);
+
+            if (!empty($idUnidad)) {
+                $builder->where('GrupoPresupuestal.ID_UnidadOperativa', $idUnidad);
+            } elseif (!empty($solicitud['ID_Place'])) {
+                // FALLBACK: Si no hay unidad en la solicitud, filtramos por el complejo (Place)
+                // Esto permite que departamentos sin unidad asignada vean todos los grupos de su complejo.
+                $builder->where('UnidadOperativa.ID_Place', $solicitud['ID_Place']);
+            } else {
+                // Si no hay nada, forzamos un resultado vacío para evitar traer todo por error
+                $builder->where('1 = 0', null, false);
+            }
+
+            $solicitud['grupos_presupuestales'] = $builder->orderBy('GrupoPresupuestal.Nombre', 'ASC')->findAll();
         }
 
         $productos = [];

@@ -1262,8 +1262,12 @@ class Modales extends BaseController
             $db = \Config\Database::connect();
             $db->transStart();
 
-            // 1. Desactivar lugar viejo
-            $model->update($id, ['activo' => false]);
+            // 1. Desactivar lugar viejo y RENOMBRARLO para liberar el Nombre_Corto (evitar UNIQUE constraint error)
+            $nombreCortoViejo = $placeActual['Nombre_Corto'] . ' (Antiguo ID:' . $id . ')';
+            $model->update($id, [
+                'Nombre_Corto' => $nombreCortoViejo,
+                'activo'       => false
+            ]);
 
             // 2. Crear nuevo lugar
             $insertData = [
@@ -1274,7 +1278,7 @@ class Modales extends BaseController
                 'activo'          => true
             ];
             
-            // Saltamos validación aquí porque el Nombre_Corto ya existe en el registro viejo (que acabamos de desactivar)
+            // Saltamos validación aquí porque ya liberamos el nombre
             $idNuevoPlace = $model->skipValidation(true)->insert($insertData, true);
 
             // 3. Clonar Unidades Operativas y sus Grupos
@@ -1293,11 +1297,16 @@ class Modales extends BaseController
                 // Clonar Grupos de esta unidad
                 $gruposViejos = $grupoModel->where('ID_UnidadOperativa', $uv['ID_UnidadOperativa'])->findAll();
                 foreach ($gruposViejos as $gv) {
+                    // Obtener el siguiente ID disponible para GrupoPresupuestal
+                    $maxIdRow = $db->table('GrupoPresupuestal')->selectMax('ID_GrupoPresupuestal', 'max_id')->get()->getRow();
+                    $nextGrupoId = (int)($maxIdRow->max_id ?? 0) + 1;
+
                     $grupoModel->insert([
-                        'Nombre'             => $gv['Nombre'],
-                        'Descripcion'        => $gv['Descripcion'],
-                        'ID_UnidadOperativa' => $idNuevaUni,
-                        'activo'             => filter_var($gv['activo'], FILTER_VALIDATE_BOOLEAN)
+                        'ID_GrupoPresupuestal' => $nextGrupoId,
+                        'Nombre'               => $gv['Nombre'],
+                        'Descripcion'          => $gv['Descripcion'],
+                        'ID_UnidadOperativa'   => $idNuevaUni,
+                        'activo'               => filter_var($gv['activo'], FILTER_VALIDATE_BOOLEAN)
                     ]);
                 }
 
@@ -1306,6 +1315,12 @@ class Modales extends BaseController
                            ->where('ID_UnidadOperativa', $uv['ID_UnidadOperativa'])
                            ->update();
             }
+
+            // 4. Mover Departamentos HUÉRFANOS (sin unidad) al nuevo complejo
+            $deptoModel->set(['ID_Place' => $idNuevoPlace])
+                       ->where('ID_Place', $id)
+                       ->where('ID_UnidadOperativa', null)
+                       ->update();
 
             $db->transComplete();
             if ($db->transStatus() === false) return $this->response->setJSON(['success' => false, 'message' => 'Error al migrar complejo']);
