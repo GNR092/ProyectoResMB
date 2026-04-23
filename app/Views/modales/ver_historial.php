@@ -3,86 +3,119 @@
     <h2 class="text-2xl font-semibold mb-4">Ver Historial de requisiciones</h2>
 
     <!-- Filtros -->
-    <div class="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+    <div class="flex flex-col gap-6 mb-6">
+        <!-- Primera Línea: Filtros Básicos y Acciones -->
+        <div class="flex flex-wrap items-end gap-4">
+            <!-- Filtro por Fecha -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Fecha</label>
+                <div class="flex items-center gap-2 bg-white border border-gray-300 rounded-md px-2 py-1">
+                    <input type="date" id="filtro-fecha" class="outline-none text-sm p-1">
+                    <label class="flex items-center gap-1 text-xs text-gray-600 border-l pl-2 cursor-pointer">
+                        <input type="checkbox" id="filtrar-por-mes" class="accent-blue-600">
+                        Mes
+                    </label>
+                </div>
+            </div>
 
-        <!-- Filtro por Fecha -->
-        <div class="flex items-center gap-2">
-            <input type="date" id="filtro-fecha" class="border p-2 rounded w-full md:w-auto">
-            <label class="flex items-center gap-1 text-sm text-gray-700">
-                <input type="checkbox" id="filtrar-por-mes" class="accent-blue-600">
-                Filtrar por mes
-            </label>
+            <!-- Filtro por Folio -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Folio</label>
+                <input type="text" id="filtro-folio" placeholder="Buscar folio..." class="border border-gray-300 p-2 rounded-md text-sm w-40 outline-blue-500">
+            </div>
+
+            <!-- Filtro por Tipo -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Tipo</label>
+                <select id="filtro-tipo-historial" class="border border-gray-300 p-2 rounded-md text-sm w-36 outline-blue-500">
+                    <option value="">Todos</option>
+                    <option value="Producto">📦 Producto</option>
+                    <option value="Servicio">🛠️ Servicio</option>
+                </select>
+            </div>
+
+            <!-- Filtro por Estado -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Estado</label>
+                <select id="filtro-estado" class="border border-gray-300 p-2 rounded-md text-sm w-48 outline-blue-500">
+                    <option value="">Todos los estados</option>
+                    <option value="En espera">🟡 En espera</option>
+                    <option value="Aprobada">🟢 Aprobada</option>
+                    <option value="Rechazada">🔴 Rechazada</option>
+                    <option value="Cotizando">🔵 Cotizando</option>
+                    <option value="Aprobacion pendiente" id="filtro-pendiente-aprobacion" class="hidden">🟠 Aprobación Pendiente</option>
+                    <option value="En revision">🔵 En revisión</option>
+                    <option value="Espera_Programacion">🟠 Espera Programación</option>
+                    <option value="Programada">🔵 Programada</option>
+                    <option value="Por Pagar">⚪ En espera de factura</option>
+                    <option value="Pagada">🟢Pagada </option>
+                </select>
+            </div>
+
+            <!-- Botón de Exportar -->
+            <div class="flex-grow flex justify-end">
+                <button onclick="exportarHistorialExcel()" class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-md hover:bg-green-700 transition shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Exportar Excel
+                </button>
+            </div>
         </div>
 
-        <!-- Filtro por Folio -->
-        <input type="text" id="filtro-folio" placeholder="Buscar folio..." class="border p-2 rounded w-full md:w-auto text-sm">
+        <!-- Segunda Línea: Selectores de Búsqueda Avanzada (Choices) -->
+        <div class="flex flex-wrap items-end gap-4">
+            <!-- Filtro por Proveedor -->
+            <div class="flex flex-col gap-1 flex-1 min-w-[200px]">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Proveedores</label>
+                <select id="filtro-proveedor" class="border p-2 rounded w-full" multiple>
+                    <option value="">Todos los proveedores</option>
+                    <?php if (isset($proveedores) && !empty($proveedores)): ?>
+                        <?php foreach ($proveedores as $prov): ?>
+                            <option value="<?= esc($prov['RazonSocial']) ?>">
+                                <?= esc($prov['RazonSocial']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
 
-        <!-- Filtro por Tipo -->
-        <select id="filtro-tipo-historial" class="border p-2 rounded w-full md:w-auto text-sm">
-            <option value="">Tipo (Todos)</option>
-            <option value="Producto">📦 Producto</option>
-            <option value="Servicio">🛠️ Servicio</option>
-        </select>
+            <!-- Filtro por Razón Social -->
+            <div class="flex flex-col gap-1 flex-1 min-w-[200px]">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Razones Sociales</label>
+                <select id="filtro-razon-social" class="border p-2 rounded w-full text-sm" multiple>
+                    <option value="">Todas las razones sociales</option>
+                    <?php if (isset($razones_sociales) && !empty($razones_sociales)): ?>
+                        <?php foreach ($razones_sociales as $rs): ?>
+                            <option value="<?= esc($rs['Nombre']) ?>">
+                                <?= esc($rs['Nombre']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
 
-        <!-- Filtro por Estado -->
-        <select id="filtro-estado" class="border p-2 rounded w-full md:w-auto">
-            <option value="">Todos los estados</option>
-            <option value="En espera">🟡 En espera</option>
-            <option value="Aprobada">🟢 Aprobada</option>
-            <option value="Rechazada">🔴 Rechazada</option>
-            <option value="Cotizando">🔵 Cotizando</option>
-            <option value="Aprobacion pendiente" id="filtro-pendiente-aprobacion" class="hidden">🟠 Aprobación Pendiente</option>
-            <option value="En revision">🔵 En revisión</option>
-            <option value="Espera_Programacion">🟠 Espera Programación</option>
-            <option value="Programada">🔵 Programada</option>
-            <option value="Por Pagar">⚪ En espera de factura</option>
-            <option value="Pagada">🟢Pagada </option>
-        </select>
-
-        <!-- Filtro por Proveedor -->
-        <select id="filtro-proveedor" class="border p-2 rounded w-full md:w-auto" multiple>
-            <option value="">Todos los proveedores</option>
-            <?php if (isset($proveedores) && !empty($proveedores)): ?>
-                <?php foreach ($proveedores as $prov): ?>
-                    <option value="<?= esc($prov['RazonSocial']) ?>">
-                        <?= esc($prov['RazonSocial']) ?>
-                    </option>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </select>
-
-        <!-- Filtro por Razón Social -->
-        <select id="filtro-razon-social" class="border p-2 rounded w-full md:w-auto text-sm" multiple>
-            <option value="">Todas las razones sociales</option>
-            <?php if (isset($razones_sociales) && !empty($razones_sociales)): ?>
-                <?php foreach ($razones_sociales as $rs): ?>
-                    <option value="<?= esc($rs['Nombre']) ?>">
-                        <?= esc($rs['Nombre']) ?>
-                    </option>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </select>
-
-        <!-- Filtro por Departamento -->
-         <?php if (session('login_type') === 'boss'): ?>
-        <select id="filtroDepartamento" class="border p-2 rounded w-full md:w-auto" multiple>
-            <option value="">Todos los departamentos</option>
-            <?php if (isset($departamentos) && !empty($departamentos)): ?>
-                <?php foreach ($departamentos as $dpto): ?>
-                    <option value="<?= esc($dpto['Nombre']) ?>|<?= esc(
+            <!-- Filtro por Departamento -->
+            <?php if (session('login_type') === 'boss'): ?>
+                <div class="flex flex-col gap-1 flex-1 min-w-[200px]">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Departamentos</label>
+                    <select id="filtroDepartamento" class="border p-2 rounded w-full" multiple>
+                        <option value="">Todos los departamentos</option>
+                        <?php if (isset($departamentos) && !empty($departamentos)): ?>
+                            <?php foreach ($departamentos as $dpto): ?>
+                                <option value="<?= esc($dpto['Nombre']) ?>|<?= esc(
     $dpto['PlaceNombre'] ?? '',
 ) ?>">
-                        <?= esc($dpto['Nombre']) ?> - <?= esc($dpto['PlaceNombre'] ?? '') ?>
-                    </option>
-                <?php endforeach; ?>
+                                    <?= esc($dpto['Nombre']) ?> - <?= esc(
+     $dpto['PlaceNombre'] ?? '',
+ ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
             <?php endif; ?>
-        </select>
-        <?php endif; ?>
-
-        <!-- Botón de Exportar -->
-        <button onclick="exportarHistorialExcel()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition self-start md:self-auto">
-            Exportar a Excel
-        </button>
+        </div>
     </div>
 
 
