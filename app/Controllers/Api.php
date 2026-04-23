@@ -368,6 +368,7 @@ class Api extends ResourceController
                     'Razon_Social.Nombre as Complejo',
                     'UnidadOperativa.Nombre as UnidadOperativaNombre',
                     'UnidadOperativa.ID_Place',
+                    'Places.Nombre_Corto as PlaceNombre',
                     'Proveedor.ID_Proveedor',
                     'Proveedor.RazonSocial',
                     'Proveedor.RFC',
@@ -384,6 +385,7 @@ class Api extends ResourceController
                 ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'inner')
                 ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
                 ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                 ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
                 ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
                 ->where('Solicitud.MetodoPago', '1')
@@ -2977,8 +2979,7 @@ class Api extends ResourceController
             $builder = $solicitudModel
                 ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as EmpresaNombre, Proveedor.RazonSocial as ProveedorNombre, Cotizacion.Total as MontoOficial')
                 ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-                ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
-                ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+                ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                 ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
                 ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
                 ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left');

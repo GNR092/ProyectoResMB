@@ -67,8 +67,7 @@ class Modales extends BaseController
                 $razonSocialModel = new RazonSocialModel();
                 $data['departamentos'] = $departamentoModel
                     ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
-                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
-                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();
                 $data['proveedores'] = $proveedorModel
@@ -218,8 +217,7 @@ class Modales extends BaseController
 
                 $data['departamentos'] = $departamentoModel
                     ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
-                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
-                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();
 
@@ -457,7 +455,7 @@ class Modales extends BaseController
                 $unidadesModel = new UnidadOperativaModel();
                 $placesModel = new PlacesModel();
 
-                // Obtenemos los departamentos junto con el nombre de la unidad operativa y el lugar
+                // Obtenemos los departamentos junto con el nombre del lugar
                 $data['departamentos'] = $deptosModel
                     ->select('Departamentos.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
                     ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
@@ -492,8 +490,7 @@ class Modales extends BaseController
                     ->findAll();
                 $data['departamentos'] = $departamentoModel
                     ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
-                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
-                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+                    ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();
                 return view('modales/correcciones', $data);

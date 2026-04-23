@@ -225,8 +225,7 @@ class Rest
         $solicitudes = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre, Razon_Social.Nombre as Complejo')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->whereNotIn('Solicitud.Estado', $excluded_statuses)
@@ -319,8 +318,7 @@ class Rest
         $solicitudes = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as Complejo')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->where('Solicitud.ID_Dpto', $id)
             ->orderBy('Solicitud.ID_Solicitud', 'DESC')
@@ -454,8 +452,7 @@ class Rest
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
@@ -464,21 +461,20 @@ class Rest
             return null;
         }
 
-        // Fallback para ID_Place si el join falló (ej. ID_UnidadOperativa null en Solicitud)
+        // Fallback para ID_Place si el join falló
         if (empty($solicitud['ID_Place'])) {
             $depto = (new DepartamentosModel())->find($solicitud['ID_Dpto'] ?? 0);
             if ($depto) {
-                // Prioridad 1: Obtener Place desde la Unidad Operativa del departamento
-                if (!empty($depto['ID_UnidadOperativa'])) {
+                // Prioridad 1: Si hay ID_Place directo en el departamento, lo usamos
+                if (!empty($depto['ID_Place'])) {
+                    $solicitud['ID_Place'] = $depto['ID_Place'];
+                }
+                // Prioridad 2: Fallback a la Unidad Operativa si no hay ID_Place directo
+                elseif (!empty($depto['ID_UnidadOperativa'])) {
                     $unidad = (new \App\Models\UnidadOperativaModel())->find($depto['ID_UnidadOperativa']);
                     if ($unidad) {
                         $solicitud['ID_Place'] = $unidad['ID_Place'];
                     }
-                }
-
-                // Prioridad 2: Si aún no hay ID_Place, usar el ID_Place directo del departamento
-                if (empty($solicitud['ID_Place']) && !empty($depto['ID_Place'])) {
-                    $solicitud['ID_Place'] = $depto['ID_Place'];
                 }
 
                 // Cargar nombre del Place si se encontró un ID
@@ -686,8 +682,7 @@ class Rest
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->find($id);
@@ -743,12 +738,20 @@ class Rest
         }
 
         $depto = $this->getDepartmentById($solicitud['ID_Dpto'] ?? 0);
-        $uniModel = new \App\Models\UnidadOperativaModel();
-        $unidad = $uniModel->find($depto['ID_UnidadOperativa'] ?? 0);
-        
-        // Validamos la existencia de Place y Unidad Operativa para evitar errores "offset on null"
-        $place = $placesModel->find($unidad['ID_Place'] ?? 0);
-        $solicitud['ID_Place'] = $place['ID_Place'] ?? 0;
+        $idPlace = null;
+
+        if ($depto) {
+            if (!empty($depto['ID_Place'])) {
+                $idPlace = $depto['ID_Place'];
+            } elseif (!empty($depto['ID_UnidadOperativa'])) {
+                $uniModel = new \App\Models\UnidadOperativaModel();
+                $unidad = $uniModel->find($depto['ID_UnidadOperativa']);
+                $idPlace = $unidad['ID_Place'] ?? null;
+            }
+        }
+
+        $place = $idPlace ? $placesModel->find($idPlace) : null;
+        $solicitud['ID_Place'] = $idPlace ?? 0;
         $solicitud['PlaceNombre'] = $place['Nombre_Corto'] ?? 'N/A';
         
         $razonSocial = $razonSocialModel->find($solicitud['ID_RazonSocial'] ?? 0);
@@ -898,8 +901,7 @@ class Rest
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Razon_Social RS', 'RS.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
             ->join('OrdenCompra OC', 'OC.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
@@ -1250,8 +1252,7 @@ class Rest
                     'Usuarios.*, Departamentos.Nombre as departamento_nombre, Places.Nombre_Corto as place_nombre',
                 )
                 ->join('Departamentos', 'Departamentos.ID_Dpto = Usuarios.ID_Dpto', 'left')
-                ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                 ->find($id);
             return $usuarios ? $usuarios : [];
         } else {
@@ -1344,8 +1345,7 @@ class Rest
                 'Usuarios.*, Departamentos.Nombre as departamento_nombre, Places.Nombre_Corto as place_nombre',
             )
             ->join('Departamentos', 'Departamentos.ID_Dpto = Usuarios.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->orderBy('Usuarios.Nombre', 'ASC')
             ->findAll();
         return $results ?: [];
@@ -1645,8 +1645,7 @@ class Rest
             ->select(
                 'Departamentos.ID_Dpto, Departamentos.Nombre, Departamentos.ID_UnidadOperativa, Places.Nombre_Corto as Place, Places.ID_RazonSocial',
             )
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->findAll();
 
         if (empty($results)) {
@@ -1867,10 +1866,20 @@ class Rest
         log_message('debug', 'Solicitud encontrada: ' . json_encode($solicitud));
 
         $depto = $this->getDepartmentById($solicitud['ID_Dpto']);
-        $uniModel = new \App\Models\UnidadOperativaModel();
-        $unidad = $uniModel->find($depto['ID_UnidadOperativa'] ?? 0);
-        $place = $placesModel->find($unidad['ID_Place'] ?? 0);
-        $solicitud['ID_Place'] = $place['ID_Place'] ?? 0;
+        $idPlace = null;
+
+        if ($depto) {
+            if (!empty($depto['ID_Place'])) {
+                $idPlace = $depto['ID_Place'];
+            } elseif (!empty($depto['ID_UnidadOperativa'])) {
+                $uniModel = new \App\Models\UnidadOperativaModel();
+                $unidad = $uniModel->find($depto['ID_UnidadOperativa']);
+                $idPlace = $unidad['ID_Place'] ?? null;
+            }
+        }
+
+        $place = $idPlace ? $placesModel->find($idPlace) : null;
+        $solicitud['ID_Place'] = $idPlace ?? 0;
         $solicitud['PlaceNombre'] = $place['Nombre_Corto'] ?? 'N/A';
         log_message('debug', 'PlaceNombre: ' . $solicitud['PlaceNombre']);
 
@@ -1990,7 +1999,7 @@ class Rest
             ->join('Usuarios as UsuarioAutoriza', 'UsuarioAutoriza.ID_Usuario = Solicitud.ID_Usuario_Autoriza', 'left')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
@@ -2053,8 +2062,7 @@ class Rest
         $builder = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Usuarios.Nombre as UsuarioNombre')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
-            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Solicitud.ID_UnidadOperativa', 'left')
-            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left');
 
         // Excluir estados por defecto si no se especifica un estado de filtro.

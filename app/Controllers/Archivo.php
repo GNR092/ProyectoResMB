@@ -155,8 +155,7 @@ class Archivo extends BaseController
                         // Lógica normal: Buscar homónimo
                         $deptoDestino = $departamentoModel
                             ->select('Departamentos.ID_Dpto, Departamentos.ID_UnidadOperativa')
-                            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Departamentos.ID_UnidadOperativa')
-                            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place')
+                            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place')
                             ->where('Places.ID_RazonSocial', $razon_social_id)
                             ->where('Departamentos.Nombre', $nombreDeptoOrig)
                             ->first();
