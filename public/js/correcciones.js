@@ -402,10 +402,16 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
             <h5 class="text-xs font-bold text-gray-500 mb-2">Archivos Actuales:</h5>
             ${htmlAdjuntos || '<span class="text-xs text-gray-400">Sin adjuntos previos.</span>'}
         </div>
-        <div class="${classArchivos} grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-gray-100">
+        <div class="${classArchivos} grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t border-gray-100">
             <div><label class="block text-xs font-bold text-green-600 mb-2">Cargar Cotización</label><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="window.handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-cotizacion" class="mt-2"></div></div>
             <div><label class="block text-xs font-bold text-blue-600 mb-2">Cargar Ficha Pago</label><input type="file" name="File_Comprobante" id="file-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'comprobante')"><button type="button" onclick="document.getElementById('file-comprobante').click()" class="w-full bg-white border border-blue-300 text-blue-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-comprobante" class="mt-2"></div></div>
             <div><label class="block text-xs font-bold text-indigo-600 mb-2">Cargar Factura</label><input type="file" name="File_Factura" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-factura" class="mt-2"></div></div>
+            <div id="container-upload-complemento" class="${sol.MetodoPago == 1 ? '' : 'hidden'}">
+                <label class="block text-xs font-bold text-orange-600 mb-2">Cargar Complemento</label>
+                <input type="file" name="File_Complemento" id="file-complemento" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'complemento')">
+                <button type="button" onclick="document.getElementById('file-complemento').click()" class="w-full bg-white border border-orange-300 text-orange-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button>
+                <div id="preview-complemento" class="mt-2"></div>
+            </div>
         </div>
     </div>
 
@@ -413,6 +419,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     <input type="hidden" id="flag-existe-cotizacion" value="${existeCotizacion}">
     <input type="hidden" id="flag-existe-ficha" value="${existeFicha}">
     <input type="hidden" id="flag-existe-factura" value="${existeFactura}">
+    <input type="hidden" id="flag-existe-complemento" value="${existeComplemento}">
     `;
 
     calcularTotalesUI();
@@ -454,11 +461,29 @@ window.handleFileSelect = function(input, type) {
 }
 
 window.removeFile = function(type) {
-    const inputIds = { 'cotizacion': 'file-cotizacion', 'comprobante': 'file-comprobante', 'factura': 'file-factura' };
+    const inputIds = { 
+        'cotizacion': 'file-cotizacion', 
+        'comprobante': 'file-comprobante', 
+        'factura': 'file-factura',
+        'complemento': 'file-complemento'
+    };
     const input = document.getElementById(inputIds[type]);
     if(input) input.value = '';
     const preview = document.getElementById('preview-' + type);
     if(preview) preview.innerHTML = '';
+}
+
+window.toggleComplementoInput = function(metodo) {
+    const divComplemento = document.getElementById('container-upload-complemento');
+    if (!divComplemento) return;
+    
+    // Solo mostrar para Crédito (1)
+    if (metodo == "1") {
+        divComplemento.classList.remove('hidden');
+    } else {
+        divComplemento.classList.add('hidden');
+        window.removeFile('complemento');
+    }
 }
 
 window.verificarImpactoPresupuestal = function() {
@@ -511,23 +536,28 @@ async function guardarCambiosMaestros() {
     const elCoti = document.getElementById('flag-existe-cotizacion');
     const elFicha = document.getElementById('flag-existe-ficha');
     const elFactu = document.getElementById('flag-existe-factura');
+    const elComple = document.getElementById('flag-existe-complemento');
 
     const tieneCotizacionBD = elCoti ? elCoti.value === '1' : false;
     const tieneFichaBD      = elFicha ? elFicha.value === '1' : false;
     const tieneFacturaBD    = elFactu ? elFactu.value === '1' : false;
+    const tieneComplementoBD = elComple ? elComple.value === '1' : false;
 
     // Archivos nuevos
     const inputCoti = document.getElementById('file-cotizacion');
     const inputFicha = document.getElementById('file-comprobante');
     const inputFactura = document.getElementById('file-factura');
+    const inputComple = document.getElementById('file-complemento');
 
     const subiendoCoti = inputCoti && inputCoti.files.length > 0;
     const subiendoFicha = inputFicha && inputFicha.files.length > 0;
     const subiendoFactura = inputFactura && inputFactura.files.length > 0;
+    const subiendoComplemento = inputComple && inputComple.files.length > 0;
 
     const tieneCoti = tieneCotizacionBD || subiendoCoti;
     const tieneFicha = tieneFichaBD || subiendoFicha;
     const tieneFactura = tieneFacturaBD || subiendoFactura;
+    const tieneComplemento = tieneComplementoBD || subiendoComplemento;
 
     // ========================================================================
     // REGLA 1: CAMBIO DE PROVEEDOR (Prioridad Alta)
@@ -566,6 +596,12 @@ async function guardarCambiosMaestros() {
     // Nivel 8 (Pagada) -> Exige Factura
     if (nivelDestino >= 8 && !tieneFactura) {
         errorValidacion = `Para el estado "${estadoSeleccionado}", es obligatoria la Factura.`;
+    }
+
+    // Nivel 8 (Pagada) + Crédito -> Exige Complemento de Pago
+    const metodoPago = form.querySelector('select[name="MetodoPago"]').value;
+    if (nivelDestino >= 8 && metodoPago == "1" && !tieneComplemento) {
+        errorValidacion = `Al ser una solicitud a CRÉDITO, para el estado "${estadoSeleccionado}" es obligatorio subir el Complemento de Pago.`;
     }
 
     // Validación de Proveedor para niveles que generan Orden (Nivel 4+)
