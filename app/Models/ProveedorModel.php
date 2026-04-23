@@ -53,8 +53,38 @@ class ProveedorModel extends Model
     protected $cleanValidationRules = true;
 
     // Callbacks
-    protected $beforeUpdate = ['captureOldData'];
-    protected $afterUpdate  = ['auditUpdate'];
-    protected $afterInsert  = ['auditInsert'];
-    protected $afterDelete  = ['auditDelete'];
+    protected $allowCallbacks = true;
+    protected $beforeUpdate   = ['captureOldData'];
+    protected $afterUpdate    = ['auditUpdate'];
+    protected $afterInsert    = ['auditInsert', 'duplicarCuentaPrincipal'];
+    protected $afterDelete    = ['auditDelete'];
+
+    /**
+     * Duplica la cuenta bancaria principal del proveedor en la tabla Cuentas
+     * después de un insert exitoso, para que aparezca en los selectores de servicios.
+     */
+    protected function duplicarCuentaPrincipal(array $data)
+    {
+        // El ID del proveedor insertado está en $data['id']
+        $idProveedor = $data['id'] ?? null;
+        
+        // Los datos insertados están en $data['data']
+        $cuenta = $data['data']['Cuenta'] ?? null;
+        $clabe = $data['data']['Clabe'] ?? null;
+
+        // Si hay una cuenta o clabe definida, la insertamos en la tabla Cuentas
+        if ($idProveedor && ($cuenta || $clabe)) {
+            $cuentasModel = new \App\Models\CuentasModel();
+            
+            // Preferimos Clabe si existe, si no Cuenta
+            $valorCuenta = !empty($clabe) ? $clabe : $cuenta;
+
+            $cuentasModel->insert([
+                'ID_Proveedor' => $idProveedor,
+                'Cuenta'       => $valorCuenta
+            ]);
+        }
+
+        return $data;
+    }
 }
