@@ -3,6 +3,9 @@
 namespace App\Commands;
 
 use App\Controllers\GenerarPDF;
+use App\Libraries\FPath;
+use App\Libraries\GhostscriptProcessor;
+use App\Libraries\PdfValidator;
 use App\Models\CotizacionModel;
 use App\Models\OrdenCompraModel;
 use App\Models\SolicitudModel;
@@ -25,6 +28,8 @@ class RegenerarPdfs extends BaseCommand
         '--user-id' => 'ID de usuario a usar para la firma de Orden de Compra (default: 1)',
         '--limit' => 'Limita el total de solicitudes procesadas',
         '--offset' => 'Desplazamiento inicial para procesar por bloques',
+        '--skip-preflight' => 'Omite el analisis previo de PDFs adjuntos',
+        '--only-incompatible' => 'Procesa solo solicitudes con al menos un adjunto PDF incompatible con FPDI.',
     ];
 
     public function run(array $params)
@@ -32,6 +37,8 @@ class RegenerarPdfs extends BaseCommand
         $userId = $this->resolveIntOption($params, 'user-id', 1);
         $limit = $this->resolveIntOption($params, 'limit', 0);
         $offset = $this->resolveIntOption($params, 'offset', 0);
+        $skipPreflight = (bool) CLI::getOption('skip-preflight');
+        $onlyIncompatible = (bool) CLI::getOption('only-incompatible');
         [$requestedIds, $invalidIds, $idsOptionProvided] = $this->resolveIdsOption($params);
 
         if ($userId <= 0) {
@@ -41,6 +48,11 @@ class RegenerarPdfs extends BaseCommand
 
         if ($limit < 0 || $offset < 0) {
             CLI::error('Los valores de --limit y --offset no pueden ser negativos.');
+            return;
+        }
+
+        if ($skipPreflight && $onlyIncompatible) {
+            CLI::error('No puedes usar --skip-preflight junto con --only-incompatible.');
             return;
         }
 
@@ -62,7 +74,7 @@ class RegenerarPdfs extends BaseCommand
         $pdfController = new GenerarPDF();
 
         $solicitudesBuilder = $solicitudModel
-            ->select('ID_Solicitud, No_Folio, Estado')
+            ->select('ID_Solicitud, No_Folio, Estado, Fecha, Archivo')
             ->where('Estado !=', 'Cancelada')
             ->orderBy('ID_Solicitud', 'ASC');
 
@@ -115,7 +127,18 @@ class RegenerarPdfs extends BaseCommand
             'pago_ok' => 0,
             'pago_error' => 0,
             'pago_skip' => 0,
+            'adjuntos_pdf_total' => 0,
+            'adjuntos_pdf_incompatibles' => 0,
+            'adjuntos_pdf_encriptados' => 0,
+            'adjuntos_pdf_invalidos' => 0,
+            'solicitudes_skip_compatibles' => 0,
         ];
+
+        $gsBinary = GhostscriptProcessor::resolveBinary();
+        CLI::write(
+            'Ghostscript: ' . ($gsBinary !== null ? ('disponible (' . $gsBinary . ')') : 'no disponible'),
+            $gsBinary !== null ? 'green' : 'yellow',
+        );
 
         CLI::write('Total solicitudes activas a procesar: ' . $totales['solicitudes'], 'white');
 
@@ -123,7 +146,38 @@ class RegenerarPdfs extends BaseCommand
             $idSolicitud = (int) $solicitud['ID_Solicitud'];
             $folio = $solicitud['No_Folio'] ?? ('ID-' . $idSolicitud);
 
+            $preflight = null;
+
+            if (!$skipPreflight) {
+                $preflight = $this->analyzeSolicitudAttachments($solicitud);
+                $totales['adjuntos_pdf_total'] += $preflight['total'];
+                $totales['adjuntos_pdf_incompatibles'] += $preflight['incompatibles'];
+                $totales['adjuntos_pdf_encriptados'] += $preflight['encriptados'];
+                $totales['adjuntos_pdf_invalidos'] += $preflight['invalidos'];
+
+                if ($onlyIncompatible && $preflight['incompatibles'] === 0) {
+                    $totales['solicitudes_skip_compatibles']++;
+                    continue;
+                }
+            }
+
             CLI::write('Procesando solicitud ' . $idSolicitud . ' (folio: ' . $folio . ')', 'cyan');
+
+            if ($preflight !== null) {
+                if ($preflight['incompatibles'] > 0 || $preflight['invalidos'] > 0) {
+                    CLI::write(
+                        '  - Preflight PDF: total=' .
+                            $preflight['total'] .
+                            ' incompatibles=' .
+                            $preflight['incompatibles'] .
+                            ' invalidos=' .
+                            $preflight['invalidos'] .
+                            ' encriptados=' .
+                            $preflight['encriptados'],
+                        'yellow',
+                    );
+                }
+            }
 
             try {
                 $reqPath = $pdfController->generarYGuardarRequisicion($idSolicitud, 0, 1);
@@ -202,7 +256,79 @@ class RegenerarPdfs extends BaseCommand
                 $totales['pago_skip'],
             $totales['pago_error'] > 0 ? 'yellow' : 'green',
         );
+        if ($onlyIncompatible) {
+            CLI::write(
+                'Solicitudes omitidas por adjuntos compatibles: ' . $totales['solicitudes_skip_compatibles'],
+                'yellow',
+            );
+        }
+        if (!$skipPreflight) {
+            CLI::write(
+                'Adjuntos PDF: Total ' .
+                    $totales['adjuntos_pdf_total'] .
+                    ' | Incompatibles FPDI ' .
+                    $totales['adjuntos_pdf_incompatibles'] .
+                    ' | Encriptados ' .
+                    $totales['adjuntos_pdf_encriptados'] .
+                    ' | Invalidos ' .
+                    $totales['adjuntos_pdf_invalidos'],
+                ($totales['adjuntos_pdf_incompatibles'] > 0 || $totales['adjuntos_pdf_invalidos'] > 0)
+                    ? 'yellow'
+                    : 'green',
+            );
+        }
         CLI::write('Ayuda: php spark regenerar:pdfs --help', 'white');
+    }
+
+    /**
+     * @param array<string, mixed> $solicitud
+     * @return array{total:int, incompatibles:int, encriptados:int, invalidos:int}
+     */
+    private function analyzeSolicitudAttachments(array $solicitud): array
+    {
+        $result = [
+            'total' => 0,
+            'incompatibles' => 0,
+            'encriptados' => 0,
+            'invalidos' => 0,
+        ];
+
+        $archivo = $solicitud['Archivo'] ?? null;
+        $fecha = $solicitud['Fecha'] ?? null;
+
+        if (!is_string($archivo) || trim($archivo) === '' || !is_string($fecha) || trim($fecha) === '') {
+            return $result;
+        }
+
+        $files = array_filter(array_map('trim', explode(',', $archivo)), static fn(string $v): bool => $v !== '');
+
+        foreach ($files as $fileName) {
+            if (strtolower(pathinfo($fileName, PATHINFO_EXTENSION)) !== 'pdf') {
+                continue;
+            }
+
+            $fullPath = FPath::FSOLICITUD . $fecha . DIRECTORY_SEPARATOR . $fileName;
+            if (!is_file($fullPath)) {
+                continue;
+            }
+
+            $result['total']++;
+            $analysis = PdfValidator::analyze($fullPath);
+
+            if (!$analysis['isValid']) {
+                $result['invalidos']++;
+            }
+
+            if ($analysis['isEncrypted']) {
+                $result['encriptados']++;
+            }
+
+            if (!$analysis['isFpdiCompatible']) {
+                $result['incompatibles']++;
+            }
+        }
+
+        return $result;
     }
 
     /**

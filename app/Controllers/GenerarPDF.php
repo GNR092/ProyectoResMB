@@ -4,6 +4,8 @@ namespace App\Controllers;
 use App\Libraries\PDF;
 use App\Libraries\Rest;
 use App\Libraries\FPath;
+use App\Libraries\GhostscriptProcessor;
+use App\Libraries\PdfValidator;
 use CodeIgniter\I18n\Time;
 use App\Libraries\SolicitudTipo;
 
@@ -552,31 +554,82 @@ class GenerarPDF extends BaseController
                     return;
                 }
 
-                try {
-                    $pageCount = $pdf->setSourceFile($filePath);
-                    for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-                        $templateId = $pdf->importPage($pageNo);
-                        $size = $pdf->getTemplateSize($templateId);
-                        $pdf->AddPage($size['width'] > $size['height'] ? 'L' : 'P', $size);
-                        $pdf->useTemplate($templateId);
-                    }
-                    $pdf->Title($title, 0, -35, 0, 0, 'C');
-                } catch (\Exception $e) {
-                    $pdf->AddPage();
-                    $pdf->Title($title, 0, 0, 0, 0, 'C');
-                    $pdf->Ln(10);
-                    $pdf->SetFont('Arial', 'B', 12);
-                    $pdf->MultiCell(
-                        190,
-                        10,
-                        mb_convert_encoding(
-                            'Error al procesar el archivo PDF adjunto: "' . $fileName . '".',
-                            'ISO-8859-1',
-                            'UTF-8',
-                        ),
-                        0,
-                        'C',
+                $analysis = PdfValidator::analyze($filePath);
+                log_message(
+                    'info',
+                    '[PdfValidator][Adjuntar] Archivo: ' .
+                        $fileName .
+                        ' | valido=' . ($analysis['isValid'] ? 'si' : 'no') .
+                        ' | version=' . ($analysis['version'] ?? 'desconocida') .
+                        ' | encriptado=' . ($analysis['isEncrypted'] ? 'si' : 'no') .
+                        ' | fpdi_compatible=' . ($analysis['isFpdiCompatible'] ? 'si' : 'no'),
+                );
+
+                if (!empty($analysis['warnings'])) {
+                    log_message(
+                        'warning',
+                        '[PdfValidator][Adjuntar] Advertencias para ' .
+                            $fileName .
+                            ': ' .
+                            implode(' | ', $analysis['warnings']),
                     );
+                }
+
+                $pathForImport = $filePath;
+                $tempConvertedPath = null;
+                $wasConverted = false;
+
+                if (!$analysis['isFpdiCompatible']) {
+                    $conversionResult = $this->_convertPdfForFpdi($filePath, $fileName);
+                    if ($conversionResult['success']) {
+                        $pathForImport = $conversionResult['path'];
+                        $tempConvertedPath = $conversionResult['path'];
+                        $wasConverted = true;
+                    }
+                }
+
+                try {
+                    $this->_importPdfPages($pdf, $pathForImport, $title);
+                } catch (\Throwable $e) {
+                    log_message(
+                        'warning',
+                        '[Adjuntar][FPDI] Error inicial en ' . $fileName . ': ' . $e->getMessage(),
+                    );
+
+                    if (!$wasConverted) {
+                        $conversionResult = $this->_convertPdfForFpdi($filePath, $fileName);
+                        if ($conversionResult['success']) {
+                            $pathForImport = $conversionResult['path'];
+                            $tempConvertedPath = $conversionResult['path'];
+                            $wasConverted = true;
+
+                            try {
+                                $this->_importPdfPages($pdf, $pathForImport, $title);
+                                if ($tempConvertedPath !== null && file_exists($tempConvertedPath)) {
+                                    @unlink($tempConvertedPath);
+                                }
+                                return;
+                            } catch (\Throwable $e2) {
+                                log_message(
+                                    'error',
+                                    '[Adjuntar][Ghostscript+FPDI] Fallo posterior en ' .
+                                        $fileName .
+                                        ': ' .
+                                        $e2->getMessage(),
+                                );
+                            }
+                        }
+                    }
+
+                    $this->_renderPdfAttachmentError(
+                        $pdf,
+                        $title,
+                        'Error al procesar el archivo PDF adjunto: "' . $fileName . '".',
+                    );
+                } finally {
+                    if ($tempConvertedPath !== null && file_exists($tempConvertedPath)) {
+                        @unlink($tempConvertedPath);
+                    }
                 }
             } else {
                 $pdf->AddPage();
@@ -590,6 +643,94 @@ class GenerarPDF extends BaseController
         } else {
             log_message('warning', '[Adjuntar] Archivo no encontrado en la ruta: ' . $filePath);
         }
+    }
+
+    private function _importPdfPages(PDF $pdf, string $pathForImport, string $title): void
+    {
+        $pageCount = $pdf->setSourceFile($pathForImport);
+        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+            $templateId = $pdf->importPage($pageNo);
+            $size = $pdf->getTemplateSize($templateId);
+            $pdf->AddPage($size['width'] > $size['height'] ? 'L' : 'P', $size);
+            $pdf->useTemplate($templateId);
+        }
+
+        $pdf->Title($title, 0, -35, 0, 0, 'C');
+    }
+
+    private function _convertPdfForFpdi(string $filePath, string $fileName): array
+    {
+        if (!GhostscriptProcessor::isAvailable()) {
+            log_message(
+                'warning',
+                '[Ghostscript] No disponible para convertir archivo incompatible: ' . $fileName,
+            );
+            return [
+                'success' => false,
+                'path' => null,
+            ];
+        }
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'gs_fpdi_');
+        if ($tempFile === false) {
+            log_message('error', '[Ghostscript] No se pudo crear archivo temporal para ' . $fileName);
+            return [
+                'success' => false,
+                'path' => null,
+            ];
+        }
+
+        @unlink($tempFile);
+        $outputPath = $tempFile . '.pdf';
+
+        log_message('info', '[Ghostscript] Iniciando conversion de ' . $fileName . ' a PDF 1.4');
+        $result = GhostscriptProcessor::convertToFpdiCompatible($filePath, $outputPath);
+
+        if (!$result['success']) {
+            log_message(
+                'error',
+                '[Ghostscript] Fallo al convertir ' .
+                    $fileName .
+                    ' | mensaje=' .
+                    ($result['message'] ?? 'sin mensaje') .
+                    ' | code=' .
+                    ($result['code'] ?? 'n/a') .
+                    ' | output=' .
+                    ($result['output'] ?? 'sin salida'),
+            );
+            if (file_exists($outputPath)) {
+                @unlink($outputPath);
+            }
+            return [
+                'success' => false,
+                'path' => null,
+            ];
+        }
+
+        log_message('info', '[Ghostscript] Conversion completada para ' . $fileName);
+        return [
+            'success' => true,
+            'path' => $outputPath,
+        ];
+    }
+
+    private function _renderPdfAttachmentError(PDF $pdf, string $title, string $message): void
+    {
+        $pdf->AddPage();
+        $pdf->Title($title, 0, 0, 0, 0, 'C');
+        $pdf->Ln(10);
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->MultiCell(
+            190,
+            10,
+            mb_convert_encoding(
+                $message,
+                'ISO-8859-1',
+                'UTF-8',
+            ),
+            0,
+            'C',
+        );
     }
 
     //region Orden de Compra

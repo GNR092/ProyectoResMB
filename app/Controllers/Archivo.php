@@ -18,6 +18,7 @@ use App\Libraries\SolicitudTipo;
 use App\Libraries\MetodoPago;
 use App\Controllers\GenerarPDF;
 use App\Libraries\MBSMail;
+use App\Libraries\PdfValidator;
 
 class Archivo extends BaseController
 {
@@ -298,6 +299,41 @@ class Archivo extends BaseController
                 foreach ($archivos['archivo'] as $adjunto) {
                     if ($adjunto->isValid() && !$adjunto->hasMoved()) {
                         $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
+                        $extension = strtolower(pathinfo($adjunto->getClientName(), PATHINFO_EXTENSION));
+
+                        if ($extension === 'pdf') {
+                            $tmpPath = $adjunto->getTempName();
+                            if (is_string($tmpPath) && is_file($tmpPath)) {
+                                $analysis = PdfValidator::analyze($tmpPath);
+
+                                log_message(
+                                    'info',
+                                    '[PdfValidator][Upload] Archivo: ' .
+                                        $adjunto->getClientName() .
+                                        ' | valido=' . ($analysis['isValid'] ? 'si' : 'no') .
+                                        ' | version=' . ($analysis['version'] ?? 'desconocida') .
+                                        ' | encriptado=' . ($analysis['isEncrypted'] ? 'si' : 'no') .
+                                        ' | fpdi_compatible=' . ($analysis['isFpdiCompatible'] ? 'si' : 'no'),
+                                );
+
+                                if (!empty($analysis['warnings'])) {
+                                    log_message(
+                                        'warning',
+                                        '[PdfValidator][Upload] Advertencias para ' .
+                                            $adjunto->getClientName() .
+                                            ': ' .
+                                            implode(' | ', $analysis['warnings']),
+                                    );
+                                }
+                            } else {
+                                log_message(
+                                    'warning',
+                                    '[PdfValidator][Upload] No se pudo acceder al archivo temporal de ' .
+                                        $adjunto->getClientName(),
+                                );
+                            }
+                        }
+
                         $adjunto->move($folder, $nuevoNombre);
                         $nombresArchivos[] = $nuevoNombre;
                     }
