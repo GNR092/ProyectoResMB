@@ -38,6 +38,8 @@ class Home extends BaseController
                 'crud_usuarios',
                 'crud_cuentas',
                 'ReportePresupuesto',
+                'TituloCatalogos',
+                'catalogo_productos',
             ],
 
             // ********** Rol Dirección
@@ -152,6 +154,8 @@ class Home extends BaseController
                 'TituloReportes',
                 'ReportePresupuesto',
                 'GastoManual',
+                'TituloCatalogos',
+                'catalogo_productos',
             ],
 
             // Rol por defecto (Jefes de Departamento)
