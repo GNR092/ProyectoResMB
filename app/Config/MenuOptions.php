@@ -209,6 +209,18 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#ReportePresupuestal"></use></svg>',
             ],
 
+            //********** CATALOGOS **********//
+            'TituloCatalogos' => [
+                'label' => 'Catálogos',
+                'icon' => '',
+                'is_title' => true,
+            ],
+
+            'catalogo_productos' => [
+                'label' => 'Catálogo Maestro',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#almacen"></use></svg>',
+            ],
+
         ];
     }
 }

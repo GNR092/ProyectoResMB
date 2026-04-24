@@ -18,6 +18,7 @@ use App\Models\PresupuestoMensualModel;
 use App\Models\SegmentoNegocioModel;
 use App\Models\UnidadOperativaModel;
 use App\Models\ProveedorArchivosModel;
+use App\Models\CatalogoProductosModel;
 use App\Libraries\FPath;
 
 class Modales extends BaseController
@@ -595,6 +596,35 @@ class Modales extends BaseController
 
             case 'bitacora':
                 return $this->bitacora();
+
+            case 'catalogo_productos':
+                $catalogoModel = new CatalogoProductosModel();
+                $rsModel = new RazonSocialModel();
+                $segmentoModel = new SegmentoNegocioModel();
+                $placeModel = new PlacesModel();
+                $deptoModel = new DepartamentosModel();
+                $grupoModel = new GrupoPresupuestalModel();
+
+                $data['catalogo'] = $catalogoModel->getFullCatalogo();
+                $data['razones_sociales'] = $rsModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['segmentos'] = $segmentoModel->orderBy('nombre', 'ASC')->findAll();
+                $data['places'] = $placeModel->orderBy('Nombre_Corto', 'ASC')->findAll();
+                $data['departamentos'] = $deptoModel->orderBy('Nombre', 'ASC')->findAll();
+                
+                $grupos = $grupoModel->where('activo', true)->orderBy('Nombre', 'ASC')->findAll();
+                $unidades = (new UnidadOperativaModel())->findAll();
+                $unidadesMap = array_column($unidades, 'Nombre', 'ID_UnidadOperativa');
+                
+                $groupsByUnit = [];
+                foreach ($grupos as $g) {
+                    $uName = $unidadesMap[$g['ID_UnidadOperativa']] ?? 'Otras Unidades';
+                    $groupsByUnit[$uName][] = $g;
+                }
+                
+                $data['grupos'] = $grupos;
+                $data['groupsByUnit'] = $groupsByUnit;
+
+                return view('modales/catalogo_productos', $data);
 
             default:
                 return 'Opción no válida';

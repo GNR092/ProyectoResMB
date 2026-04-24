@@ -23,6 +23,7 @@ use App\Controllers\GenerarPDF;
 use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
 use App\Models\UsuariosModel;
+use App\Models\CatalogoProductosModel;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -1990,6 +1991,59 @@ class Api extends ResourceController
         }
 
         return $this->respond($formattedOrdenes, HttpStatus::OK);
+    }
+
+    /**
+     * Obtiene todos los productos del catálogo maestro.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getCatalogoMaestro()
+    {
+        $model = new CatalogoProductosModel();
+        return $this->respond($model->getFullCatalogo(), HttpStatus::OK);
+    }
+
+    /**
+     * Crea un nuevo registro en el catálogo maestro.
+     */
+    public function createCatalogo()
+    {
+        $model = new CatalogoProductosModel();
+        $data = $this->request->getPost();
+
+        if ($model->insert($data)) {
+            return $this->respondCreated(['success' => true, 'message' => 'Producto agregado al catálogo.']);
+        } else {
+            return $this->failValidationAudit(implode(', ', $model->errors()));
+        }
+    }
+
+    /**
+     * Actualiza un registro del catálogo maestro.
+     */
+    public function updateCatalogo($id)
+    {
+        $model = new CatalogoProductosModel();
+        $data = $this->request->getPost();
+
+        if ($model->update($id, $data)) {
+            return $this->respondUpdated(['success' => true, 'message' => 'Catálogo actualizado.']);
+        } else {
+            return $this->failValidationAudit(implode(', ', $model->errors()));
+        }
+    }
+
+    /**
+     * Elimina un registro del catálogo maestro.
+     */
+    public function deleteCatalogo($id)
+    {
+        $model = new CatalogoProductosModel();
+        if ($model->delete($id)) {
+            return $this->respondDeleted(['success' => true, 'message' => 'Producto eliminado del catálogo.']);
+        } else {
+            return $this->fail('No se pudo eliminar el producto.', HttpStatus::INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**

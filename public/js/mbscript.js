@@ -30,6 +30,7 @@ function abrirModal(opcion) {
     programar_pagos: 'programar_pagos',
     crud_departamento: 'catalogos',
     crud_places: 'catalogos',
+    catalogo_productos: 'catalogos',
   }
 
   const highlightOpcion = parentModals[opcion] || opcion
@@ -53,13 +54,15 @@ function abrirModal(opcion) {
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
 
-  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto', 'bitacora']
+  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto', 'bitacora', 'catalogo_productos']
 
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
     modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto')
+    modalBox.classList.add('max-w-[95vw]', 'mx-4')
   } else {
     modal.classList.add('justify-center')
+    modalBox.classList.remove('max-w-[95vw]')
     modalBox.classList.add('max-w-4xl', 'mx-4', 'sm:mx-auto')
   }
 
@@ -104,6 +107,7 @@ function abrirModal(opcion) {
     AjustesPresupuesto: 'Ajustes presupuestales',
     GastoManual: 'Registrar Gastos Indirectos',
     bitacora: 'Auditoría de Bitácora',
+    catalogo_productos: 'Catálogo Maestro de Productos',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -145,6 +149,7 @@ function abrirModal(opcion) {
         bajas_destruccion: initBajasDestruccion,
         crud_places: initCrudPlaces,
         crud_departamento: initCrudDepartamentos,
+        catalogo_productos: initCatalogoProductos,
         crud_cuentas: initCrudCuentas,
         correcciones: initControlMaestro,
         GrupoPresupuestal: initCrudGrupos,
@@ -1438,6 +1443,184 @@ function regresarTabla() {
   if (btnGenerar) {
     btnGenerar.onclick = null // Remove listener
     btnGenerar.disabled = true // Disable button
+  }
+}
+
+/**
+ * Lógica del Catálogo Maestro de Productos
+ */
+function initCatalogoProductos() {
+  const listado = document.getElementById('pantalla-lista-catalogo')
+  const formularioCont = document.getElementById('pantalla-form-catalogo')
+  const form = document.getElementById('form-catalogo')
+  const tabla = document.getElementById('tabla-catalogo-body')
+
+  if (!listado || !form) return
+
+  // Inicializar Choices.js para una mejor experiencia de búsqueda
+  const configChoices = {
+    removeItemButton: false,
+    itemSelectText: '',
+    searchPlaceholderValue: 'Buscar...',
+    shouldSort: false,
+    placeholder: true,
+  }
+
+  const choices = {}
+  ;['form-rs', 'form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) choices[id] = new Choices(el, configChoices)
+  })
+
+  // Botones Navegación
+  const btnAgregar = document.getElementById('btn-agregar-catalogo')
+  if (btnAgregar) {
+    btnAgregar.onclick = () => {
+      form.reset()
+      Object.values(choices).forEach((c) => c.setChoiceByValue(''))
+      const idInput = document.getElementById('form-id-cat')
+      if (idInput) idInput.value = ''
+      const tituloForm = document.getElementById('form-catalogo-titulo')
+      if (tituloForm) tituloForm.innerText = 'Nuevo Producto'
+      listado.classList.add('hidden')
+      formularioCont.classList.remove('hidden')
+    }
+  }
+
+  const btnRegresar = document.getElementById('btn-regresar-catalogo')
+  if (btnRegresar) {
+    btnRegresar.onclick = () => {
+      formularioCont.classList.add('hidden')
+      listado.classList.remove('hidden')
+    }
+  }
+
+  // Paginación y Filtros
+  setupClientSideTable({
+    rowsSelector: '#tabla-catalogo-body tr[data-id]',
+    paginationSelector: 'paginacion-catalogo',
+    filterFormSelector: '#form-filtros-catalogo',
+    filterFunction: (row) => {
+      const nombre = (document.getElementById('buscar-nombre-catalogo')?.value || '').toLowerCase()
+      const depto = document.getElementById('filtro-departamento-catalogo')?.value || ''
+      const grupo = document.getElementById('filtro-grupo-catalogo')?.value || ''
+
+      const rowNombre = row.dataset.nombre.toLowerCase()
+      const rowDepto = row.querySelector('.text-gray-500')?.innerText || ''
+      const rowGrupo = row.querySelector('.bg-blue-100')?.innerText || ''
+
+      return (
+        rowNombre.includes(nombre) &&
+        (depto === '' || rowDepto.includes(depto)) &&
+        (grupo === '' || rowGrupo.includes(grupo))
+      )
+    },
+  })
+
+  // Guardar / Actualizar
+  form.onsubmit = async (e) => {
+    e.preventDefault()
+    const id = document.getElementById('form-id-cat').value
+    const endpoint = id ? `api/catalogo/update/${id}` : 'api/catalogo/create'
+    const formData = new FormData(form)
+
+    try {
+      const res = await SendDataEnd(endpoint, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (res.success) {
+        mostrarNotificacion('Operación exitosa ✅', 'success')
+        abrirModal('catalogo_productos') // Recargar
+      } else {
+        mostrarNotificacion(res.message || 'Error en la operación', 'error')
+      }
+    } catch (err) {
+      mostrarNotificacion('Error de conexión', 'error')
+    }
+  }
+
+  // Acciones Tabla (Editar / Eliminar)
+  if (tabla) {
+    tabla.addEventListener('click', async (e) => {
+      const btnEdit = e.target.closest('.btn-editar-cat')
+      const btnDel = e.target.closest('.btn-eliminar-cat')
+
+      if (btnEdit) {
+        const row = btnEdit.closest('tr')
+        document.getElementById('form-id-cat').value = row.dataset.id
+        document.getElementById('form-nombre').value = row.dataset.nombre
+
+        // Cargar valores en Choices
+        if (choices['form-rs']) choices['form-rs'].setChoiceByValue(row.dataset.rs || '')
+        if (choices['form-seg']) choices['form-seg'].setChoiceByValue(row.dataset.seg || '')
+        if (choices['form-place']) choices['form-place'].setChoiceByValue(row.dataset.place || '')
+        if (choices['form-depto']) choices['form-depto'].setChoiceByValue(row.dataset.depto || '')
+        if (choices['form-grupo']) choices['form-grupo'].setChoiceByValue(row.dataset.grupo || '')
+
+        document.getElementById('form-catalogo-titulo').innerText = 'Editar Producto'
+        listado.classList.add('hidden')
+        formularioCont.classList.remove('hidden')
+      }
+
+      if (btnDel) {
+        const row = btnDel.closest('tr')
+        if (await Confirmar('¿Eliminar producto?', `¿Estás seguro de eliminar "${row.dataset.nombre}"?`)) {
+          try {
+            const res = await SendDataEnd(`api/catalogo/delete/${row.dataset.id}`, { method: 'POST' })
+            if (res.success) {
+              mostrarNotificacion('Eliminado correctamente', 'success')
+              row.remove()
+            }
+          } catch (err) {
+            mostrarNotificacion('Error al eliminar', 'error')
+          }
+        }
+      }
+    })
+  }
+
+  // Lógica de Asistencia de Llenado (Upward & Downward)
+  const rsSel = document.getElementById('form-rs')
+  const segSel = document.getElementById('form-seg')
+  const placeSel = document.getElementById('form-place')
+  const deptoSel = document.getElementById('form-depto')
+
+  // ASISTENCIA HACIA ARRIBA (Upward)
+  const handleUpwardSelection = (element, parents) => {
+    const selectedOption = element.options[element.selectedIndex]
+    if (!selectedOption || selectedOption.value === '') return
+
+    parents.forEach((p) => {
+      const parentVal = selectedOption.dataset[p.attr]
+      if (parentVal && choices[p.id]) {
+        choices[p.id].setChoiceByValue(parentVal)
+      }
+    })
+  }
+
+  if (deptoSel) {
+    deptoSel.addEventListener('change', () => {
+      handleUpwardSelection(deptoSel, [{ id: 'form-place', attr: 'place' }])
+      // Al cambiar place, se disparará su propio listener para RS y Segmento
+      placeSel.dispatchEvent(new Event('change'))
+    })
+  }
+
+  if (placeSel) {
+    placeSel.addEventListener('change', () => {
+      handleUpwardSelection(placeSel, [
+        { id: 'form-rs', attr: 'rs' },
+        { id: 'form-seg', attr: 'seg' },
+      ])
+    })
+  }
+
+  if (segSel) {
+    segSel.addEventListener('change', () => {
+      handleUpwardSelection(segSel, [{ id: 'form-rs', attr: 'rs' }])
+    })
   }
 }
 
