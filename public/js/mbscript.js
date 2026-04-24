@@ -1477,7 +1477,7 @@ function initCatalogoProductos() {
 
   if (!listado || !form) return
 
-  // Inicializar Choices.js para una mejor experiencia de búsqueda
+  // Configuración de Choices.js
   const configChoices = {
     removeItemButton: false,
     itemSelectText: '',
@@ -1487,9 +1487,136 @@ function initCatalogoProductos() {
   }
 
   const choices = {}
+  const originalOptions = {}
+
   ;['form-rs', 'form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => {
     const el = document.getElementById(id)
-    if (el) choices[id] = new Choices(el, configChoices)
+    if (el) {
+      // Guardar opciones originales para filtrado dinámico
+      originalOptions[id] = Array.from(el.options).map((opt) => ({
+        value: opt.value,
+        label: opt.text,
+        rs: opt.dataset.rs,
+        seg: opt.dataset.seg,
+        place: opt.dataset.place,
+        unidad: opt.dataset.unidad,
+        depto: opt.dataset.depto,
+      }))
+      choices[id] = new Choices(el, configChoices)
+    }
+  })
+
+  // Función para filtrar selects (Cascada Hacia Abajo)
+  const filterChoices = (targetId, filterFn) => {
+    if (!choices[targetId]) return
+    const filtered = originalOptions[targetId].filter((opt) => opt.value === '' || filterFn(opt))
+    choices[targetId].clearChoices()
+    choices[targetId].setChoices(filtered, 'value', 'label', true)
+  }
+
+  // Lógica de Asistencia de Llenado (Upward & Downward)
+  const rsSel = document.getElementById('form-rs')
+  const segSel = document.getElementById('form-seg')
+  const placeSel = document.getElementById('form-place')
+  const deptoSel = document.getElementById('form-depto')
+  const grupoSel = document.getElementById('form-grupo')
+
+  // ASISTENCIA HACIA ARRIBA (Upward) - Llenado automático usando respaldo de datos
+  const handleUpwardSelection = (id, parents) => {
+    const val = choices[id].getValue(true)
+    if (val === undefined || val === null || val === '') return
+
+    const optData = originalOptions[id].find((o) => o.value == val)
+    if (!optData) return
+
+    parents.forEach((p) => {
+      const parentVal = optData[p.attr]
+      if (parentVal !== undefined && parentVal !== null && parentVal !== '' && choices[p.id]) {
+        // Asegurar que la opción esté disponible antes de setearla
+        filterChoices(p.id, () => true)
+        choices[p.id].setChoiceByValue(parentVal.toString())
+        // Disparar manualmente para continuar la cadena hacia arriba
+        const parentEl = document.getElementById(p.id)
+        if (parentEl) parentEl.dispatchEvent(new Event('change'))
+      }
+    })
+  }
+
+  // --- LISTENERS ---
+
+  // 1. Razón Social (Cambia -> Filtra Segmentos y Lugares)
+  rsSel.addEventListener('change', (e) => {
+    const rsId = e.target.value
+    if (rsId) {
+      filterChoices('form-seg', (opt) => opt.rs == rsId)
+      filterChoices('form-place', (opt) => opt.rs == rsId)
+    } else {
+      filterChoices('form-seg', () => true)
+      filterChoices('form-place', () => true)
+    }
+  })
+
+  // 2. Segmento (Cambia -> Sube a RS y Filtra Lugares)
+  segSel.addEventListener('change', () => {
+    handleUpwardSelection('form-seg', [{ id: 'form-rs', attr: 'rs' }])
+    const segId = segSel.value
+    if (segId) {
+      filterChoices('form-place', (opt) => opt.seg == segId)
+    }
+  })
+
+  // 3. Lugar (Cambia -> Sube a RS/Seg y Filtra Deptos)
+  placeSel.addEventListener('change', () => {
+    handleUpwardSelection('form-place', [
+      { id: 'form-rs', attr: 'rs' },
+      { id: 'form-seg', attr: 'seg' },
+    ])
+    const placeId = placeSel.value
+    if (placeId) {
+      filterChoices('form-depto', (opt) => opt.place == placeId)
+    } else {
+      filterChoices('form-depto', () => true)
+    }
+  })
+
+  // 4. Departamento (Cambia -> Sube a Lugar y Filtra Partidas)
+  deptoSel.addEventListener('change', () => {
+    handleUpwardSelection('form-depto', [{ id: 'form-place', attr: 'place' }])
+    const deptoId = deptoSel.value
+    const placeId = placeSel.value
+    
+    if (deptoId) {
+      const optData = originalOptions['form-depto'].find((o) => o.value == deptoId)
+      if (optData && optData.unidad) {
+        // Caso normal: El depto tiene unidad operativa
+        filterChoices('form-grupo', (opt) => opt.unidad == optData.unidad)
+      } else if (placeId) {
+        // Fallback: El depto NO tiene unidad, filtramos por complejo
+        filterChoices('form-grupo', (opt) => opt.place == placeId)
+      }
+    } else {
+      filterChoices('form-grupo', () => true)
+    }
+  })
+
+  // 5. Partida (Cambia -> Sube a Departamento y continúa cadena)
+  grupoSel.addEventListener('change', () => {
+    const val = choices['form-grupo'].getValue(true)
+    const optData = originalOptions['form-grupo'].find((o) => o.value == val)
+    
+    if (optData) {
+      // Subir a Departamento si existe el vínculo
+      if (optData.depto) {
+        filterChoices('form-depto', () => true)
+        choices['form-depto'].setChoiceByValue(optData.depto.toString())
+        deptoSel.dispatchEvent(new Event('change'))
+      } else if (optData.place) {
+        // Si no hay depto directo, al menos subir al Place
+        filterChoices('form-place', () => true)
+        choices['form-place'].setChoiceByValue(optData.place.toString())
+        placeSel.dispatchEvent(new Event('change'))
+      }
+    }
   })
 
   // Botones Navegación
@@ -1497,7 +1624,10 @@ function initCatalogoProductos() {
   if (btnAgregar) {
     btnAgregar.onclick = () => {
       form.reset()
+      // Resetear filtros y valores de Choices
+      ;['form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => filterChoices(id, () => true))
       Object.values(choices).forEach((c) => c.setChoiceByValue(''))
+
       const idInput = document.getElementById('form-id-cat')
       if (idInput) idInput.value = ''
       const tituloForm = document.getElementById('form-catalogo-titulo')
@@ -1515,7 +1645,7 @@ function initCatalogoProductos() {
     }
   }
 
-  // Paginación y Filtros
+  // Paginación y Filtros (Tabla principal)
   setupClientSideTable({
     rowsSelector: '#tabla-catalogo-body tr[data-id]',
     paginationSelector: 'paginacion-catalogo',
@@ -1572,6 +1702,9 @@ function initCatalogoProductos() {
         document.getElementById('form-id-cat').value = row.dataset.id
         document.getElementById('form-nombre').value = row.dataset.nombre
 
+        // Resetear filtros antes de cargar para asegurar que los valores sean visibles
+        ;['form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => filterChoices(id, () => true))
+
         // Cargar valores en Choices
         if (choices['form-rs']) choices['form-rs'].setChoiceByValue(row.dataset.rs || '')
         if (choices['form-seg']) choices['form-seg'].setChoiceByValue(row.dataset.seg || '')
@@ -1598,48 +1731,6 @@ function initCatalogoProductos() {
           }
         }
       }
-    })
-  }
-
-  // Lógica de Asistencia de Llenado (Upward & Downward)
-  const rsSel = document.getElementById('form-rs')
-  const segSel = document.getElementById('form-seg')
-  const placeSel = document.getElementById('form-place')
-  const deptoSel = document.getElementById('form-depto')
-
-  // ASISTENCIA HACIA ARRIBA (Upward)
-  const handleUpwardSelection = (element, parents) => {
-    const selectedOption = element.options[element.selectedIndex]
-    if (!selectedOption || selectedOption.value === '') return
-
-    parents.forEach((p) => {
-      const parentVal = selectedOption.dataset[p.attr]
-      if (parentVal && choices[p.id]) {
-        choices[p.id].setChoiceByValue(parentVal)
-      }
-    })
-  }
-
-  if (deptoSel) {
-    deptoSel.addEventListener('change', () => {
-      handleUpwardSelection(deptoSel, [{ id: 'form-place', attr: 'place' }])
-      // Al cambiar place, se disparará su propio listener para RS y Segmento
-      placeSel.dispatchEvent(new Event('change'))
-    })
-  }
-
-  if (placeSel) {
-    placeSel.addEventListener('change', () => {
-      handleUpwardSelection(placeSel, [
-        { id: 'form-rs', attr: 'rs' },
-        { id: 'form-seg', attr: 'seg' },
-      ])
-    })
-  }
-
-  if (segSel) {
-    segSel.addEventListener('change', () => {
-      handleUpwardSelection(segSel, [{ id: 'form-rs', attr: 'rs' }])
     })
   }
 }

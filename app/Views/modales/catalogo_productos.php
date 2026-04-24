@@ -133,7 +133,7 @@
                 <select name="ID_Dpto" id="form-depto" class="w-full px-3 py-2 border rounded-lg outline-none bg-white">
                     <option value="">Seleccione...</option>
                     <?php foreach ($departamentos as $d): ?>
-                        <option value="<?= $d['ID_Dpto'] ?>" data-place="<?= $d['ID_Place'] ?>"><?= esc($d['Nombre']) ?></option>
+                        <option value="<?= $d['ID_Dpto'] ?>" data-place="<?= $d['ID_Place'] ?>" data-unidad="<?= $d['ID_UnidadOperativa'] ?>"><?= esc($d['Nombre']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -143,19 +143,14 @@
             <label class="block text-sm font-bold text-gray-700 mb-1 italic text-blue-600">Partida Presupuestal Automática</label>
             <select name="ID_GrupoPresupuestal" id="form-grupo" class="w-full px-3 py-2 border border-blue-200 rounded-lg outline-none bg-blue-50 font-bold text-blue-800">
                 <option value="">-- Sin asignación automática --</option>
-                <?php foreach ($groupsByUnit ?? [] as $unitName => $items): ?>
-                    <optgroup label="<?= esc($unitName) ?>">
-                        <?php foreach ($items as $g): ?>
-                            <option value="<?= $g['ID_GrupoPresupuestal'] ?>"><?= esc($g['Nombre']) ?></option>
-                        <?php endforeach; ?>
-                    </optgroup>
+                <?php foreach ($grupos as $g): ?>
+                    <option value="<?= $g['ID_GrupoPresupuestal'] ?>" 
+                            data-unidad="<?= $g['ID_UnidadOperativa'] ?>" 
+                            data-depto="<?= $g['ID_Dpto'] ?>"
+                            data-place="<?= $g['ID_Place'] ?>">
+                        <?= esc($g['Nombre']) ?> (<?= esc($g['UnidadNombre'] ?? 'S/U') ?>)
+                    </option>
                 <?php endforeach; ?>
-                <!-- Fallback si no hay grupos organizados -->
-                <?php if (empty($groupsByUnit)): ?>
-                    <?php foreach ($grupos as $g): ?>
-                        <option value="<?= $g['ID_GrupoPresupuestal'] ?>"><?= esc($g['Nombre']) ?></option>
-                    <?php endforeach; ?>
-                <?php endif; ?>
             </select>
         </div>
 
