@@ -613,13 +613,14 @@ class Modales extends BaseController
                 $data['departamentos'] = $deptoModel->orderBy('Nombre', 'ASC')->findAll();
                 
                 // Obtener grupos con el ID_Dpto y ID_Place relacionado
-                // Usamos comillas dobles para compatibilidad estricta con PostgreSQL
-                $grupos = $grupoModel->select('
-                        "GrupoPresupuestal".*, 
-                        "UnidadOperativa"."ID_Place", 
-                        "UnidadOperativa"."Nombre" as "UnidadNombre",
-                        (SELECT "ID_Dpto" FROM "Departamentos" WHERE "Departamentos"."ID_UnidadOperativa" = "GrupoPresupuestal"."ID_UnidadOperativa" LIMIT 1) as "ID_Dpto"
-                    ')
+                $db = \Config\Database::connect();
+                $subQuery = $db->table('Departamentos')
+                               ->select('ID_Dpto')
+                               ->where('Departamentos.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa')
+                               ->limit(1)
+                               ->getCompiledSelect();
+
+                $grupos = $grupoModel->select("GrupoPresupuestal.*, UnidadOperativa.ID_Place, UnidadOperativa.Nombre as UnidadNombre, ($subQuery) as ID_Dpto")
                     ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
                     ->where('GrupoPresupuestal.activo', true)
                     ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
