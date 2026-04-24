@@ -612,7 +612,12 @@ class Modales extends BaseController
                 $data['places'] = $placeModel->orderBy('Nombre_Corto', 'ASC')->findAll();
                 $data['departamentos'] = $deptoModel->orderBy('Nombre', 'ASC')->findAll();
                 
-                $grupos = $grupoModel->where('activo', true)->orderBy('Nombre', 'ASC')->findAll();
+                // Obtener grupos con el ID_Dpto relacionado mediante la Unidad Operativa
+                $grupos = $grupoModel->select('GrupoPresupuestal.*, (SELECT id_dpto FROM departamentos WHERE departamentos.id_unidadoperativa = grupopresupuestal.id_unidadoperativa LIMIT 1) as ID_Dpto')
+                    ->where('activo', true)
+                    ->orderBy('Nombre', 'ASC')
+                    ->findAll();
+
                 $unidades = (new UnidadOperativaModel())->findAll();
                 $unidadesMap = array_column($unidades, 'Nombre', 'ID_UnidadOperativa');
                 
