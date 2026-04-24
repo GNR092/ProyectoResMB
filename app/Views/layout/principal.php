@@ -15,6 +15,12 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     <link rel="stylesheet" href="<?= base_url('css/choices.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>?v=<?= $version ?>">
     <link rel="stylesheet" href="<?= base_url('css/modal-anim.css') ?>?v=<?= time() ?>">
+
+    <script>
+        window.BASE_URL = "<?= base_url() ?>";
+        window.CURRENT_USER_ID = <?= session('id') ?? 'null' ?>;
+        window.CURRENT_DEPTO_ID = <?= session('id_departamento_usuario') ?? 'null' ?>;
+    </script>
 </head>
 
 <body class="h-screen flex">

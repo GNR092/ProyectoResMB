@@ -66,6 +66,7 @@ class Modales extends BaseController
                 $departamentoModel = new DepartamentosModel();
                 $proveedorModel = new \App\Models\ProveedorModel();
                 $razonSocialModel = new RazonSocialModel();
+                $data['id_departamento_usuario'] = session('id_departamento_usuario');
                 $data['departamentos'] = $departamentoModel
                     ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
                     ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')

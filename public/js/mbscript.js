@@ -1089,6 +1089,26 @@ async function mostrarVerHistorial(idSolicitud) {
 
     html += generarSeccionAdjuntos(data)
 
+    // Botón de Cancelar para usuarios del mismo departamento en estados previos a cotización
+    const estadosCancelables = ['aprobacion pendiente', 'en espera'];
+    
+    // Soporte para PascalCase o minúsculas (compatibilidad PostgreSQL)
+    const rawEstado = data.Estado || data.estado || '';
+    const rawIdDpto = data.ID_Dpto || data.id_dpto;
+    
+    const estadoNormalizado = rawEstado.toLowerCase().trim();
+    const mismoDepartamento = parseInt(rawIdDpto) === parseInt(window.CURRENT_DEPTO_ID);
+
+    if (estadosCancelables.includes(estadoNormalizado) && mismoDepartamento) {
+      html += `
+            <div class="mt-8 flex items-center justify-end border-t pt-6">
+                <button onclick="globalCancelarSolicitud(${idSolicitud}, () => abrirModal('ver_historial'))" 
+                        class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition shadow-sm">
+                    Cancelar Requisición
+                </button>
+            </div>`;
+    }
+
     detallesContainer.innerHTML = html
   } catch (error) {
     console.error('Error al cargar detalles del historial:', error)
