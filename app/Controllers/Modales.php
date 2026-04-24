@@ -245,6 +245,11 @@ class Modales extends BaseController
 
             case 'dictamen_solicitudes':
                 $solicitudModel = new SolicitudModel();
+                $deptoModel = new DepartamentosModel();
+                $userModel = new UsuariosModel();
+
+                $data['departamentos'] = $deptoModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['usuarios'] = $userModel->orderBy('Nombre', 'ASC')->findAll();
 
                 $data['solicitudes'] = $solicitudModel
                     ->select(

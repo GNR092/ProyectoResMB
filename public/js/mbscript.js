@@ -1942,16 +1942,41 @@ function initPlacesActions(tabla) {
   })
 }
 
+let choicesDeptoDictamen = null;
+let choicesUserDictamen = null;
+
 /**
  * Lógica para el modal "Dictamen de Solicitudes"
  */
 async function initDictamenSolicitudes() {
   if (!document.getElementById('tablaDictamenSolicitudes')) return
 
+  // Inicializar Choices
+  const selDepto = document.getElementById('filtro-depto-dictamen');
+  if (selDepto && !choicesDeptoDictamen) {
+    choicesDeptoDictamen = new Choices(selDepto, {
+      removeItemButton: true,
+      itemSelectText: '',
+      placeholderValue: 'Todos los departamentos',
+      searchPlaceholderValue: 'Buscar...',
+    });
+  }
+
+  const selUser = document.getElementById('filtro-usuario-dictamen');
+  if (selUser && !choicesUserDictamen) {
+    choicesUserDictamen = new Choices(selUser, {
+      removeItemButton: true,
+      itemSelectText: '',
+      placeholderValue: 'Todos los usuarios',
+      searchPlaceholderValue: 'Buscar...',
+    });
+  }
+
   createPaginatedTable({
     tableSelector: '#tablaDictamenSolicitudes',
     paginationSelector: 'paginacion-dictamen',
     endpoint: 'api/solicitudes/en-revision',
+    filterFormSelector: '#filtros-dictamen-container',
     noResultsMessage: 'No hay solicitudes en dictamen para mostrar.',
     renderRow: (s) => `
       <tr class="hover:bg-gray-50" data-id="${s.ID}">
@@ -1963,6 +1988,16 @@ async function initDictamenSolicitudes() {
           <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerDictamen(${s.ID})">VER</td>
       </tr>
     `,
+    filterFunction: (allData) => {
+      const depto = document.getElementById('filtro-depto-dictamen')?.value || '';
+      const user = document.getElementById('filtro-usuario-dictamen')?.value || '';
+
+      return allData.filter(s => {
+        const matchDepto = !depto || s.Departamento === depto;
+        const matchUser = !user || s.Usuario === user;
+        return matchDepto && matchUser;
+      });
+    }
   })
 }
 
