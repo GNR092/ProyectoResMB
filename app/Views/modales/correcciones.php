@@ -4,6 +4,9 @@
     </div>
 
     <div id="filtros-maestro-container" class="flex flex-col md:flex-row md:items-center gap-4 mb-4 bg-white p-3 rounded shadow-sm border border-gray-200">
+        <div class="flex items-center gap-2">
+            <input type="text" id="filtro-folio-maestro" placeholder="Buscar folio..." class="border border-gray-300 p-2 rounded w-full md:w-48 text-sm" autocomplete="off">
+        </div>
 
         <div class="flex items-center gap-2">
             <input type="date" id="filtro-fecha-maestro" class="border border-gray-300 p-2 rounded w-full md:w-auto text-sm">

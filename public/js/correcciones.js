@@ -86,6 +86,7 @@ function initControlMaestro() {
         },
 
         filterFunction: (allData) => {
+            const folioFiltro = document.getElementById('filtro-folio-maestro')?.value.toLowerCase().trim() || '';
             const fechaFiltro = document.getElementById('filtro-fecha-maestro').value;
             const filtrarPorMes = document.getElementById('filtrar-por-mes-maestro').checked;
             const estadoFiltro = document.getElementById('filtro-estado-maestro').value;
@@ -95,6 +96,7 @@ function initControlMaestro() {
             const razonesSeleccionadas = choicesRazonMaestro ? choicesRazonMaestro.getValue(true) : [];
 
             return allData.filter((item) => {
+                const coincideFolio = !folioFiltro || (item.No_Folio && item.No_Folio.toLowerCase().includes(folioFiltro));
                 const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
                 const coincideMetodo = !metodoFiltro || item.MetodoPago == metodoFiltro;
                 
@@ -115,7 +117,7 @@ function initControlMaestro() {
                     coincideRazon = razonesSeleccionadas.includes(item.Complejo);
                 }
 
-                const passesOtherFilters = coincideEstado && coincideDepto && coincideMetodo && coincideTipo && coincideRazon;
+                const passesOtherFilters = coincideFolio && coincideEstado && coincideDepto && coincideMetodo && coincideTipo && coincideRazon;
 
                 if (!fechaFiltro) return passesOtherFilters;
                 const fechaItem = item.Fecha;
