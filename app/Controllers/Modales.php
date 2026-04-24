@@ -491,7 +491,7 @@ class Modales extends BaseController
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
                 $data['departamentos'] = $departamentoModel
-                    ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
+                    ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial')
                     ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();

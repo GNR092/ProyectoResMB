@@ -33,6 +33,34 @@ function initControlMaestro() {
         }
     }
 
+    // --- Lógica de dependencia RS -> Depto ---
+    if (choicesRazonMaestro && choicesDeptoMaestro) {
+        const originalDeptoOptions = Array.from(filtroEl.options).map(opt => ({
+            value: opt.value,
+            label: opt.text,
+            razon: opt.dataset.razon
+        }));
+
+        filtroRazonEl.addEventListener('change', () => {
+            const selectedRazones = choicesRazonMaestro.getValue().map(item => {
+                const opt = Array.from(filtroRazonEl.options).find(o => o.value === item.value);
+                return opt ? opt.dataset.idRazon : null;
+            }).filter(id => id);
+
+            let filteredOptions = [];
+            if (selectedRazones.length === 0) {
+                filteredOptions = originalDeptoOptions;
+            } else {
+                filteredOptions = originalDeptoOptions.filter(opt => 
+                    !opt.razon || selectedRazones.includes(opt.razon)
+                );
+            }
+
+            choicesDeptoMaestro.clearStore();
+            choicesDeptoMaestro.setChoices(filteredOptions, 'value', 'label', true);
+        });
+    }
+
     // 2. URL + Cache Buster
     let urlEndpoint = 'api/historic';
     const exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría'];
