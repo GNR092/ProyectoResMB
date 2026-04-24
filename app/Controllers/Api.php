@@ -1731,7 +1731,7 @@ class Api extends ResourceController
             }
 
             // Registro en Bitácora
-            Events::trigger('auditoria', [
+            \CodeIgniter\Events\Events::trigger('auditoria', [
                 'tipo_accion' => 'GENERAR_ORDEN',
                 'clasificacion' => 'Compras',
                 'modulo'      => 'Compras',
@@ -1750,7 +1750,7 @@ class Api extends ResourceController
             log_message('error', '[GenerarOrden] ' . $e->getMessage());
 
             // Registro de fallo en Bitácora
-            Events::trigger('auditoria', [
+            \CodeIgniter\Events\Events::trigger('auditoria', [
                 'tipo_accion' => 'GENERAR_ORDEN',
                 'clasificacion' => 'Compras',
                 'modulo'      => 'Compras',

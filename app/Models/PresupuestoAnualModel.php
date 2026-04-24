@@ -31,12 +31,13 @@ class PresupuestoAnualModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
-
-    protected $beforeUpdate = ['captureOldData'];
-    protected $afterUpdate  = ['auditUpdate'];
-    protected $afterInsert  = ['auditInsert'];
-    protected $afterDelete  = ['auditDelete'];
-
+// Callbacks
+protected $beforeUpdate = ['captureOldData'];
+protected $afterUpdate  = ['auditUpdate'];
+protected $afterInsert  = ['auditInsert'];
+protected $beforeDelete = ['captureOldData'];
+protected $afterDelete  = ['auditDelete'];
+}
     // Helper para obtener datos de la Razón Social
     public function withRazonSocial()
     {

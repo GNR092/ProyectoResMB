@@ -34,12 +34,13 @@ class SolicitudesCambioPresupuestoModel extends Model
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
-
-    protected $beforeUpdate = ['captureOldData'];
-    protected $afterUpdate  = ['auditUpdate'];
-    protected $afterInsert  = ['auditInsert'];
-    protected $afterDelete  = ['auditDelete'];
-
+// Callbacks
+protected $beforeUpdate = ['captureOldData'];
+protected $afterUpdate  = ['auditUpdate'];
+protected $afterInsert  = ['auditInsert'];
+protected $beforeDelete = ['captureOldData'];
+protected $afterDelete  = ['auditDelete'];
+}
     // Opcional: Join con usuario para vistas
     public function getPendientes()
     {

@@ -28,6 +28,7 @@ class UsuariosModel extends Model
 
     // Callbacks
     protected $beforeUpdate = ['captureOldData'];
+    protected $beforeDelete = ['captureOldData'];
     protected $afterUpdate  = ['auditUpdate'];
     protected $afterInsert  = ['auditInsert'];
     protected $afterDelete  = ['auditDelete'];

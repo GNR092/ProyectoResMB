@@ -9,16 +9,21 @@ trait AuditTrait
     protected $tempOldData = [];
 
     /**
-     * Captura los datos actuales antes de una actualización
+     * Captura los datos actuales antes de una actualización o eliminación
      */
     protected function captureOldData(array $data)
     {
+        // En CodeIgniter 4, para delete(), el ID viene en $data['id']
+        // Para update(), el ID también viene en $data['id']
         if (isset($data['id'])) {
             $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
             foreach ($ids as $id) {
-                $row = $this->find($id);
-                if ($row) {
-                    $this->tempOldData[$id] = $row;
+                // Solo buscamos si no lo tenemos ya (evitar redundancia)
+                if (!isset($this->tempOldData[$id])) {
+                    $row = $this->find($id);
+                    if ($row) {
+                        $this->tempOldData[$id] = $row;
+                    }
                 }
             }
         }
@@ -109,14 +114,25 @@ trait AuditTrait
     {
         if (!$data['result']) return $data;
 
-        Events::trigger('auditoria', [
-            'tipo_accion' => 'ELIMINAR',
-            'clasificacion' => $this->auditClasificacion ?? 'Operaciones',
-            'modulo'      => $this->table,
-            'valores_antiguos' => ['id' => $data['id']],
-            'estado'      => 'exito'
-        ]);
+        $ids = is_array($data['id']) ? $data['id'] : [$data['id']];
+        foreach ($ids as $id) {
+            $old = $this->tempOldData[$id] ?? [];
 
+            Events::trigger('auditoria', [
+                'tipo_accion' => 'ELIMINAR',
+                'clasificacion' => $this->auditClasificacion ?? 'Operaciones',
+                'modulo'      => $this->table,
+                'valores_antiguos' => !empty($old) ? $old : ['id' => $id],
+                // Extraer IDs de contexto si existen en el registro borrado
+                'solicitud_id'     => $old['ID_Solicitud'] ?? null,
+                'orden_compra_id'  => $old['ID_OrdenCompra'] ?? null,
+                'cotizacion_id'    => $old['ID_Cotizacion'] ?? null,
+                'estado'      => 'exito'
+            ]);
+        }
+
+        // Limpiar temporales
+        $this->tempOldData = [];
         return $data;
     }
 }
