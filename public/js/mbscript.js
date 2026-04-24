@@ -1959,6 +1959,7 @@ async function initDictamenSolicitudes() {
       itemSelectText: '',
       placeholderValue: 'Todos los departamentos',
       searchPlaceholderValue: 'Buscar...',
+      removeItemButton: true,
     });
   }
 
@@ -1969,6 +1970,7 @@ async function initDictamenSolicitudes() {
       itemSelectText: '',
       placeholderValue: 'Todos los usuarios',
       searchPlaceholderValue: 'Buscar...',
+      removeItemButton: true,
     });
   }
 
@@ -1989,12 +1991,12 @@ async function initDictamenSolicitudes() {
       </tr>
     `,
     filterFunction: (allData) => {
-      const depto = document.getElementById('filtro-depto-dictamen')?.value || '';
-      const user = document.getElementById('filtro-usuario-dictamen')?.value || '';
+      const deptos = choicesDeptoDictamen ? choicesDeptoDictamen.getValue(true) : [];
+      const users = choicesUserDictamen ? choicesUserDictamen.getValue(true) : [];
 
       return allData.filter(s => {
-        const matchDepto = !depto || s.Departamento === depto;
-        const matchUser = !user || s.Usuario === user;
+        const matchDepto = deptos.length === 0 || deptos.includes(s.Departamento);
+        const matchUser = users.length === 0 || users.includes(s.Usuario);
         return matchDepto && matchUser;
       });
     }
