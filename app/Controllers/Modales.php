@@ -18,6 +18,7 @@ use App\Models\PresupuestoMensualModel;
 use App\Models\SegmentoNegocioModel;
 use App\Models\UnidadOperativaModel;
 use App\Models\ProveedorArchivosModel;
+use App\Models\CatalogoProductosModel;
 use App\Libraries\FPath;
 
 class Modales extends BaseController
@@ -65,6 +66,7 @@ class Modales extends BaseController
                 $departamentoModel = new DepartamentosModel();
                 $proveedorModel = new \App\Models\ProveedorModel();
                 $razonSocialModel = new RazonSocialModel();
+                $data['id_departamento_usuario'] = session('id_departamento_usuario');
                 $data['departamentos'] = $departamentoModel
                     ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
                     ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
@@ -243,6 +245,11 @@ class Modales extends BaseController
 
             case 'dictamen_solicitudes':
                 $solicitudModel = new SolicitudModel();
+                $deptoModel = new DepartamentosModel();
+                $userModel = new UsuariosModel();
+
+                $data['departamentos'] = $deptoModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['usuarios'] = $userModel->orderBy('Nombre', 'ASC')->findAll();
 
                 $data['solicitudes'] = $solicitudModel
                     ->select(
@@ -489,7 +496,7 @@ class Modales extends BaseController
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
                 $data['departamentos'] = $departamentoModel
-                    ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre')
+                    ->select('Departamentos.*, Places.Nombre_Corto as PlaceNombre, Places.ID_RazonSocial')
                     ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                     ->orderBy('Departamentos.Nombre', 'ASC')
                     ->findAll();
@@ -595,6 +602,48 @@ class Modales extends BaseController
 
             case 'bitacora':
                 return $this->bitacora();
+
+            case 'catalogo_productos':
+                $catalogoModel = new CatalogoProductosModel();
+                $rsModel = new RazonSocialModel();
+                $segmentoModel = new SegmentoNegocioModel();
+                $placeModel = new PlacesModel();
+                $deptoModel = new DepartamentosModel();
+                $grupoModel = new GrupoPresupuestalModel();
+
+                $data['catalogo'] = $catalogoModel->getFullCatalogo();
+                $data['razones_sociales'] = $rsModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['segmentos'] = $segmentoModel->orderBy('nombre', 'ASC')->findAll();
+                $data['places'] = $placeModel->orderBy('Nombre_Corto', 'ASC')->findAll();
+                $data['departamentos'] = $deptoModel->orderBy('Nombre', 'ASC')->findAll();
+                
+                // Obtener grupos con el ID_Dpto y ID_Place relacionado
+                $db = \Config\Database::connect();
+                $subQuery = $db->table('Departamentos')
+                               ->select('ID_Dpto')
+                               ->where('Departamentos.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa')
+                               ->limit(1)
+                               ->getCompiledSelect();
+
+                $grupos = $grupoModel->select("GrupoPresupuestal.*, UnidadOperativa.ID_Place, UnidadOperativa.Nombre as UnidadNombre, ($subQuery) as ID_Dpto")
+                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
+                    ->where('GrupoPresupuestal.activo', true)
+                    ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
+                    ->findAll();
+
+                $unidades = (new UnidadOperativaModel())->findAll();
+                $unidadesMap = array_column($unidades, 'Nombre', 'ID_UnidadOperativa');
+                
+                $groupsByUnit = [];
+                foreach ($grupos as $g) {
+                    $uName = $unidadesMap[$g['ID_UnidadOperativa']] ?? 'Otras Unidades';
+                    $groupsByUnit[$uName][] = $g;
+                }
+                
+                $data['grupos'] = $grupos;
+                $data['groupsByUnit'] = $groupsByUnit;
+
+                return view('modales/catalogo_productos', $data);
 
             default:
                 return 'Opción no válida';

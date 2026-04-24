@@ -43,6 +43,7 @@ class OrdenCompraModel extends Model
     protected $deletedField  = 'deleted_at';
 
     protected $beforeUpdate = ['captureOldData'];
+    protected $beforeDelete = ['captureOldData'];
     protected $afterUpdate  = ['auditUpdate'];
     protected $afterInsert  = ['auditInsert'];
     protected $afterDelete  = ['auditDelete'];

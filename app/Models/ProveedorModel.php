@@ -57,6 +57,7 @@ class ProveedorModel extends Model
     protected $beforeUpdate   = ['captureOldData'];
     protected $afterUpdate    = ['auditUpdate'];
     protected $afterInsert    = ['auditInsert', 'duplicarCuentaPrincipal'];
+    protected $beforeDelete   = ['captureOldData'];
     protected $afterDelete    = ['auditDelete'];
 
     /**

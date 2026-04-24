@@ -93,6 +93,12 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/product/all', 'Api::allProducts');
         $routes->get('api/product/(:num)', 'Api::getProductById/$1');
         $routes->get('api/product', 'Api::allProducts');
+        
+        // Catálogo Maestro
+        $routes->get('api/catalogo/all', 'Api::getCatalogoMaestro');
+        $routes->post('api/catalogo/create', 'Api::createCatalogo');
+        $routes->post('api/catalogo/update/(:num)', 'Api::updateCatalogo/$1');
+        $routes->post('api/catalogo/delete/(:num)', 'Api::deleteCatalogo/$1');
         //endregion
 
         //region departamentos

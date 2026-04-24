@@ -3,7 +3,10 @@
         <h2 class="text-2xl font-semibold text-gray-800">Editar/Corregir Solicitudes</h2>
     </div>
 
-    <div id="filtros-maestro-container" class="flex flex-col md:flex-row md:items-center gap-4 mb-4 bg-white p-3 rounded shadow-sm border border-gray-200">
+    <div id="filtros-maestro-container" class="flex flex-wrap items-center gap-4 mb-4 bg-white p-3 rounded shadow-sm border border-gray-200">
+        <div class="flex items-center gap-2">
+            <input type="text" id="filtro-folio-maestro" placeholder="Folio..." class="border border-gray-300 p-2 rounded w-24 md:w-32 text-sm" autocomplete="off">
+        </div>
 
         <div class="flex items-center gap-2">
             <input type="date" id="filtro-fecha-maestro" class="border border-gray-300 p-2 rounded w-full md:w-auto text-sm">
@@ -39,26 +42,28 @@
             <option value="1">Crédito</option>
         </select>
 
-        <select id="filtro-razon-social-maestro" class="border border-gray-300 p-2 rounded w-full md:w-auto text-sm" multiple>
-            <option value="">Todas las razones sociales</option>
-            <?php if (isset($razones_sociales) && !empty($razones_sociales)): ?>
-                <?php foreach ($razones_sociales as $rs): ?>
-                    <option value="<?= esc($rs['Nombre']) ?>"><?= esc($rs['Nombre']) ?></option>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </select>
-
-        <div id="wrapper-depto-maestro" class="hidden w-full md:w-auto">
-            <select id="filtroDepartamentoMaestro" class="border p-2 rounded w-full" multiple>
-                <option value="">Todos los departamentos</option>
-                <?php if (isset($departamentos) && !empty($departamentos)): ?>
-                    <?php foreach ($departamentos as $dpto): ?>
-                        <option value="<?= esc($dpto['Nombre']) ?>|<?= esc($dpto['PlaceNombre'] ?? '') ?>">
-                            <?= esc($dpto['Nombre']) ?> - <?= esc($dpto['PlaceNombre'] ?? '') ?>
-                        </option>
+        <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+            <select id="filtro-razon-social-maestro" class="border border-gray-300 p-2 rounded w-full text-sm" multiple>
+                <option value="">Todas las razones sociales</option>
+                <?php if (isset($razones_sociales) && !empty($razones_sociales)): ?>
+                    <?php foreach ($razones_sociales as $rs): ?>
+                        <option value="<?= esc($rs['Nombre']) ?>" data-id-razon="<?= esc($rs['ID_RazonSocial']) ?>"><?= esc($rs['Nombre']) ?></option>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </select>
+
+            <div id="wrapper-depto-maestro" class="hidden">
+                <select id="filtroDepartamentoMaestro" class="border p-2 rounded w-full" multiple>
+                    <option value="">Todos los departamentos</option>
+                    <?php if (isset($departamentos) && !empty($departamentos)): ?>
+                        <?php foreach ($departamentos as $dpto): ?>
+                            <option value="<?= esc($dpto['Nombre']) ?>|<?= esc($dpto['PlaceNombre'] ?? '') ?>" data-razon="<?= esc($dpto['ID_RazonSocial']) ?>">
+                                <?= esc($dpto['Nombre']) ?> - <?= esc($dpto['PlaceNombre'] ?? '') ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
         </div>
     </div>
 

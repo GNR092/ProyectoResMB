@@ -54,6 +54,7 @@ class SolicitudModel extends Model
 
     protected $beforeInsert = ['normalizeUnidadOperativa'];
     protected $beforeUpdate = ['normalizeUnidadOperativaOnUpdate', 'captureOldData'];
+    protected $beforeDelete = ['captureOldData'];
     protected $afterUpdate  = ['auditUpdate'];
     protected $afterInsert  = ['auditInsert'];
     protected $afterDelete  = ['auditDelete'];

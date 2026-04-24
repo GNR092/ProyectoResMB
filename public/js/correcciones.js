@@ -33,6 +33,34 @@ function initControlMaestro() {
         }
     }
 
+    // --- Lógica de dependencia RS -> Depto ---
+    if (choicesRazonMaestro && choicesDeptoMaestro) {
+        const originalDeptoOptions = Array.from(filtroEl.options).map(opt => ({
+            value: opt.value,
+            label: opt.text,
+            razon: opt.dataset.razon
+        }));
+
+        filtroRazonEl.addEventListener('change', () => {
+            const selectedRazones = choicesRazonMaestro.getValue().map(item => {
+                const opt = Array.from(filtroRazonEl.options).find(o => o.value === item.value);
+                return opt ? opt.dataset.idRazon : null;
+            }).filter(id => id);
+
+            let filteredOptions = [];
+            if (selectedRazones.length === 0) {
+                filteredOptions = originalDeptoOptions;
+            } else {
+                filteredOptions = originalDeptoOptions.filter(opt => 
+                    !opt.razon || selectedRazones.includes(opt.razon)
+                );
+            }
+
+            choicesDeptoMaestro.clearStore();
+            choicesDeptoMaestro.setChoices(filteredOptions, 'value', 'label', true);
+        });
+    }
+
     // 2. URL + Cache Buster
     let urlEndpoint = 'api/historic';
     const exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría'];
@@ -86,6 +114,7 @@ function initControlMaestro() {
         },
 
         filterFunction: (allData) => {
+            const folioFiltro = document.getElementById('filtro-folio-maestro')?.value.toLowerCase().trim() || '';
             const fechaFiltro = document.getElementById('filtro-fecha-maestro').value;
             const filtrarPorMes = document.getElementById('filtrar-por-mes-maestro').checked;
             const estadoFiltro = document.getElementById('filtro-estado-maestro').value;
@@ -95,6 +124,7 @@ function initControlMaestro() {
             const razonesSeleccionadas = choicesRazonMaestro ? choicesRazonMaestro.getValue(true) : [];
 
             return allData.filter((item) => {
+                const coincideFolio = !folioFiltro || (item.No_Folio && item.No_Folio.toLowerCase().includes(folioFiltro));
                 const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
                 const coincideMetodo = !metodoFiltro || item.MetodoPago == metodoFiltro;
                 
@@ -115,7 +145,7 @@ function initControlMaestro() {
                     coincideRazon = razonesSeleccionadas.includes(item.Complejo);
                 }
 
-                const passesOtherFilters = coincideEstado && coincideDepto && coincideMetodo && coincideTipo && coincideRazon;
+                const passesOtherFilters = coincideFolio && coincideEstado && coincideDepto && coincideMetodo && coincideTipo && coincideRazon;
 
                 if (!fechaFiltro) return passesOtherFilters;
                 const fechaItem = item.Fecha;

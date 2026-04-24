@@ -1,3 +1,7 @@
+<?php
+// Vista de historial
+?>
+
 <!-- Pantalla 1: historial -->
 <div id="div-historial" class="p-4">
     <h2 class="text-2xl font-semibold mb-4">Ver Historial de requisiciones</h2>

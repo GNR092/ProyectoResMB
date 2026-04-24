@@ -1,6 +1,32 @@
 <div class="p-4">
     <h2 class="text-lg font-bold mb-4">Requisiciones en dictamen</h2>
 
+    <!-- Filtros -->
+    <div id="filtros-dictamen-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-white p-3 rounded shadow-sm border border-gray-200">
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Filtrar por Departamento</label>
+            <select id="filtro-depto-dictamen" class="border border-gray-300 p-2 rounded w-full text-sm" multiple>
+                <option value="">Todos los departamentos</option>
+                <?php if (isset($departamentos) && !empty($departamentos)): ?>
+                    <?php foreach ($departamentos as $d): ?>
+                        <option value="<?= esc($d['Nombre']) ?>"><?= esc($d['Nombre']) ?></option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Filtrar por Usuario</label>
+            <select id="filtro-usuario-dictamen" class="border border-gray-300 p-2 rounded w-full text-sm" multiple>
+                <option value="">Todos los usuarios</option>
+                <?php if (isset($usuarios) && !empty($usuarios)): ?>
+                    <?php foreach ($usuarios as $u): ?>
+                        <option value="<?= esc($u['Nombre']) ?>"><?= esc($u['Nombre']) ?></option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </select>
+        </div>
+    </div>
+
     <!-- Div Tabla Principal -->
     <div id="div-tabla">
         <div class="overflow-x-auto">

@@ -35,12 +35,16 @@ class SolicitudesCambioPresupuestoModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
+    // Callbacks
     protected $beforeUpdate = ['captureOldData'];
     protected $afterUpdate  = ['auditUpdate'];
     protected $afterInsert  = ['auditInsert'];
+    protected $beforeDelete = ['captureOldData'];
     protected $afterDelete  = ['auditDelete'];
 
-    // Opcional: Join con usuario para vistas
+    /**
+     * Obtiene las solicitudes pendientes con información del usuario.
+     */
     public function getPendientes()
     {
         return $this->select('SolicitudesCambioPresupuesto.*, Usuarios.Nombre as NombreUsuario')

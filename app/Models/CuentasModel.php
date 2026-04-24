@@ -44,6 +44,6 @@ class CuentasModel extends Model
     protected $afterUpdate    = ['auditUpdate'];
     protected $beforeFind     = [];
     protected $afterFind      = [];
-    protected $beforeDelete   = [];
+    protected $beforeDelete   = ['captureOldData'];
     protected $afterDelete    = ['auditDelete'];
 }

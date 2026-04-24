@@ -30,6 +30,7 @@ function abrirModal(opcion) {
     programar_pagos: 'programar_pagos',
     crud_departamento: 'catalogos',
     crud_places: 'catalogos',
+    catalogo_productos: 'catalogos',
   }
 
   const highlightOpcion = parentModals[opcion] || opcion
@@ -53,13 +54,15 @@ function abrirModal(opcion) {
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
 
-  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto', 'bitacora']
+  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto', 'bitacora', 'catalogo_productos']
 
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
     modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto')
+    modalBox.classList.add('max-w-[95vw]', 'mx-4')
   } else {
     modal.classList.add('justify-center')
+    modalBox.classList.remove('max-w-[95vw]')
     modalBox.classList.add('max-w-4xl', 'mx-4', 'sm:mx-auto')
   }
 
@@ -104,6 +107,7 @@ function abrirModal(opcion) {
     AjustesPresupuesto: 'Ajustes presupuestales',
     GastoManual: 'Registrar Gastos Indirectos',
     bitacora: 'Auditoría de Bitácora',
+    catalogo_productos: 'Catálogo Maestro de Productos',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -145,6 +149,7 @@ function abrirModal(opcion) {
         bajas_destruccion: initBajasDestruccion,
         crud_places: initCrudPlaces,
         crud_departamento: initCrudDepartamentos,
+        catalogo_productos: initCatalogoProductos,
         crud_cuentas: initCrudCuentas,
         correcciones: initControlMaestro,
         GrupoPresupuestal: initCrudGrupos,
@@ -1084,6 +1089,26 @@ async function mostrarVerHistorial(idSolicitud) {
 
     html += generarSeccionAdjuntos(data)
 
+    // Botón de Cancelar para usuarios del mismo departamento en estados previos a cotización
+    const estadosCancelables = ['aprobacion pendiente', 'en espera'];
+    
+    // Soporte para PascalCase o minúsculas (compatibilidad PostgreSQL)
+    const rawEstado = data.Estado || data.estado || '';
+    const rawIdDpto = data.ID_Dpto || data.id_dpto;
+    
+    const estadoNormalizado = rawEstado.toLowerCase().trim();
+    const mismoDepartamento = parseInt(rawIdDpto) === parseInt(window.CURRENT_DEPTO_ID);
+
+    if (estadosCancelables.includes(estadoNormalizado) && mismoDepartamento) {
+      html += `
+            <div class="mt-8 flex items-center justify-end border-t pt-6">
+                <button onclick="globalCancelarSolicitud(${idSolicitud}, () => abrirModal('ver_historial'))" 
+                        class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition shadow-sm">
+                    Cancelar Requisición
+                </button>
+            </div>`;
+    }
+
     detallesContainer.innerHTML = html
   } catch (error) {
     console.error('Error al cargar detalles del historial:', error)
@@ -1442,6 +1467,275 @@ function regresarTabla() {
 }
 
 /**
+ * Lógica del Catálogo Maestro de Productos
+ */
+function initCatalogoProductos() {
+  const listado = document.getElementById('pantalla-lista-catalogo')
+  const formularioCont = document.getElementById('pantalla-form-catalogo')
+  const form = document.getElementById('form-catalogo')
+  const tabla = document.getElementById('tabla-catalogo-body')
+
+  if (!listado || !form) return
+
+  // Configuración de Choices.js
+  const configChoices = {
+    removeItemButton: false,
+    itemSelectText: '',
+    searchPlaceholderValue: 'Buscar...',
+    shouldSort: false,
+    placeholder: true,
+  }
+
+  const choices = {}
+  const originalOptions = {}
+
+  ;['form-rs', 'form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) {
+      // Guardar opciones originales para filtrado dinámico
+      originalOptions[id] = Array.from(el.options).map((opt) => ({
+        value: opt.value,
+        label: opt.text,
+        rs: opt.dataset.rs,
+        seg: opt.dataset.seg,
+        place: opt.dataset.place,
+        unidad: opt.dataset.unidad,
+        depto: opt.dataset.depto,
+      }))
+      choices[id] = new Choices(el, configChoices)
+    }
+  })
+
+  // Función para filtrar selects (Cascada Hacia Abajo)
+  const filterChoices = (targetId, filterFn) => {
+    if (!choices[targetId]) return
+    const filtered = originalOptions[targetId].filter((opt) => opt.value === '' || filterFn(opt))
+    choices[targetId].clearChoices()
+    choices[targetId].setChoices(filtered, 'value', 'label', true)
+  }
+
+  // Lógica de Asistencia de Llenado (Upward & Downward)
+  const rsSel = document.getElementById('form-rs')
+  const segSel = document.getElementById('form-seg')
+  const placeSel = document.getElementById('form-place')
+  const deptoSel = document.getElementById('form-depto')
+  const grupoSel = document.getElementById('form-grupo')
+
+  // ASISTENCIA HACIA ARRIBA (Upward) - Llenado automático usando respaldo de datos
+  const handleUpwardSelection = (id, parents) => {
+    const val = choices[id].getValue(true)
+    if (val === undefined || val === null || val === '') return
+
+    const optData = originalOptions[id].find((o) => o.value == val)
+    if (!optData) return
+
+    parents.forEach((p) => {
+      const parentVal = optData[p.attr]
+      if (parentVal !== undefined && parentVal !== null && parentVal !== '' && choices[p.id]) {
+        // Asegurar que la opción esté disponible antes de setearla
+        filterChoices(p.id, () => true)
+        choices[p.id].setChoiceByValue(parentVal.toString())
+        // Disparar manualmente para continuar la cadena hacia arriba
+        const parentEl = document.getElementById(p.id)
+        if (parentEl) parentEl.dispatchEvent(new Event('change'))
+      }
+    })
+  }
+
+  // --- LISTENERS ---
+
+  // 1. Razón Social (Cambia -> Filtra Segmentos y Lugares)
+  rsSel.addEventListener('change', (e) => {
+    const rsId = e.target.value
+    if (rsId) {
+      filterChoices('form-seg', (opt) => opt.rs == rsId)
+      filterChoices('form-place', (opt) => opt.rs == rsId)
+    } else {
+      filterChoices('form-seg', () => true)
+      filterChoices('form-place', () => true)
+    }
+  })
+
+  // 2. Segmento (Cambia -> Sube a RS y Filtra Lugares)
+  segSel.addEventListener('change', () => {
+    handleUpwardSelection('form-seg', [{ id: 'form-rs', attr: 'rs' }])
+    const segId = segSel.value
+    if (segId) {
+      filterChoices('form-place', (opt) => opt.seg == segId)
+    }
+  })
+
+  // 3. Lugar (Cambia -> Sube a RS/Seg y Filtra Deptos)
+  placeSel.addEventListener('change', () => {
+    handleUpwardSelection('form-place', [
+      { id: 'form-rs', attr: 'rs' },
+      { id: 'form-seg', attr: 'seg' },
+    ])
+    const placeId = placeSel.value
+    if (placeId) {
+      filterChoices('form-depto', (opt) => opt.place == placeId)
+    } else {
+      filterChoices('form-depto', () => true)
+    }
+  })
+
+  // 4. Departamento (Cambia -> Sube a Lugar y Filtra Partidas)
+  deptoSel.addEventListener('change', () => {
+    handleUpwardSelection('form-depto', [{ id: 'form-place', attr: 'place' }])
+    const deptoId = deptoSel.value
+    const placeId = placeSel.value
+    
+    if (deptoId) {
+      const optData = originalOptions['form-depto'].find((o) => o.value == deptoId)
+      if (optData && optData.unidad) {
+        // Caso normal: El depto tiene unidad operativa
+        filterChoices('form-grupo', (opt) => opt.unidad == optData.unidad)
+      } else if (placeId) {
+        // Fallback: El depto NO tiene unidad, filtramos por complejo
+        filterChoices('form-grupo', (opt) => opt.place == placeId)
+      }
+    } else {
+      filterChoices('form-grupo', () => true)
+    }
+  })
+
+  // 5. Partida (Cambia -> Sube a Departamento y continúa cadena)
+  grupoSel.addEventListener('change', () => {
+    const val = choices['form-grupo'].getValue(true)
+    const optData = originalOptions['form-grupo'].find((o) => o.value == val)
+    
+    if (optData) {
+      // Subir a Departamento si existe el vínculo
+      if (optData.depto) {
+        filterChoices('form-depto', () => true)
+        choices['form-depto'].setChoiceByValue(optData.depto.toString())
+        deptoSel.dispatchEvent(new Event('change'))
+      } else if (optData.place) {
+        // Si no hay depto directo, al menos subir al Place
+        filterChoices('form-place', () => true)
+        choices['form-place'].setChoiceByValue(optData.place.toString())
+        placeSel.dispatchEvent(new Event('change'))
+      }
+    }
+  })
+
+  // Botones Navegación
+  const btnAgregar = document.getElementById('btn-agregar-catalogo')
+  if (btnAgregar) {
+    btnAgregar.onclick = () => {
+      form.reset()
+      // Resetear filtros y valores de Choices
+      ;['form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => filterChoices(id, () => true))
+      Object.values(choices).forEach((c) => c.setChoiceByValue(''))
+
+      const idInput = document.getElementById('form-id-cat')
+      if (idInput) idInput.value = ''
+      const tituloForm = document.getElementById('form-catalogo-titulo')
+      if (tituloForm) tituloForm.innerText = 'Nuevo Producto'
+      listado.classList.add('hidden')
+      formularioCont.classList.remove('hidden')
+    }
+  }
+
+  const btnRegresar = document.getElementById('btn-regresar-catalogo')
+  if (btnRegresar) {
+    btnRegresar.onclick = () => {
+      formularioCont.classList.add('hidden')
+      listado.classList.remove('hidden')
+    }
+  }
+
+  // Paginación y Filtros (Tabla principal)
+  setupClientSideTable({
+    rowsSelector: '#tabla-catalogo-body tr[data-id]',
+    paginationSelector: 'paginacion-catalogo',
+    filterFormSelector: '#form-filtros-catalogo',
+    filterFunction: (row) => {
+      const nombre = (document.getElementById('buscar-nombre-catalogo')?.value || '').toLowerCase()
+      const depto = document.getElementById('filtro-departamento-catalogo')?.value || ''
+      const grupo = document.getElementById('filtro-grupo-catalogo')?.value || ''
+
+      const rowNombre = row.dataset.nombre.toLowerCase()
+      const rowDepto = row.querySelector('.text-gray-500')?.innerText || ''
+      const rowGrupo = row.querySelector('.bg-blue-100')?.innerText || ''
+
+      return (
+        rowNombre.includes(nombre) &&
+        (depto === '' || rowDepto.includes(depto)) &&
+        (grupo === '' || rowGrupo.includes(grupo))
+      )
+    },
+  })
+
+  // Guardar / Actualizar
+  form.onsubmit = async (e) => {
+    e.preventDefault()
+    const id = document.getElementById('form-id-cat').value
+    const endpoint = id ? `api/catalogo/update/${id}` : 'api/catalogo/create'
+    const formData = new FormData(form)
+
+    try {
+      const res = await SendDataEnd(endpoint, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (res.success) {
+        mostrarNotificacion('Operación exitosa ✅', 'success')
+        abrirModal('catalogo_productos') // Recargar
+      } else {
+        mostrarNotificacion(res.message || 'Error en la operación', 'error')
+      }
+    } catch (err) {
+      mostrarNotificacion('Error de conexión', 'error')
+    }
+  }
+
+  // Acciones Tabla (Editar / Eliminar)
+  if (tabla) {
+    tabla.addEventListener('click', async (e) => {
+      const btnEdit = e.target.closest('.btn-editar-cat')
+      const btnDel = e.target.closest('.btn-eliminar-cat')
+
+      if (btnEdit) {
+        const row = btnEdit.closest('tr')
+        document.getElementById('form-id-cat').value = row.dataset.id
+        document.getElementById('form-nombre').value = row.dataset.nombre
+
+        // Resetear filtros antes de cargar para asegurar que los valores sean visibles
+        ;['form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => filterChoices(id, () => true))
+
+        // Cargar valores en Choices
+        if (choices['form-rs']) choices['form-rs'].setChoiceByValue(row.dataset.rs || '')
+        if (choices['form-seg']) choices['form-seg'].setChoiceByValue(row.dataset.seg || '')
+        if (choices['form-place']) choices['form-place'].setChoiceByValue(row.dataset.place || '')
+        if (choices['form-depto']) choices['form-depto'].setChoiceByValue(row.dataset.depto || '')
+        if (choices['form-grupo']) choices['form-grupo'].setChoiceByValue(row.dataset.grupo || '')
+
+        document.getElementById('form-catalogo-titulo').innerText = 'Editar Producto'
+        listado.classList.add('hidden')
+        formularioCont.classList.remove('hidden')
+      }
+
+      if (btnDel) {
+        const row = btnDel.closest('tr')
+        if (await Confirmar('¿Eliminar producto?', `¿Estás seguro de eliminar "${row.dataset.nombre}"?`)) {
+          try {
+            const res = await SendDataEnd(`api/catalogo/delete/${row.dataset.id}`, { method: 'POST' })
+            if (res.success) {
+              mostrarNotificacion('Eliminado correctamente', 'success')
+              row.remove()
+            }
+          } catch (err) {
+            mostrarNotificacion('Error al eliminar', 'error')
+          }
+        }
+      }
+    })
+  }
+}
+
+/**
  * Lógica para el modal CRUD Places
  */
 
@@ -1648,16 +1942,43 @@ function initPlacesActions(tabla) {
   })
 }
 
+let choicesDeptoDictamen = null;
+let choicesUserDictamen = null;
+
 /**
  * Lógica para el modal "Dictamen de Solicitudes"
  */
 async function initDictamenSolicitudes() {
   if (!document.getElementById('tablaDictamenSolicitudes')) return
 
+  // Inicializar Choices
+  const selDepto = document.getElementById('filtro-depto-dictamen');
+  if (selDepto && !choicesDeptoDictamen) {
+    choicesDeptoDictamen = new Choices(selDepto, {
+      removeItemButton: true,
+      itemSelectText: '',
+      placeholderValue: 'Todos los departamentos',
+      searchPlaceholderValue: 'Buscar...',
+      removeItemButton: true,
+    });
+  }
+
+  const selUser = document.getElementById('filtro-usuario-dictamen');
+  if (selUser && !choicesUserDictamen) {
+    choicesUserDictamen = new Choices(selUser, {
+      removeItemButton: true,
+      itemSelectText: '',
+      placeholderValue: 'Todos los usuarios',
+      searchPlaceholderValue: 'Buscar...',
+      removeItemButton: true,
+    });
+  }
+
   createPaginatedTable({
     tableSelector: '#tablaDictamenSolicitudes',
     paginationSelector: 'paginacion-dictamen',
     endpoint: 'api/solicitudes/en-revision',
+    filterFormSelector: '#filtros-dictamen-container',
     noResultsMessage: 'No hay solicitudes en dictamen para mostrar.',
     renderRow: (s) => `
       <tr class="hover:bg-gray-50" data-id="${s.ID}">
@@ -1669,6 +1990,16 @@ async function initDictamenSolicitudes() {
           <td class="py-3 px-6 text-left text-blue-600 cursor-pointer" onclick="mostrarVerDictamen(${s.ID})">VER</td>
       </tr>
     `,
+    filterFunction: (allData) => {
+      const deptos = choicesDeptoDictamen ? choicesDeptoDictamen.getValue(true) : [];
+      const users = choicesUserDictamen ? choicesUserDictamen.getValue(true) : [];
+
+      return allData.filter(s => {
+        const matchDepto = deptos.length === 0 || deptos.includes(s.Departamento);
+        const matchUser = users.length === 0 || users.includes(s.Usuario);
+        return matchDepto && matchUser;
+      });
+    }
   })
 }
 

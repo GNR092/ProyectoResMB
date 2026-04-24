@@ -23,5 +23,6 @@ class ProductoModel extends Model
     protected $beforeUpdate = ['captureOldData'];
     protected $afterUpdate  = ['auditUpdate'];
     protected $afterInsert  = ['auditInsert'];
+    protected $beforeDelete = ['captureOldData'];
     protected $afterDelete  = ['auditDelete'];
 }

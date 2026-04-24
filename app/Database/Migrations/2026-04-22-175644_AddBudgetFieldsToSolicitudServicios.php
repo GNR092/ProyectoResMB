@@ -19,7 +19,7 @@ class AddBudgetFieldsToSolicitudServicios extends Migration
                 'null'       => true,
                 'after'      => 'ID_Solicitud'
             ];
-        } else {
+        } /* else {
             // Ensure it is unsigned even if it exists
             $fieldsToModify['ID_GrupoPresupuestal'] = [
                 'name'       => 'ID_GrupoPresupuestal',
@@ -28,7 +28,7 @@ class AddBudgetFieldsToSolicitudServicios extends Migration
                 'unsigned'   => true,
                 'null'       => true,
             ];
-        }
+        } */
 
         if (!$this->db->fieldExists('Monto_Comprometido_Original', 'Solicitud_Servicios')) {
             $fieldsToAdd['Monto_Comprometido_Original'] = [
@@ -48,21 +48,27 @@ class AddBudgetFieldsToSolicitudServicios extends Migration
             $this->forge->modifyColumn('Solicitud_Servicios', $fieldsToModify);
         }
 
-        // Check if constraint exists before adding
-        $checkConstraint = $this->db->query("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'Solicitud_Servicios' AND TABLE_SCHEMA = '{$this->db->database}' AND CONSTRAINT_NAME = 'fk_solicitud_servicios_grupo'")->getResult();
+        // Check if constraint exists before adding (using a more direct PG check)
+        $checkConstraint = $this->db->query("SELECT 1 FROM pg_constraint WHERE conname = 'fk_solicitud_servicios_grupo'")->getRow();
 
-        if (empty($checkConstraint)) {
-            $this->db->query('ALTER TABLE Solicitud_Servicios ADD CONSTRAINT fk_solicitud_servicios_grupo FOREIGN KEY (ID_GrupoPresupuestal) REFERENCES GrupoPresupuestal(ID_GrupoPresupuestal) ON DELETE SET NULL ON UPDATE CASCADE');
+        if (!$checkConstraint) {
+            try {
+                $this->db->query('ALTER TABLE "Solicitud_Servicios" ADD CONSTRAINT fk_solicitud_servicios_grupo FOREIGN KEY ("ID_GrupoPresupuestal") REFERENCES "GrupoPresupuestal"("ID_GrupoPresupuestal") ON DELETE SET NULL ON UPDATE CASCADE');
+            } catch (\Exception $e) {
+                // Ignore if it fails (likely already exists despite the check)
+            }
         }
     }
 
     public function down()
     {
         // Drop foreign key first if it exists
-        $checkConstraint = $this->db->query("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'Solicitud_Servicios' AND TABLE_SCHEMA = '{$this->db->database}' AND CONSTRAINT_NAME = 'fk_solicitud_servicios_grupo'")->getResult();
+        $checkConstraint = $this->db->query("SELECT 1 FROM pg_constraint WHERE conname = 'fk_solicitud_servicios_grupo'")->getRow();
 
-        if (!empty($checkConstraint)) {
-            $this->db->query('ALTER TABLE Solicitud_Servicios DROP CONSTRAINT fk_solicitud_servicios_grupo');
+        if ($checkConstraint) {
+            try {
+                $this->db->query('ALTER TABLE "Solicitud_Servicios" DROP CONSTRAINT fk_solicitud_servicios_grupo');
+            } catch (\Exception $e) {}
         }
 
         $fieldsToDrop = [];

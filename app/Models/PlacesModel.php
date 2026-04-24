@@ -45,6 +45,7 @@ class PlacesModel extends Model
     protected $beforeUpdate = ['captureOldData', 'normalizeSegmento', 'normalizeUnidadOperativaOnUpdate'];
     protected $afterUpdate  = ['auditUpdate'];
     protected $afterInsert  = ['auditInsert'];
+    protected $beforeDelete = ['captureOldData'];
     protected $afterDelete  = ['auditDelete'];
 
     protected function normalizeSegmento(array $data): array
