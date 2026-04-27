@@ -262,7 +262,8 @@ class Api extends ResourceController
      */
     public function getHistorialByDepartment($id)
     {
-        $results = $this->api->getSolicitudByDepartment($id);
+        $userId = session('id');
+        $results = $this->api->getSolicitudByDepartment((int) $id, (int) $userId);
         return $this->respond($results, HttpStatus::OK);
     }
 

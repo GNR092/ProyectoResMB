@@ -303,25 +303,35 @@ class Rest
     }
 
     /**
-     * Obtiene todas las solicitudes de un departamento específico.
+     * Obtiene todas las solicitudes de un departamento específico o de un usuario específico.
      *
      * @param int $id El ID del departamento.
-     * @return array Un array de solicitudes para el departamento dado.
+     * @param int|null $userId El ID del usuario (opcional).
+     * @return array Un array de solicitudes filtradas.
      */
-    public function getSolicitudByDepartment(int $id)
+    public function getSolicitudByDepartment(int $id, ?int $userId = null)
     {
         $solicitudModel = new SolicitudModel();
         $cotizacionModel = new CotizacionModel();
         $ordenCompraModel = new OrdenCompraModel();
-        $proveedorModel = new ProveedorModel(); // <-- Instanciamos el modelo del proveedor
+        $proveedorModel = new ProveedorModel();
 
-        $solicitudes = $solicitudModel
+        $builder = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as Complejo')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
-            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
-            ->where('Solicitud.ID_Dpto', $id)
-            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left');
+
+        if ($userId) {
+            $builder->groupStart()
+                    ->where('Solicitud.ID_Dpto', $id)
+                    ->orWhere('Solicitud.ID_Usuario', $userId)
+                    ->groupEnd();
+        } else {
+            $builder->where('Solicitud.ID_Dpto', $id);
+        }
+
+        $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
         log_message('debug', print_r($solicitudes[0] ?? [], true));
         if (empty($solicitudes)) {
