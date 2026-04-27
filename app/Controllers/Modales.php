@@ -608,24 +608,35 @@ class Modales extends BaseController
                 $rsModel = new RazonSocialModel();
                 $segmentoModel = new SegmentoNegocioModel();
                 $placeModel = new PlacesModel();
-                $deptoModel = new DepartamentosModel();
+                $deptoModel = new UnidadOperativaModel();
                 $grupoModel = new GrupoPresupuestalModel();
 
-                $data['catalogo'] = $catalogoModel->getFullCatalogo();
+                $catalogo = $catalogoModel->getFullCatalogo();
+                // Normalización de catálogo para compatibilidad cross-DB
+                foreach ($catalogo as &$item) {
+                    $item['ID_CatalogoProd'] = $item['ID_CatalogoProd'] ?? $item['id_catalogoprod'] ?? null;
+                    $item['Nombre'] = $item['Nombre'] ?? $item['nombre'] ?? '';
+                    $item['ID_RazonSocial'] = $item['ID_RazonSocial'] ?? $item['id_razonsocial'] ?? null;
+                    $item['ID_Place'] = $item['ID_Place'] ?? $item['id_place'] ?? null;
+                    $item['ID_Dpto'] = $item['ID_Dpto'] ?? $item['id_dpto'] ?? null;
+                    $item['ID_GrupoPresupuestal'] = $item['ID_GrupoPresupuestal'] ?? $item['id_grupopresupuestal'] ?? null;
+                    
+                    // Alias específicos
+                    $item['RazonSocial_Nombre'] = $item['RazonSocial_Nombre'] ?? $item['razonsocial_nombre'] ?? '-';
+                    $item['Place_Nombre'] = $item['Place_Nombre'] ?? $item['place_nombre'] ?? '-';
+                    $item['Departamento_Nombre'] = $item['Departamento_Nombre'] ?? $item['departamento_nombre'] ?? '-';
+                    $item['GrupoPresupuestal_Nombre'] = $item['GrupoPresupuestal_Nombre'] ?? $item['grupopresupuestal_nombre'] ?? 'SIN ASIGNAR';
+                }
+                unset($item);
+
+                $data['catalogo'] = $catalogo;
                 $data['razones_sociales'] = $rsModel->orderBy('Nombre', 'ASC')->findAll();
                 $data['segmentos'] = $segmentoModel->orderBy('nombre', 'ASC')->findAll();
                 $data['places'] = $placeModel->orderBy('Nombre_Corto', 'ASC')->findAll();
-                $data['departamentos'] = $deptoModel->orderBy('Nombre', 'ASC')->findAll();
+                $data['departamentos'] = $deptoModel->where('activo', true)->orderBy('Nombre', 'ASC')->findAll();
                 
-                // Obtener grupos con el ID_Dpto y ID_Place relacionado
-                $db = \Config\Database::connect();
-                $subQuery = $db->table('Departamentos')
-                               ->select('ID_Dpto')
-                               ->where('Departamentos.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa')
-                               ->limit(1)
-                               ->getCompiledSelect();
-
-                $grupos = $grupoModel->select("GrupoPresupuestal.*, UnidadOperativa.ID_Place, UnidadOperativa.Nombre as UnidadNombre, ($subQuery) as ID_Dpto")
+                // Obtener grupos con el ID_Dpto (ahora ID_UnidadOperativa) y ID_Place relacionado
+                $grupos = $grupoModel->select("GrupoPresupuestal.*, UnidadOperativa.ID_Place, UnidadOperativa.Nombre as UnidadNombre, GrupoPresupuestal.ID_UnidadOperativa as ID_Dpto")
                     ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
                     ->where('GrupoPresupuestal.activo', true)
                     ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
@@ -635,10 +646,19 @@ class Modales extends BaseController
                 $unidadesMap = array_column($unidades, 'Nombre', 'ID_UnidadOperativa');
                 
                 $groupsByUnit = [];
-                foreach ($grupos as $g) {
+                foreach ($grupos as &$g) {
+                    // Normalización de claves para compatibilidad MySQL/PostgreSQL
+                    $g['ID_GrupoPresupuestal'] = $g['ID_GrupoPresupuestal'] ?? $g['id_grupopresupuestal'] ?? null;
+                    $g['ID_UnidadOperativa'] = $g['ID_UnidadOperativa'] ?? $g['id_unidadoperativa'] ?? null;
+                    $g['Nombre'] = $g['Nombre'] ?? $g['nombre'] ?? '';
+                    $g['ID_Dpto'] = $g['ID_Dpto'] ?? $g['id_dpto'] ?? null;
+                    $g['ID_Place'] = $g['ID_Place'] ?? $g['id_place'] ?? null;
+                    $g['UnidadNombre'] = $g['UnidadNombre'] ?? $g['unidadnombre'] ?? 'S/U';
+
                     $uName = $unidadesMap[$g['ID_UnidadOperativa']] ?? 'Otras Unidades';
                     $groupsByUnit[$uName][] = $g;
                 }
+                unset($g); // Limpiar referencia
                 
                 $data['grupos'] = $grupos;
                 $data['groupsByUnit'] = $groupsByUnit;

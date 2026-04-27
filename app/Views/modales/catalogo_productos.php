@@ -11,7 +11,7 @@
     <div id="form-filtros-catalogo" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-sm">
         <input type="text" id="buscar-nombre-catalogo" placeholder="Buscar por nombre..." class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-300 outline-none">
         <select id="filtro-departamento-catalogo" class="px-3 py-2 border rounded-lg outline-none">
-            <option value="">Todos los Departamentos</option>
+            <option value="">Todos los Deptos. Op.</option>
             <?php foreach ($departamentos as $d): ?>
                 <option value="<?= esc($d['Nombre']) ?>"><?= esc($d['Nombre']) ?></option>
             <?php endforeach; ?>
@@ -31,7 +31,7 @@
                 <tr>
                     <th class="px-4 py-3 text-left">Nombre</th>
                     <th class="px-4 py-3 text-left">Razón Social</th>
-                    <th class="px-4 py-3 text-left">Lugar / Depto</th>
+                    <th class="px-4 py-3 text-left">Lugar / Depto. Op.</th>
                     <th class="px-4 py-3 text-left">Partida Presupuestal</th>
                     <th class="px-4 py-3 text-center">Acciones</th>
                 </tr>
@@ -129,11 +129,11 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Departamento</label>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Depto. de Op.</label>
                 <select name="ID_Dpto" id="form-depto" class="w-full px-3 py-2 border rounded-lg outline-none bg-white">
                     <option value="">Seleccione...</option>
                     <?php foreach ($departamentos as $d): ?>
-                        <option value="<?= $d['ID_Dpto'] ?>" data-place="<?= $d['ID_Place'] ?>" data-unidad="<?= $d['ID_UnidadOperativa'] ?>"><?= esc($d['Nombre']) ?></option>
+                        <option value="<?= $d['ID_UnidadOperativa'] ?>" data-place="<?= $d['ID_Place'] ?>" data-unidad="<?= $d['ID_UnidadOperativa'] ?>"><?= esc($d['Nombre']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
