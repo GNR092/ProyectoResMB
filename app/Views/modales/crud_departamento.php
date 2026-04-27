@@ -30,7 +30,7 @@
             <tr>
                 <th class="w-1/3 px-3 py-2 border-b text-left">Departamento</th>
                 <th class="w-1/3 px-3 py-2 border-b text-left">Lugar</th>
-                <th class="w-1/3 px-3 py-2 border-b text-left">Departamento De Operación</th>
+                <th class="w-1/3 px-3 py-2 border-b text-left">Áreas De Operación</th>
                 <th class="w-1/6 px-3 py-2 border-b text-center">Acciones</th>
             </tr>
             </thead>
@@ -150,9 +150,9 @@
             </div>
 
             <div class="flex flex-col">
-                <label for="editar-ID_UnidadOperativa" class="mb-1 font-medium">Departamento De Operación</label>
+                <label for="editar-ID_UnidadOperativa" class="mb-1 font-medium">Áreas De Operación</label>
                 <select name="ID_UnidadOperativa" id="editar-ID_UnidadOperativa" class="w-full px-3 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-blue-400">
-                    <option value="">Seleccione Departamento De Operación</option>
+                    <option value="">Seleccione Áreas De Operación</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $unidad): ?>
                             <option value="<?= $unidad['ID_UnidadOperativa'] ?>" data-place="<?= $unidad['ID_Place'] ?>">
@@ -164,5 +164,8 @@
             </div>
         </div>
         <button type="submit" class="px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg shadow hover:bg-yellow-600 transition">Guardar Cambios</button>
+    </form>
+</div>
+
     </form>
 </div>

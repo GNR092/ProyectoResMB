@@ -129,7 +129,7 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1">Depto. de Op.</label>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Áreas De Operación</label>
                 <select name="ID_Dpto" id="form-depto" class="w-full px-3 py-2 border rounded-lg outline-none bg-white">
                     <option value="">Seleccione...</option>
                     <?php foreach ($departamentos as $d): ?>

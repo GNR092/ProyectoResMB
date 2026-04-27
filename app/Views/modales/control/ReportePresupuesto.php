@@ -523,7 +523,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                 <th class="border px-3 py-2 text-left">Razón Social</th>
                                 <th class="border px-3 py-2 text-left">Proveedor</th>
                                 <th class="border px-3 py-2 text-right">Importe Total</th>
-                                <th class="border px-3 py-2 text-left">Depto.</th>
+                                <th class="border px-3 py-2 text-left">Área De Op.</th>
                                 <th class="border px-3 py-2 text-left">F. Pago Realizado</th>
                                 <th class="border px-3 py-2 text-center">Acción</th>
                             </tr>
@@ -873,7 +873,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             <!-- Filtros Locales (Dptos y Partidas) -->
             <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-fadeIn" x-cloak>
                 <div class="flex flex-col gap-1 w-full md:w-[45%]">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Áreas De Operación</label>
                     <select x-ref="filtroUnidad" multiple>
                         <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
                             <option :value="uni.ID_UnidadOperativa" x-text="(verGlobal ? uni.RazonSocialNombre + ' > ' + uni.PlaceNombre + ' > ' : '') + uni.Nombre"></option>
@@ -1069,7 +1069,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             <!-- Filtros Locales (Dptos y Partidas) -->
             <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-fadeIn" x-cloak>
                 <div class="flex flex-col gap-1 w-full md:w-[45%]">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Áreas De Operación</label>
                     <select x-ref="filtroUnidad" multiple>
                         <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
                             <option :value="uni.ID_UnidadOperativa" x-text="(verGlobal ? uni.RazonSocialNombre + ' > ' + uni.PlaceNombre + ' > ' : '') + uni.Nombre"></option>
@@ -1265,7 +1265,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             <!-- Filtros Locales (Dptos y Partidas) -->
             <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-fadeIn" x-cloak>
                 <div class="flex flex-col gap-1 w-full md:w-[45%]">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Áreas De Operación</label>
                     <select x-ref="filtroUnidad" multiple>
                         <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
                             <option :value="uni.ID_UnidadOperativa" x-text="(verGlobal ? uni.RazonSocialNombre + ' > ' + uni.PlaceNombre + ' > ' : '') + uni.Nombre"></option>
@@ -1569,7 +1569,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             <!-- Filtros Locales (Dptos y Partidas) -->
             <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm animate-fadeIn" x-cloak>
                 <div class="flex flex-col gap-1 w-full md:w-[45%]">
-                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
+                    <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Áreas De Operación</label>
                     <select x-ref="filtroUnidad" multiple>
                         <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
                             <option :value="uni.ID_UnidadOperativa" x-text="(verGlobal ? uni.RazonSocialNombre + ' > ' + uni.PlaceNombre + ' > ' : '') + uni.Nombre"></option>

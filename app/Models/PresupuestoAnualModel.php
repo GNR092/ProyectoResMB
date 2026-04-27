@@ -37,7 +37,7 @@ protected $afterUpdate  = ['auditUpdate'];
 protected $afterInsert  = ['auditInsert'];
 protected $beforeDelete = ['captureOldData'];
 protected $afterDelete  = ['auditDelete'];
-}
+
     // Helper para obtener datos de la Razón Social
     public function withRazonSocial()
     {

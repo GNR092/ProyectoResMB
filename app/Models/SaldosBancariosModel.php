@@ -40,7 +40,7 @@ class SaldosBancariosModel extends Model
     protected $afterInsert  = ['auditInsert'];
     protected $beforeDelete = ['captureOldData'];
     protected $afterDelete  = ['auditDelete'];
-    }
+
     /**
      * Obtiene los saldos con la información del banco y razón social relacionada
      */

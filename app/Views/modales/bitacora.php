@@ -183,8 +183,7 @@
                                     <label class="block text-[9px] font-black text-indigo-400 uppercase mb-1">Elemento Específico Afectado</label>
                                     <div class="text-sm font-black text-indigo-800" x-text="selectedItem?.grupo_presupuestal_nombre || selectedItem?.unidad_operativa_nombre"></div>
                                     <div class="flex items-center gap-2 mt-1">
-                                        <span class="text-[10px] text-indigo-600 font-bold" x-text="selectedItem?.grupo_presupuestal_nombre ? 'Partida Presupuestal' : 'Unidad Operativa'"></span>
-                                        <template x-if="selectedItem?.valores_nuevos?.Anio || selectedItem?.valores_nuevos?.Mes">
+                                        <span class="text-[10px] text-indigo-600 font-bold" x-text="selectedItem?.grupo_presupuestal_nombre ? 'Partida Presupuestal' : 'Áreas De Operación'"></span>                                        <template x-if="selectedItem?.valores_nuevos?.Anio || selectedItem?.valores_nuevos?.Mes">
                                             <span class="text-[10px] bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded font-black" x-text="(selectedItem?.valores_nuevos?.Mes ? 'Mes ' + selectedItem?.valores_nuevos?.Mes + ' ' : '') + selectedItem?.valores_nuevos?.Anio"></span>
                                         </template>
                                     </div>

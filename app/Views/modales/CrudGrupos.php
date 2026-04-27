@@ -34,7 +34,7 @@
             </div>
 
             <div class="flex-1 min-w-[200px]">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Depto. de Op.</label>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Áreas De Operación</label>
                 <select id="filtro-unidad-grupo" multiple>
                     <?php 
                     $unidadesUnicas = [];
@@ -66,7 +66,7 @@
             <tr>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Nombre</th>
                 <th class="w-1/5 px-3 py-2 border-b text-left">Descripción</th>
-                <th class="w-1/5 px-3 py-2 border-b text-left">Departamento De Operación</th>
+                <th class="w-1/5 px-3 py-2 border-b text-left">Áreas De Operación</th>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Indirecto</th>                <th class="w-1/5 px-3 py-2 border-b text-center">Estado</th>
                 <?php if ($tieneAccesoEdicion): ?>
                 <th class="w-1/5 px-3 py-2 border-b text-center">Acciones</th>
@@ -163,9 +163,9 @@
             </div>
 
             <div class="flex flex-col">
-                <label for="ID_UnidadOperativa" class="mb-1 font-medium">Departamento De Operación</label>
+                <label for="ID_UnidadOperativa" class="mb-1 font-medium">Áreas De Operación</label>
                 <select name="ID_UnidadOperativa" id="ID_UnidadOperativa" class="w-full px-3 py-2 border rounded-lg">
-                    <option value="">Seleccionar Departamento De Operación</option>
+                    <option value="">Seleccionar Áreas De Operación</option>
                     <?php if (!empty($unidades_operativas)): ?>
                         <?php foreach ($unidades_operativas as $uni): ?>
                             <option value="<?= esc($uni['ID_UnidadOperativa']) ?>">
@@ -229,3 +229,4 @@
         <button type="submit" class="px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg shadow hover:bg-yellow-600 transition">Guardar Cambios</button>
     </form>
 </div>
+/div>

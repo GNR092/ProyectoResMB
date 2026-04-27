@@ -155,7 +155,7 @@ class MenuOptions extends BaseConfig
             ],
 
             'UnidadOperativa' => [
-                'label' => 'Departamentos De Operación',
+                'label' => 'Áreas De Operación',
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#UnidadOperativa"></use></svg>',
             ],
 

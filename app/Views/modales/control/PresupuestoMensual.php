@@ -94,7 +94,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 
     <div x-show="!cargando && departamentosOriginales.length > 0" class="flex flex-wrap items-start gap-x-6 gap-y-4 mb-6 bg-white p-4 rounded-lg border border-gray-200 shadow-sm" x-cloak>
         <div class="flex flex-col gap-1 w-full md:w-[45%]">
-            <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Departamentos De Operación</label>
+            <label class="text-xs font-bold text-gray-500 uppercase">Filtrar Áreas De Operación</label>
             <select x-ref="filtroUnidad" multiple>
                 <template x-for="uni in departamentosOriginales" :key="uni.ID_UnidadOperativa">
                     <option :value="uni.ID_UnidadOperativa" x-text="uni.Nombre"></option>
@@ -141,7 +141,7 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
             </tr>
             <tr x-show="!cargando && departamentos.length === 0">
                 <td colspan="2" class="px-4 py-12 text-center text-gray-400">
-                    Seleccione una Razón Social, un Place y una Fecha para visualizar los departamentos de operación.
+                    Seleccione una Razón Social, un Place y una Fecha para visualizar las Áreas De Operación.
                 </td>
             </tr>
             </tbody>
@@ -216,3 +216,4 @@ $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 </div>
 
 </div>
+

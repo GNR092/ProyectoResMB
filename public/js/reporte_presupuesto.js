@@ -1503,7 +1503,7 @@ function registrarComponenteReportePresupuesto() {
                     this.choicesUnidad = new Choices(refUnidad, {
                         removeItemButton: true,
                         itemSelectText: '',
-                        placeholderValue: 'Todas las Unidades',
+                        placeholderValue: 'Todas las Áreas',
                         searchPlaceholderValue: 'Buscar unidad...',
                         allowHTML: true
                     });

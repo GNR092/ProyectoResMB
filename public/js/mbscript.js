@@ -4289,7 +4289,7 @@ function initUnidadesActions(tabla) {
     }
     if (bD) {
       e.preventDefault();
-      if (!confirm('¿Estás seguro de desactivar este departamento de operación?')) return;
+      if (!confirm('¿Estás seguro de desactivar esta área de operación?')) return;
       guardarFiltrosUnidades();
       try {
         const res = await SendDataEnd(`modales/crud_unidades_operativas/eliminar/${bD.dataset.id}`, { method: 'POST' });
