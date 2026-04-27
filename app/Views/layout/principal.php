@@ -24,14 +24,14 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 </head>
 
 <body class="h-screen flex">
-<aside class="font-montserrat w-64 bg-carbon-700 text-white flex flex-col overflow-auto">
-    <div class="p-4 border-b border-gray-600">
+<aside class="font-montserrat w-64 bg-carbon-800 flex flex-col overflow-auto transition-all duration-300">
+    <div class="p-4 border-b border-carbon-700">
         <img src="<?= base_url(
             'images/logo.png',
         ) ?>" alt="Logo" class="mx-auto h-20 object-contain">
     </div>
 
-    <nav id="sidebar-nav" class="flex-1 mt-4 px-4 space-y-2">
+    <nav id="sidebar-nav" class="flex-1 mt-4 px-3 space-y-1">
         <?php if (!empty($opcionesDinamicas)): ?>
             <?php foreach ($opcionesDinamicas as $key => $opcion): ?>
                 <?php $isTitle =
@@ -39,60 +39,65 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
                     empty($opcion['icon']); ?>
 
                 <?php if ($isTitle): ?>
-                    <div class="text-gray-500 text-xs font-bold uppercase tracking-widest pt-6 pb-1 px-3 select-none">
+                    <div class="text-carbon-400 text-[10px] font-bold uppercase tracking-widest pt-5 pb-2 px-3 select-none">
                         <?= esc($opcion['label']) ?>
                     </div>
                 <?php else: ?>
                     <a href="#" data-opcion="<?= $key ?>"
-                       class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
+                       class="flex items-center px-3 py-2 text-sm font-medium text-carbon-200 border-l-2 border-transparent hover:border-yellow-500 hover:bg-carbon-700 hover:text-white transition-all duration-150 ease-in-out group"
                        onclick="abrirModal('<?= $key ?>', '<?= esc($opcion['label'], 'js') ?>')">
-                        <?= $opcion['icon'] ?>
-                        <span><?= esc($opcion['label']) ?></span>
+                        <span class="shrink-0 group-hover:text-yellow-500 transition-colors duration-150">
+                            <?= $opcion['icon'] ?>
+                        </span>
+                        <span class="ml-3"><?= esc($opcion['label']) ?></span>
                     </a>
                 <?php endif; ?>
             <?php endforeach; ?>
         <?php else: ?>
-            <p class="text-gray-400 text-sm px-3">Sin opciones disponibles</p>
+            <p class="text-carbon-500 text-xs px-3">Sin opciones disponibles</p>
         <?php endif; ?>
 
-        <hr class="border-gray-600 my-2">
+        <hr class="border-carbon-700 my-4 mx-3">
 
         <?php if ($login_type === 'boss'): ?>
             <?php if (count($ajustes) > 0 && array_intersect(['razonsocial', 'crud_places', 'crud_departamento', 'crud_usuarios', 'crud_proveedores'], $ajustes)): ?>
-                <a href="#" data-opcion="catalogos" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
+                <a href="#" data-opcion="catalogos" class="flex items-center px-3 py-2 text-sm font-medium text-carbon-200 border-l-2 border-transparent hover:border-yellow-500 hover:bg-carbon-700 hover:text-white transition-all duration-150 ease-in-out group"
                    onclick="abrirModal('catalogos')">
-                    <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
+                    <svg class="size-6 shrink-0 text-carbon-400 group-hover:text-yellow-500 transition-colors duration-150" fill="none" stroke-width="1.5" stroke="currentColor">
                         <use xlink:href="/icons/icons.svg#Catalogos"></use>
                     </svg>
-                    <span>Catálogos</span>
+                    <span class="ml-3">Catálogos</span>
                 </a>
             <?php endif; ?>
 
-            <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors"
+            <a href="#" data-opcion="ajustes" class="flex items-center px-3 py-2 text-sm font-medium text-carbon-200 border-l-2 border-transparent hover:border-yellow-500 hover:bg-carbon-700 hover:text-white transition-all duration-150 ease-in-out group"
                onclick="abrirModal('ajustes')">
-                <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
+                <svg class="size-6 shrink-0 text-carbon-400 group-hover:text-yellow-500 transition-colors duration-150" fill="none" stroke-width="1.5" stroke="currentColor">
                     <use xlink:href="/icons/icons.svg#settings"></use>
                 </svg>
-                <span>Ajustes</span>
+                <span class="ml-3">Ajustes</span>
             </a>
         <?php endif; ?>
 
         <a href="<?= base_url(
             'auth/logout',
-        ) ?>" class="flex items-center px-3 py-2 rounded hover:bg-gray-700 space-x-2 transition-colors">
-            <svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor">
+        ) ?>" class="flex items-center px-3 py-2 text-sm font-medium text-carbon-200 border-l-2 border-transparent hover:border-red-500 hover:bg-carbon-700 hover:text-red-400 transition-all duration-150 ease-in-out group">
+            <svg class="size-6 shrink-0 text-carbon-400 group-hover:text-red-400 transition-colors duration-150" fill="none" stroke-width="1.5" stroke="currentColor">
                 <use xlink:href="/icons/icons.svg#logout"></use>
             </svg>
-            <span>Cerrar sesión</span>
+            <span class="ml-3">Cerrar sesión</span>
         </a>
     </nav>
 </aside>
 
 <div class="flex-1 flex flex-col bg-gray-100">
-    <header class="h-12 bg-white border-b border-gray-300 flex items-center justify-end px-6 text-sm text-gray-600 shadow-sm">
-        <?= esc($nombre_usuario ?? 'Usuario') ?> | <?= esc(
-     $modo_login . ' ' . ($departamento_usuario ?? 'Departamento'),
- ) ?>
+    <header class="h-12 bg-white border-b border-carbon-100 flex items-center justify-end px-6 text-sm text-carbon-600">
+        <div class="flex items-center gap-2">
+            <span class="size-2 bg-yellow-500 rounded-full animate-pulse"></span>
+            <span class="font-semibold text-carbon-800"><?= esc($nombre_usuario ?? 'Usuario') ?></span>
+            <span class="text-carbon-400 mx-1">|</span>
+            <span><?= esc($modo_login . ' ' . ($departamento_usuario ?? 'Departamento')) ?></span>
+        </div>
     </header>
 
     <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
@@ -106,11 +111,11 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
             <?= $this->renderSection('contenido') ?>
         </div>
 
-        <div id="modal-general" class="absolute inset-0 bg-black/20 backdrop-blur-sm z-30 hidden items-start justify-center pt-10 overflow-auto">
-            <div class="bg-white bg-opacity-95 rounded-lg shadow-2xl max-w-4xl w-full mx-4 sm:mx-auto p-6 relative">
-                <button onclick="cerrarModal()" class="absolute top-2 right-3 text-gray-500 hover:text-red-500 text-3xl font-bold">&times;</button>
-                <h2 id="modal-title" class="text-xl font-semibold mb-4 text-gray-800"></h2>
-                <div id="modal-contenido" class="text-gray-700 space-y-2">
+        <div id="modal-general" class="absolute inset-0 bg-carbon-950/20 backdrop-blur-[2px] z-30 hidden items-start justify-center pt-10 overflow-auto transition-all duration-300">
+            <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 sm:mx-auto p-6 relative border border-carbon-100">
+                <button onclick="cerrarModal()" class="absolute top-4 right-4 text-carbon-400 hover:text-red-500 transition-colors text-2xl line-height-0">&times;</button>
+                <h2 id="modal-title" class="text-lg font-bold mb-6 text-carbon-900 border-l-4 border-yellow-500 pl-3"></h2>
+                <div id="modal-contenido" class="text-carbon-700">
                 </div>
             </div>
         </div>

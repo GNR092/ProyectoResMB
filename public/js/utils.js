@@ -14,6 +14,19 @@ function formatearMoneda(valor) {
 async function SendDataEnd(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`
 
+  // Nano-Loader Start
+  const loaderId = 'nano-loader-' + Math.random().toString(36).substr(2, 9);
+  const header = document.querySelector('header');
+  if (header) {
+    const loader = document.createElement('div');
+    loader.id = loaderId;
+    loader.className = 'absolute top-0 left-0 h-[2px] bg-yellow-500 transition-all duration-300 ease-out z-50';
+    loader.style.width = '0%';
+    header.style.position = 'relative';
+    header.appendChild(loader);
+    requestAnimationFrame(() => loader.style.width = '30%');
+  }
+
   const defaultHeaders = {
     'X-Requested-With': 'XMLHttpRequest',
   }
@@ -51,6 +64,11 @@ async function SendDataEnd(endpoint, options = {}) {
   }
 
   try {
+    if (header) {
+      const loader = document.getElementById(loaderId);
+      if (loader) loader.style.width = '70%';
+    }
+
     const response = await fetch(url, config)
 
     if (!response.ok) {
@@ -66,6 +84,14 @@ async function SendDataEnd(endpoint, options = {}) {
       error.statusText = response.statusText
       error.data = errorData
       throw error
+    }
+
+    if (header) {
+      const loader = document.getElementById(loaderId);
+      if (loader) {
+        loader.style.width = '100%';
+        setTimeout(() => loader.remove(), 200);
+      }
     }
 
     if (response.status === 204) {
@@ -87,6 +113,10 @@ async function SendDataEnd(endpoint, options = {}) {
 
     return await response.blob()
   } catch (error) {
+    if (header) {
+      const loader = document.getElementById(loaderId);
+      if (loader) loader.remove();
+    }
     console.error(`Fallo en la llamada API a ${endpoint}:`, error)
 
     throw error

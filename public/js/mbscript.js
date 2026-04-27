@@ -35,18 +35,26 @@ function abrirModal(opcion) {
 
   const highlightOpcion = parentModals[opcion] || opcion
 
-  const activeClasses = ['bg-indigo-600', 'text-white']
-  const inactiveClasses = ['text-gray-300', 'hover:bg-gray-700']
+  const activeClasses = ['border-yellow-500', 'bg-carbon-700', 'text-white']
+  const inactiveClasses = ['border-transparent', 'text-carbon-200', 'hover:bg-carbon-700']
 
   document.querySelectorAll('#sidebar-nav a[data-opcion]').forEach((link) => {
     link.classList.remove(...activeClasses)
     link.classList.add(...inactiveClasses)
+    
+    // Reset icon color
+    const icon = link.querySelector('svg')
+    if (icon) icon.classList.replace('text-yellow-500', 'text-carbon-400')
   })
 
   const activeLink = document.querySelector(`#sidebar-nav a[data-opcion='${highlightOpcion}']`)
   if (activeLink) {
     activeLink.classList.remove(...inactiveClasses)
     activeLink.classList.add(...activeClasses)
+    
+    // Highlight icon
+    const icon = activeLink.querySelector('svg')
+    if (icon) icon.classList.replace('text-carbon-400', 'text-yellow-500')
   }
 
   const modal = document.getElementById('modal-general')
