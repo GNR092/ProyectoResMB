@@ -671,44 +671,6 @@ async function initSolicitarServicio() {
   // Cargar lista de proveedores
   loadRazonSocialProv('razonSocialServicioSelect')
 
-  // Cargar lista de Cuentas del proveedor seleccionado
-  const proveedorSelect = document.getElementById('razonSocialServicioSelect')
-  const cuentaSelect = document.getElementById('cuentaProveedorSelect')
-
-  if (proveedorSelect && cuentaSelect) {
-    proveedorSelect.addEventListener('change', async () => {
-      const idProveedor = proveedorSelect.value
-
-      // Limpiar opciones anteriores
-      cuentaSelect.innerHTML = '<option value="">Seleccione una cuenta</option>'
-
-      if (!idProveedor) return
-
-      try {
-        // Ruta para obtener datos de la tabla "Cuentas"
-        const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`, {
-          method: 'GET',
-        })
-
-        if (cuentas && cuentas.length > 0) {
-          cuentas.forEach((c) => {
-            const option = document.createElement('option')
-            option.value = c.ID_Cuenta // El valor será el ID
-            option.textContent = c.Cuenta // El texto visible será el número de cuenta/CLABE
-            cuentaSelect.appendChild(option)
-          })
-        } else {
-          const option = document.createElement('option')
-          option.textContent = '(Este proveedor no tiene cuentas registradas)'
-          option.disabled = true
-          cuentaSelect.appendChild(option)
-        }
-      } catch (error) {
-        console.error('Error al cargar cuentas bancarias:', error)
-      }
-    })
-  }
-
   if (formulario) {
     formulario.addEventListener('submit', function (e) {
 

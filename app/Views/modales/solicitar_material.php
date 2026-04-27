@@ -422,15 +422,6 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </select>
             </div>
 
-            <!-- Cuenta del Proveedor -->
-            <div class="mt-4">
-                <label class="text-sm text-gray-700 font-medium">Elegir Cuenta del proveedor</label>
-                <select id="cuentaProveedorSelect" class="w-full px-3 py-2 border rounded" name="cuenta_proveedor">
-                    <option value="">Seleccione una cuenta</option>
-                    <!-- Opciones se llenarán dinámicamente más adelante -->
-                </select>
-            </div>
-
             <div class="overflow-auto">
                 <!-- Tabla de servicios -->
                 <table class="w-full text-sm text-left border border-gray-300">
