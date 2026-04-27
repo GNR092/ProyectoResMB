@@ -3439,6 +3439,40 @@ window.initLimpiarAlmacenamiento = function () {
 }
 
 /**
+ * Filtra las opciones de Unidad Operativa basadas en el Lugar seleccionado.
+ */
+function setupFiltroUnidadPorLugar(idSelectLugar, idSelectUnidad) {
+  const selectLugar = document.getElementById(idSelectLugar)
+  const selectUnidad = document.getElementById(idSelectUnidad)
+  if (!selectLugar || !selectUnidad) return
+
+  // Guardamos las opciones originales si no existen
+  if (!selectUnidad.originalOptions) {
+    selectUnidad.originalOptions = Array.from(selectUnidad.options)
+  }
+
+  const filtrar = () => {
+    const lugarId = selectLugar.value
+    const valorActual = selectUnidad.value
+
+    // Limpiar y reconstruir
+    selectUnidad.innerHTML = ''
+    selectUnidad.originalOptions.forEach((opt) => {
+      // Mostrar si es la opción vacía, o si coincide el lugar, o si no hay lugar seleccionado (opcional)
+      if (!opt.value || opt.dataset.place === lugarId || !lugarId) {
+        selectUnidad.appendChild(opt.cloneNode(true))
+      }
+    })
+
+    // Intentar restaurar el valor previo
+    selectUnidad.value = valorActual
+  }
+
+  selectLugar.addEventListener('change', filtrar)
+  return filtrar
+}
+
+/**
  * Lógica para CRUD_Departamento
  */
 function initCrudDepartamentos() {
@@ -3449,7 +3483,12 @@ function initCrudDepartamentos() {
   initDepartamentosPantallas()
   initDepartamentosForm()
   initDepartamentosEditarForm()
-  initDepartamentosActions(tabla)
+
+  // Inicializar filtrado de Lugar -> Unidad Operativa
+  const filtrarAgregar = setupFiltroUnidadPorLugar('ID_Place', 'ID_UnidadOperativa')
+  const filtrarEditar = setupFiltroUnidadPorLugar('editar-ID_Place', 'editar-ID_UnidadOperativa')
+
+  initDepartamentosActions(tabla, filtrarEditar)
 }
 
 function initDepartamentosTabla() {
@@ -3486,6 +3525,12 @@ function initDepartamentosPantallas() {
       e.preventDefault()
       pantallaLista?.classList.add('hidden')
       pantallaAgregar?.classList.remove('hidden')
+
+      // Disparar el filtro inicial (probablemente vacío)
+      const selectLugar = document.getElementById('ID_Place')
+      if (selectLugar) {
+        selectLugar.dispatchEvent(new Event('change'))
+      }
     }
 
   if (btnRegresarAgregar)
@@ -3588,7 +3633,7 @@ function initDepartamentosEditarForm() {
   }
 }
 
-function initDepartamentosActions(tabla) {
+function initDepartamentosActions(tabla, onEditLoad) {
   if (!tabla) return
 
   tabla.addEventListener('click', async (e) => {
@@ -3633,6 +3678,10 @@ function initDepartamentosActions(tabla) {
     document.getElementById('editar-ID_Dpto').value = fila.dataset.id
     document.getElementById('editar-Nombre').value = fila.dataset.nombre
     document.getElementById('editar-ID_Place').value = fila.dataset.idPlace
+
+    // Disparar el filtro antes de asignar la unidad para que la opción exista en el DOM
+    if (typeof onEditLoad === 'function') onEditLoad()
+
     document.getElementById('editar-ID_UnidadOperativa').value = fila.dataset.idUnidad || ''
 
     document.getElementById('pantalla-lista-departamentos').classList.add('hidden')
