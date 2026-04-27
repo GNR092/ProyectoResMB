@@ -115,16 +115,16 @@ class MenuOptions extends BaseConfig
 
 
             // ********* INVENTARIO *************//
-            'TituloAlmacen' => [
-                'label' => 'Inventario',
-                'icon' => '',
-                'is_title' => true,
-            ],
-
-            'almacen' => [
-                'label' => 'Almacén',
-                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#almacen"></use></svg>',
-            ],
+//            'TituloAlmacen' => [
+//                'label' => 'Inventario',
+//                'icon' => '',
+//                'is_title' => true,
+//            ],
+//
+//            'almacen' => [
+//                'label' => 'Almacén',
+//                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#almacen"></use></svg>',
+//            ],
 
 
             //**********CONTADOR**********//
