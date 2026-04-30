@@ -1,7 +1,7 @@
-<!-- Pantalla 1: Lista del Catálogo Maestro -->
+<!-- Pantalla 1: Lista del Catálogo De Productos Y Servicios -->
 <div id="pantalla-lista-catalogo" class="p-6 bg-white rounded-xl shadow-md">
     <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-bold text-gray-800">Catálogo Maestro de Productos</h2>
+        <h2 class="text-2xl font-bold text-gray-800">Catálogo De Productos Y Servicios</h2>
         <button id="btn-agregar-catalogo" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition shadow-sm">
             + AGREGAR PRODUCTO
         </button>

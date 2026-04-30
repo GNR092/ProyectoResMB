@@ -1,11 +1,18 @@
 <td class="numero-fila-servicio border px-3 py-1 text-center"></td>
 
 <td class="border px-3 py-1">
-    <input type="text"
-           name="servicio[]"
-           class="w-full border rounded px-2 py-1"
-           placeholder="Nombre del servicio"
-           required>
+    <select name="servicio[]" class="w-full border rounded px-2 py-1 select-producto-catalogo" required>
+        <option value="">Seleccione un servicio...</option>
+        <?php if (!empty($catalogo_productos)): ?>
+            <?php foreach ($catalogo_productos as $prod): ?>
+                <option value="<?= esc($prod['Nombre']) ?>" 
+                        data-codigo="<?= esc($prod['ID_CatalogoProd']) ?>" 
+                        data-grupo="<?= esc($prod['ID_GrupoPresupuestal']) ?>">
+                    <?= esc($prod['Nombre']) ?> (<?= esc($prod['UnidadNombre'] ?? 'General') ?>)
+                </option>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </select>
 </td>
 
 <td class="border px-3 py-1">

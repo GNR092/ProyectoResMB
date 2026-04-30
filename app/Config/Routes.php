@@ -86,6 +86,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('modales/ReportePresupuesto', 'ReportesController::index');
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');
+        $routes->get('modales/vistas/product_row_sin_cotizar', 'Modales::getProductTableRowSinCotizar');
         $routes->get('modales/vistas/service_row', 'Modales::getServiceTableRow');
 
         // API Restful - Productos
@@ -94,7 +95,8 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/product/(:num)', 'Api::getProductById/$1');
         $routes->get('api/product', 'Api::allProducts');
         
-        // Catálogo Maestro
+        // Catálogo De Productos Y Servicios
+        $routes->get('api/catalogo/filtrado', 'Api::getCatalogoFiltradoDinamico');
         $routes->get('api/catalogo/all', 'Api::getCatalogoMaestro');
         $routes->post('api/catalogo/create', 'Api::createCatalogo');
         $routes->post('api/catalogo/update/(:num)', 'Api::updateCatalogo/$1');

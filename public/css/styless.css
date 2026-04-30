@@ -177,7 +177,6 @@
     --default-mono-font-family: var(--font-mono);
     --font-doulos: 'Doulos SIL', serif;
     --font-montserrat: 'Montserrat', sans-serif;
-    --color-carbon-50: #f6f6f6;
     --color-carbon-100: #e7e7e7;
     --color-carbon-200: #c4c4c4;
     --color-carbon-400: #7d7d7d;
@@ -671,6 +670,9 @@
   .min-h-\[50vh\] {
     min-height: 50vh;
   }
+  .min-h-\[300px\] {
+    min-height: 300px;
+  }
   .min-h-\[400px\] {
     min-height: 400px;
   }
@@ -1050,6 +1052,9 @@
   }
   .overflow-hidden {
     overflow: hidden;
+  }
+  .overflow-visible {
+    overflow: visible;
   }
   .overflow-x-auto {
     overflow-x: auto;
@@ -3606,6 +3611,24 @@
   font-weight: normal;
   font-display: swap;
   src: url('../fonts/Montserrat.woff2') format('woff2');
+}
+.select-producto-catalogo + .choices .choices__inner {
+  min-height: 32px !important;
+  padding: 2px 8px !important;
+  font-size: 0.8rem !important;
+  border-radius: 6px !important;
+  display: flex;
+  align-items: center;
+}
+.select-producto-catalogo + .choices .choices__list--single {
+  padding: 0 !important;
+}
+.select-producto-catalogo + .choices .choices__item {
+  font-size: 0.75rem !important;
+  padding: 4px 8px !important;
+}
+.select-producto-catalogo + .choices .choices__list--dropdown .choices__item--selectable {
+  padding-right: 10px !important;
 }
 @property --tw-translate-x {
   syntax: "*";

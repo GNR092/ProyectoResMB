@@ -561,15 +561,17 @@ class Rest
         ) {
             $solicitudProductModel = new SolicitudProductModel();
             $productos = $solicitudProductModel
-                ->select('Solicitud_Producto.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre')
+                ->select('Solicitud_Producto.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre, Catalogo_Productos.ID_GrupoPresupuestal as ID_GrupoSugerido')
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
+                ->join('Catalogo_Productos', 'Catalogo_Productos.Nombre = Solicitud_Producto.Nombre', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         } else {
             $solicitudServicioModel = new SolicitudServiciosModel();
             $productos = $solicitudServicioModel
-                ->select('Solicitud_Servicios.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre')
+                ->select('Solicitud_Servicios.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre, Catalogo_Productos.ID_GrupoPresupuestal as ID_GrupoSugerido')
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Servicios.ID_GrupoPresupuestal', 'left')
+                ->join('Catalogo_Productos', 'Catalogo_Productos.Nombre = Solicitud_Servicios.Nombre', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         }
@@ -775,15 +777,17 @@ class Rest
         ) {
             $solicitudProductModel = new SolicitudProductModel();
             $productos = $solicitudProductModel
-                ->select('Solicitud_Producto.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre')
+                ->select('Solicitud_Producto.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre, Catalogo_Productos.ID_GrupoPresupuestal as ID_GrupoSugerido')
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
+                ->join('Catalogo_Productos', 'Catalogo_Productos.Nombre = Solicitud_Producto.Nombre', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         } else {
             $solicitudServicioModel = new SolicitudServiciosModel();
             $productos = $solicitudServicioModel
-                ->select('Solicitud_Servicios.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre')
+                ->select('Solicitud_Servicios.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre, Catalogo_Productos.ID_GrupoPresupuestal as ID_GrupoSugerido')
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Servicios.ID_GrupoPresupuestal', 'left')
+                ->join('Catalogo_Productos', 'Catalogo_Productos.Nombre = Solicitud_Servicios.Nombre', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         }

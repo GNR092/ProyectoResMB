@@ -9,7 +9,18 @@ $iconUrl = "/icons/icons.svg?v=$version";
         <input type="text" name="codigo[]" class="w-full border rounded px-2 py-1 codigo" placeholder="Código" required>
     </td>
     <td class="border px-3 py-1">
-        <input type="text" name="producto[]" class="w-full border rounded px-2 py-1" placeholder="Producto" required>
+        <select name="producto[]" class="w-full border rounded px-2 py-1 select-producto-catalogo" required>
+            <option value="">Seleccione un producto...</option>
+            <?php if (!empty($catalogo_productos)): ?>
+                <?php foreach ($catalogo_productos as $prod): ?>
+                    <option value="<?= esc($prod['Nombre']) ?>" 
+                            data-codigo="<?= esc($prod['ID_CatalogoProd']) ?>" 
+                            data-grupo="<?= esc($prod['ID_GrupoPresupuestal']) ?>">
+                        <?= esc($prod['Nombre']) ?> (<?= esc($prod['UnidadNombre'] ?? 'General') ?>)
+                    </option>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </select>
     </td>
     <td class="border px-3 py-1">
         <input type="number" name="cantidad[]" class="cantidad w-full border rounded px-2 py-1" min="1" step="1" value="1" required>

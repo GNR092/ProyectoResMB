@@ -115,7 +115,7 @@ function abrirModal(opcion) {
     AjustesPresupuesto: 'Ajustes presupuestales',
     GastoManual: 'Registrar Gastos Indirectos',
     bitacora: 'Auditoría de Bitácora',
-    catalogo_productos: 'Catálogo Maestro de Productos',
+    catalogo_productos: 'Catálogo De Productos Y Servicios',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -203,10 +203,75 @@ function cerrarModal() {
 }
 
 /**
+ * Refresca el catálogo de productos basado en la Razón Social (cuando no hay lugar específico)
+ */
+async function refreshCatalogoByRS(idRS) {
+  if (!idRS) return;
+  
+  const deptoInput = document.querySelector('input[name="departamento"]');
+  let nombreDepto = deptoInput ? deptoInput.value : '';
+  if (nombreDepto.includes('(')) {
+      nombreDepto = nombreDepto.split('(')[0].trim();
+  }
+
+  try {
+    const url = `${BASE_URL}api/catalogo/filtrado?id_razon_social=${idRS}&nombre_depto=${encodeURIComponent(nombreDepto)}`;
+    const response = await fetch(url);
+    const productos = await response.json();
+
+    if (Array.isArray(productos)) {
+      window.catalogoMasterList = productos.map(p => ({
+        value: p.Nombre,
+        label: `${p.Nombre} (${p.UnidadNombre || 'General'})`,
+        customProperties: { codigo: p.ID_CatalogoProd, grupo: p.ID_GrupoPresupuestal }
+      }));
+      syncCatalogoChoices();
+    }
+  } catch (error) { 
+    console.error('Error al refrescar catálogo por RS:', error); 
+  }
+}
+
+/**
+ * Refresca el catálogo de productos basado en el lugar seleccionado y el departamento del usuario
+ */
+async function refreshCatalogoByPlace(idPlace) {
+  if (!idPlace) return;
+
+  const deptoInput = document.querySelector('input[name="departamento"]');
+  let nombreDepto = deptoInput ? deptoInput.value : '';
+  if (nombreDepto.includes('(')) {
+      nombreDepto = nombreDepto.split('(')[0].trim();
+  }
+
+  try {
+    const url = `${BASE_URL}api/catalogo/filtrado?id_place=${idPlace}&nombre_depto=${encodeURIComponent(nombreDepto)}`;
+    const response = await fetch(url);
+    const productos = await response.json();
+
+    if (Array.isArray(productos)) {
+      window.catalogoMasterList = productos.map(p => ({
+        value: p.Nombre,
+        label: `${p.Nombre} (${p.UnidadNombre || 'General'})`,
+        customProperties: {
+          codigo: p.ID_CatalogoProd,
+          grupo: p.ID_GrupoPresupuestal
+        }
+      }));
+      syncCatalogoChoices();
+    }
+  } catch (error) {
+    console.error('Error al refrescar catálogo:', error);
+  }
+}
+
+/**
  * Lógica para el modal "Solicitar Material"
  */
 function initPlaceSelectors(allPlaces) {
-  if (!allPlaces || !Array.isArray(allPlaces) || allPlaces.length === 0) return
+  if (!allPlaces || !Array.isArray(allPlaces) || allPlaces.length === 0) {
+      return;
+  }
 
   const mappings = [
     { razon: 'razonSocialMaterial', place: 'placeMaterial', contenedor: 'contenedor-place-material' },
@@ -219,41 +284,40 @@ function initPlaceSelectors(allPlaces) {
     const placeSelect = document.getElementById(map.place)
     const contenedor = document.getElementById(map.contenedor)
 
-    if (razonSelect && placeSelect) {
-      // Eliminar el listener anterior si existe para evitar duplicados
+    if (razonSelect) {
+      
       if (razonSelect._filterHandler) {
         razonSelect.removeEventListener('change', razonSelect._filterHandler)
       }
 
       const filtrar = () => {
-        const selectedId = razonSelect.value
-        placeSelect.innerHTML = '<option value="">Seleccione un condominio</option>'
+        const selectedId = razonSelect.value;
         
         if (!selectedId) {
-            if (contenedor) contenedor.classList.add('hidden');
-            placeSelect.required = false;
+            if (placeSelect) {
+                placeSelect.innerHTML = '<option value="">Seleccione un condominio</option>'
+                if (contenedor) contenedor.classList.add('hidden');
+                placeSelect.required = false;
+            }
             return;
         }
 
-        // Filtrado robusto (maneja posibles variaciones en los nombres de las propiedades)
         const filtered = allPlaces.filter((p) => {
-          // Buscamos en todas las variantes posibles que PostgreSQL/PHP podrían retornar
           const rsId = p.ID_RazonSocial || p.id_razon_social || p.id_razonsocial || p.Id_RazonSocial
           return String(rsId) === String(selectedId)
         })
 
-        if (filtered.length === 0) {
-            // Si no hay lugares para esta razón social, ocultamos el selector y quitamos el required
+        if (!placeSelect || filtered.length === 0) {
+            refreshCatalogoByRS(selectedId);
             if (contenedor) contenedor.classList.add('hidden');
-            placeSelect.required = false;
+            if (placeSelect) placeSelect.required = false;
             return;
         }
 
-        // Si hay lugares, mostramos el contenedor y ponemos el required
         if (contenedor) contenedor.classList.remove('hidden');
         placeSelect.required = true;
+        placeSelect.innerHTML = '<option value="">Seleccione un condominio</option>'
 
-        // Evitar duplicados por ID_Place
         const seen = new Set()
         filtered.forEach((p) => {
           const placeId = p.ID_Place || p.id_place
@@ -265,16 +329,94 @@ function initPlaceSelectors(allPlaces) {
             placeSelect.appendChild(opt)
           }
         })
+
+        if (placeSelect.value) {
+            refreshCatalogoByPlace(placeSelect.value);
+        } else {
+            refreshCatalogoByRS(selectedId);
+        }
       }
 
-      // Guardar el handler en el elemento para poder removerlo después
       razonSelect._filterHandler = filtrar
       razonSelect.addEventListener('change', filtrar)
       
-      // Ejecutar una vez por si hay algo preseleccionado
-      filtrar()
+      if (placeSelect) {
+          if (placeSelect._placeHandler) placeSelect.removeEventListener('change', placeSelect._placeHandler);
+          placeSelect._placeHandler = (e) => {
+            refreshCatalogoByPlace(e.target.value)
+          };
+          placeSelect.addEventListener('change', placeSelect._placeHandler);
+      }
     }
   })
+}
+
+// Variables globales para la gestión del catálogo dinámico
+window.catalogoChoicesInstances = new Set();
+window.catalogoMasterList = null;
+
+/**
+ * Sincroniza todos los selectores del catálogo (Versión simplificada para diagnóstico)
+ */
+function syncCatalogoChoices() {
+  if (!window.catalogoMasterList) return;
+
+  const selects = document.querySelectorAll('.select-producto-catalogo');
+
+  selects.forEach((select, index) => {
+    const currentVal = select.value;
+
+    // Construir HTML de opciones
+    let optionsHtml = '<option value="">Seleccione un producto...</option>';
+    window.catalogoMasterList.forEach(p => {
+      const isSelected = p.value === currentVal ? 'selected' : '';
+      optionsHtml += `<option value="${p.value}" data-codigo="${p.customProperties.codigo}" data-grupo="${p.customProperties.grupo}" ${isSelected}>${p.label}</option>`;
+    });
+
+    select.innerHTML = optionsHtml;
+  });
+}
+
+/**
+ * Inicializa los selectores del catálogo (Versión NATIVA para diagnóstico)
+ */
+function initChoicesForCatalogo(container = document) {
+  const selects = container.querySelectorAll('.select-producto-catalogo');
+  
+  selects.forEach((select) => {
+    // Si ya tiene el listener, no lo duplicamos
+    if (select._hasInitListener) return;
+
+    // Capturar el catálogo maestro inicial si no existe
+    if (!window.catalogoMasterList && select.options.length > 1) {
+      window.catalogoMasterList = Array.from(select.options)
+        .filter(opt => opt.value !== "")
+        .map(opt => ({
+            value: opt.value,
+            label: opt.text,
+            customProperties: {
+              codigo: opt.dataset.codigo,
+              grupo: opt.dataset.grupo
+            }
+          }));
+    }
+
+    // Evento al cambiar selección (comportamiento nativo)
+    select.addEventListener('change', () => {
+      const selectedOption = select.options[select.selectedIndex];
+      const fila = select.closest('tr');
+      const codigoInput = fila?.querySelector('.codigo');
+
+      if (selectedOption && selectedOption.value) {
+        const codigo = selectedOption.dataset.codigo;
+        if (codigoInput) codigoInput.value = codigo || '';
+      } else {
+        if (codigoInput) codigoInput.value = '';
+      }
+    });
+
+    select._hasInitListener = true;
+  });
 }
 
 async function initSolicitarMaterial() {
@@ -373,6 +515,20 @@ async function initSolicitarMaterial() {
       actualizarTotal()
     }
 
+    const selectCatalogo = fila.querySelector('.select-producto-catalogo')
+    const codigoInput = fila.querySelector('.codigo')
+    if (selectCatalogo) {
+      selectCatalogo.addEventListener('change', () => {
+        const selectedOption = selectCatalogo.options[selectCatalogo.selectedIndex]
+        if (selectedOption && selectedOption.value) {
+          const codigo = selectedOption.dataset.codigo
+          if (codigoInput) codigoInput.value = codigo
+        } else {
+          if (codigoInput) codigoInput.value = ''
+        }
+      })
+    }
+
     if (cantidadInput) cantidadInput.addEventListener('input', actualizarCosto)
     if (importeInput) importeInput.addEventListener('input', actualizarCosto)
 
@@ -390,6 +546,7 @@ async function initSolicitarMaterial() {
   }
 
   tabla.querySelectorAll('tr').forEach((fila) => asignarEventosFila(fila))
+  initChoicesForCatalogo(tabla)
   actualizarBotonesEliminar()
   actualizarNumeros()
   actualizarTotal()
@@ -416,6 +573,7 @@ async function initSolicitarMaterial() {
 
       if (nuevaFila) {
         asignarEventosFila(nuevaFila)
+        initChoicesForCatalogo(nuevaFila)
         actualizarNumeros()
         actualizarBotonesEliminar()
         actualizarTotal()
@@ -515,6 +673,7 @@ async function initSolicitarMaterialSinCotizar() {
   }
 
   tabla.querySelectorAll('tr').forEach((fila) => asignarEventosFila(fila))
+  initChoicesForCatalogo(tabla)
   actualizarBotonesEliminar()
   actualizarNumeros()
 
@@ -522,29 +681,29 @@ async function initSolicitarMaterialSinCotizar() {
     const nuevoBtn = agregarBtn.cloneNode(true)
     agregarBtn.parentNode.replaceChild(nuevoBtn, agregarBtn)
 
-    nuevoBtn.addEventListener('click', () => {
-      const nuevaFila = document.createElement('tr')
-      nuevaFila.classList.add('fila-producto')
-      nuevaFila.innerHTML = `
-                <td class="numero-fila px-3 py-2 border text-center"></td>
-                <td class="px-3 py-2 border">
-                    <input type="text" name="producto[]" class="w-full px-2 py-1 border rounded" placeholder="Nombre del producto">
-                </td>
-                <td class="px-3 py-2 border">
-                    <input type="number" name="cantidad[]" class="w-full px-2 py-1 border rounded cantidad" min="1" value="1">
-                </td>
-                <td class="px-3 py-2 border text-center">
-                    <button type="button" class="eliminar-fila text-red-600 hover:text-red-800" title="Eliminar fila">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6 inline">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                    </button>
-                </td>
-            `
-      tabla.appendChild(nuevaFila)
-      asignarEventosFila(nuevaFila)
-      actualizarNumeros()
-      actualizarBotonesEliminar()
+    let rowHtmlSinCotizar = null
+    nuevoBtn.addEventListener('click', async () => {
+      if (!rowHtmlSinCotizar) {
+        try {
+          rowHtmlSinCotizar = await SendDataEnd('modales/vistas/product_row_sin_cotizar', {
+            responseType: 'text',
+          })
+        } catch (error) {
+          console.error(error)
+          rowHtmlSinCotizar = '<tr><td colspan="4" class="text-red-500 p-2">Error al cargar fila.</td></tr>'
+        }
+      }
+      
+      tabla.insertAdjacentHTML('beforeend', rowHtmlSinCotizar.trim())
+      const nuevasFilas = tabla.querySelectorAll('tr')
+      const nuevaFila = nuevasFilas[nuevasFilas.length - 1]
+
+      if (nuevaFila) {
+        asignarEventosFila(nuevaFila)
+        initChoicesForCatalogo(nuevaFila)
+        actualizarNumeros()
+        actualizarBotonesEliminar()
+      }
     })
   }
 
@@ -655,6 +814,7 @@ async function initSolicitarServicio() {
   }
 
   tabla.querySelectorAll('tr').forEach((fila) => asignarEventosFila(fila))
+  initChoicesForCatalogo(tabla)
   actualizarBotonesEliminar()
   actualizarNumeros()
   actualizarTotal()
@@ -668,8 +828,11 @@ async function initSolicitarServicio() {
     nuevoBtn.addEventListener('click', async () => {
       const rowHtml = await getServiceRowHtml()
       const nuevaFila = tabla.insertRow()
-      nuevaFila.innerHTML = rowHtml
+      nuevaFila.classList.add('fila-servicio')
+      nuevaFila.innerHTML = rowHtml.trim()
+      
       asignarEventosFila(nuevaFila)
+      initChoicesForCatalogo(nuevaFila)
       actualizarNumeros()
       actualizarBotonesEliminar()
       actualizarTotal()

@@ -274,26 +274,8 @@ function RevisionX() {
         `
               // =========================================
 
-              // --- LÓGICA SELECTOR GRUPO GENERAL (ASISTENTE) ---
+              // --- LÓGICA SELECTOR GRUPO GENERAL (ELIMINADA: SOLO LECTURA) ---
               let grupoGeneralHtml = '';
-              if (data.grupos_presupuestales) {
-                  const requestPlaceId = data.ID_Place;
-                  const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
-
-                  if (gruposFiltrados.length > 0) {
-                      grupoGeneralHtml = `
-                        <div id="contenedor-grupo-general" class="mb-4 bg-blue-50 p-4 border border-blue-200 rounded-lg">
-                            <label class="block text-sm font-bold text-blue-800 mb-1">Asistente de Llenado: Seleccionar grupo para todos los ítems</label>
-                            <div id="select-grupo-general-container">
-                                <select id="select-grupo-presupuestal-general" class="w-full border rounded-md p-2 bg-white text-blue-900 font-semibold focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer">
-                                    <option value="">-- Seleccionar grupo para aplicar a todo --</option>
-                                    ${gruposFiltrados.map(grupo => `<option value="${grupo.ID_GrupoPresupuestal}">${grupo.Nombre}</option>`).join('')}
-                                </select>
-                            </div>
-                        </div>
-                      `;
-                  }
-              }
               // -------------------------------------------------
 
               html += grupoGeneralHtml;
@@ -332,25 +314,24 @@ function RevisionX() {
 
                   let gruposHtml = '';
                   const itemId = isServicio ? p.ID_SolicitudServ : p.ID_SolicitudProd;
-                  gruposHtml = `<select name="id_grupo_presupuestal[${itemId}]" class="w-full border rounded px-2 py-1 text-sm grupo-presupuestal-select" required>`
-                  gruposHtml += `<option value="">Seleccione grupo</option>`
-                  if (data.grupos_presupuestales) {
-                      // Filtrar grupos por el ID_Place de la solicitud
-                      const requestPlaceId = data.ID_Place;
-                      
-                      const gruposFiltrados = data.grupos_presupuestales.filter(g => {
-                          // Si no tenemos ID_Place en la solicitud, NO mostramos nada por seguridad
-                          if (!requestPlaceId) return false;
-                          // Mostrar solo si coincide el ID_Place (usamos == para permitir string/int)
-                          return g.ID_Place == requestPlaceId;
-                      });
+                  
+                  // Obtener el ID del grupo asignado o sugerido
+                  const idGrupoAsignado = p.ID_GrupoPresupuestal || p.ID_GrupoSugerido;
+                  let nombreGrupo = 'No asignado';
+                  let idGrupo = '';
 
-                      gruposFiltrados.forEach((grupo) => {
-                          const selected = p.ID_GrupoPresupuestal == grupo.ID_GrupoPresupuestal ? 'selected' : ''
-                          gruposHtml += `<option value="${grupo.ID_GrupoPresupuestal}" ${selected}>${grupo.Nombre}</option>`
-                      })
+                  if (data.grupos_presupuestales && idGrupoAsignado) {
+                      const grupo = data.grupos_presupuestales.find(g => g.ID_GrupoPresupuestal == idGrupoAsignado);
+                      if (grupo) {
+                          nombreGrupo = grupo.Nombre;
+                          idGrupo = grupo.ID_GrupoPresupuestal;
+                      }
                   }
-                  gruposHtml += `</select>`
+
+                  gruposHtml = `
+                    <div class="text-sm font-semibold text-blue-700">${nombreGrupo}</div>
+                    <input type="hidden" name="id_grupo_presupuestal[${itemId}]" value="${idGrupo}">
+                  `;
 
                   html += `
                     <tr class="hover:bg-gray-50">

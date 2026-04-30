@@ -52,6 +52,33 @@ class Modales extends BaseController
         ]);
     }
 
+    /**
+     * Lógica centralizada para obtener el catálogo filtrado con fallback a complejo
+     */
+    private function getCatalogoFiltrado($idDepto)
+    {
+        $deptoModel = new DepartamentosModel();
+        $catalogoModel = new CatalogoProductosModel();
+        
+        $deptoObj = $idDepto ? $deptoModel->find($idDepto) : null;
+        if (!$deptoObj) return [];
+
+        $idUnidad = $deptoObj['ID_UnidadOperativa'] ?? 0;
+        $idPlace = $deptoObj['ID_Place'] ?? 0;
+
+        $productos = [];
+        if ($idUnidad) {
+            $productos = $catalogoModel->getProductosPorUnidadOperativa($idUnidad);
+        }
+
+        // Fallback: Si no hay unidad o no hay productos para esa unidad, buscar por Complejo (Place)
+        if (empty($productos) && $idPlace) {
+            $productos = $catalogoModel->getProductosPorPlace($idPlace);
+        }
+
+        return $productos;
+    }
+
     public function mostrar($opcion)
     {
         $session = session();
@@ -126,15 +153,6 @@ class Modales extends BaseController
                         ->select('ID_RazonSocial, Nombre')
                         ->orderBy('Nombre', 'ASC')
                         ->findAll();
-                    
-                    // También enviamos todos los places para que JS los filtre
-                    // Vinculación directa únicamente: Places -> ID_RazonSocial
-                    $data['all_places'] = $db->table('Places')
-                        ->select('ID_Place, Nombre_Corto, ID_RazonSocial')
-                        ->where('ID_RazonSocial IS NOT NULL')
-                        ->orderBy('Nombre_Corto', 'ASC')
-                        ->get()
-                        ->getResultArray();
                 } else {
                     /**
                      * Requisito:
@@ -184,6 +202,17 @@ class Modales extends BaseController
                     ->where('activo', true)
                     ->orderBy('Nombre', 'ASC')
                     ->findAll();
+
+                // 5. Obtener el catálogo de productos con lógica de fallback
+                $data['catalogo_productos'] = $this->getCatalogoFiltrado($idDeptoUsuario);
+
+                // 6. Asegurar que siempre enviamos los lugares para el JS dinámico
+                $data['all_places'] = \Config\Database::connect()->table('Places')
+                    ->select('ID_Place, Nombre_Corto, ID_RazonSocial')
+                    ->where('ID_RazonSocial IS NOT NULL')
+                    ->orderBy('Nombre_Corto', 'ASC')
+                    ->get()
+                    ->getResultArray();
 
                 return view('modales/solicitar_material', $data);
 
@@ -739,12 +768,24 @@ class Modales extends BaseController
             ->where('activo', true)
             ->orderBy('Nombre', 'ASC')
             ->findAll();
+        
+        $data['catalogo_productos'] = $this->getCatalogoFiltrado($idDepto);
 
         return view('layout/productTable', $data);
     }
+    public function getProductTableRowSinCotizar()
+    {
+        $idDepto = session('id_departamento_usuario');
+        $data['catalogo_productos'] = $this->getCatalogoFiltrado($idDepto);
+
+        return view('layout/productTableSinCotizar', $data);
+    }
     public function getServiceTableRow()
     {
-        return view('layout/serviceTable');
+        $idDepto = session('id_departamento_usuario');
+        $data['catalogo_productos'] = $this->getCatalogoFiltrado($idDepto);
+
+        return view('layout/serviceTable', $data);
     }
 
 

@@ -92,19 +92,17 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </select>
             </div>
 
-            <!-- Selector de Place (Solo para Operación) -->
-            <?php if (isset($is_depto_especial) && $is_depto_especial): ?>
+            <!-- Selector de Place (Global) -->
             <div class="mb-4" id="contenedor-place-material">
                 <label for="placeMaterial" class="block text-sm font-medium text-gray-700">
-                    Condominio (Place)
+                    Complejo / Condominio
                 </label>
                 <select name="id_place" id="placeMaterial"
                         class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         required>
-                    <option value="">Seleccione un condominio</option>
+                    <option value="">Seleccione un complejo</option>
                 </select>
             </div>
-            <?php endif; ?>
 
 
             <!-- Proveedores -->
@@ -115,7 +113,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </select>
             </div>
 
-            <div class="overflow-auto">
+            <div class="overflow-visible">
                 <!-- Tabla de productos -->
                 <table class="w-full text-sm text-left border border-gray-300">
                     <thead class="bg-gray-200 text-gray-700">
@@ -248,19 +246,17 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </select>
             </div>
 
-            <!-- Selector de Place (Solo para Operación) -->
-            <?php if (isset($is_depto_especial) && $is_depto_especial): ?>
+            <!-- Selector de Place (Global) -->
             <div class="mb-4" id="contenedor-place-sincotizar">
                 <label for="placeSinCotizar" class="block text-sm font-medium text-gray-700">
-                    Condominio (Place)
+                    Complejo / Condominio
                 </label>
                 <select name="id_place" id="placeSinCotizar"
                         class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         required>
-                    <option value="">Seleccione un condominio</option>
+                    <option value="">Seleccione un complejo</option>
                 </select>
             </div>
-            <?php endif; ?>
 
             <!-- Proveedores -->
             <div class="hidden">
@@ -271,7 +267,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             </div>
 
             <!-- Tabla de productos -->
-            <div class="overflow-auto">
+            <div class="overflow-visible">
                 <table class="w-full text-sm text-left border border-gray-300">
                     <thead class="bg-gray-200 text-gray-700">
                         <tr>
@@ -285,8 +281,18 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         <tr class="fila-producto">
                             <td class="numero-fila px-3 py-2 border text-center">1</td>
                             <td class="px-3 py-2 border">
-                                <input type="text" name="producto[]" class="w-full px-2 py-1 border rounded"
-                                    placeholder="Nombre del producto">
+                                <select name="producto[]" class="w-full px-2 py-1 border rounded select-producto-catalogo" required>
+                                    <option value="">Seleccione un producto...</option>
+                                    <?php if (!empty($catalogo_productos)): ?>
+                                        <?php foreach ($catalogo_productos as $prod): ?>
+                                            <option value="<?= esc($prod['Nombre']) ?>" 
+                                                    data-codigo="<?= esc($prod['ID_CatalogoProd']) ?>" 
+                                                    data-grupo="<?= esc($prod['ID_GrupoPresupuestal']) ?>">
+                                                <?= esc($prod['Nombre']) ?> (<?= esc($prod['UnidadNombre'] ?? 'General') ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
                             </td>
                             <td class="px-3 py-2 border">
                                 <input type="number" name="cantidad[]" class="w-full px-2 py-1 border rounded cantidad"
@@ -400,19 +406,17 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </select>
             </div>
 
-            <!-- Selector de Place (Solo para Operación) -->
-            <?php if (isset($is_depto_especial) && $is_depto_especial): ?>
+            <!-- Selector de Place (Global) -->
             <div class="mb-4" id="contenedor-place-servicio">
                 <label for="placeServicio" class="block text-sm font-medium text-gray-700">
-                    Condominio (Place)
+                    Complejo / Condominio
                 </label>
                 <select name="id_place" id="placeServicio"
                         class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         required>
-                    <option value="">Seleccione un condominio</option>
+                    <option value="">Seleccione un complejo</option>
                 </select>
             </div>
-            <?php endif; ?>
 
             <!-- Proveedor Servicio -->
             <div>
@@ -422,7 +426,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </select>
             </div>
 
-            <div class="overflow-auto">
+            <div class="overflow-visible">
                 <!-- Tabla de servicios -->
                 <table class="w-full text-sm text-left border border-gray-300">
                     <thead class="bg-gray-200 text-gray-700">
@@ -437,7 +441,18 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <tr class="fila-servicio">
                         <td class="numero-fila-servicio px-3 py-2 border text-center">1</td>
                         <td class="px-3 py-2 border">
-                            <input type="text" name="servicio[]" class="w-full px-2 py-1 border rounded" placeholder="Descripción del servicio" required>
+                            <select name="servicio[]" class="w-full px-2 py-1 border rounded select-producto-catalogo" required>
+                                <option value="">Seleccione un servicio...</option>
+                                <?php if (!empty($catalogo_productos)): ?>
+                                    <?php foreach ($catalogo_productos as $prod): ?>
+                                        <option value="<?= esc($prod['Nombre']) ?>" 
+                                                data-codigo="<?= esc($prod['ID_CatalogoProd']) ?>" 
+                                                data-grupo="<?= esc($prod['ID_GrupoPresupuestal']) ?>">
+                                            <?= esc($prod['Nombre']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
                         </td>
                         <td class="px-3 py-2 border">
                             <input type="number" name="importe[]" class="costo-servicio w-full px-2 py-1 border rounded" min="1" step="0.01" placeholder="0.00" required>
@@ -514,7 +529,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
     </div>
 </div>
 
-<?php if (isset($is_depto_especial) && $is_depto_especial): ?>
+<?php if (isset($all_places) && !empty($all_places)): ?>
     <!-- Pasamos los datos de los lugares a través de un input oculto para que el JS pueda leerlo al inicializar -->
     <input type="hidden" id="ALL_PLACES_DATA_STORE" value='<?= htmlspecialchars(json_encode($all_places ?? []), ENT_QUOTES, 'UTF-8') ?>'>
 <?php endif; ?>

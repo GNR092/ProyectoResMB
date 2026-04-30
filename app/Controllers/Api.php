@@ -1995,7 +1995,103 @@ class Api extends ResourceController
     }
 
     /**
-     * Obtiene todos los productos del catálogo maestro.
+     * Obtiene el catálogo de productos filtrado dinámicamente por lugar y nombre de departamento.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getCatalogoFiltradoDinamico()
+    {
+        $idPlace = $this->request->getGet('id_place');
+        $idRS = $this->request->getGet('id_razon_social');
+        $nombreDepto = $this->request->getGet('nombre_depto');
+
+        if ((empty($idPlace) && empty($idRS)) || empty($nombreDepto)) {
+            return $this->failValidationAudit('Faltan parámetros requeridos (id_place/id_razon_social o nombre_depto).');
+        }
+
+        $db = \Config\Database::connect();
+        
+        // Si no tenemos ID_Place pero sí ID_RazonSocial, buscamos el place asociado
+        if (empty($idPlace) && !empty($idRS)) {
+            // Buscamos un place de esa RS que tenga una UnidadOperativa con el mismo nombre que el depto del usuario
+            // Usamos LOWER para asegurar compatibilidad en la identificación inicial
+            $colUoNombre = $db->protectIdentifiers('uo.Nombre');
+            $valDeptoSearch = $db->escape(strtolower($nombreDepto));
+
+            $placeEncontrado = $db->table('UnidadOperativa uo')
+                ->select('uo.ID_Place')
+                ->join('Places p', 'p.ID_Place = uo.ID_Place')
+                ->where('p.ID_RazonSocial', $idRS)
+                ->groupStart()
+                    ->where('uo.Nombre', $nombreDepto)
+                    ->orWhere("LOWER($colUoNombre) = $valDeptoSearch", null, false)
+                ->groupEnd()
+                ->get()
+                ->getRowArray();
+            
+            if ($placeEncontrado) {
+                $idPlace = $placeEncontrado['ID_Place'];
+            } else {
+                // Fallback: el primer place de esa RS
+                $firstPlace = $db->table('Places')
+                    ->where('ID_RazonSocial', $idRS)
+                    ->get()
+                    ->getRowArray();
+                $idPlace = $firstPlace['ID_Place'] ?? null;
+            }
+        }
+
+        if (empty($idPlace)) {
+             return $this->respond([], HttpStatus::OK);
+        }
+
+        // 1. Detección de departamento especial
+        $deptoLower = mb_strtolower(trim($nombreDepto));
+        $isDeptoEspecial = (
+            strpos($deptoLower, 'operacion') !== false || 
+            strpos($deptoLower, 'operación') !== false || 
+            strpos($deptoLower, 'compras') !== false ||
+            strpos($deptoLower, 'contaduría') !== false ||
+            strpos($deptoLower, 'contaduria') !== false
+        );
+
+        $catalogoModel = new CatalogoProductosModel();
+        $productos = [];
+
+        // Si es departamento especial, traemos TODO lo del complejo directamente
+        if ($isDeptoEspecial) {
+            $productos = $catalogoModel->getProductosPorPlace($idPlace);
+        } else {
+            // Lógica normal: Buscar la Unidad Operativa equivalente en ese Place por nombre (insensible a mayúsculas)
+            $colNombre = $db->protectIdentifiers('UnidadOperativa.Nombre');
+            $valDepto = $db->escape(strtolower($nombreDepto));
+            $valDeptoLike = $db->escape('%' . strtolower($nombreDepto) . '%');
+
+            $unidad = $db->table('UnidadOperativa')
+                ->where('ID_Place', $idPlace)
+                ->where('activo', true)
+                ->groupStart()
+                    ->where('Nombre', $nombreDepto)
+                    ->orWhere("LOWER($colNombre) = $valDepto", null, false)
+                    ->orWhere("LOWER($colNombre) LIKE $valDeptoLike", null, false)
+                ->groupEnd()
+                ->get()
+                ->getRowArray();
+
+            if ($unidad) {
+                $productos = $catalogoModel->getProductosPorUnidadOperativa($unidad['ID_UnidadOperativa']);
+            }
+
+            // Fallback: Si no hay unidad o no hay productos, buscar por el complejo (Place) directamente
+            if (empty($productos)) {
+                $productos = $catalogoModel->getProductosPorPlace($idPlace);
+            }
+        }
+
+        return $this->respond($productos, HttpStatus::OK);
+    }
+
+    /**
+     * Obtiene todos los productos del Catálogo De Productos Y Servicios
      * @return \CodeIgniter\HTTP\Response
      */
     public function getCatalogoMaestro()
@@ -2005,7 +2101,7 @@ class Api extends ResourceController
     }
 
     /**
-     * Crea un nuevo registro en el catálogo maestro.
+     * Crea un nuevo registro en el Catálogo De Productos Y Servicios
      */
     public function createCatalogo()
     {
@@ -2020,7 +2116,7 @@ class Api extends ResourceController
     }
 
     /**
-     * Actualiza un registro del catálogo maestro.
+     * Actualiza un registro del Catálogo De Productos Y Servicios
      */
     public function updateCatalogo($id)
     {
@@ -2035,7 +2131,7 @@ class Api extends ResourceController
     }
 
     /**
-     * Elimina un registro del catálogo maestro.
+     * Elimina un registro del Catálogo De Productos Y Servicios
      */
     public function deleteCatalogo($id)
     {

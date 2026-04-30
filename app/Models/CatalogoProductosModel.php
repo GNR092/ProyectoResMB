@@ -40,6 +40,30 @@ class CatalogoProductosModel extends Model
     protected $afterDelete  = ['auditDelete'];
 
     /**
+     * Obtiene los productos filtrados por Unidad Operativa e incluye el nombre de la unidad
+     */
+    public function getProductosPorUnidadOperativa($id_unidad)
+    {
+        return $this->select('Catalogo_Productos.*, UnidadOperativa.Nombre as UnidadNombre')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Catalogo_Productos.ID_Dpto', 'left')
+            ->where('Catalogo_Productos.ID_Dpto', $id_unidad)
+            ->orderBy('Catalogo_Productos.Nombre', 'ASC')
+            ->findAll();
+    }
+
+    /**
+     * Obtiene los productos filtrados por Complejo (Place) e incluye el nombre de la unidad
+     */
+    public function getProductosPorPlace($id_place)
+    {
+        return $this->select('Catalogo_Productos.*, UnidadOperativa.Nombre as UnidadNombre')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Catalogo_Productos.ID_Dpto', 'left')
+            ->where('Catalogo_Productos.ID_Place', $id_place)
+            ->orderBy('Catalogo_Productos.Nombre', 'ASC')
+            ->findAll();
+    }
+
+    /**
      * Obtiene el catálogo con información de las tablas relacionadas
      */
     public function getFullCatalogo()

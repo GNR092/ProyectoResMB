@@ -513,6 +513,7 @@ function generarProductosServiciosHTML(data) {
                             <th class="py-2 px-4 text-right">Importe</th>
                             ${iva ? '<th class="py-2 px-4 text-right">IVA</th>' : ''}
                             ${data.Tipo == 2 ? '' : '<th class="py-2 px-4 text-right">Costo Total</th>'}
+                            <th class="py-2 px-4 text-left">Partida</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -544,6 +545,9 @@ function generarProductosServiciosHTML(data) {
                     <td class="py-2 px-4 border-t text-right">$${parseFloat(p.Importe).toFixed(2)}</td>
                     ${iva ? `<td class="py-2 px-4 border-t text-right">$${parseFloat(0.16 * p.Importe).toFixed(2)}</td>` : ''}
                     ${data.Tipo == 2 ? '' : `<td class="py-2 px-4 border-t text-right">$${parseFloat(costoTotal).toFixed(2)}</td>`}
+                    <td class="py-2 px-4 border-t text-left">
+                        <span class="text-xs font-semibold text-blue-700">${p.GrupoPresupuestalNombre || 'N/A'}</span>
+                    </td>
                 </tr>
             `
   })

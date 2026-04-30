@@ -40,3 +40,26 @@
     --color-carbon-900: #141414;
     --color-carbon-950: #0a0a0a
 }
+
+/* Estilos para compactar Selectores de Catálogo (Choices.js) */
+.select-producto-catalogo + .choices .choices__inner {
+    min-height: 32px !important;
+    padding: 2px 8px !important;
+    font-size: 0.8rem !important;
+    border-radius: 6px !important;
+    display: flex;
+    align-items: center;
+}
+
+.select-producto-catalogo + .choices .choices__list--single {
+    padding: 0 !important;
+}
+
+.select-producto-catalogo + .choices .choices__item {
+    font-size: 0.75rem !important;
+    padding: 4px 8px !important;
+}
+
+.select-producto-catalogo + .choices .choices__list--dropdown .choices__item--selectable {
+    padding-right: 10px !important;
+}
