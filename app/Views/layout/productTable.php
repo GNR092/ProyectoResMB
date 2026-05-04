@@ -6,6 +6,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
 <tr class="fila-producto">
     <td class="numero-fila border px-3 py-1 text-center">1</td>
     <td class="border px-3 py-1">
+        <input type="hidden" name="id_grupo_presupuestal[]" class="id_grupo_presupuestal">
         <input type="text" name="codigo[]" class="w-full border rounded px-2 py-1 codigo" placeholder="Código" required>
     </td>
     <td class="border px-3 py-1">

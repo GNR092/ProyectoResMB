@@ -406,12 +406,24 @@ function initChoicesForCatalogo(container = document) {
       const selectedOption = select.options[select.selectedIndex];
       const fila = select.closest('tr');
       const codigoInput = fila?.querySelector('.codigo');
+      
+      // Buscar o crear el input oculto para el grupo presupuestal
+      let grupoInput = fila?.querySelector('input[name="id_grupo_presupuestal[]"]');
+      if (!grupoInput && fila) {
+          grupoInput = document.createElement('input');
+          grupoInput.type = 'hidden';
+          grupoInput.name = 'id_grupo_presupuestal[]';
+          fila.appendChild(grupoInput);
+      }
 
       if (selectedOption && selectedOption.value) {
         const codigo = selectedOption.dataset.codigo;
+        const grupo = selectedOption.dataset.grupo;
         if (codigoInput) codigoInput.value = codigo || '';
+        if (grupoInput) grupoInput.value = grupo || '';
       } else {
         if (codigoInput) codigoInput.value = '';
+        if (grupoInput) grupoInput.value = '';
       }
     });
 
@@ -877,6 +889,174 @@ async function initSolicitarServicio() {
     })
   }
 }
+/**
+ * Lógica para el botón "Enviar a Dirección"
+ * Valida importes, solicita archivos y envía directamente a revisión.
+ */
+function initEnviarDireccion() {
+  const btnMat = document.getElementById('btn-enviar-direccion-material')
+  const btnSer = document.getElementById('btn-enviar-direccion-servicio')
+  const modal = document.getElementById('modal-confirmacion-direccion')
+  const formDir = document.getElementById('form-direccion-archivos')
+  const btnCancelar = document.getElementById('btn-cancelar-direccion')
+
+  if (!modal || !formDir) return
+
+  // Inicializar selectores acumulativos para el modal
+  const inputEvidencia = document.getElementById('archivo-evidencia')
+  const inputCotizacion = document.getElementById('archivo-cotizacion-dir')
+  if (inputEvidencia) setupAccumulatedFileInput(inputEvidencia)
+  if (inputCotizacion) setupAccumulatedFileInput(inputCotizacion)
+
+  const abrirFlujoDireccion = async (tipo) => {
+    const formId = tipo === 'material' ? 'form-upload' : 'form-servicio-upload'
+    const formularioBase = document.getElementById(formId)
+    if (!formularioBase) return
+
+    // 1. Validar importes
+    const selectorImporte = tipo === 'material' ? '.importe' : '.costo-servicio'
+    const importes = formularioBase.querySelectorAll(selectorImporte)
+    let valido = true
+    importes.forEach((input) => {
+      const val = parseFloat(input.value) || 0
+      if (val <= 0) {
+        valido = false
+        input.classList.add('border-red-500')
+      } else {
+        input.classList.remove('border-red-500')
+      }
+    })
+
+    if (!valido) {
+      mostrarNotificacion(
+        'Todos los importes deben ser mayores a 0 para enviar a dirección.',
+        'error',
+      )
+      return
+    }
+
+    // Validar proveedor seleccionado
+    const provSelect = formularioBase.querySelector('[name="ID_Proveedor"]')
+    if (!provSelect || !provSelect.value) {
+      mostrarNotificacion('Debe seleccionar un proveedor para enviar a dirección.', 'error')
+      return
+    }
+
+    // 2. Validar crédito del proveedor
+    const idProveedor = provSelect.value
+    const radioCredito = document.querySelector('input[name="tipo_pago_dir"][value="credito"]')
+    const radioContado = document.querySelector('input[name="tipo_pago_dir"][value="efectivo"]')
+    const labelCredito = document.getElementById('label-credito-dir')
+
+    if (radioCredito && labelCredito) {
+      try {
+        const proveedorData = await SendDataEnd(`api/provider/${idProveedor}`)
+        const diasCredito = parseInt(proveedorData.Dias_Credito) || 0
+
+        if (diasCredito <= 0) {
+          radioCredito.disabled = true
+          radioCredito.checked = false
+          radioContado.checked = true
+          labelCredito.classList.add('text-gray-400', 'cursor-not-allowed')
+        } else {
+          radioCredito.disabled = false
+          labelCredito.classList.remove('text-gray-400', 'cursor-not-allowed')
+        }
+      } catch (e) {
+        console.error('Error al validar crédito:', e)
+      }
+    }
+
+    // 3. Mostrar modal
+    modal.classList.remove('hidden')
+    formDir.dataset.formOrigen = formId
+  }
+
+  if (btnMat) {
+    btnMat.onclick = (e) => {
+      e.preventDefault()
+      abrirFlujoDireccion('material')
+    }
+  }
+  if (btnSer) {
+    btnSer.onclick = (e) => {
+      e.preventDefault()
+      abrirFlujoDireccion('servicio')
+    }
+  }
+
+  if (btnCancelar) {
+    btnCancelar.onclick = () => {
+      modal.classList.add('hidden')
+      formDir.reset()
+    }
+  }
+
+  formDir.onsubmit = async (e) => {
+    e.preventDefault()
+
+    const formOrigenId = formDir.dataset.formOrigen
+    const formOrigen = document.getElementById(formOrigenId)
+    if (!formOrigen) return
+
+    // Obtener archivos acumulados
+    const filesEvidencia = fileAccumulatorState.get(inputEvidencia)?.files || []
+    const filesCotizacion = fileAccumulatorState.get(inputCotizacion)?.files || []
+
+    if (filesEvidencia.length === 0 || filesCotizacion.length === 0) {
+      mostrarNotificacion('Ambos campos (Evidencia y Cotización) requieren al menos un archivo.', 'error')
+      return
+    }
+
+    const btnConfirmar = document.getElementById('btn-confirmar-direccion-full')
+    btnConfirmar.disabled = true
+    btnConfirmar.textContent = 'Enviando...'
+
+    try {
+      const formData = new FormData(formOrigen)
+
+      // Añadir flag y datos del modal
+      formData.append('enviar_direccion', '1')
+      
+      filesEvidencia.forEach(file => {
+          formData.append('archivo_evidencia[]', file)
+      })
+      
+      filesCotizacion.forEach(file => {
+          formData.append('archivo_cotizacion[]', file)
+      })
+
+      const tipoPago = formDir.querySelector('input[name="tipo_pago_dir"]:checked').value
+      formData.append('tipo_pago_dir', tipoPago)
+
+      if (document.getElementById('iva-dir').checked) {
+        formData.append('iva', '1')
+      }
+
+      const data = await SendDataEnd('solicitudes/registrar', {
+        method: 'POST',
+        body: formData,
+        headers: { Accept: 'application/json' },
+      })
+
+      if (data.success) {
+        mostrarNotificacion(data.message, 'success')
+        modal.classList.add('hidden')
+        formDir.reset()
+        formOrigen.reset()
+        cerrarModal()
+      } else {
+        mostrarNotificacion(data.message, 'error')
+      }
+    } catch (error) {
+      console.error(error)
+      mostrarNotificacion('Error al procesar la solicitud.', 'error')
+    } finally {
+      btnConfirmar.disabled = false
+      btnConfirmar.textContent = 'Confirmar y Enviar'
+    }
+  }
+}
 function mostrarSubmenuMaterial() {
   document.getElementById('seleccion-opcion').classList.add('hidden')
   document.getElementById('submenu-material').classList.remove('hidden')
@@ -918,6 +1098,7 @@ function initSolicitarMaterialTodo() {
   initSolicitarMaterial()
   initSolicitarMaterialSinCotizar()
   initSolicitarServicio()
+  initEnviarDireccion()
 }
 
 /**

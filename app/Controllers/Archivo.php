@@ -190,13 +190,25 @@ class Archivo extends BaseController
             }
 
             // 3. Inyectar trazabilidad en los comentarios (Solo si existe etiqueta)
-            $comentariosFinal = $etiquetaTrazabilidad 
-                ? ($etiquetaTrazabilidad . ($comentariosuser ? " | Comentario: " . $comentariosuser : ""))
-                : $comentariosuser;
+            $nombreUsuarioSesion = $user['Nombre'] ?? 'Usuario';
+            $clausulaResponsabilidad = "La responsabilidad del contenido de esta requisición recae en " . $nombreUsuarioSesion . ". ";
 
+            $comentariosFinal = $clausulaResponsabilidad;
+            if ($etiquetaTrazabilidad) {
+                $comentariosFinal .= $etiquetaTrazabilidad . " ";
+            }
+            if ($comentariosuser) {
+                $comentariosFinal .= "| Comentario: " . $comentariosuser;
+            }
+
+            $enviarDireccion = isset($post['enviar_direccion']) && $post['enviar_direccion'] == '1';
             $estadoInicial = Status::Aprobacion_pendiente;
+            $metodoPagoFinal = MetodoPago::EnEspera;
 
-            if (session('login_type') === 'boss') {
+            if ($enviarDireccion) {
+                $estadoInicial = Status::En_Revision;
+                $metodoPagoFinal = ($post['tipo_pago_dir'] ?? '') === 'credito' ? MetodoPago::Credito : MetodoPago::Efectivo;
+            } else if (session('login_type') === 'boss') {
                 if ($tipo == SolicitudTipo::Servicios) {
                     $estadoInicial = Status::Cotizando;
                 } else {
@@ -217,7 +229,7 @@ class Archivo extends BaseController
                 'No_Folio' => null,
                 'Tipo' => $tipo,
                 'ComentariosUser' => $comentariosFinal,
-                'MetodoPago' => MetodoPago::EnEspera,
+                'MetodoPago' => $metodoPagoFinal,
             ];
 
             $solicitud = new SolicitudModel();
@@ -291,64 +303,77 @@ class Archivo extends BaseController
             }
 
             $archivos = $this->request->getFiles();
-            if (isset($archivos['archivo'])) {
-                $nombresArchivos = [];
-                $folder = FPath::FSOLICITUD . $fecha;
-                $this->api->CreateFolder($folder);
+            $nombresArchivos = [];
+            $folder = FPath::FSOLICITUD . $fecha;
+            $this->api->CreateFolder($folder);
 
+            // 1. Procesar archivos normales (Se omiten si es envío directo a dirección para priorizar evidencia obligatoria)
+            if (!$enviarDireccion && isset($archivos['archivo'])) {
                 foreach ($archivos['archivo'] as $adjunto) {
                     if ($adjunto->isValid() && !$adjunto->hasMoved()) {
                         $nuevoNombre = 'solicitud_' . $solicitudId . '_' . $adjunto->getRandomName();
-                        $extension = strtolower(pathinfo($adjunto->getClientName(), PATHINFO_EXTENSION));
-
-                        if ($extension === 'pdf') {
-                            $tmpPath = $adjunto->getTempName();
-                            if (is_string($tmpPath) && is_file($tmpPath)) {
-                                $analysis = PdfValidator::analyze($tmpPath);
-
-                                log_message(
-                                    'info',
-                                    '[PdfValidator][Upload] Archivo: ' .
-                                        $adjunto->getClientName() .
-                                        ' | valido=' . ($analysis['isValid'] ? 'si' : 'no') .
-                                        ' | version=' . ($analysis['version'] ?? 'desconocida') .
-                                        ' | encriptado=' . ($analysis['isEncrypted'] ? 'si' : 'no') .
-                                        ' | fpdi_compatible=' . ($analysis['isFpdiCompatible'] ? 'si' : 'no'),
-                                );
-
-                                if (!empty($analysis['warnings'])) {
-                                    log_message(
-                                        'warning',
-                                        '[PdfValidator][Upload] Advertencias para ' .
-                                            $adjunto->getClientName() .
-                                            ': ' .
-                                            implode(' | ', $analysis['warnings']),
-                                    );
-                                }
-                            } else {
-                                log_message(
-                                    'warning',
-                                    '[PdfValidator][Upload] No se pudo acceder al archivo temporal de ' .
-                                        $adjunto->getClientName(),
-                                );
-                            }
-                        }
-
                         $adjunto->move($folder, $nuevoNombre);
                         $nombresArchivos[] = $nuevoNombre;
                     }
                 }
+            }
 
-                if (!empty($nombresArchivos)) {
-                    $solicitud->update($solicitudId, ['Archivo' => implode(',', $nombresArchivos)]);
+            // 2. Procesar evidencia de autorización externa
+            if ($enviarDireccion && isset($archivos['archivo_evidencia'])) {
+                foreach ($archivos['archivo_evidencia'] as $evidencia) {
+                    if ($evidencia->isValid() && !$evidencia->hasMoved()) {
+                        $nuevoNombreEvidencia = 'evidencia_' . $solicitudId . '_' . $evidencia->getRandomName();
+                        $evidencia->move($folder, $nuevoNombreEvidencia);
+                        $nombresArchivos[] = $nuevoNombreEvidencia;
+                    }
+                }
+            }
 
-                    // Auditoría de subida de cotización
-                    \CodeIgniter\Events\Events::trigger('auditoria', [
-                        'tipo_accion'  => 'SUBIR_ARCHIVOS_COTIZACION',
-                        'modulo'       => 'Cotizacion',
-                        'solicitud_id' => $solicitudId,
-                        'estado'       => 'exito',
-                        'valores_nuevos' => json_encode(['archivos' => $nombresArchivos, 'cantidad' => count($nombresArchivos)])
+            if (!empty($nombresArchivos)) {
+                $solicitud->update($solicitudId, ['Archivo' => implode(',', $nombresArchivos)]);
+
+                // Auditoría de subida de archivos
+                \CodeIgniter\Events\Events::trigger('auditoria', [
+                    'tipo_accion'  => 'SUBIR_ARCHIVOS_SOLICITUD',
+                    'modulo'       => 'Solicitudes',
+                    'solicitud_id' => $solicitudId,
+                    'estado'       => 'exito',
+                    'valores_nuevos' => json_encode(['archivos' => $nombresArchivos, 'cantidad' => count($nombresArchivos)])
+                ]);
+            }
+
+            // 3. Procesar cotización de la requisición (para saltar paso)
+            if ($enviarDireccion && isset($archivos['archivo_cotizacion'])) {
+                $nombresCotizaciones = [];
+                $folderCot = FPath::FCOTIZACION . $fecha;
+                $this->api->CreateFolder($folderCot);
+
+                foreach ($archivos['archivo_cotizacion'] as $cotArchivo) {
+                    if ($cotArchivo->isValid() && !$cotArchivo->hasMoved()) {
+                        $nuevoNombreCot = 'cotizacion_dir_' . $solicitudId . '_' . $cotArchivo->getRandomName();
+                        $cotArchivo->move($folderCot, $nuevoNombreCot);
+                        $nombresCotizaciones[] = $nuevoNombreCot;
+                    }
+                }
+
+                if (!empty($nombresCotizaciones)) {
+                    $cotizacionModel = new CotizacionModel();
+                    $total = 0;
+                    foreach ($datosProductos as $p) {
+                        $cantidad = isset($p['Cantidad']) ? (float)$p['Cantidad'] : 1;
+                        $importe = isset($p['Importe']) ? (float)$p['Importe'] : 0;
+                        $total += ($cantidad * $importe);
+                    }
+                    if (isset($post['iva'])) {
+                        $total *= 1.16;
+                    }
+
+                    $cotizacionModel->insert([
+                        'ID_Solicitud' => $solicitudId,
+                        'ID_Proveedor' => (int) ($proveedor_id ?? $post['ID_Proveedor']),
+                        'Total' => $total,
+                        'ID_Usuario_Cotiza' => $user['ID_Usuario'],
+                        'Cotizacion_Files' => implode(',', $nombresCotizaciones)
                     ]);
                 }
             }

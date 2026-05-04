@@ -179,7 +179,14 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Contenedor para mensajes -->
             <div class="my-2 form-message-container"></div>
             <!-- Botón para enviar -->
-            <div class="flex justify-end">
+            <div class="flex justify-end gap-2">
+                <button type="button" id="btn-enviar-direccion-material"
+                    class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                        <use xlink:href="<?= $iconUrl ?>#btn-enviar"></use>
+                    </svg>
+                    <span>Enviar a Dirección</span>
+                </button>
                 <button type="submit"
                     class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
                     <!-- SVG enviar -->
@@ -281,6 +288,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         <tr class="fila-producto">
                             <td class="numero-fila px-3 py-2 border text-center">1</td>
                             <td class="px-3 py-2 border">
+                                <input type="hidden" name="id_grupo_presupuestal[]" class="id_grupo_presupuestal">
                                 <select name="producto[]" class="w-full px-2 py-1 border rounded select-producto-catalogo" required>
                                     <option value="">Seleccione un producto...</option>
                                     <?php if (!empty($catalogo_productos)): ?>
@@ -441,6 +449,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <tr class="fila-servicio">
                         <td class="numero-fila-servicio px-3 py-2 border text-center">1</td>
                         <td class="px-3 py-2 border">
+                            <input type="hidden" name="id_grupo_presupuestal[]" class="id_grupo_presupuestal">
                             <select name="servicio[]" class="w-full px-2 py-1 border rounded select-producto-catalogo" required>
                                 <option value="">Seleccione un servicio...</option>
                                 <?php if (!empty($catalogo_productos)): ?>
@@ -515,7 +524,14 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <div class="my-2 form-message-container"></div>
 
             <!-- Botón para enviar -->
-            <div class="flex justify-end">
+            <div class="flex justify-end gap-2">
+                <button type="button" id="btn-enviar-direccion-servicio"
+                        class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">
+                    <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                        <use xlink:href="<?= $iconUrl ?>#btn-enviar"></use>
+                    </svg>
+                    <span>Enviar a Dirección</span>
+                </button>
                 <button type="submit" id="btn-enviar-servicio"
                         class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
                     <!-- SVG enviar -->
@@ -524,6 +540,53 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     </svg>
                     <span>Solicitar</span>
                 </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Confirmación Enviar a Dirección -->
+<div id="modal-confirmacion-direccion" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-[100] hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+        <h3 class="text-lg font-bold mb-4 text-red-600">Advertencia de Responsabilidad</h3>
+        <p class="mb-4 text-sm text-gray-700">
+            En caso de continuar, el usuario que está realizando la requisición es responsable de los precios, productos, evidencia y demás información colocada en la misma.
+        </p>
+        
+        <form id="form-direccion-archivos" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Evidencia de Autorización Externa (Obligatorio)</label>
+                <input type="file" id="archivo-evidencia" name="archivo_evidencia[]" accept="image/*,.pdf" class="mt-1 block w-full text-sm border border-gray-300 rounded-md shadow-sm" multiple required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Cotización de la Requisición (Obligatorio)</label>
+                <input type="file" id="archivo-cotizacion-dir" name="archivo_cotizacion[]" accept="image/*,.pdf" class="mt-1 block w-full text-sm border border-gray-300 rounded-md shadow-sm" multiple required>
+            </div>
+
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700">Tipo de Pago</label>
+                <div class="flex items-center space-x-4 mt-1">
+                    <label class="flex items-center">
+                        <input type="radio" name="tipo_pago_dir" value="efectivo" checked class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                        <span class="ml-2 text-sm text-gray-700">Contado</span>
+                    </label>
+                    <label class="flex items-center" id="label-credito-dir">
+                        <input type="radio" name="tipo_pago_dir" value="credito" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300">
+                        <span class="ml-2 text-sm text-gray-700">Crédito</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex items-center">
+                <input type="checkbox" id="iva-dir" name="iva_dir" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label for="iva-dir" class="ml-2 block text-sm text-gray-900 cursor-pointer">
+                    ¿Agregar IVA a los precios?
+                </label>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-4 border-t pt-4">
+                <button type="button" id="btn-cancelar-direccion" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+                <button type="submit" id="btn-confirmar-direccion-full" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition">Confirmar y Enviar</button>
             </div>
         </form>
     </div>
