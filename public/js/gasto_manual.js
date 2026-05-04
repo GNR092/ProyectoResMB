@@ -46,6 +46,9 @@ function registrarComponenteGastoManual() {
                 initChoicesPlace() {
                     const el = this.$refs.filtroPlace;
                     if (!el) return;
+
+                    if (this.choicesPlace) this.choicesPlace.destroy();
+
                     this.choicesPlace = new Choices(el, {
                         removeItemButton: true,
                         placeholderValue: 'Seleccione Complejos',

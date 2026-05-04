@@ -229,4 +229,3 @@
         <button type="submit" class="px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg shadow hover:bg-yellow-600 transition">Guardar Cambios</button>
     </form>
 </div>
-/div>

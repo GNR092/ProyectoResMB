@@ -5,6 +5,10 @@ function initControlMaestro() {
     const tabla = document.getElementById('tabla-maestro');
     if (!tabla) return;
 
+    // Destruir instancias previas para evitar duplicados al reabrir el modal
+    if (choicesDeptoMaestro) { choicesDeptoMaestro.destroy(); choicesDeptoMaestro = null; }
+    if (choicesRazonMaestro) { choicesRazonMaestro.destroy(); choicesRazonMaestro = null; }
+
     // 1. Configurar Choices
     const filtroEl = document.getElementById('filtroDepartamentoMaestro');
     if (filtroEl) {

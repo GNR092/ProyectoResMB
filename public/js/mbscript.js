@@ -134,45 +134,45 @@ function abrirModal(opcion) {
       setTimeout(() => {
         contenido.innerHTML = html
         
-        // Asegurarnos de que el modal esté visible (por si estaba cerrado)
+        // Asegurarnos de que el modal esté bloqueado para que el DOM se procese correctamente
         modal.classList.remove('hidden')
+
+        const inicializadores = {
+          ver_historial: initPaginacionHistorial,
+          usuarios: initUsuarios,
+          revisar_solicitudes: initRevisarSolicitud,
+          dictamen_solicitudes: initDictamenSolicitudes,
+          ordenes_compra: initOrdenesCompra,
+          crud_proveedores: initCrudProveedores,
+          ficha_pago: initFichasPago,
+          razonsocial: initCrudRazonSocial,
+          limpiar_almacenamiento: initLimpiarAlmacenamiento,
+          recepcion_material: initRecepcionMaterial,
+          bajas_destruccion: initBajasDestruccion,
+          crud_places: initCrudPlaces,
+          crud_departamento: initCrudDepartamentos,
+          catalogo_productos: initCatalogoProductos,
+          crud_cuentas: initCrudCuentas,
+          correcciones: initControlMaestro,
+          GrupoPresupuestal: initCrudGrupos,
+          BancoDpto: initCrudBancoDpto,
+          AjustesPresupuesto: initAjustesPresupuesto,
+          UnidadOperativa: initCrudUnidades,
+          SegmentoNegocio: initCrudSegmentos,
+          solicitar_material: initSolicitarMaterialTodo,
+          GastoManual: registrarComponenteGastoManual,
+        }
+
+        const inicializador = inicializadores[opcion]
+        if (inicializador) {
+          inicializador()
+        }
         
         // Forzar un reflow para reiniciar las animaciones
         void modal.offsetWidth
   
         // Activar la animación de entrada
         modal.classList.add('opacity-100', 'active')
-  
-        const inicializadores = {
-        ver_historial: initPaginacionHistorial,
-        usuarios: initUsuarios,
-        revisar_solicitudes: initRevisarSolicitud,
-        dictamen_solicitudes: initDictamenSolicitudes,
-        ordenes_compra: initOrdenesCompra,
-        crud_proveedores: initCrudProveedores,
-        ficha_pago: initFichasPago,
-        razonsocial: initCrudRazonSocial,
-        limpiar_almacenamiento: initLimpiarAlmacenamiento,
-        recepcion_material: initRecepcionMaterial,
-        bajas_destruccion: initBajasDestruccion,
-        crud_places: initCrudPlaces,
-        crud_departamento: initCrudDepartamentos,
-        catalogo_productos: initCatalogoProductos,
-        crud_cuentas: initCrudCuentas,
-        correcciones: initControlMaestro,
-        GrupoPresupuestal: initCrudGrupos,
-        BancoDpto: initCrudBancoDpto,
-        AjustesPresupuesto: initAjustesPresupuesto,
-        UnidadOperativa: initCrudUnidades,
-        SegmentoNegocio: initCrudSegmentos,
-        solicitar_material: initSolicitarMaterialTodo,
-        GastoManual: registrarComponenteGastoManual,
-      }
-
-      const inicializador = inicializadores[opcion]
-      if (inicializador) {
-        inicializador()
-      }
       }, 50); // Cierra el setTimeout y su callback
     })
     .catch((error) => {
@@ -1111,6 +1111,11 @@ function initPaginacionHistorial() {
   const tabla = document.getElementById('tabla-historial')
   if (!tabla) return
 
+  // Destruir instancias previas para evitar duplicados al reabrir el modal
+  if (choicesDepartamento) { choicesDepartamento.destroy(); choicesDepartamento = null; }
+  if (choicesProveedor) { choicesProveedor.destroy(); choicesProveedor = null; }
+  if (choicesRazonSocial) { choicesRazonSocial.destroy(); choicesRazonSocial = null; }
+
   const filtroEl = document.getElementById('filtroDepartamento')
   if (filtroEl) {
     choicesDepartamento = new Choices(filtroEl, {
@@ -1783,6 +1788,7 @@ function regresarTabla() {
 /**
  * Lógica del Catálogo Maestro de Productos
  */
+let instancesChoicesCatalogo = {}
 function initCatalogoProductos() {
   const listado = document.getElementById('pantalla-lista-catalogo')
   const formularioCont = document.getElementById('pantalla-form-catalogo')
@@ -1790,6 +1796,14 @@ function initCatalogoProductos() {
   const tabla = document.getElementById('tabla-catalogo-body')
 
   if (!listado || !form) return
+
+  // Destruir instancias previas para evitar duplicados y fugas de memoria
+  Object.values(instancesChoicesCatalogo).forEach((instance) => {
+    if (instance && typeof instance.destroy === 'function') {
+      instance.destroy()
+    }
+  })
+  instancesChoicesCatalogo = {}
 
   // Configuración de Choices.js
   const configChoices = {
@@ -1800,7 +1814,6 @@ function initCatalogoProductos() {
     placeholder: true,
   }
 
-  const choices = {}
   const originalOptions = {}
 
   ;['form-rs', 'form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => {
@@ -1816,16 +1829,16 @@ function initCatalogoProductos() {
         unidad: opt.dataset.unidad,
         depto: opt.dataset.depto,
       }))
-      choices[id] = new Choices(el, configChoices)
+      instancesChoicesCatalogo[id] = new Choices(el, configChoices)
     }
   })
 
   // Función para filtrar selects (Cascada Hacia Abajo)
   const filterChoices = (targetId, filterFn) => {
-    if (!choices[targetId]) return
+    if (!instancesChoicesCatalogo[targetId]) return
     const filtered = originalOptions[targetId].filter((opt) => opt.value === '' || filterFn(opt))
-    choices[targetId].clearChoices()
-    choices[targetId].setChoices(filtered, 'value', 'label', true)
+    instancesChoicesCatalogo[targetId].clearChoices()
+    instancesChoicesCatalogo[targetId].setChoices(filtered, 'value', 'label', true)
   }
 
   // Lógica de Asistencia de Llenado (Upward & Downward)
@@ -1837,7 +1850,7 @@ function initCatalogoProductos() {
 
   // ASISTENCIA HACIA ARRIBA (Upward) - Llenado automático usando respaldo de datos
   const handleUpwardSelection = (id, parents) => {
-    const val = choices[id].getValue(true)
+    const val = instancesChoicesCatalogo[id].getValue(true)
     if (val === undefined || val === null || val === '') return
 
     const optData = originalOptions[id].find((o) => o.value == val)
@@ -1845,10 +1858,10 @@ function initCatalogoProductos() {
 
     parents.forEach((p) => {
       const parentVal = optData[p.attr]
-      if (parentVal !== undefined && parentVal !== null && parentVal !== '' && choices[p.id]) {
+      if (parentVal !== undefined && parentVal !== null && parentVal !== '' && instancesChoicesCatalogo[p.id]) {
         // Asegurar que la opción esté disponible antes de setearla
         filterChoices(p.id, () => true)
-        choices[p.id].setChoiceByValue(parentVal.toString())
+        instancesChoicesCatalogo[p.id].setChoiceByValue(parentVal.toString())
         // Disparar manualmente para continuar la cadena hacia arriba
         const parentEl = document.getElementById(p.id)
         if (parentEl) parentEl.dispatchEvent(new Event('change'))
@@ -1915,19 +1928,19 @@ function initCatalogoProductos() {
 
   // 5. Partida (Cambia -> Sube a Departamento y continúa cadena)
   grupoSel.addEventListener('change', () => {
-    const val = choices['form-grupo'].getValue(true)
+    const val = instancesChoicesCatalogo['form-grupo'].getValue(true)
     const optData = originalOptions['form-grupo'].find((o) => o.value == val)
     
     if (optData) {
       // Subir a Departamento si existe el vínculo
       if (optData.depto) {
         filterChoices('form-depto', () => true)
-        choices['form-depto'].setChoiceByValue(optData.depto.toString())
+        instancesChoicesCatalogo['form-depto'].setChoiceByValue(optData.depto.toString())
         deptoSel.dispatchEvent(new Event('change'))
       } else if (optData.place) {
         // Si no hay depto directo, al menos subir al Place
         filterChoices('form-place', () => true)
-        choices['form-place'].setChoiceByValue(optData.place.toString())
+        instancesChoicesCatalogo['form-place'].setChoiceByValue(optData.place.toString())
         placeSel.dispatchEvent(new Event('change'))
       }
     }
@@ -1940,7 +1953,7 @@ function initCatalogoProductos() {
       form.reset()
       // Resetear filtros y valores de Choices
       ;['form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => filterChoices(id, () => true))
-      Object.values(choices).forEach((c) => c.setChoiceByValue(''))
+      Object.values(instancesChoicesCatalogo).forEach((c) => c.setChoiceByValue(''))
 
       const idInput = document.getElementById('form-id-cat')
       if (idInput) idInput.value = ''
@@ -2020,11 +2033,11 @@ function initCatalogoProductos() {
         ;['form-seg', 'form-place', 'form-depto', 'form-grupo'].forEach((id) => filterChoices(id, () => true))
 
         // Cargar valores en Choices
-        if (choices['form-rs']) choices['form-rs'].setChoiceByValue(row.dataset.rs || '')
-        if (choices['form-seg']) choices['form-seg'].setChoiceByValue(row.dataset.seg || '')
-        if (choices['form-place']) choices['form-place'].setChoiceByValue(row.dataset.place || '')
-        if (choices['form-depto']) choices['form-depto'].setChoiceByValue(row.dataset.depto || '')
-        if (choices['form-grupo']) choices['form-grupo'].setChoiceByValue(row.dataset.grupo || '')
+        if (instancesChoicesCatalogo['form-rs']) instancesChoicesCatalogo['form-rs'].setChoiceByValue(row.dataset.rs || '')
+        if (instancesChoicesCatalogo['form-seg']) instancesChoicesCatalogo['form-seg'].setChoiceByValue(row.dataset.seg || '')
+        if (instancesChoicesCatalogo['form-place']) instancesChoicesCatalogo['form-place'].setChoiceByValue(row.dataset.place || '')
+        if (instancesChoicesCatalogo['form-depto']) instancesChoicesCatalogo['form-depto'].setChoiceByValue(row.dataset.depto || '')
+        if (instancesChoicesCatalogo['form-grupo']) instancesChoicesCatalogo['form-grupo'].setChoiceByValue(row.dataset.grupo || '')
 
         document.getElementById('form-catalogo-titulo').innerText = 'Editar Producto'
         listado.classList.add('hidden')
@@ -2264,6 +2277,10 @@ let choicesUserDictamen = null;
  */
 async function initDictamenSolicitudes() {
   if (!document.getElementById('tablaDictamenSolicitudes')) return
+
+  // Destruir instancias previas
+  if (choicesDeptoDictamen) { choicesDeptoDictamen.destroy(); choicesDeptoDictamen = null; }
+  if (choicesUserDictamen) { choicesUserDictamen.destroy(); choicesUserDictamen = null; }
 
   // Inicializar Choices
   const selDepto = document.getElementById('filtro-depto-dictamen');
