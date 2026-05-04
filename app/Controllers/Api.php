@@ -2165,10 +2165,10 @@ class Api extends ResourceController
             $nuevoEstado = $this->request->getPost('nuevoEstado');
         }
 
-        $facturaFile = $this->request->getFile('factura');
+        $facturaFiles = $this->request->getFileMultiple('factura');
         $comprobanteFile = $this->request->getFile('ficha');
 
-        if (empty($nuevoEstado) && !$facturaFile && !$comprobanteFile) {
+        if (empty($nuevoEstado) && (empty($facturaFiles) || !$facturaFiles[0]->isValid()) && !$comprobanteFile) {
             return $this->failValidationAudit(
                 'No se especificó un nuevo estado ni se adjuntaron archivos.',
             );
@@ -2198,17 +2198,31 @@ class Api extends ResourceController
             $randomString = uniqid();
             $proveedor = $proveedorModel->find($idProveedor); // Ensure $proveedor model is loaded
 
-            if ($facturaFile && $facturaFile->isValid()) {
-                $baseFileName = "Factura-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$randomString}";
-                $savedFile = ImageProcessor::processAndSave(
-                    $facturaFile,
-                    FPath::FFACTURAS,
-                    $baseFileName,
-                );
-                if ($savedFile) {
-                    $ordenCompraModel->update($idOrdenCompra, ['File_Factura' => $savedFile]);
-                } else {
-                    return $this->failServerError('No se pudo guardar el archivo de la factura.');
+            if (!empty($facturaFiles)) {
+                $nombresFacturas = [];
+                // Si ya existen facturas, las conservamos o las reemplazamos? 
+                // Para que funcione igual que referencia, usualmente se acumulan en el proceso de subida inicial.
+                // Aquí, como es una acción de "Subir Factura" en un modal, vamos a permitir acumular si ya hay.
+                if (!empty($orden['File_Factura'])) {
+                    $nombresFacturas = explode(',', $orden['File_Factura']);
+                }
+
+                foreach ($facturaFiles as $facturaFile) {
+                    if ($facturaFile->isValid() && !$facturaFile->hasMoved()) {
+                        $baseFileName = "Factura-{$idSolicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-" . uniqid();
+                        $savedFile = ImageProcessor::processAndSave(
+                            $facturaFile,
+                            FPath::FFACTURAS,
+                            $baseFileName,
+                        );
+                        if ($savedFile) {
+                            $nombresFacturas[] = $savedFile;
+                        }
+                    }
+                }
+
+                if (!empty($nombresFacturas)) {
+                    $ordenCompraModel->update($idOrdenCompra, ['File_Factura' => implode(',', $nombresFacturas)]);
                 }
             }
 
@@ -2996,17 +3010,24 @@ class Api extends ResourceController
         // ---------------------------------------------------------
         // 6. FACTURA -> 7_
         // ---------------------------------------------------------
-        $facName = null;
+        $facString = null;
         if (!empty($solicitudData['OrdenCompra']['File_Factura'])) {
-            $facName = $solicitudData['OrdenCompra']['File_Factura'];
+            $facString = $solicitudData['OrdenCompra']['File_Factura'];
         } elseif (!empty($solicitudData['File_Factura'])) {
-            $facName = $solicitudData['File_Factura'];
+            $facString = $solicitudData['File_Factura'];
         }
 
-        if ($facName) {
-            $facPath = 'facturas' . DIRECTORY_SEPARATOR . $facName;
-            if (file_exists($basePath . $facPath)) {
-                $filePaths['7_' . $facName] = $basePath . $facPath;
+        if ($facString) {
+            $facFiles = array_filter(explode(',', $facString));
+            $totalFac = count($facFiles);
+            foreach ($facFiles as $index => $file) {
+                $trimmedFile = trim($file);
+                if (empty($trimmedFile)) continue;
+                $facPath = 'facturas' . DIRECTORY_SEPARATOR . $trimmedFile;
+                if (file_exists($basePath . $facPath)) {
+                    $prefix = ($totalFac > 1) ? '7.' . ($index + 1) . '_' : '7_';
+                    $filePaths[$prefix . $trimmedFile] = $basePath . $facPath;
+                }
             }
         }
 

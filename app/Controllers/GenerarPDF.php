@@ -153,7 +153,13 @@ class GenerarPDF extends BaseController
         // 7. Factura
         $factura = $solicitud['OrdenCompra']['File_Factura'] ?? ($solicitud['File_Factura'] ?? null);
         if ($factura) {
-            $this->_adjuntarArchivo($pdf, FPath::FFACTURAS, $factura, 'Factura');
+            $fFiles = array_filter(explode(',', $factura));
+            foreach ($fFiles as $index => $file) {
+                $trimmed = trim($file);
+                if (empty($trimmed)) continue;
+                $label = count($fFiles) > 1 ? 'Factura ' . ($index + 1) : 'Factura';
+                $this->_adjuntarArchivo($pdf, FPath::FFACTURAS, $trimmed, $label);
+            }
         }
 
         // 8. Complemento de Pago

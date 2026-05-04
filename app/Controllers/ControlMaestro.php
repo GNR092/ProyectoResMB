@@ -147,7 +147,11 @@ class ControlMaestro extends BaseController
             // CASO A: Bajamos de nivel "Espera Programación" (5) -> Eliminamos la Orden completa
             if ($nivelNuevo < 5 && $rowOrd) {
                 // Borramos Factura y Ficha
-                if (!empty($rowOrd->File_Factura)) @unlink(WRITEPATH . 'uploads/facturas/' . $rowOrd->File_Factura);
+                if (!empty($rowOrd->File_Factura)) {
+                    foreach (explode(',', $rowOrd->File_Factura) as $f) {
+                        @unlink(WRITEPATH . 'uploads/facturas/' . trim($f));
+                    }
+                }
                 if (!empty($rowOrd->File_Comprobante)) @unlink(WRITEPATH . 'uploads/comprobantes/' . $rowOrd->File_Comprobante);
 
                 $folioPdf = $solicitudOriginal->No_Folio;
@@ -165,7 +169,9 @@ class ControlMaestro extends BaseController
                 // Limpieza Factura si bajamos de Pagada
                 if (!empty($rowOrd->File_Factura)) {
                     if ($cambioProveedor || ($nivelNuevo > 0 && $nivelNuevo < 8)) {
-                        @unlink(WRITEPATH . 'uploads/facturas/' . $rowOrd->File_Factura);
+                        foreach (explode(',', $rowOrd->File_Factura) as $f) {
+                            @unlink(WRITEPATH . 'uploads/facturas/' . trim($f));
+                        }
                         $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $rowOrd->ID_OrdenCompra)->update(['File_Factura' => null]);
                     }
                 }

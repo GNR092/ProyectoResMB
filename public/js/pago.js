@@ -1344,16 +1344,16 @@ function renderFacturaUploader(idSolicitud, metodoPago) {
 
   container.innerHTML = `
         <div id="file-preview-factura" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div> 
-        <input type="file" id="archivo-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="handleFacturaFileSelect(this, ${idSolicitud}, '${metodoPago}')"> 
+        <input type="file" id="archivo-factura" class="hidden" accept="image/*,.pdf,.xml" multiple onchange="handleFacturaFileSelect(this, ${idSolicitud}, '${metodoPago}')"> 
         <button id="btn-upload-factura" onclick="document.getElementById('archivo-factura').click()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition"> 
-            Subir Factura
+            Subir Factura(s)
         </button>
     `
 }
 
 function handleFacturaFileSelect(input, idSolicitud, metodoPago) {
-  const file = input.files[0]
-  if (!file) {
+  const files = Array.from(input.files)
+  if (files.length === 0) {
     removeFacturaFile(idSolicitud)
     return
   }
@@ -1361,32 +1361,41 @@ function handleFacturaFileSelect(input, idSolicitud, metodoPago) {
   const previewContainer = document.getElementById('file-preview-factura')
   const uploadButton = document.getElementById('btn-upload-factura')
 
-  let icon = '📄'
-  if (file.type.startsWith('image/')) {
-    icon = '🖼️'
-  } else if (file.type === 'application/pdf') {
-    icon = '📕'
-  } else if (file.type === 'text/xml' || file.type === 'application/xml') {
-    icon = '🔗'
-  }
+  let html = '<div class="space-y-2">'
+  files.forEach((file) => {
+    let icon = '📄'
+    if (file.type.startsWith('image/')) {
+      icon = '🖼️'
+    } else if (file.type === 'application/pdf') {
+      icon = '📕'
+    } else if (file.type === 'text/xml' || file.type === 'application/xml') {
+      icon = '🔗'
+    }
 
-  const fileSize = (file.size / 1024).toFixed(2) + ' KB'
-
-  previewContainer.innerHTML = `
-        <div class="flex items-center justify-between">
+    const fileSize = (file.size / 1024).toFixed(2) + ' KB'
+    html += `
+        <div class="flex items-center justify-between bg-white p-2 rounded border">
             <div class="flex items-center gap-2">
-                <span class="text-2xl">${icon}</span>
+                <span class="text-xl">${icon}</span>
                 <div>
-                    <p class="text-sm font-medium text-gray-800 truncate">${file.name}</p>
-                    <p class="text-xs text-gray-500">${fileSize}</p>
+                    <p class="text-xs font-medium text-gray-800 truncate max-w-[200px]">${file.name}</p>
+                    <p class="text-[10px] text-gray-500">${fileSize}</p>
                 </div>
             </div>
-            <button onclick="removeFacturaFile(${idSolicitud})" class="text-red-500 hover:text-red-700 font-bold text-xl">&times;</button> 
         </div>
     `
+  })
+  html += `
+        <div class="mt-2 text-right">
+            <button onclick="removeFacturaFile(${idSolicitud})" class="text-red-500 hover:text-red-700 text-xs font-bold underline">Limpiar selección</button>
+        </div>
+    </div>`
+
+  previewContainer.innerHTML = html
   previewContainer.classList.remove('hidden')
 
-  uploadButton.innerText = 'Confirmar y Subir Factura'
+  uploadButton.innerText =
+    files.length > 1 ? `Confirmar y Subir ${files.length} Facturas` : 'Confirmar y Subir Factura'
   uploadButton.onclick = () => uploadFactura(idSolicitud, metodoPago)
 }
 
@@ -1404,16 +1413,16 @@ function removeFacturaFile(idSolicitud) {
 
   const uploadButton = document.getElementById('btn-upload-factura')
   if (uploadButton) {
-    uploadButton.innerText = 'Subir Factura'
+    uploadButton.innerText = 'Subir Factura(s)'
     uploadButton.onclick = () => document.getElementById('archivo-factura').click()
   }
 }
 
 async function uploadFactura(idSolicitud, metodoPago) {
   const fileInput = document.getElementById('archivo-factura')
-  const file = fileInput.files[0]
+  const files = fileInput.files
 
-  if (!file) {
+  if (files.length === 0) {
     mostrarNotificacion('No se ha seleccionado ningún archivo.', 'warning')
     return
   }
@@ -1421,19 +1430,22 @@ async function uploadFactura(idSolicitud, metodoPago) {
   const previewContainer = document.getElementById('file-preview-factura')
   const uploadButton = document.getElementById('btn-upload-factura')
 
-  previewContainer.innerHTML = `
+  const originalText = uploadButton.innerText
+  uploadButton.disabled = true
+  uploadButton.innerHTML = `
         <div class="flex items-center justify-center gap-2">
-            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <span class="text-sm text-gray-600">Subiendo factura...</span> 
+            <span class="text-sm">Subiendo...</span> 
         </div>
     `
-  uploadButton.disabled = true
 
   const formData = new FormData()
-  formData.append('factura', file) // 'factura' es el nombre esperado en el backend
+  for (let i = 0; i < files.length; i++) {
+    formData.append('factura[]', files[i])
+  }
 
   try {
     const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
@@ -1442,7 +1454,7 @@ async function uploadFactura(idSolicitud, metodoPago) {
     })
 
     if (result.success) {
-      mostrarNotificacion('Factura subida con éxito.', 'success')
+      mostrarNotificacion('Facturas subidas con éxito.', 'success')
       removeFacturaFile(idSolicitud)
 
       // --- RECARGA DE VISTAS
@@ -1454,7 +1466,7 @@ async function uploadFactura(idSolicitud, metodoPago) {
   } catch (error) {
     console.error('Error al subir factura:', error)
     mostrarNotificacion(`Error al subir el archivo: ${error.message}`, 'error')
-    handleFacturaFileSelect(fileInput, idSolicitud, metodoPago)
+    uploadButton.innerText = originalText
   } finally {
     uploadButton.disabled = false
   }

@@ -329,12 +329,17 @@ function InputPrompt(title, message, isRequired = true) {
 function GetFiles(data) {
   let html = ''
   if (data.OrdenCompra['File_Factura']) {
-    html += `
+    const facturas = data.OrdenCompra['File_Factura'].split(',')
+    facturas.forEach((factura, index) => {
+      const trimmed = factura.trim()
+      if (!trimmed) return
+      html += `
       <div class="block mb-6 p-4 border rounded-lg">
-        <p class="font-medium text-gray-800 mb-1">Factura Adjunta</p>
-        <a href="${BASE_URL}api/storage/serve?path=facturas/${data.OrdenCompra['File_Factura']}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${data.OrdenCompra['File_Factura']}</a>
+        <p class="font-medium text-gray-800 mb-1">Factura Adjunta${index > 0 ? ' ' + (index + 1) : ''}</p>
+        <a href="${BASE_URL}api/storage/serve?path=facturas/${trimmed}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${trimmed}</a>
       </div>
     `
+    })
   }
 
   if (data.OrdenCompra['File_Comprobante']) {
@@ -1382,13 +1387,17 @@ function generarSeccionAdjuntos(data) {
             ${
               /* 7. FACTURA */
               facturaFile
-                ? `
-            <div>
-                <strong>Factura:</strong> 
-                <a href="${BASE_URL}api/storage/serve?path=facturas/${facturaFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                    ${facturaFile}
-                </a>
-            </div>`
+                ? facturaFile.split(',').map((file, index) => {
+                    const trimmedFile = file.trim()
+                    if (!trimmedFile) return ''
+                    return `
+                <div>
+                    <strong>Factura${index > 0 ? ' ' + (index + 1) : ''}:</strong> 
+                    <a href="${BASE_URL}api/storage/serve?path=facturas/${trimmedFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+                        ${trimmedFile}
+                    </a>
+                </div>`
+                  }).join('')
                 : '<div class="text-gray-400"><strong>Factura:</strong> No adjuntada</div>'
             }
 
