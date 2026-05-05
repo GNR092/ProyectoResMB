@@ -975,7 +975,7 @@ function registrarComponenteReportePresupuesto() {
                 }
 
                 const rsGrupos = [];
-                if (this.pantalla === 'presupuesto') this.hayExcedidos = false;
+                if (this.pantalla === 'presupuesto' || this.pantalla === 'completo') this.hayExcedidos = false;
 
                 const crearTotales = () => {
                     if (this.pantalla === 'cuentas') return { inicial: 0, final: 0, usado: 0, porcentaje: 0 };
@@ -1114,15 +1114,40 @@ function registrarComponenteReportePresupuesto() {
                 // Calcular Totales Generales Consolidados (incluyendo meses)
                 const granTotal = crearTotales();
                 rsGrupos.forEach(rs => {
-                    granTotal.asignado += rs.totales.asignado;
-                    granTotal.comprometido += rs.totales.comprometido;
-                    granTotal.ejecutado += rs.totales.ejecutado;
-                    if (rs.totales.importesPorMes) {
-                        for (const mesId in rs.totales.importesPorMes) {
-                            granTotal.importesPorMes[mesId] = (granTotal.importesPorMes[mesId] || 0) + rs.totales.importesPorMes[mesId];
+                    if (this.pantalla === 'completo') {
+                        granTotal.pAsignado += rs.totales.pAsignado;
+                        granTotal.pComprometido += rs.totales.pComprometido;
+                        granTotal.pEjecutado += rs.totales.pEjecutado;
+                        granTotal.pGastado += rs.totales.pGastado;
+                        granTotal.bInicial += rs.totales.bInicial;
+                        granTotal.bFinal += rs.totales.bFinal;
+                    } else if (this.pantalla === 'cuentas') {
+                        granTotal.inicial += rs.totales.inicial;
+                        granTotal.final += rs.totales.final;
+                        granTotal.usado += rs.totales.usado;
+                    } else {
+                        granTotal.asignado += rs.totales.asignado;
+                        granTotal.comprometido += rs.totales.comprometido;
+                        granTotal.ejecutado += rs.totales.ejecutado;
+                        if (rs.totales.importesPorMes) {
+                            for (const mesId in rs.totales.importesPorMes) {
+                                granTotal.importesPorMes[mesId] = (granTotal.importesPorMes[mesId] || 0) + rs.totales.importesPorMes[mesId];
+                            }
                         }
                     }
                 });
+
+                if (this.pantalla === 'completo') {
+                    if (granTotal.pGastado > granTotal.pAsignado) {
+                        granTotal.pDisponible = 0;
+                        granTotal.pExcedido = granTotal.pGastado - granTotal.pAsignado;
+                    } else {
+                        granTotal.pDisponible = granTotal.pAsignado - granTotal.pGastado;
+                        granTotal.pExcedido = 0;
+                    }
+                    granTotal.pPorcentaje = granTotal.pAsignado > 0 ? Math.round((granTotal.pGastado / granTotal.pAsignado) * 100 * 100) / 100 : 0;
+                }
+
                 this.totalesGeneralesCalculados = granTotal;
 
                 return rsGrupos;

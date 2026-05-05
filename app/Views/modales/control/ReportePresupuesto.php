@@ -1529,6 +1529,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <label class="text-xs font-bold text-gray-500 uppercase">Razón Social</label>
                     <select x-model="idRazonSocial" @change="actualizarRazonSocial('completo')" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-300 min-w-[200px] text-sm">
                         <option value="">Seleccione Razón Social</option>
+                        <template x-for="rs in razonesSociales" :key="rs.ID_RazonSocial"><option :value="rs.ID_RazonSocial" x-text="rs.Nombre"></option></template>
                     </select>
                 </div>
                 <div class="flex flex-col gap-1">
@@ -1697,6 +1698,22 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             </template>
                         </tbody>
                     </template>
+
+                    <tfoot x-show="!cargando && departamentosCompleto.length > 0" class="bg-gray-800 text-white">
+                        <tr>
+                            <td class="px-4 py-4 font-black uppercase tracking-widest text-right">Total:</td>
+                            <td class="px-2 py-4 text-right font-bold text-[11px]" x-text="formatearMoneda(totalesGeneralesCalculados.pAsignado)"></td>
+                            <td class="px-2 py-4 text-right font-bold text-[11px] text-orange-300" x-text="formatearMoneda(totalesGeneralesCalculados.pComprometido)"></td>
+                            <td class="px-2 py-4 text-right font-bold text-[11px] text-blue-300" x-text="formatearMoneda(totalesGeneralesCalculados.pEjecutado)"></td>
+                            <td class="px-2 py-4 text-right font-bold text-[11px] text-gray-300" x-text="formatearMoneda(totalesGeneralesCalculados.pComprometido + totalesGeneralesCalculados.pEjecutado)"></td>
+                            <td class="px-2 py-4 text-right font-bold text-[11px]" :class="totalesGeneralesCalculados.pDisponible <= 0 ? 'text-gray-400' : 'text-green-400'" x-text="formatearMoneda(totalesGeneralesCalculados.pDisponible)"></td>
+                            <td class="px-2 py-4 text-right font-bold text-[11px] text-red-400" x-show="hayExcedidos" x-cloak x-text="formatearMoneda(totalesGeneralesCalculados.pExcedido)"></td>
+                            <td class="px-2 py-4 text-center font-bold text-[10px]" :class="totalesGeneralesCalculados.pPorcentaje >= 100 ? 'text-red-400' : 'text-green-400'" x-text="(totalesGeneralesCalculados.pPorcentaje || 0) + '%'"></td>
+                            <td class="px-2 py-4 text-right font-bold text-[11px] border-l border-gray-600" x-text="formatearMoneda(totalesGeneralesCalculados.bInicial)"></td>
+                            <td class="px-2 py-4 text-right font-bold text-[11px]" x-text="formatearMoneda(totalesGeneralesCalculados.bFinal)"></td>
+                            <td class="px-4 py-4 text-right font-bold text-base" :class="totalesGeneralesCalculados.bFinal < totalesGeneralesCalculados.bInicial ? 'text-red-400' : 'text-green-400'" x-text="formatearMoneda(totalesGeneralesCalculados.bInicial - totalesGeneralesCalculados.bFinal)"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
