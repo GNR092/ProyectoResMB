@@ -190,19 +190,24 @@ class Archivo extends BaseController
                 }
             }
 
-            // 3. Inyectar trazabilidad en los comentarios (Solo si existe etiqueta)
-            $nombreUsuarioSesion = $user['Nombre'] ?? 'Usuario';
-            $clausulaResponsabilidad = "La responsabilidad del contenido de esta requisición recae en " . $nombreUsuarioSesion . ". ";
+            // 3. Preparar comentarios finales con trazabilidad y responsabilidad
+            $enviarDireccion = isset($post['enviar_direccion']) && $post['enviar_direccion'] == '1';
+            $comentariosFinal = "";
 
-            $comentariosFinal = $clausulaResponsabilidad;
+            // La cláusula de responsabilidad solo se agrega si es envío a dirección
+            if ($enviarDireccion) {
+                $nombreUsuarioSesion = $user['Nombre'] ?? 'Usuario';
+                $comentariosFinal .= "La responsabilidad del contenido de esta requisición recae en " . $nombreUsuarioSesion . ". ";
+            }
+
             if ($etiquetaTrazabilidad) {
                 $comentariosFinal .= $etiquetaTrazabilidad . " ";
             }
+
             if ($comentariosuser) {
-                $comentariosFinal .= "| Comentario: " . $comentariosuser;
+                $comentariosFinal .= (!empty($comentariosFinal) ? "| " : "") . "Comentario: " . $comentariosuser;
             }
 
-            $enviarDireccion = isset($post['enviar_direccion']) && $post['enviar_direccion'] == '1';
             $estadoInicial = Status::Aprobacion_pendiente;
             $metodoPagoFinal = MetodoPago::EnEspera;
 
