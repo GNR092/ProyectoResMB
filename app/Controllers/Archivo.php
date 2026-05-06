@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Libraries\FPath;
+use App\Models\CatalogoProductosModel;
 use App\Models\SolicitudProductModel;
 use App\Models\SolicitudServiciosModel;
 use App\Models\SolicitudModel;
@@ -243,14 +244,27 @@ class Archivo extends BaseController
             ]);
 
             $datosProductos = [];
+            $catalogoModel = new CatalogoProductosModel();
+
             if ($tipo == SolicitudTipo::Cotizacion || $tipo == SolicitudTipo::NoCotizacion) {
                 $solicitudProduct = new SolicitudProductModel();
 
                 for ($i = 0; $i < count($productos); $i++) {
+                    $idCatalogo = is_numeric($productos[$i]) ? (int)$productos[$i] : null;
+                    $nombreReal = $productos[$i];
+                    
+                    if ($idCatalogo) {
+                        $prodCatalogo = $catalogoModel->find($idCatalogo);
+                        if ($prodCatalogo) {
+                            $nombreReal = $prodCatalogo['Nombre'];
+                        }
+                    }
+
                     $item = [
                         'ID_Solicitud' => $solicitudId,
-                        'Codigo' => $codigos[$i] ?? null,
-                        'Nombre' => $productos[$i],
+                        'ID_CatalogoProd' => $idCatalogo,
+                        'Codigo' => $codigos[$i] ?? ($idCatalogo ? (string)$idCatalogo : null),
+                        'Nombre' => $nombreReal,
                         'Cantidad' => $cantidades[$i],
                         'Importe' => $importes[$i],
                         'ID_GrupoPresupuestal' => $grupos_presupuestales[$i] ?? null,
@@ -261,9 +275,20 @@ class Archivo extends BaseController
             } else {
                 $solicitudServicio = new SolicitudServiciosModel();
                 for ($i = 0; $i < count($productos); $i++) {
+                    $idCatalogo = is_numeric($productos[$i]) ? (int)$productos[$i] : null;
+                    $nombreReal = $productos[$i];
+
+                    if ($idCatalogo) {
+                        $prodCatalogo = $catalogoModel->find($idCatalogo);
+                        if ($prodCatalogo) {
+                            $nombreReal = $prodCatalogo['Nombre'];
+                        }
+                    }
+
                     $item = [
                         'ID_Solicitud' => $solicitudId,
-                        'Nombre' => $productos[$i],
+                        'ID_CatalogoProd' => $idCatalogo,
+                        'Nombre' => $nombreReal,
                         'Importe' => $importes[$i],
                         'ID_GrupoPresupuestal' => $grupos_presupuestales[$i] ?? null,
                     ];
