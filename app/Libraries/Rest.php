@@ -563,7 +563,7 @@ class Rest
             $productos = $solicitudProductModel
                 ->select('Solicitud_Producto.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre, Catalogo_Productos.ID_GrupoPresupuestal as ID_GrupoSugerido')
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
-                ->join('Catalogo_Productos', 'Catalogo_Productos.Nombre = Solicitud_Producto.Nombre', 'left')
+                ->join('Catalogo_Productos', 'Catalogo_Productos.ID_CatalogoProd = Solicitud_Producto.ID_CatalogoProd', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         } else {
@@ -571,7 +571,7 @@ class Rest
             $productos = $solicitudServicioModel
                 ->select('Solicitud_Servicios.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre, Catalogo_Productos.ID_GrupoPresupuestal as ID_GrupoSugerido')
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Servicios.ID_GrupoPresupuestal', 'left')
-                ->join('Catalogo_Productos', 'Catalogo_Productos.Nombre = Solicitud_Servicios.Nombre', 'left')
+                ->join('Catalogo_Productos', 'Catalogo_Productos.ID_CatalogoProd = Solicitud_Servicios.ID_CatalogoProd', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         }
@@ -779,7 +779,7 @@ class Rest
             $productos = $solicitudProductModel
                 ->select('Solicitud_Producto.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre, Catalogo_Productos.ID_GrupoPresupuestal as ID_GrupoSugerido')
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Producto.ID_GrupoPresupuestal', 'left')
-                ->join('Catalogo_Productos', 'Catalogo_Productos.Nombre = Solicitud_Producto.Nombre', 'left')
+                ->join('Catalogo_Productos', 'Catalogo_Productos.ID_CatalogoProd = Solicitud_Producto.ID_CatalogoProd', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         } else {
@@ -787,7 +787,7 @@ class Rest
             $productos = $solicitudServicioModel
                 ->select('Solicitud_Servicios.*, GrupoPresupuestal.Nombre as GrupoPresupuestalNombre, Catalogo_Productos.ID_GrupoPresupuestal as ID_GrupoSugerido')
                 ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Solicitud_Servicios.ID_GrupoPresupuestal', 'left')
-                ->join('Catalogo_Productos', 'Catalogo_Productos.Nombre = Solicitud_Servicios.Nombre', 'left')
+                ->join('Catalogo_Productos', 'Catalogo_Productos.ID_CatalogoProd = Solicitud_Servicios.ID_CatalogoProd', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
         }

@@ -5,13 +5,13 @@
         <option value="">Seleccione un servicio...</option>
         <?php if (!empty($catalogo_productos)): ?>
             <?php foreach ($catalogo_productos as $prod): ?>
-                <option value="<?= esc($prod['Nombre']) ?>" 
+                <option value="<?= esc($prod['ID_CatalogoProd']) ?>" 
+                        data-nombre="<?= esc($prod['Nombre']) ?>"
                         data-codigo="<?= esc($prod['ID_CatalogoProd']) ?>" 
                         data-grupo="<?= esc($prod['ID_GrupoPresupuestal']) ?>">
                     <?= esc($prod['Nombre']) ?> (<?= esc($prod['UnidadNombre'] ?? 'General') ?>)
                 </option>
-            <?php endforeach; ?>
-        <?php endif; ?>
+            <?php endforeach; ?>        <?php endif; ?>
     </select>
 </td>
 

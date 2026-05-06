@@ -221,7 +221,7 @@ async function refreshCatalogoByRS(idRS) {
 
     if (Array.isArray(productos)) {
       window.catalogoMasterList = productos.map(p => ({
-        value: p.Nombre,
+        value: p.ID_CatalogoProd,
         label: `${p.Nombre} (${p.UnidadNombre || 'General'})`,
         customProperties: { codigo: p.ID_CatalogoProd, grupo: p.ID_GrupoPresupuestal }
       }));
@@ -251,7 +251,7 @@ async function refreshCatalogoByPlace(idPlace) {
 
     if (Array.isArray(productos)) {
       window.catalogoMasterList = productos.map(p => ({
-        value: p.Nombre,
+        value: p.ID_CatalogoProd,
         label: `${p.Nombre} (${p.UnidadNombre || 'General'})`,
         customProperties: {
           codigo: p.ID_CatalogoProd,
