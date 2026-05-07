@@ -1841,109 +1841,122 @@ function initCatalogoProductos() {
     instancesChoicesCatalogo[targetId].setChoices(filtered, 'value', 'label', true)
   }
 
-  // Lógica de Asistencia de Llenado (Upward & Downward)
+  // Lógica de Asistencia de Llenado (Centralizada)
   const rsSel = document.getElementById('form-rs')
   const segSel = document.getElementById('form-seg')
   const placeSel = document.getElementById('form-place')
   const deptoSel = document.getElementById('form-depto')
   const grupoSel = document.getElementById('form-grupo')
 
-  // ASISTENCIA HACIA ARRIBA (Upward) - Llenado automático usando respaldo de datos
-  const handleUpwardSelection = (id, parents) => {
-    const val = instancesChoicesCatalogo[id].getValue(true)
-    if (val === undefined || val === null || val === '') return
+  let isSyncing = false
 
-    const optData = originalOptions[id].find((o) => o.value == val)
-    if (!optData) return
+  const handleCascade = (changedLevel) => {
+    // Niveles: 0: RS, 1: Seg, 2: Place, 3: Depto, 4: Grupo
+    
+    // 1. Limpiar inferiores directos para forzar su re-evaluación al cambiar un padre
+    if (changedLevel <= 0) instancesChoicesCatalogo['form-seg'].setChoiceByValue('')
+    if (changedLevel <= 1) instancesChoicesCatalogo['form-place'].setChoiceByValue('')
+    if (changedLevel <= 2) instancesChoicesCatalogo['form-depto'].setChoiceByValue('')
+    if (changedLevel <= 3) instancesChoicesCatalogo['form-grupo'].setChoiceByValue('')
 
-    parents.forEach((p) => {
-      const parentVal = optData[p.attr]
-      if (parentVal !== undefined && parentVal !== null && parentVal !== '' && instancesChoicesCatalogo[p.id]) {
-        // Asegurar que la opción esté disponible antes de setearla
-        filterChoices(p.id, () => true)
-        instancesChoicesCatalogo[p.id].setChoiceByValue(parentVal.toString())
-        // Disparar manualmente para continuar la cadena hacia arriba
-        const parentEl = document.getElementById(p.id)
-        if (parentEl) parentEl.dispatchEvent(new Event('change'))
+    // 2. Auto-completado hacia arriba (Sincronizar padres basados en el hijo seleccionado)
+    if (changedLevel === 4) {
+      const v = instancesChoicesCatalogo['form-grupo'].getValue(true)
+      const data = originalOptions['form-grupo'].find((o) => o.value == v)
+      if (data) {
+        if (data.depto) instancesChoicesCatalogo['form-depto'].setChoiceByValue(data.depto.toString())
+        else if (data.place) instancesChoicesCatalogo['form-place'].setChoiceByValue(data.place.toString())
       }
+    }
+    
+    if (changedLevel >= 3) {
+      const v = instancesChoicesCatalogo['form-depto'].getValue(true)
+      const data = originalOptions['form-depto'].find((o) => o.value == v)
+      if (data && data.place) instancesChoicesCatalogo['form-place'].setChoiceByValue(data.place.toString())
+    }
+
+    if (changedLevel >= 2) {
+      const v = instancesChoicesCatalogo['form-place'].getValue(true)
+      const data = originalOptions['form-place'].find((o) => o.value == v)
+      if (data) {
+        if (data.seg) instancesChoicesCatalogo['form-seg'].setChoiceByValue(data.seg.toString())
+        if (data.rs) instancesChoicesCatalogo['form-rs'].setChoiceByValue(data.rs.toString())
+      }
+    }
+
+    if (changedLevel >= 1) {
+      const v = instancesChoicesCatalogo['form-seg'].getValue(true)
+      const data = originalOptions['form-seg'].find((o) => o.value == v)
+      if (data && data.rs) instancesChoicesCatalogo['form-rs'].setChoiceByValue(data.rs.toString())
+    }
+
+    // 3. Capturar estado actual después de auto-completar
+    const rsId = instancesChoicesCatalogo['form-rs'].getValue(true)
+    const segId = instancesChoicesCatalogo['form-seg'].getValue(true)
+    const placeId = instancesChoicesCatalogo['form-place'].getValue(true)
+    const deptoId = instancesChoicesCatalogo['form-depto'].getValue(true)
+    const grupoId = instancesChoicesCatalogo['form-grupo'].getValue(true)
+
+    // 4. Reaplicar filtros de arriba hacia abajo y restaurar valores
+    
+    // Segmento se filtra por RS
+    filterChoices('form-seg', (opt) => !rsId || opt.rs == rsId)
+    if (segId) instancesChoicesCatalogo['form-seg'].setChoiceByValue(segId.toString())
+
+    // Place se filtra por RS y Seg
+    filterChoices('form-place', (opt) => {
+      const matchRS = !rsId || opt.rs == rsId
+      const matchSeg = !segId || opt.seg == segId
+      return matchRS && matchSeg
     })
+    if (placeId) instancesChoicesCatalogo['form-place'].setChoiceByValue(placeId.toString())
+
+    // Depto se filtra por Place, o si no hay Place, por RS
+    filterChoices('form-depto', (opt) => {
+      if (placeId) return opt.place == placeId
+      if (!rsId) return true
+      const pData = originalOptions['form-place'].find((p) => p.value == opt.place)
+      return pData && pData.rs == rsId
+    })
+    if (deptoId) instancesChoicesCatalogo['form-depto'].setChoiceByValue(deptoId.toString())
+
+    // Grupo se filtra por Depto (unidad) o Place
+    const optDepto = originalOptions['form-depto'].find((o) => o.value == deptoId)
+    filterChoices('form-grupo', (opt) => {
+      if (deptoId && optDepto && optDepto.unidad) {
+        return opt.unidad == optDepto.unidad
+      } else if (placeId) {
+        return opt.place == placeId
+      }
+      return true
+    })
+    if (grupoId) instancesChoicesCatalogo['form-grupo'].setChoiceByValue(grupoId.toString())
   }
 
   // --- LISTENERS ---
-
-  // 1. Razón Social (Cambia -> Filtra Segmentos y Lugares)
-  rsSel.addEventListener('change', (e) => {
-    const rsId = e.target.value
-    if (rsId) {
-      filterChoices('form-seg', (opt) => opt.rs == rsId)
-      filterChoices('form-place', (opt) => opt.rs == rsId)
-    } else {
-      filterChoices('form-seg', () => true)
-      filterChoices('form-place', () => true)
-    }
+  rsSel.addEventListener('change', () => {
+    if (isSyncing) return
+    isSyncing = true; handleCascade(0); isSyncing = false
   })
 
-  // 2. Segmento (Cambia -> Sube a RS y Filtra Lugares)
   segSel.addEventListener('change', () => {
-    handleUpwardSelection('form-seg', [{ id: 'form-rs', attr: 'rs' }])
-    const segId = segSel.value
-    if (segId) {
-      filterChoices('form-place', (opt) => opt.seg == segId)
-    }
+    if (isSyncing) return
+    isSyncing = true; handleCascade(1); isSyncing = false
   })
 
-  // 3. Lugar (Cambia -> Sube a RS/Seg y Filtra Deptos)
   placeSel.addEventListener('change', () => {
-    handleUpwardSelection('form-place', [
-      { id: 'form-rs', attr: 'rs' },
-      { id: 'form-seg', attr: 'seg' },
-    ])
-    const placeId = placeSel.value
-    if (placeId) {
-      filterChoices('form-depto', (opt) => opt.place == placeId)
-    } else {
-      filterChoices('form-depto', () => true)
-    }
+    if (isSyncing) return
+    isSyncing = true; handleCascade(2); isSyncing = false
   })
 
-  // 4. Departamento (Cambia -> Sube a Lugar y Filtra Partidas)
   deptoSel.addEventListener('change', () => {
-    handleUpwardSelection('form-depto', [{ id: 'form-place', attr: 'place' }])
-    const deptoId = deptoSel.value
-    const placeId = placeSel.value
-    
-    if (deptoId) {
-      const optData = originalOptions['form-depto'].find((o) => o.value == deptoId)
-      if (optData && optData.unidad) {
-        // Caso normal: El depto tiene unidad operativa
-        filterChoices('form-grupo', (opt) => opt.unidad == optData.unidad)
-      } else if (placeId) {
-        // Fallback: El depto NO tiene unidad, filtramos por complejo
-        filterChoices('form-grupo', (opt) => opt.place == placeId)
-      }
-    } else {
-      filterChoices('form-grupo', () => true)
-    }
+    if (isSyncing) return
+    isSyncing = true; handleCascade(3); isSyncing = false
   })
 
-  // 5. Partida (Cambia -> Sube a Departamento y continúa cadena)
   grupoSel.addEventListener('change', () => {
-    const val = instancesChoicesCatalogo['form-grupo'].getValue(true)
-    const optData = originalOptions['form-grupo'].find((o) => o.value == val)
-    
-    if (optData) {
-      // Subir a Departamento si existe el vínculo
-      if (optData.depto) {
-        filterChoices('form-depto', () => true)
-        instancesChoicesCatalogo['form-depto'].setChoiceByValue(optData.depto.toString())
-        deptoSel.dispatchEvent(new Event('change'))
-      } else if (optData.place) {
-        // Si no hay depto directo, al menos subir al Place
-        filterChoices('form-place', () => true)
-        instancesChoicesCatalogo['form-place'].setChoiceByValue(optData.place.toString())
-        placeSel.dispatchEvent(new Event('change'))
-      }
-    }
+    if (isSyncing) return
+    isSyncing = true; handleCascade(4); isSyncing = false
   })
 
   // Botones Navegación
