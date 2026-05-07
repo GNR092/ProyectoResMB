@@ -773,8 +773,15 @@ class GenerarPDF extends BaseController
         $this->_generarInfoFacturacionOrden($pdf, $orden);
         $subtotal = $this->_generarTablaProductosOrden($pdf, $orden);
         $pdf->Ln(5);
+
+        // Verificación de espacio para el bloque de Totales y Facturas (aprox 45mm)
+        if ($pdf->GetY() + 45 > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage($pdf->getCurOrientation());
+        }
+
+        $y_inicio_bloque = $pdf->GetY();
         $this->_generarTotalesOrden($pdf, $orden, $subtotal);
-        $this->_generarPieOrden($pdf, $orden);
+        $this->_generarPieOrden($pdf, $orden, $y_inicio_bloque);
 
         $this->response->setHeader('Content-Type', 'application/pdf');
         $pdf->Output('I', 'OrdenCompra-' . $orden['No_Folio'] . '.pdf');
@@ -820,8 +827,15 @@ class GenerarPDF extends BaseController
         $this->_generarInfoFacturacionOrden($pdf, $orden);
         $subtotal = $this->_generarTablaProductosOrden($pdf, $orden);
         $pdf->Ln(5);
+
+        // Verificación de espacio para el bloque de Totales y Facturas (aprox 45mm)
+        if ($pdf->GetY() + 45 > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage($pdf->getCurOrientation());
+        }
+
+        $y_inicio_bloque = $pdf->GetY();
         $this->_generarTotalesOrden($pdf, $orden, $subtotal);
-        $this->_generarPieOrden($pdf, $orden);
+        $this->_generarPieOrden($pdf, $orden, $y_inicio_bloque);
 
         $folderPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'pdf_ordenes';
         if (!is_dir($folderPath)) {
@@ -1117,14 +1131,18 @@ class GenerarPDF extends BaseController
         $pdf->Cell($col_width2, $line_height, '$' . number_format($total, 2), 1, 1, 'R');
     }
 
-    private function _generarPieOrden(PDF $pdf, array $orden)
+    private function _generarPieOrden(PDF $pdf, array $orden, $y_alineacion = null)
     {
-        $pdf->Ln(5);
-        $y = $pdf->GetY();
-        $pdf->SetY($y - 40);
+        if ($y_alineacion !== null) {
+            $pdf->SetY($y_alineacion);
+        } else {
+            $pdf->Ln(5);
+            // Verificamos si hay espacio para el bloque de facturas (aprox 30mm)
+            if ($pdf->GetY() + 30 > $pdf->getPageBreakTrigger()) {
+                $pdf->AddPage($pdf->getCurOrientation());
+            }
+        }
 
-        // --- 1. Dibuja la sección de recepción de facturas ---
-        // Esta sección siempre aparecerá después de los totales.
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->SetFillColor(230, 230, 230);
         $pdf->Cell(110, 7, 'RECEPCION DE FACTURAS', 1, 1, 'C', true);
@@ -1134,35 +1152,41 @@ class GenerarPDF extends BaseController
         $pdf->Cell(110, 7, 'compras@campusmerida.com', 'LR', 1, 'C');
         $pdf->Cell(110, 7, 'gfreyre@campusmerida.com', 'LRB', 1, 'C');
 
-        // --- 2. Gestiona y dibuja el bloque de firmas ---
+        // Si estamos alineados con los totales, nos aseguramos de que el cursor
+        // quede debajo del bloque más largo (Totales mide aprox 40mm, Facturas 28mm)
+        if ($y_alineacion !== null) {
+            $pdf->SetY($y_alineacion + 40);
+        }
 
-        // Estima la altura requerida solo para el bloque de firmas.
-        $altura_firmas = 40; // (Altura de imagen/espacio + texto)
+        // --- 2. Bloque de firmas (Unidad Atómica) ---
+        
+        // Altura estimada del bloque de firmas (incluyendo imágenes y texto): 55mm
+        $alturaFirmas = 55;
+        
+        // Desactivamos el salto automático para controlar el bloque manualmente
+        $pdf->SetAutoPageBreak(false);
 
-        // Comprueba si hay suficiente espacio para el bloque de firmas. Si no, salta de página.
-        if ($pdf->GetY() + $altura_firmas > $pdf->getPageBreakTrigger()) {
+        // Si no hay espacio suficiente, saltamos de página
+        if ($pdf->GetY() + $alturaFirmas > $pdf->getPageBreakTrigger()) {
             $pdf->AddPage($pdf->getCurOrientation());
         }
 
-        $pdf->Ln(15); // Espacio consistente antes de las firmas.
+        $pdf->Ln(15); // Espacio antes de las firmas
 
-        // Se captura la posición Y de inicio para el bloque de firmas.
         $y_inicio_firmas = $pdf->GetY();
-        $y_linea_firma = $y_inicio_firmas + 20; // La línea de la firma estará 20mm por debajo.
-        $y_imagen_firma = $y_inicio_firmas; // La imagen se alinea con el inicio del bloque.
+        $y_linea_firma = $y_inicio_firmas + 22; // La línea de la firma
+        $y_imagen_firma = $y_inicio_firmas;
     
         $signatureWidth = 60;
-        $x_start = 15; // Posición X inicial absoluta para el primer bloque.
+        $x_start = 15;
 
-        // --- Dibuja el bloque de tres firmas ---
-    
         // FIRMA 1: ELABORADO POR
         $x_elabora = $x_start;
         if (isset($orden['UsuarioSession']['Firma_digital']) && !empty($orden['UsuarioSession']['Firma_digital'])) {
             $firmaPath = FPath::FUSER . $orden['UsuarioSession']['ID_Usuario'] . DIRECTORY_SEPARATOR . $orden['UsuarioSession']['Firma_digital'];
             if (file_exists($firmaPath)) {
-                $imageWidth = 50;
-                $imageHeight = 20;
+                $imageWidth = 45; // Ajuste de dimensión
+                $imageHeight = 18;
                 $x_img = $x_elabora + ($signatureWidth - $imageWidth) / 2;
                 $pdf->Image($firmaPath, $x_img, $y_imagen_firma, $imageWidth, $imageHeight);
             }
@@ -1191,6 +1215,9 @@ class GenerarPDF extends BaseController
         $pdf->SetXY($x_autoriza, $y_linea_firma + 5);
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell($signatureWidth, 5, mb_convert_encoding($orden['UsuarioAutorizaNombre'] ?? 'AUTORIZADO', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+
+        // Restauramos el salto automático (margen de 15mm)
+        $pdf->SetAutoPageBreak(true, 15);
     }
 
     //endregion
@@ -1508,12 +1535,20 @@ class GenerarPDF extends BaseController
 
         $pdf->Ln(10);
 
-        // Verificación de seguridad para el bloque de firmas (al menos 40mm)
-        if ($pdf->GetY() + 40 > $pdf->getPageBreakTrigger()) {
+        // --- Bloque de Firmas (Unidad Atómica) ---
+        $y_firmas_base = $pdf->GetY();
+        $altura_firmas_bloque = 50; // Altura estimada para el bloque completo de firmas
+        
+        // Desactivamos el salto automático para controlar el bloque manualmente
+        $pdf->SetAutoPageBreak(false);
+
+        // Verificación de seguridad para el bloque de firmas
+        if ($y_firmas_base + $altura_firmas_bloque > $pdf->getPageBreakTrigger()) {
             $pdf->AddPage();
+            $y_firmas_base = $pdf->GetY() + 10;
         }
 
-        $y_firmas = $pdf->GetY();
+        $y_firmas = $y_firmas_base;
         $ancho_firma = 60;
         $alto_firma = 20;
 
@@ -1563,6 +1598,9 @@ class GenerarPDF extends BaseController
             1,
             'C',
         );
+        
+        // Restauramos el salto automático (margen de 15mm)
+        $pdf->SetAutoPageBreak(true, 15);
         $pdf->Ln(10);
     }
 
