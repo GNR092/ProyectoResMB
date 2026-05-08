@@ -4076,15 +4076,26 @@ class Api extends ResourceController
         $offset = ($page - 1) * $limit;
 
         $filters = [
-            'usuario_id'   => $this->request->getVar('usuario_id'),
-            'modulo'       => $this->request->getVar('modulo'),
-            'tipo_accion'  => $this->request->getVar('tipo_accion'),
-            'fecha_inicio' => $this->request->getVar('fecha_inicio'),
-            'fecha_fin'    => $this->request->getVar('fecha_fin'),
+            'usuario_id'      => $this->request->getVar('usuario_id'),
+            'departamento_id' => $this->request->getVar('departamento_id'),
+            'modulo'          => $this->request->getVar('modulo'),
+            'tipo_accion'     => $this->request->getVar('tipo_accion'),
+            'fecha_inicio'    => $this->request->getVar('fecha_inicio'),
+            'fecha_fin'       => $this->request->getVar('fecha_fin'),
         ];
 
         $result = $this->api->getBitacora($filters, $limit, $offset);
         return $this->respond($result);
+    }
+
+    /**
+     * Obtiene todos los usuarios.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getUsers()
+    {
+        $results = $this->api->getAllUsers();
+        return $this->respond($results, HttpStatus::OK);
     }
     //endregion
 }

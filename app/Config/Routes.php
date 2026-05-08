@@ -246,6 +246,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/solicitudes/update_master/(:num)', 'ControlMaestro::update_master/$1');
 
         // User
+        $routes->get('api/user/all', 'Api::getUsers');
         $routes->post('api/user/update', 'Api::updateUser');
         $routes->post('api/user/upload_signature', 'Api::upload_signature');
 

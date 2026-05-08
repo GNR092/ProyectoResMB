@@ -11,6 +11,7 @@ function bitacoraApp() {
         },
         filters: {
             usuario_id: '',
+            departamento_id: '',
             modulo: '',
             tipo_accion: '',
             fecha_inicio: '',
@@ -50,16 +51,76 @@ function bitacoraApp() {
                 'Solicitud', 'Cotizacion', 'Compras', 'OrdenCompra', 'Usuarios', 
                 'Catalogos', 'Autenticacion', 'PresupuestoAnual', 
                 'PresupuestoMensual', 'Presupuesto', 'Sistema'
-            ]
+            ],
+            usuarios: [],
+            departamentos: []
         },
+        choicesUsuario: null,
+        choicesDepartamento: null,
 
-        init() {
+        async init() {
+            await this.fetchCatalogos();
             this.fetchData();
+            
+            this.$nextTick(() => {
+                this.initChoices();
+            });
             
             this.$watch('filters.modulo', () => { this.pagination.page = 1; this.fetchData(); });
             this.$watch('filters.tipo_accion', () => { this.pagination.page = 1; this.fetchData(); });
             this.$watch('filters.fecha_inicio', () => { this.pagination.page = 1; this.fetchData(); });
             this.$watch('filters.fecha_fin', () => { this.pagination.page = 1; this.fetchData(); });
+            this.$watch('filters.usuario_id', () => { this.pagination.page = 1; this.fetchData(); });
+            this.$watch('filters.departamento_id', () => { this.pagination.page = 1; this.fetchData(); });
+        },
+
+        async fetchCatalogos() {
+            try {
+                const [usersRes, deptsRes] = await Promise.all([
+                    fetch(`${BASE_URL}api/user/all`),
+                    fetch(`${BASE_URL}api/departments/all`)
+                ]);
+                this.catalogos.usuarios = await usersRes.json();
+                this.catalogos.departamentos = await deptsRes.json();
+            } catch (error) {
+                console.error('Error fetching catalogs:', error);
+            }
+        },
+
+        initChoices() {
+            if (typeof Choices === 'undefined') return;
+            
+            const commonConfig = {
+                searchEnabled: true,
+                itemSelectText: '',
+                noResultsText: 'No se encontraron resultados',
+                noChoicesText: 'No hay opciones disponibles',
+                placeholder: true,
+                shouldSort: false,
+                allowHTML: true
+            };
+
+            const userRef = this.$refs.selectUsuario;
+            if (userRef) {
+                this.choicesUsuario = new Choices(userRef, {
+                    ...commonConfig,
+                    placeholderValue: 'Seleccione Usuario'
+                });
+                userRef.addEventListener('change', (e) => {
+                    this.filters.usuario_id = e.detail.value;
+                });
+            }
+
+            const deptRef = this.$refs.selectDepartamento;
+            if (deptRef) {
+                this.choicesDepartamento = new Choices(deptRef, {
+                    ...commonConfig,
+                    placeholderValue: 'Seleccione Departamento'
+                });
+                deptRef.addEventListener('change', (e) => {
+                    this.filters.departamento_id = e.detail.value;
+                });
+            }
         },
 
         async fetchData() {
@@ -87,8 +148,10 @@ function bitacoraApp() {
 
         clearFilters() {
             this.filters = {
-                usuario_id: '', modulo: '', tipo_accion: '', fecha_inicio: '', fecha_fin: ''
+                usuario_id: '', departamento_id: '', modulo: '', tipo_accion: '', fecha_inicio: '', fecha_fin: ''
             };
+            if (this.choicesUsuario) this.choicesUsuario.setChoiceByValue('');
+            if (this.choicesDepartamento) this.choicesDepartamento.setChoiceByValue('');
             this.pagination.page = 1;
             this.fetchData();
         },

@@ -2319,6 +2319,9 @@ class Rest
         if (!empty($filters['tipo_accion'])) {
             $builder->where('b.tipo_accion', $filters['tipo_accion']);
         }
+        if (!empty($filters['departamento_id'])) {
+            $builder->where('b.departamento_id', $filters['departamento_id']);
+        }
         if (!empty($filters['fecha_inicio'])) {
             $builder->where('b.fecha_hora >=', $filters['fecha_inicio'] . ' 00:00:00');
         }

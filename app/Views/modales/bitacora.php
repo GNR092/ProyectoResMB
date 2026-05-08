@@ -1,6 +1,6 @@
 <div class="flex flex-col h-[calc(100vh-200px)] bg-gray-50 font-sans text-slate-900" x-data="bitacoraApp()">
     <!-- Header / Filtros -->
-    <div class="p-6 bg-white border-b border-slate-200 shadow-sm">
+    <div class="p-6 bg-white border-b border-slate-200 shadow-sm relative z-40">
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-2xl font-semibold text-slate-800 tracking-tight">Auditoría Humanizada de Bitácora</h2>
@@ -18,7 +18,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div>
                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sección / Área</label>
                 <select x-model="filters.modulo" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium">
@@ -34,6 +34,24 @@
                     <option value="">Todas las actividades</option>
                     <template x-for="(label, value) in friendly.acciones" :key="value">
                         <option :value="value" x-text="label"></option>
+                    </template>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Usuario</label>
+                <select x-ref="selectUsuario" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium">
+                    <option value="">Todos los usuarios</option>
+                    <template x-for="usr in catalogos.usuarios" :key="usr.ID_Usuario">
+                        <option :value="usr.ID_Usuario" x-text="usr.Nombre"></option>
+                    </template>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Departamento</label>
+                <select x-ref="selectDepartamento" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium">
+                    <option value="">Todos los deptos</option>
+                    <template x-for="dept in catalogos.departamentos" :key="dept.ID_Dpto">
+                        <option :value="dept.ID_Dpto" x-text="dept.Nombre"></option>
                     </template>
                 </select>
             </div>
@@ -241,4 +259,8 @@
     [x-cloak] { display: none !important; }
     .divide-y tr { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     .divide-y tr:hover { transform: scale(1.005); z-index: 5; position: relative; }
+    
+    /* Corrección para Choices.js dropdowns */
+    .choices { overflow: visible !important; }
+    .choices__list--dropdown { z-index: 50 !important; }
 </style>
