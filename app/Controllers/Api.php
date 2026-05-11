@@ -2091,6 +2091,79 @@ class Api extends ResourceController
     }
 
     /**
+     * Búsqueda asíncrona filtrada por área/departamento.
+     */
+    public function buscarProductosCatalogo()
+    {
+        $idUsuario = session('id');
+        $query = $this->request->getGet('q') ?? '';
+        $idPlace = $this->request->getGet('id_place');
+        $idRS = $this->request->getGet('id_razon_social');
+        // Asegurarse de que idPlace e idRS sean int o null para la llamada a Rest.php
+        $idPlace = $idPlace !== null && $idPlace !== '' ? (int)$idPlace : null;
+        $idRS = $idRS !== null && $idRS !== '' ? (int)$idRS : null;
+        $nombreDepto = $this->request->getGet('nombre_depto');
+
+        if (empty($nombreDepto)) {
+            return $this->respond([], HttpStatus::OK); // Devolver vacío si no hay depto
+        }
+
+        try {
+            $resultados = $this->api->buscarProductosCatalogo($query, $idPlace, $idRS, $nombreDepto, $idUsuario);
+            return $this->respond($resultados, HttpStatus::OK);
+        } catch (\Throwable $e) {
+            log_message('error', '[API] Error en buscarProductosCatalogo: ' . $e->getMessage());
+            return $this->failServerError('Error interno del servidor al buscar productos.', $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtiene los productos favoritos del usuario logueado filtrados por área.
+     */
+    public function getMisFavoritos()
+    {
+        $idUsuario = session('id');
+        $idPlace = $this->request->getGet('id_place');
+        $idRS = $this->request->getGet('id_razon_social');
+        // Asegurarse de que idPlace e idRS sean int o null para la llamada a Rest.php
+        $idPlace = $idPlace !== null && $idPlace !== '' ? (int)$idPlace : null;
+        $idRS = $idRS !== null && $idRS !== '' ? (int)$idRS : null;
+        $nombreDepto = $this->request->getGet('nombre_depto');
+
+        if (empty($idUsuario)) {
+            return $this->failUnauthorized('Sesión no válida.');
+        }
+
+        if (empty($nombreDepto)) {
+            return $this->failValidationAudit('El nombre del departamento es obligatorio.');
+        }
+
+        $favoritos = $this->api->getFavoritosUsuario($idUsuario, $idPlace, $idRS, $nombreDepto);
+        return $this->respond($favoritos, HttpStatus::OK);
+    }
+
+    /**
+     * Agrega o quita un producto de favoritos.
+     */
+    public function toggleFavorito()
+    {
+        $idUsuario = session('id');
+        $idCatalogoProd = $this->request->getPost('id_catalogoprod');
+        $alias = $this->request->getPost('alias');
+
+        if (empty($idUsuario)) {
+            return $this->failUnauthorized('Sesión no válida.');
+        }
+
+        if (empty($idCatalogoProd)) {
+            return $this->failValidationAudit('El ID del producto es obligatorio.');
+        }
+
+        $resultado = $this->api->toggleFavorito($idUsuario, $idCatalogoProd, $alias);
+        return $this->respond($resultado, HttpStatus::OK);
+    }
+
+    /**
      * Obtiene todos los productos del Catálogo De Productos Y Servicios
      * @return \CodeIgniter\HTTP\Response
      */

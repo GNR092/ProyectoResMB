@@ -73,7 +73,7 @@ class Inventario extends BaseController
         $detallesData = $json['detalles'];
 
         // Obtener ID de usuario de la sesión (Ajusta según tu sistema de auth)
-        $usuarioID = session()->get('ID_Usuario') ?? 1;
+        $usuarioID = session('id') ?? 1;
 
         $ingresosModel  = new IngresosModel();
         $detalleModel   = new DetalleIngresoModel();

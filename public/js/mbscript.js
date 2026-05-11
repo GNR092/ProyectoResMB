@@ -203,33 +203,31 @@ function cerrarModal() {
 }
 
 /**
+ * Limpia las selecciones actuales de productos al cambiar RS o Place para evitar inconsistencias.
+ */
+function limpiarSeleccionesProductos() {
+    const filas = document.querySelectorAll('.fila-producto, .fila-servicio');
+    filas.forEach(fila => {
+        const inputNombre = fila.querySelector('.search-producto-input');
+        const inputId = fila.querySelector('.id-producto-val');
+        const inputSku = fila.querySelector('.codigo');
+        const inputGrupo = fila.querySelector('.id_grupo_presupuestal');
+        
+        if (inputNombre) inputNombre.value = '';
+        if (inputId) inputId.value = '';
+        if (inputSku) inputSku.value = '';
+        if (inputGrupo) inputGrupo.value = '';
+    });
+}
+
+/**
  * Refresca el catálogo de productos basado en la Razón Social (cuando no hay lugar específico)
  */
 async function refreshCatalogoByRS(idRS) {
   if (!idRS) return;
-  
-  const deptoInput = document.querySelector('input[name="departamento"]');
-  let nombreDepto = deptoInput ? deptoInput.value : '';
-  if (nombreDepto.includes('(')) {
-      nombreDepto = nombreDepto.split('(')[0].trim();
-  }
-
-  try {
-    const url = `${BASE_URL}api/catalogo/filtrado?id_razon_social=${idRS}&nombre_depto=${encodeURIComponent(nombreDepto)}`;
-    const response = await fetch(url);
-    const productos = await response.json();
-
-    if (Array.isArray(productos)) {
-      window.catalogoMasterList = productos.map(p => ({
-        value: p.ID_CatalogoProd,
-        label: `${p.Nombre} (${p.UnidadNombre || 'General'})`,
-        customProperties: { codigo: p.ID_CatalogoProd, grupo: p.ID_GrupoPresupuestal }
-      }));
-      syncCatalogoChoices();
-    }
-  } catch (error) { 
-    console.error('Error al refrescar catálogo por RS:', error); 
-  }
+  limpiarSeleccionesProductos();
+  // Ocultar todos los dropdowns de resultados al cambiar de filtro principal
+  document.querySelectorAll('.container-resultados-busqueda').forEach(dd => dd.classList.add('hidden'));
 }
 
 /**
@@ -237,32 +235,9 @@ async function refreshCatalogoByRS(idRS) {
  */
 async function refreshCatalogoByPlace(idPlace) {
   if (!idPlace) return;
-
-  const deptoInput = document.querySelector('input[name="departamento"]');
-  let nombreDepto = deptoInput ? deptoInput.value : '';
-  if (nombreDepto.includes('(')) {
-      nombreDepto = nombreDepto.split('(')[0].trim();
-  }
-
-  try {
-    const url = `${BASE_URL}api/catalogo/filtrado?id_place=${idPlace}&nombre_depto=${encodeURIComponent(nombreDepto)}`;
-    const response = await fetch(url);
-    const productos = await response.json();
-
-    if (Array.isArray(productos)) {
-      window.catalogoMasterList = productos.map(p => ({
-        value: p.ID_CatalogoProd,
-        label: `${p.Nombre} (${p.UnidadNombre || 'General'})`,
-        customProperties: {
-          codigo: p.ID_CatalogoProd,
-          grupo: p.ID_GrupoPresupuestal
-        }
-      }));
-      syncCatalogoChoices();
-    }
-  } catch (error) {
-    console.error('Error al refrescar catálogo:', error);
-  }
+  limpiarSeleccionesProductos();
+  // Ocultar todos los dropdowns de resultados al cambiar de filtro principal
+  document.querySelectorAll('.container-resultados-busqueda').forEach(dd => dd.classList.add('hidden'));
 }
 
 /**
@@ -351,84 +326,266 @@ function initPlaceSelectors(allPlaces) {
   })
 }
 
-// Variables globales para la gestión del catálogo dinámico
-window.catalogoChoicesInstances = new Set();
-window.catalogoMasterList = null;
-
 /**
- * Sincroniza todos los selectores del catálogo (Versión simplificada para diagnóstico)
+ * Inicializa el buscador asíncrono y sistema de favoritos en las filas de productos/servicios.
  */
-function syncCatalogoChoices() {
-  if (!window.catalogoMasterList) return;
+function initAutocompleteCatalogo(container = document) {
+    const inputs = container.querySelectorAll('.search-producto-input');
+    
+    inputs.forEach(input => {
+        if (input._hasAutocomplete) return;
+        input._hasAutocomplete = true;
 
-  const selects = document.querySelectorAll('.select-producto-catalogo');
+        const fila = input.closest('tr');
+        const dropdown = fila.querySelector('.container-resultados-busqueda');
+        const btnFav = fila.querySelector('.btn-favorito');
 
-  selects.forEach((select, index) => {
-    const currentVal = select.value;
+        // Al hacer clic, cargar TODOS los productos permitidos (Favoritos primero)
+        input.addEventListener('click', async () => {
+            if (dropdown.classList.contains('hidden')) {
+                await cargarListaCompletaProductos(input, dropdown);
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        });
 
-    // Construir HTML de opciones
-    let optionsHtml = '<option value="">Seleccione un producto...</option>';
-    window.catalogoMasterList.forEach(p => {
-      const isSelected = p.value === currentVal ? 'selected' : '';
-      optionsHtml += `<option value="${p.value}" data-codigo="${p.customProperties.codigo}" data-grupo="${p.customProperties.grupo}" ${isSelected}>${p.label}</option>`;
+        // Cerrar dropdown al hacer click fuera
+        document.addEventListener('click', (e) => {
+            if (!fila.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Evento para el botón de favorito
+        if (btnFav) {
+            btnFav.addEventListener('click', async (e) => {
+                e.stopPropagation(); // Evitar que abra el dropdown
+                const idProd = fila.querySelector('.id-producto-val').value;
+                if (!idProd) {
+                    const msg = 'Seleccione un producto primero para marcarlo como favorito.';
+                    if (typeof Swal !== 'undefined') Swal.fire('Atención', msg, 'info');
+                    else alert(msg);
+                    return;
+                }
+                await toggleFavoritoProducto(idProd, btnFav);
+            });
+        }
     });
-
-    select.innerHTML = optionsHtml;
-  });
 }
 
 /**
- * Inicializa los selectores del catálogo (Versión NATIVA para diagnóstico)
+ * Carga la lista completa de productos permitidos según el filtrado actual.
  */
-function initChoicesForCatalogo(container = document) {
-  const selects = container.querySelectorAll('.select-producto-catalogo');
-  
-  selects.forEach((select) => {
-    // Si ya tiene el listener, no lo duplicamos
-    if (select._hasInitListener) return;
-
-    // Capturar el catálogo maestro inicial si no existe
-    if (!window.catalogoMasterList && select.options.length > 1) {
-      window.catalogoMasterList = Array.from(select.options)
-        .filter(opt => opt.value !== "")
-        .map(opt => ({
-            value: opt.value,
-            label: opt.text,
-            customProperties: {
-              codigo: opt.dataset.codigo,
-              grupo: opt.dataset.grupo
-            }
-          }));
+async function cargarListaCompletaProductos(input, dropdown) {
+    const params = getFiltrosAreaActual();
+    if (!params) {
+        const msg = 'Por favor, seleccione Razón Social y Complejo antes de elegir productos.';
+        if (typeof Swal !== 'undefined') Swal.fire('Atención', msg, 'warning');
+        else alert(msg);
+        return;
     }
 
-    // Evento al cambiar selección (comportamiento nativo)
-    select.addEventListener('change', () => {
-      const selectedOption = select.options[select.selectedIndex];
-      const fila = select.closest('tr');
-      const codigoInput = fila?.querySelector('.codigo');
-      
-      // Buscar o crear el input oculto para el grupo presupuestal
-      let grupoInput = fila?.querySelector('input[name="id_grupo_presupuestal[]"]');
-      if (!grupoInput && fila) {
-          grupoInput = document.createElement('input');
-          grupoInput.type = 'hidden';
-          grupoInput.name = 'id_grupo_presupuestal[]';
-          fila.appendChild(grupoInput);
-      }
+    try {
+        dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500 italic animate-pulse">Cargando catálogo...</div>';
+        dropdown.classList.remove('hidden');
 
-      if (selectedOption && selectedOption.value) {
-        const codigo = selectedOption.dataset.codigo;
-        const grupo = selectedOption.dataset.grupo;
-        if (codigoInput) codigoInput.value = codigo || '';
-        if (grupoInput) grupoInput.value = grupo || '';
-      } else {
-        if (codigoInput) codigoInput.value = '';
-        if (grupoInput) grupoInput.value = '';
-      }
+        const url = `${BASE_URL}api/productos/buscar?${params}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Error en el servidor');
+        
+        const productos = await response.json();
+        renderResultadosCatalogo(input.closest('tr'), productos, dropdown);
+    } catch (error) {
+        console.error('Error al cargar catálogo:', error);
+        dropdown.innerHTML = '<div class="p-3 text-sm text-red-500 italic">Error al cargar productos.</div>';
+        dropdown.classList.add('hidden'); // Ocultar dropdown en caso de error
+    }
+}
+
+/**
+ * Obtiene los parámetros de filtrado (RS, Place, Depto) activos en el formulario.
+ */
+function getFiltrosAreaActual() {
+    // Buscar la sección de contenido visible
+    let visibleContainer = null;
+    const containers = [
+        document.getElementById('solicitar-material-content'),
+        document.getElementById('solicitar-material-sin-cotizar'),
+        document.getElementById('solicitar-servicio-content')
+    ];
+
+    for (const container of containers) {
+        if (container && !container.classList.contains('hidden')) {
+            visibleContainer = container;
+            break;
+        }
+    }
+
+    let formActivo = null;
+    if (visibleContainer) {
+        formActivo = visibleContainer.querySelector('form');
+    }
+
+    if (!formActivo) return null;
+
+    const razonSocial = formActivo.querySelector('select[name="razon_social"]')?.value;
+    const place = formActivo.querySelector('select[name="id_place"]')?.value;
+    const deptoInput = formActivo.querySelector('input[name="departamento"]');
+    
+    let nombreDepto = deptoInput ? deptoInput.value : '';
+    if (nombreDepto.includes('(')) {
+        nombreDepto = nombreDepto.split('(')[0].trim();
+    }
+
+    // El depto es el único estrictamente necesario para el filtrado base
+    if (!nombreDepto) return null;
+
+    return `id_razon_social=${razonSocial || ''}&id_place=${place || ''}&nombre_depto=${encodeURIComponent(nombreDepto)}`;
+}
+
+/**
+ * Renderiza los resultados en el dropdown.
+ */
+function renderResultadosCatalogo(fila, productos, dropdown) {
+    if (!productos || !Array.isArray(productos) || productos.length === 0) {
+        dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500 italic">No hay productos disponibles para esta área.</div>';
+        dropdown.classList.add('hidden'); // Ocultar dropdown si no hay productos
+        return;
+    }
+
+    let html = '';
+    let tieneFavoritos = productos.some(p => p.es_favorito);
+
+    productos.forEach((p, index) => {
+        const nombre = p.Nombre || p.nombre;
+        const id = p.ID_CatalogoProd || p.id_catalogoprod;
+        const sku = p.id_catalogoprod || p.ID_CatalogoProd;
+        const grupo = p.ID_GrupoPresupuestal || p.id_grupo_presupuestal;
+        const unidad = p.UnidadNombre || p.unidad_nombre || 'General';
+        const esFav = p.es_favorito || p.esFav;
+        const aliasRaw = p.alias_personal || p.alias || '';
+        const aliasLabel = aliasRaw ? ` <span class="text-blue-600 font-normal italic">"${aliasRaw}"</span>` : '';
+        const bgClass = esFav ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-blue-50';
+
+        // Encabezados de sección
+        if (index === 0 && tieneFavoritos && esFav) {
+            html += '<div class="bg-yellow-100 px-3 py-1 text-[10px] font-bold text-yellow-800 border-b sticky top-0 z-10">★ PRODUCTOS FRECUENTES</div>';
+        } else if (index > 0 && esFav === false && (productos[index-1].es_favorito || productos[index-1].esFav)) {
+            html += '<div class="bg-gray-100 px-3 py-1 text-[10px] font-bold text-gray-600 border-b border-t sticky top-0 z-10">TODOS LOS PRODUCTOS</div>';
+        }
+
+        html += `
+            <div class="opcion-producto p-3 ${bgClass} cursor-pointer border-b last:border-0 transition-colors flex justify-between items-center" 
+                 data-id="${id}" data-nombre="${nombre}" data-sku="${sku}" data-grupo="${grupo}" data-fav="${esFav ? '1' : '0'}" data-alias="${aliasRaw}">
+                <div class="flex-grow">
+                    <div class="font-semibold text-sm text-gray-800">${nombre}${aliasLabel}</div>
+                    <div class="text-[11px] text-gray-500 flex gap-4">
+                        <span>SKU: ${sku}</span>
+                        <span>Cat: ${unidad}</span>
+                    </div>
+                </div>
+                ${esFav ? '<span class="text-yellow-500 text-lg" title="Frecuente">★</span>' : ''}
+            </div>
+        `;
     });
 
-    select._hasInitListener = true;
-  });
+    dropdown.innerHTML = html;
+
+    // Asignar eventos de click a las opciones
+    dropdown.querySelectorAll('.opcion-producto').forEach(opcion => {
+        opcion.addEventListener('click', (e) => {
+            e.stopPropagation();
+            seleccionarProductoCatalogo(fila, {
+                id: opcion.dataset.id,
+                nombre: opcion.dataset.nombre,
+                sku: opcion.dataset.sku,
+                grupo: opcion.dataset.grupo,
+                esFav: opcion.dataset.fav === '1',
+                alias: opcion.dataset.alias
+            });
+            dropdown.classList.add('hidden');
+        });
+    });
+}
+
+/**
+ * Gestiona la selección de un producto.
+ */
+function seleccionarProductoCatalogo(fila, producto) {
+    const inputNombre = fila.querySelector('.search-producto-input');
+    const inputId = fila.querySelector('.id-producto-val');
+    const inputSku = fila.querySelector('.codigo') || fila.querySelector('input[name="codigo[]"]');
+    const inputGrupo = fila.querySelector('.id_grupo_presupuestal');
+    const btnFav = fila.querySelector('.btn-favorito');
+
+    const nombreMostrar = producto.alias ? `${producto.nombre} ("${producto.alias}")` : producto.nombre;
+
+    if (inputNombre) inputNombre.value = nombreMostrar;
+    if (inputId) inputId.value = producto.id;
+    if (inputSku) inputSku.value = producto.sku;
+    if (inputGrupo) inputGrupo.value = producto.grupo;
+
+    if (btnFav) {
+        if (producto.esFav) {
+            btnFav.classList.remove('text-gray-300');
+            btnFav.classList.add('text-yellow-500');
+            btnFav.title = producto.alias ? `Favorito: ${producto.alias}` : 'Producto favorito';
+        } else {
+            btnFav.classList.remove('text-yellow-500');
+            btnFav.classList.add('text-gray-300');
+            btnFav.title = 'Marcar como favorito';
+        }
+    }
+}
+
+/**
+ * Alterna el estado de favorito de un producto.
+ */
+async function toggleFavoritoProducto(idProd, btn) {
+    try {
+        const formData = new FormData();
+        formData.append('id_catalogoprod', idProd);
+
+        const response = await fetch(`${BASE_URL}api/productos/favoritos`, {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+
+        if (result.status === 'added') {
+            btn.classList.remove('text-gray-300');
+            btn.classList.add('text-yellow-500');
+            
+            // Opcional: Pedir alias (Manejo seguro de Swal)
+            let alias = null;
+            if (typeof Swal !== 'undefined') {
+                const swalResult = await Swal.fire({
+                    title: '¿Deseas asignarle un alias?',
+                    input: 'text',
+                    inputLabel: 'Ej. "Tubo para mantenimiento"',
+                    showCancelButton: true,
+                    confirmButtonText: 'Guardar Alias',
+                    cancelButtonText: 'Sin Alias'
+                });
+                if (swalResult.isConfirmed) alias = swalResult.value;
+            } else {
+                alias = prompt('¿Deseas asignarle un alias a este producto frecuente?', '');
+            }
+            
+            if (alias) {
+                const aliasData = new FormData();
+                aliasData.append('id_catalogoprod', idProd);
+                aliasData.append('alias', alias);
+                await fetch(`${BASE_URL}api/productos/favoritos`, { method: 'POST', body: aliasData });
+            }
+        } else {
+            btn.classList.remove('text-yellow-500');
+            btn.classList.add('text-gray-300');
+            btn.title = 'Marcar como favorito';
+        }
+    } catch (error) {
+        console.error('Error al toggle favorito:', error);
+    }
 }
 
 async function initSolicitarMaterial() {
@@ -527,20 +684,6 @@ async function initSolicitarMaterial() {
       actualizarTotal()
     }
 
-    const selectCatalogo = fila.querySelector('.select-producto-catalogo')
-    const codigoInput = fila.querySelector('.codigo')
-    if (selectCatalogo) {
-      selectCatalogo.addEventListener('change', () => {
-        const selectedOption = selectCatalogo.options[selectCatalogo.selectedIndex]
-        if (selectedOption && selectedOption.value) {
-          const codigo = selectedOption.dataset.codigo
-          if (codigoInput) codigoInput.value = codigo
-        } else {
-          if (codigoInput) codigoInput.value = ''
-        }
-      })
-    }
-
     if (cantidadInput) cantidadInput.addEventListener('input', actualizarCosto)
     if (importeInput) importeInput.addEventListener('input', actualizarCosto)
 
@@ -558,7 +701,7 @@ async function initSolicitarMaterial() {
   }
 
   tabla.querySelectorAll('tr').forEach((fila) => asignarEventosFila(fila))
-  initChoicesForCatalogo(tabla)
+  initAutocompleteCatalogo(tabla)
   actualizarBotonesEliminar()
   actualizarNumeros()
   actualizarTotal()
@@ -585,7 +728,7 @@ async function initSolicitarMaterial() {
 
       if (nuevaFila) {
         asignarEventosFila(nuevaFila)
-        initChoicesForCatalogo(nuevaFila)
+        initAutocompleteCatalogo(nuevaFila)
         actualizarNumeros()
         actualizarBotonesEliminar()
         actualizarTotal()
@@ -685,7 +828,7 @@ async function initSolicitarMaterialSinCotizar() {
   }
 
   tabla.querySelectorAll('tr').forEach((fila) => asignarEventosFila(fila))
-  initChoicesForCatalogo(tabla)
+  initAutocompleteCatalogo(tabla)
   actualizarBotonesEliminar()
   actualizarNumeros()
 
@@ -712,7 +855,7 @@ async function initSolicitarMaterialSinCotizar() {
 
       if (nuevaFila) {
         asignarEventosFila(nuevaFila)
-        initChoicesForCatalogo(nuevaFila)
+        initAutocompleteCatalogo(nuevaFila)
         actualizarNumeros()
         actualizarBotonesEliminar()
       }
@@ -826,7 +969,7 @@ async function initSolicitarServicio() {
   }
 
   tabla.querySelectorAll('tr').forEach((fila) => asignarEventosFila(fila))
-  initChoicesForCatalogo(tabla)
+  initAutocompleteCatalogo(tabla)
   actualizarBotonesEliminar()
   actualizarNumeros()
   actualizarTotal()
@@ -844,7 +987,7 @@ async function initSolicitarServicio() {
       nuevaFila.innerHTML = rowHtml.trim()
       
       asignarEventosFila(nuevaFila)
-      initChoicesForCatalogo(nuevaFila)
+      initAutocompleteCatalogo(nuevaFila)
       actualizarNumeros()
       actualizarBotonesEliminar()
       actualizarTotal()

@@ -14,6 +14,8 @@ use App\Models\SolicitudModel;
 use App\Models\SolicitudProductModel;
 use App\Models\SolicitudServiciosModel;
 use App\Models\TokenModel;
+use App\Models\CatalogoProductosModel;
+use App\Models\UsuarioProductoFavoritoModel;
 use App\Models\UsuariosModel;
 use App\Libraries\HttpStatus;
 use App\Libraries\ImageProcessor;
@@ -1546,6 +1548,216 @@ class Rest
             'Existencia' => $existencia,
         ];
         return $producto->insert($data) !== false;
+    }
+
+    /**
+     * Resuelve el ID_Place a partir de la Razón Social y el nombre del departamento si el ID_Place viene vacío.
+     */
+    private function resolvePlaceId(?int $idPlace, ?int $idRS, ?string $nombreDepto): ?int
+    {
+        if (!empty($idPlace)) {
+            return $idPlace;
+        }
+
+        if (empty($idRS) || empty($nombreDepto)) {
+            return null;
+        }
+
+        $colUoNombre = $this->db->protectIdentifiers('uo.Nombre');
+        $valDeptoSearch = $this->db->escape(strtolower($nombreDepto));
+
+        $placeEncontrado = $this->db->table('UnidadOperativa uo')
+            ->select('uo.ID_Place')
+            ->join('Places p', 'p.ID_Place = uo.ID_Place')
+            ->where('p.ID_RazonSocial', $idRS)
+            ->groupStart()
+                ->where('uo.Nombre', $nombreDepto)
+                ->orWhere("LOWER($colUoNombre) = $valDeptoSearch", null, false)
+            ->groupEnd()
+            ->get()
+            ->getRowArray();
+
+        if ($placeEncontrado) {
+            return $placeEncontrado['ID_Place'];
+        }
+
+        // Fallback: el primer place de esa RS
+        $firstPlace = $this->db->table('Places')
+            ->where('ID_RazonSocial', $idRS)
+            ->get()
+            ->getRowArray();
+
+        return $firstPlace['ID_Place'] ?? null;
+    }
+
+    /**
+     * Verifica si un departamento es "especial" (tiene acceso a todo el catálogo del complejo).
+     */
+    private function isDeptoEspecial(?string $nombreDepto): bool
+    {
+        if (empty($nombreDepto)) return false;
+        
+        $deptoLower = mb_strtolower(trim($nombreDepto));
+        return (
+            strpos($deptoLower, 'operacion') !== false || 
+            strpos($deptoLower, 'operación') !== false || 
+            strpos($deptoLower, 'compras') !== false ||
+            strpos($deptoLower, 'contaduría') !== false ||
+            strpos($deptoLower, 'contaduria') !== false
+        );
+    }
+
+    /**
+     * Busca productos en el catálogo maestro aplicando los filtros de área/departamento y priorizando favoritos.
+     */
+    public function buscarProductosCatalogo(string $query, ?int $idPlace, ?int $idRS, string $nombreDepto, int $idUsuario = null): array
+    {
+        $idPlace = $this->resolvePlaceId($idPlace, $idRS, $nombreDepto);
+        if (empty($idPlace)) return [];
+
+        $catalogoModel = new CatalogoProductosModel();
+        $builder = $catalogoModel->select('Catalogo_Productos.*, UnidadOperativa.Nombre as UnidadNombre')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Catalogo_Productos.ID_Dpto', 'left');
+
+        if ($this->isDeptoEspecial($nombreDepto)) {
+            $builder->where('Catalogo_Productos.ID_Place', $idPlace);
+        } else {
+            $colNombre = $this->db->protectIdentifiers('uo.Nombre');
+            $valDepto = $this->db->escape(strtolower($nombreDepto));
+            $valDeptoLike = $this->db->escape('%' . strtolower($nombreDepto) . '%');
+
+            $unidad = $this->db->table('UnidadOperativa uo')
+                ->where('uo.ID_Place', $idPlace)
+                ->where('uo.activo', true)
+                ->groupStart()
+                    ->where('uo.Nombre', $nombreDepto)
+                    ->orWhere("LOWER($colNombre) = $valDepto", null, false)
+                    ->orWhere("LOWER($colNombre) LIKE $valDeptoLike", null, false)
+                ->groupEnd()
+                ->get()
+                ->getRowArray();
+
+            if ($unidad) {
+                $builder->where('Catalogo_Productos.ID_Dpto', $unidad['ID_UnidadOperativa']);
+            } else {
+                $builder->where('Catalogo_Productos.ID_Place', $idPlace);
+            }
+        }
+
+        // Si hay una búsqueda, aplicamos el filtro
+        if (!empty($query)) {
+            $builder->groupStart()
+                    ->like('Catalogo_Productos.Nombre', $query, 'both', null, true)
+                    ->orLike('CAST(Catalogo_Productos.ID_CatalogoProd AS VARCHAR)', $query, 'both', null, false)
+                ->groupEnd();
+        }
+
+        $productos = $builder->orderBy('Catalogo_Productos.Nombre', 'ASC')->findAll();
+
+        // Si tenemos el usuario, marcamos cuáles son favoritos y ordenamos
+        if ($idUsuario) {
+            log_message('debug', "[Rest::buscarProductosCatalogo] Buscando favoritos para usuario: $idUsuario");
+            $favModel = new UsuarioProductoFavoritoModel();
+            $favoritos = $favModel->where('id_usuario', $idUsuario)->findAll();
+            $favIds = array_column($favoritos, 'alias_personal', 'id_catalogoprod');
+            
+            log_message('debug', "[Rest::buscarProductosCatalogo] Favoritos encontrados: " . count($favoritos));
+
+            foreach ($productos as &$p) {
+                // Verificar ambas variantes de nombre de campo por si acaso
+                $prodId = $p['ID_CatalogoProd'] ?? $p['id_catalogoprod'] ?? null;
+                $p['es_favorito'] = array_key_exists($prodId, $favIds);
+                $p['alias_personal'] = $favIds[$prodId] ?? null;
+            }
+
+            // Ordenar: Favoritos primero
+            usort($productos, function($a, $b) {
+                if (($a['es_favorito'] ?? false) && !($b['es_favorito'] ?? false)) return -1;
+                if (!($a['es_favorito'] ?? false) && ($b['es_favorito'] ?? false)) return 1;
+                return strcmp($a['Nombre'] ?? $a['nombre'] ?? '', $b['Nombre'] ?? $b['nombre'] ?? '');
+            });
+        } else {
+            log_message('debug', "[Rest::buscarProductosCatalogo] No hay ID de usuario en la sesión.");
+        }
+
+        return $productos;
+    }
+
+    /**
+     * Obtiene los favoritos del usuario que cumplan con los filtros de área.
+     */
+    public function getFavoritosUsuario(int $idUsuario, ?int $idPlace, ?int $idRS, string $nombreDepto): array
+    {
+        $idPlace = $this->resolvePlaceId($idPlace, $idRS, $nombreDepto);
+        if (empty($idPlace)) return [];
+
+        $favModel = new UsuarioProductoFavoritoModel();
+        $builder = $favModel->select('usuarios_productos_favoritos.*, Catalogo_Productos.Nombre, Catalogo_Productos.ID_GrupoPresupuestal, UnidadOperativa.Nombre as UnidadNombre')
+            ->join('Catalogo_Productos', 'Catalogo_Productos.ID_CatalogoProd = usuarios_productos_favoritos.id_catalogoprod')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Catalogo_Productos.ID_Dpto', 'left')
+            ->where('usuarios_productos_favoritos.id_usuario', $idUsuario);
+
+        if ($this->isDeptoEspecial($nombreDepto)) {
+            $builder->where('Catalogo_Productos.ID_Place', $idPlace);
+        } else {
+             $colNombre = $this->db->protectIdentifiers('uo.Nombre');
+             $valDepto = $this->db->escape(strtolower($nombreDepto));
+             $valDeptoLike = $this->db->escape('%' . strtolower($nombreDepto) . '%');
+
+             $unidad = $this->db->table('UnidadOperativa uo')
+                 ->where('uo.ID_Place', $idPlace)
+                 ->where('uo.activo', true)
+                 ->groupStart()
+                     ->where('uo.Nombre', $nombreDepto)
+                     ->orWhere("LOWER($colNombre) = $valDepto", null, false)
+                     ->orWhere("LOWER($colNombre) LIKE $valDeptoLike", null, false)
+                 ->groupEnd()
+                 ->get()
+                 ->getRowArray();
+
+             if ($unidad) {
+                 $builder->where('Catalogo_Productos.ID_Dpto', $unidad['ID_UnidadOperativa']);
+             } else {
+                 $builder->where('Catalogo_Productos.ID_Place', $idPlace);
+             }
+        }
+
+        return $builder->orderBy('usuarios_productos_favoritos.frecuencia', 'DESC')
+                       ->orderBy('Catalogo_Productos.Nombre', 'ASC')
+                       ->findAll();
+    }
+
+    /**
+     * Agrega o quita un producto de favoritos.
+     */
+    public function toggleFavorito(int $idUsuario, int $idCatalogoProd, ?string $alias = null): array
+    {
+        $favModel = new UsuarioProductoFavoritoModel();
+        $existente = $favModel->where([
+            'id_usuario' => $idUsuario,
+            'id_catalogoprod' => $idCatalogoProd
+        ])->first();
+
+        if ($existente) {
+            if (!empty($alias)) {
+                // Si existe y enviamos alias, lo actualizamos
+                $favModel->update($existente['id'], ['alias_personal' => $alias]);
+                return ['status' => 'updated', 'message' => 'Alias de favorito actualizado.'];
+            } else {
+                // Si existe y no enviamos alias, es un "quitar de favoritos"
+                $favModel->delete($existente['id']);
+                return ['status' => 'removed', 'message' => 'Producto eliminado de favoritos.'];
+            }
+        } else {
+            // No existe, lo agregamos
+            $favModel->insert([
+                'id_usuario' => $idUsuario,
+                'id_catalogoprod' => $idCatalogoProd,
+                'alias_personal' => $alias,
+                'frecuencia' => 1
+            ]);
+            return ['status' => 'added', 'message' => 'Producto agregado a favoritos.'];
+        }
     }
 
     /**

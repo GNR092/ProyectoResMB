@@ -94,6 +94,9 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/product/all', 'Api::allProducts');
         $routes->get('api/product/(:num)', 'Api::getProductById/$1');
         $routes->get('api/product', 'Api::allProducts');
+        $routes->get('api/productos/buscar', 'Api::buscarProductosCatalogo');
+        $routes->get('api/productos/favoritos', 'Api::getMisFavoritos');
+        $routes->post('api/productos/favoritos', 'Api::toggleFavorito');
         
         // Catálogo De Productos Y Servicios
         $routes->get('api/catalogo/filtrado', 'Api::getCatalogoFiltradoDinamico');
