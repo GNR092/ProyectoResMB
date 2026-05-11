@@ -251,7 +251,10 @@ class Api extends ResourceController
      */
     public function getHistorial()
     {
-        $result = $this->api->getAllSolicitud();
+        $vista = $this->request->getGet('vista');
+        $onlyDeclined = ($vista === 'declinadas');
+        
+        $result = $this->api->getAllSolicitud($onlyDeclined);
         return $this->respond($result, HttpStatus::OK);
     }
 
@@ -263,7 +266,10 @@ class Api extends ResourceController
     public function getHistorialByDepartment($id)
     {
         $userId = session('id');
-        $results = $this->api->getSolicitudByDepartment((int) $id, (int) $userId);
+        $vista = $this->request->getGet('vista');
+        $onlyDeclined = ($vista === 'declinadas');
+
+        $results = $this->api->getSolicitudByDepartment((int) $id, (int) $userId, $onlyDeclined);
         return $this->respond($results, HttpStatus::OK);
     }
 
@@ -3211,6 +3217,7 @@ class Api extends ResourceController
             $porMes = $this->request->getGet('por_mes');
             $estadoFiltro = $this->request->getGet('estado');
             $dptoRaw = $this->request->getGet('dpto');
+            $vista = $this->request->getGet('vista');
 
             // 2. Seguridad de Sesión
             $sessionDeptoFull = session('departamento_usuario') ?? '';
@@ -3228,6 +3235,15 @@ class Api extends ResourceController
                 ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
                 ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
                 ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left');
+
+            // Lógica de Vistas (Declinadas vs Principal)
+            $declined_statuses = [Status::Dept_Rechazada, Status::Rechazada, 'Cancelada'];
+            if ($vista === 'declinadas') {
+                $builder->whereIn('Solicitud.Estado', $declined_statuses);
+            } else {
+                // Si no se pide explícitamente una declinada, las excluimos junto con las pendientes
+                $builder->whereNotIn('Solicitud.Estado', array_merge($declined_statuses, [Status::Aprobacion_pendiente]));
+            }
 
             // Filtro Multi-Departamento
             if (!in_array($sessionDeptoClean, $exceptions) && !empty($sessionDeptoClean)) {

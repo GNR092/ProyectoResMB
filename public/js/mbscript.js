@@ -1250,9 +1250,66 @@ function initSolicitarMaterialTodo() {
 let choicesDepartamento = null
 let choicesProveedor = null
 let choicesRazonSocial = null
+let isVistaDeclinadas = false
+
+function toggleVistaDeclinadas() {
+  isVistaDeclinadas = !isVistaDeclinadas
+  const btn = document.getElementById('btn-toggle-declinadas')
+  const titulo = document.getElementById('titulo-historial')
+
+  if (isVistaDeclinadas) {
+    if (btn) {
+      btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+        </svg>
+        Volver al Historial
+      `
+      btn.classList.replace('bg-red-100', 'bg-blue-100')
+      btn.classList.replace('text-red-700', 'text-blue-700')
+      btn.classList.replace('border-red-200', 'border-blue-200')
+      btn.classList.replace('hover:bg-red-200', 'hover:bg-blue-200')
+    }
+    if (titulo) titulo.innerText = 'Historial de Requisiciones Declinadas'
+  } else {
+    if (btn) {
+      btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        Requisiciones Declinadas
+      `
+      btn.classList.replace('bg-blue-100', 'bg-red-100')
+      btn.classList.replace('text-blue-700', 'text-red-700')
+      btn.classList.replace('border-blue-200', 'border-red-200')
+      btn.classList.replace('hover:bg-blue-200', 'hover:bg-red-200')
+    }
+    if (titulo) titulo.innerText = 'Ver Historial de requisiciones'
+  }
+
+  // Reinicializar la tabla con el nuevo estado
+  initPaginacionHistorial()
+}
+
 function initPaginacionHistorial() {
   const tabla = document.getElementById('tabla-historial')
   if (!tabla) return
+
+  // Asegurar que el botón y título reflejen el estado actual si se abre el modal desde cero
+  const btn = document.getElementById('btn-toggle-declinadas')
+  const titulo = document.getElementById('titulo-historial')
+  if (!isVistaDeclinadas) {
+    if (btn) {
+      btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        Requisiciones Declinadas
+      `
+      btn.className = 'px-4 py-2 bg-red-100 text-red-700 text-sm font-bold rounded-md hover:bg-red-200 transition shadow-sm border border-red-200 flex items-center gap-2'
+    }
+    if (titulo) titulo.innerText = 'Ver Historial de requisiciones'
+  }
 
   // Destruir instancias previas para evitar duplicados al reabrir el modal
   if (choicesDepartamento) { choicesDepartamento.destroy(); choicesDepartamento = null; }
@@ -1392,6 +1449,11 @@ function initPaginacionHistorial() {
     !exceptions.includes(USER_DEPT_NAME)
   ) {
     url = `api/historic/department/${USER_DEPT_ID}`
+  }
+
+  // Añadir parámetro de vista declinada
+  if (isVistaDeclinadas) {
+    url += (url.includes('?') ? '&' : '?') + 'vista=declinadas'
   }
 
   createPaginatedTable({
@@ -1617,6 +1679,11 @@ function exportarHistorialExcel() {
   if (tipo) params.append('tipo', tipo)
   if (deptosSeleccionados.length > 0) {
     params.append('dpto', deptosSeleccionados.join(','))
+  }
+
+  // Añadir parámetro de vista declinada para el reporte Excel
+  if (isVistaDeclinadas) {
+    params.append('vista', 'declinadas')
   }
 
   window.location.href = `api/historial/exportar?${params.toString()}`

@@ -203,19 +203,22 @@ class Rest
 
     //region solicitudes
     /**
-     * Obtiene todas las solicitudes, excluyendo ciertos estados.
+     * Obtiene todas las solicitudes, excluyendo ciertos estados o filtrando por declinadas.
      *
+     * @param bool $onlyDeclined Si es true, solo obtiene las rechazadas/canceladas.
      * @return array Un array de solicitudes con el nombre del departamento.
      */
-    public function getAllSolicitud()
+    public function getAllSolicitud(bool $onlyDeclined = false)
     {
-        // 1. Definir estados excluidos
-        // Asegúrate de importar la clase Status arriba: use App\Libraries\Status;
-        // O usa la ruta completa: \App\Libraries\Status::Dept_Rechazada
-        $excluded_statuses = [
-            \App\Libraries\Status::Dept_Rechazada,
-            \App\Libraries\Status::Aprobacion_pendiente
+        // 1. Definir estados declinados
+        $declined_statuses = [
+            Status::Dept_Rechazada,
+            Status::Rechazada,
+            'Cancelada'
         ];
+
+        // 2. Definir estados excluidos para la vista principal
+        $excluded_statuses = array_merge($declined_statuses, [Status::Aprobacion_pendiente]);
 
         $solicitudModel = new \App\Models\SolicitudModel();
         $cotizacionModel = new \App\Models\CotizacionModel();
@@ -224,14 +227,20 @@ class Rest
         // ---------------------------------------------------------
         // PASO 1: Obtener Solicitudes (Datos Base)
         // ---------------------------------------------------------
-        $solicitudes = $solicitudModel
+        $builder = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre, Razon_Social.Nombre as Complejo')
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
-            ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
-            ->whereNotIn('Solicitud.Estado', $excluded_statuses)
-            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left');
+
+        if ($onlyDeclined) {
+            $builder->whereIn('Solicitud.Estado', $declined_statuses);
+        } else {
+            $builder->whereNotIn('Solicitud.Estado', $excluded_statuses);
+        }
+
+        $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')
             ->findAll();
         if (empty($solicitudes)) {
             return []; // Retornamos array vacío, no response
@@ -309,14 +318,25 @@ class Rest
      *
      * @param int $id El ID del departamento.
      * @param int|null $userId El ID del usuario (opcional).
+     * @param bool $onlyDeclined Si es true, solo obtiene las rechazadas/canceladas.
      * @return array Un array de solicitudes filtradas.
      */
-    public function getSolicitudByDepartment(int $id, ?int $userId = null)
+    public function getSolicitudByDepartment(int $id, ?int $userId = null, bool $onlyDeclined = false)
     {
         $solicitudModel = new SolicitudModel();
         $cotizacionModel = new CotizacionModel();
         $ordenCompraModel = new OrdenCompraModel();
         $proveedorModel = new ProveedorModel();
+
+        // 1. Definir estados declinados
+        $declined_statuses = [
+            Status::Dept_Rechazada,
+            Status::Rechazada,
+            'Cancelada'
+        ];
+
+        // 2. Definir estados excluidos para la vista principal
+        $excluded_statuses = array_merge($declined_statuses, [Status::Aprobacion_pendiente]);
 
         $builder = $solicitudModel
             ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Razon_Social.Nombre as Complejo')
@@ -331,6 +351,12 @@ class Rest
                     ->groupEnd();
         } else {
             $builder->where('Solicitud.ID_Dpto', $id);
+        }
+
+        if ($onlyDeclined) {
+            $builder->whereIn('Solicitud.Estado', $declined_statuses);
+        } else {
+            $builder->whereNotIn('Solicitud.Estado', $excluded_statuses);
         }
 
         $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')
@@ -1610,7 +1636,7 @@ class Rest
     /**
      * Busca productos en el catálogo maestro aplicando los filtros de área/departamento y priorizando favoritos.
      */
-    public function buscarProductosCatalogo(string $query, ?int $idPlace, ?int $idRS, string $nombreDepto, int $idUsuario = null): array
+    public function buscarProductosCatalogo(string $query, ?int $idPlace, ?int $idRS, string $nombreDepto, ?int $idUsuario = null): array
     {
         $idPlace = $this->resolvePlaceId($idPlace, $idRS, $nombreDepto);
         if (empty($idPlace)) return [];
