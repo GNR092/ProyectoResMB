@@ -1277,7 +1277,7 @@ function toggleVistaDeclinadas() {
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
-        Requisiciones Declinadas
+        Archivo De  Requisiciones Declinadas
       `
       btn.classList.replace('bg-blue-100', 'bg-red-100')
       btn.classList.replace('text-blue-700', 'text-red-700')
@@ -1304,7 +1304,7 @@ function initPaginacionHistorial() {
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4">
           <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
-        Requisiciones Declinadas
+        Archivo De Requisiciones Declinadas
       `
       btn.className = 'px-4 py-2 bg-red-100 text-red-700 text-sm font-bold rounded-md hover:bg-red-200 transition shadow-sm border border-red-200 flex items-center gap-2'
     }
