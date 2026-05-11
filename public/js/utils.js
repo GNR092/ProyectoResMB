@@ -1,4 +1,20 @@
 /**
+ * Escapa caracteres especiales de HTML para prevenir ataques XSS.
+ * @param {string|number} str - El valor a escapar.
+ * @returns {string} - El valor escapado.
+ */
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[m]);
+}
+
+/**
  * Formatea un número como moneda (MXN).
  * @param {number|string} valor - El valor a formatear.
  * @returns {string} - El valor formateado.
@@ -411,33 +427,58 @@ function GetMetodoPago(metodo) {
  * @returns {string} - Cadena de texto con el HTML.
  */
 function generarDetallesSolicitudHTML(data) {
-  const montoFormateado = formatearMoneda(data.cotizacion?.Total || 0)
+  // 1. Formateo y sanitización de datos básicos
+  const montoFormateado = formatearMoneda(data.cotizacion?.Total || 0);
+  const metodoPago = GetMetodoPago(data.MetodoPago);
+  const estadoText = escapeHTML(getStatusText(data.EstadoOrden ?? data.Estado) || 'N/A');
+  const estadoClass = getStatus(data.EstadoOrden ?? data.Estado);
+  
+  // Sanitización de nombres y folios para prevenir XSS
+  const folio = escapeHTML(data.No_Folio || 'N/A');
+  const solicitante = escapeHTML(data.UsuarioNombre || 'N/A');
+  const complejo = escapeHTML(data.Complejo || 'N/A');
+  const providerName = escapeHTML(data.cotizacion?.ProveedorNombre || data.RazonSocialNombre || 'N/A');
 
-  const metodoPago = GetMetodoPago(data.MetodoPago)
-  const fechaAprobacionHTML = data.Fecha_Aprobacion
+  // Construcción limpia del nombre del departamento con complejo si existe
+  const deptoNombre = escapeHTML(data.DepartamentoNombre || 'N/A');
+  const deptoDetalle = data.PlaceNombre ? ` (${escapeHTML(data.PlaceNombre)})` : '';
+  const departamentoFull = deptoNombre + deptoDetalle;
+
+  // 2. Pre-procesamiento de fechas para limpieza visual en el template
+  const fAprobacion = data.Fecha_Aprobacion
     ? `<div><strong>Fecha de Aprobación:</strong> ${new Date(data.Fecha_Aprobacion).toLocaleString('es-MX')}</div>`
-    : ''
-  const estadoText = getStatusText(data.EstadoOrden ?? data.Estado)
-  const estadoClass = getStatus(data.EstadoOrden ?? data.Estado)
-  const providerName = data.cotizacion?.ProveedorNombre || data.RazonSocialNombre || 'N/A'
+    : '';
 
+  const fOC = data.OrdenCompra?.Fecha 
+    ? `<div><strong>Fecha Creación OC:</strong> ${new Date(data.OrdenCompra.Fecha).toLocaleDateString('es-MX')}</div>` 
+    : '';
+    
+  const fRefPago = data.OrdenCompra?.FechaRefPago 
+    ? `<div><strong>Fecha Ref. Pago OC:</strong> ${new Date(data.OrdenCompra.FechaRefPago).toLocaleDateString('es-MX')}</div>` 
+    : '';
+    
+  const fPagoReal = data.OrdenCompra?.FechaPagoRealizado 
+    ? `<div><strong>Fecha Pago Realizado OC:</strong> ${new Date(data.OrdenCompra.FechaPagoRealizado).toLocaleDateString('es-MX')}</div>` 
+    : '';
+
+  // 3. Retorno del template HTML optimizado
   return `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
-            <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
-            <div><strong>Fecha:</strong> ${data.Fecha}</div>
-            <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${estadoText || 'N/A'}</span></div>
-            ${fechaAprobacionHTML}
-            <div><strong>Solicitante:</strong> ${data.UsuarioNombre}</div>
-            <div><strong>Departamento:</strong> ${data.DepartamentoNombre + (data.PlaceNombre ? ' (' + data.PlaceNombre + ')' : '')}</div>
-            <div><strong>Complejo:</strong> ${data.Complejo}</div>
-            <div><strong>Proveedor:</strong> ${providerName}</div>
-            ${metodoPago}
-            ${data.OrdenCompra?.Fecha ? `<div><strong>Fecha Creación OC:</strong> ${new Date(data.OrdenCompra.Fecha).toLocaleDateString('es-MX')}</div>` : ''}
-            ${data.OrdenCompra?.FechaRefPago ? `<div><strong>Fecha Ref. Pago OC:</strong> ${new Date(data.OrdenCompra.FechaRefPago).toLocaleDateString('es-MX')}</div>` : ''}
-            ${data.OrdenCompra?.FechaPagoRealizado ? `<div><strong>Fecha Pago Realizado OC:</strong> ${new Date(data.OrdenCompra.FechaPagoRealizado).toLocaleDateString('es-MX')}</div>` : ''}
-            <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${montoFormateado}</span></div>
-        </div>
-    `
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+        <div><strong>Folio:</strong> ${folio}</div>
+        <div><strong>Fecha:</strong> ${escapeHTML(data.Fecha)}</div>
+        <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${estadoText}</span></div>
+        ${fAprobacion}
+        <div><strong>Solicitante:</strong> ${solicitante}</div>
+        <div><strong>Departamento:</strong> ${departamentoFull}</div>
+        <div><strong>Complejo:</strong> ${complejo}</div>
+        <div><strong>Proveedor:</strong> ${providerName}</div>
+        ${metodoPago}
+        ${fOC}
+        ${fRefPago}
+        ${fPagoReal}
+        <div class="md:col-span-3"><strong>Monto Total (Cotización):</strong> <span class="font-bold text-lg">${montoFormateado}</span></div>
+    </div>
+  `;
 }
 
 function generarComentariosHtml(data) {
@@ -1260,147 +1301,92 @@ function getMetodoPago(metodo) {
 
 //*** Función del manejador de archivos (mostrar archivos adjuntos)  ***//
 
+/**
+ * Genera la sección de archivos adjuntos (PDFs, facturas, comprobantes, etc.)
+ * @param {object} data - Datos de la solicitud y orden de compra.
+ * @returns {string} - HTML de la sección de adjuntos.
+ */
 function generarSeccionAdjuntos(data) {
-  const sol = data.solicitud || data
-  const ordenObj = data.OrdenCompra || data.orden_compra || data.orden || {}
-  const cotizacionObj = data.cotizacion || {}
-  const folio = sol.No_Folio || data.No_Folio || data.ID_Solicitud
-  const cotizacionFile = cotizacionObj.Cotizacion_Files || data.Cotizacion_Files
-  const comprobanteFile =
-    ordenObj.File_Comprobante || data.File_Comprobante || ordenObj.comprobante || data.comprobante
-  const facturaFile = ordenObj.File_Factura || data.File_Factura || ordenObj.factura || data.factura
-  const complementoFile = ordenObj.File_Complemento || data.File_Complemento || ordenObj.complemento || data.complemento
-  const idSolicitud = sol.ID_Solicitud || data.ID_Solicitud
+  const sol = data.solicitud || data;
+  const ordenObj = data.OrdenCompra || data.orden_compra || data.orden || {};
+  const cotizacionObj = data.cotizacion || {};
+  
+  const idSolicitud = sol.ID_Solicitud || data.ID_Solicitud;
+  const folio = escapeHTML(sol.No_Folio || data.No_Folio || idSolicitud);
+  const existeOrden = ordenObj && Object.keys(ordenObj).length > 0;
 
-  // VALIDACIÓN UNIVERSAL:
-  // ¿El objeto de la orden de compra tiene contenido real?
-  // Si tiene llaves (keys), significa que existe en la BD. Si no, es un objeto vacío {}.
-  const existeOrden = ordenObj && Object.keys(ordenObj).length > 0
+  /**
+   * Helper interno para generar el HTML de un enlace a archivo de forma segura.
+   */
+  const crearLinkArchivo = (label, url, fileName, isMissing = false) => {
+    if (isMissing || !fileName) {
+      return `<div class="text-gray-400"><strong>${escapeHTML(label)}:</strong> No adjuntada</div>`;
+    }
+    return `
+      <div>
+        <strong>${escapeHTML(label)}:</strong> 
+        <a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
+          ${escapeHTML(fileName)}
+        </a>
+      </div>`;
+  };
+
+  /**
+   * Helper para procesar strings de archivos separados por comas.
+   */
+  const procesarArchivosMultiples = (fileString, labelBase, urlBuilder) => {
+    if (!fileString) return '';
+    return fileString.split(',')
+      .map(f => f.trim())
+      .filter(f => f)
+      .map((f, i) => {
+        const label = labelBase + (i > 0 ? ` ${i + 1}` : '');
+        return crearLinkArchivo(label, urlBuilder(f), f);
+      }).join('');
+  };
+
+  // --- 1. Requisición y Archivos de Referencia ---
+  let htmlAdjuntos = idSolicitud ? crearLinkArchivo('Solicitud (PDF)', `${BASE_URL}api/solicitud/pdf/${idSolicitud}`, `Requisicion-${folio}.pdf`) : '';
+  
+  htmlAdjuntos += procesarArchivosMultiples(sol.Archivo, 'Referencia', (f) => `${BASE_URL}solicitudes/archivo/${idSolicitud}/${f}`);
+
+  // --- 2. Cotización ---
+  const cotizacionFile = cotizacionObj.Cotizacion_Files || data.Cotizacion_Files;
+  const fechaCarpeta = (sol.Fecha ? sol.Fecha.split(' ')[0] : data.Fecha) || 'default';
+  
+  if (cotizacionFile) {
+    htmlAdjuntos += procesarArchivosMultiples(cotizacionFile, 'Cotizacion', (f) => `${BASE_URL}api/storage/serve?path=cotizaciones/${fechaCarpeta}/${f}`);
+  } else {
+    htmlAdjuntos += crearLinkArchivo('Cotizacion', null, null, true);
+  }
+
+  // --- 3. Documentos de la Orden de Compra ---
+  if (folio && existeOrden) {
+    htmlAdjuntos += crearLinkArchivo('Orden de Compra', `${BASE_URL}api/storage/serve?path=pdf_ordenes/OrdenCompra-${folio}.pdf`, `OrdenCompra-${folio}.pdf`);
+    htmlAdjuntos += crearLinkArchivo('Requisición de Pago', `${BASE_URL}api/requisicionpago/pdf/${idSolicitud}`, `RequisicionPago-${folio}.pdf`);
+  }
+
+  // --- 4. Ficha, Factura y Complemento ---
+  const comprobanteFile = ordenObj.File_Comprobante || data.File_Comprobante || ordenObj.comprobante || data.comprobante;
+  htmlAdjuntos += crearLinkArchivo('Ficha de pago', `${BASE_URL}api/storage/serve?path=comprobantes/${comprobanteFile}`, comprobanteFile, !comprobanteFile);
+
+  const complementoFile = ordenObj.File_Complemento || data.File_Complemento || ordenObj.complemento || data.complemento;
+  if (sol.MetodoPago == '1' && complementoFile) {
+    htmlAdjuntos += crearLinkArchivo('Complemento de Pago', `${BASE_URL}api/storage/serve?path=complementos/${complementoFile}`, complementoFile);
+  }
+
+  const facturaFile = ordenObj.File_Factura || data.File_Factura || ordenObj.factura || data.factura;
+  if (facturaFile) {
+    htmlAdjuntos += procesarArchivosMultiples(facturaFile, 'Factura', (f) => `${BASE_URL}api/storage/serve?path=facturas/${f}`);
+  } else {
+    htmlAdjuntos += crearLinkArchivo('Factura', null, null, true);
+  }
 
   return `
     <div class="mt-6">
         <h4 class="text-md font-bold mb-3 text-gray-700">Adjuntos</h4>
         <div class="flex flex-col space-y-2 mb-6 p-4 border rounded-lg bg-gray-50 text-sm text-left">
-            
-            ${
-              /* 1. REQUISICIÓN (SOLICITUD) */
-              idSolicitud
-                ? `
-            <div>
-                <strong>Solicitud (PDF):</strong> 
-                <a href="${BASE_URL}api/solicitud/pdf/${idSolicitud}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                    Requisicion-${folio || idSolicitud}.pdf
-                </a>
-            </div>`
-                : ''
-            }
-
-            ${
-              /* 1.1 ARCHIVOS DE REFERENCIA (SOLICITANTE) */
-              sol.Archivo
-                ? sol.Archivo.split(',').map((file, index) => {
-                    const trimmedFile = file.trim()
-                    if (!trimmedFile) return ''
-                    return `
-                <div>
-                    <strong>Referencia ${index > 0 ? index + 1 : ''}:</strong> 
-                    <a href="${BASE_URL}solicitudes/archivo/${idSolicitud}/${trimmedFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                        ${trimmedFile}
-                    </a>
-                </div>`
-                  }).join('')
-                : ''
-            }
-
-            ${
-              /* 2. COTIZACIÓN */
-              cotizacionFile
-                ? cotizacionFile
-                    .split(',')
-                    .map((file) => {
-                      const trimmedFile = file.trim()
-                      if (!trimmedFile) return ''
-                      return `
-                <div>
-                    <strong>Cotizacion:</strong> 
-                    <a href="${BASE_URL}api/storage/serve?path=cotizaciones/${sol.Fecha ? sol.Fecha.split(' ')[0] : data.Fecha}/${trimmedFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                        ${trimmedFile}
-                    </a>
-                </div>`
-                    })
-                    .join('')
-                : '<div class="text-gray-400"><strong>Cotizacion:</strong> No adjuntada</div>'
-            }
-
-            ${
-              /* 3. ORDEN DE COMPRA (Se oculta si no existe la orden en BD) */
-              folio && existeOrden
-                ? `
-            <div>
-                <strong>Orden de Compra:</strong> 
-                <a href="${BASE_URL}api/storage/serve?path=pdf_ordenes/OrdenCompra-${folio}.pdf" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                    OrdenCompra-${folio}.pdf
-                </a>
-            </div>`
-                : ''
-            }
-
-            ${
-              /* 4. REQUISICIÓN DE PAGO (Se oculta si no existe la orden en BD) */
-              idSolicitud && existeOrden
-                ? `
-            <div>
-                <strong>Requisición de Pago:</strong> 
-                <a href="${BASE_URL}api/requisicionpago/pdf/${idSolicitud}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                    RequisicionPago-${folio}.pdf
-                </a>
-            </div>`
-                : ''
-            }
-
-            ${
-              /* 5. FICHA DE PAGO */
-              comprobanteFile
-                ? `
-            <div>
-                <strong>Ficha de pago:</strong> 
-                <a href="${BASE_URL}api/storage/serve?path=comprobantes/${comprobanteFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                    ${comprobanteFile}
-                </a>
-            </div>`
-                : '<div class="text-gray-400"><strong>Ficha de pago:</strong> No adjuntada</div>'
-            }
-
-            ${
-              /* 6. COMPLEMENTO DE PAGO (SOLO CRÉDITO) */
-              sol.MetodoPago == '1' && complementoFile
-                ? `
-            <div>
-                <strong>Complemento de Pago:</strong> 
-                <a href="${BASE_URL}api/storage/serve?path=complementos/${complementoFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                    ${complementoFile}
-                </a>
-            </div>`
-                : ''
-            }
-
-            ${
-              /* 7. FACTURA */
-              facturaFile
-                ? facturaFile.split(',').map((file, index) => {
-                    const trimmedFile = file.trim()
-                    if (!trimmedFile) return ''
-                    return `
-                <div>
-                    <strong>Factura${index > 0 ? ' ' + (index + 1) : ''}:</strong> 
-                    <a href="${BASE_URL}api/storage/serve?path=facturas/${trimmedFile}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline"> 
-                        ${trimmedFile}
-                    </a>
-                </div>`
-                  }).join('')
-                : '<div class="text-gray-400"><strong>Factura:</strong> No adjuntada</div>'
-            }
-
+            ${htmlAdjuntos}
         </div>
         
         <div class="mt-4 mb-4 flex justify-start space-x-2">
@@ -1412,7 +1398,7 @@ function generarSeccionAdjuntos(data) {
             </a>
         </div>
     </div>
-    `
+  `;
 }
 
 function mostrarExpedientePdf(idSolicitud) {
