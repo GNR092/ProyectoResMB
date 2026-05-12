@@ -1570,6 +1570,38 @@ function registrarComponenteReportePresupuesto() {
                             const id = g.ID_GrupoPresupuestal || g.id_grupo || g.etiqueta;
                             return this.gruposSeleccionados.includes(String(id));
                         });
+
+                        // RECALCULAR TOTALES DE NIVEL 4 (Unidad Operativa)
+                        // Después de filtrar partidas, debemos resetear y volver a sumar para que la cabecera sea correcta
+                        const targetObj = uniClon.presupuesto || uniClon.totales || uniClon;
+                        
+                        // Resetear acumuladores principales
+                        targetObj.asignado = 0;
+                        targetObj.comprometido = 0;
+                        targetObj.ejecutado = 0;
+                        targetObj.gastado = 0;
+                        if (uniClon.importesPorMes) uniClon.importesPorMes = {};
+
+                        // Sumar solo lo que quedó tras el filtro
+                        uniClon[propGrupos].forEach(g => {
+                            targetObj.asignado += parseFloat(g.asignado || 0);
+                            targetObj.comprometido += parseFloat(g.comprometido || 0);
+                            targetObj.ejecutado += parseFloat(g.ejecutado || 0);
+                            targetObj.gastado += parseFloat(g.gastado || 0);
+
+                            // Recalcular desglose mensual si existe
+                            if (g.importesPorMes && uniClon.importesPorMes) {
+                                for (const mesId in g.importesPorMes) {
+                                    uniClon.importesPorMes[mesId] = (uniClon.importesPorMes[mesId] || 0) + parseFloat(g.importesPorMes[mesId]);
+                                }
+                            }
+                        });
+
+                        // Recalcular derivados (Disponible y Porcentaje) para la coherencia visual del semáforo
+                        const totalGasto = (parseFloat(targetObj.comprometido) || 0) + (parseFloat(targetObj.ejecutado) || 0);
+                        targetObj.disponible = Math.max(0, targetObj.asignado - totalGasto);
+                        targetObj.excedido = totalGasto > targetObj.asignado ? (totalGasto - targetObj.asignado) : 0;
+                        targetObj.porcentaje = targetObj.asignado > 0 ? Math.round((totalGasto / targetObj.asignado) * 100 * 100) / 100 : 0;
                     }
 
                     if (!propGrupos || (uniClon[propGrupos] && uniClon[propGrupos].length > 0)) {
