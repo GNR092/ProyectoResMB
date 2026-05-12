@@ -594,6 +594,15 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </div>
             </div>
 
+            <!-- Selector de Cuenta para Servicios (Dirección) -->
+            <div id="bloque-cuenta-dir" class="hidden mt-4">
+                <label for="id-cuenta-dir" class="block text-sm font-medium text-gray-700">Cuenta Bancaria (Opcional)</label>
+                <select id="id-cuenta-dir" name="id_cuenta_dir" class="mt-1 block w-full text-sm border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Usar datos por defecto</option>
+                </select>
+                <p class="text-[10px] text-gray-500 mt-1 italic">Si el proveedor no tiene cuentas registradas, se usará la información de su ficha principal.</p>
+            </div>
+
             <div class="flex items-center">
                 <input type="checkbox" id="iva-dir" name="iva_dir" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                 <label for="iva-dir" class="ml-2 block text-sm text-gray-900 cursor-pointer">

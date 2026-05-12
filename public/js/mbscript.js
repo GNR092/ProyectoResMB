@@ -1110,7 +1110,33 @@ function initEnviarDireccion() {
       }
     }
 
-    // 3. Mostrar modal
+    // 3. Mostrar modal y cargar cuentas si es servicio
+    const bloqueCuenta = document.getElementById('bloque-cuenta-dir')
+    const selectCuenta = document.getElementById('id-cuenta-dir')
+
+    if (tipo === 'servicio' && bloqueCuenta && selectCuenta) {
+      bloqueCuenta.classList.remove('hidden')
+      selectCuenta.innerHTML = '<option value="">Cargando cuentas...</option>'
+
+      try {
+        const cuentas = await SendDataEnd(`modales/cuentas/proveedor/${idProveedor}`)
+        if (cuentas && cuentas.length > 0) {
+          let html = '<option value="">Usar datos por defecto</option>'
+          cuentas.forEach((c) => {
+            html += `<option value="${c.ID_Cuenta}">${c.Cuenta}</option>`
+          })
+          selectCuenta.innerHTML = html
+        } else {
+          selectCuenta.innerHTML = '<option value="">Sin cuentas registradas</option>'
+        }
+      } catch (error) {
+        console.error('Error al cargar cuentas para dirección:', error)
+        selectCuenta.innerHTML = '<option value="">Error al cargar cuentas</option>'
+      }
+    } else if (bloqueCuenta) {
+      bloqueCuenta.classList.add('hidden')
+    }
+
     modal.classList.remove('hidden')
     formDir.dataset.formOrigen = formId
   }
@@ -1160,6 +1186,11 @@ function initEnviarDireccion() {
 
       // Añadir flag y datos del modal
       formData.append('enviar_direccion', '1')
+
+      const idCuentaDir = document.getElementById('id-cuenta-dir')?.value
+      if (idCuentaDir) {
+        formData.append('id_cuenta_dir', idCuentaDir)
+      }
       
       filesEvidencia.forEach(file => {
           formData.append('archivo_evidencia[]', file)
@@ -1187,7 +1218,8 @@ function initEnviarDireccion() {
         modal.classList.add('hidden')
         formDir.reset()
         formOrigen.reset()
-        cerrarModal()
+        // En lugar de cerrarModal(), regresamos a la selección inicial
+        regresarSeleccionOpciones()
       } else {
         mostrarNotificacion(data.message, 'error')
       }

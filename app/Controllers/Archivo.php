@@ -87,7 +87,9 @@ class Archivo extends BaseController
 
             $razon_social_id = isset($post['razon_social']) ? $post['razon_social'] : null;
             $proveedor_id = isset($post['ID_Proveedor']) ? $post['ID_Proveedor'] : null;
-            $cuenta_id = $post['cuenta_proveedor'] ?? ($post['ID_Cuenta'] ?? null);
+            
+            // Prioridad: 1. Cuenta desde modal dirección, 2. Cuenta desde selector normal, 3. NULL
+            $cuenta_id = $post['id_cuenta_dir'] ?? ($post['cuenta_proveedor'] ?? ($post['ID_Cuenta'] ?? null));
 
             $razon = null;
             $proveedor = null;
