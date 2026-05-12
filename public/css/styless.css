@@ -843,6 +843,9 @@
   .min-w-\[320px\] {
     min-width: 320px;
   }
+  .min-w-\[700px\] {
+    min-width: 700px;
+  }
   .min-w-full {
     min-width: 100%;
   }
@@ -1785,6 +1788,9 @@
   }
   .pt-10 {
     padding-top: calc(var(--spacing) * 10);
+  }
+  .pr-2 {
+    padding-right: calc(var(--spacing) * 2);
   }
   .pr-3 {
     padding-right: calc(var(--spacing) * 3);

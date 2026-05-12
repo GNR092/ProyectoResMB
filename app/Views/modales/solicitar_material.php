@@ -115,16 +115,16 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
             <div class="overflow-visible">
                 <!-- Tabla de productos -->
-                <table class="w-full text-sm text-left border border-gray-300">
+                <table class="w-full text-sm text-left border border-gray-300 table-auto">
                     <thead class="bg-gray-200 text-gray-700">
                         <tr>
-                            <th class="px-3 py-2 border">No.</th>
-                            <th class="px-3 py-2 border">Código o SKU</th>
+                            <th class="px-3 py-2 border w-12">No.</th>
+                            <th class="px-3 py-2 border w-32">Código o SKU</th>
                             <th class="px-3 py-2 border">Producto</th>
-                            <th class="px-3 py-2 border">Cantidad</th>
-                            <th class="px-3 py-2 border">Importe</th>
-                            <th class="px-3 py-2 border">Costo</th>
-                            <th class="px-3 py-2 border text-center">Acción</th>
+                            <th class="px-3 py-2 border w-24">Cantidad</th>
+                            <th class="px-3 py-2 border w-24">Importe</th>
+                            <th class="px-3 py-2 border w-32">Costo</th>
+                            <th class="px-3 py-2 border text-center w-24">Acción</th>
                         </tr>
                     </thead>
                     <tbody id="tabla-productos">
@@ -133,7 +133,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </table>
                 <!-- Total costo -->
                 <!-- Subtotal -->
-                <div class="w-full overflow-auto mt-3">
+                <div class="w-full mt-3">
                     <table class="w-full text-sm border border-gray-300">
                         <tbody>
                             <tr class="bg-gray-200 text-gray-700 font-semibold">
@@ -296,7 +296,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                                                placeholder="Elegir material..." autocomplete="off" readonly required>
                                         
                                         <!-- Dropdown de resultados -->
-                                        <div class="absolute left-0 right-0 z-[100] mt-1 bg-white border rounded shadow-xl hidden container-resultados-busqueda max-h-60 overflow-y-auto">
+                                        <div class="absolute left-0 min-w-[700px] z-[100] mt-1 bg-white border rounded shadow-xl hidden container-resultados-busqueda max-h-60 overflow-y-auto">
                                             <!-- Resultados dinámicos -->
                                         </div>
                                     </div>
@@ -463,7 +463,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                                            10 placeholder="Elegir servicio..." autocomplete="off" readonly required>
 
                                     <!-- Dropdown de resultados -->
-                                    <div class="absolute left-0 right-0 z-[100] mt-1 bg-white border rounded shadow-xl hidden container-resultados-busqueda max-h-60 overflow-y-auto">
+                                    <div class="absolute left-0 min-w-[700px] z-[100] mt-1 bg-white border rounded shadow-xl hidden container-resultados-busqueda max-h-60 overflow-y-auto">
                                         <!-- Resultados dinámicos -->
                                     </div>
                                 </div>
@@ -496,7 +496,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </table>
 
                 <!-- Subtotal -->
-                <div class="w-full overflow-auto mt-3">
+                <div class="w-full mt-3">
                     <table class="w-full text-sm border border-gray-300">
                         <tbody>
                         <tr class="bg-gray-200 text-gray-700 font-semibold">

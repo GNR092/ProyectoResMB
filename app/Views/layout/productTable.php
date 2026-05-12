@@ -17,7 +17,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                        placeholder="Haga clic para elegir producto..." autocomplete="off" readonly required>
                 
                 <!-- Dropdown de resultados (Autocomplete) -->
-                <div class="absolute left-0 right-0 z-[100] mt-1 bg-white border rounded-md shadow-xl hidden container-resultados-busqueda max-h-64 overflow-y-auto">
+                <div class="absolute left-0 min-w-[700px] z-[100] mt-1 bg-white border rounded-md shadow-xl hidden container-resultados-busqueda max-h-64 overflow-y-auto">
                     <!-- Los resultados se cargarán dinámicamente -->
                 </div>
             </div>
