@@ -1,3 +1,8 @@
+/**
+ * -ESTE MODULO YA HA SIDO OPTIMIZADO Y DEPURADO-
+ */
+
+
 let choicesDeptoMaestro = null;
 let choicesRazonMaestro = null;
 
