@@ -1504,15 +1504,26 @@ function registrarComponenteReportePresupuesto() {
 
             actualizarOpcionesGrupo() {
                 if (!this.choicesGrupo) return;
+                
+                // 1. Obtener los IDs de las partidas que actualmente son válidas para las áreas seleccionadas
+                const idsValidos = this.gruposUnicos.map(g => String(g.id));
+                
+                // 2. Filtrar la selección actual: Solo conservar lo que siga existiendo en el nuevo universo de datos
                 const seleccionActual = this.choicesGrupo.getValue(true).map(String);
+                const seleccionLimpia = seleccionActual.filter(id => idsValidos.includes(id));
+
+                // 3. Reconstruir las opciones de la librería Choices.js
                 this.choicesGrupo.clearChoices();
                 const nuevasOpciones = this.gruposUnicos.map(g => ({
                     value: String(g.id),
                     label: g.nombre,
-                    selected: seleccionActual.includes(String(g.id))
+                    selected: seleccionLimpia.includes(String(g.id))
                 }));
+                
                 this.choicesGrupo.setChoices(nuevasOpciones, 'value', 'label', true);
-                this.gruposSeleccionados = this.choicesGrupo.getValue(true).map(String);
+
+                // 4. Sincronizar el estado interno de Alpine.js con la selección purgada
+                this.gruposSeleccionados = seleccionLimpia;
             },
 
             initChoicesFiltros() {
@@ -1532,6 +1543,15 @@ function registrarComponenteReportePresupuesto() {
                         searchPlaceholderValue: 'Buscar unidad...',
                         allowHTML: true
                     });
+
+                    // PERSISTENCIA: Validar unidades seleccionadas previas contra los nuevos datos
+                    const idsValidos = this.departamentosOriginales.map(u => String(u.ID_UnidadOperativa));
+                    this.unidadesSeleccionadas = this.unidadesSeleccionadas.filter(id => idsValidos.includes(id));
+                    
+                    if (this.unidadesSeleccionadas.length > 0) {
+                        this.choicesUnidad.setChoiceByValue(this.unidadesSeleccionadas);
+                    }
+
                     refUnidad.onchange = () => {
                         this.unidadesSeleccionadas = this.choicesUnidad.getValue(true).map(String);
                         this.extraerGruposUnicos();
@@ -1548,11 +1568,23 @@ function registrarComponenteReportePresupuesto() {
                         searchPlaceholderValue: 'Buscar partida...',
                         allowHTML: true
                     });
+
+                    // PERSISTENCIA: Validar partidas seleccionadas previas contra los nuevos grupos únicos
+                    const idsPartidasValidas = this.gruposUnicos.map(g => String(g.id));
+                    this.gruposSeleccionados = this.gruposSeleccionados.filter(id => idsPartidasValidas.includes(id));
+
+                    if (this.gruposSeleccionados.length > 0) {
+                        this.choicesGrupo.setChoiceByValue(this.gruposSeleccionados);
+                    }
+
                     refGrupo.onchange = () => {
                         this.gruposSeleccionados = this.choicesGrupo.getValue(true).map(String);
                         this.aplicarFiltrosLocales();
                     };
                 }
+
+                // Disparar filtrado inicial para aplicar lo persistido a los nuevos datos
+                this.aplicarFiltrosLocales();
             },
 
             aplicarFiltrosLocales() {
