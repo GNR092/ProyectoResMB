@@ -5,41 +5,47 @@ function initControlMaestro() {
     const tabla = document.getElementById('tabla-maestro');
     if (!tabla) return;
 
-    // Destruir instancias previas para evitar duplicados al reabrir el modal
+    // Cache de elementos DOM para evitar búsquedas repetitivas y mejorar el rendimiento
+    const filtroDeptoEl = document.getElementById('filtroDepartamentoMaestro');
+    const filtroRazonEl = document.getElementById('filtro-razon-social-maestro');
+    const wrapperDepto = document.getElementById('wrapper-depto-maestro');
+    const inputFolio = document.getElementById('filtro-folio-maestro');
+    const inputFecha = document.getElementById('filtro-fecha-maestro');
+    const checkMes = document.getElementById('filtrar-por-mes-maestro');
+    const selectEstado = document.getElementById('filtro-estado-maestro');
+    const selectMetodo = document.getElementById('filtro-metodo-maestro');
+    const selectTipo = document.getElementById('filtro-tipo-maestro');
+
+    // Destruir instancias previas para evitar duplicados al reabrir el modal (gestión de memoria)
     if (choicesDeptoMaestro) { choicesDeptoMaestro.destroy(); choicesDeptoMaestro = null; }
     if (choicesRazonMaestro) { choicesRazonMaestro.destroy(); choicesRazonMaestro = null; }
 
-    // 1. Configurar Choices
-    const filtroEl = document.getElementById('filtroDepartamentoMaestro');
-    if (filtroEl) {
-        if (!choicesDeptoMaestro) {
-            choicesDeptoMaestro = new Choices(filtroEl, {
-                removeItemButton: true,
-                placeholder: true,
-                placeholderValue: 'Todos los departamentos',
-                itemSelectText: '',
-                noResultsText: 'No se encontraron resultados',
-            });
-        }
-        document.getElementById('wrapper-depto-maestro').classList.remove('hidden');
+    // 1. Configurar Selectores Avanzados (Choices.js)
+    if (filtroDeptoEl) {
+        choicesDeptoMaestro = new Choices(filtroDeptoEl, {
+            removeItemButton: true,
+            placeholder: true,
+            placeholderValue: 'Todos los departamentos',
+            itemSelectText: '',
+            noResultsText: 'No se encontraron resultados',
+        });
+        if (wrapperDepto) wrapperDepto.classList.remove('hidden');
     }
 
-    const filtroRazonEl = document.getElementById('filtro-razon-social-maestro');
     if (filtroRazonEl) {
-        if (!choicesRazonMaestro) {
-            choicesRazonMaestro = new Choices(filtroRazonEl, {
-                removeItemButton: true,
-                placeholder: true,
-                placeholderValue: 'Todas las razones sociales',
-                itemSelectText: '',
-                noResultsText: 'No se encontraron resultados',
-            });
-        }
+        choicesRazonMaestro = new Choices(filtroRazonEl, {
+            removeItemButton: true,
+            placeholder: true,
+            placeholderValue: 'Todas las razones sociales',
+            itemSelectText: '',
+            noResultsText: 'No se encontraron resultados',
+        });
     }
 
-    // --- Lógica de dependencia RS -> Depto ---
-    if (choicesRazonMaestro && choicesDeptoMaestro) {
-        const originalDeptoOptions = Array.from(filtroEl.options).map(opt => ({
+    // --- Lógica de dependencia: Razón Social -> Departamento ---
+    if (choicesRazonMaestro && choicesDeptoMaestro && filtroDeptoEl) {
+        // Almacenamos las opciones originales para filtrar sin perder datos
+        const originalDeptoOptions = Array.from(filtroDeptoEl.options).map(opt => ({
             value: opt.value,
             label: opt.text,
             razon: opt.dataset.razon
@@ -51,31 +57,27 @@ function initControlMaestro() {
                 return opt ? opt.dataset.idRazon : null;
             }).filter(id => id);
 
-            let filteredOptions = [];
-            if (selectedRazones.length === 0) {
-                filteredOptions = originalDeptoOptions;
-            } else {
-                filteredOptions = originalDeptoOptions.filter(opt => 
-                    !opt.razon || selectedRazones.includes(opt.razon)
-                );
-            }
+            const filteredOptions = selectedRazones.length === 0 
+                ? originalDeptoOptions 
+                : originalDeptoOptions.filter(opt => !opt.razon || selectedRazones.includes(opt.razon));
 
             choicesDeptoMaestro.clearStore();
             choicesDeptoMaestro.setChoices(filteredOptions, 'value', 'label', true);
         });
     }
 
-    // 2. URL + Cache Buster
+    // 2. Construcción de Endpoint con Cache Buster
     let urlEndpoint = 'api/historic';
-    const exceptions = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría'];
-    if (typeof USER_DEPT_NAME !== 'undefined' && USER_DEPT_ID && !exceptions.includes(USER_DEPT_NAME)) {
+    const DEPT_EXCEPTIONS = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría'];
+    
+    // Si el usuario no pertenece a departamentos administrativos, filtramos por su departamento
+    if (typeof USER_DEPT_NAME !== 'undefined' && USER_DEPT_ID && !DEPT_EXCEPTIONS.includes(USER_DEPT_NAME)) {
         urlEndpoint = `api/historic/department/${USER_DEPT_ID}`;
     }
 
-    const cacheBuster = `?_t=${new Date().getTime()}`;
-    const finalEndpoint = urlEndpoint.includes('?') ? (urlEndpoint + '&' + cacheBuster.substring(1)) : (urlEndpoint + cacheBuster);
+    const finalEndpoint = `${urlEndpoint}${urlEndpoint.includes('?') ? '&' : '?'}_t=${Date.now()}`;
 
-    // 3. Inicializar Tabla
+    // 3. Inicializar Tabla con Paginación y Filtrado
     createPaginatedTable({
         tableSelector: '#tabla-maestro tbody',
         paginationSelector: 'paginacion-maestro',
@@ -83,6 +85,7 @@ function initControlMaestro() {
         filterFormSelector: '#filtros-maestro-container',
 
         renderRow: (item) => {
+            // Helpers de utils.js para formateo de estados y estilos
             const status = typeof getStatusText === 'function' ? getStatusText(item.Estado) : item.Estado;
             const svg = typeof getStatusSVG === 'function' ? getStatusSVG(item.Estado) : '';
             const metodo = typeof getMetodoPago === 'function' ? getMetodoPago(item.MetodoPago) : item.MetodoPago;
@@ -118,12 +121,14 @@ function initControlMaestro() {
         },
 
         filterFunction: (allData) => {
-            const folioFiltro = document.getElementById('filtro-folio-maestro')?.value.toLowerCase().trim() || '';
-            const fechaFiltro = document.getElementById('filtro-fecha-maestro').value;
-            const filtrarPorMes = document.getElementById('filtrar-por-mes-maestro').checked;
-            const estadoFiltro = document.getElementById('filtro-estado-maestro').value;
-            const metodoFiltro = document.getElementById('filtro-metodo-maestro').value;
-            const tipoFiltro = document.getElementById('filtro-tipo-maestro')?.value || '';
+            // OPTIMIZACIÓN: Capturamos valores del DOM una sola vez antes de iterar
+            const folioFiltro = inputFolio?.value.toLowerCase().trim() || '';
+            const fechaFiltro = inputFecha?.value || '';
+            const filtrarPorMes = checkMes?.checked || false;
+            const estadoFiltro = selectEstado?.value || '';
+            const metodoFiltro = selectMetodo?.value || '';
+            const tipoFiltro = selectTipo?.value || '';
+            
             const deptosSeleccionados = choicesDeptoMaestro ? choicesDeptoMaestro.getValue(true) : [];
             const razonesSeleccionadas = choicesRazonMaestro ? choicesRazonMaestro.getValue(true) : [];
 
@@ -140,8 +145,6 @@ function initControlMaestro() {
                 if (deptosSeleccionados.length > 0) {
                     const deptoFull = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`;
                     coincideDepto = deptosSeleccionados.includes(deptoFull);
-                } else if (choicesDeptoMaestro && choicesDeptoMaestro.getValue(true).length === 0) {
-                    coincideDepto = true;
                 }
 
                 let coincideRazon = true;
@@ -152,11 +155,12 @@ function initControlMaestro() {
                 const passesOtherFilters = coincideFolio && coincideEstado && coincideDepto && coincideMetodo && coincideTipo && coincideRazon;
 
                 if (!fechaFiltro) return passesOtherFilters;
-                const fechaItem = item.Fecha;
+                
+                // Comparación de fechas optimizada
                 if (filtrarPorMes) {
-                    return fechaItem.slice(0, 7) === fechaFiltro.slice(0, 7) && passesOtherFilters;
+                    return item.Fecha.startsWith(fechaFiltro.slice(0, 7)) && passesOtherFilters;
                 }
-                return fechaItem === fechaFiltro && passesOtherFilters;
+                return item.Fecha === fechaFiltro && passesOtherFilters;
             });
         }
     });
@@ -167,31 +171,46 @@ function initControlMaestro() {
  */
 
 async function cargarEditorMaestro(idSolicitud, folio) {
-    document.getElementById('div-control-maestro').classList.add('hidden');
-    document.getElementById('div-editor-maestro').classList.remove('hidden');
-    document.getElementById('titulo-editor').innerText = `Editando: ${folio || 'ID '+idSolicitud}`;
-
+    // Referencias a contenedores principales
+    const divControl = document.getElementById('div-control-maestro');
+    const divEditor = document.getElementById('div-editor-maestro');
+    const tituloEditor = document.getElementById('titulo-editor');
     const container = document.getElementById('contenido-editor-maestro');
 
+    // Cambiar vista y resetear scroll para mejorar UX
+    if (divControl) divControl.classList.add('hidden');
+    if (divEditor) divEditor.classList.remove('hidden');
+    if (tituloEditor) tituloEditor.innerText = `Editando: ${folio || 'ID ' + idSolicitud}`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Estado de carga inicial
     container.innerHTML = `
         <div class="flex flex-col items-center justify-center py-12">
-            <p class="text-gray-500 font-medium animate-pulse">Cargando datos y archivos...</p>
+            <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p class="text-gray-500 font-medium italic">Cargando información técnica y archivos...</p>
         </div>`;
 
     try {
+        // Ejecución concurrente de peticiones API
+        // Se usa .catch en peticiones secundarias para que un fallo no crítico no detenga la carga
         const [dataSolicitud, dataOrden, dataProveedores, dataRazones] = await Promise.all([
             SendDataEnd(`api/solicitud/details/${idSolicitud}`),
-            SendDataEnd(`api/orden-compra/details/${idSolicitud}`).catch(() => null),
-            SendDataEnd(`api/providers/all`),
-            SendDataEnd(`api/razonsocial/all`)
+            SendDataEnd(`api/orden-compra/details/${idSolicitud}`).catch(err => {
+                console.warn("No se encontró orden de compra:", err);
+                return null;
+            }),
+            SendDataEnd(`api/providers/all`).catch(() => ({ data: [] })),
+            SendDataEnd(`api/razonsocial/all`).catch(() => ({ data: [] }))
         ]);
 
         if (dataSolicitud.error) throw new Error(dataSolicitud.error);
 
+        // Aplanado y normalización de la Orden de Compra
         let ordenObjeto = null;
         if (dataOrden && !dataOrden.error) {
+            // Manejamos las diferentes estructuras que puede devolver el endpoint de CI4
             if (Array.isArray(dataOrden)) {
-                ordenObjeto = dataOrden.length > 0 ? dataOrden[0] : null;
+                ordenObjeto = dataOrden[0] || null;
             } else if (dataOrden.OrdenCompra) {
                 ordenObjeto = Array.isArray(dataOrden.OrdenCompra) ? dataOrden.OrdenCompra[0] : dataOrden.OrdenCompra;
             } else {
@@ -199,27 +218,38 @@ async function cargarEditorMaestro(idSolicitud, folio) {
             }
         }
 
+        // Integrar datos de la orden en la solicitud principal para el renderizador
         if (ordenObjeto) {
             dataSolicitud.OrdenCompra = ordenObjeto;
-            if (ordenObjeto.cotizacion) {
-                dataSolicitud.cotizacion = ordenObjeto.cotizacion;
-            }
+            if (ordenObjeto.cotizacion) dataSolicitud.cotizacion = ordenObjeto.cotizacion;
         }
 
-        const normalize = (d) => Array.isArray(d) ? d : (d.data || d.messages || []);
+        // Helper interno para normalizar respuestas de la librería Rest.php
+        const normalize = (d) => {
+            if (Array.isArray(d)) return d;
+            return d?.data || d?.messages || [];
+        };
+
         const listaProveedores = normalize(dataProveedores);
         const listaRazones = normalize(dataRazones);
 
-        document.getElementById('maestro_id_solicitud').value = idSolicitud;
+        // Asignar ID de solicitud al campo oculto del formulario
+        const inputId = document.getElementById('maestro_id_solicitud');
+        if (inputId) inputId.value = idSolicitud;
+
+        // Disparar el renderizado del formulario (Bloque 3)
         renderizarInputsDios(dataSolicitud, container, listaProveedores, listaRazones);
 
     } catch (error) {
-        console.error(error);
+        console.error("Error en cargarEditorMaestro:", error);
         container.innerHTML = `
-            <div class="text-center text-red-500 py-10 bg-red-50 rounded border border-red-200">
-                <p class="font-bold">Error al cargar datos</p>
-                <p class="text-sm">${error.message}</p>
-                <button onclick="regresarMaestro()" class="mt-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Volver</button>
+            <div class="text-center py-10 bg-red-50 rounded-lg border border-red-200 shadow-sm mx-auto max-w-lg">
+                <div class="text-red-500 text-4xl mb-3">⚠️</div>
+                <p class="font-bold text-red-800 text-lg">Error al cargar datos</p>
+                <p class="text-sm text-red-600 mb-6">${error.message}</p>
+                <button onclick="regresarMaestro()" class="px-6 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition shadow-sm font-semibold">
+                    Volver al Historial
+                </button>
             </div>`;
     }
 }
@@ -228,13 +258,19 @@ async function cargarEditorMaestro(idSolicitud, folio) {
  * RENDERIZADO DEL FORMULARIO
  */
 
+/**
+ * RENDERIZADO DEL FORMULARIO (MODO DIOS)
+ * Refactorizado con enfoque en Interface Design: Autoridad, Precisión y Trazabilidad.
+ */
+
 function renderizarInputsDios(data, container, listaProveedores = [], listaRazones = []) {
     const sol = data.solicitud || data;
     const orden = data.OrdenCompra || {};
     const coti = data.cotizacion || {};
 
+    // 1. LÓGICA DE ESTADOS Y BLOQUEOS
     let estadoVisual = sol.Estado;
-    if (sol.Estado === 'Aprobada' && orden && orden.Estado) {
+    if (sol.Estado === 'Aprobada' && orden?.Estado) {
         estadoVisual = orden.Estado;
     }
 
@@ -251,454 +287,674 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
     };
 
     const reglas = REGLAS_BLOQUEO[estadoVisual] || { financiero: true, control: true };
-    const disabledFinanciero = reglas.financiero ? 'disabled' : '';
-    const classFinanciero    = reglas.financiero ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white';
-    const disabledControl    = reglas.control ? 'disabled' : '';
-    const classControl       = reglas.control ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white';
-    const classArchivos      = reglas.financiero ? 'hidden' : 'grid';
+    
+    // Configuración de Tokens de Diseño (Interface Design)
+    const configUI = {
+        disabledFinanciero: reglas.financiero ? 'disabled' : '',
+        classFinanciero: reglas.financiero ? 'bg-[#F3F4F6] text-[#6B7280] cursor-not-allowed' : 'bg-white',
+        disabledControl: reglas.control ? 'disabled' : '',
+        classControl: reglas.control ? 'bg-[#F3F4F6] text-[#6B7280] cursor-not-allowed' : 'bg-white',
+        classArchivos: reglas.financiero ? 'hidden' : 'grid',
+        // Typography & Spacing
+        baseInput: "mt-1 block w-full border border-[#D1D5DB] rounded-sm shadow-sm py-2 px-3 focus:ring-1 focus:ring-[#1E3A8A] focus:border-[#1E3A8A] sm:text-xs text-[#374151] transition-all",
+        label: "block text-[10px] font-bold text-[#4B5563] mb-1 uppercase tracking-widest",
+        section: "bg-white border border-[#E5E7EB] rounded-sm p-6 mb-6",
+        // Semantic Colors
+        inkBlue: "#1E3A8A",
+        carbonGray: "#4B5563",
+        stampRed: "#991B1B",
+        auditGreen: "#065F46"
+    };
 
-    const existeOrden = (orden && orden.Estado) ? true : false;
-    const disabledFechasOrden = (!existeOrden || reglas.control) ? 'disabled' : '';
-    const classInputRefPago = (!existeOrden || reglas.control) ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-blue-50 border-blue-200';
-    const classInputPagoReal = (!existeOrden || reglas.control) ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-green-50 border-green-200';
-
-    let idProveedorActual = sol.ID_Proveedor;
-    if (!idProveedorActual && data.proveedor) idProveedorActual = data.proveedor.ID_Proveedor;
-
-    let htmlProv = `<option value="" data-credito="0">-- Seleccionar --</option>`;
-    listaProveedores.forEach(p => {
+    // 2. PRE-PROCESAMIENTO DE CATÁLOGOS
+    const idProveedorActual = sol.ID_Proveedor || data.proveedor?.ID_Proveedor;
+    const htmlProv = listaProveedores.map(p => {
         const selected = (p.ID_Proveedor == idProveedorActual) ? 'selected' : '';
         const dias = parseFloat(p.Dias_Credito || p.dias_credito || 0);
-        htmlProv += `<option value="${p.ID_Proveedor}" data-credito="${dias > 0 ? '1' : '0'}" ${selected}>${p.RazonSocial}</option>`;
-    });
+        return `<option value="${p.ID_Proveedor}" data-credito="${dias > 0 ? '1' : '0'}" ${selected}>${p.RazonSocial}</option>`;
+    }).join('');
 
-    let htmlRazon = `<option value="">-- Seleccionar Proyecto --</option>`;
-    listaRazones.forEach(r => {
+    const htmlRazon = listaRazones.map(r => {
         const selected = (r.ID_RazonSocial == sol.ID_RazonSocial) ? 'selected' : '';
-        htmlRazon += `<option value="${r.ID_RazonSocial}" ${selected}>${r.Nombre} (${r.RFC || ''})</option>`;
-    });
+        return `<option value="${r.ID_RazonSocial}" ${selected}>${r.Nombre} (${r.RFC || ''})</option>`;
+    }).join('');
 
-    const checkedIva = (sol.IVA == 1 || sol.IVA === 't' || sol.IVA === true) ? 'checked' : '';
-    const productos = Array.isArray(data.productos) ? data.productos : (Array.isArray(data.servicios) ? data.servicios : []);
-
-    const fechaRegistroVista = sol.Fecha ? sol.Fecha.split(' ')[0] : '';
-    const valorFechaAprobacion = (orden.Fecha || sol.FechaOrden) ? (orden.Fecha || sol.FechaOrden).split(' ')[0] : '';
-    const valorFechaRefPago = (orden.FechaRefPago || sol.FechaRefPago) ? (orden.FechaRefPago || sol.FechaRefPago).split(' ')[0] : '';
-    const valorFechaPagoReal = (orden.FechaPagoRealizado || sol.FechaPagoRealizado) ? (orden.FechaPagoRealizado || sol.FechaPagoRealizado).split(' ')[0] : '';
-
-    const baseInputClass = "mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xs text-gray-700";
-    const labelClass = "block text-xs font-bold text-gray-700 mb-1 uppercase tracking-wide";
-    const sectionClass = "bg-white shadow rounded-lg p-6 border border-gray-200 mb-6";
-
-    // ASISTENTE DE LLENADO
-    let grupoGeneralHtml = '';
+    let optionsGruposHtml = '<option value="">-- Sin partida asignada --</option>';
     if (data.grupos_presupuestales) {
         const requestPlaceId = sol.ID_Place || data.ID_Place;
         const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
-
-        if (gruposFiltrados.length > 0) {
-            grupoGeneralHtml = `
-            <div id="contenedor-grupo-general" class="mb-4 bg-blue-50 p-4 border border-blue-200 rounded-lg">
-                <label class="block text-xs font-bold text-blue-800 mb-1 tracking-wide">Asistente de Llenado: Asignar partida a todos los ítems</label>
-                <div id="select-grupo-general-container">
-                    <select id="select-grupo-presupuestal-general" class="w-full border rounded-md p-2 bg-white text-blue-900 text-xs font-semibold focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer" onchange="window.aplicarGrupoATodos(this.value)">
-                        <option value="">-- Seleccionar grupo para aplicar a todo --</option>
-                        ${gruposFiltrados.map(grupo => `<option value="${grupo.ID_GrupoPresupuestal}">${grupo.Nombre}</option>`).join('')}
-                    </select>
-                </div>
-            </div>`;
-        }
+        optionsGruposHtml += gruposFiltrados.map(g => `<option value="${g.ID_GrupoPresupuestal}">${g.Nombre}</option>`).join('');
     }
 
+    // 3. ENSAMBLAJE DE INTERFAZ
+    let htmlContent = `
+        ${_renderBannerImpacto(configUI)}
+        ${_renderSeccionControl(sol, orden, estadoVisual, configUI)}
+        ${_renderSeccionGeneral(sol, htmlProv, htmlRazon, configUI)}
+        ${_renderAsistenteLlenado(data, sol, configUI)}
+        ${_renderTablaProductos(data, sol, optionsGruposHtml, configUI)}
+        ${_renderSeccionArchivos(data, sol, orden, coti, configUI)}
+        
+        <input type="hidden" id="original-id-proveedor" value="${idProveedorActual}">
+        <input type="hidden" id="flag-existe-cotizacion" value="${(coti.Cotizacion_Files || data.Cotizacion_Files) ? '1' : '0'}">
+        <input type="hidden" id="flag-existe-ficha" value="${(orden.File_Comprobante || data.File_Comprobante) ? '1' : '0'}">
+        <input type="hidden" id="flag-existe-factura" value="${(orden.File_Factura || data.File_Factura) ? '1' : '0'}">
+        <input type="hidden" id="flag-existe-complemento" value="${(orden.File_Complemento || data.File_Complemento) ? '1' : '0'}">
+    `;
+
+    container.innerHTML = htmlContent;
+
+    calcularTotalesUI();
+    setTimeout(() => { if (window.validarCreditoProveedor) window.validarCreditoProveedor(); }, 100);
+}
+
+function _renderBannerImpacto(ui) {
+    return `
+    <div id="advertencia-presupuesto-maestro" class="hidden mb-6 p-4 bg-[#FEF2F2] border-l-4 border-[#B91C1C] rounded-r-sm shadow-sm">
+        <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-[#B91C1C]" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            <p class="font-bold text-xs text-[#991B1B] uppercase tracking-wider">Compromiso Presupuestal Detectado</p>
+        </div>
+        <p class="text-[11px] mt-2 ml-8 text-[#7F1D1D] leading-relaxed">Este cambio afectará automáticamente el balance mensual del departamento. Se generará un registro en la bitácora de auditoría financiera.</p>
+    </div>`;
+}
+
+function _renderSeccionControl(sol, orden, estadoVisual, ui) {
+    const existeOrden = !!(orden && orden.Estado);
+    const disabledFechas = (!existeOrden || ui.disabledControl) ? 'disabled' : '';
+    
+    // Capas sutiles: Inset para inputs deshabilitados
+    const classRefPago = (!existeOrden || ui.disabledControl) ? 'bg-[#F9FAFB]' : 'bg-[#EFF6FF] border-[#BFDBFE]';
+    const classPagoReal = (!existeOrden || ui.disabledControl) ? 'bg-[#F9FAFB]' : 'bg-[#ECFDF5] border-[#A7F3D0]';
+
+    const fReg = sol.Fecha ? sol.Fecha.split(' ')[0] : 'N/A';
+    const fApro = (orden.Fecha || sol.FechaOrden) ? (orden.Fecha || sol.FechaOrden).split(' ')[0] : 'SIN SELLO';
+    const fRef = (orden.FechaRefPago || sol.FechaRefPago || '').split(' ')[0];
+    const fPago = (orden.FechaPagoRealizado || sol.FechaPagoRealizado || '').split(' ')[0];
+
+    return `
+    <div class="${ui.section}">
+        <div class="flex justify-between items-center border-b border-[#F3F4F6] pb-3 mb-5">
+            <h4 class="text-xs font-bold text-[#111827] flex items-center gap-2">
+                <span class="w-1.5 h-4 bg-[#1E3A8A] rounded-full"></span>
+                CONTROL DE EXPEDIENTE
+            </h4>
+            ${ui.disabledFinanciero ? '<span class="text-[9px] bg-[#FFFBEB] text-[#92400E] px-2 py-1 rounded-sm border border-[#FEF3C7] font-bold tracking-tighter">🔒 BLOQUEO DE AUDITORÍA</span>' : ''}
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div>
+                <label class="${ui.label}">Estado Maestro</label>
+                <select name="Estado" id="select-estado-maestro" onchange="window.verificarImpactoPresupuestal()" class="${ui.baseInput} bg-[#F8FAFC] border-[#1E3A8A] text-[#1E3A8A] font-bold">
+                    <option value="${estadoVisual}" selected>➡ ${estadoVisual.toUpperCase()}</option>
+                    <option value="En espera">EN ESPERA</option>
+                    <option value="Aprobada">APROBADA</option>
+                    <option value="Cotizando">COTIZANDO</option>
+                    <option value="Aprobacion pendiente">APROBACIÓN PENDIENTE</option>
+                    <option value="En revision">EN REVISIÓN</option>
+                    <option value="Espera_Programacion">ESPERA PROGRAMACIÓN</option>
+                    <option value="Programada">PROGRAMADA</option>
+                    <option value="Por Pagar">POR PAGAR</option>
+                    <option value="Pagada">PAGADA</option>
+                </select>
+            </div>
+            <div>
+                <label class="${ui.label}">Método de Liquidación</label>
+                <select name="MetodoPago" id="select-metodo-pago" onchange="window.toggleComplementoInput(this.value)" ${ui.disabledControl} class="${ui.baseInput} ${ui.classControl}">
+                    <option value="0" ${sol.MetodoPago == 0 ? 'selected' : ''}>CONTADO (DIRECTO)</option>
+                    <option value="1" ${sol.MetodoPago == 1 ? 'selected' : ''}>CRÉDITO (PARTIDA)</option>
+                </select>
+            </div>
+            <div>
+                <label class="${ui.label}">Fecha de Apertura</label>
+                <div class="${ui.baseInput} bg-[#F9FAFB] text-[#6B7280] font-mono border-[#E5E7EB]">${fReg}</div>
+                <input type="hidden" name="Fecha" value="${fReg}">
+            </div>
+            <div>
+                <label class="${ui.label}">Sello de Aprobación</label>
+                <div class="${ui.baseInput} bg-[#F9FAFB] text-[#6B7280] font-mono border-[#E5E7EB]">${fApro}</div>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 pt-5 border-t border-[#F3F4F6]">
+            <div>
+                <label class="${ui.label} text-[#1D4ED8]">Programación (Ref. Pago)</label>
+                <input type="date" name="FechaRefPago" value="${fRef}" ${disabledFechas} class="${ui.baseInput} ${classRefPago}">
+            </div>
+            <div>
+                <label class="${ui.label} text-[#047857]">Ejecución (Pago Realizado)</label>
+                <input type="date" name="FechaPagoRealizado" value="${fPago}" ${disabledFechas} class="${ui.baseInput} ${classPagoReal}">
+            </div>
+        </div>
+    </div>`;
+}
+
+function _renderSeccionGeneral(sol, htmlProv, htmlRazon, ui) {
+    return `
+    <div class="${ui.section}">
+        <h4 class="text-xs font-bold text-[#111827] border-b border-[#F3F4F6] pb-3 mb-5 flex items-center gap-2">
+            <span class="w-1.5 h-4 bg-[#4B5563] rounded-full"></span>
+            ENTIDADES ASOCIADAS
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+                <label class="${ui.label} text-[#1E3A8A]">Entidad Proveedora</label>
+                <select name="ID_Proveedor" id="select-proveedor-maestro" onchange="window.validarCreditoProveedor()" ${ui.disabledFinanciero} class="${ui.baseInput} ${ui.classFinanciero}">
+                    <option value="" data-credito="0">-- SELECCIONAR PROVEEDOR --</option>
+                    ${htmlProv}
+                </select>
+            </div>
+            <div>
+                <label class="${ui.label} text-[#065F46]">Centro de Costos / Proyecto</label>
+                <select name="ID_RazonSocial" ${ui.disabledFinanciero} class="${ui.baseInput} ${ui.classFinanciero}">
+                    <option value="">-- SELECCIONAR CENTRO --</option>
+                    ${htmlRazon}
+                </select>
+            </div>
+        </div>
+    </div>`;
+}
+
+function _renderAsistenteLlenado(data, sol, ui) {
+    if (!data.grupos_presupuestales) return '';
+    const requestPlaceId = sol.ID_Place || data.ID_Place;
+    const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
+    if (gruposFiltrados.length === 0) return '';
+
+    return `
+    <div class="mb-6 bg-[#F8FAFC] p-6 border border-[#E2E8F0] rounded-sm shadow-sm flex flex-col md:flex-row items-center gap-6 w-full">
+        <div class="flex-shrink-0 bg-[#1E3A8A] text-white p-3 rounded-sm shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        </div>
+        <div class="flex-grow w-full">
+            <label class="block text-[10px] font-bold text-[#1E3A8A] uppercase tracking-[0.2em] mb-2">Herramienta de Asignación Masiva de Partidas</label>
+            <select id="select-grupo-presupuestal-general" class="w-full border border-[#CBD5E1] rounded-sm p-3 bg-white text-[#0F172A] text-xs font-bold focus:ring-1 focus:ring-[#1E3A8A] transition-all cursor-pointer shadow-sm" onchange="window.aplicarGrupoATodos(this.value)">
+                <option value="">-- SELECCIONAR PARTIDA PRESUPUESTAL PARA APLICAR A TODOS LOS ÍTEMS DEL LISTADO --</option>
+                ${gruposFiltrados.map(g => `<option value="${g.ID_GrupoPresupuestal}">${g.Nombre.toUpperCase()}</option>`).join('')}
+            </select>
+        </div>
+    </div>`;
+}
+
+function _renderTablaProductos(data, sol, optionsGruposHtml, ui) {
+    const productos = Array.isArray(data.productos) ? data.productos : (Array.isArray(data.servicios) ? data.servicios : []);
+    const checkedIva = (sol.IVA == 1 || sol.IVA === 't' || sol.IVA === true) ? 'checked' : '';
+
+    return `
+    <div class="${ui.section} w-full">
+        <div class="flex justify-between items-center border-b border-[#F3F4F6] pb-4 mb-6">
+            <h4 class="text-xs font-bold text-[#111827] flex items-center gap-3">
+                <span class="w-2 h-5 bg-[#065F46] rounded-full"></span>
+                DETALLE TÉCNICO Y PARTIDAS
+            </h4>
+            <div class="text-right">
+                <span class="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest block mb-1">Total del Expediente</span> 
+                <span id="span-total-editor" class="text-2xl font-mono font-bold text-[#111827]"></span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table id="tabla-productos-editor" class="w-full text-xs text-left border-collapse">
+                <thead class="bg-[#F9FAFB] text-[#4B5563] text-[9px] font-bold uppercase tracking-[0.15em] border-y border-[#E5E7EB]">
+                    <tr>
+                        <th class="p-4">Descripción e Ítem / Clasificación de Partida</th>
+                        <th class="p-4 text-center w-32">Cantidad</th>
+                        <th class="p-4 text-right w-44">Precio Unitario</th>
+                        <th class="p-4 text-right w-44 border-l border-[#F3F4F6]">Subtotal Neto</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#F3F4F6]">
+                    ${productos.map((prod, index) => {
+                        const selectHtml = optionsGruposHtml.replace(`value="${prod.ID_GrupoPresupuestal}"`, `value="${prod.ID_GrupoPresupuestal}" selected`);
+                        return `
+                        <tr class="hover:bg-[#FCFCFD] transition-colors">
+                            <td class="p-5 align-top">
+                                <input type="hidden" name="productos[${index}][id]" value="${prod.ID_SolicitudProd || prod.ID_SolicitudServ || prod.ID_Detalle}">
+                                <input type="text" name="productos[${index}][nombre]" value="${prod.Nombre || ''}" ${ui.disabledFinanciero} class="${ui.baseInput} font-bold border-transparent hover:border-[#E5E7EB] focus:border-[#1E3A8A] bg-transparent text-sm">
+                                <div class="mt-3 flex items-center gap-2">
+                                    <span class="text-[9px] text-[#9CA3AF] font-bold">PARTIDA:</span>
+                                    <select name="productos[${index}][id_grupo_presupuestal]" class="flex-grow text-[11px] bg-transparent border-none text-[#1D4ED8] font-bold italic focus:ring-0 cursor-pointer select-grupo-partida p-0">
+                                        ${selectHtml}
+                                    </select>
+                                </div>
+                            </td>
+                            <td class="p-5 w-32 align-top pt-8">
+                                <input type="number" step="1" min="1" name="productos[${index}][cantidad]" value="${parseFloat(prod.Cantidad)||1}" ${ui.disabledFinanciero} class="${ui.baseInput} text-center font-mono font-bold ${ui.classFinanciero}" oninput="calcularTotalesUI()">
+                            </td>
+                            <td class="p-5 w-44 align-top pt-8">
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-[#9CA3AF] font-mono text-xs">$</span>
+                                    <input type="number" step="0.01" min="0" name="productos[${index}][precio]" value="${parseFloat(prod.Importe||prod.Precio)||0}" ${ui.disabledFinanciero} class="${ui.baseInput} text-right font-mono font-bold ${ui.classFinanciero} pl-8" oninput="calcularTotalesUI()">
+                                </div>
+                            </td>
+                            <td class="p-5 text-right td-subtotal font-mono font-bold text-[#111827] align-top pt-9 text-sm border-l border-[#F3F4F6] bg-[#F9FAFB]/50">$0.00</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-8 flex justify-end">
+            <label class="group flex items-center text-[10px] font-bold text-[#4B5563] cursor-pointer bg-[#F9FAFB] px-6 py-4 rounded-sm border border-[#E5E7EB] hover:border-[#1E3A8A] hover:text-[#1E3A8A] transition-all shadow-sm">
+                <input type="checkbox" name="IVA" id="chk_iva_maestro" value="1" ${checkedIva} ${ui.disabledFinanciero} onchange="calcularTotalesUI()" class="w-4 h-4 text-[#1E3A8A] border-[#D1D5DB] rounded-sm focus:ring-[#1E3A8A] mr-4 transition-transform group-hover:scale-110">
+                APLICAR DESGLOSE DE IVA (16.00%)
+            </label>
+        </div>
+    </div>`;
+}
+
+function _renderSeccionArchivos(data, sol, orden, coti, ui) {
     let htmlAdjuntos = '';
     if (typeof generarSeccionAdjuntos === 'function') {
         try {
-            if(!data.ID_Solicitud && sol.ID_Solicitud) data.ID_Solicitud = sol.ID_Solicitud;
-            data.OrdenCompra = orden; data.cotizacion = coti;
-            htmlAdjuntos = generarSeccionAdjuntos(data);
+            const dataClone = { ...data, ID_Solicitud: data.ID_Solicitud || sol.ID_Solicitud, OrdenCompra: orden, cotizacion: coti };
+            htmlAdjuntos = generarSeccionAdjuntos(dataClone);
         } catch (e) { htmlAdjuntos = ''; }
     }
 
-    const existeCotizacion = (coti.Cotizacion_Files || data.Cotizacion_Files) ? '1' : '0';
-    const existeFicha      = (orden.File_Comprobante || data.File_Comprobante) ? '1' : '0';
-    const existeFactura    = (orden.File_Factura || data.File_Factura) ? '1' : '0';
-    const existeComplemento = (orden.File_Complemento || data.File_Complemento) ? '1' : '0';
-
-    container.innerHTML = `
-    <div id="advertencia-presupuesto-maestro" class="hidden mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded shadow-sm">
-        <div class="flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-            </svg>
-            <p class="font-bold text-sm">AVISO DE IMPACTO PRESUPUESTAL</p>
-        </div>
-        <p class="text-xs mt-1 ml-7">Los cambios realizados (estado o montos) se verán reflejados automáticamente en el presupuesto mensual del departamento.</p>
-    </div>
-
-    <div class="${sectionClass}">
-        <div class="flex justify-between items-center border-b pb-2 mb-4">
-            <h4 class="text-sm font-bold text-gray-800">Control del Sistema</h4>
-            ${reglas.financiero ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded border border-yellow-200">🔒 Edición restringida</span>' : ''}
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div>
-                <label class="block text-xs font-bold text-red-600 mb-1">Estado</label>
-                <select name="Estado" id="select-estado-maestro" onchange="window.verificarImpactoPresupuestal()" class="${baseInputClass} bg-red-50 border-red-300 text-red-900 font-bold">
-                    <option value="${estadoVisual}" selected>➡ ${estadoVisual}</option>
-                    <option value="En espera">En espera</option>
-                    <option value="Aprobada">Aprobada</option>
-                    <option value="Cotizando">Cotizando</option>
-                    <option value="Aprobacion pendiente">Aprobación Pendiente</option>
-                    <option value="En revision">En revisión</option>
-                    <option value="Espera_Programacion">Espera Programación</option>
-                    <option value="Programada">Programada</option>
-                    <option value="Por Pagar">Por Pagar</option>
-                    <option value="Pagada">Pagada</option>
-                </select>
-            </div>
-            <div>
-                <label class="${labelClass}">Método Pago</label>
-                <select name="MetodoPago" id="select-metodo-pago" onchange="window.toggleComplementoInput(this.value)" ${disabledControl} class="${baseInputClass} ${classControl}">
-                    <option value="${sol.MetodoPago}" selected>Actual: ${sol.MetodoPago == 1 ? 'Crédito' : 'Contado'}</option>
-                    <option value="0">Contado</option>
-                    <option value="1">Crédito</option>
-                </select>
-            </div>
-            <div>
-                <label class="${labelClass}">Fecha Registro</label>
-                <div class="${baseInputClass} bg-gray-100 text-gray-500 border-gray-200 font-mono">${fechaRegistroVista || 'N/A'}</div>
-                <input type="hidden" name="Fecha" value="${fechaRegistroVista}">
-            </div>
-            <div>
-                <label class="${labelClass}">Fecha Aprobación</label>
-                <div class="${baseInputClass} bg-gray-100 text-gray-500 border-gray-200 font-mono">${valorFechaAprobacion || 'Aún no generada'}</div>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-gray-100">
-            <div><label class="${labelClass} text-blue-700">Fecha Ref Pago</label><input type="date" name="FechaRefPago" value="${valorFechaRefPago}" ${disabledFechasOrden} class="${baseInputClass} ${classInputRefPago}"></div>
-            <div><label class="${labelClass} text-green-700">Fecha Pago Realizado</label><input type="date" name="FechaPagoRealizado" value="${valorFechaPagoReal}" ${disabledFechasOrden} class="${baseInputClass} ${classInputPagoReal}"></div>
-        </div>
-    </div>
-
-    <div class="${sectionClass}">
-        <h4 class="text-sm font-bold text-gray-800 border-b pb-2 mb-4">Información General</h4>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="${labelClass} text-indigo-700">Proveedor Asignado <span class="text-red-500">*</span></label>
-                <select name="ID_Proveedor" id="select-proveedor-maestro" onchange="window.validarCreditoProveedor()" ${disabledFinanciero} class="${baseInputClass} border-indigo-200 ${classFinanciero}">${htmlProv}</select>
-            </div>
-            <div><label class="${labelClass} text-green-700">Proyecto</label><select name="ID_RazonSocial" ${disabledFinanciero} class="${baseInputClass} border-green-200 ${classFinanciero}">${htmlRazon}</select></div>
-        </div>
-    </div>
-
-    ${grupoGeneralHtml}
-
-    <div class="${sectionClass}">
-        <div class="flex justify-between items-end mb-4 border-b pb-2">
-            <h4 class="text-sm font-bold text-gray-800">Detalle de Productos / Servicios</h4>
-            <div class="text-right"><span class="text-xs font-bold text-gray-500">Total:</span> <span id="span-total-editor" class="text-sm font-bold text-gray-800"></span></div>
-        </div>
-        <table id="tabla-productos-editor" class="w-full text-xs text-left">
-            <tbody class="divide-y">
-                ${productos.map((prod, index) => {
-                    let gruposHtml = '';
-                    if (data.grupos_presupuestales) {
-                        const requestPlaceId = sol.ID_Place || data.ID_Place;
-                        const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
-                        gruposHtml = `<select name="productos[${index}][id_grupo_presupuestal]" class="${baseInputClass} bg-white select-grupo-partida mt-1">`;
-                        gruposHtml += `<option value="">-- Sin partida asignada --</option>`;
-                        gruposFiltrados.forEach((grupo) => {
-                            const selected = prod.ID_GrupoPresupuestal == grupo.ID_GrupoPresupuestal ? 'selected' : '';
-                            gruposHtml += `<option value="${grupo.ID_GrupoPresupuestal}" ${selected}>${grupo.Nombre}</option>`;
-                        });
-                        gruposHtml += `</select>`;
-                    }
-                    return `
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="p-2 align-top">
-                            <input type="hidden" name="productos[${index}][id]" value="${prod.ID_SolicitudProd || prod.ID_SolicitudServ || prod.ID_Detalle}">
-                            <input type="text" name="productos[${index}][nombre]" value="${prod.Nombre || ''}" ${disabledFinanciero} class="${baseInputClass} ${classFinanciero}">
-                            ${gruposHtml}
-                        </td>
-                        <td class="p-2 w-24 align-top"><input type="number" step="1.00" min="1" name="productos[${index}][cantidad]" value="${parseFloat(prod.Cantidad)||1}" ${disabledFinanciero} class="${baseInputClass} text-center input-cantidad ${classFinanciero}" oninput="calcularTotalesUI()"></td>
-                        <td class="p-2 w-32 align-top"><input type="number" step="0.01" min="0" name="productos[${index}][precio]" value="${parseFloat(prod.Importe||prod.Precio)||0}" ${disabledFinanciero} class="${baseInputClass} text-right input-precio ${classFinanciero}" oninput="calcularTotalesUI()"></td>
-                        <td class="p-2 text-right td-subtotal font-mono text-gray-500 align-top pt-4">$0.00</td>
-                    </tr>`;
-                }).join('')}
-            </tbody>
-        </table>
-        <div class="mt-4 flex justify-end"><label class="flex items-center text-xs font-bold cursor-pointer"><input type="checkbox" name="IVA" id="chk_iva_maestro" value="1" ${checkedIva} ${disabledFinanciero} onchange="calcularTotalesUI()" class="mr-2"> + IVA (16%)</label></div>
-    </div>
-
-    <div class="${sectionClass}">
+    return `
+    <div class="${ui.section}">
         <h4 class="text-sm font-bold text-gray-800 border-b pb-2 mb-4">Gestión de Archivos</h4>
         <div class="mb-6 p-2 bg-gray-50 rounded border border-gray-200 text-sm">
             <h5 class="text-xs font-bold text-gray-500 mb-2">Archivos Actuales:</h5>
             ${htmlAdjuntos || '<span class="text-xs text-gray-400">Sin adjuntos previos.</span>'}
         </div>
-        <div class="${classArchivos} grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t border-gray-100">
+        <div class="${ui.classArchivos} grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t border-gray-100">
             <div><label class="block text-xs font-bold text-green-600 mb-2">Cargar Cotización</label><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="window.handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-cotizacion" class="mt-2"></div></div>
             <div><label class="block text-xs font-bold text-blue-600 mb-2">Cargar Ficha Pago</label><input type="file" name="File_Comprobante" id="file-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'comprobante')"><button type="button" onclick="document.getElementById('file-comprobante').click()" class="w-full bg-white border border-blue-300 text-blue-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-comprobante" class="mt-2"></div></div>
             <div><label class="block text-xs font-bold text-indigo-600 mb-2">Cargar Factura</label><input type="file" name="File_Factura" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-factura" class="mt-2"></div></div>
             <div id="container-upload-complemento" class="${sol.MetodoPago == 1 ? '' : 'hidden'}">
                 <label class="block text-xs font-bold text-orange-600 mb-2">Cargar Complemento</label>
                 <input type="file" name="File_Complemento" id="file-complemento" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'complemento')">
-                <button type="button" onclick="document.getElementById('file-complemento').click()" class="w-full bg-white border border-orange-300 text-orange-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button>
+                <button type="button" onclick="document.getElementById('file-complemento').click()" class="w-full bg-white border border-orange-300 text-orange-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Selecccionar</button>
                 <div id="preview-complemento" class="mt-2"></div>
             </div>
         </div>
-    </div>
-
-    <input type="hidden" id="original-id-proveedor" value="${idProveedorActual}">
-    <input type="hidden" id="flag-existe-cotizacion" value="${existeCotizacion}">
-    <input type="hidden" id="flag-existe-ficha" value="${existeFicha}">
-    <input type="hidden" id="flag-existe-factura" value="${existeFactura}">
-    <input type="hidden" id="flag-existe-complemento" value="${existeComplemento}">
-    `;
-
-    calcularTotalesUI();
-    setTimeout(() => { window.validarCreditoProveedor(); }, 100);
+    </div>`;
 }
 
+// Se elimina _renderUploadButton ya que se integró directamente en el HTML anterior
+
+// --- BLOQUE 4: LÓGICA Y CÁLCULOS REACTIVOS ---
+
+/**
+ * Formateador de moneda reutilizable para evitar instanciación repetitiva en bucles.
+ */
+// --- BLOQUE 4: LÓGICA Y CÁLCULOS REACTIVOS ---
+
+/**
+ * Configuración centralizada de niveles de criticidad para auditoría y presupuesto.
+ * Evita la duplicidad de lógica y facilita ajustes globales de reglas de negocio.
+ */
+const CONFIG_PROCESO = {
+    NIVELES_AUDITORIA: {
+        'En espera': 1, 'Cotizando': 2, 'En revision': 3, 'Aprobacion pendiente': 3,
+        'Aprobada': 4, 'Espera_Programacion': 5, 'Programada': 6, 'Por Pagar': 7, 'Pagada': 8
+    },
+    ESTADOS_CON_IMPACTO: ['Aprobada', 'Espera_Programacion', 'Programada', 'Por Pagar', 'Pagada']
+};
+
+/**
+ * Formateador de moneda reutilizable (MXN).
+ * Encapsulado para asegurar consistencia en toda la interfaz.
+ */
+const currencyFormatter = new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 2
+});
+
+/**
+ * Valida la línea de crédito del proveedor y actualiza el método de liquidación.
+ */
 window.validarCreditoProveedor = function() {
     const selectProv = document.getElementById('select-proveedor-maestro');
     const selectMetodo = document.getElementById('select-metodo-pago');
     if (!selectProv || !selectMetodo) return;
+
     const optionSelected = selectProv.options[selectProv.selectedIndex];
-    const tieneCredito = (optionSelected && optionSelected.getAttribute('data-credito') === '1');
+    const tieneCredito = optionSelected?.getAttribute('data-credito') === '1';
     const optionCredito = selectMetodo.querySelector('option[value="1"]');
+
     if (optionCredito) {
         if (tieneCredito) {
             optionCredito.disabled = false;
-            optionCredito.textContent = "Crédito";
+            optionCredito.textContent = "CRÉDITO (PARTIDA)";
         } else {
+            // Si el proveedor no tiene crédito, forzamos el método a CONTADO
             optionCredito.disabled = true;
-            optionCredito.textContent = "Crédito (No disponible)";
-            if (selectMetodo.value === "1") selectMetodo.value = "0";
+            optionCredito.textContent = "CRÉDITO (SIN LÍNEA AUTORIZADA)";
+            if (selectMetodo.value === "1") {
+                selectMetodo.value = "0";
+                window.toggleComplementoInput("0");
+            }
         }
     }
 };
 
+/**
+ * Gestiona la previsualización técnica de archivos con validación en el cliente.
+ * Optimización: Añade control de tamaño y integridad de tipos antes de la subida.
+ */
 window.handleFileSelect = function(input, type) {
     const files = input.files;
-    const previewContainer = document.getElementById('preview-' + type);
-    if (!files || files.length === 0) { window.removeFile(type); return; }
-    let html = "";
-    Array.from(files).forEach(file => {
-        let icon = file.type.startsWith('image/') ? '🖼️' : (file.type === 'application/pdf' ? '📕' : '📄');
-        html += `<div class="flex items-center justify-between bg-white p-2 mb-1 rounded border text-[10px] shadow-sm">
-            <span class="truncate w-32">${icon} ${file.name}</span>
-            <button type="button" onclick="window.removeFile('${type}')" class="text-red-500 font-bold">&times;</button>
-        </div>`;
+    const previewContainer = document.getElementById(`preview-${type}`);
+    if (!previewContainer) return;
+
+    if (!files || files.length === 0) {
+        window.removeFile(type);
+        return;
+    }
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB por archivo (Estándar de auditoría)
+    const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'text/xml', 'application/xml'];
+
+    // Filtrado y validación de integridad
+    const validFiles = Array.from(files).filter(file => {
+        if (file.size > MAX_FILE_SIZE) {
+            alert(`⚠️ ARCHIVO EXCEDIDO: "${file.name}" supera el límite de 10MB permitido por el sistema.`);
+            return false;
+        }
+        if (!ALLOWED_TYPES.includes(file.type) && !file.name.endsWith('.xml')) {
+            alert(`⚠️ TIPO NO VÁLIDO: "${file.name}" no es un formato aceptado (PDF, JPG, PNG, XML).`);
+            return false;
+        }
+        return true;
     });
+
+    // Si hubo archivos inválidos, reseteamos el input para seguridad
+    if (validFiles.length !== files.length) {
+        if (validFiles.length === 0) {
+            window.removeFile(type);
+            return;
+        }
+        // Nota: En JS no se pueden eliminar archivos individuales del FileList, se recomienda informar al usuario
+    }
+
+    // Generación de previsualización optimizada con mapeo técnico
+    const html = validFiles.map(file => {
+        const isImage = file.type.startsWith('image/');
+        const isPdf = file.type === 'application/pdf';
+        const isXml = file.type.includes('xml') || file.name.endsWith('.xml');
+        const icon = isImage ? '🖼️' : (isPdf ? '📕' : (isXml ? '📄' : '📎'));
+        const sizeFormatted = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+        
+        return `
+            <div class="flex items-center justify-between bg-[#F9FAFB] p-2 rounded border border-[#E5E7EB] text-[9px] shadow-sm animate-fade-in group hover:border-[#1E3A8A] transition-colors mb-1">
+                <div class="flex flex-col truncate pr-2">
+                    <span class="truncate w-36 font-mono text-[#374151] font-bold" title="${file.name}">${icon} ${file.name}</span>
+                    <span class="text-[8px] text-[#9CA3AF] uppercase tracking-tighter">Integridad: ${sizeFormatted} | OK</span>
+                </div>
+                <button type="button" onclick="window.removeFile('${type}')" class="text-[#991B1B] hover:scale-110 transition-all font-bold px-2 py-1 bg-white border border-[#F3F4F6] rounded-sm shadow-sm" title="Desvincular archivo">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>`;
+    }).join('');
+
     previewContainer.innerHTML = html;
-}
+};
 
+/**
+ * Limpieza integral de estados de archivos y contenedores.
+ */
 window.removeFile = function(type) {
-    const inputIds = { 
-        'cotizacion': 'file-cotizacion', 
-        'comprobante': 'file-comprobante', 
-        'factura': 'file-factura',
-        'complemento': 'file-complemento'
+    const inputMap = { 
+        'cotizacion': 'file-cotizacion', 'comprobante': 'file-comprobante', 
+        'factura': 'file-factura', 'complemento': 'file-complemento'
     };
-    const input = document.getElementById(inputIds[type]);
-    if(input) input.value = '';
-    const preview = document.getElementById('preview-' + type);
-    if(preview) preview.innerHTML = '';
-}
+    const inputId = inputMap[type];
+    const input = document.getElementById(inputId);
+    
+    if (input) {
+        input.value = '';
+        // Disparar evento para asegurar que cualquier listener externo se entere de la limpieza
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    
+    const preview = document.getElementById(`preview-${type}`);
+    if (preview) {
+        preview.innerHTML = '';
+    }
+};
 
+/**
+ * Control dinámico de visibilidad para complementos de pago.
+ */
 window.toggleComplementoInput = function(metodo) {
     const divComplemento = document.getElementById('container-upload-complemento');
     if (!divComplemento) return;
     
-    // Solo mostrar para Crédito (1)
-    if (metodo == "1") {
+    if (metodo == "1") { 
         divComplemento.classList.remove('hidden');
     } else {
         divComplemento.classList.add('hidden');
         window.removeFile('complemento');
     }
-}
+};
 
+/**
+ * Auditoría visual de impacto presupuestal.
+ * Utiliza CONFIG_PROCESO para mayor fiabilidad.
+ */
 window.verificarImpactoPresupuestal = function() {
     const banner = document.getElementById('advertencia-presupuesto-maestro');
-    if (!banner) return;
-    const esMateriales = document.querySelector('.input-cantidad') !== null;
-    if (!esMateriales) return;
     const selectEstado = document.getElementById('select-estado-maestro');
-    const NIVELES = { 'En espera': 1, 'Cotizando': 2, 'En revision': 3, 'Aprobacion pendiente': 3, 'Aprobada': 4, 'Espera_Programacion': 5, 'Programada': 6, 'Por Pagar': 7, 'Pagada': 8 };
-    if ((NIVELES[selectEstado.value] || 0) >= 4) banner.classList.remove('hidden');
-    else banner.classList.add('hidden');
-}
+    if (!banner || !selectEstado) return;
 
-function calcularTotalesUI() {
-    const filas = document.querySelectorAll('#tabla-productos-editor tbody tr');
-    let subtotalGlobal = 0;
-    filas.forEach(fila => {
-        const cant = parseFloat(fila.querySelector('.input-cantidad')?.value) || 0;
-        const precio = parseFloat(fila.querySelector('.input-precio')?.value) || 0;
-        const subtotal = cant * precio;
-        subtotalGlobal += subtotal;
-        const td = fila.querySelector('.td-subtotal');
-        if(td) td.innerText = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(subtotal);
-    });
-    const totalFinal = document.getElementById('chk_iva_maestro')?.checked ? subtotalGlobal * 1.16 : subtotalGlobal;
-    const spanTotal = document.getElementById('span-total-editor');
-    if (spanTotal) spanTotal.innerText = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalFinal);
-    window.verificarImpactoPresupuestal();
-}
-
-async function guardarCambiosMaestros() {
-    const form = document.getElementById('form-editor-maestro');
-    const formData = new FormData(form);
-    const idSolicitud = document.getElementById('maestro_id_solicitud').value;
-
-    // --- MAPA DE NIVELES (Para lógica de validación) ---
-    const NIVELES = {
-        'En espera': 1, 'Cotizando': 2, 'En revision': 3, 'Aprobacion pendiente': 3,
-        'Aprobada': 4, 'Espera_Programacion': 5, 'Programada': 6, 'Por Pagar': 7, 'Pagada': 8
-    };
-
-    // 1. OBTENER DATOS Y BANDERAS
-    const estadoSeleccionado = form.querySelector('select[name="Estado"]').value;
-    const selectProveedor = document.getElementById('select-proveedor-maestro');
-
-    // Nivel numérico del estado destino
-    const nivelDestino = NIVELES[estadoSeleccionado] || 0;
-
-    // Banderas de BD
-    const elCoti = document.getElementById('flag-existe-cotizacion');
-    const elFicha = document.getElementById('flag-existe-ficha');
-    const elFactu = document.getElementById('flag-existe-factura');
-    const elComple = document.getElementById('flag-existe-complemento');
-
-    const tieneCotizacionBD = elCoti ? elCoti.value === '1' : false;
-    const tieneFichaBD      = elFicha ? elFicha.value === '1' : false;
-    const tieneFacturaBD    = elFactu ? elFactu.value === '1' : false;
-    const tieneComplementoBD = elComple ? elComple.value === '1' : false;
-
-    // Archivos nuevos
-    const inputCoti = document.getElementById('file-cotizacion');
-    const inputFicha = document.getElementById('file-comprobante');
-    const inputFactura = document.getElementById('file-factura');
-    const inputComple = document.getElementById('file-complemento');
-
-    const subiendoCoti = inputCoti && inputCoti.files.length > 0;
-    const subiendoFicha = inputFicha && inputFicha.files.length > 0;
-    const subiendoFactura = inputFactura && inputFactura.files.length > 0;
-    const subiendoComplemento = inputComple && inputComple.files.length > 0;
-
-    const tieneCoti = tieneCotizacionBD || subiendoCoti;
-    const tieneFicha = tieneFichaBD || subiendoFicha;
-    const tieneFactura = tieneFacturaBD || subiendoFactura;
-    const tieneComplemento = tieneComplementoBD || subiendoComplemento;
-
-    // ========================================================================
-    // REGLA 1: CAMBIO DE PROVEEDOR (Prioridad Alta)
-    // ========================================================================
-    const originalProveedorID = document.getElementById('original-id-proveedor').value;
-    const nuevoProveedorID = selectProveedor ? selectProveedor.value : null;
-
-    if (originalProveedorID && nuevoProveedorID && (originalProveedorID != nuevoProveedorID)) {
-        if (!subiendoCoti) {
-            alert("⚠️ ALERTA DE SEGURIDAD:\n\nHas cambiado el proveedor asignado. Es OBLIGATORIO subir la nueva cotización que justifique este cambio.");
-            return;
-        }
-    }
-
-    if (subiendoCoti) {
-        if (!confirm("🔔 NOTA IMPORTANTE:\n\nEstás subiendo una nueva Cotización.\n¿Te has asegurado de que los PRECIOS en la lista coincidan con los de este nuevo archivo?")) {
-            return;
-        }
-    }
-
-    // ========================================================================
-    // REGLA 2: EXIGENCIAS POR NIVEL
-    // ========================================================================
-    let errorValidacion = null;
-
-    // Nivel 3 (En revision) o superior -> Exige Cotización
-    if (nivelDestino >= 3 && !tieneCoti) {
-        errorValidacion = `Para el estado "${estadoSeleccionado}", es obligatoria la Cotización.`;
-    }
-
-    // Nivel 7 (Por Pagar) o superior -> Exige Ficha
-    if (nivelDestino >= 7 && !tieneFicha) {
-        errorValidacion = `Para el estado "${estadoSeleccionado}", es obligatoria la Ficha de Pago.`;
-    }
-
-    // Nivel 8 (Pagada) -> Exige Factura
-    if (nivelDestino >= 8 && !tieneFactura) {
-        errorValidacion = `Para el estado "${estadoSeleccionado}", es obligatoria la Factura.`;
-    }
-
-    // Nivel 8 (Pagada) + Crédito -> Exige Complemento de Pago
-    const metodoPago = form.querySelector('select[name="MetodoPago"]').value;
-    if (nivelDestino >= 8 && metodoPago == "1" && !tieneComplemento) {
-        errorValidacion = `Al ser una solicitud a CRÉDITO, para el estado "${estadoSeleccionado}" es obligatorio subir el Complemento de Pago.`;
-    }
-
-    // Validación de Proveedor para niveles que generan Orden (Nivel 4+)
-    const estadosConOrden = ['Aprobada', 'Espera_Programacion', 'Programada', 'Por Pagar', 'Pagada'];
-    if (estadosConOrden.includes(estadoSeleccionado)) {
-        if (!nuevoProveedorID) {
-            errorValidacion = `El estado "${estadoSeleccionado}" requiere un Proveedor asignado para la Orden de Compra.`;
-        }
-    }
-
-    if (errorValidacion) {
-        alert(`⚠️ REQUISITO NO CUMPLIDO\n\n${errorValidacion}`);
+    // Fiabilidad: Verificamos la existencia física de ítems en la tabla
+    const tabla = document.getElementById('tabla-productos-editor');
+    const tieneItems = tabla && tabla.querySelector('.input-cantidad') !== null;
+    
+    if (!tieneItems) {
+        banner.classList.add('hidden');
         return;
     }
 
-    // --- NUEVA CONFIRMACIÓN DE PRESUPUESTO ---
-    if (nivelDestino >= 4) {
-        if (!confirm("🚨 ADVERTENCIA DE PRESUPUESTO:\n\nHas realizado cambios que afectan directamente al presupuesto del departamento.\n\n¿Estás seguro de que deseas proceder con el ajuste financiero automático?")) {
+    const estadoActual = selectEstado.value;
+    const implicaImpacto = CONFIG_PROCESO.ESTADOS_CON_IMPACTO.includes(estadoActual);
+    
+    if (implicaImpacto) {
+        banner.classList.remove('hidden');
+        banner.classList.add('animate-pulse-subtle');
+    } else {
+        banner.classList.add('hidden');
+    }
+};
+
+/**
+ * Motor de cálculos matemáticos para la interfaz de edición.
+ * OPTIMIZACIÓN: Manejo defensivo de errores y cacheo de DOM.
+ */
+function calcularTotalesUI() {
+    const tabla = document.getElementById('tabla-productos-editor');
+    const spanTotal = document.getElementById('span-total-editor');
+    const chkIva = document.getElementById('chk_iva_maestro');
+    
+    if (!tabla) return;
+
+    const filas = tabla.querySelectorAll('tbody tr');
+    let subtotalGlobal = 0;
+
+    // Procesamiento de filas con validación de tipos
+    filas.forEach(fila => {
+        const inputCant = fila.querySelector('.input-cantidad');
+        const inputPrecio = fila.querySelector('.input-precio');
+        const tdSubtotal = fila.querySelector('.td-subtotal');
+
+        const cant = Math.max(0, parseFloat(inputCant?.value) || 0);
+        const precio = Math.max(0, parseFloat(inputPrecio?.value) || 0);
+        const subtotal = Number((cant * precio).toFixed(2));
+        
+        subtotalGlobal += subtotal;
+
+        if (tdSubtotal) {
+            tdSubtotal.innerText = currencyFormatter.format(subtotal);
+        }
+    });
+
+    // Aplicación de impuestos (IVA 16%)
+    const factorIva = (chkIva?.checked) ? 1.16 : 1;
+    const totalFinal = Number((subtotalGlobal * factorIva).toFixed(2));
+
+    if (spanTotal) {
+        spanTotal.innerText = currencyFormatter.format(totalFinal);
+    }
+
+    // Auditoría automática de presupuesto
+    window.verificarImpactoPresupuestal();
+}
+
+/**
+ * Realiza la persistencia de los cambios del editor maestro.
+ * Incluye validaciones críticas de auditoría y reglas de negocio por niveles.
+ */
+/**
+ * Realiza la persistencia de los cambios del editor maestro.
+ * OPTIMIZACIÓN: Sincronización con CONFIG_PROCESO y gestión profesional de estados.
+ */
+async function guardarCambiosMaestros() {
+    // 1. CACHEO Y RECOLECCIÓN DE DATOS
+    const container = document.getElementById('contenido-editor-maestro');
+    const form = document.getElementById('form-editor-maestro');
+    const btnGuardar = document.querySelector('#div-editor-maestro button.bg-blue-600') || 
+                       document.querySelector('#div-editor-maestro button[onclick="guardarCambiosMaestros()"]');
+    
+    if (!form || !container) return;
+
+    const formData = new FormData(form);
+    const idSolicitud = document.getElementById('maestro_id_solicitud')?.value;
+    const estadoSeleccionado = form.querySelector('select[name="Estado"]')?.value;
+    const metodoPago = form.querySelector('select[name="MetodoPago"]')?.value;
+    const nuevoProveedorID = document.getElementById('select-proveedor-maestro')?.value;
+    const originalProveedorID = document.getElementById('original-id-proveedor')?.value;
+
+    if (!idSolicitud) {
+        alert("❌ ERROR TÉCNICO: Identificador de expediente no localizado.");
+        return;
+    }
+
+    // Fuente de verdad única para niveles de auditoría
+    const nivelDestino = CONFIG_PROCESO.NIVELES_AUDITORIA[estadoSeleccionado] || 0;
+
+    // 2. VERIFICACIÓN TÉCNICA DE EVIDENCIA (ARCHIVOS)
+    const checkEvidencia = (id) => {
+        const input = document.getElementById(`file-${id}`);
+        const flag = document.getElementById(`flag-existe-${id}`);
+        return (input?.files?.length > 0) || (flag?.value === '1');
+    };
+
+    const tieneCoti = checkEvidencia('cotizacion');
+    const tieneFicha = checkEvidencia('comprobante');
+    const tieneFactura = checkEvidencia('factura');
+    const tieneComplemento = checkEvidencia('complemento');
+    
+    const subiendoCoti = document.getElementById('file-cotizacion')?.files?.length > 0;
+
+    // ========================================================================
+    // REGLA DE AUDITORÍA: CAMBIO DE ENTIDAD PROVEEDORA
+    // ========================================================================
+    if (originalProveedorID && nuevoProveedorID && (originalProveedorID != nuevoProveedorID)) {
+        if (!subiendoCoti) {
+            alert("⚠️ PROTOCOLO DE SEGURIDAD: El cambio de proveedor requiere una nueva cotización técnica que justifique la modificación presupuestal.");
             return;
         }
     }
 
-    // Confirmación final
-    if(!confirm(`¿Confirmar todos los cambios y establecer estado como: ${estadoSeleccionado}?`)) return;
+    if (subiendoCoti && !confirm("🔔 NOTA DE INTEGRIDAD: Se está vinculando una nueva cotización. ¿Ha verificado que los costos unitarios del desglose técnico coinciden con el documento digital?")) {
+        return;
+    }
 
-    // ENVÍO
-    const btnGuardar = document.querySelector('#div-editor-maestro button.bg-blue-600');
-    if(btnGuardar) { 
-        btnGuardar.disabled = true; 
-        const originalText = btnGuardar.innerHTML;
-        btnGuardar.innerText = "Guardando..."; 
+    // ========================================================================
+    // REGLA DE NEGOCIO: VALIDACIÓN POR NIVEL DE PROCESAMIENTO
+    // ========================================================================
+    let mensajeError = null;
+
+    if (nivelDestino >= 3 && !tieneCoti) {
+        mensajeError = `El estado [${estadoSeleccionado}] exige una Cotización base para el acervo documental.`;
+    } else if (nivelDestino >= 7 && !tieneFicha) {
+        mensajeError = `El estado [${estadoSeleccionado}] requiere el Comprobante de Pago vinculado.`;
+    } else if (nivelDestino >= 8 && !tieneFactura) {
+        mensajeError = `No es posible procesar como "PAGADA" sin el documento fiscal (XML/PDF) correspondiente.`;
+    } else if (nivelDestino >= 8 && metodoPago == "1" && !tieneComplemento) {
+        mensajeError = `Para liquidaciones a CRÉDITO en estado final, es obligatorio el Complemento de Pago.`;
+    } else if (nivelDestino >= 4 && !nuevoProveedorID) {
+        mensajeError = `Los estados de ejecución requieren una Entidad Proveedora vinculada para la Orden de Compra.`;
+    }
+
+    if (mensajeError) {
+        alert(`⚠️ REQUISITO TÉCNICO NO CUMPLIDO\n\n${mensajeError}`);
+        return;
+    }
+
+    // 3. CONFIRMACIÓN DE IMPACTO FINANCIERO
+    if (CONFIG_PROCESO.ESTADOS_CON_IMPACTO.includes(estadoSeleccionado)) {
+        const confirmMsg = "🚨 ADVERTENCIA PRESUPUESTAL\n\nEsta actualización impactará automáticamente el balance del departamento.\n\n¿Confirma la validez técnica de estos cambios?";
+        if (!confirm(confirmMsg)) return;
+    }
+
+    if (!confirm(`¿Establecer expediente en estado: ${estadoSeleccionado.toUpperCase()}?`)) return;
+
+    // 4. PERSISTENCIA DE DATOS
+    const originalHTML = btnGuardar?.innerHTML;
+    if (btnGuardar) {
+        btnGuardar.disabled = true;
+        btnGuardar.innerHTML = `<span class="flex items-center gap-2"><div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> SINCRONIZANDO...</span>`;
     }
 
     try {
-        const result = await SendDataEnd(`api/solicitudes/update_master/${idSolicitud}`, { method: 'POST', body: formData });
-        if (result.success) {
-            alert('✅ Datos actualizados correctamente.');
+        const response = await SendDataEnd(`api/solicitudes/update_master/${idSolicitud}`, { 
+            method: 'POST', 
+            body: formData 
+        });
+
+        if (response.success) {
+            alert('✅ Registro actualizado y auditado satisfactoriamente.');
             regresarMaestro();
+            
+            // Refresco visual controlado
             const tbody = document.querySelector('#tabla-maestro tbody');
-            if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400 animate-pulse">Refrescando datos...</td></tr>';
-            setTimeout(() => { initControlMaestro(); }, 300);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-[#9CA3AF] italic animate-pulse">Sincronizando registros maestros...</td></tr>';
+            
+            setTimeout(() => { 
+                if (typeof initControlMaestro === 'function') initControlMaestro(); 
+            }, 300);
         } else {
-            alert('❌ Error: ' + (result.message || 'Desconocido'));
+            throw new Error(response.message || 'Error en la respuesta del servidor');
         }
-    } catch (e) {
-        console.error(e);
-        alert('❌ Error de conexión.');
+    } catch (error) {
+        console.error("Fallo en persistencia maestra:", error);
+        alert(`❌ ERROR DE AUDITORÍA\n\nNo se pudo sincronizar el cambio: ${error.message}`);
     } finally {
-        if(btnGuardar) { 
-            btnGuardar.disabled = false; 
-            btnGuardar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg> Guardar Cambios`;
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.innerHTML = originalHTML;
         }
     }
 }
 
+/**
+ * Retorna a la vista de listado principal.
+ */
 function regresarMaestro() {
-    document.getElementById('div-editor-maestro').classList.add('hidden');
-    document.getElementById('div-control-maestro').classList.remove('hidden');
+    const divEditor = document.getElementById('div-editor-maestro');
+    const divControl = document.getElementById('div-control-maestro');
+    
+    if (divEditor) divEditor.classList.add('hidden');
+    if (divControl) divControl.classList.remove('hidden');
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+/**
+ * Asignación masiva de partidas presupuestales.
+ * OPTIMIZACIÓN: Restringe la búsqueda al contexto del editor para evitar colisiones.
+ */
 window.aplicarGrupoATodos = function(valor) {
-    if (valor === '') return;
-    document.querySelectorAll('.select-grupo-partida').forEach(select => {
+    if (!valor) return;
+    
+    const editor = document.getElementById('contenido-editor-maestro');
+    if (!editor) return;
+
+    const selectores = editor.querySelectorAll('.select-grupo-partida');
+    selectores.forEach(select => {
         select.value = valor;
     });
 };
