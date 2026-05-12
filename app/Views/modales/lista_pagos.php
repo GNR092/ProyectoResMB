@@ -33,7 +33,7 @@
                 <select x-model="filtroDepto" @change="currentPage = 1"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                     <option value="">Todos los Deptos</option>
-                    <template x-for="depto in listDeptos" :key="depto">
+                    <template x-for="depto in deptosDisponibles" :key="depto">
                         <option :value="depto" x-text="depto"></option>
                     </template>
                 </select>
@@ -43,7 +43,7 @@
                 <select x-model="filtroRazonSocial" @change="currentPage = 1"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                     <option value="">Todos los Complejos</option>
-                    <template x-for="rs in listRazonSocial" :key="rs">
+                    <template x-for="rs in razonesDisponibles" :key="rs">
                         <option :value="rs" x-text="rs"></option>
                     </template>
                 </select>
