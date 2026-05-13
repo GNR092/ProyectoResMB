@@ -391,6 +391,7 @@ function _renderSeccionControl(sol, orden, estadoVisual, ui) {
         <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
             <div>
                 <label class="${ui.label}">Estado Maestro</label>
+                <input type="hidden" id="original-estado-maestro" value="${estadoVisual}">
                 <select name="Estado" id="select-estado-maestro" onchange="window.verificarImpactoPresupuestal()" class="${ui.baseInput} bg-[#F8FAFC] border-[#1E3A8A] text-[#1E3A8A] font-bold">
                     <option value="${estadoVisual}" selected>➡ ${estadoVisual.toUpperCase()}</option>
                     <option value="En espera">EN ESPERA</option>
@@ -645,7 +646,8 @@ window.handleFileSelect = function(input, type) {
     if (!previewContainer) return;
 
     if (!files || files.length === 0) {
-        window.removeFile(type);
+        // Evitamos recursividad: si no hay archivos, simplemente limpiamos la previsualización
+        if (previewContainer) previewContainer.innerHTML = '';
         return;
     }
 
@@ -709,9 +711,12 @@ window.removeFile = function(type) {
     const input = document.getElementById(inputId);
     
     if (input) {
-        input.value = '';
-        // Disparar evento para asegurar que cualquier listener externo se entere de la limpieza
-        input.dispatchEvent(new Event('change', { bubbles: true }));
+        // Solo actuamos y disparamos el evento si hay algo que limpiar para evitar bucles infinitos
+        if (input.value !== '') {
+            input.value = '';
+            // Disparar evento para asegurar que cualquier listener externo se entere de la limpieza
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     }
     
     const preview = document.getElementById(`preview-${type}`);
@@ -830,11 +835,15 @@ async function guardarCambiosMaestros() {
     const metodoPago = form.querySelector('select[name="MetodoPago"]')?.value;
     const nuevoProveedorID = document.getElementById('select-proveedor-maestro')?.value;
     const originalProveedorID = document.getElementById('original-id-proveedor')?.value;
+    const estadoOriginal = document.getElementById('original-estado-maestro')?.value;
 
     if (!idSolicitud) {
         alert("❌ ERROR TÉCNICO: Identificador de expediente no localizado.");
         return;
     }
+
+    // Determinamos si hay un cambio de estado real para activar validaciones obstructivas
+    const haCambiadoEstado = (estadoOriginal && estadoSeleccionado !== estadoOriginal);
 
     // Fuente de verdad única para niveles de auditoría
     const nivelDestino = CONFIG_PROCESO.NIVELES_AUDITORIA[estadoSeleccionado] || 0;
@@ -869,33 +878,37 @@ async function guardarCambiosMaestros() {
 
     // ========================================================================
     // REGLA DE NEGOCIO: VALIDACIÓN POR NIVEL DE PROCESAMIENTO
+    // Solo se ejecutan si el usuario está intentando CAMBIAR el estado de la requisición.
+    // Si solo sube archivos sin mover el estado, permitimos la persistencia directa.
     // ========================================================================
-    let mensajeError = null;
+    if (haCambiadoEstado) {
+        let mensajeError = null;
 
-    if (nivelDestino >= 3 && !tieneCoti) {
-        mensajeError = `El estado [${estadoSeleccionado}] exige una Cotización base para el acervo documental.`;
-    } else if (nivelDestino >= 7 && !tieneFicha) {
-        mensajeError = `El estado [${estadoSeleccionado}] requiere el Comprobante de Pago vinculado.`;
-    } else if (nivelDestino >= 8 && !tieneFactura) {
-        mensajeError = `No es posible procesar como "PAGADA" sin el documento fiscal (XML/PDF) correspondiente.`;
-    } else if (nivelDestino >= 8 && metodoPago == "1" && !tieneComplemento) {
-        mensajeError = `Para liquidaciones a CRÉDITO en estado final, es obligatorio el Complemento de Pago.`;
-    } else if (nivelDestino >= 4 && !nuevoProveedorID) {
-        mensajeError = `Los estados de ejecución requieren una Entidad Proveedora vinculada para la Orden de Compra.`;
+        if (nivelDestino >= 3 && !tieneCoti) {
+            mensajeError = `El estado [${estadoSeleccionado}] exige una Cotización base para el acervo documental.`;
+        } else if (nivelDestino >= 7 && !tieneFicha) {
+            mensajeError = `El estado [${estadoSeleccionado}] requiere el Comprobante de Pago vinculado.`;
+        } else if (nivelDestino >= 8 && !tieneFactura) {
+            mensajeError = `No es posible procesar como "PAGADA" sin el documento fiscal (XML/PDF) correspondiente.`;
+        } else if (nivelDestino >= 8 && metodoPago == "1" && !tieneComplemento) {
+            mensajeError = `Para liquidaciones a CRÉDITO en estado final, es obligatorio el Complemento de Pago.`;
+        } else if (nivelDestino >= 4 && !nuevoProveedorID) {
+            mensajeError = `Los estados de ejecución requieren una Entidad Proveedora vinculada para la Orden de Compra.`;
+        }
+
+        if (mensajeError) {
+            alert(`⚠️ REQUISITO TÉCNICO NO CUMPLIDO\n\n${mensajeError}`);
+            return;
+        }
+
+        // 3. CONFIRMACIÓN DE IMPACTO FINANCIERO (Solo en cambio de estado)
+        if (CONFIG_PROCESO.ESTADOS_CON_IMPACTO.includes(estadoSeleccionado)) {
+            const confirmMsg = "🚨 ADVERTENCIA PRESUPUESTAL\n\nEsta actualización impactará automáticamente el balance del departamento.\n\n¿Confirma la validez técnica de estos cambios?";
+            if (!confirm(confirmMsg)) return;
+        }
+
+        if (!confirm(`¿Establecer expediente en estado: ${estadoSeleccionado.toUpperCase()}?`)) return;
     }
-
-    if (mensajeError) {
-        alert(`⚠️ REQUISITO TÉCNICO NO CUMPLIDO\n\n${mensajeError}`);
-        return;
-    }
-
-    // 3. CONFIRMACIÓN DE IMPACTO FINANCIERO
-    if (CONFIG_PROCESO.ESTADOS_CON_IMPACTO.includes(estadoSeleccionado)) {
-        const confirmMsg = "🚨 ADVERTENCIA PRESUPUESTAL\n\nEsta actualización impactará automáticamente el balance del departamento.\n\n¿Confirma la validez técnica de estos cambios?";
-        if (!confirm(confirmMsg)) return;
-    }
-
-    if (!confirm(`¿Establecer expediente en estado: ${estadoSeleccionado.toUpperCase()}?`)) return;
 
     // 4. PERSISTENCIA DE DATOS
     const originalHTML = btnGuardar?.innerHTML;
