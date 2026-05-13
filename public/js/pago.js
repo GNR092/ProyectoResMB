@@ -236,7 +236,13 @@ function Pagos() {
       const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
       const isServicio = data.Tipo == 2;
 
-      // Generación de filas de productos con cálculos integrados
+      const fechaAprobacion = data.OrdenCompra && data.OrdenCompra.Fecha
+        ? new Date(data.OrdenCompra.Fecha).toLocaleDateString('es-MX')
+        : 'Pendiente';
+
+      const metodoPagoTexto = String(data.MetodoPago) === '0' ? 'Contado' : 'Crédito';
+
+      // Generación de filas de productos
       const productosHtml = (data.productos || []).map(p => {
         const cant = isServicio ? 1 : parseFloat(p.Cantidad) || 0;
         const base = parseFloat(p.Importe) || 0;
@@ -249,7 +255,7 @@ function Pagos() {
             <td class="py-2 px-4 border-t text-right text-sm">${cant}</td>
             <td class="py-2 px-4 border-t text-right text-sm">${format(base)}</td>
             <td class="py-2 px-4 border-t text-right text-sm">${format(iva)}</td>
-            <td class="py-2 px-4 border-t text-right text-sm font-bold">${format(subtotal + iva)}</td>
+            <td class="py-2 px-4 border-t text-right text-sm font-bold text-gray-900">${format(subtotal + iva)}</td>
           </tr>`;
       }).join('') || '<tr><td colspan="6" class="text-center py-3 text-gray-500">Sin productos.</td></tr>';
 
@@ -257,27 +263,31 @@ function Pagos() {
         <div><strong>Días de crédito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
         <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${format(prov.Monto_Credito)}</div>` : '';
 
-      // Retorno de la plantilla completa
       return `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+          <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
           <div><strong>Fecha solicitud:</strong> ${data.Fecha || 'N/A'}</div>
+          <div><strong>Fecha aprobación:</strong> ${fechaAprobacion}</div>
           <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
           <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
           <div><strong>Importe Total:</strong> <span class="font-bold text-lg text-blue-700">${totalCotizacion}</span></div>
-          <div><strong>Método de pago:</strong> ${String(data.MetodoPago) === '0' ? 'Contado' : 'Crédito'}</div>
+          <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
         </div>
 
-        <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2 uppercase">Información del Proveedor</h3>
+        <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2">INFORMACIÓN DEL PROVEEDOR</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
           <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
           <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
-          <div><strong>Banco:</strong> ${prov.Banco || 'N/A'}</div>
-          <div><strong>Cuenta:</strong> ${prov.Cuenta || 'N/A'}</div>
-          <div><strong>Clabe:</strong> ${prov.Clabe || 'N/A'}</div>
+          <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
+          ${data.cuenta_details 
+            ? `<div><strong>Cuenta seleccionada:</strong> ${data.cuenta_details.Cuenta}</div>`
+            : `<div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+               <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>`
+          }
           ${infoCredito}
         </div>
 
-        <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2 uppercase">Productos</h3>
+        <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2">PRODUCTOS DE LA ORDEN</h3>
         <div class="overflow-x-auto mb-6 border rounded-lg">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-100">
@@ -294,9 +304,9 @@ function Pagos() {
           </table>
         </div>
         ${typeof generarSeccionAdjuntos === 'function' ? generarSeccionAdjuntos({ ...data, ID_Solicitud: data.ID_Solicitud || data.ID_Orden }) : ''}
-        <div class="flex justify-end mt-6">
+        <div class="flex justify-end mt-6 pt-4 border-t">
           <button onclick="globalCancelarSolicitud(${data.ID_Solicitud || data.ID_Orden}, () => document.getElementById('btn-volver-pagos').click())" 
-                  class="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition shadow-sm">
+                  class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-sm">
             Rechazar / Cancelar Pago
           </button>
         </div>`;
@@ -457,16 +467,13 @@ function renderComprobanteUploader(idSolicitud) {
   if (!container) return;
 
   container.innerHTML = `
-    <div id="file-preview-comprobante" class="hidden mb-4 p-3 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/50"></div>
+    <div id="file-preview-comprobante" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div>
     <input type="file" id="archivo-comprobante" class="hidden" accept="image/*,.pdf,.xml" 
            onchange="handleComprobanteFileSelect(this, ${idSolicitud})">
     <button id="btn-upload-comprobante" 
             onclick="document.getElementById('archivo-comprobante').click()" 
-            class="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md group">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-        </svg>
-        <span>Subir Comprobante Bancario</span>
+            class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+        Subir Comprobante Bancario
     </button>
   `;
 }
@@ -485,27 +492,25 @@ function handleComprobanteFileSelect(input, idSolicitud) {
   const uploadButton = document.getElementById('btn-upload-comprobante');
 
   // Determinar icono por tipo de archivo
-  const getIcon = (type) => {
-    if (type.startsWith('image/')) return '🖼️';
-    if (type === 'application/pdf') return '📕';
-    if (type.includes('xml')) return '🔗';
-    return '📄';
-  };
+  let icon = '📄';
+  if (file.type.startsWith('image/')) icon = '🖼️';
+  else if (file.type === 'application/pdf') icon = '📕';
+  else if (file.type === 'text/xml' || file.type === 'application/xml') icon = '🔗';
 
   const fileSize = (file.size / 1024).toFixed(2) + ' KB';
 
   previewContainer.innerHTML = `
-    <div class="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm border border-blue-100">
-      <div class="flex items-center gap-3">
-        <span class="text-3xl">${getIcon(file.type)}</span>
-        <div class="overflow-hidden">
-          <p class="text-sm font-bold text-gray-800 truncate max-w-[200px]" title="${file.name}">${file.name}</p>
-          <p class="text-xs text-gray-500 font-medium">${fileSize}</p>
+    <div class="flex items-center justify-between bg-white p-2 rounded border">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">${icon}</span>
+        <div>
+          <p class="text-xs font-medium text-gray-800 truncate max-w-[200px]">${file.name}</p>
+          <p class="text-[10px] text-gray-500">${fileSize}</p>
         </div>
       </div>
       <button onclick="removeComprobanteFile(${idSolicitud})" 
-              class="p-1 hover:bg-red-50 text-red-500 rounded-full transition-colors" title="Quitar archivo">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              class="text-red-500 hover:text-red-700" title="Quitar archivo">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
@@ -513,7 +518,7 @@ function handleComprobanteFileSelect(input, idSolicitud) {
   `;
   previewContainer.classList.remove('hidden');
 
-  uploadButton.innerHTML = '<span>🚀 Confirmar y Subir Ahora</span>';
+  uploadButton.innerText = 'Confirmar y Subir Ahora';
   uploadButton.classList.replace('bg-green-600', 'bg-blue-600');
   uploadButton.onclick = () => uploadComprobante(idSolicitud);
 }
@@ -530,7 +535,7 @@ function removeComprobanteFile(idSolicitud) {
 
   const uploadButton = document.getElementById('btn-upload-comprobante');
   if (uploadButton) {
-    uploadButton.innerHTML = '<span>Subir Comprobante Bancario</span>';
+    uploadButton.innerText = 'Subir Comprobante Bancario';
     uploadButton.classList.replace('bg-blue-600', 'bg-green-600');
     uploadButton.onclick = () => document.getElementById('archivo-comprobante').click();
   }
@@ -554,11 +559,13 @@ async function uploadComprobante(idSolicitud) {
   // Estado de carga visual
   uploadButton.disabled = true;
   uploadButton.innerHTML = `
-    <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-    </svg>
-    <span>Subiendo...</span>
+    <div class="flex items-center justify-center gap-2">
+      <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span class="text-sm">Subiendo...</span>
+    </div>
   `;
 
   const formData = new FormData();
@@ -598,135 +605,134 @@ async function mostrarDetallePago(id) {
 
   divLista.classList.add('hidden');
   divDetalle.classList.remove('hidden');
-  contenedorDetalle.innerHTML = '<div class="py-12 flex flex-col items-center gap-3"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div><p class="text-gray-500 font-medium">Obteniendo detalles de la orden...</p></div>';
+  contenedorDetalle.innerHTML = '<p class="text-center text-gray-500 py-8">Cargando detalles...</p>';
 
   try {
     const data = await SendDataEnd(`api/orden-compra/details/${id}`);
-    if (!data) throw new Error('No se pudieron obtener los datos.');
+    if (!data) throw new Error('No se recibieron datos del servidor.');
+
+    const fechaAprobacion =
+      data.OrdenCompra && data.OrdenCompra.Fecha
+        ? new Date(data.OrdenCompra.Fecha).toLocaleDateString('es-MX')
+        : 'Pendiente';
 
     const prov = data.proveedor || {};
-    const format = (val) => parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-    
-    // Determinación del método de pago legible
-    const metodos = { '0': 'Contado', '1': 'Crédito', '9': 'En Espera' };
-    const metodoTexto = metodos[String(data.MetodoPago)] || 'N/A';
+    const format = (val) =>
+      parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
 
-    // Lógica unificada para cálculos de productos e impuestos
+    const totalFormateado = format(data.cotizacion?.Total);
+
+    const metodoPagoTexto =
+      data.MetodoPago == 0
+        ? 'Contado'
+        : data.MetodoPago == 1
+          ? 'Crédito'
+          : data.MetodoPago == 9
+            ? 'En Espera'
+            : 'N/A';
+
     const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
     const isServicio = data.Tipo == 2;
 
-    const productosRows = (data.productos || []).map(p => {
-      const cant = isServicio ? 1 : parseFloat(p.Cantidad) || 0;
-      const base = parseFloat(p.Importe) || 0;
-      const subtotal = cant * base;
-      const iva = tieneIVA ? subtotal * 0.16 : 0;
-      const total = subtotal + iva;
-
-      return `
-        <tr class="hover:bg-gray-50 transition-colors">
-          <td class="py-2 px-4 border-t text-sm text-gray-500 font-mono">${!isServicio ? p.Codigo || '-' : 'N/A'}</td>
-          <td class="py-2 px-4 border-t text-sm text-gray-900 font-medium">${p.Nombre}</td>
-          <td class="py-2 px-4 border-t text-right text-sm">${cant}</td>
-          <td class="py-2 px-4 border-t text-right text-sm">${format(base)}</td>
-          <td class="py-2 px-4 border-t text-right text-sm text-gray-600">${format(iva)}</td>
-          <td class="py-2 px-4 border-t text-right text-sm font-bold text-blue-800">${format(total)}</td>
-        </tr>`;
-    }).join('') || '<tr><td colspan="6" class="text-center py-6 text-gray-400 italic">No hay productos registrados en esta orden.</td></tr>';
-
-    // Construcción de la plantilla principal
     let html = `
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <div class="p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Información General</p>
-          <p class="text-sm"><strong>Folio:</strong> ${data.No_Folio || '-'}</p>
-          <p class="text-sm"><strong>Fecha Solicitud:</strong> ${data.Fecha || '-'}</p>
-          <p class="text-sm"><strong>Método:</strong> <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-bold text-[10px] uppercase">${metodoTexto}</span></p>
-        </div>
-        <div class="p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ubicación y Proyecto</p>
-          <p class="text-sm truncate"><strong>Depto:</strong> ${data.DepartamentoNombre || '-'}</p>
-          <p class="text-sm truncate"><strong>Proyecto:</strong> ${data.Complejo || '-'}</p>
-        </div>
-        <div class="p-4 bg-blue-600 rounded-xl shadow-md text-white">
-          <p class="text-[10px] font-bold text-blue-100 uppercase tracking-widest mb-1">Total de la Orden</p>
-          <p class="text-2xl font-black">${format(data.cotizacion?.Total)}</p>
-          <p class="text-[10px] text-blue-100 italic">Importe total con impuestos incluidos</p>
-        </div>
-      </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+                <div><strong>Folio:</strong> ${data.No_Folio || 'N/A'}</div>
+                <div><strong>Fecha solicitud:</strong> ${data.Fecha || 'N/A'}</div>
+                <div><strong>Fecha aprobación:</strong> ${fechaAprobacion}</div>
+                <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
+                <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
+                <div><strong>Importe Total:</strong> <span class="font-bold text-lg text-blue-700">${totalFormateado}</span></div>
+                <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
+            </div>
 
-      <div class="mb-8">
-        <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-          <span class="w-1.5 h-4 bg-blue-600 rounded-full"></span>
-          DATOS BANCARIOS DEL PROVEEDOR
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 p-5 bg-white border border-gray-200 rounded-2xl shadow-sm text-sm">
-          <p><strong>Razón Social:</strong> ${prov.RazonSocial || '-'}</p>
-          <p><strong>RFC:</strong> ${prov.RFC || '-'}</p>
-          <p><strong>Banco:</strong> ${prov.Banco || '-'}</p>
-          ${data.cuenta_details 
-            ? `<p><strong>Cuenta Seleccionada:</strong> <span class="font-mono text-blue-700 font-bold">${data.cuenta_details.Cuenta}</span></p>`
-            : `<p><strong>Cuenta:</strong> <span class="font-mono">${prov.Cuenta || '-'}</span></p>
-               <p><strong>CLABE:</strong> <span class="font-mono">${prov.Clabe || '-'}</span></p>`
-          }
-          <div class="md:col-span-2 mt-2 pt-2 border-t border-dashed flex gap-4 text-xs text-gray-500">
-            <span><strong>Días de Crédito:</strong> ${prov.Dias_Credito || 0}</span>
-            <span><strong>Límite:</strong> ${format(prov.Monto_Credito)}</span>
-          </div>
-        </div>
-      </div>
+            <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2">INFORMACIÓN DEL PROVEEDOR</h3>
 
-      <div class="mb-8">
-        <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-          <span class="w-1.5 h-4 bg-blue-600 rounded-full"></span>
-          DETALLE DE PRODUCTOS / SERVICIOS
-        </h3>
-        <div class="overflow-hidden border border-gray-200 rounded-2xl shadow-sm">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="py-3 px-4 text-left text-[10px] font-bold text-gray-400 uppercase">Código</th>
-                <th class="py-3 px-4 text-left text-[10px] font-bold text-gray-400 uppercase">Descripción</th>
-                <th class="py-3 px-4 text-right text-[10px] font-bold text-gray-400 uppercase">Cant.</th>
-                <th class="py-3 px-4 text-right text-[10px] font-bold text-gray-400 uppercase">P. Unit.</th>
-                <th class="py-3 px-4 text-right text-[10px] font-bold text-gray-400 uppercase">IVA</th>
-                <th class="py-3 px-4 text-right text-[10px] font-bold text-gray-400 uppercase">Total</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-100">${productosRows}</tbody>
-          </table>
-        </div>
-      </div>
-    `;
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+                <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
+                <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
+                <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
+                ${
+                  data.cuenta_details
+                    ? `<div><strong>Cuenta seleccionada:</strong> ${data.cuenta_details.Cuenta}</div>`
+                    : `<div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+           <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>`
+                }
+                <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
+                <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
+                  prov.Monto_Credito ? format(prov.Monto_Credito) : 'N/A'
+                }</div>
+            </div>
 
-    // Adjuntos (si existe la función global)
-    if (typeof generarSeccionAdjuntos === 'function') {
-      html += generarSeccionAdjuntos({ ...data, ID_Solicitud: data.ID_Solicitud || data.ID_Orden });
+            <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2">PRODUCTOS DE LA ORDEN</h3>
+
+            <div class="overflow-x-auto mb-6 border rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                            <th class="py-2 px-4 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                            <th class="py-2 px-4 text-right text-xs font-medium text-gray-500 uppercase">Cant.</th>
+                            <th class="py-2 px-4 text-right text-xs font-medium text-gray-500 uppercase">Base</th>
+                            <th class="py-2 px-4 text-right text-xs font-medium text-gray-500 uppercase">IVA</th>
+                            <th class="py-2 px-4 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+        `;
+
+    if (data.productos && data.productos.length > 0) {
+      data.productos.forEach((p) => {
+        const cantidad = isServicio ? 1 : parseFloat(p.Cantidad) || 0;
+        const importeBase = parseFloat(p.Importe) || 0;
+
+        const subtotalFila = cantidad * importeBase;
+        const ivaFila = tieneIVA ? subtotalFila * 0.16 : 0;
+        const totalFila = subtotalFila + ivaFila;
+
+        html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? p.Codigo || '' : 'N/A'}</td>
+                        <td class="py-2 px-4 border-t text-sm text-gray-900">${p.Nombre}</td>
+                        <td class="py-2 px-4 border-t text-right text-sm">${cantidad}</td>
+                        <td class="py-2 px-4 border-t text-right text-sm">${format(importeBase)}</td>
+                        <td class="py-2 px-4 border-t text-right text-sm">${format(ivaFila)}</td>
+                        <td class="py-2 px-4 border-t text-right text-sm font-bold text-gray-900">${format(totalFila)}</td>
+                    </tr>
+                `;
+      });
+    } else {
+      html += `<tr><td colspan="6" class="text-center py-3 text-gray-500">No hay productos en esta orden.</td></tr>`;
     }
 
-    // Acciones Finales
+    html += `</tbody></table></div>`;
+
+    if (typeof generarSeccionAdjuntos === 'function') {
+      if (!data.ID_Solicitud && data.ID_Orden) data.ID_Solicitud = data.ID_Orden;
+      html += generarSeccionAdjuntos(data);
+    }
+
     html += `
-      <div class="mt-10 p-6 bg-gray-100 rounded-2xl border border-gray-200">
-        <h3 class="text-sm font-black text-gray-800 mb-4 uppercase tracking-tighter">Acciones de Programación</h3>
-        <div id="comprobante-uploader-container" class="mb-6"></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button onclick="verRequisicionPago(${id})" class="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-800 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-            Vista Previa PDF
-          </button>
-          <button onclick="guardarEstadoPorPagar(${id})" class="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            Confirmar y Pasar a "Por Pagar"
-          </button>
-        </div>
-      </div>
-    `;
+          <div class="mt-6 pt-4 border-t">
+              <h3 class="text-md font-semibold mb-3 text-gray-700">ACCIONES</h3>
+
+              <div id="comprobante-uploader-container"></div>
+
+              <div class="grid grid-cols-1 gap-4 mt-4">
+                  <button onclick="verRequisicionPago(${id})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition w-full shadow-sm">
+                      Ver Requisición de pago (PDF)
+                  </button>
+                  <button onclick="guardarEstadoPorPagar(${id})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition w-full shadow-sm">
+                      Confirmar y Guardar Estado
+                  </button>
+              </div>
+          </div>
+      `;
 
     contenedorDetalle.innerHTML = html;
     renderComprobanteUploader(id);
-    
   } catch (error) {
-    console.error('Detail Error:', error);
-    contenedorDetalle.innerHTML = `<div class="p-8 text-center bg-red-50 text-red-600 rounded-xl border border-red-100 font-medium">Error al cargar la información: ${error.message}</div>`;
+    console.error('Error al cargar detalle:', error);
+    contenedorDetalle.innerHTML = `<p class="text-center text-red-500 py-8">Error al cargar los detalles: ${error.message}</p>`;
   }
 }
 
@@ -932,88 +938,114 @@ async function mostrarDetalleFicha(id, metodoPago) {
     if (!data) throw new Error('Datos no disponibles.');
 
     const prov = data.proveedor || {};
-    const format = (val) => parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-    
+    const format = (val) =>
+      parseFloat(val || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+
+    const totalFormateado = format(data.cotizacion?.Total);
+
+    const metodoPagoTexto =
+      data.MetodoPago == 0
+        ? 'Efectivo'
+        : data.MetodoPago == 1
+          ? 'Crédito'
+          : data.MetodoPago == 9
+            ? 'En Espera'
+            : 'N/A';
+
+    // 1. DETECTAR IVA Y TIPO
     const tieneIVA = data.IVA == 1 || data.IVA === 't' || data.IVA === true;
     const isServicio = data.Tipo == 2;
 
-    const productosRows = (data.productos || []).map(p => {
-      const cant = isServicio ? 1 : parseFloat(p.Cantidad) || 0;
-      const base = parseFloat(p.Importe) || 0;
-      const subtotal = cant * base;
-      const iva = tieneIVA ? subtotal * 0.16 : 0;
-      return `
-        <tr class="hover:bg-slate-50 transition-colors">
-          <td class="py-2 px-4 border-t text-[11px] text-slate-400 font-mono">${!isServicio ? p.Codigo || '-' : 'N/A'}</td>
-          <td class="py-2 px-4 border-t text-sm text-slate-800 font-bold">${p.Nombre}</td>
-          <td class="py-2 px-4 border-t text-right text-xs text-slate-500">${cant}</td>
-          <td class="py-2 px-4 border-t text-right text-xs text-slate-500">${format(base)}</td>
-          <td class="py-2 px-4 border-t text-right text-xs text-slate-400">${format(iva)}</td>
-          <td class="py-2 px-4 border-t text-right text-sm font-black text-slate-900">${format(subtotal + iva)}</td>
-        </tr>`;
-    }).join('') || '<tr><td colspan="6" class="text-center py-6 text-slate-400 italic">Sin productos.</td></tr>';
-
     let html = `
-      <div class="flex justify-between items-center mb-6">
-        <button onclick="volverAFichas('${metodoPago}')" class="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-800 uppercase tracking-widest transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Regresar al listado
-        </button>
-        <h2 class="text-lg font-black text-slate-800 uppercase tracking-tighter">Detalle Orden #${data.No_Folio || id}</h2>
+      <div class="flex justify-between items-center mb-4">
+        <button onclick="volverAFichas('${metodoPago}')" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
+        <h2 class="text-lg font-semibold">Detalle Orden #${data.No_Folio || id}</h2>
+        <div></div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200">
-          <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Resumen de Solicitud</p>
-          <div class="space-y-1 text-sm">
-            <p><strong>Fecha Solicitud:</strong> ${data.Fecha || '-'}</p>
-            <p><strong>Departamento:</strong> ${data.DepartamentoNombre || '-'}</p>
-            <p><strong>Proyecto:</strong> ${data.Complejo || '-'}</p>
-            <p class="pt-2 text-base"><strong>Total:</strong> <span class="font-black text-blue-700">${format(data.cotizacion?.Total)}</span></p>
-          </div>
-        </div>
-        <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Datos del Proveedor</p>
-          <div class="space-y-1 text-sm">
-            <p class="truncate" title="${prov.RazonSocial || ''}"><strong>Razón:</strong> ${prov.RazonSocial || '-'}</p>
-            <p><strong>RFC:</strong> ${prov.RFC || '-'}</p>
-            <p><strong>Banco:</strong> ${prov.Banco || '-'}</p>
-            <p><strong>Cuenta:</strong> <span class="font-mono text-slate-600">${prov.Cuenta || '-'}</span></p>
-          </div>
-        </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+        <div><strong>Fecha de solicitud:</strong> ${data.Fecha || 'N/A'}</div>
+        <div><strong>Departamento:</strong> ${data.DepartamentoNombre || 'N/A'}</div>
+        <div><strong>Proyecto:</strong> ${data.Complejo || 'N/A'}</div>
+        <div><strong>Importe Total (Con IVA):</strong> <span class="font-bold text-lg text-blue-700">${totalFormateado}</span></div>
+        <div><strong>Método de pago:</strong> ${metodoPagoTexto}</div>
       </div>
 
-      <div class="mb-8 overflow-hidden border border-slate-200 rounded-2xl bg-white shadow-sm">
-        <table class="min-w-full text-left">
-          <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            <tr>
-              <th class="px-4 py-4">Código</th>
-              <th class="px-4 py-4">Descripción</th>
-              <th class="px-4 py-4 text-right">Cant.</th>
-              <th class="px-4 py-4 text-right">Unit.</th>
-              <th class="px-4 py-4 text-right">IVA</th>
-              <th class="px-4 py-4 text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">${productosRows}</tbody>
-        </table>
+      <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2">INFORMACIÓN DEL PROVEEDOR</h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mb-6 p-4 border rounded-lg bg-gray-50 text-sm">
+        <div><strong>Razón social:</strong> ${prov.RazonSocial || 'N/A'}</div>
+        <div><strong>RFC:</strong> ${prov.RFC || 'N/A'}</div>
+        <div><strong>Banco del proveedor:</strong> ${prov.Banco || 'N/A'}</div>
+        <div><strong>Cuenta del proveedor:</strong> ${prov.Cuenta || 'N/A'}</div>
+        <div><strong>Clabe interbancaria:</strong> ${prov.Clabe || 'N/A'}</div>
+        <div><strong>Días de credito:</strong> ${prov.Dias_Credito || 'N/A'}</div>
+        <div class="md:col-span-2"><strong>Monto máximo del crédito:</strong> ${
+          prov.Monto_Credito ? format(prov.Monto_Credito) : 'N/A'
+        }</div>
       </div>
+
+      <h3 class="text-md font-semibold mb-3 text-gray-700 border-b pb-2">PRODUCTOS DE LA ORDEN</h3>
+
+      <div class="overflow-x-auto mb-6 border rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Cant.</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Base</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">IVA</th>
+                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
     `;
 
-    if (typeof generarSeccionAdjuntos === 'function') {
-      html += generarSeccionAdjuntos({ ...data, ID_Solicitud: data.ID_Solicitud || data.ID_Orden });
+    if (data.productos && data.productos.length > 0) {
+      data.productos.forEach((p) => {
+        // 2. CÁLCULOS POR FILA
+        const cantidad = isServicio ? 1 : parseFloat(p.Cantidad) || 0;
+        const importeBase = parseFloat(p.Importe) || 0;
+
+        const subtotalFila = cantidad * importeBase;
+        const ivaFila = tieneIVA ? subtotalFila * 0.16 : 0;
+        const totalFila = subtotalFila + ivaFila;
+
+        html += `
+            <tr class="hover:bg-gray-50">
+                <td class="py-2 px-4 border-t text-sm text-gray-500">${!isServicio ? p.Codigo || '' : 'N/A'}</td>
+                <td class="py-2 px-4 border-t text-sm text-gray-900">${p.Nombre}</td>
+                <td class="py-2 px-4 border-t text-right text-sm">${cantidad}</td>
+                <td class="py-2 px-4 border-t text-right text-sm">${format(importeBase)}</td>
+                <td class="py-2 px-4 border-t text-right text-sm">${format(ivaFila)}</td>
+                <td class="py-2 px-4 border-t text-right text-sm font-bold text-gray-900">${format(totalFila)}</td>
+            </tr>
+        `;
+      });
+    } else {
+      html += `<tr><td colspan="6" class="text-center py-3 text-gray-500">No hay productos en esta orden.</td></tr>`;
     }
 
     html += `
-      <div class="mt-8 p-6 bg-slate-100 rounded-2xl border border-slate-200">
-        <div id="factura-uploader-container" class="mb-6"></div> 
-        <div class="flex flex-col sm:flex-row gap-3">
-          <button onclick="CerrarOrden(${id}, '${metodoPago}')" 
-                  class="flex-grow flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-black py-3 px-6 rounded-xl transition-all shadow-lg uppercase text-xs tracking-widest">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            Finalizar y Cerrar Requisición
-          </button>
-        </div>
+            </tbody>
+        </table>
+      </div>
+      `;
+
+    // Sección de Adjuntos
+    if (typeof generarSeccionAdjuntos === 'function') {
+      // Asegurar ID
+      if (!data.ID_Solicitud && data.ID_Orden) data.ID_Solicitud = data.ID_Orden;
+      html += generarSeccionAdjuntos(data);
+    }
+
+    html += `
+      <div class="mt-4 pt-4 border-t" id="factura-uploader-container"></div>
+      <div class="flex justify-between mt-6 gap-4">
+        <button onclick="CerrarOrden(${id}, '${metodoPago}')" class="bg-blue-500 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded-lg transition w-full shadow-sm">
+          Cerrar requisición (Pagada)
+        </button>
       </div>
     `;
 
@@ -1033,13 +1065,12 @@ function renderFacturaUploader(idSolicitud, metodoPago) {
   if (!container) return;
 
   container.innerHTML = `
-    <div id="file-preview-factura" class="hidden mb-4 p-3 border-2 border-dashed border-orange-200 rounded-2xl bg-orange-50/50"></div>
+    <div id="file-preview-factura" class="hidden mb-4 p-2 border border-dashed rounded-lg"></div>
     <input type="file" id="archivo-factura" class="hidden" accept="image/*,.pdf,.xml" multiple 
            onchange="handleFacturaFileSelect(this, ${idSolicitud}, '${metodoPago}')">
     <button id="btn-upload-factura" onclick="document.getElementById('archivo-factura').click()" 
-            class="w-full flex items-center justify-center gap-2 bg-white border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-black py-3 px-4 rounded-xl transition-all group">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-        <span>Adjuntar Facturas (PDF / XML)</span>
+            class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+        Subir Factura(s)
     </button>
   `;
 }
@@ -1057,29 +1088,41 @@ function handleFacturaFileSelect(input, idSolicitud, metodoPago) {
   const previewContainer = document.getElementById('file-preview-factura');
   const uploadButton = document.getElementById('btn-upload-factura');
 
-  const getIcon = (t) => t.startsWith('image/') ? '🖼️' : (t === 'application/pdf' ? '📕' : (t.includes('xml') ? '🔗' : '📄'));
+  let html = '<div class="space-y-2">';
+  files.forEach((file) => {
+    let icon = '📄';
+    if (file.type.startsWith('image/')) {
+      icon = '🖼️';
+    } else if (file.type === 'application/pdf') {
+      icon = '📕';
+    } else if (file.type === 'text/xml' || file.type === 'application/xml') {
+      icon = '🔗';
+    }
 
-  const itemsHtml = files.map(file => `
-    <div class="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-orange-100 shadow-sm">
-      <span class="text-2xl">${getIcon(file.type)}</span>
-      <div class="flex-grow overflow-hidden">
-        <p class="text-[11px] font-bold text-slate-800 truncate" title="${file.name}">${file.name}</p>
-        <p class="text-[9px] text-slate-400 font-medium uppercase">${(file.size / 1024).toFixed(1)} KB</p>
-      </div>
-    </div>
-  `).join('');
+    const fileSize = (file.size / 1024).toFixed(2) + ' KB';
+    html += `
+        <div class="flex items-center justify-between bg-white p-2 rounded border">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">${icon}</span>
+                <div>
+                    <p class="text-xs font-medium text-gray-800 truncate max-w-[200px]">${file.name}</p>
+                    <p class="text-[10px] text-gray-500">${fileSize}</p>
+                </div>
+            </div>
+        </div>
+    `;
+  });
+  html += `
+        <div class="mt-2 text-right">
+            <button onclick="removeFacturaFile(${idSolicitud})" class="text-red-500 hover:text-red-700 text-xs font-bold underline">Limpiar selección</button>
+        </div>
+    </div>`;
 
-  previewContainer.innerHTML = `
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">${itemsHtml}</div>
-    <div class="text-right">
-      <button onclick="removeFacturaFile(${idSolicitud})" class="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline">Limpiar Selección</button>
-    </div>
-  `;
+  previewContainer.innerHTML = html;
   previewContainer.classList.remove('hidden');
 
-  uploadButton.innerHTML = `<span>🚀 Confirmar y Subir ${files.length} Archivo(s)</span>`;
-  uploadButton.classList.remove('bg-white', 'text-orange-600', 'border-orange-500');
-  uploadButton.classList.add('bg-orange-600', 'text-white', 'border-transparent');
+  uploadButton.innerText =
+    files.length > 1 ? `Confirmar y Subir ${files.length} Facturas` : 'Confirmar y Subir Factura';
   uploadButton.onclick = () => uploadFactura(idSolicitud, metodoPago);
 }
 
@@ -1095,8 +1138,7 @@ function removeFacturaFile(idSolicitud) {
 
   const uploadButton = document.getElementById('btn-upload-factura');
   if (uploadButton) {
-    uploadButton.innerHTML = '<span>Adjuntar Facturas (PDF / XML)</span>';
-    uploadButton.className = 'w-full flex items-center justify-center gap-2 bg-white border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-black py-3 px-4 rounded-xl transition-all group';
+    uploadButton.innerText = 'Subir Factura(s)';
     uploadButton.onclick = () => document.getElementById('archivo-factura').click();
   }
 }
