@@ -524,12 +524,12 @@ function _renderTablaProductos(data, sol, optionsGruposHtml, ui) {
                                 </div>
                             </td>
                             <td class="p-5 w-32 align-top pt-8">
-                                <input type="number" step="1" min="1" name="productos[${index}][cantidad]" value="${parseFloat(prod.Cantidad)||1}" ${ui.disabledFinanciero} class="${ui.baseInput} text-center font-mono font-bold ${ui.classFinanciero}" oninput="calcularTotalesUI()">
+                                <input type="number" step="1" min="1" name="productos[${index}][cantidad]" value="${parseFloat(prod.Cantidad)||1}" ${ui.disabledFinanciero} class="${ui.baseInput} text-center font-mono font-bold ${ui.classFinanciero} input-cantidad" oninput="calcularTotalesUI()">
                             </td>
                             <td class="p-5 w-44 align-top pt-8">
                                 <div class="relative">
                                     <span class="absolute left-3 top-2.5 text-[#9CA3AF] font-mono text-xs">$</span>
-                                    <input type="number" step="0.01" min="0" name="productos[${index}][precio]" value="${parseFloat(prod.Importe||prod.Precio)||0}" ${ui.disabledFinanciero} class="${ui.baseInput} text-right font-mono font-bold ${ui.classFinanciero} pl-8" oninput="calcularTotalesUI()">
+                                    <input type="number" step="0.01" min="0" name="productos[${index}][precio]" value="${parseFloat(prod.Importe||prod.Precio)||0}" ${ui.disabledFinanciero} class="${ui.baseInput} text-right font-mono font-bold ${ui.classFinanciero} pl-8 input-precio" oninput="calcularTotalesUI()">
                                 </div>
                             </td>
                             <td class="p-5 text-right td-subtotal font-mono font-bold text-[#111827] align-top pt-9 text-sm border-l border-[#F3F4F6] bg-[#F9FAFB]/50">$0.00</td>

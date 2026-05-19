@@ -482,10 +482,10 @@ class Rest
                 'Solicitud.*',
                 'Usuarios.Nombre as UsuarioNombre',
                 'Departamentos.Nombre as DepartamentoNombre',
-                'Departamentos.ID_UnidadOperativa',
+                'Departamentos.ID_UnidadOperativa as DeptoUnidadOperativa',
                 'Proveedor.RazonSocial as RazonSocialNombre',
                 'Razon_Social.Nombre as Complejo',
-                'Places.ID_Place',
+                'Places.ID_Place as DeptoPlaceId',
                 'Places.Nombre_Corto as PlaceNombre',
             ])
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
@@ -499,29 +499,25 @@ class Rest
             return null;
         }
 
-        // Fallback para ID_Place si el join falló
-        if (empty($solicitud['ID_Place'])) {
-            $depto = (new DepartamentosModel())->find($solicitud['ID_Dpto'] ?? 0);
-            if ($depto) {
-                // Prioridad 1: Si hay ID_Place directo en el departamento, lo usamos
-                if (!empty($depto['ID_Place'])) {
-                    $solicitud['ID_Place'] = $depto['ID_Place'];
-                }
-                // Prioridad 2: Fallback a la Unidad Operativa si no hay ID_Place directo
-                elseif (!empty($depto['ID_UnidadOperativa'])) {
-                    $unidad = (new \App\Models\UnidadOperativaModel())->find($depto['ID_UnidadOperativa']);
-                    if ($unidad) {
-                        $solicitud['ID_Place'] = $unidad['ID_Place'];
-                    }
-                }
+        // --- CORRECCIÓN CRÍTICA: Obtener el ID_Place real del destino (Unidad Operativa) ---
+        // Prioridad 1: Desde la Unidad Operativa asignada a la solicitud
+        if (!empty($solicitud['ID_UnidadOperativa'])) {
+            $unidadDestino = (new \App\Models\UnidadOperativaModel())->find($solicitud['ID_UnidadOperativa']);
+            if ($unidadDestino && !empty($unidadDestino['ID_Place'])) {
+                $solicitud['ID_Place'] = $unidadDestino['ID_Place'];
+            }
+        }
 
-                // Cargar nombre del Place si se encontró un ID
-                if (!empty($solicitud['ID_Place'])) {
-                    $place = (new PlacesModel())->find($solicitud['ID_Place']);
-                    if ($place) {
-                        $solicitud['PlaceNombre'] = $place['Nombre_Corto'];
-                    }
-                }
+        // Fallback para ID_Place si no se obtuvo del destino, usamos el del departamento del solicitante
+        if (empty($solicitud['ID_Place']) && !empty($solicitud['DeptoPlaceId'])) {
+            $solicitud['ID_Place'] = $solicitud['DeptoPlaceId'];
+        }
+
+        // Cargar nombre del Place si se encontró un ID (para consistencia en UI)
+        if (!empty($solicitud['ID_Place'])) {
+            $place = (new PlacesModel())->find($solicitud['ID_Place']);
+            if ($place) {
+                $solicitud['PlaceNombre'] = $place['Nombre_Corto'];
             }
         }
 
@@ -533,8 +529,8 @@ class Rest
         $razonSocialTmp = !empty($solicitud['ID_RazonSocial']) ? $razonSocialModel->find($solicitud['ID_RazonSocial']) : null;
         $solicitud['ComplejoRFC'] = $razonSocialTmp ? $razonSocialTmp['RFC'] : 'N/A';
 
-        // Obtener grupos presupuestales asociados a la Unidad Operativa del departamento de la solicitud
-        $idUnidad = $solicitud['ID_UnidadOperativa'] ?? 0;
+        // Obtener grupos presupuestales asociados a la Unidad Operativa de la solicitud (Prioridad destino)
+        $idUnidad = !empty($solicitud['ID_UnidadOperativa']) ? $solicitud['ID_UnidadOperativa'] : ($solicitud['DeptoUnidadOperativa'] ?? 0);
         $grupoModel = new GrupoPresupuestalModel();
 
         // Detección del departamento especial (Operacion o variantes)

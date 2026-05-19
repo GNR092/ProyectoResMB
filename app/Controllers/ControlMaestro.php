@@ -37,7 +37,7 @@ class ControlMaestro extends BaseController
         // 0. PRE-LECTURA
         $solicitudOriginal = $this->db->table('Solicitud')
             // AGREGAR 'No_Folio' AL SELECT
-            ->select('ID_Solicitud, ID_Dpto, ID_Proveedor, Tipo, ID_RazonSocial, MetodoPago, Fecha, IVA, Estado, No_Folio')
+            ->select('ID_Solicitud, ID_Dpto, ID_UnidadOperativa, ID_Proveedor, Tipo, ID_RazonSocial, MetodoPago, Fecha, IVA, Estado, No_Folio')
             ->where('ID_Solicitud', $id_solicitud)
             ->get()
             ->getRow();
@@ -279,10 +279,12 @@ class ControlMaestro extends BaseController
                 $mes = (int)date('n', $fechaSol);
                 $anio = (int)date('Y', $fechaSol);
                 
-                // --- CORRECCIÓN: Obtener ID_UnidadOperativa del departamento ---
-                $idDpto = $solicitudOriginal->ID_Dpto;
-                $rowUnidad = $this->db->table('Departamentos')->select('ID_UnidadOperativa')->where('ID_Dpto', $idDpto)->get()->getRow();
-                $idUnidad = $rowUnidad ? $rowUnidad->ID_UnidadOperativa : null;
+                // --- CORRECCIÓN: Obtener ID_UnidadOperativa prioritario de la solicitud ---
+                $idUnidad = !empty($solicitudOriginal->ID_UnidadOperativa) ? $solicitudOriginal->ID_UnidadOperativa : null;
+                if (!$idUnidad) {
+                    $idDpto = $solicitudOriginal->ID_Dpto;
+                    $idUnidad = $rowUnidad ? $rowUnidad->ID_UnidadOperativa : null;
+                }
 
                 $todosLosGrupos = array_unique(array_merge(array_keys($montosViejosPorGrupo), array_keys($montosNuevosPorGrupo)));
 
