@@ -283,6 +283,7 @@ class ControlMaestro extends BaseController
                 $idUnidad = !empty($solicitudOriginal->ID_UnidadOperativa) ? $solicitudOriginal->ID_UnidadOperativa : null;
                 if (!$idUnidad) {
                     $idDpto = $solicitudOriginal->ID_Dpto;
+                    $rowUnidad = $this->db->table('Departamentos')->select('ID_UnidadOperativa')->where('ID_Dpto', $idDpto)->get()->getRow();
                     $idUnidad = $rowUnidad ? $rowUnidad->ID_UnidadOperativa : null;
                 }
 
