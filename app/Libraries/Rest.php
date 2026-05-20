@@ -555,23 +555,26 @@ class Rest
                 ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
                 ->findAll();
         } else {
-            // Lógica normal: filtrado por Unidad Operativa
-            // También incluimos el ID_Place por consistencia
+            // Lógica normal: filtrado por Complejo (Place)
+            // Esto asegura que todos los grupos del mismo lugar estén disponibles, evitando pérdidas por cambios de unidad.
             $builder = $grupoModel
                 ->select('GrupoPresupuestal.*, UnidadOperativa.ID_Place')
                 ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
                 ->where('GrupoPresupuestal.activo', true)
                 ->where('GrupoPresupuestal.es_manual', false);
 
-            if (!empty($idUnidad)) {
-                $builder->where('GrupoPresupuestal.ID_UnidadOperativa', $idUnidad);
-            } elseif (!empty($solicitud['ID_Place'])) {
-                // FALLBACK: Si no hay unidad en la solicitud, filtramos por el complejo (Place)
-                // Esto permite que departamentos sin unidad asignada vean todos los grupos de su complejo.
+            if (!empty($solicitud['ID_Place'])) {
+                // Filtramos por el complejo (Place) para dar flexibilidad en la edición
                 $builder->where('UnidadOperativa.ID_Place', $solicitud['ID_Place']);
             } else {
-                // Si no hay nada, forzamos un resultado vacío para evitar traer todo por error
-                $builder->where('1 = 0', null, false);
+                // Si no hay lugar definido (raro), intentamos por unidad si existe
+                $idUnidad = !empty($solicitud['ID_UnidadOperativa']) ? $solicitud['ID_UnidadOperativa'] : ($solicitud['DeptoUnidadOperativa'] ?? 0);
+                if (!empty($idUnidad)) {
+                    $builder->where('GrupoPresupuestal.ID_UnidadOperativa', $idUnidad);
+                } else {
+                    // Si no hay nada, forzamos un resultado vacío para evitar traer todo por error
+                    $builder->where('1 = 0', null, false);
+                }
             }
 
             $solicitud['grupos_presupuestales'] = $builder->orderBy('GrupoPresupuestal.Nombre', 'ASC')->findAll();

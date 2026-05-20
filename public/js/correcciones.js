@@ -326,8 +326,7 @@ function renderizarInputsDios(data, container, listaProveedores = [], listaRazon
 
     let optionsGruposHtml = '<option value="">-- Sin partida asignada --</option>';
     if (data.grupos_presupuestales) {
-        const requestPlaceId = sol.ID_Place || data.ID_Place;
-        const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
+        const gruposFiltrados = data.grupos_presupuestales;
         optionsGruposHtml += gruposFiltrados.map(g => `<option value="${g.ID_GrupoPresupuestal}">${g.Nombre}</option>`).join('');
     }
 
@@ -463,8 +462,7 @@ function _renderSeccionGeneral(sol, htmlProv, htmlRazon, ui) {
 
 function _renderAsistenteLlenado(data, sol, ui) {
     if (!data.grupos_presupuestales) return '';
-    const requestPlaceId = sol.ID_Place || data.ID_Place;
-    const gruposFiltrados = data.grupos_presupuestales.filter(g => requestPlaceId && g.ID_Place == requestPlaceId);
+    const gruposFiltrados = data.grupos_presupuestales;
     if (gruposFiltrados.length === 0) return '';
 
     return `
