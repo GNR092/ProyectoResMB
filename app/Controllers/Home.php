@@ -190,7 +190,7 @@ class Home extends BaseController
 
         $permisosAjustesDpto = [
             'Administración' => array_values($opcionesAjustes),
-            'Compras' => array_values(array_diff($opcionesAjustes, $opcionesCatalogos)),
+            'Compras' => array_values($opcionesAjustes),
             'Direccion' => array_values($opcionesAjustes),
             'Contaduría' => array_values($opcionesAjustes),
             'default' => [
