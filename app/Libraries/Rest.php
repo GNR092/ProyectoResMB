@@ -1628,7 +1628,8 @@ class Rest
             strpos($deptoLower, 'operación') !== false || 
             strpos($deptoLower, 'compras') !== false ||
             strpos($deptoLower, 'contaduría') !== false ||
-            strpos($deptoLower, 'contaduria') !== false
+            strpos($deptoLower, 'contaduria') !== false ||
+            strpos($deptoLower, 'mantenimiento') !== false
         );
     }
 
