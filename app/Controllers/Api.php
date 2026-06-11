@@ -251,11 +251,15 @@ class Api extends ResourceController
      */
     public function getHistorial()
     {
-        $vista = $this->request->getGet('vista');
-        $onlyDeclined = ($vista === 'declinadas');
-        
-        $result = $this->api->getAllSolicitud($onlyDeclined);
-        return $this->respond($result, HttpStatus::OK);
+        try {
+            $vista = $this->request->getGet('vista');
+            $onlyDeclined = ($vista === 'declinadas');
+
+            $result = $this->api->getAllSolicitud($onlyDeclined);
+            return $this->respond($result, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -265,12 +269,16 @@ class Api extends ResourceController
      */
     public function getHistorialByDepartment($id)
     {
-        $userId = session('id');
-        $vista = $this->request->getGet('vista');
-        $onlyDeclined = ($vista === 'declinadas');
+        try {
+            $userId = session('id');
+            $vista = $this->request->getGet('vista');
+            $onlyDeclined = ($vista === 'declinadas');
 
-        $results = $this->api->getSolicitudByDepartment((int) $id, (int) $userId, $onlyDeclined);
-        return $this->respond($results, HttpStatus::OK);
+            $results = $this->api->getSolicitudByDepartment((int) $id, (int) $userId, $onlyDeclined);
+            return $this->respond($results, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**

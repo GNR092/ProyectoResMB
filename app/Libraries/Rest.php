@@ -241,7 +241,9 @@ class Rest
         }
 
         $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->limit(500)
             ->findAll();
+        log_message('debug', print_r($solicitudes[0] ?? [], true));
         if (empty($solicitudes)) {
             return []; // Retornamos array vacío, no response
         }
@@ -360,6 +362,7 @@ class Rest
         }
 
         $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->limit(500)
             ->findAll();
         log_message('debug', print_r($solicitudes[0] ?? [], true));
         if (empty($solicitudes)) {

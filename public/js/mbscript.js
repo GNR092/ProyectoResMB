@@ -1417,7 +1417,7 @@ function initPaginacionHistorial() {
     opcionPendiente.classList.remove('hidden')
   }
 
-  function getStatususSVG(statusus) {
+  function getStatusSVG(statusus) {
     if (!statusus) return ''
     const statususLower = statusus.toLowerCase()
     const iconUrl = `icons/icons.svg?v=${window.ICON_SVG_VERSION || '1.0'}`

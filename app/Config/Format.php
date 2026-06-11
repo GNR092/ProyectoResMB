@@ -61,4 +61,22 @@ class Format extends BaseConfig
         'application/xml'  => 0,
         'text/xml'         => 0,
     ];
+
+    /**
+     * --------------------------------------------------------------------------
+     * JSON Encoder Max Depth
+     * --------------------------------------------------------------------------
+     *
+     * The maximum depth of the JSON being encoded.
+     */
+    public $jsonEncodeDepth = 512;
+
+    /**
+     * --------------------------------------------------------------------------
+     * XML Indent
+     * --------------------------------------------------------------------------
+     *
+     * Whether or not the XML should be indented.
+     */
+    public $xmlIndent = true;
 }
