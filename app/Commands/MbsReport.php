@@ -66,7 +66,7 @@ class MbsReport extends BaseCommand
 
         // --- DATOS DE CONEXIÓN WHATSAPP ---
         $config = [
-            'session_id' => "5ca87175-7fe6-4fae-8435-e2e1e5c68e4c",
+            'session_id' => "46905a94-6e94-43c5-8e76-f8940653b6fa",
             'api_key'    => "owa_k1_28ca20692322ec262bffba81d8c53f30ad2742b40f85e6b85f7d17dde266bb99",
             'host'       => "http://172.28.0.1:2886",
             'target'     => "9993544891"

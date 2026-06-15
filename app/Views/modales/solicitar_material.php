@@ -20,12 +20,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
 <!-- Pantalla 1.5: Submenú de Material -->
 <div id="submenu-material" class="hidden p-6">
-    <div class="flex justify-between mb-4">
-        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">
-            &larr; Regresar
+    <div class="flex justify-between items-center mb-4">
+        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">&larr;
+            Regresar
         </button>
-        <h2 class="text-lg font-semibold">Seleccione tipo de requisicion</h2>
-        <div></div>
+        <h2 class="text-lg font-semibold uppercase">Requisición</h2>
     </div>
 
     <div class="flex flex-col gap-4">
@@ -42,12 +41,22 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
 <!-- Pantalla 2: Solicitar Material -->
 <div id="solicitar-material-content" class="hidden p-6">
-    <div class="flex justify-between mb-4">
-        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSubmenuMaterial()">&larr;
+    <div class="flex justify-between items-center mb-4">
+        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">&larr;
             Regresar
         </button>
-        <h2 class="text-lg font-semibold">Requisicion de Material</h2>
-        <div></div>
+        <h2 class="text-lg font-semibold uppercase">Requisición</h2>
+
+        <div class="flex items-center gap-2">
+            <label class="text-[10px] font-bold text-gray-400 uppercase">WhatsApp</label>
+            <button type="button" class="btn-notif-whatsapp-global p-2 rounded-full hover:bg-gray-100 transition-all active:scale-90" 
+                    onclick="toggleWhatsAppGlobal(this); return false;"
+                    title="Notificaciones por WhatsApp">
+                <svg class="size-7 text-gray-400 transition-colors" fill="none" stroke-width="1.5" stroke="currentColor">
+                    <use xlink:href="/icons/icons.svg#bell"></use>
+                </svg>
+            </button>
+        </div>
     </div>
 
     <div class="p-6">
@@ -178,8 +187,9 @@ $iconUrl = "/icons/icons.svg?v=$version";
             </div>
             <!-- Contenedor para mensajes -->
             <div class="my-2 form-message-container"></div>
+
             <!-- Botón para enviar -->
-            <div class="flex justify-end gap-2">
+            <div class="flex justify-end gap-2 mt-4">
                 <button type="button" id="btn-enviar-direccion-material"
                     class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -202,12 +212,22 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
 <!-- Pantalla 4: Material sin Cotizar -->
 <div id="solicitar-material-sin-cotizar" class="hidden p-6">
-    <div class="flex justify-between mb-4">
-        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSubmenuMaterial()">
-            &larr; Regresar
+    <div class="flex justify-between items-center mb-4">
+        <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">&larr;
+            Regresar
         </button>
-        <h2 class="text-lg font-semibold">Requisicion de Material (sin cotizar)</h2>
-        <div></div>
+        <h2 class="text-lg font-semibold uppercase">Requisición</h2>
+
+        <div class="flex items-center gap-2">
+            <label class="text-[10px] font-bold text-gray-400 uppercase">WhatsApp</label>
+            <button type="button" class="btn-notif-whatsapp-global p-2 rounded-full hover:bg-gray-100 transition-all active:scale-90" 
+                    onclick="toggleWhatsAppGlobal(this); return false;"
+                    title="Notificaciones por WhatsApp">
+                <svg class="size-7 text-gray-400 transition-colors" fill="none" stroke-width="1.5" stroke="currentColor">
+                    <use xlink:href="/icons/icons.svg#bell"></use>
+                </svg>
+            </button>
+        </div>
     </div>
 
     <div class="p-6">
@@ -352,7 +372,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <div class="my-2 form-message-container"></div>
 
             <!-- Botón enviar -->
-            <div class="flex justify-end">
+            <div class="flex justify-end mt-4">
                 <button type="submit"
                     class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
@@ -367,12 +387,22 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
 <!-- Pantalla 3: Solicitud de servicios -->
 <div id="solicitar-servicio-content" class="hidden p-6">
-    <div class="flex justify-between mb-4">
+    <div class="flex justify-between items-center mb-4">
         <button class="text-sm text-gray-600 hover:text-gray-900" onclick="regresarSeleccionOpciones()">&larr;
             Regresar
         </button>
-        <h2 class="text-lg font-semibold">Requisicion de pago o servicio</h2>
-        <div></div>
+        <h2 class="text-lg font-semibold uppercase">Requisición</h2>
+
+        <div class="flex items-center gap-2">
+            <label class="text-[10px] font-bold text-gray-400 uppercase">WhatsApp</label>
+            <button type="button" class="btn-notif-whatsapp-global p-2 rounded-full hover:bg-gray-100 transition-all active:scale-90" 
+                    onclick="toggleWhatsAppGlobal(this); return false;"
+                    title="Notificaciones por WhatsApp">
+                <svg class="size-7 text-gray-400 transition-colors" fill="none" stroke-width="1.5" stroke="currentColor">
+                    <use xlink:href="/icons/icons.svg#bell"></use>
+                </svg>
+            </button>
+        </div>
     </div>
 
     <div class="p-6">
@@ -541,7 +571,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <div class="my-2 form-message-container"></div>
 
             <!-- Botón para enviar -->
-            <div class="flex justify-end gap-2">
+            <div class="flex justify-end gap-2 mt-4">
                 <button type="button" id="btn-enviar-direccion-servicio"
                         class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">
                     <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">

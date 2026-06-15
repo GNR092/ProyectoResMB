@@ -41,6 +41,16 @@ class Api extends ResourceController
         $this->api = new Rest();
     }
 
+    private function notificarWhatsApp($idSolicitud)
+    {
+        try {
+            $ws = new \App\Libraries\WhatsAppService();
+            $ws->notificarCambioEstado((int)$idSolicitud);
+        } catch (\Exception $e) {
+            log_message('error', '[WhatsApp Notification Error]: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Lanza un error de validación y lo registra en la bitácora como fallido.
      */
@@ -241,6 +251,38 @@ class Api extends ResourceController
         $results = $presupuestoMensualModel->findAll();
         return $this->respond($results, HttpStatus::OK);
     }
+    public function toggleWhatsAppNotifications()
+    {
+        $json = $this->request->getJSON();
+        if (!isset($json->ID_Solicitud)) {
+            return $this->failValidationAudit('Se requiere ID de solicitud.');
+        }
+
+        $idSolicitud = (int) $json->ID_Solicitud;
+        $solicitudModel = new SolicitudModel();
+        $solicitud = $solicitudModel->find($idSolicitud);
+
+        if (!$solicitud) {
+            return $this->failNotFound('La solicitud no existe.');
+        }
+
+        // En PostgreSQL/PHP el valor puede venir como string 't'/'f', bool o int 1/0
+        $valorActual = $solicitud['notificaciones_whatsapp'];
+        $isEnabled = ($valorActual === 't' || $valorActual === true || $valorActual == 1);
+        
+        $nuevoEstado = !$isEnabled;
+        
+        log_message('debug', "[toggleWhatsApp] ID: $idSolicitud, Valor Actual: " . var_export($valorActual, true) . ", Detectado como: " . ($isEnabled ? 'ON' : 'OFF') . ", Nuevo: " . ($nuevoEstado ? 'ON' : 'OFF'));
+
+        $solicitudModel->update($idSolicitud, ['notificaciones_whatsapp' => $nuevoEstado]);
+
+        return $this->respond([
+            'success' => true,
+            'enabled' => $nuevoEstado,
+            'message' => $nuevoEstado ? 'Notificaciones activadas.' : 'Notificaciones desactivadas.'
+        ]);
+    }
+
     //endregion
 
     //region Solicitudes (Consultas)
@@ -492,6 +534,8 @@ class Api extends ResourceController
                 'TipoComentarioAdmin' => 'Cancelacion',
             ];
             $solicitudModel->update($idSolicitud, $updateData);
+
+            $this->notificarWhatsApp($idSolicitud);
 
             // 3. LIBERACIÓN INTEGRAL DE PRESUPUESTO
             $this->liberarPresupuestoIntegral($idSolicitud, $solicitud['Estado']);
@@ -854,6 +898,8 @@ class Api extends ResourceController
                 'ComentariosAdmin' => $comentarios,
             ]);
 
+            $this->notificarWhatsApp($idSolicitud);
+
             return $this->respondUpdated([
                 'success' => true,
                 'message' =>
@@ -907,6 +953,8 @@ class Api extends ResourceController
 
             // Actualizamos con el estado dinámico
             $solicitudModel->update($idSolicitud, ['Estado' => $nuevoEstado]);
+
+            $this->notificarWhatsApp($idSolicitud);
 
             $db->transComplete();
 
@@ -1639,6 +1687,9 @@ class Api extends ResourceController
             }
 
             $solicitudModel->update($idSolicitud, $dataToUpdate);
+
+            $this->notificarWhatsApp($idSolicitud);
+
             $db->transComplete();
 
             if ($db->transStatus() === false) {
@@ -2541,6 +2592,10 @@ class Api extends ResourceController
 
                 // EJECUTAMOS EL UPDATE
                 $updateResult = $ordenCompraModel->update($idOrdenCompra, $datosActualizar);
+
+                if ($updateResult) {
+                    $this->notificarWhatsApp($idSolicitud);
+                }
 
                 if ($updateResult === false) {
                     $errors = $ordenCompraModel->errors();
@@ -3774,6 +3829,7 @@ class Api extends ResourceController
                         $ordenCompraModel->update($orden['ID_OrdenCompra'], [
                             'Estado' => Status::Programada
                         ]);
+                        $this->notificarWhatsApp($idSolicitud);
                     }
                 }
             }

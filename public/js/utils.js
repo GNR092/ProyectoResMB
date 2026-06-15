@@ -461,9 +461,32 @@ function generarDetallesSolicitudHTML(data) {
     ? `<div><strong>Fecha Pago Realizado OC:</strong> ${new Date(data.OrdenCompra.FechaPagoRealizado).toLocaleDateString('es-MX')}</div>` 
     : '';
 
-  // 3. Retorno del template HTML optimizado
+  // 3. Lógica de visibilidad para WhatsApp: Solo el dueño y en estados no finales
+  const finalStates = ['pagada', 'rechazada', 'cancelada'];
+  const currentState = (data.EstadoOrden ?? data.Estado ?? '').toLowerCase().trim();
+  const isFinalState = finalStates.includes(currentState);
+  const isOwner = parseInt(data.ID_Usuario) === parseInt(window.CURRENT_USER_ID);
+  const showWhatsApp = isOwner && !isFinalState;
+
+  const isWA = data.notificaciones_whatsapp === 't' || data.notificaciones_whatsapp === true || data.notificaciones_whatsapp == 1;
+  
+  const whatsappButtonHtml = showWhatsApp ? `
+        <!-- Botón WhatsApp arriba a la derecha -->
+        <div class="absolute top-2 right-2 flex items-center gap-1">
+            <label class="text-[9px] font-bold text-gray-400 uppercase">WhatsApp</label>
+            <button onclick="toggleWhatsAppDetails(${data.ID_Solicitud}, this); return false;" 
+                    class="p-2 rounded-full hover:bg-gray-200 transition-all active:scale-90"
+                    title="${isWA ? 'Desactivar WhatsApp' : 'Activar WhatsApp'}">
+                <svg class="size-7 ${isWA ? 'text-yellow-500' : 'text-gray-400'} transition-colors" fill="none" stroke-width="1.5" stroke="currentColor">
+                    <use xlink:href="/icons/icons.svg#${isWA ? 'bell-allert' : 'bell'}"></use>
+                </svg>
+            </button>
+        </div>` : '';
+
   return `
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+    <div class="relative grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-gray-50">
+        ${whatsappButtonHtml}
+
         <div><strong>Folio:</strong> ${folio}</div>
         <div><strong>Fecha:</strong> ${escapeHTML(data.Fecha)}</div>
         <div><strong>Estado:</strong> <span class="font-semibold ${estadoClass}">${estadoText}</span></div>
@@ -1155,6 +1178,12 @@ async function SendData(event) {
   }
 
   try {
+    // Inyectar estado de WhatsApp si existe el botón global
+    const btnWhatsApp = document.querySelector('.btn-notif-whatsapp-global svg');
+    if (btnWhatsApp && btnWhatsApp.classList.contains('text-yellow-500')) {
+      formData.append('notificaciones_whatsapp', '1');
+    }
+
     const data = await SendDataEnd('solicitudes/registrar', {
       method: 'POST',
       body: formData,
@@ -1404,4 +1433,83 @@ function generarSeccionAdjuntos(data) {
 function mostrarExpedientePdf(idSolicitud) {
   const url = `${BASE_URL}api/solicitud/pdf-consolidado/${idSolicitud}`
   window.open(url, '_blank')
+}
+
+/**
+ * Toglea el estado de notificaciones de WhatsApp para una solicitud específica (Detalles)
+ */
+async function toggleWhatsAppDetails(idSolicitud, btn) {
+  try {
+    const response = await fetch(`${BASE_URL}api/solicitud/toggle-whatsapp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({ ID_Solicitud: idSolicitud }),
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      const svg = btn.querySelector('svg')
+      const use = svg.querySelector('use')
+      const isEnabled = data.enabled
+
+      if (isEnabled) {
+        svg.classList.remove('text-gray-400')
+        svg.classList.add('text-yellow-500')
+        use.setAttribute('xlink:href', `/icons/icons.svg#bell-allert`)
+        btn.title = 'Desactivar WhatsApp'
+      } else {
+        svg.classList.remove('text-yellow-500')
+        svg.classList.add('text-gray-400')
+        use.setAttribute('xlink:href', `/icons/icons.svg#bell`)
+        btn.title = 'Activar WhatsApp'
+      }
+
+      if (typeof Swal !== 'undefined') {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: data.message,
+          showConfirmButton: false,
+          timer: 2000,
+        })
+      }
+    } else {
+      if (typeof Swal !== 'undefined') {
+        Swal.fire('Error', data.message || 'Error al cambiar estado', 'error')
+      } else {
+        alert(data.message || 'Error al cambiar estado')
+      }
+    }
+  } catch (error) {
+    console.error('Error toggling WhatsApp:', error)
+  }
+}
+
+/**
+ * Toglea el estado visual de WhatsApp en el modal de creación (Global)
+ */
+function toggleWhatsAppGlobal(btn) {
+  const btns = document.querySelectorAll('.btn-notif-whatsapp-global')
+  const isEnabled = btn.querySelector('svg').classList.contains('text-yellow-500')
+
+  btns.forEach((b) => {
+    const svg = b.querySelector('svg')
+    const use = svg.querySelector('use')
+    if (isEnabled) {
+      svg.classList.remove('text-yellow-500')
+      svg.classList.add('text-gray-400')
+      use.setAttribute('xlink:href', '/icons/icons.svg#bell')
+      b.title = 'Activar WhatsApp'
+    } else {
+      svg.classList.remove('text-gray-400')
+      svg.classList.add('text-yellow-500')
+      use.setAttribute('xlink:href', '/icons/icons.svg#bell-allert')
+      b.title = 'Desactivar WhatsApp'
+    }
+  })
 }

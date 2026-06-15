@@ -130,6 +130,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     const BASE_URL = "<?= base_url() ?>";
     const USER_DEPT_NAME = "<?= esc($departamento_usuario ?? '', 'js') ?>";
     const USER_DEPT_ID = "<?= esc($id_departamento_usuario ?? '', 'js') ?>";
+    const CURRENT_USER_ID = "<?= session('id') ?>";
     <?php
     $iconPath = FCPATH . 'icons/icons.svg';
     $iconVersion = file_exists($iconPath) ? filemtime($iconPath) : time();

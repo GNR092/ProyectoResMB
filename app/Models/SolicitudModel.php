@@ -37,6 +37,7 @@ class SolicitudModel extends Model
         'Fecha_Aprobacion',
         'ID_Usuario_Autoriza',
         'ComentarioCotizacion',
+        'notificaciones_whatsapp',
     ];
 
     // Dates

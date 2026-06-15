@@ -238,6 +238,7 @@ class Archivo extends BaseController
                 'Tipo' => $tipo,
                 'ComentariosUser' => $comentariosFinal,
                 'MetodoPago' => $metodoPagoFinal,
+                'notificaciones_whatsapp' => isset($post['notificaciones_whatsapp']) ? true : false,
             ];
 
             $solicitud = new SolicitudModel();
@@ -246,6 +247,17 @@ class Archivo extends BaseController
             }
             
             $solicitudId = $solicitud->insertID();
+
+            // Notificar por WhatsApp si está habilitado
+            if (isset($post['notificaciones_whatsapp'])) {
+                try {
+                    $ws = new \App\Libraries\WhatsAppService();
+                    $ws->notificarCambioEstado((int)$solicitudId);
+                } catch (\Exception $e) {
+                    log_message('error', '[WhatsApp Initial Notification Error]: ' . $e->getMessage());
+                }
+            }
+
             $solicitud->update($solicitudId, [
                 'No_Folio' => 'MBSP-' . $solicitudId,
             ]);

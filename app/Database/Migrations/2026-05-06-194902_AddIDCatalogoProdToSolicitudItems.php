@@ -18,8 +18,12 @@ class AddIDCatalogoProdToSolicitudItems extends Migration
             ],
         ];
 
-        $this->forge->addColumn('Solicitud_Producto', $fields);
-        $this->forge->addColumn('Solicitud_Servicios', $fields);
+        if (!$this->db->fieldExists('ID_CatalogoProd', 'Solicitud_Producto')) {
+            $this->forge->addColumn('Solicitud_Producto', $fields);
+        }
+        if (!$this->db->fieldExists('ID_CatalogoProd', 'Solicitud_Servicios')) {
+            $this->forge->addColumn('Solicitud_Servicios', $fields);
+        }
 
         // Foreign keys are better added via direct query for existing tables in some environments or using forge if supported.
         // CI4 forge doesn't have a direct addForeignKey for existing tables in all DBs easily without dropping/recreating.
@@ -28,11 +32,11 @@ class AddIDCatalogoProdToSolicitudItems extends Migration
         $dbType = $this->db->getPlatform();
         
         if (strtolower($dbType) === 'postgre') {
-            $this->db->query('ALTER TABLE "Solicitud_Producto" ADD CONSTRAINT "fk_sol_prod_catalogo" FOREIGN KEY ("ID_CatalogoProd") REFERENCES "Catalogo_Productos"("ID_CatalogoProd") ON DELETE SET NULL ON UPDATE CASCADE');
-            $this->db->query('ALTER TABLE "Solicitud_Servicios" ADD CONSTRAINT "fk_sol_serv_catalogo" FOREIGN KEY ("ID_CatalogoProd") REFERENCES "Catalogo_Productos"("ID_CatalogoProd") ON DELETE SET NULL ON UPDATE CASCADE');
+            try { $this->db->query('ALTER TABLE "Solicitud_Producto" ADD CONSTRAINT "fk_sol_prod_catalogo" FOREIGN KEY ("ID_CatalogoProd") REFERENCES "Catalogo_Productos"("ID_CatalogoProd") ON DELETE SET NULL ON UPDATE CASCADE'); } catch (\Exception $e) {}
+            try { $this->db->query('ALTER TABLE "Solicitud_Servicios" ADD CONSTRAINT "fk_sol_serv_catalogo" FOREIGN KEY ("ID_CatalogoProd") REFERENCES "Catalogo_Productos"("ID_CatalogoProd") ON DELETE SET NULL ON UPDATE CASCADE'); } catch (\Exception $e) {}
         } else {
-            $this->db->query('ALTER TABLE Solicitud_Producto ADD CONSTRAINT fk_sol_prod_catalogo FOREIGN KEY (ID_CatalogoProd) REFERENCES Catalogo_Productos(ID_CatalogoProd) ON DELETE SET NULL ON UPDATE CASCADE');
-            $this->db->query('ALTER TABLE Solicitud_Servicios ADD CONSTRAINT fk_sol_serv_catalogo FOREIGN KEY (ID_CatalogoProd) REFERENCES Catalogo_Productos(ID_CatalogoProd) ON DELETE SET NULL ON UPDATE CASCADE');
+            try { $this->db->query('ALTER TABLE Solicitud_Producto ADD CONSTRAINT fk_sol_prod_catalogo FOREIGN KEY (ID_CatalogoProd) REFERENCES Catalogo_Productos(ID_CatalogoProd) ON DELETE SET NULL ON UPDATE CASCADE'); } catch (\Exception $e) {}
+            try { $this->db->query('ALTER TABLE Solicitud_Servicios ADD CONSTRAINT fk_sol_serv_catalogo FOREIGN KEY (ID_CatalogoProd) REFERENCES Catalogo_Productos(ID_CatalogoProd) ON DELETE SET NULL ON UPDATE CASCADE'); } catch (\Exception $e) {}
         }
     }
 

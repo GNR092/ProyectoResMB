@@ -126,6 +126,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/historial/exportar', 'Api::exportarHistorial');
 
         // Solicitudes
+        $routes->post('api/solicitud/toggle-whatsapp', 'Api::toggleWhatsAppNotifications');
         $routes->get('api/solicitud/details/(:num)', 'Api::getSolicitudDetails/$1');
         $routes->get('api/cotizacion/details/(:num)', 'Api::getCotizacionDetails/$1');
         $routes->get('api/solicitudes/cotizadas', 'Api::getSolicitudesCotizadas');
