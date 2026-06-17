@@ -95,7 +95,8 @@ async function SendDataEnd(endpoint, options = {}) {
         errorData = await response.text()
       }
 
-      const error = new Error('Error en la solicitud HTTP')
+      const serverMsg = (typeof errorData === 'object' && errorData?.message) ? errorData.message : (typeof errorData === 'string' ? errorData : 'Error en la solicitud HTTP')
+      const error = new Error(serverMsg)
       error.status = response.status
       error.statusText = response.statusText
       error.data = errorData

@@ -65,8 +65,8 @@ class WhatsAppService
             $reporte .= "💬 *Comentarios:* " . $mensajeMostrar . "\n\n";
         }
 
-        $reporte .= "_Mensaje automático enviado vía MB Command Center._";
-
+        $reporte .= "_Mensaje automático enviado vía Centro de Operaciones TI._ \n";
+        $reporte .= "*NO RESPONDER*";
         return $this->sendWhatsApp($reporte, $usuario['Numero']);
     }
 
