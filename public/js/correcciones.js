@@ -937,7 +937,8 @@ async function guardarCambiosMaestros() {
         }
     } catch (error) {
         console.error("Fallo en persistencia maestra:", error);
-        alert(`❌ ERROR DE AUDITORÍA\n\nNo se pudo sincronizar el cambio: ${error.message}`);
+        const detalle = error.data?.message || error.message;
+        alert(`❌ ERROR DE AUDITORÍA (HTTP ${error.status || '?'})\n\nNo se pudo sincronizar el cambio:\n${detalle}`);
     } finally {
         if (btnGuardar) {
             btnGuardar.disabled = false;

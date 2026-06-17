@@ -220,7 +220,7 @@ class ControlMaestro extends BaseController
                         if ($nivelNuevo >= 4) {
                             $updateServ['Monto_Comprometido_Original'] = $nuevoMontoComprometido;
                         }
-                        if (isset($item['id_grupo_presupuestal'])) {
+                        if (!empty($item['id_grupo_presupuestal'])) {
                             $updateServ['ID_GrupoPresupuestal'] = (int)$item['id_grupo_presupuestal'];
                         }
                         $this->db->table('Solicitud_Servicios')->where('ID_SolicitudServ', $id_fila)->update($updateServ);
@@ -233,7 +233,7 @@ class ControlMaestro extends BaseController
                         if ($nivelNuevo >= 4) {
                             $updateProd['Monto_Comprometido_Original'] = $nuevoMontoComprometido;
                         }
-                        if (isset($item['id_grupo_presupuestal'])) {
+                        if (!empty($item['id_grupo_presupuestal'])) {
                             $updateProd['ID_GrupoPresupuestal'] = (int)$item['id_grupo_presupuestal'];
                         }
                         
