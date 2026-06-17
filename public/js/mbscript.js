@@ -1473,36 +1473,18 @@ function initPaginacionHistorial() {
     'Direccion Campus',
     'Contaduría',
   ]
-  let url = 'api/historic'
-  if (
-    typeof USER_DEPT_NAME !== 'undefined' &&
-    typeof USER_DEPT_ID !== 'undefined' &&
-    USER_DEPT_ID &&
-    !exceptions.includes(USER_DEPT_NAME)
-  ) {
-    url = `api/historic/department/${USER_DEPT_ID}`
-  }
 
-  // Añadir parámetro de vista declinada
-  if (isVistaDeclinadas) {
-    url += (url.includes('?') ? '&' : '?') + 'vista=declinadas'
-  }
-
-  createPaginatedTable({
+  createPaginatedTableServer({
     tableSelector: '#tabla-historial tbody',
-    paginationSelector: 'paginacion-historial',
-    endpoint: url,
-    filterFormSelector: '#modal-contenido', // Container for filters, used to attach events
+    paginationSelector: '#paginacion-historial',
+    endpoint: 'api/historic/paginated',
+    filterFormSelector: '#modal-contenido',
 
     renderRow: (item) => {
       const status = getStatusText(item.Estado)
       const svg = getStatusSVG(item.Estado)
       const MetodoPag = getMetodoPago(item.MetodoPago)
-
-      // El valor que viene del backend (item.MontoTotal) ya es el 'Total' de la tabla Cotizacion
       const totalRaw = parseFloat(item.MontoTotal) || 0
-
-      // Formateo de moneda
       const montoFormateado = new Intl.NumberFormat('es-MX', {
         style: 'currency',
         currency: 'MXN',
@@ -1538,70 +1520,45 @@ function initPaginacionHistorial() {
   `
     },
 
-    filterFunction: (allData, form) => {
-      const fechaFiltro = document.getElementById('filtro-fecha').value
-      const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
+    buildFilterParams: (form) => {
+      const params = {}
+      if (isVistaDeclinadas) params.vista = 'declinadas'
+
       const estadoFiltro = document.getElementById('filtro-estado').value
-      const folioFiltro = document.getElementById('filtro-folio')?.value.toLowerCase() || ''
+      if (estadoFiltro) params.estado = estadoFiltro
+
+      const fechaFiltro = document.getElementById('filtro-fecha').value
+      if (fechaFiltro) {
+        params.fecha = fechaFiltro
+        const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
+        if (filtrarPorMes) params.por_mes = '1'
+      }
+
+      const folioFiltro = document.getElementById('filtro-folio')?.value || ''
+      if (folioFiltro) params.folio = folioFiltro
+
       const tipoFiltro = document.getElementById('filtro-tipo-historial')?.value || ''
-      const departamentosSeleccionados = choicesDepartamento
-        ? choicesDepartamento.getValue(true)
-        : []
+      if (tipoFiltro) params.tipo = tipoFiltro
+
       const proveedoresSeleccionados = choicesProveedor ? choicesProveedor.getValue(true) : []
+      if (proveedoresSeleccionados.length > 0) params.proveedores = proveedoresSeleccionados
+
       const razonesSeleccionadas = choicesRazonSocial ? choicesRazonSocial.getValue(true) : []
+      if (razonesSeleccionadas.length > 0) params.razones_sociales = razonesSeleccionadas
 
-      return allData.filter((item) => {
-        const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
-        
-        const coincideTipo = !tipoFiltro || 
-            (tipoFiltro === 'Producto' && (item.Tipo == 0 || item.Tipo == 1)) || 
-            (tipoFiltro === 'Servicio' && item.Tipo == 2);
+      const departamentosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : []
+      if (departamentosSeleccionados.length > 0) params.departamentos = departamentosSeleccionados
 
-        const coincideProveedor =
-          proveedoresSeleccionados.length === 0 ||
-          (item.ProveedorNombre && proveedoresSeleccionados.includes(item.ProveedorNombre))
+      if (
+        typeof USER_DEPT_NAME !== 'undefined' &&
+        typeof USER_DEPT_ID !== 'undefined' &&
+        USER_DEPT_ID &&
+        !exceptions.includes(USER_DEPT_NAME)
+      ) {
+        params.dept_id = USER_DEPT_ID
+      }
 
-        const coincideFolio =
-          !folioFiltro || (item.No_Folio && item.No_Folio.toLowerCase().includes(folioFiltro))
-
-        let coincideDepartamento = true
-        if (departamentosSeleccionados.length > 0) {
-          const itemDepartamentoCompleto = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`
-          coincideDepartamento = departamentosSeleccionados.includes(itemDepartamentoCompleto)
-        } else {
-          coincideDepartamento = true
-        }
-
-        let coincideRazon = true
-        if (razonesSeleccionadas.length > 0) {
-          coincideRazon = razonesSeleccionadas.includes(item.Complejo)
-        }
-
-        if (choicesDepartamento && choicesDepartamento.getValue(true).length === 0) {
-          coincideDepartamento = true
-        }
-
-        const passesOtherFilters = coincideEstado && coincideDepartamento && coincideProveedor && coincideFolio && coincideTipo && coincideRazon
-
-        if (!fechaFiltro) {
-          return passesOtherFilters
-        }
-
-        const fechaItem = item.Fecha
-        if (filtrarPorMes) {
-          const mesFiltro = fechaFiltro.slice(0, 7)
-          const mesItem = fechaItem.slice(0, 7)
-          return (
-            mesItem === mesFiltro &&
-            passesOtherFilters
-          )
-        } else {
-          return (
-            fechaItem === fechaFiltro &&
-            passesOtherFilters
-          )
-        }
-      })
+      return params
     },
   })
 }

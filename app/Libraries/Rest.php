@@ -438,6 +438,211 @@ class Rest
     }
 
     /**
+     * Obtiene solicitudes paginadas con filtros del lado del servidor.
+     * Sin límite de registros, escala a miles de solicitudes.
+     *
+     * @param int      $page      Número de página (1-indexed).
+     * @param int      $perPage   Registros por página.
+     * @param array    $filters   Filtros: vista, estado, fecha, por_mes, folio, tipo, proveedores, razones_sociales, departamentos, dept_id, is_exception.
+     * @param int|null $userId    ID del usuario para filtrar por sus solicitudes.
+     * @return array Con 'data', 'total', 'page', 'perPage'.
+     */
+    public function getSolicitudPaginated(int $page = 1, int $perPage = 10, array $filters = [], ?int $userId = null): array
+    {
+        $solicitudModel = new \App\Models\SolicitudModel();
+        $cotizacionModel = new \App\Models\CotizacionModel();
+        $ordenCompraModel = new \App\Models\OrdenCompraModel();
+        $proveedorModel = new \App\Models\ProveedorModel();
+
+        $declinedStatuses = [Status::Dept_Rechazada, Status::Rechazada, 'Cancelada'];
+        $excludedStatuses = array_merge($declinedStatuses, [Status::Aprobacion_pendiente]);
+        $onlyDeclined = ($filters['vista'] ?? '') === 'declinadas';
+        $deptId = $filters['dept_id'] ?? null;
+        $isException = !empty($filters['is_exception']);
+
+        $selectFields = 'Solicitud.ID_Solicitud, Solicitud.No_Folio, Solicitud.Fecha, Solicitud.Estado, Solicitud.MetodoPago, Solicitud.Tipo, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre, Razon_Social.Nombre as Complejo';
+
+        $baseJoins = function ($query) {
+            $query->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                  ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                  ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+                  ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left');
+        };
+
+        $applyFilters = function ($query) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException) {
+            if ($onlyDeclined) {
+                $query->whereIn('Solicitud.Estado', $declinedStatuses);
+            } else {
+                $query->whereNotIn('Solicitud.Estado', $excludedStatuses);
+            }
+
+            if ($deptId && $userId && !$isException) {
+                $query->groupStart()
+                      ->where('Solicitud.ID_Dpto', $deptId)
+                      ->orWhere('Solicitud.ID_Usuario', $userId)
+                      ->groupEnd();
+            } elseif ($deptId && !$isException) {
+                $query->where('Solicitud.ID_Dpto', $deptId);
+            }
+
+            if (!empty($filters['estado'])) {
+                $query->where('Solicitud.Estado', $filters['estado']);
+            }
+
+            if (!empty($filters['fecha'])) {
+                if (!empty($filters['por_mes'])) {
+                    $query->where("to_char(Solicitud.Fecha, 'YYYY-MM')", substr($filters['fecha'], 0, 7));
+                } else {
+                    $query->where('Solicitud.Fecha', $filters['fecha']);
+                }
+            }
+
+            if (!empty($filters['folio'])) {
+                $query->like('Solicitud.No_Folio', $filters['folio']);
+            }
+
+            if (!empty($filters['tipo'])) {
+                if ($filters['tipo'] === 'Producto') {
+                    $query->whereIn('Solicitud.Tipo', [0, 1]);
+                } elseif ($filters['tipo'] === 'Servicio') {
+                    $query->where('Solicitud.Tipo', 2);
+                }
+            }
+
+            if (!empty($filters['proveedores'])) {
+                $provs = is_array($filters['proveedores']) ? $filters['proveedores'] : explode(',', $filters['proveedores']);
+                $provs = array_filter(array_map('trim', $provs));
+                if (!empty($provs)) {
+                    $query->whereIn('Proveedor.RazonSocial', $provs);
+                }
+            }
+
+            if (!empty($filters['razones_sociales'])) {
+                $razones = is_array($filters['razones_sociales']) ? $filters['razones_sociales'] : explode(',', $filters['razones_sociales']);
+                $razones = array_filter(array_map('trim', $razones));
+                if (!empty($razones)) {
+                    $query->whereIn('Razon_Social.Nombre', $razones);
+                }
+            }
+
+            if (!empty($filters['departamentos'])) {
+                $deptos = is_array($filters['departamentos']) ? $filters['departamentos'] : explode(',', $filters['departamentos']);
+                $deptos = array_filter(array_map('trim', $deptos));
+                if (!empty($deptos)) {
+                    $query->groupStart();
+                    $first = true;
+                    foreach ($deptos as $dpto) {
+                        $parts = explode('|', $dpto);
+                        $nombre = trim($parts[0]);
+                        $place = isset($parts[1]) ? trim($parts[1]) : '';
+                        if ($first) {
+                            $query->where('Departamentos.Nombre', $nombre);
+                            if ($place !== '') {
+                                $query->where('Places.Nombre_Corto', $place);
+                            }
+                            $first = false;
+                        } else {
+                            $query->orGroupStart()->where('Departamentos.Nombre', $nombre);
+                            if ($place !== '') {
+                                $query->where('Places.Nombre_Corto', $place);
+                            }
+                            $query->groupEnd();
+                        }
+                    }
+                    $query->groupEnd();
+                }
+            }
+        };
+
+        // COUNT query
+        $countBuilder = $solicitudModel->select('COUNT(*) as total');
+        $baseJoins($countBuilder);
+        $applyFilters($countBuilder);
+        $total = (int) $countBuilder->get()->getRow()->total;
+
+        // DATA query
+        $builder = $solicitudModel->select($selectFields);
+        $baseJoins($builder);
+        $applyFilters($builder);
+
+        $offset = ($page - 1) * $perPage;
+        $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->limit($perPage)
+            ->offset($offset)
+            ->findAll();
+
+        if (empty($solicitudes)) {
+            return ['data' => [], 'total' => $total, 'page' => $page, 'perPage' => $perPage];
+        }
+
+        $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
+
+        $cotizaciones = $cotizacionModel
+            ->select('ID_Cotizacion, ID_Solicitud, Total, ID_Proveedor')
+            ->whereIn('ID_Solicitud', $solicitudIds)
+            ->findAll();
+
+        $mapaMontos = [];
+        $mapaRelacion = [];
+        $cotizacionIds = [];
+        $proveedorIds = [];
+
+        foreach ($cotizaciones as $cot) {
+            $idSol = $cot['ID_Solicitud'];
+            if (!isset($mapaMontos[$idSol])) {
+                $mapaMontos[$idSol] = 0;
+            }
+            $mapaMontos[$idSol] += (float) $cot['Total'];
+            $mapaRelacion[$idSol] = $cot['ID_Cotizacion'];
+            $cotizacionIds[] = $cot['ID_Cotizacion'];
+            if (!empty($cot['ID_Proveedor'])) {
+                $proveedorIds[] = $cot['ID_Proveedor'];
+            }
+        }
+
+        $proveedoresMap = [];
+        if (!empty($proveedorIds)) {
+            $proveedores = $proveedorModel->whereIn('ID_Proveedor', array_unique($proveedorIds))->findAll();
+            foreach ($proveedores as $p) {
+                $proveedoresMap[$p['ID_Proveedor']] = $p['RazonSocial'];
+            }
+        }
+
+        $mapaOrdenes = [];
+        if (!empty($cotizacionIds)) {
+            $ordenes = $ordenCompraModel
+                ->select('ID_Cotizacion, Estado')
+                ->whereIn('ID_Cotizacion', $cotizacionIds)
+                ->findAll();
+            foreach ($ordenes as $orden) {
+                $mapaOrdenes[$orden['ID_Cotizacion']] = $orden['Estado'];
+            }
+        }
+
+        $data = [];
+        foreach ($solicitudes as $sol) {
+            $idSol = $sol['ID_Solicitud'];
+            $sol['MontoTotal'] = $mapaMontos[$idSol] ?? 0;
+
+            if ($sol['Estado'] === Status::Aprobada && isset($mapaRelacion[$idSol])) {
+                $idCot = $mapaRelacion[$idSol];
+                if (isset($mapaOrdenes[$idCot]) && !empty($mapaOrdenes[$idCot])) {
+                    $sol['Estado'] = $mapaOrdenes[$idCot];
+                }
+            }
+
+            $data[] = $sol;
+        }
+
+        return [
+            'data' => $data,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+        ];
+    }
+
+    /**
      * Obtiene una solicitud por su ID.
      *
      * @param int $id El ID de la solicitud.

@@ -1514,3 +1514,170 @@ function toggleWhatsAppGlobal(btn) {
     }
   })
 }
+
+/**
+ * Crea una tabla paginada con datos obtenidos del servidor (paginación server-side).
+ * Escalable a miles de registros sin límite.
+ * @param {object} config
+ * @param {string} config.tableSelector - Selector del tbody de la tabla.
+ * @param {string} config.paginationSelector - Selector del contenedor de la paginación.
+ * @param {string} config.endpoint - URL base de la API (ej: '/api/historic/paginated').
+ * @param {function} config.renderRow - Función que recibe un item y devuelve el HTML de la fila (tr).
+ * @param {number} [config.rowsPerPage=10] - Filas por página.
+ * @param {string} [config.filterFormSelector] - Selector del formulario de filtros.
+ * @param {function} [config.buildFilterParams] - Función que recibe el form y devuelve objeto con params extra.
+ * @param {string} [config.loadingMessage='Cargando...'] - Mensaje de carga.
+ * @param {string} [config.noResultsMessage='No se encontraron resultados.'] - Mensaje sin resultados.
+ * @param {function} [config.onDataLoaded] - Callback que se ejecuta después de cargar y renderizar los datos.
+ */
+function createPaginatedTableServer(config) {
+  const table = document.querySelector(config.tableSelector)
+  const paginationEl = document.querySelector(config.paginationSelector)
+  const rowsPerPage = config.rowsPerPage || 10
+  const filterForm = config.filterFormSelector ? document.querySelector(config.filterFormSelector) : null
+
+  let currentPage = 1
+  let totalPages = 0
+  let currentData = []
+  let isLoading = false
+
+  function buildUrl(page) {
+    const params = new URLSearchParams()
+    params.set('page', page)
+    params.set('per_page', rowsPerPage)
+
+    if (filterForm && config.buildFilterParams) {
+      const extra = config.buildFilterParams(filterForm)
+      for (const [key, value] of Object.entries(extra)) {
+        if (value !== null && value !== undefined && value !== '') {
+          if (Array.isArray(value)) {
+            value.forEach(v => params.append(key + '[]', v))
+          } else {
+            params.set(key, value)
+          }
+        }
+      }
+    }
+
+    return config.endpoint + '?' + params.toString()
+  }
+
+  async function loadPage(page) {
+    if (isLoading) return
+    isLoading = true
+
+    if (config.loadingMessage !== false) {
+      table.innerHTML = `<tr><td colspan="100" class="text-center py-4">${config.loadingMessage || 'Cargando...'}</td></tr>`
+    }
+
+    try {
+      const url = buildUrl(page)
+      const response = await fetch(url)
+      const result = await response.json()
+
+      currentData = result.data || []
+      currentPage = result.page || page
+      totalPages = Math.ceil((result.total || 0) / rowsPerPage)
+
+      renderTable(currentData)
+      renderPagination(totalPages, currentPage)
+      updateNavigationButtons()
+
+      if (config.onDataLoaded) config.onDataLoaded(currentData)
+    } catch (err) {
+      console.error('Error loading page:', err)
+      table.innerHTML = `<tr><td colspan="100" class="text-center py-4 text-red-500">Error al cargar datos</td></tr>`
+    } finally {
+      isLoading = false
+    }
+  }
+
+  function renderTable(data) {
+    if (!data || data.length === 0) {
+      table.innerHTML = `<tr><td colspan="100" class="text-center py-4">${config.noResultsMessage || 'No se encontraron resultados.'}</td></tr>`
+      return
+    }
+
+    table.innerHTML = data.map(item => config.renderRow(item)).join('')
+  }
+
+  function renderPagination(totalPages, currentPage) {
+    if (totalPages <= 1) {
+      paginationEl.innerHTML = ''
+      return
+    }
+
+    const pages = generatePaginationNumbers(currentPage, totalPages, 7)
+    let html = '<ul class="pagination-list">'
+
+    pages.forEach(p => {
+      if (p.type === '...') {
+        html += '<li class="pagination-dots"><span>...</span></li>'
+      } else if (p.type === 'first') {
+        html += `<li class="pagination-nav ${currentPage <= 1 ? 'disabled' : ''}" data-page="1"><a href="#"><i class="fas fa-angle-double-left"></i></a></li>`
+      } else if (p.type === 'prev') {
+        html += `<li class="pagination-nav ${currentPage <= 1 ? 'disabled' : ''}" data-page="${p.value || 1}"><a href="#"><i class="fas fa-angle-left"></i></a></li>`
+      } else if (p.type === 'next') {
+        html += `<li class="pagination-nav ${currentPage >= totalPages ? 'disabled' : ''}" data-page="${p.value || totalPages}"><a href="#"><i class="fas fa-angle-right"></i></a></li>`
+      } else if (p.type === 'last') {
+        html += `<li class="pagination-nav ${currentPage >= totalPages ? 'disabled' : ''}" data-page="${totalPages}"><a href="#"><i class="fas fa-angle-double-right"></i></a></li>`
+      } else {
+        html += `<li class="pagination-number ${p.active ? 'active' : ''}" data-page="${p.value}"><a href="#">${p.value}</a></li>`
+      }
+    })
+
+    html += '</ul>'
+
+    if (paginationEl.querySelector('ul.pagination-list')) {
+      paginationEl.querySelector('ul.pagination-list').outerHTML = html
+    } else {
+      paginationEl.innerHTML = html
+    }
+
+    // Attach event listeners
+    paginationEl.querySelectorAll('li').forEach(li => {
+      li.addEventListener('click', function (e) {
+        e.preventDefault()
+        const page = parseInt(this.dataset.page)
+        if (!isNaN(page) && page !== currentPage && !this.classList.contains('disabled')) {
+          loadPage(page)
+        }
+      })
+    })
+  }
+
+  function updateNavigationButtons() {
+    const prevBtn = paginationEl.querySelector('[data-page="prev"]')
+    const nextBtn = paginationEl.querySelector('[data-page="next"]')
+    const firstBtn = paginationEl.querySelector('[data-page="first"]')
+    const lastBtn = paginationEl.querySelector('[data-page="last"]')
+
+    if (prevBtn) prevBtn.classList.toggle('disabled', currentPage <= 1)
+    if (firstBtn) firstBtn.classList.toggle('disabled', currentPage <= 1)
+    if (nextBtn) nextBtn.classList.toggle('disabled', currentPage >= totalPages)
+    if (lastBtn) lastBtn.classList.toggle('disabled', currentPage >= totalPages)
+  }
+
+  // Public method to reload (e.g., after filter change)
+  function reload() {
+    currentPage = 1
+    loadPage(1)
+  }
+
+  // Expose reload for external calls
+  config.reload = reload
+
+  // Watch filter changes with simple debounce
+  let filterTimer = null
+  if (filterForm) {
+    const handleFilterChange = () => {
+      if (filterTimer) clearTimeout(filterTimer)
+      filterTimer = setTimeout(reload, 300)
+    }
+    filterForm.addEventListener('input', handleFilterChange)
+    filterForm.addEventListener('change', handleFilterChange)
+  }
+
+  // Initial load
+  loadPage(currentPage)
+}

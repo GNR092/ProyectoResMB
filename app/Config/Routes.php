@@ -118,6 +118,7 @@ if (!file_exists($installerLockFile)) {
         // Historial
         $routes->get('api/bitacora', 'Api::bitacora');
         $routes->get('api/historic', 'Api::getHistorial');
+        $routes->get('api/historic/paginated', 'Api::getHistorialPaginated');
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
         $routes->get('api/historic/movimientos-proveedor', 'Api::getMovimientosProveedor', ['filter' => 'mantenimiento']);
         $routes->get('api/historic/reporte-vencimientos', 'Api::getReporteVencimientos', ['filter' => 'mantenimiento']);

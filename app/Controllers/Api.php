@@ -324,6 +324,39 @@ class Api extends ResourceController
     }
 
     /**
+     * Obtiene el historial paginado con filtros server-side.
+     * Ilimitado: devuelve solo la página solicitada, sin límite de registros totales.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getHistorialPaginated()
+    {
+        try {
+            $page = (int) ($this->request->getGet('page') ?? 1);
+            $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+
+            $filters = [
+                'vista'            => $this->request->getGet('vista'),
+                'estado'           => $this->request->getGet('estado'),
+                'fecha'            => $this->request->getGet('fecha'),
+                'por_mes'          => $this->request->getGet('por_mes'),
+                'folio'            => $this->request->getGet('folio'),
+                'tipo'             => $this->request->getGet('tipo'),
+                'proveedores'      => $this->request->getGet('proveedores'),
+                'razones_sociales' => $this->request->getGet('razones_sociales'),
+                'departamentos'    => $this->request->getGet('departamentos'),
+                'dept_id'          => $this->request->getGet('dept_id'),
+                'is_exception'     => $this->request->getGet('is_exception'),
+            ];
+
+            $userId = session('id');
+            $result = $this->api->getSolicitudPaginated($page, $perPage, $filters, $userId);
+            return $this->respond($result, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
      * Obtiene los detalles de una solicitud específica.
      * @param int|null $id El ID de la solicitud.
      * @return \CodeIgniter\HTTP\Response
