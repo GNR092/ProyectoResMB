@@ -1581,7 +1581,6 @@ function createPaginatedTableServer(config) {
 
       renderTable(currentData)
       renderPagination(totalPages, currentPage)
-      updateNavigationButtons()
 
       if (config.onDataLoaded) config.onDataLoaded(currentData)
     } catch (err) {
@@ -1602,60 +1601,66 @@ function createPaginatedTableServer(config) {
   }
 
   function renderPagination(totalPages, currentPage) {
-    if (totalPages <= 1) {
-      paginationEl.innerHTML = ''
-      return
-    }
+    if (!paginationEl) return
+    paginationEl.innerHTML = ''
+    if (totalPages <= 1) return
+
+    paginationEl.style.flexWrap = 'wrap'
+    paginationEl.style.justifyContent = 'center'
+    paginationEl.style.gap = '0.5rem'
 
     const pages = generatePaginationNumbers(currentPage, totalPages, 7)
-    let html = '<ul class="pagination-list">'
 
-    pages.forEach(p => {
-      if (p.type === '...') {
-        html += '<li class="pagination-dots"><span>...</span></li>'
-      } else if (p.type === 'first') {
-        html += `<li class="pagination-nav ${currentPage <= 1 ? 'disabled' : ''}" data-page="1"><a href="#"><i class="fas fa-angle-double-left"></i></a></li>`
-      } else if (p.type === 'prev') {
-        html += `<li class="pagination-nav ${currentPage <= 1 ? 'disabled' : ''}" data-page="${p.value || 1}"><a href="#"><i class="fas fa-angle-left"></i></a></li>`
-      } else if (p.type === 'next') {
-        html += `<li class="pagination-nav ${currentPage >= totalPages ? 'disabled' : ''}" data-page="${p.value || totalPages}"><a href="#"><i class="fas fa-angle-right"></i></a></li>`
-      } else if (p.type === 'last') {
-        html += `<li class="pagination-nav ${currentPage >= totalPages ? 'disabled' : ''}" data-page="${totalPages}"><a href="#"><i class="fas fa-angle-double-right"></i></a></li>`
-      } else {
-        html += `<li class="pagination-number ${p.active ? 'active' : ''}" data-page="${p.value}"><a href="#">${p.value}</a></li>`
+    pages.forEach((item) => {
+      const button = document.createElement('button')
+
+      switch (item.type) {
+        case 'first':
+          button.innerHTML = '&laquo;'
+          button.title = 'Primera página'
+          button.disabled = currentPage === 1
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (!button.disabled) button.onclick = () => loadPage(1)
+          break
+        case 'prev':
+          button.innerHTML = '&lsaquo;'
+          button.title = 'Página anterior'
+          button.disabled = !item.value
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (item.value) button.onclick = () => loadPage(item.value)
+          break
+        case 'next':
+          button.innerHTML = '&rsaquo;'
+          button.title = 'Página siguiente'
+          button.disabled = !item.value
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (item.value) button.onclick = () => loadPage(item.value)
+          break
+        case 'last':
+          button.innerHTML = '&raquo;'
+          button.title = 'Última página'
+          button.disabled = currentPage === totalPages
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (!button.disabled) button.onclick = () => loadPage(totalPages)
+          break
+        case '...':
+          button.textContent = '...'
+          button.className = 'px-2 text-gray-400 cursor-default'
+          button.disabled = true
+          break
+        case 'number':
+          button.textContent = item.value
+          button.className = `px-3 py-1 border rounded ${item.active ? 'bg-blue-500 text-white' : 'bg-white text-black hover:bg-gray-100'}`
+          button.onclick = () => loadPage(item.value)
+          break
       }
+
+      paginationEl.appendChild(button)
     })
-
-    html += '</ul>'
-
-    if (paginationEl.querySelector('ul.pagination-list')) {
-      paginationEl.querySelector('ul.pagination-list').outerHTML = html
-    } else {
-      paginationEl.innerHTML = html
-    }
-
-    // Attach event listeners
-    paginationEl.querySelectorAll('li').forEach(li => {
-      li.addEventListener('click', function (e) {
-        e.preventDefault()
-        const page = parseInt(this.dataset.page)
-        if (!isNaN(page) && page !== currentPage && !this.classList.contains('disabled')) {
-          loadPage(page)
-        }
-      })
-    })
-  }
-
-  function updateNavigationButtons() {
-    const prevBtn = paginationEl.querySelector('[data-page="prev"]')
-    const nextBtn = paginationEl.querySelector('[data-page="next"]')
-    const firstBtn = paginationEl.querySelector('[data-page="first"]')
-    const lastBtn = paginationEl.querySelector('[data-page="last"]')
-
-    if (prevBtn) prevBtn.classList.toggle('disabled', currentPage <= 1)
-    if (firstBtn) firstBtn.classList.toggle('disabled', currentPage <= 1)
-    if (nextBtn) nextBtn.classList.toggle('disabled', currentPage >= totalPages)
-    if (lastBtn) lastBtn.classList.toggle('disabled', currentPage >= totalPages)
   }
 
   // Public method to reload (e.g., after filter change)
