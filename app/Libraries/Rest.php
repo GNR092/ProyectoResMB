@@ -460,20 +460,39 @@ class Rest
         $deptId = $filters['dept_id'] ?? null;
         $isException = !empty($filters['is_exception']);
 
+        $subquery = $this->db->table('Cotizacion')
+            ->select('Cotizacion.ID_Solicitud, OrdenCompra.Estado as OrdenEstado')
+            ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'inner')
+            ->getCompiledSelect();
+
         $selectFields = 'Solicitud.ID_Solicitud, Solicitud.No_Folio, Solicitud.Fecha, Solicitud.Estado, Solicitud.MetodoPago, Solicitud.Tipo, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre, Razon_Social.Nombre as Complejo';
 
-        $baseJoins = function ($query) {
+        $baseJoins = function ($query) use ($subquery) {
             $query->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                   ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                   ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
-                  ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left');
+                  ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+                  ->join("($subquery) SubOrden", 'SubOrden.ID_Solicitud = Solicitud.ID_Solicitud', 'left');
         };
 
         $applyFilters = function ($query) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException) {
+            $selectedEstado = $filters['estado'] ?? '';
+
             if ($onlyDeclined) {
-                $query->whereIn('Solicitud.Estado', $declinedStatuses);
+                if (!empty($selectedEstado) && in_array($selectedEstado, $declinedStatuses)) {
+                    // Si se filtra por un estado declinado específico, no aplicamos la restricción general whereIn para evitar conflictos
+                } else {
+                    $query->whereIn('Solicitud.Estado', $declinedStatuses);
+                }
             } else {
-                $query->whereNotIn('Solicitud.Estado', $excludedStatuses);
+                $currentExclusions = $excludedStatuses;
+                if (!empty($selectedEstado)) {
+                    // Removemos el estado seleccionado de las exclusiones generales si el usuario lo busca explícitamente
+                    $currentExclusions = array_diff($currentExclusions, [$selectedEstado]);
+                }
+                if (!empty($currentExclusions)) {
+                    $query->whereNotIn('Solicitud.Estado', $currentExclusions);
+                }
             }
 
             if ($deptId && $userId && !$isException) {
@@ -486,7 +505,25 @@ class Rest
             }
 
             if (!empty($filters['estado'])) {
-                $query->where('Solicitud.Estado', $filters['estado']);
+                $orderStatuses = [
+                    Status::Espera_Programacion,
+                    Status::Programada,
+                    Status::Por_Pagar,
+                    Status::Pagada
+                ];
+
+                if (in_array($filters['estado'], $orderStatuses)) {
+                    $query->where('Solicitud.Estado', Status::Aprobada);
+                    $query->where('SubOrden.OrdenEstado', $filters['estado']);
+                } elseif ($filters['estado'] === Status::Aprobada) {
+                    $query->where('Solicitud.Estado', Status::Aprobada);
+                    $query->groupStart()
+                          ->where('SubOrden.OrdenEstado IS NULL')
+                          ->orWhere('SubOrden.OrdenEstado', '')
+                          ->groupEnd();
+                } else {
+                    $query->where('Solicitud.Estado', $filters['estado']);
+                }
             }
 
             if (!empty($filters['fecha'])) {
