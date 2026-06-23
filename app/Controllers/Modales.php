@@ -1346,10 +1346,17 @@ class Modales extends BaseController
             'activo'          => true
         ];
 
-        if ($model->insert($data)) {
-            return $this->response->setJSON(['success' => true]);
-        } else {
-            return $this->failAudit('No se pudo insertar el lugar. Verifique los datos.', 'Catalogos', 'FALLO_REGISTRO_PLACE');
+        try {
+            if ($model->insert($data)) {
+                return $this->response->setJSON(['success' => true]);
+            } else {
+                return $this->failAudit('No se pudo insertar el lugar. Verifique los datos.', 'Catalogos', 'FALLO_REGISTRO_PLACE');
+            }
+        } catch (\Throwable $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error de base de datos. Asegúrese de ejecutar las migraciones en el servidor: ' . $e->getMessage()
+            ]);
         }
     }
     public function editarPlace($id)
@@ -1448,8 +1455,15 @@ class Modales extends BaseController
                 $data['activo'] = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
             }
 
-            if ($model->update($id, $data)) {
-                return $this->response->setJSON(['success' => true]);
+            try {
+                if ($model->update($id, $data)) {
+                    return $this->response->setJSON(['success' => true]);
+                }
+            } catch (\Throwable $e) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Error de base de datos al actualizar. Asegúrese de ejecutar las migraciones en el servidor: ' . $e->getMessage()
+                ]);
             }
 
             $errors = $model->errors();
