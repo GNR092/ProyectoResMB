@@ -28,15 +28,11 @@ class PlacesModel extends Model
 
     // Validación
     protected $validationRules      = [
-        'Nombre_Corto' => 'required|is_unique[Places.Nombre_Corto,ID_Place,{id}]',
+        'Nombre_Corto' => 'required',
         'Nombre_Completo' => 'required',
         'ID_RazonSocial' => 'required'
     ];
-    protected $validationMessages   = [
-        'Nombre_Corto' => [
-            'is_unique' => 'El Nombre Corto ya está en uso por otro complejo.'
-        ]
-    ];
+    protected $validationMessages   = [];
     protected $skipValidation       = false;
     protected $cleanValidationRules = true;
 

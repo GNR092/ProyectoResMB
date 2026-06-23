@@ -1448,10 +1448,6 @@ class Modales extends BaseController
                 $data['activo'] = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
             }
 
-            // --- AJUSTE DINÁMICO DE VALIDACIÓN ---
-            // Sobreescribimos la regla para este caso específico inyectando el ID a ignorar
-            $model->setValidationRule('Nombre_Corto', "required|is_unique[Places.Nombre_Corto,ID_Place,$id]");
-
             if ($model->update($id, $data)) {
                 return $this->response->setJSON(['success' => true]);
             }
