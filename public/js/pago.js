@@ -766,7 +766,13 @@ async function guardarEstadoPorPagar(idSolicitud) {
     }
   } catch (error) {
     console.error('State Update Error:', error);
-    mostrarNotificacion('Ocurrió un fallo al intentar guardar los cambios.', 'error');
+    const serverMessage = error?.data?.messages?.[0] || error?.data?.message || error?.data || null;
+    mostrarNotificacion(
+      serverMessage
+        ? `Error: ${serverMessage}`
+        : 'Ocurrió un fallo al intentar guardar los cambios.',
+      'error'
+    );
   }
 }
 

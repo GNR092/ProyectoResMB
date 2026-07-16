@@ -2434,8 +2434,9 @@ class Api extends ResourceController
                     $to = getenv('EMAIL_TO_TEST');
                     if (empty($to)) {
                         if (!$proveedorData || empty($proveedorData['Correo'])) {
-                            throw new \Exception(
-                                'No se pudo encontrar un correo electrónico para el proveedor.',
+                            return $this->fail(
+                                'No se puede cambiar el estado. El proveedor no tiene un correo electrónico registrado.',
+                                \CodeIgniter\HTTP\Response::HTTP_UNPROCESSABLE_ENTITY,
                             );
                         }
                         $to = $proveedorData['Correo'];
