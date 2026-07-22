@@ -317,6 +317,17 @@ $iconUrl = "/icons/icons.svg?v=$version";
                                         
                                         <!-- Dropdown de resultados -->
                                         <div class="absolute left-0 min-w-[700px] z-[100] mt-1 bg-white border rounded shadow-xl hidden container-resultados-busqueda max-h-60 overflow-y-auto">
+                                            <!-- Buscador dentro del dropdown -->
+                                            <div class="sticky top-0 z-20 bg-white border-b px-3 py-2 flex items-center gap-2">
+                                                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+                                                </svg>
+                                                <input type="text" class="buscador-producto flex-1 border rounded px-2 py-1 text-sm"
+                                                       placeholder="Buscar producto..." autocomplete="off">
+                                            </div>
+                                            <!-- Sin resultados (oculto por defecto) -->
+                                            <div class="sin-resultados-busqueda hidden px-3 py-4 text-center text-sm text-gray-500 italic"></div>
                                             <!-- Resultados dinámicos -->
                                         </div>
                                     </div>
@@ -494,6 +505,17 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
                                     <!-- Dropdown de resultados -->
                                     <div class="absolute left-0 min-w-[700px] z-[100] mt-1 bg-white border rounded shadow-xl hidden container-resultados-busqueda max-h-60 overflow-y-auto">
+                                        <!-- Buscador dentro del dropdown -->
+                                        <div class="sticky top-0 z-20 bg-white border-b px-3 py-2 flex items-center gap-2">
+                                            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+                                            </svg>
+                                            <input type="text" class="buscador-producto flex-1 border rounded px-2 py-1 text-sm"
+                                                   placeholder="Buscar servicio..." autocomplete="off">
+                                        </div>
+                                        <!-- Sin resultados (oculto por defecto) -->
+                                        <div class="sin-resultados-busqueda hidden px-3 py-4 text-center text-sm text-gray-500 italic"></div>
                                         <!-- Resultados dinámicos -->
                                     </div>
                                 </div>

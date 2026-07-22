@@ -386,7 +386,25 @@ async function cargarListaCompletaProductos(input, dropdown) {
     }
 
     try {
-        dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500 italic animate-pulse">Cargando catálogo...</div>';
+        // Preservar el buscador si existe, o limpiar todo
+        const searchInput = dropdown.querySelector('.buscador-producto');
+        const sinResultados = dropdown.querySelector('.sin-resultados-busqueda');
+
+        if (searchInput) {
+            // Limpiar búsqueda anterior
+            searchInput.value = '';
+            if (sinResultados) sinResultados.classList.add('hidden');
+            // Crear/quitar solo el contenedor de resultados, preservando el buscador
+            let listaContainer = dropdown.querySelector('.resultados-lista');
+            if (!listaContainer) {
+                listaContainer = document.createElement('div');
+                listaContainer.className = 'resultados-lista';
+                dropdown.appendChild(listaContainer);
+            }
+            listaContainer.innerHTML = '<div class="p-3 text-sm text-gray-500 italic animate-pulse">Cargando catálogo...</div>';
+        } else {
+            dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500 italic animate-pulse">Cargando catálogo...</div>';
+        }
         dropdown.classList.remove('hidden');
 
         const url = `${BASE_URL}api/productos/buscar?${params}`;
@@ -397,8 +415,17 @@ async function cargarListaCompletaProductos(input, dropdown) {
         renderResultadosCatalogo(input.closest('tr'), productos, dropdown);
     } catch (error) {
         console.error('Error al cargar catálogo:', error);
-        dropdown.innerHTML = '<div class="p-3 text-sm text-red-500 italic">Error al cargar productos.</div>';
-        dropdown.classList.add('hidden'); // Ocultar dropdown en caso de error
+        // Preservar el buscador en caso de error
+        const searchInput = dropdown.querySelector('.buscador-producto');
+        if (searchInput) {
+            let listaContainer = dropdown.querySelector('.resultados-lista');
+            if (listaContainer) {
+                listaContainer.innerHTML = '<div class="p-3 text-sm text-red-500 italic">Error al cargar productos.</div>';
+            }
+        } else {
+            dropdown.innerHTML = '<div class="p-3 text-sm text-red-500 italic">Error al cargar productos.</div>';
+        }
+        dropdown.classList.add('hidden');
     }
 }
 
@@ -469,9 +496,9 @@ function renderResultadosCatalogo(fila, productos, dropdown) {
 
         // Encabezados de sección
         if (index === 0 && tieneFavoritos && esFav) {
-            html += '<div class="bg-yellow-100 px-3 py-1 text-[10px] font-bold text-yellow-800 border-b sticky top-0 z-10">★ PRODUCTOS FRECUENTES</div>';
+            html += '<div class="encabezado-seccion bg-yellow-100 px-3 py-1 text-[10px] font-bold text-yellow-800 border-b sticky top-0 z-10">★ PRODUCTOS FRECUENTES</div>';
         } else if (index > 0 && esFav === false && (productos[index-1].es_favorito || productos[index-1].esFav)) {
-            html += '<div class="bg-gray-100 px-3 py-1 text-[10px] font-bold text-gray-600 border-b border-t sticky top-0 z-10">TODOS LOS PRODUCTOS</div>';
+            html += '<div class="encabezado-seccion bg-gray-100 px-3 py-1 text-[10px] font-bold text-gray-600 border-b border-t sticky top-0 z-10">TODOS LOS PRODUCTOS</div>';
         }
 
         html += `
@@ -489,10 +516,40 @@ function renderResultadosCatalogo(fila, productos, dropdown) {
         `;
     });
 
-    dropdown.innerHTML = html;
+    // Preservar el buscador si ya existe, o crear la estructura completa
+    let listaContainer = dropdown.querySelector('.resultados-lista');
+    if (!listaContainer) {
+        // Primera vez: reconstruir dropdown con buscador + contenedor de resultados
+        const searchInput = dropdown.querySelector('.buscador-producto');
+        const sinResultados = dropdown.querySelector('.sin-resultados-busqueda');
+
+        if (!searchInput) {
+            // Si no hay buscador en el HTML (fallback), crear la estructura completa
+            dropdown.innerHTML = `
+                <div class="sticky top-0 z-20 bg-white border-b px-3 py-2 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+                    </svg>
+                    <input type="text" class="buscador-producto flex-1 border rounded px-2 py-1 text-sm"
+                           placeholder="Buscar producto..." autocomplete="off">
+                </div>
+                <div class="sin-resultados-busqueda hidden px-3 py-4 text-center text-sm text-gray-500 italic"></div>
+                <div class="resultados-lista"></div>
+            `;
+        } else {
+            // El buscador ya existe en el HTML, solo agregar el contenedor de resultados
+            listaContainer = document.createElement('div');
+            listaContainer.className = 'resultados-lista';
+            dropdown.appendChild(listaContainer);
+        }
+        listaContainer = dropdown.querySelector('.resultados-lista');
+    }
+
+    listaContainer.innerHTML = html;
 
     // Asignar eventos de click a las opciones
-    dropdown.querySelectorAll('.opcion-producto').forEach(opcion => {
+    listaContainer.querySelectorAll('.opcion-producto').forEach(opcion => {
         opcion.addEventListener('click', (e) => {
             e.stopPropagation();
             seleccionarProductoCatalogo(fila, {
@@ -506,6 +563,76 @@ function renderResultadosCatalogo(fila, productos, dropdown) {
             dropdown.classList.add('hidden');
         });
     });
+
+    // Registrar evento de búsqueda si no estaba registrado
+    const searchInput = dropdown.querySelector('.buscador-producto');
+    if (searchInput && !searchInput._hasSearchHandler) {
+        searchInput._hasSearchHandler = true;
+        let searchTimeout = null;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                filtrarProductosEnDropdown(dropdown, searchInput.value);
+            }, 200);
+        });
+    }
+
+    // Asegurar que el div de sin resultados exista
+    if (!dropdown.querySelector('.sin-resultados-busqueda')) {
+        const sinResultados = document.createElement('div');
+        sinResultados.className = 'sin-resultados-busqueda hidden px-3 py-4 text-center text-sm text-gray-500 italic';
+        dropdown.insertBefore(sinResultados, dropdown.querySelector('.resultados-lista'));
+    }
+}
+
+/**
+ * Filtra los productos visibles en el dropdown según el texto de búsqueda.
+ * Filtra por nombre, SKU y alias de forma case-insensitive.
+ * Preserva/oculta encabezados de sección según si tienen productos visibles.
+ */
+function filtrarProductosEnDropdown(dropdown, texto) {
+    const normalizado = texto.toLowerCase().trim();
+    const opciones = dropdown.querySelectorAll('.opcion-producto');
+    const encabezados = dropdown.querySelectorAll('.encabezado-seccion');
+    const sinResultados = dropdown.querySelector('.sin-resultados-busqueda');
+    let hayVisibles = false;
+
+    opciones.forEach(opcion => {
+        const nombre = (opcion.dataset.nombre || '').toLowerCase();
+        const sku = (opcion.dataset.sku || '').toLowerCase();
+        const alias = (opcion.dataset.alias || '').toLowerCase();
+        const coincide = !normalizado || nombre.includes(normalizado) || sku.includes(normalizado) || alias.includes(normalizado);
+        if (coincide) {
+            opcion.classList.remove('hidden');
+            hayVisibles = true;
+        } else {
+            opcion.classList.add('hidden');
+        }
+    });
+
+    // Ocultar/mostrar encabezados de sección según si tienen productos visibles debajo
+    encabezados.forEach(encabezado => {
+        let siguiente = encabezado.nextElementSibling;
+        let tieneVisibles = false;
+        while (siguiente && !siguiente.classList.contains('encabezado-seccion')) {
+            if (siguiente.classList.contains('opcion-producto') && !siguiente.classList.contains('hidden')) {
+                tieneVisibles = true;
+                break;
+            }
+            siguiente = siguiente.nextElementSibling;
+        }
+        encabezado.classList.toggle('hidden', !tieneVisibles);
+    });
+
+    // Mostrar/ocultar mensaje de sin resultados
+    if (sinResultados) {
+        if (normalizado && !hayVisibles) {
+            sinResultados.textContent = `Sin resultados para "${texto.trim()}"`;
+            sinResultados.classList.remove('hidden');
+        } else {
+            sinResultados.classList.add('hidden');
+        }
+    }
 }
 
 /**
