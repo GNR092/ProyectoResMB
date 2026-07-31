@@ -85,7 +85,7 @@ function abrirModal(opcion) {
     crud_proveedores: 'Proveedores',
     limpiar_almacenamiento: 'Limpiar Almacenamiento',
     crud_usuarios: 'Administrar Usuarios',
-    pagos_pendientes: 'Facturas Pendientes',
+    pagos_pendientes: 'Pagos Realizados',
     registrar_productos: 'Registrar Productos',
     crud_productos: 'Existencias',
     entrega_productos: 'Entrega de Material',

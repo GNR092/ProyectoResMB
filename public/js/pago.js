@@ -801,8 +801,8 @@ function verRequisicionPago(id) {
 }
 
 /**
- * Lógica para el modal "Facturas pendientes" (Fichas de Pago)
- * Gestiona el listado de órdenes listas para pago final con semaforización de vencimientos.
+ * Lógica para el modal "Pagos Realizados" (Fichas de Pago)
+ * Gestiona el listado de órdenes listas para pago final.
  */
 function FichasPago() {
   return {
@@ -820,46 +820,14 @@ function FichasPago() {
     opcionesFiltro: { deptos: [], complejos: [] },
 
     /**
-     * Inicializa la carga de facturas y procesa la semaforización.
+     * Inicializa la carga de facturas.
      */
     async init() {
       this.loading = true;
       try {
         const data = await SendDataEnd('api/facturas-por-pagar');
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
 
-        this.todasLasFichas = (data || []).map(ficha => {
-          // Procesamiento preventivo de semaforización para Crédito
-          let semaforo = { clase: 'hover:bg-gray-50', diasTexto: '', sort: 9999 };
-          
-          if (String(ficha.MetodoPago) === '1' && ficha.Fecha_Aprobacion) {
-            const [anio, mes, dia] = ficha.Fecha_Aprobacion.split(' ')[0].split('-').map(Number);
-            const vencimiento = new Date(anio, mes - 1, dia);
-            vencimiento.setDate(vencimiento.getDate() + (parseInt(ficha.Dias_Credito) || 0));
-
-            const diffDays = Math.floor((vencimiento - hoy) / 86400000);
-            semaforo.sort = diffDays;
-
-            if (diffDays < 0) {
-              semaforo.clase = 'bg-gray-900 text-white hover:bg-gray-800';
-              semaforo.diasTexto = `Vencido (${Math.abs(diffDays)} días)`;
-            } else if (diffDays === 0) {
-              semaforo.clase = 'bg-red-100 text-red-800 hover:bg-red-200 font-bold';
-              semaforo.diasTexto = 'Vence hoy';
-            } else if (diffDays < 5) {
-              semaforo.clase = 'bg-red-100 text-red-800 hover:bg-red-200';
-              semaforo.diasTexto = `${diffDays} días`;
-            } else if (diffDays < 15) {
-              semaforo.clase = 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-              semaforo.diasTexto = `${diffDays} días`;
-            } else {
-              semaforo.diasTexto = `${diffDays} días`;
-            }
-          }
-
-          return { ...ficha, semaforo };
-        });
+        this.todasLasFichas = data || [];
 
         // Extraer opciones de filtro una sola vez
         this.opcionesFiltro.deptos = [...new Set(this.todasLasFichas.map(f => f.DepartamentoNombre))].filter(Boolean).sort();
@@ -870,14 +838,14 @@ function FichasPago() {
 
       } catch (error) {
         console.error('Error FichasPago:', error);
-        mostrarNotificacion('Error al cargar las facturas pendientes.', 'error');
+        mostrarNotificacion('Error al cargar los Pagos Realizados.', 'error');
       } finally {
         this.loading = false;
       }
     },
 
     /**
-     * Retorna la lista filtrada y ordenada según el método de pago solicitado.
+     * Retorna la lista filtrada según el método de pago solicitado.
      */
     getFichas(metodo) {
       const tipo = metodo === '0' ? 'contado' : 'credito';
@@ -895,11 +863,6 @@ function FichasPago() {
         }
         return true;
       });
-
-      // Ordenar crédito por urgencia
-      if (metodo === '1') {
-        filtradas.sort((a, b) => a.semaforo.sort - b.semaforo.sort);
-      }
 
       return filtradas;
     },
@@ -920,6 +883,18 @@ function FichasPago() {
 
     formatCurrency(v) {
       return parseFloat(v || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+    },
+
+    /**
+     * Formatea la fecha del comprobante (AAAA-MM-DD) a DD/MM/AAAA.
+     * @param {string} v - Fecha en formato AAAA-MM-DD.
+     * @returns {string} - Fecha formateada o 'N/A' si no hay valor.
+     */
+    formatFecha(v) {
+      if (!v) return 'N/A';
+      const [anio, mes, dia] = String(v).split('-');
+      if (!anio || !mes || !dia) return String(v);
+      return `${dia}/${mes}/${anio}`;
     }
   };
 }

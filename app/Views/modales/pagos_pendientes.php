@@ -1,24 +1,16 @@
-<?php
-// Clases del semáforo para el "Purge" de TailwindCSS:
-// bg-gray-900 text-white hover:bg-gray-800
-// bg-red-100 text-red-800 hover:bg-red-200
-// bg-yellow-100 text-yellow-800 hover:bg-yellow-200
-// hover:bg-gray-50
-?>
-
 <div x-data="Object.assign(FichasPago(), { screen: 'menu' })" x-init="init()" @reload-pagos-fichas.window="init()">
     <!-- Pantalla principal -->
     <div x-show="screen === 'menu'" id="pagos-menu" class="p-6">
         <div class="flex flex-col sm:flex-row gap-2">
             <button @click="screen = 'contado'"
                     class="w-full sm:w-auto flex-grow px-4 py-3 m-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ">
-                <p class="font-medium">Pago de contado</p>
+                <p class="font-medium">Pagos Realizados de contado</p>
                 <p id="count-contado-fichas" class="text-xs opacity-75" x-text="countContado + ' pendientes'"></p>
             </button>
 
             <button @click="screen = 'credito'"
                     class="w-full sm:w-auto flex-grow px-4 py-3 m-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-                <p class="font-medium">Pago a crédito</p>
+                <p class="font-medium">Pagos Realizados a crédito</p>
                 <p id="count-credito-fichas" class="text-xs opacity-75" x-text="countCredito + ' pendientes'"></p>
             </button>
         </div>
@@ -68,6 +60,7 @@
                     <th class="px-4 py-2 border-b">Proveedor</th>
                     <th class="px-4 py-2 border-b">Banco</th>
                     <th class="px-4 py-2 border-b">Importe</th>
+                    <th class="px-4 py-2 border-b">Fecha de pago</th>
                     <th class="px-4 py-2 border-b text-center">Acciones</th>
                 </tr>
                 </thead>
@@ -80,6 +73,7 @@
                             <td class="px-4 py-2" x-text="f.RazonSocial"></td>
                             <td class="px-4 py-2 text-gray-500" x-text="f.Banco || '-'"></td>
                             <td class="px-4 py-2 font-semibold" x-text="formatCurrency(f.Total)"></td>
+                            <td class="px-4 py-2" x-text="formatFecha(f.Fecha_Comprobante)"></td>
                             <td class="px-4 py-2 text-center">
                                 <button @click="mostrarDetalleFicha(f.ID_Solicitud, '0')"
                                         class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-xs uppercase">
@@ -89,7 +83,7 @@
                         </tr>
                     </template>
                     <tr x-show="getFichas('0').length === 0">
-                        <td colspan="7" class="px-4 py-3 text-center text-gray-500" x-text="loading ? 'Cargando datos...' : 'No hay registros disponibles.'"></td>
+                        <td colspan="8" class="px-4 py-3 text-center text-gray-500" x-text="loading ? 'Cargando datos...' : 'No hay registros disponibles.'"></td>
                     </tr>
                 </tbody>
             </table>
@@ -143,20 +137,20 @@
                     <th class="px-4 py-2 border-b">Proveedor</th>
                     <th class="px-4 py-2 border-b">Banco</th>
                     <th class="px-4 py-2 border-b">Importe</th>
-                    <th class="px-4 py-2 border-b text-center">Días Restantes</th>
+                    <th class="px-4 py-2 border-b">Fecha de pago</th>
                     <th class="px-4 py-2 border-b text-center">Acciones</th>
                 </tr>
                 </thead>
                 <tbody id="body-credito">
                     <template x-for="f in getFichas('1')" :key="f.ID_Solicitud">
-                        <tr :class="f.semaforo.clase" class="transition border-b">
+                        <tr class="transition border-b">
                             <td class="px-4 py-2" x-text="f.DepartamentoNombre"></td>
                             <td class="px-4 py-2" x-text="f.Complejo"></td>
                             <td class="px-4 py-2 font-mono font-bold" x-text="f.No_Folio"></td>
                             <td class="px-4 py-2" x-text="f.RazonSocial"></td>
                             <td class="px-4 py-2" x-text="f.Banco || '-'"></td>
                             <td class="px-4 py-2 font-bold" x-text="formatCurrency(f.Total)"></td>
-                            <td class="px-4 py-2 text-center text-sm" x-html="f.semaforo.diasTexto"></td>
+                            <td class="px-4 py-2" x-text="formatFecha(f.Fecha_Comprobante)"></td>
                             <td class="px-4 py-2 text-center">
                                 <button @click="mostrarDetalleFicha(f.ID_Solicitud, '1')"
                                         class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-xs uppercase">

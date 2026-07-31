@@ -2021,6 +2021,7 @@ class Api extends ResourceController
                     // Si no existe esa columna exacta, usa 'OrdenCompra.Fecha' o la que uses para calcular vencimiento.
                     'Solicitud.Fecha_Aprobacion',
                     'OrdenCompra.Estado as EstadoOrden',
+                    'OrdenCompra.Fecha_Comprobante',
                     'Departamentos.Nombre as DepartamentoNombre',
                     'Razon_Social.Nombre as Complejo',
 
