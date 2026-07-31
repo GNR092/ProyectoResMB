@@ -553,6 +553,14 @@ async function uploadComprobante(idSolicitud) {
     return;
   }
 
+  // Paso obligatorio: capturar la fecha del comprobante en un modal.
+  // Si el usuario cancela o no la llena, NO se adjunta el comprobante.
+  const fechaComprobante = await PromptFechaComprobante();
+  if (!fechaComprobante) {
+    mostrarNotificacion('Operación cancelada. El comprobante no se adjuntó.', 'info');
+    return;
+  }
+
   const uploadButton = document.getElementById('btn-upload-comprobante');
   const originalHtml = uploadButton.innerHTML;
 
@@ -570,6 +578,7 @@ async function uploadComprobante(idSolicitud) {
 
   const formData = new FormData();
   formData.append('ficha', file);
+  formData.append('fecha_comprobante', fechaComprobante);
 
   try {
     const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
