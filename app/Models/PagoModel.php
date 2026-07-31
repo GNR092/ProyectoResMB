@@ -15,7 +15,7 @@ class PagoModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['ID_OrdenCompra', 'ID_Proveedor', 'Tipo', 'Fecha_Solicitud', 'Fecha_Pago', 'Folio', 'Concepto', 'Forma'];
+    protected $allowedFields    = ['ID_OrdenCompra', 'ID_Proveedor', 'Tipo', 'Fecha_Solicitud', 'Fecha_Pago', 'Folio', 'Concepto', 'Forma', 'Fecha_Comprobante'];
 
     // Dates
     protected $useTimestamps = false;
