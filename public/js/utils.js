@@ -343,6 +343,72 @@ function InputPrompt(title, message, isRequired = true) {
   })
 }
 
+/**
+ * Muestra un modal para capturar la fecha del comprobante de pago (obligatoria).
+ * Se usa al intentar guardar el comprobante: si se cancela o no se llena, se resuelve null
+ * y el comprobante NO se adjunta.
+ * Valor inicial por defecto: la fecha actual (editable por el usuario).
+ * @param {string} valorInicial - Fecha inicial (AAAA-MM-DD), opcional. Vacío = fecha de hoy.
+ * @returns {Promise<string|null>} - Fecha capturada (AAAA-MM-DD) o null si se cancela.
+ */
+function PromptFechaComprobante(valorInicial = '') {
+  return new Promise((resolve) => {
+    const modalOverlay = document.createElement('div')
+    modalOverlay.className =
+      'fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50'
+    modalOverlay.style.zIndex = '2147483647'
+
+    // Valor inicial por defecto: fecha actual en zona local (AAAA-MM-DD), siempre editable.
+    if (!valorInicial) {
+      const hoy = new Date()
+      valorInicial = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+    }
+
+    let modalHtml = `
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+                <h3 class="text-lg font-bold mb-4">Fecha del comprobante</h3>
+                <p class="text-sm text-gray-600 mb-4">Indique la fecha que aparece en el comprobante de pago (foto/PDF). Este paso es obligatorio.</p>
+                <label for="promptFechaInput" class="block text-sm font-medium text-gray-700 mb-2">Fecha del comprobante</label>
+                <input type="date" id="promptFechaInput" value="${valorInicial}"
+                       class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button id="cancelarFechaBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+                    <button id="confirmarFechaBtn" class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700">Confirmar</button>
+                </div>
+            </div>
+        `
+    modalOverlay.innerHTML = modalHtml
+    document.body.appendChild(modalOverlay)
+
+    const input = document.getElementById('promptFechaInput')
+    input.focus()
+
+    const closeModal = (value) => {
+      modalOverlay.remove()
+      resolve(value)
+    }
+
+    document.getElementById('cancelarFechaBtn').addEventListener('click', () => closeModal(null))
+
+    document.getElementById('confirmarFechaBtn').addEventListener('click', () => {
+      const value = input.value.trim()
+      if (!value) {
+        mostrarNotificacion('La fecha del comprobante es obligatoria.', 'error')
+        input.focus()
+        input.classList.add('border-red-500')
+        return
+      }
+      closeModal(value)
+    })
+
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal(null)
+      }
+    })
+  })
+}
+
 function GetFiles(data) {
   let html = ''
   if (data.OrdenCompra['File_Factura']) {

@@ -2333,8 +2333,23 @@ class Api extends ResourceController
         if ($this->request->is('json')) {
             $json = $this->request->getJSON();
             $nuevoEstado = $json->nuevoEstado ?? null;
+            $fechaComprobante = $json->fecha_comprobante ?? null;
         } else {
             $nuevoEstado = $this->request->getPost('nuevoEstado');
+            $fechaComprobante = $this->request->getPost('fecha_comprobante');
+        }
+
+        // Validar formato de fecha (YYYY-MM-DD) si se envía.
+        if (!empty($fechaComprobante)) {
+            $fechaComprobante = trim($fechaComprobante);
+            $d = \DateTime::createFromFormat('Y-m-d', $fechaComprobante);
+            if (!$d || $d->format('Y-m-d') !== $fechaComprobante) {
+                return $this->failValidationAudit(
+                    'La fecha del comprobante no es válida. Use el formato AAAA-MM-DD.',
+                );
+            }
+        } else {
+            $fechaComprobante = null;
         }
 
         $facturaFiles = $this->request->getFileMultiple('factura');
@@ -2409,9 +2424,13 @@ class Api extends ResourceController
                 log_message('info', $comprobanteFileName);
                 if ($comprobanteFileName) {
                     // Changed $savedFile to $comprobanteFileName
-                    $ordenCompraModel->update($idOrdenCompra, [
+                    $updateComprobante = [
                         'File_Comprobante' => $comprobanteFileName,
-                    ]);
+                    ];
+                    if (!empty($fechaComprobante)) {
+                        $updateComprobante['Fecha_Comprobante'] = $fechaComprobante;
+                    }
+                    $ordenCompraModel->update($idOrdenCompra, $updateComprobante);
                     $comprobanteSavedPath = FPath::FCOMPROBANTES . $comprobanteFileName; // Set full path
                 } else {
                     return $this->failServerError('No se pudo guardar el archivo del comprobante.');
@@ -2615,6 +2634,11 @@ class Api extends ResourceController
                 $datosActualizar = [
                     'Estado' => $nuevoEstado,
                 ];
+
+                // Si el usuario capturó la fecha del comprobante, la persistimos junto al cambio de estado
+                if (!empty($fechaComprobante)) {
+                    $datosActualizar['Fecha_Comprobante'] = $fechaComprobante;
+                }
 
                 // Si el estado que recibimos es el del botón ("Por Pagar"), inyectamos la fecha actual
                 if ($nuevoEstado === 'Por Pagar' || (class_exists('Status') && $nuevoEstado === Status::Por_Pagar)) {
