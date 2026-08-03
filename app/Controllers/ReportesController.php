@@ -918,6 +918,8 @@ $cols[] = chr(65 + $i);
                     $lastCol = $cols[count($headers)-1];
                     $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFont()->setBold(true);
                     $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                    // Doble borde inferior para separar visualmente del siguiente grupo
+                    $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getBorders()->getBottom()->setBorderStyle(Border::BORDER_DOUBLE);
                     
                     // Guardar fila de subtotal para formato de moneda
                     $subtotalRows[] = $row;
@@ -971,11 +973,11 @@ $cols[] = chr(65 + $i);
                 // Estilos de semáforo - solo color para vencidos
                 if (isset($v['claseSemaforo'])) {
                     if (strpos($v['claseSemaforo'], 'bg-gray-900') !== false || strpos($v['claseSemaforo'], 'bg-red-100') !== false) {
-                        // Vencidos: fondo rojo oscuro, letra blanca
+                        // Vencidos: fondo rojo tenue, letra roja oscura
                         $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFill()
-                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('991B1B');
+                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FEE2E2');
                         $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFont()
-                            ->getColor()->setRGB('FFFFFF');
+                            ->getColor()->setRGB('991B1B');
                     }
                     // Quitados: amarillo (por vencer) y otros - sin color
                 }
@@ -1021,6 +1023,8 @@ $cols[] = chr(65 + $i);
                 $lastCol = $cols[count($headers)-1];
                 $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFont()->setBold(true);
                 $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                // Doble borde inferior para separar visualmente
+                $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getBorders()->getBottom()->setBorderStyle(Border::BORDER_DOUBLE);
                 
                 $subtotalRows[] = $row;
                 $row++; // Fila en blanco después del último subtotal
