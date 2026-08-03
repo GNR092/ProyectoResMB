@@ -885,7 +885,6 @@ class ReportesController extends ResourceController
                 
                 // Si cambió de proveedor y no es el primero, insertar subtotal
                 if ($currentProveedor !== null && $proveedorId !== $currentProveedor) {
-                    $row++;
                     $c = 0;
                     $sheet->setCellValue($cols[$c++].$row, '');
                     if ($esDetallado) {
@@ -999,7 +998,6 @@ class ReportesController extends ResourceController
             
             // Subtotal del último proveedor
             if ($currentProveedor !== null) {
-                $row++;
                 $c = 0;
                 $sheet->setCellValue($cols[$c++].$row, '');
                 if ($esDetallado) {
