@@ -842,18 +842,14 @@ class ReportesController extends ResourceController
 
             $cols = [];
             for ($i = 0; $i < count($headers); $i++) {
-                $cols[] = chr(65 + $i);
+$cols[] = chr(65 + $i);
             }
             
             $headerStyle = [
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '1F2937']
-                ],
+                'font' => ['bold' => true],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
             ];
-
+            
             foreach ($headers as $i => $h) {
                 $sheet->setCellValue($cols[$i].'5', $h);
                 $sheet->getStyle($cols[$i].'5')->applyFromArray($headerStyle);
@@ -918,11 +914,9 @@ class ReportesController extends ResourceController
                     $sheet->setCellValue($cols[$c++].$row, '');
                     $sheet->setCellValue($cols[$c++].$row, '');
                     
-                    // Estilo subtotal: negrita, fondo gris claro
+                    // Estilo subtotal: solo negrita y bordes (sin color de fondo)
                     $lastCol = $cols[count($headers)-1];
                     $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFont()->setBold(true);
-                    $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFill()
-                        ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
                     $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
                     
                     // Guardar fila de subtotal para formato de moneda
@@ -974,24 +968,16 @@ class ReportesController extends ResourceController
                 $sheet->setCellValue($cols[$c++].$row, $v['estatusVencimiento'] ?? 'N/A');
                 $sheet->setCellValue($cols[$c++].$row, $v['textoVencimiento']);
 
-                // Estilos de semáforo
+                // Estilos de semáforo - solo color para vencidos
                 if (isset($v['claseSemaforo'])) {
-                    if (strpos($v['claseSemaforo'], 'bg-gray-900') !== false) {
+                    if (strpos($v['claseSemaforo'], 'bg-gray-900') !== false || strpos($v['claseSemaforo'], 'bg-red-100') !== false) {
+                        // Vencidos: fondo rojo oscuro, letra blanca
                         $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFill()
-                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('111827');
+                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('991B1B');
                         $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFont()
                             ->getColor()->setRGB('FFFFFF');
-                    } else if (strpos($v['claseSemaforo'], 'bg-red-100') !== false) {
-                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFill()
-                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FEE2E2');
-                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFont()
-                            ->getColor()->setRGB('991B1B');
-                    } else if (strpos($v['claseSemaforo'], 'bg-yellow-100') !== false) {
-                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFill()
-                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FEF3C7');
-                        $sheet->getStyle('A'.$row.':'.$cols[count($headers)-1].$row)->getFont()
-                            ->getColor()->setRGB('92400E');
                     }
+                    // Quitados: amarillo (por vencer) y otros - sin color
                 }
                 $row++;
             }
@@ -1034,11 +1020,10 @@ class ReportesController extends ResourceController
                 // Estilo subtotal
                 $lastCol = $cols[count($headers)-1];
                 $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFont()->setBold(true);
-                $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFill()
-                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
                 $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
                 
                 $subtotalRows[] = $row;
+                $row++; // Fila en blanco después del último subtotal
             }
 
             // Formato de moneda para columnas de dinero
