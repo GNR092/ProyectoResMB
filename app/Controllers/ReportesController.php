@@ -1423,4 +1423,242 @@ $cols[] = chr(65 + $i);
             }
         }
     }
+
+    /**
+     * EXPORTAR PRESUPUESTO vs EJECUTADO MENSUAL EN PDF (pantalla 'presupuesto').
+     * Reproduce la tabla fija del Excel (Asignado, Comprometido, Pagado,
+     * Compras del mes, Disponible, [Excedido], % Ejec.) con la jerarquía
+     * RS -> Segmento -> Complejo -> Unidad -> Partida.
+     */
+    public function exportarPresupuestoVsEjecutadoPdf()
+    {
+        try {
+            $json  = $this->request->getJSON(true);
+            $datos = $json['datos'] ?? [];
+            $hayExcedidos = !empty($json['hayExcedidos']);
+            $mesesSeleccionados = $json['mesesSeleccionados'] ?? [];
+            $titulo    = $json['titulo'] ?? 'Presupuesto vs Ejecutado';
+            $mesAnio   = $json['mesAnio'] ?? (date('Y') . '-' . date('n'));
+            $nombreEmpresa = $json['nombreEmpresa'] ?? 'Grupo MBM';
+
+            if (empty($datos)) {
+                return $this->fail('No hay datos para generar el PDF');
+            }
+
+            $pdf = new PDF('L', 'mm', 'Letter');
+            $pdf->AliasNbPages();
+            $pdf->SetAutoPageBreak(false);
+            $pdf->setHeaderTitle('REPORTE ' . mb_strtoupper($titulo));
+            $pdf->AddPage();
+
+            // --- Bloque informativo ---
+            $pdf->SetFont('Arial', 'B', 12);
+            $pdf->SetTextColor(18, 18, 18);
+            $pdf->Cell(0, 7, $this->_iso('REPORTE ' . strtoupper($titulo)), 0, 1, 'L');
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetTextColor(90, 90, 90);
+            $mesesStr = count($mesesSeleccionados)
+                ? implode(', ', array_column($mesesSeleccionados, 'nombre'))
+                : '-';
+            $pdf->Cell(0, 4, $this->_iso('Empresa: ' . $nombreEmpresa), 0, 1, 'L');
+            $pdf->Cell(0, 4, $this->_iso('Periodo: ' . $mesAnio . '   Mes(es): ' . $mesesStr), 0, 1, 'L');
+            $pdf->Cell(0, 4, $this->_iso('Generado: ' . date('d/m/Y H:i:s')), 0, 1, 'L');
+            $pdf->Ln(2);
+
+            // --- Anchos de columnas ---
+            $contentW = 259.4;                 // Letter horizontal menos márgenes 10/10
+            $pctW     = 18;
+            $moneyW   = 26;
+            $cols     = ['Asignado', 'Comprometido', 'Pagado', 'Compras del mes', 'Disponible'];
+            if ($hayExcedidos) {
+                $cols[] = 'Excedido';
+            }
+            $nMoney   = count($cols);
+            $denomW   = $contentW - ($nMoney * $moneyW) - $pctW;
+            if ($denomW < 64) {
+                $denomW  = 64;
+                $moneyW  = ($contentW - $denomW - $pctW) / $nMoney;
+                if ($moneyW < 20) {
+                    $moneyW = 20;
+                }
+            }
+
+            $x0 = $pdf->GetX();
+            $h  = 6.2;
+
+            $this->_pdfVsHeaderTabla($pdf, $x0, $denomW, $moneyW, $pctW, $cols);
+
+            $ctx = [
+                'x0'           => $x0, 'h' => $h,
+                'denomW'       => $denomW, 'moneyW' => $moneyW, 'pctW' => $pctW,
+                'cols'         => $cols, 'hayExcedidos' => $hayExcedidos,
+            ];
+
+            $tg = ['asignado' => 0.0, 'comprometido' => 0.0, 'ejecutado' => 0.0, 'excedido' => 0.0];
+            foreach ($datos as $rs) {
+                $t = $rs['totales'] ?? $rs;
+                $tg['asignado']     += (float)($t['asignado'] ?? 0);
+                $tg['comprometido'] += (float)($t['comprometido'] ?? 0);
+                $tg['ejecutado']    += (float)($t['ejecutado'] ?? 0);
+                $tg['excedido']     += (float)($t['excedido'] ?? 0);
+                $this->_pdfVsRenderNodo($pdf, $rs, 0, $ctx);
+            }
+
+            $this->_pdfVsFooterTotal($pdf, $x0, $denomW, $moneyW, $pctW, $cols, $hayExcedidos, $tg);
+
+            $descarga = 'Reporte_' . trim(str_replace(' ', '_', $titulo)) . '_' . $mesAnio . '.pdf';
+            $this->response->setHeader('Content-Type', 'application/pdf');
+            $pdf->Output('D', $descarga);
+            exit;
+
+        } catch (\Throwable $e) {
+            log_message('error', '[exportarPresupuestoVsEjecutadoPdf] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    /**
+     * Devuelve el estilo visual de un nodo según su nivel jerárquico.
+     */
+    private function _pdfEstiloNodo(int $level, $nodo): array
+    {
+        $niveles = [
+            0 => ['fill' => [229, 231, 235], 'txt' => [30, 30, 30], 'style' => 'B'],
+            1 => ['fill' => [219, 234, 252], 'txt' => [30, 58, 138], 'style' => 'B'],
+            2 => ['fill' => null,           'txt' => [90, 90, 90],   'style' => 'I'],
+            3 => ['fill' => [243, 244, 246], 'txt' => [30, 30, 30],  'style' => 'B'],
+        ];
+        $isIndirecto = !empty($nodo['es_manual']) && in_array($nodo['es_manual'], [1, true, 't'], true);
+        if ($level === 4) {
+            return [
+                'fill'  => $isIndirecto ? [254, 243, 199] : null,
+                'txt'   => [107, 114, 128],
+                'style' => '',
+            ];
+        }
+        return $niveles[$level] ?? end($niveles);
+    }
+
+    /**
+     * Dibuja la cabecera (fila de títulos) de la tabla del reporte vs ejecutado.
+     */
+    private function _pdfVsHeaderTabla(PDF $pdf, float $x0, float $denomW, float $moneyW, float $pctW, array $cols): void
+    {
+        $h = 6.5;
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->SetFillColor(31, 41, 55);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetDrawColor(26, 26, 26);
+
+        $x = $x0;
+        $pdf->SetXY($x, $pdf->GetY());
+        $pdf->Cell($denomW, $h, $this->_iso('Departamento / Partida'), 'LR', 0, 'L', true);
+        $x += $denomW;
+        foreach ($cols as $c) {
+            $pdf->SetXY($x, $pdf->GetY());
+            $pdf->Cell($moneyW, $h, $this->_iso($c), 'LR', 0, 'C', true);
+            $x += $moneyW;
+        }
+        $pdf->SetXY($x, $pdf->GetY());
+        $pdf->Cell($pctW, $h, $this->_iso('% Ejec.'), 'LR', 1, 'C', true);
+    }
+
+    /**
+     * Renderiza recursivamente la jerarquía del reporte vs ejecutado.
+     */
+    private function _pdfVsRenderNodo(PDF $pdf, $nodo, int $level, array $ctx): void
+    {
+        $h          = $ctx['h'];
+        $x0         = $ctx['x0'];
+        $denomW     = $ctx['denomW'];
+        $moneyW     = $ctx['moneyW'];
+        $pctW       = $ctx['pctW'];
+        $cols       = $ctx['cols'];
+        $hayExcedidos = $ctx['hayExcedidos'];
+
+        $label = $nodo['etiqueta'] ?? ($nodo['nombre'] ?? ($nodo['Nombre'] ?? ''));
+        $label = str_repeat(' ', $level * 3) . $label;
+
+        $totales = isset($nodo['totales']) ? $nodo['totales'] : $nodo;
+        $asig   = (float)($totales['asignado'] ?? 0);
+        $comp   = (float)($totales['comprometido'] ?? 0);
+        $ejec   = (float)($totales['ejecutado'] ?? 0);
+        $disp   = (float)($totales['disponible'] ?? 0);
+        $exced  = (float)($totales['excedido'] ?? 0);
+        $perc   = (float)($totales['porcentaje'] ?? 0);
+        $compras = $comp + $ejec;
+
+        // Salto de página
+        if ($pdf->GetY() + $h > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage();
+            $this->_pdfVsHeaderTabla($pdf, $x0, $denomW, $moneyW, $pctW, $cols);
+        }
+
+        $est = $this->_pdfEstiloNodo($level, $nodo);
+        $pdf->SetFont('Arial', $est['style'], 8);
+        $pdf->SetTextColor($est['txt'][0], $est['txt'][1], $est['txt'][2]);
+        $pdf->SetDrawColor(229, 231, 235);
+        $fill = $est['fill'] !== null;
+        if ($fill) {
+            $pdf->SetFillColor($est['fill'][0], $est['fill'][1], $est['fill'][2]);
+        }
+
+        $pdf->Cell($denomW, $h, $this->_iso($label), 'LR', 0, 'L', $fill);
+        $pdf->Cell($moneyW, $h, $this->_iso($this->_fmtMoney($asig)), 'LR', 0, 'R', $fill);
+        $pdf->Cell($moneyW, $h, $this->_iso($this->_fmtMoney($comp)), 'LR', 0, 'R', $fill);
+        $pdf->Cell($moneyW, $h, $this->_iso($this->_fmtMoney($ejec)), 'LR', 0, 'R', $fill);
+        $pdf->Cell($moneyW, $h, $this->_iso($this->_fmtMoney($compras)), 'LR', 0, 'R', $fill);
+        $pdf->Cell($moneyW, $h, $this->_iso($this->_fmtMoney($disp)), 'LR', 0, 'R', $fill);
+        if ($hayExcedidos) {
+            $pdf->Cell($moneyW, $h, $this->_iso($this->_fmtMoney($exced)), 'LR', 0, 'R', $fill);
+        }
+        $pdf->Cell($pctW, $h, $this->_iso(number_format($perc, 1) . '%'), 'LR', 1, 'C', $fill);
+
+        foreach (['segmentos', 'complejos', 'departamentos', 'detalles'] as $ck) {
+            if (isset($nodo[$ck]) && is_array($nodo[$ck])) {
+                foreach ($nodo[$ck] as $child) {
+                    $this->_pdfVsRenderNodo($pdf, $child, $level + 1, $ctx);
+                }
+            }
+        }
+    }
+
+    /**
+     * Dibuja la fila de totales generales del reporte vs ejecutado.
+     */
+    private function _pdfVsFooterTotal(PDF $pdf, float $x0, float $denomW, float $moneyW, float $pctW, array $cols, bool $hayExcedidos, array $tg): void
+    {
+        $y0 = $pdf->GetY();
+        $pdf->SetDrawColor(26, 26, 26);
+        $lineEnd = $x0 + $denomW + (count($cols) * $moneyW) + $pctW;
+        $pdf->Line($x0, $y0, $lineEnd, $y0);
+        $y0 += 0.5;
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->SetFillColor(31, 41, 55);
+        $pdf->SetTextColor(255, 255, 255);
+        $x = $x0;
+        $pdf->SetXY($x, $y0);
+        $pdf->Cell($denomW, 7, $this->_iso('TOTAL GENERAL'), 'LR', 0, 'R', true);
+        $x += $denomW;
+
+        $compras = $tg['comprometido'] + $tg['ejecutado'];
+        $disp    = $tg['asignado'] - $compras;
+        $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($tg['asignado'])), 'LR', 0, 'R', true);
+        $x += $moneyW;
+        $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($tg['comprometido'])), 'LR', 0, 'R', true);
+        $x += $moneyW;
+        $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($tg['ejecutado'])), 'LR', 0, 'R', true);
+        $x += $moneyW;
+        $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($compras)), 'LR', 0, 'R', true);
+        $x += $moneyW;
+        $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($disp)), 'LR', 0, 'R', true);
+        $x += $moneyW;
+        if ($hayExcedidos) {
+            $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($tg['excedido'])), 'LR', 0, 'R', true);
+            $x += $moneyW;
+        }
+        $perc = $tg['asignado'] > 0 ? round(($compras / $tg['asignado']) * 100, 1) : 0;
+        $pdf->Cell($pctW, 7, $this->_iso(number_format($perc, 1) . '%'), 'LR', 1, 'C', true);
+    }
 }
