@@ -18,6 +18,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 
 use App\Models\DepartamentosModel;
 use App\Models\ProveedorModel;
+use App\Libraries\PDF;
 use App\Libraries\Rest;
 
 class ReportesController extends ResourceController
@@ -1178,5 +1179,248 @@ $cols[] = chr(65 + $i);
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="'.$filename.'"');
         $writer->save('php://output'); exit();
+    }
+
+    /**
+     * EXPORTAR REPORTE MENSUAL EN PDF (pantallas solo_presupuesto / solo_ejecutado).
+     * Reproduce la misma jerarquía y estilo visual que exportarMensualJson,
+     * pero con salida en formato documento PDF (FPDF/FPDI + setasign).
+     *
+     * @return mixed
+     */
+    public function exportarMensualPdf()
+    {
+        try {
+            $json   = $this->request->getJSON(true);
+            $datos  = $json['datos'] ?? [];
+            $mesesSeleccionados = $json['mesesSeleccionados'] ?? [];
+            $titulo = $json['titulo'] ?? 'Presupuesto Asignado';
+            $campo  = (($json['campo'] ?? 'asignado') === 'asignado') ? 'asignado' : 'ejecutado';
+            $mesAnio = $json['mesAnio'] ?? (date('Y') . '-' . date('n'));
+            $nombreEmpresa = $json['nombreEmpresa'] ?? 'Grupo MBM';
+
+            if (empty($datos)) {
+                return $this->fail('No hay datos para generar el PDF');
+            }
+
+            $isMensual  = count($mesesSeleccionados) > 1;
+            $orient     = $isMensual ? 'L' : 'P';
+            $labelCampo = $campo === 'asignado' ? 'Asignado' : 'Ejecutado';
+
+            $pdf = new PDF($orient, 'mm', 'Letter');
+            $pdf->AliasNbPages();
+            $pdf->SetAutoPageBreak(false);
+            $pdf->setHeaderTitle('REPORTE ' . mb_strtoupper($titulo));
+
+            $pdf->AddPage();
+
+            // --- Bloque informativo (encabezado del reporte) ---
+            $pdf->SetFont('Arial', 'B', 12);
+            $pdf->SetTextColor(18, 18, 18);
+            $pdf->Cell(0, 7, $this->_iso('REPORTE ' . strtoupper($titulo)), 0, 1, 'L');
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetTextColor(90, 90, 90);
+            $mesesStr = $isMensual
+                ? implode(', ', array_column($mesesSeleccionados, 'nombre'))
+                : (count($mesesSeleccionados) ? $mesesSeleccionados[0]['nombre'] : '-');
+            $pdf->Cell(0, 4, $this->_iso('Empresa: ' . $nombreEmpresa), 0, 1, 'L');
+            $pdf->Cell(0, 4, $this->_iso('Periodo: ' . $mesAnio . '   Mes(es): ' . $mesesStr), 0, 1, 'L');
+            $pdf->Cell(0, 4, $this->_iso('Campo: ' . $labelCampo . '   Generado: ' . date('d/m/Y H:i:s')), 0, 1, 'L');
+            $pdf->Ln(2);
+
+            // --- Anchos de columnas ---
+            $contentW = $orient === 'L' ? 259.4 : 195.9;
+            $denomW   = $isMensual ? 66 : 108;
+            $totalW   = $isMensual ? 26 : 30;
+            $nMeses   = max(count($mesesSeleccionados), 1);
+            $mesW     = ($contentW - $denomW - $totalW) / $nMeses;
+            if ($mesW < 15) { $mesW = 15; }
+
+            $x0 = $pdf->GetX();
+
+            $this->_pdfMensualHeaderTabla($pdf, $x0, $denomW, $mesW, $totalW, $mesesSeleccionados, $isMensual, $nMeses);
+
+            $h = 6.2;
+            $ctx = [
+                'x0' => $x0, 'h' => $h, 'denomW' => $denomW, 'mesW' => $mesW, 'totalW' => $totalW,
+                'nMeses' => $nMeses, 'meses' => $mesesSeleccionados, 'isMensual' => $isMensual, 'campo' => $campo,
+            ];
+
+            $totalGeneral = 0.0;
+            foreach ($datos as $rs) {
+                $totalGeneral += (float)(($rs['totales'][$campo] ?? $rs[$campo] ?? 0));
+                $this->_pdfRenderNodo($pdf, $rs, 0, $ctx);
+            }
+
+            // --- Footer de totales ---
+            $y0 = $pdf->GetY();
+            $pdf->SetDrawColor(26, 26, 26);
+            $pdf->Line($x0, $y0, $x0 + $denomW + ($isMensual ? $mesW * $nMeses : 0) + $totalW, $y0);
+            $y0 += 0.5;
+
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->SetFillColor(31, 41, 55);
+            $pdf->SetTextColor(255, 255, 255);
+            $x = $x0;
+            $pdf->SetXY($x, $y0);
+            $pdf->Cell($denomW, 7, $this->_iso('TOTAL GENERAL'), 'LR', 0, 'R', true);
+            $x += $denomW;
+            if ($isMensual) {
+                for ($i = 0; $i < $nMeses; $i++) {
+                    $pdf->SetXY($x, $y0);
+                    $pdf->Cell($mesW, 7, '', 'LR', 0, 'R', true);
+                    $x += $mesW;
+                }
+            }
+            $pdf->SetXY($x, $y0);
+            $pdf->Cell($totalW, 7, $this->_iso($this->_fmtMoney($totalGeneral)), 'LR', 1, 'R', true);
+
+            $descarga = 'Reporte_' . trim(str_replace(' ', '_', $titulo)) . '_' . $mesAnio . '.pdf';
+            $this->response->setHeader('Content-Type', 'application/pdf');
+            $pdf->Output('D', $descarga);
+            exit;
+
+        } catch (\Throwable $e) {
+            log_message('error', '[exportarMensualPdf] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    /**
+     * Convierte UTF-8 a ISO-8859-1 (requerido por las fuentes core de FPDF).
+     *
+     * @param string|null $s Texto en UTF-8.
+     * @return string Texto en ISO-8859-1.
+     */
+    private function _iso(?string $s): string
+    {
+        return mb_convert_encoding($s ?? '', 'ISO-8859-1', 'UTF-8');
+    }
+
+    /**
+     * Formatea un importe monetario.
+     *
+     * @param float $n Importe.
+     * @return string Importe formateado ($ 1,234.56).
+     */
+    private function _fmtMoney($n): string
+    {
+        return '$ ' . number_format((float)$n, 2, '.', ',');
+    }
+
+    /**
+     * Dibuja el encabezado (fila de títulos) de la tabla del reporte mensual.
+     *
+     * @param PDF   $pdf   Instancia del PDF.
+     * @param float $x0    Posición X izquierda de la tabla.
+     * @param float $denomW Ancho columna denominación.
+     * @param float $mesW   Ancho columna mes.
+     * @param float $totalW Ancho columna total.
+     * @param array $meses  Meses seleccionados [{id, nombre}].
+     * @param bool  $isMensual Si hay más de un mes.
+     * @param int   $nMeses Número de meses.
+     */
+    private function _pdfMensualHeaderTabla(PDF $pdf, float $x0, float $denomW, float $mesW, float $totalW, array $meses, bool $isMensual, int $nMeses): void
+    {
+        $h = 6.5;
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->SetFillColor(31, 41, 55);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetDrawColor(26, 26, 26);
+
+        $x = $x0;
+        $pdf->SetXY($x, $pdf->GetY());
+        $pdf->Cell($denomW, $h, $this->_iso('Departamento / Partida'), 'LR', 0, 'L', true);
+        $x += $denomW;
+        if ($isMensual) {
+            foreach ($meses as $m) {
+                $pdf->SetXY($x, $pdf->GetY());
+                $pdf->Cell($mesW, $h, $this->_iso($m['nombre'] ?? ''), 'LR', 0, 'C', true);
+                $x += $mesW;
+            }
+        }
+        $pdf->SetXY($x, $pdf->GetY());
+        $pdf->Cell($totalW, $h, $this->_iso($isMensual ? 'Total' : 'Importe'), 'LR', 1, 'C', true);
+    }
+
+    /**
+     * Renderiza recursivamente la jerarquía de nodos del reporte mensual.
+     *
+     * @param PDF   $pdf  Instancia del PDF.
+     * @param array $nodo Nodo (RazonSocial / Segmento / Complejo / Unidad / Partida).
+     * @param int   $level Profundidad (0=Razón Social).
+     * @param array $ctx  Contexto de layout.
+     */
+    private function _pdfRenderNodo(PDF $pdf, $nodo, int $level, array $ctx): void
+    {
+        $h = $ctx['h'];
+        $x0 = $ctx['x0'];
+        $denomW = $ctx['denomW'];
+        $mesW = $ctx['mesW'];
+        $totalW = $ctx['totalW'];
+        $nMeses = $ctx['nMeses'];
+        $meses = $ctx['meses'];
+        $isMensual = $ctx['isMensual'];
+        $campo = $ctx['campo'];
+
+        $label = $nodo['etiqueta'] ?? ($nodo['nombre'] ?? ($nodo['Nombre'] ?? ''));
+        $label = str_repeat(' ', $level * 3) . $label;
+
+        $totales = isset($nodo['totales']) ? $nodo['totales'] : $nodo;
+        $totalVal = (float)($totales[$campo] ?? 0);
+        $mesVals = $totales['importesPorMes'] ?? [];
+
+        // Saltos de página
+        if ($pdf->GetY() + $h > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage();
+            $this->_pdfMensualHeaderTabla($pdf, $x0, $denomW, $mesW, $totalW, $meses, $isMensual, $nMeses);
+        }
+
+        // Estilos por nivel
+        $niveles = [
+            0 => ['fill' => [229, 231, 235], 'txt' => [30, 30, 30], 'style' => 'B'],
+            1 => ['fill' => [219, 234, 252], 'txt' => [30, 58, 138], 'style' => 'B'],
+            2 => ['fill' => null,           'txt' => [90, 90, 90],   'style' => 'I'],
+            3 => ['fill' => [243, 244, 246], 'txt' => [30, 30, 30],  'style' => 'B'],
+        ];
+        $isIndirecto = !empty($nodo['es_manual']) && in_array($nodo['es_manual'], [1, true, 't'], true);
+        if ($level === 4) {
+            $estilo = [
+                'fill' => $isIndirecto ? [254, 243, 199] : null,
+                'txt'  => [107, 114, 128],
+                'style' => '',
+            ];
+        } else {
+            $estilo = $niveles[$level] ?? end($niveles);
+        }
+
+        $pdf->SetFont('Arial', $estilo['style'], 8);
+        $pdf->SetTextColor($estilo['txt'][0], $estilo['txt'][1], $estilo['txt'][2]);
+        $pdf->SetDrawColor(229, 231, 235);
+        $fill = $estilo['fill'] !== null;
+        if ($fill) {
+            $pdf->SetFillColor($estilo['fill'][0], $estilo['fill'][1], $estilo['fill'][2]);
+        }
+
+        // Celda denominación
+        $pdf->Cell($denomW, $h, $this->_iso($label), 'LR', 0, 'L', $fill);
+        // Celdas de meses
+        if ($isMensual) {
+            foreach ($meses as $m) {
+                $val = isset($mesVals[$m['id']]) ? (float)$mesVals[$m['id']] : 0;
+                $pdf->Cell($mesW, $h, $this->_iso($this->_fmtMoney($val)), 'LR', 0, 'R', $fill);
+            }
+        }
+        // Celda total
+        $pdf->Cell($totalW, $h, $this->_iso($this->_fmtMoney($totalVal)), 'LR', 1, 'R', $fill);
+
+        // Hijos (segmentos / complejos / departamentos / detalles)
+        foreach (['segmentos', 'complejos', 'departamentos', 'detalles'] as $ck) {
+            if (isset($nodo[$ck]) && is_array($nodo[$ck])) {
+                foreach ($nodo[$ck] as $child) {
+                    $this->_pdfRenderNodo($pdf, $child, $level + 1, $ctx);
+                }
+            }
+        }
     }
 }

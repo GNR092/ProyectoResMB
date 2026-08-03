@@ -235,6 +235,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/presupuesto/exportar/(:any)/(:num)/(:any)', 'ReportesController::exportarComparativo/$1/$2/$3');
         $routes->post('api/presupuesto/exportar-datos', 'ReportesController::exportarDatosJson');
         $routes->post('api/presupuesto/exportar-mensual-datos', 'ReportesController::exportarMensualJson');
+        $routes->post('api/presupuesto/exportar-mensual-pdf', 'ReportesController::exportarMensualPdf');
 
         // Rutas API Saldos Bancarios
         $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');

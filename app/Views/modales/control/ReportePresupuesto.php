@@ -1019,6 +1019,12 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </svg>
                         Exportar Excel
                     </button>
+                    <button x-show="departamentos.length > 0" @click="generarSoloPresupuestoPdf()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7m-9 3h6m-6 3h6M6 9l6 3 6-3" />
+                        </svg>
+                        Generar PDF
+                    </button>
                     <h2 class="text-xl font-bold text-gray-800">Presupuesto Asignado Mensual</h2>
                 </div>
             </div>

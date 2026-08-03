@@ -1290,6 +1290,50 @@ function registrarComponenteReportePresupuesto() {
                 finally { if (notif && typeof notif.click === 'function') notif.click(); }
             },
 
+            async generarSoloPresupuestoPdf() {
+                if (this.departamentos.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const rsNombre = (!this.verGlobal && this.idRazonSocial)
+                    ? (this.razonesSociales.find(r => r.ID_RazonSocial === this.idRazonSocial)?.Nombre || '')
+                    : 'Consolidado Global';
+
+                const notif = typeof mostrarNotificacion !== 'undefined' ? mostrarNotificacion('Generando PDF de Presupuesto Asignado...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        titulo: 'Presupuesto Asignado',
+                        pantalla: this.pantalla,
+                        campo: 'asignado',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        mesesSeleccionados: this.mesesSeleccionados,
+                        nombreEmpresa: rsNombre
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto/exportar-mensual-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `presupuesto_asignado_${this.anio}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif && typeof notif.click === 'function') notif.click(); }
+            },
+
             async exportarSoloEjecutadoExcel() {
                 if (this.departamentos.length === 0) {
                     alert("No hay datos para exportar.");
