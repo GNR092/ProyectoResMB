@@ -75,7 +75,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ReporteCompras"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-red-700 text-xs">Reporte Pagado/Por Pagar</span>
+                <span class="font-bold text-gray-700 group-hover:text-red-700 text-xs">Reporte Pagado/Por Pagar Autorizado</span>
             </button>
             <button @click="irAPantalla('movimientos')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -91,7 +91,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ReporteVencimientos"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-yellow-700 text-xs">Reportes De Vencimiento</span>
+                <span class="font-bold text-gray-700 group-hover:text-yellow-700 text-xs">Reportes De Creditos</span>
             </button>
         </div>
     </div>
@@ -288,7 +288,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             </svg>
                             Exportar Excel
                         </button>
-                        <h2 class="text-xl font-bold text-gray-800">Reporte Pagado/Por Pagar</h2>
+                        <h2 class="text-xl font-bold text-gray-800">Reporte Pagado/Por Pagar Autorizado</h2>
                     </div>
                 </div>
 
@@ -597,7 +597,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             </div>
             </template>
 
-            <!-- Pantalla 8: Reportes de Vencimiento -->
+            <!-- Pantalla 8: Reportes de Creditos -->
             <template x-if="pantalla === 'vencimientos'">
                 <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
                     <!-- CONTENEDOR PRINCIPAL: Tabla de Vencimientos -->
@@ -622,7 +622,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                         <span class="ms-3 text-[10px] font-bold text-slate-700 uppercase tracking-tight">Reporte Detallado</span>
                                     </label>
                                 </div>
-                                <h2 class="text-xl font-bold text-slate-800">Reportes de Vencimiento</h2>
+                                <h2 class="text-xl font-bold text-slate-800">Reportes de Credito</h2>
                             </div>
                         </div>
 

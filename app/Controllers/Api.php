@@ -4184,7 +4184,7 @@ class Api extends ResourceController
         $sheet->getStyle('O1:U1')->applyFromArray($styleProveedor);
 
         $subHeaders = [
-            'Folio', 'Fecha', 'Estado', 'Solicitante', 'Departamento', 'Unidad Operativa', 'Complejo', 'Inversión Total',
+            'Folio', 'Fecha', 'Estado', 'Solicitante', 'Departamento', 'Unidad Operativa', 'Complejo', 'Importe Total',
             'Estado Orden', 'Fecha Orden', 'Ref. Pago', 'F. Pago Realizado', 'Factura', 'Comprobante',
             'Proveedor', 'RFC', 'Banco', 'Cuenta', 'CLABE', 'Contacto', 'Teléfono'
         ];
@@ -4232,7 +4232,7 @@ class Api extends ResourceController
 
         // Fila de Totales
         $lastDataRow = $row - 1;
-        $sheet->setCellValue('A' . $row, 'TOTAL GENERAL DE INVERSIÓN:');
+        $sheet->setCellValue('A' . $row, 'TOTAL GENERAL:');
         $sheet->mergeCells('A' . $row . ':G' . $row);
         $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setBold(true);
         $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);

@@ -804,7 +804,7 @@ class ReportesController extends ResourceController
 
             $headers = ['Cód.', 'RFC', 'Razón Social'];
             if ($esDetallado) {
-                array_splice($headers, 1, 0, ['Folio']);
+                array_splice($headers, 1, 0, ['Folio', 'Empresa Origen']);
             }
             
             if (!$esDetallado) {
@@ -861,11 +861,88 @@ class ReportesController extends ResourceController
             }
 
             $row = 6;
-            foreach ($datos as $v) {
+            
+            // Si es detallado, ordenar por proveedor y luego por días vencidos (más urgentes primero)
+            $datosOrdenados = $datos;
+            if ($esDetallado) {
+                usort($datosOrdenados, function($a, $b) {
+                    $provA = $a['ID_Proveedor'] ?? 0;
+                    $provB = $b['ID_Proveedor'] ?? 0;
+                    if ($provA != $provB) {
+                        return $provA - $provB;
+                    }
+                    return ($b['diasVencidos'] ?? 0) - ($a['diasVencidos'] ?? 0);
+                });
+            }
+            
+            $currentProveedor = null;
+            $subtotalPorPagar = 0;
+            $subtotalExcedido = 0;
+            $subtotalRows = []; // Para aplicar formato de moneda después
+            
+            foreach ($datosOrdenados as $v) {
+                $proveedorId = $v['ID_Proveedor'] ?? null;
+                
+                // Si cambió de proveedor y no es el primero, insertar subtotal
+                if ($currentProveedor !== null && $proveedorId !== $currentProveedor) {
+                    $row++;
+                    $c = 0;
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                    if ($esDetallado) {
+                        $sheet->setCellValue($cols[$c++].$row, '');
+                        $sheet->setCellValue($cols[$c++].$row, '');
+                    }
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                    $sheet->setCellValue($cols[$c++].$row, 'Subtotal ' . $proveedorAnteriorNombre);
+                    
+                    if (!$esDetallado) {
+                        $sheet->setCellValue($cols[$c++].$row, '');
+                    }
+                    
+                    $sheet->setCellValue($cols[$c++].$row, $subtotalPorPagar);
+                    
+                    if ($hayExcedidos) {
+                        $sheet->setCellValue($cols[$c++].$row, $subtotalExcedido);
+                    }
+                    
+                    if (!$esDetallado) {
+                        $sheet->setCellValue($cols[$c++].$row, '');
+                    }
+                    
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                    
+                    if ($esDetallado) {
+                        $sheet->setCellValue($cols[$c++].$row, '');
+                        $sheet->setCellValue($cols[$c++].$row, '');
+                    }
+                    
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                    
+                    // Estilo subtotal: negrita, fondo gris claro
+                    $lastCol = $cols[count($headers)-1];
+                    $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFont()->setBold(true);
+                    $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFill()
+                        ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
+                    $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                    
+                    // Guardar fila de subtotal para formato de moneda
+                    $subtotalRows[] = $row;
+                    
+                    // Reset subtotales
+                    $subtotalPorPagar = 0;
+                    $subtotalExcedido = 0;
+                    $row++;
+                }
+                
+                $currentProveedor = $proveedorId;
+                $proveedorAnteriorNombre = $v['RazonSocial'];
+                
                 $c = 0;
                 $sheet->setCellValue($cols[$c++].$row, $v['ID_Proveedor']);
                 if ($esDetallado) {
                     $sheet->setCellValue($cols[$c++].$row, $v['No_Folio']);
+                    $sheet->setCellValue($cols[$c++].$row, $v['Complejo'] ?? 'N/A');
                 }
                 $sheet->setCellValue($cols[$c++].$row, $v['RFC'] ?: 'N/A');
                 $sheet->setCellValue($cols[$c++].$row, $v['RazonSocial']);
@@ -874,10 +951,14 @@ class ReportesController extends ResourceController
                     $sheet->setCellValue($cols[$c++].$row, (float)$v['Monto_Credito']);
                 }
                 
-                $sheet->setCellValue($cols[$c++].$row, (float)$v['importePorPagar']);
+                $importePorPagar = (float)$v['importePorPagar'];
+                $sheet->setCellValue($cols[$c++].$row, $importePorPagar);
+                $subtotalPorPagar += $importePorPagar;
 
                 if ($hayExcedidos) {
-                    $sheet->setCellValue($cols[$c++].$row, (float)($v['importeExcedido'] ?? 0));
+                    $importeExcedido = (float)($v['importeExcedido'] ?? 0);
+                    $sheet->setCellValue($cols[$c++].$row, $importeExcedido);
+                    $subtotalExcedido += $importeExcedido;
                 }
                 
                 if (!$esDetallado) {
@@ -915,6 +996,52 @@ class ReportesController extends ResourceController
                 }
                 $row++;
             }
+            
+            // Subtotal del último proveedor
+            if ($currentProveedor !== null) {
+                $row++;
+                $c = 0;
+                $sheet->setCellValue($cols[$c++].$row, '');
+                if ($esDetallado) {
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                }
+                $sheet->setCellValue($cols[$c++].$row, '');
+                $sheet->setCellValue($cols[$c++].$row, 'Subtotal ' . $proveedorAnteriorNombre);
+                
+                if (!$esDetallado) {
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                }
+                
+                $sheet->setCellValue($cols[$c++].$row, $subtotalPorPagar);
+                
+                if ($hayExcedidos) {
+                    $sheet->setCellValue($cols[$c++].$row, $subtotalExcedido);
+                }
+                
+                if (!$esDetallado) {
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                }
+                
+                $sheet->setCellValue($cols[$c++].$row, '');
+                
+                if ($esDetallado) {
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                    $sheet->setCellValue($cols[$c++].$row, '');
+                }
+                
+                $sheet->setCellValue($cols[$c++].$row, '');
+                $sheet->setCellValue($cols[$c++].$row, '');
+                
+                // Estilo subtotal
+                $lastCol = $cols[count($headers)-1];
+                $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFont()->setBold(true);
+                $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
+                $sheet->getStyle('A'.$row.':'.$lastCol.$row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                
+                $subtotalRows[] = $row;
+            }
 
             // Formato de moneda para columnas de dinero
             if ($esDetallado) {
@@ -924,6 +1051,15 @@ class ReportesController extends ResourceController
                     if (in_array($h, ['Importe Crédito', 'Importe Por Pagar', 'Importe Excedido', 'Saldo Crédito'])) {
                         $colLetter = $cols[$idx];
                         $sheet->getStyle($colLetter.'6:'.$colLetter.($row-1))->getNumberFormat()->setFormatCode('$#,##0.00');
+                    }
+                }
+                // Aplicar formato de moneda a las filas de subtotal
+                foreach ($subtotalRows as $subRow) {
+                    foreach($headers as $idx => $h) {
+                        if (in_array($h, ['Importe Crédito', 'Importe Por Pagar', 'Importe Excedido', 'Saldo Crédito'])) {
+                            $colLetter = $cols[$idx];
+                            $sheet->getStyle($colLetter.$subRow)->getNumberFormat()->setFormatCode('$#,##0.00');
+                        }
                     }
                 }
             } else {

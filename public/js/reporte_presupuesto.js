@@ -876,7 +876,7 @@ function registrarComponenteReportePresupuesto() {
                                         <p class="text-sm font-bold text-gray-800 tracking-tight">${data.RazonSocialNombre || 'N/A'}</p>
                                     </div>
                                     <div class="md:col-span-2 flex flex-col gap-1 items-end justify-center">
-                                        <p class="text-[10px] text-black-500 uppercase font-bold mb-1 tracking-widest text-gray-600">Inversión Total</p>
+                                        <p class="text-[10px] text-black-500 uppercase font-bold mb-1 tracking-widest text-gray-600">Importe Total</p>
                                         <p class="text-2xl font-black text-gray-800 tracking-tighter drop-shadow-sm">${format(data.cotizacion?.Total || 0)}</p>
                                     </div>
                                     <div class="flex flex-col gap-1">
