@@ -194,13 +194,17 @@ class Api extends ResourceController
     }
 
     /**
-     * Exporta el directorio de proveedores a PDF (tabla plana de 12 columnas),
-     * equivalente al reporte de Excel `exportarProveedoresExcel`.
+     * Exporta el directorio de proveedores a PDF con formato visual
+     * consistente con el reporte de presupuesto mensual.
      */
     public function exportarProveedoresPdf()
     {
         $proveedorModel = new ProveedorModel();
         $proveedores = $proveedorModel->orderBy('RazonSocial', 'ASC')->findAll();
+
+        if (empty($proveedores)) {
+            return $this->fail('No hay proveedores para generar el PDF');
+        }
 
         $headers = [
             'ID', 'Razón Social', 'Correo', 'RFC', 'Banco', 'Cuenta', 'Clabe',
@@ -213,18 +217,36 @@ class Api extends ResourceController
 
         $pdf = new PDF('L', 'mm', 'Letter');
         $pdf->AliasNbPages();
-        $pdf->setHeaderTitle('Directorio de Proveedores');
         $pdf->SetAutoPageBreak(false);
+        $pdf->setHeaderTitle('Directorio de Proveedores');
         $pdf->AddPage();
 
+        // --- Bloque informativo (título + metadata) ---
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->SetTextColor(18, 18, 18);
+        $pdf->Cell(0, 7, $this->_iso('REPORTE DIRECTORIO DE PROVEEDORES'), 0, 1, 'L');
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->SetTextColor(90, 90, 90);
+        $pdf->Cell(0, 4, $this->_iso('Empresa: Grupo MBM'), 0, 1, 'L');
+        $pdf->Cell(0, 4, $this->_iso('Generado: ' . date('d/m/Y H:i:s')), 0, 1, 'L');
+        $pdf->Cell(0, 4, $this->_iso('Total registros: ' . count($proveedores)), 0, 1, 'L');
+        $pdf->Ln(2);
+
+        // --- Anchos de columnas ---
+        $contentW = 259.4; // usable width Letter Landscape
         $colW = [8, 62, 26, 14, 18, 14, 16, 16, 26, 24, 14, 18];
-        $pdf->SetWidths($colW);
         $lineH = 4.6;
 
-        $this->_dibujarCabecera($pdf, $colW, $headers, $lineH);
+        $pdf->SetWidths($colW);
 
+        // --- Encabezado de tabla (estilo oscuro) ---
+        $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+
+        // --- Filas de datos ---
         $pdf->SetFont('Arial', '', 8);
-        $rowFill = false;
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetDrawColor(229, 231, 235);
+
         foreach ($proveedores as $p) {
             $cells = [];
             foreach ($fieldKeys as $k) {
@@ -240,36 +262,62 @@ class Api extends ResourceController
                 $lineCounts[$i] = $pdf->NbLines($colW[$i], $c);
             }
             $h = max($lineCounts) * $lineH;
+
             if ($pdf->GetY() + $h > $pdf->getPageBreakTrigger()) {
                 $pdf->AddPage();
-                $this->_dibujarCabecera($pdf, $colW, $headers, $lineH);
+                $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
                 $pdf->SetFont('Arial', '', 8);
+                $pdf->SetTextColor(0, 0, 0);
+                $pdf->SetDrawColor(229, 231, 235);
             }
 
-            $startY = $pdf->GetY();
-            $x = 8;
-            foreach ($cells as $i => $c) {
-                $pdf->SetXY($x, $startY);
-                $pdf->MultiCell($colW[$i], $lineH, $c, 1, $i === 0 ? 'C' : 'L', $rowFill);
-                $x += $colW[$i];
+            $aligns = [];
+            foreach ($cells as $i => $v) {
+                $aligns[$i] = ($i === 0 || $i === 10) ? 'C' : 'L';
             }
-            $pdf->SetY($startY + $h);
-            $rowFill = !$rowFill;
+            $pdf->SetX(8);
+            $pdf->drawTableRow($colW, $cells, $aligns, $lineH, false);
         }
 
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->SetFillColor(226, 232, 240);
-        $totalW = (float) array_sum($colW);
-        if ($pdf->GetY() + $lineH > $pdf->getPageBreakTrigger()) {
-            $pdf->AddPage();
-            $this->_dibujarCabecera($pdf, $colW, $headers, $lineH);
-        }
-        $pdf->SetX(8);
-        $pdf->Cell($totalW, $lineH, $this->_iso('Total de proveedores: ' . count($proveedores)), 1, 0, 'L', true);
+        // --- Footer: Total General (estilo oscuro) ---
+        $this->_dibujarTotalGeneral($pdf, $colW, 'Total de proveedores: ' . count($proveedores));
 
         $this->response->setHeader('Content-Type', 'application/pdf');
         $pdf->Output('D', 'directorio_proveedores.pdf');
         exit;
+    }
+
+    /**
+     * Dibuja la fila de encabezado con estilo oscuro (fondo RGB 31,41,55).
+     */
+    protected function _dibujarCabeceraOscura($pdf, array $colW, array $headers, float $lineH): void
+    {
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->SetFillColor(31, 41, 55);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetDrawColor(26, 26, 26);
+
+        $pdf->SetX(8);
+        $pdf->drawTableRow($colW, array_map(fn($h) => $this->_iso($h), $headers), array_fill(0, count($headers), 'C'), $lineH, true);
+    }
+
+    /**
+     * Dibuja la fila de total general con estilo oscuro.
+     */
+    protected function _dibujarTotalGeneral($pdf, array $colW, string $label): void
+    {
+        $totalW = array_sum($colW);
+
+        if ($pdf->GetY() + 7 > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage();
+        }
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->SetFillColor(31, 41, 55);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetDrawColor(26, 26, 26);
+        $pdf->SetX(8);
+        $pdf->Cell($totalW, 7, $this->_iso($label), 1, 0, 'R', true);
     }
 
     /**

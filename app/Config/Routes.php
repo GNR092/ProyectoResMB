@@ -124,6 +124,7 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/historic/movimientos-proveedor', 'Api::getMovimientosProveedor', ['filter' => 'mantenimiento']);
         $routes->get('api/historic/reporte-vencimientos', 'Api::getReporteVencimientos', ['filter' => 'mantenimiento']);
         $routes->post('api/vencimientos/exportar-datos', 'ReportesController::exportarVencimientosJson');
+        $routes->post('api/vencimientos/exportar-pdf', 'ReportesController::exportarVencimientosPdf');
         $routes->post('api/historic/exportar-movimientos', 'Api::exportarMovimientosExcel');
         $routes->get('api/historial/exportar', 'Api::exportarHistorial');
 
@@ -238,6 +239,7 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/presupuesto/exportar-mensual-datos', 'ReportesController::exportarMensualJson');
         $routes->post('api/presupuesto/exportar-mensual-pdf', 'ReportesController::exportarMensualPdf');
         $routes->post('api/presupuesto/exportar-vs-ejecutado-pdf', 'ReportesController::exportarPresupuestoVsEjecutadoPdf');
+        $routes->post('api/compras/exportar-pdf', 'ReportesController::exportarComprasPdf');
 
         // Rutas API Saldos Bancarios
         $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');

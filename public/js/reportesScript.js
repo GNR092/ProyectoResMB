@@ -359,6 +359,56 @@ function Reportes(initialData = []) {
       }
     },
 
+    async exportarComprasPdf() {
+      const filteredData = this.filteredData;
+      if (!filteredData || filteredData.length === 0) {
+        alert("No hay datos para exportar.");
+        return;
+      }
+
+      const notif = typeof mostrarNotificacion !== 'undefined'
+        ? mostrarNotificacion('Generando PDF de Compras...', 'info', 0) : null;
+
+      try {
+        const payload = {
+          filtros: {
+            fecha: this.fecha,
+            estado: this.estado,
+            departamentos: this.departamento.length > 0 ? this.departamento.join(', ') : 'Todos',
+            razonesSociales: this.razonSocial.length > 0 ? this.razonSocial.join(', ') : 'Todas',
+            proveedores: this.proveedor.length > 0 ? this.proveedor.join(', ') : 'Todos',
+            metodoPago: this.metodoPago === '' ? 'Todos' : (this.metodoPago === '0' ? 'Contado' : 'Crédito')
+          },
+          datos: filteredData,
+          nombreEmpresa: 'Grupo MBM'
+        };
+
+        const res = await fetch(`${BASE_URL}api/compras/exportar-pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `reporte_compras_${new Date().toISOString().split('T')[0]}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } else {
+          alert('No se pudo generar el PDF.');
+        }
+      } catch (e) {
+        console.error('Error exportarComprasPdf:', e);
+        alert('Error al generar el PDF.');
+      } finally {
+        if (notif && typeof notif.click === 'function') notif.click();
+      }
+    },
+
     clearFilters() {
       this.fecha = ''
       this.porMes = false

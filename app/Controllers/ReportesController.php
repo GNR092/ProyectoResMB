@@ -1106,6 +1106,251 @@ $cols[] = chr(65 + $i);
         }
     }
 
+    /**
+     * Exporta el reporte "Vencimientos" (Créditos/Vencimientos) a PDF.
+     * Recibe los datos filtrados del frontend (mismo patrón que exportarVencimientosJson).
+     * Soporta modo detallado y agrupado, subtotales por proveedor y bloque resumen 4 colores.
+     */
+    public function exportarVencimientosPdf()
+    {
+        try {
+            $json   = $this->request->getJSON(true);
+            $datos  = $json['datos'] ?? [];
+            $esDetallado = $json['reporteDetallado'] ?? false;
+            $nombreEmpresa = $json['nombreEmpresa'] ?? 'Corporativo MBM';
+            $fechaHoy = date('d/m/Y H:i:s');
+
+            if (empty($datos)) {
+                return $this->fail('No hay datos para generar el PDF');
+            }
+
+            $pdf = new PDF('L', 'mm', 'Letter');
+            $pdf->AliasNbPages();
+            $pdf->SetAutoPageBreak(false);
+            $pdf->setHeaderTitle('REPORTE DE VENCIMIENTOS (' . ($esDetallado ? 'DETALLADO' : 'AGRUPADO') . ')');
+            $pdf->AddPage();
+
+            // --- Bloque informativo (título + metadata) ---
+            $pdf->SetFont('Arial', 'B', 12);
+            $pdf->SetTextColor(18, 18, 18);
+            $pdf->Cell(0, 7, $this->_iso('REPORTE DE VENCIMIENTOS (' . ($esDetallado ? 'DETALLADO' : 'AGRUPADO') . ')'), 0, 1, 'L');
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetTextColor(90, 90, 90);
+            $pdf->Cell(0, 4, $this->_iso('Empresa: ' . $nombreEmpresa), 0, 1, 'L');
+            $pdf->Cell(0, 4, $this->_iso('Tipo: ' . ($esDetallado ? 'Detallado' : 'Agrupado')), 0, 1, 'L');
+            $pdf->Cell(0, 4, $this->_iso('Generado: ' . $fechaHoy), 0, 1, 'L');
+            $pdf->Ln(2);
+
+            // Construir encabezados dinámicos (idéntico a exportarVencimientosJson)
+            $headers = ['Cod.', 'RFC', 'Razon Social'];
+            if ($esDetallado) {
+                array_splice($headers, 1, 0, ['Folio', 'Empresa Origen']);
+            }
+            if (!$esDetallado) {
+                $headers[] = 'Importe Credito';
+            }
+            $headers[] = 'Importe Por Pagar';
+
+            $hayExcedidos = false;
+            foreach ($datos as $v) {
+                if ((float)($v['importeExcedido'] ?? 0) > 0) {
+                    $hayExcedidos = true;
+                    break;
+                }
+            }
+            if ($hayExcedidos) {
+                $headers[] = 'Importe Excedido';
+            }
+            
+            if (!$esDetallado) {
+                $headers[] = 'Saldo Credito';
+            }
+            $headers[] = 'Dias Cred.';
+            
+            if ($esDetallado) {
+                $headers[] = 'Fecha Aprobacion.';
+                $headers[] = 'Fecha Venc.';
+            }
+            
+            $headers[] = 'Estatus';
+            $headers[] = 'Dias Vencido';
+
+            $nCols = count($headers);
+            $colW = [];
+            // Anchos base (ajustados para que quepan en ~259mm)
+            $baseWidths = [
+                'Cod.' => 12, 'RFC' => 22, 'Razon Social' => 38,
+                'Folio' => 18, 'Empresa Origen' => 22,
+                'Importe Credito' => 24, 'Importe Por Pagar' => 24,
+                'Importe Excedido' => 24, 'Saldo Credito' => 22,
+                'Dias Cred.' => 14, 'Fecha Aprobacion.' => 20, 'Fecha Venc.' => 20,
+                'Estatus' => 16, 'Dias Vencido' => 20
+            ];
+            foreach ($headers as $h) {
+                $colW[] = $baseWidths[$h] ?? 18;
+            }
+
+            $lineH = 5;
+
+            $pdf->SetWidths($colW);
+
+            $drawHeader = function($pdf) use ($headers, $colW, $lineH) {
+                $pdf->SetFont('Arial', 'B', 8);
+                $pdf->SetFillColor(31, 41, 55);
+                $pdf->SetTextColor(255, 255, 255);
+                $pdf->SetDrawColor(26, 26, 26);
+                $pdf->SetX(8);
+                $pdf->drawTableRow($colW, array_map(fn($h) => $this->_iso($h), $headers), array_fill(0, count($headers), 'C'), $lineH, true);
+            };
+
+            $drawHeader($pdf);
+
+            // Ordenar datos: detallado por proveedor + diasVencidos desc
+            $datosOrdenados = $datos;
+            if ($esDetallado) {
+                usort($datosOrdenados, function($a, $b) {
+                    $provA = $a['ID_Proveedor'] ?? 0;
+                    $provB = $b['ID_Proveedor'] ?? 0;
+                    if ($provA != $provB) {
+                        return $provA - $provB;
+                    }
+                    return ($b['diasVencidos'] ?? 0) - ($a['diasVencidos'] ?? 0);
+                });
+            }
+
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetDrawColor(220);
+            $currentProveedor = null;
+            $subtotalPorPagar = 0;
+            $subtotalExcedido = 0;
+            $proveedorAnteriorNombre = '';
+
+            foreach ($datosOrdenados as $v) {
+                $proveedorId = $v['ID_Proveedor'] ?? null;
+                
+                // Subtotal cuando cambia proveedor (modo detallado)
+                if ($esDetallado && $currentProveedor !== null && $proveedorId !== $currentProveedor) {
+                    $pdf->SetFont('Arial', 'B', 8);
+                    $pdf->SetTextColor(0, 0, 0);
+                    $sy = $pdf->GetY();
+                    $x = 8;
+                    $c = 0;
+                    $pdf->SetXY($x, $sy);
+                    $pdf->MultiCell($colW[$c++], $lineH, $this->_iso('Subtotal ' . $proveedorAnteriorNombre), 1, 'L', false);
+                    // Solo subtotales en columnas de importe
+                    $totalPorPagarW = 0;
+                    $totalExcedidoW = 0;
+                    // No dibujar celdas vacías, solo el texto "Subtotal..."
+                    // Para simplicidad, una fila completa con el label
+                    $totalW = array_sum($colW);
+                    $pdf->SetX(8);
+                    $pdf->Cell($totalW, $lineH, $this->_iso('Subtotal ' . $proveedorAnteriorNombre), 1, 0, 'L', false);
+                    $pdf->SetFont('Arial', '', 8);
+                    $subtotalPorPagar = 0;
+                    $subtotalExcedido = 0;
+                }
+                
+                $currentProveedor = $proveedorId;
+                $proveedorAnteriorNombre = $v['RazonSocial'] ?? 'N/A';
+                
+                $cells = [];
+                $c = 0;
+                $cells[$c++] = $v['ID_Proveedor'];                                 // Cod.
+                if ($esDetallado) {
+                    $cells[$c++] = $v['No_Folio'];                                 // Folio
+                    $cells[$c++] = $v['Complejo'] ?? 'N/A';                        // Empresa Origen
+                }
+                $cells[$c++] = $v['RFC'] ?: 'N/A';                                 // RFC
+                $cells[$c++] = $v['RazonSocial'];                                  // Razon Social
+                if (!$esDetallado) {
+                    $cells[$c++] = '$' . number_format((float)($v['Monto_Credito'] ?? 0), 2); // Importe Credito
+                }
+                $cells[$c++] = '$' . number_format((float)($v['importePorPagar'] ?? 0), 2); // Importe Por Pagar
+                $subtotalPorPagar += (float)($v['importePorPagar'] ?? 0);
+                
+                if ($hayExcedidos) {
+                    $cells[$c++] = '$' . number_format((float)($v['importeExcedido'] ?? 0), 2); // Importe Excedido
+                    $subtotalExcedido += (float)($v['importeExcedido'] ?? 0);
+                }
+                
+                if (!$esDetallado) {
+                    $cells[$c++] = '$' . number_format((float)($v['saldoCredito'] ?? 0), 2); // Saldo Credito
+                }
+                $cells[$c++] = $v['Dias_Credito'];                                 // Dias Cred.
+                if ($esDetallado) {
+                    $cells[$c++] = $v['fechaReferenciaStr'];                       // Fecha Aprobacion.
+                    $cells[$c++] = $v['fechaVencimientoStr'] ?? 'N/A';             // Fecha Venc.
+                }
+                $cells[$c++] = $v['estatusVencimiento'] ?? 'N/A';                  // Estatus
+                $cells[$c++] = $v['textoVencimiento'];                             // Dias Vencido
+
+                // Calcular altura de fila
+                $lineCounts = [];
+                foreach ($cells as $i => $c) {
+                    $lineCounts[$i] = $pdf->NbLines($colW[$i], $this->_iso($c));
+                }
+                $h = max($lineCounts) * $lineH;
+
+                if ($pdf->GetY() + $h > $pdf->getPageBreakTrigger()) {
+                    $pdf->AddPage();
+                    $drawHeader($pdf);
+                    $pdf->SetFont('Arial', '', 8);
+                    $pdf->SetTextColor(0, 0, 0);
+                    $pdf->SetDrawColor(220);
+                }
+
+                $nCells = count($cells);
+                $aligns = [];
+                for ($i = 0; $i < $nCells; $i++) {
+                    $align = ($i === 0 || $i >= $nCells - 2) ? 'C' : 'L';
+                    if ($i >= 4 && $i <= 10) $align = 'R'; // Columnas monetarias a la derecha
+                    $aligns[$i] = $align;
+                }
+                $pdf->SetX(8);
+                $pdf->drawTableRow($colW, array_map(fn($v) => $this->_iso((string)$v), $cells), $aligns, $lineH, false);
+            }
+
+            // --- Último subtotal (modo detallado) + Footer Total General ---
+            if ($esDetallado && $currentProveedor !== null) {
+                $totalW = array_sum($colW);
+                if ($pdf->GetY() + $lineH > $pdf->getPageBreakTrigger()) {
+                    $pdf->AddPage();
+                    $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+                }
+                $pdf->SetFont('Arial', 'B', 8);
+                $pdf->SetTextColor(0, 0, 0);
+                $pdf->SetX(8);
+                    $pdf->Cell($totalW, $lineH, $this->_iso('SUBTOTAL ' . $proveedorAnteriorNombre), 1, 1, 'L', false);
+            }
+
+            // --- Calcular totales ---
+            $totalGeneral = 0;
+            $totalVencido = 0;
+            $totalPagoHoy = 0;
+            $totalPorVencer = 0;
+            foreach ($datos as $v) {
+                $imp = (float)($v['importePorPagar'] ?? 0);
+                $totalGeneral += $imp;
+                $estatus = $v['estatusVencimiento'] ?? '';
+                if ($estatus === 'Vencido') $totalVencido += $imp;
+                elseif ($estatus === 'Pago Hoy') $totalPagoHoy += $imp;
+                elseif ($estatus === 'Por Vencer') $totalPorVencer += $imp;
+            }
+
+            // --- Footer: Total General (estilo oscuro) ---
+            $this->_dibujarTotalGeneral($pdf, $colW, 'TOTAL GENERAL: $' . number_format($totalGeneral, 2));
+
+            $this->response->setHeader('Content-Type', 'application/pdf');
+            $pdf->Output('D', 'reporte_vencimientos_' . ($esDetallado ? 'detallado' : 'agrupado') . '_' . date('Ymd') . '.pdf');
+            exit;
+
+        } catch (\Throwable $e) {
+            log_message('error', '[exportarVencimientosPdf] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
     private function getColumnLetter($index) {
         $letter = '';
         while ($index >= 0) {
@@ -1511,14 +1756,170 @@ $cols[] = chr(65 + $i);
             $pdf->Output('D', $descarga);
             exit;
 
-        } catch (\Throwable $e) {
+} catch (\Throwable $e) {
             log_message('error', '[exportarPresupuestoVsEjecutadoPdf] ' . $e->getMessage());
             return $this->failServerError($e->getMessage());
         }
     }
 
     /**
-     * Devuelve el estilo visual de un nodo según su nivel jerárquico.
+     * Exporta el reporte "Compras" (Pagado/Por Pagar Autorizado) a PDF.
+     * Recibe los datos filtrados del frontend (mismo patrón que exportarMovimientosExcel).
+     */
+    public function exportarComprasPdf()
+    {
+        try {
+            $json   = $this->request->getJSON(true);
+            $datos  = $json['datos'] ?? [];
+            $filtros = $json['filtros'] ?? [];
+            $nombreEmpresa = $json['nombreEmpresa'] ?? 'Grupo MBM';
+            $fechaHoy = date('d/m/Y H:i:s');
+
+            if (empty($datos)) {
+                return $this->fail('No hay datos para generar el PDF');
+            }
+
+            $pdf = new PDF('L', 'mm', 'Letter');
+            $pdf->AliasNbPages();
+            $pdf->SetAutoPageBreak(false);
+            $pdf->setHeaderTitle('REPORTE PAGADO/POR PAGAR AUTORIZADO');
+            $pdf->AddPage();
+
+            // --- Bloque informativo (título + metadata) ---
+            $pdf->SetFont('Arial', 'B', 12);
+            $pdf->SetTextColor(18, 18, 18);
+            $pdf->Cell(0, 7, $this->_iso('REPORTE PAGADO / POR PAGAR AUTORIZADO'), 0, 1, 'L');
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetTextColor(90, 90, 90);
+            $pdf->Cell(0, 4, $this->_iso('Empresa: ' . $nombreEmpresa), 0, 1, 'L');
+            
+            $filtrosStr = [];
+            if (!empty($filtros['fecha'])) {
+                $filtrosStr[] = 'Fecha: ' . $filtros['fecha'];
+            }
+            if (!empty($filtros['estado']) && $filtros['estado'] !== 'Todos') {
+                $filtrosStr[] = 'Estado: ' . $filtros['estado'];
+            }
+            if (!empty($filtros['departamentos']) && $filtros['departamentos'] !== 'Todos') {
+                $filtrosStr[] = 'Depto: ' . $filtros['departamentos'];
+            }
+            if (!empty($filtros['razonesSociales']) && $filtros['razonesSociales'] !== 'Todas') {
+                $filtrosStr[] = 'Razón Social: ' . $filtros['razonesSociales'];
+            }
+            if (!empty($filtros['proveedores']) && $filtros['proveedores'] !== 'Todos') {
+                $filtrosStr[] = 'Proveedores: ' . $filtros['proveedores'];
+            }
+            if (!empty($filtros['metodoPago']) && $filtros['metodoPago'] !== 'Todos') {
+                $filtrosStr[] = 'Método: ' . $filtros['metodoPago'];
+            }
+            $pdf->Cell(0, 4, $this->_iso('Filtros: ' . (empty($filtrosStr) ? 'Ninguno' : implode(' | ', $filtrosStr))), 0, 1, 'L');
+            $pdf->Cell(0, 4, $this->_iso('Generado: ' . $fechaHoy), 0, 1, 'L');
+            $pdf->Ln(2);
+
+            // --- Columnas ---
+            $headers = ['Folio', 'Fecha', 'Departamento', 'Razón Social', 'Proveedor', 'Método Pago', 'Estado', 'Importe Total'];
+            $colW    = [22, 22, 38, 40, 42, 22, 20, 24];
+            $lineH   = 5;
+
+            $pdf->SetWidths($colW);
+
+            // --- Encabezado de tabla (estilo oscuro) ---
+            $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+
+            // --- Filas de datos ---
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetDrawColor(229, 231, 235);
+            $totalGeneral = 0;
+
+            foreach ($datos as $item) {
+                $proveedorNombre = $item['proveedor']['RazonSocial'] ?? ($item['ProveedorFiltro'] ?? 'N/A');
+                $metodoPago = $item['MetodoPago'] ?? 0;
+                $metodoTexto = $metodoPago == 0 ? 'Efectivo' : ($metodoPago == 1 ? 'Crédito' : 'En Espera');
+                $importe = (float)($item['cotizacion']['Total'] ?? $item['MontoTotal'] ?? 0);
+                $totalGeneral += $importe;
+
+                $cells = [
+                    $item['No_Folio'] ?? 'N/A',
+                    $item['Fecha'] ?? 'N/A',
+                    $item['DepartamentoNombre'] ?? 'N/A',
+                    $item['Complejo'] ?? 'N/A',
+                    $proveedorNombre,
+                    $metodoTexto,
+                    $item['EstadoOrden'] ?? 'N/A',
+                    '$' . number_format($importe, 2),
+                ];
+
+                $lineCounts = [];
+                foreach ($cells as $i => $c) {
+                    $lineCounts[$i] = $pdf->NbLines($colW[$i], $this->_iso($c));
+                }
+                $h = max($lineCounts) * $lineH;
+
+                if ($pdf->GetY() + $h > $pdf->getPageBreakTrigger()) {
+                    $pdf->AddPage();
+                    $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+                    $pdf->SetFont('Arial', '', 8);
+                    $pdf->SetTextColor(0, 0, 0);
+                    $pdf->SetDrawColor(229, 231, 235);
+                }
+
+                $aligns = [];
+                foreach ($cells as $i => $v) {
+                    $aligns[$i] = ($i === 0 || $i === 7) ? 'R' : 'L';
+                }
+                $pdf->SetX(8);
+                $pdf->drawTableRow($colW, array_map(fn($v) => $this->_iso((string)$v), $cells), $aligns, $lineH, false);
+            }
+
+            // --- Footer: Total General (estilo oscuro) ---
+            $this->_dibujarTotalGeneral($pdf, $colW, 'TOTAL: $' . number_format($totalGeneral, 2));
+
+            $this->response->setHeader('Content-Type', 'application/pdf');
+            $pdf->Output('D', 'reporte_compras_' . date('Ymd') . '.pdf');
+            exit;
+
+        } catch (\Throwable $e) {
+            log_message('error', '[exportarComprasPdf] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    /**
+     * Dibuja la fila de encabezado con estilo oscuro (fondo RGB 31,41,55).
+     */
+    private function _dibujarCabeceraOscura(PDF $pdf, array $colW, array $headers, float $lineH): void
+    {
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->SetFillColor(31, 41, 55);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetDrawColor(26, 26, 26);
+
+        $pdf->SetX(8);
+        $pdf->drawTableRow($colW, array_map(fn($h) => $this->_iso($h), $headers), array_fill(0, count($headers), 'C'), $lineH, true);
+    }
+
+    /**
+     * Dibuja la fila de total general con estilo oscuro.
+     */
+    private function _dibujarTotalGeneral(PDF $pdf, array $colW, string $label): void
+    {
+        $totalW = array_sum($colW);
+
+        if ($pdf->GetY() + 7 > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage();
+        }
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->SetFillColor(31, 41, 55);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetDrawColor(26, 26, 26);
+        $pdf->SetX(8);
+        $pdf->Cell($totalW, 7, $this->_iso($label), 1, 0, 'R', true);
+    }
+
+    /**
+     * Devuelve el estilo visual de un nodo seg�n su nivel jer�rquico.
      */
     private function _pdfEstiloNodo(int $level, $nodo): array
     {

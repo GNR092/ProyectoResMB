@@ -729,7 +729,7 @@ function registrarComponenteReportePresupuesto() {
                     if (notif && typeof notif.click === 'function') notif.click();
                 }
             },
-
+            
             async mostrarVerMovimiento(idSolicitud) {
                 const divMovimientos = document.getElementById('div-movimientos');
                 const divVencimientos = document.getElementById('div-vencimientos');
@@ -1542,6 +1542,56 @@ function registrarComponenteReportePresupuesto() {
                     console.error("Error exportando excel:", e); 
                 } finally { 
                     if (notif) notif.click(); 
+                }
+            },
+
+            async exportarVencimientosPdf() {
+                const filteredData = this.vencimientosFiltrados;
+                if (!filteredData || filteredData.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando PDF de Vencimientos...', 'info', 0) : null;
+
+                try {
+                    let nombreEmpresa = 'Corporativo MBM';
+                    if (this.filtrosRazonesVenc && this.filtrosRazonesVenc.length === 1) {
+                        const idRS = parseInt(this.filtrosRazonesVenc[0]);
+                        const rsObj = this.razonesSociales.find(r => parseInt(r.ID_RazonSocial) === idRS);
+                        if (rsObj) nombreEmpresa = rsObj.Nombre;
+                    }
+
+                    const payload = {
+                        reporteDetallado: this.reporteDetallado,
+                        datos: filteredData,
+                        nombreEmpresa: nombreEmpresa
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/vencimientos/exportar-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `reporte_vencimientos_${this.reporteDetallado ? 'detallado' : 'agrupado'}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) {
+                    console.error('Error exportarVencimientosPdf:', e);
+                    alert('Error al generar el PDF.');
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
                 }
             },
 
