@@ -241,6 +241,16 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/presupuesto/exportar-vs-ejecutado-pdf', 'ReportesController::exportarPresupuestoVsEjecutadoPdf');
         $routes->post('api/compras/exportar-pdf', 'ReportesController::exportarComprasPdf');
 
+        // Rutas API Solicitudes Sin Cotizar
+        $routes->get('api/solicitudes/sin-cotizar', 'ReportesController::getSolicitudesSinCotizar');
+        $routes->post('api/solicitudes/sin-cotizar/exportar-datos', 'ReportesController::exportarSolicitudesSinCotizarJson');
+        $routes->post('api/solicitudes/sin-cotizar/exportar-pdf', 'ReportesController::exportarSolicitudesSinCotizarPdf');
+
+        // Rutas API Reporte Pagos Pendientes
+        $routes->get('api/reportes/pagos-pendientes', 'ReportesController::getPagosPendientesReporte');
+        $routes->post('api/reportes/pagos-pendientes/exportar-datos', 'ReportesController::exportarPagosPendientesJson');
+        $routes->post('api/reportes/pagos-pendientes/exportar-pdf', 'ReportesController::exportarPagosPendientesPdf');
+
         // Rutas API Saldos Bancarios
         $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');
         $routes->post('api/saldos-bancarios/guardar-masivo', 'PresupuestoApiController::saveSaldosMasivo');
