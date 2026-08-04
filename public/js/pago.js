@@ -801,7 +801,7 @@ function verRequisicionPago(id) {
 }
 
 /**
- * Lógica para el modal "Pagos Realizados" (Fichas de Pago)
+ * Lógica para el modal "Facturas Pendientes" (Fichas de Pago)
  * Gestiona el listado de órdenes listas para pago final.
  */
 function FichasPago() {

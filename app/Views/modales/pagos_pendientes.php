@@ -4,13 +4,13 @@
         <div class="flex flex-col sm:flex-row gap-2">
             <button @click="screen = 'contado'"
                     class="w-full sm:w-auto flex-grow px-4 py-3 m-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ">
-                <p class="font-medium">Pagos Realizados de contado</p>
+                <p class="font-medium">Facturas Pendientes Contado</p>
                 <p id="count-contado-fichas" class="text-xs opacity-75" x-text="countContado + ' pendientes'"></p>
             </button>
 
             <button @click="screen = 'credito'"
                     class="w-full sm:w-auto flex-grow px-4 py-3 m-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-                <p class="font-medium">Pagos Realizados a crédito</p>
+                <p class="font-medium">Facturas Pendientes Crédito</p>
                 <p id="count-credito-fichas" class="text-xs opacity-75" x-text="countCredito + ' pendientes'"></p>
             </button>
         </div>

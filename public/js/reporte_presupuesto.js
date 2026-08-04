@@ -105,6 +105,26 @@ function registrarComponenteReportePresupuesto() {
             fechaCorteExport: '',
             tipoExportacionPagosPend: 'excel',
 
+            // Reporte Requisiciones Pagadas
+            pagosRealizados: [],
+            totalesPagosRealizados: { cantidad: 0, total_general: 0 },
+            filtroTextoFolioPagosRealizados: '',
+            filtrosRazonPagosRealizados: [],
+            filtrosComplejoPagosRealizados: [],
+            filtrosDeptosPagosRealizados: [],
+            filtrosUsuarioPagosRealizados: [],
+            filtrosFormaPagoPagosRealizados: [],
+            filtrosTipoPagosRealizados: [],
+            currentPagePagosRealizados: 1,
+            rowsPerPagePagosRealizados: 15,
+            choicesRazonPagosRealizados: null,
+            choicesComplejoPagosRealizados: null,
+            choicesDeptosPagosRealizados: null,
+            choicesUsuarioPagosRealizados: null,
+            choicesFormaPagoPagosRealizados: null,
+            choicesTipoPagosRealizados: null,
+            tipoExportacionPagosRealizados: 'excel',
+
             // Paginación y filtrado movimientos
             currentPageMovimientos: 1,
             rowsPerPageMovimientos: 15,
@@ -311,6 +331,10 @@ function registrarComponenteReportePresupuesto() {
                         if (nueva === 'pagos_pendientes') {
                             this.cargarPagosPendientes();
                             this.initChoicesPagosPendientes();
+                        }
+                        if (nueva === 'pagos_realizados') {
+                            this.cargarPagosRealizados();
+                            this.initChoicesPagosRealizados();
                         }
                     });
                 }
@@ -921,7 +945,266 @@ function registrarComponenteReportePresupuesto() {
                 }
             },
 
-            // ============ REPORTE PAGOS PENDIENTES ============
+            // ============ REPORTE REQUISICIONES PAGADAS ============
+
+            async cargarPagosRealizados() {
+                this.cargando = true;
+                this.pagosRealizados = [];
+                this.currentPagePagosRealizados = 1;
+                try {
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-realizados`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.pagosRealizados = Array.isArray(data.datos) ? data.datos : [];
+                        this.totalesPagosRealizados = data.totales || { cantidad: 0, total_general: 0 };
+                        this.$nextTick(() => this.initChoicesPagosRealizados());
+                    } else {
+                        console.error('Error al cargar el reporte de requisiciones pagadas:', await res.text());
+                        this.mensaje = 'Error al cargar el reporte de requisiciones pagadas.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error('Error cargando requisiciones pagadas:', e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargando = false;
+                }
+            },
+
+            initChoicesPagosRealizados() {
+                if (typeof Choices === 'undefined') return;
+
+                const config = { removeItemButton: true, itemSelectText: '', allowHTML: true, shouldSort: false, placeholder: true, placeholderValue: 'Seleccione...', searchPlaceholderValue: 'Buscar...' };
+
+                const initOne = (ref, prop, choicesProp) => {
+                    const el = this.$refs[ref];
+                    if (!el) return;
+                    try {
+                        if (this[choicesProp]) this[choicesProp].destroy();
+                        this[choicesProp] = new Choices(el, config);
+                        el.addEventListener('change', () => {
+                            this[prop] = this[choicesProp].getValue(true).map(String);
+                            this.currentPagePagosRealizados = 1;
+                        });
+                    } catch (e) {
+                        console.error('Error inicializando Choices en ' + ref + ':', e);
+                    }
+                };
+
+                initOne('choicesRazonPagosRealizados', 'filtrosRazonPagosRealizados', 'choicesRazonPagosRealizados');
+                initOne('choicesComplejoPagosRealizados', 'filtrosComplejoPagosRealizados', 'choicesComplejoPagosRealizados');
+                initOne('choicesDeptosPagosRealizados', 'filtrosDeptosPagosRealizados', 'choicesDeptosPagosRealizados');
+                initOne('choicesUsuarioPagosRealizados', 'filtrosUsuarioPagosRealizados', 'choicesUsuarioPagosRealizados');
+                initOne('choicesFormaPagoPagosRealizados', 'filtrosFormaPagoPagosRealizados', 'choicesFormaPagoPagosRealizados');
+                initOne('choicesTipoPagosRealizados', 'filtrosTipoPagosRealizados', 'choicesTipoPagosRealizados');
+            },
+
+            _uniqOpcionesRealizados(campo) {
+                const arr = Array.isArray(this.pagosRealizados) ? this.pagosRealizados : [];
+                return [...new Set(arr.map(s => (s && s[campo] ? String(s[campo]).trim() : '')).filter(v => v && v.toLowerCase() !== 'n/a'))];
+            },
+
+            get opcionesRazonesPagosRealizados() {
+                return this._uniqOpcionesRealizados('RazonSocial');
+            },
+
+            get opcionesComplejosPagosRealizados() {
+                return this._uniqOpcionesRealizados('Complejo');
+            },
+
+            get opcionesDeptosPagosRealizados() {
+                return this._uniqOpcionesRealizados('Departamento');
+            },
+
+            get opcionesUsuariosPagosRealizados() {
+                return this._uniqOpcionesRealizados('Usuario');
+            },
+
+            get opcionesFormasPagoPagosRealizados() {
+                return this._uniqOpcionesRealizados('FormaPago');
+            },
+
+            get pagosRealizadosFiltradas() {
+                const source = Array.isArray(this.pagosRealizados) ? this.pagosRealizados : [];
+                if (source.length === 0) return [];
+
+                const searchFolio = (this.filtroTextoFolioPagosRealizados || '').trim().toLowerCase();
+                const selRazones = (this.filtrosRazonPagosRealizados || []).map(String);
+                const selComplejos = (this.filtrosComplejoPagosRealizados || []).map(String);
+                const selDeptos = (this.filtrosDeptosPagosRealizados || []).map(String);
+                const selUsuarios = (this.filtrosUsuarioPagosRealizados || []).map(String);
+                const selFormas = (this.filtrosFormaPagoPagosRealizados || []).map(String);
+                const selTipos = (this.filtrosTipoPagosRealizados || []).map(String);
+
+                const filtered = source.filter(s => {
+                    if (selRazones.length > 0 && !selRazones.includes(String(s.RazonSocial))) return false;
+                    if (selComplejos.length > 0 && !selComplejos.includes(String(s.Complejo))) return false;
+                    if (selDeptos.length > 0 && !selDeptos.includes(String(s.Departamento))) return false;
+                    if (selUsuarios.length > 0 && !selUsuarios.includes(String(s.Usuario))) return false;
+                    if (selFormas.length > 0 && !selFormas.includes(String(s.FormaPago))) return false;
+                    if (selTipos.length > 0 && !selTipos.includes(s.Tipo)) return false;
+
+                    if (searchFolio && !(s.No_Folio || '').toLowerCase().includes(searchFolio)) return false;
+                    return true;
+                });
+
+                return filtered.sort((a, b) => new Date(a.FechaSolicitud || 0) - new Date(b.FechaSolicitud || 0));
+            },
+
+            get totalPagesPagosRealizados() {
+                return Math.ceil(this.pagosRealizadosFiltradas.length / this.rowsPerPagePagosRealizados) || 1;
+            },
+
+            get paginatedPagosRealizados() {
+                const filtrados = this.pagosRealizadosFiltradas;
+                const start = (this.currentPagePagosRealizados - 1) * this.rowsPerPagePagosRealizados;
+                return filtrados.slice(start, start + this.rowsPerPagePagosRealizados);
+            },
+
+            get totalGeneralPagosRealizados() {
+                return this.pagosRealizadosFiltradas.reduce((acc, s) => acc + (parseFloat(s.TotalRequisicion) || 0), 0);
+            },
+
+            cambiarPaginaPagosRealizados(page) {
+                if (page < 1 || page > this.totalPagesPagosRealizados) return;
+                this.currentPagePagosRealizados = page;
+            },
+
+            limpiarFiltrosPagosRealizados() {
+                const refsChoice = ['choicesRazonPagosRealizados', 'choicesComplejoPagosRealizados', 'choicesDeptosPagosRealizados', 'choicesUsuarioPagosRealizados', 'choicesFormaPagoPagosRealizados', 'choicesTipoPagosRealizados'];
+                refsChoice.forEach(r => { if (this[r]) this[r].removeActiveItems(); });
+                this.filtroTextoFolioPagosRealizados = '';
+                this.filtrosRazonPagosRealizados = [];
+                this.filtrosComplejoPagosRealizados = [];
+                this.filtrosDeptosPagosRealizados = [];
+                this.filtrosUsuarioPagosRealizados = [];
+                this.filtrosFormaPagoPagosRealizados = [];
+                this.filtrosTipoPagosRealizados = [];
+                this.currentPagePagosRealizados = 1;
+            },
+
+            abrirModalFechaCorteRealizados(tipo) {
+                this.tipoExportacionPagosRealizados = tipo || 'excel';
+                this.fechaCorteExport = new Date().toISOString().split('T')[0];
+                this.modalFechaCorteAbierto = true;
+            },
+
+            cerrarModalFechaCorteRealizados() {
+                this.modalFechaCorteAbierto = false;
+            },
+
+            async confirmarExportacionPagosRealizados() {
+                if (!this.fechaCorteExport) {
+                    alert('Selecciona una fecha de corte.');
+                    return;
+                }
+                const corte = this.fechaCorteExport;
+                const datos = this.pagosRealizadosFiltradas.filter(s => {
+                    if (!s.FechaMasReciente) return true;
+                    return String(s.FechaMasReciente) <= corte;
+                });
+                if (datos.length === 0) {
+                    alert('No hay requisiciones que entren dentro de la fecha de corte seleccionada.');
+                    return;
+                }
+
+                this.modalFechaCorteAbierto = false;
+                if (this.tipoExportacionPagosRealizados === 'excel') {
+                    await this.exportarPagosRealizadosExcel(datos, corte);
+                } else {
+                    await this.exportarPagosRealizadosPdf(datos, corte);
+                }
+            },
+
+            async exportarPagosRealizadosExcel(datos, fechaCorte) {
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando Excel de Requisiciones Pagadas...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos,
+                        fechaCorte,
+                        nombreEmpresa: window.APP_NOMBRE_EMPRESA || '',
+                        filtros: {
+                            razonesSociales: (this.filtrosRazonPagosRealizados || []).join(', '),
+                            complejos: (this.filtrosComplejoPagosRealizados || []).join(', '),
+                            departamentos: (this.filtrosDeptosPagosRealizados || []).join(', '),
+                            usuarios: (this.filtrosUsuarioPagosRealizados || []).join(', '),
+                            formasPago: (this.filtrosFormaPagoPagosRealizados || []).join(', '),
+                            tipos: (this.filtrosTipoPagosRealizados || []).join(', ')
+                        }
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-realizados/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `pagos_realizados_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert("Error al generar el archivo Excel.");
+                    }
+                } catch (e) {
+                    console.error("Error exportarPagosRealizadosExcel:", e);
+                    alert("Error al generar el Excel.");
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            async exportarPagosRealizadosPdf(datos, fechaCorte) {
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando PDF de Requisiciones Pagadas...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos,
+                        fechaCorte,
+                        nombreEmpresa: window.APP_NOMBRE_EMPRESA || '',
+                        filtros: {
+                            razonesSociales: (this.filtrosRazonPagosRealizados || []).join(', '),
+                            complejos: (this.filtrosComplejoPagosRealizados || []).join(', '),
+                            departamentos: (this.filtrosDeptosPagosRealizados || []).join(', '),
+                            usuarios: (this.filtrosUsuarioPagosRealizados || []).join(', '),
+                            formasPago: (this.filtrosFormaPagoPagosRealizados || []).join(', '),
+                            tipos: (this.filtrosTipoPagosRealizados || []).join(', ')
+                        }
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-realizados/exportar-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `pagos_realizados_${new Date().toISOString().split('T')[0]}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) {
+                    console.error('Error exportarPagosRealizadosPdf:', e);
+                    alert('Error al generar el PDF.');
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
 
             async cargarPagosPendientes() {
                 this.cargando = true;

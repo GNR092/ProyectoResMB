@@ -2813,4 +2813,410 @@ $cols[] = chr(65 + $i);
             return $this->failServerError($e->getMessage());
         }
     }
+
+    /**
+     * Reporte de requisiciones pagadas (completas).
+     *
+     * Incluye requisiciones con OC en 'Pagada', y requisiciones con
+     * Solicitud.Estado='Pagada' que aún no tienen OC (caso legacy).
+     * Se asume que cuando la OC está 'Pagada' también se marca la solicitud.
+     */
+    public function getPagosRealizadosReporte()
+    {
+        $solicitudModel = new SolicitudModel();
+        $productoModel  = new SolicitudProductModel();
+        $servicioModel  = new SolicitudServiciosModel();
+        $bitacoraModel  = new BitacoraModel();
+
+        $solicitudes = $solicitudModel
+            ->select("Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as ComplejoNombre, Razon_Social.Nombre as RazonSocialNombre, Usuarios.Nombre as UsuarioNombre, Cotizacion.ID_Cotizacion, Cotizacion.Total as CotizacionTotal, Cotizacion.ID_Proveedor as CotizacionProveedor, OrdenCompra.ID_OrdenCompra, OrdenCompra.ID_Proveedor as OCProveedor, OrdenCompra.Estado as OCEstado, OrdenCompra.Fecha as OCFecha, OrdenCompra.FechaPagoRealizado, OrdenCompra.Fecha_Comprobante")
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
+            ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
+            ->groupStart()
+                ->groupStart()
+                    ->where('Solicitud.Estado', Status::Pagada)
+                    ->where('OrdenCompra.ID_OrdenCompra IS NULL')
+                ->groupEnd()
+                ->orGroupStart()
+                    ->where('OrdenCompra.Estado', Status::Pagada)
+                ->groupEnd()
+            ->groupEnd()
+            ->orderBy('Solicitud.Fecha', 'ASC')
+            ->findAll();
+
+        $ids = array_column($solicitudes, 'ID_Solicitud');
+        if (empty($ids)) {
+            return $this->respond([
+                'datos'   => [],
+                'totales' => ['cantidad' => 0, 'total_general' => 0],
+            ]);
+        }
+
+        // --- Costo estimado por solicitud sin cotización ---
+        $costos = array_fill_keys($ids, 0.0);
+
+        $rows = $productoModel->select('ID_Solicitud, Cantidad, Importe')->whereIn('ID_Solicitud', $ids)->findAll();
+        foreach ($rows as $r) {
+            $costos[$r['ID_Solicitud']] += (float) $r['Cantidad'] * (float) $r['Importe'];
+        }
+
+        $rows = $servicioModel->select('ID_Solicitud, Importe')->whereIn('ID_Solicitud', $ids)->findAll();
+        foreach ($rows as $r) {
+            $costos[$r['ID_Solicitud']] += (float) $r['Importe'];
+        }
+
+        // --- Fecha de aprobación del jefe (bitácora) ---
+        $aprobaciones = [];
+        $logs = $bitacoraModel->select('solicitud_id, fecha_hora, valores_antiguos')
+            ->where('tipo_accion', 'ACTUALIZAR')
+            ->whereIn('solicitud_id', $ids)
+            ->findAll();
+        foreach ($logs as $log) {
+            if (stripos((string) ($log['valores_antiguos'] ?? ''), 'Aprobacion Pendiente') === false) {
+                continue;
+            }
+            $sid   = (int) $log['solicitud_id'];
+            $fecha = strtotime((string) ($log['fecha_hora'] ?? ''));
+            if ($fecha && (!isset($aprobaciones[$sid]) || $fecha < $aprobaciones[$sid])) {
+                $aprobaciones[$sid] = $fecha;
+            }
+        }
+
+        // --- Proveedores (crédito) ---
+        $proveedorIds = [];
+        foreach ($solicitudes as $sol) {
+            $pid = $sol['OCProveedor'] ?? $sol['CotizacionProveedor'] ?? $sol['ID_Proveedor'] ?? null;
+            if ($pid !== null && $pid !== '') {
+                $proveedorIds[(int) $pid] = true;
+            }
+        }
+        $proveedores = [];
+        if (!empty($proveedorIds)) {
+            $proveedorModel = new ProveedorModel();
+            $rows = $proveedorModel->select('ID_Proveedor, Monto_Credito, Dias_Credito')
+                ->whereIn('ID_Proveedor', array_keys($proveedorIds))
+                ->findAll();
+            foreach ($rows as $r) {
+                $proveedores[(int) $r['ID_Proveedor']] = $r;
+            }
+        }
+
+        $datos = [];
+        $totalGeneral = 0.0;
+
+        foreach ($solicitudes as $sol) {
+            $tipo      = (int) ($sol['Tipo'] ?? SolicitudTipo::Cotizacion);
+            $tipoTexto = in_array($tipo, [SolicitudTipo::NoCotizacion, SolicitudTipo::Cotizacion], true)
+                ? 'Producto' : 'Servicio';
+
+            $cotizaTotal = $sol['CotizacionTotal'] ?? null;
+            if ($cotizaTotal !== null && $cotizaTotal !== '') {
+                $total = round((float) $cotizaTotal, 2);
+            } else {
+                $montoBase = $costos[$sol['ID_Solicitud']] ?? 0;
+                $ivaVal    = $sol['IVA'] ?? false;
+                $ivaOn     = ($ivaVal === 't' || $ivaVal === '1' || $ivaVal === 1 || $ivaVal === true);
+                $total     = round($montoBase * ($ivaOn ? 1.16 : 1.0), 2);
+            }
+
+            // --- Fechas normalizadas (Y-m-d) ---
+            $fechas = [];
+            $fechas['FechaSolicitud']     = ($f = $sol['Fecha'] ?? null) ? date('Y-m-d', strtotime($f)) : null;
+            $fechas['FechaAprobacionJefe'] = isset($aprobaciones[$sol['ID_Solicitud']])
+                ? date('Y-m-d', $aprobaciones[$sol['ID_Solicitud']]) : null;
+            $fechas['FechaAprobacion']    = ($f = $sol['Fecha_Aprobacion'] ?? null) ? date('Y-m-d', strtotime($f)) : null;
+            $fechas['FechaOC']            = ($f = $sol['OCFecha'] ?? null) ? date('Y-m-d', strtotime($f)) : null;
+            $fechas['FechaPagoRealizado'] = ($f = $sol['FechaPagoRealizado'] ?? null) ? date('Y-m-d', strtotime($f)) : null;
+            $fechas['FechaComprobante']   = ($f = $sol['Fecha_Comprobante'] ?? null) ? date('Y-m-d', strtotime($f)) : null;
+
+            $fechaMasReciente = null;
+            foreach ($fechas as $fd) {
+                if ($fd !== null && ($fechaMasReciente === null || $fd > $fechaMasReciente)) {
+                    $fechaMasReciente = $fd;
+                }
+            }
+
+            // --- Forma de pago y crédito ---
+            $metodo = (int) ($sol['MetodoPago'] ?? 9);
+            $formaPago = match ($metodo) {
+                0 => 'Contado',
+                1 => 'Crédito',
+                default => 'En Espera',
+            };
+
+            $proveedorId = $sol['OCProveedor'] ?? $sol['CotizacionProveedor'] ?? $sol['ID_Proveedor'] ?? null;
+            $proveedor   = $proveedorId !== null ? ($proveedores[(int) $proveedorId] ?? null) : null;
+
+            $montoCredito = null;
+            if ($proveedor !== null) {
+                $montoCredito = ($proveedor['Monto_Credito'] ?? null) !== null && ($proveedor['Monto_Credito'] ?? '') !== ''
+                    ? round((float) $proveedor['Monto_Credito'], 2) : null;
+            }
+
+            $totalGeneral += $total;
+
+            // Estado efectivo: OC si existe, sino Solicitud
+            $estadoEfectivo = $sol['OCEstado'] ?? $sol['Estado'];
+
+            $datos[] = [
+                'ID_Solicitud'        => (int) $sol['ID_Solicitud'],
+                'No_Folio'            => $sol['No_Folio'] ?? 'N/A',
+                'RazonSocial'         => $sol['RazonSocialNombre'] ?? 'N/A',
+                'Complejo'            => $sol['ComplejoNombre'] ?? 'N/A',
+                'Departamento'        => $sol['DepartamentoNombre'] ?? 'N/A',
+                'Usuario'             => $sol['UsuarioNombre'] ?? 'N/A',
+                'FechaSolicitud'      => $fechas['FechaSolicitud'],
+                'FechaAprobacionJefe' => $fechas['FechaAprobacionJefe'],
+                'FechaAprobacion'     => $fechas['FechaAprobacion'],
+                'FechaOC'             => $fechas['FechaOC'],
+                'FechaPagoRealizado'  => $fechas['FechaPagoRealizado'],
+                'FechaComprobante'    => $fechas['FechaComprobante'],
+                'FechaMasReciente'    => $fechaMasReciente,
+                'Estado'              => $estadoEfectivo,
+                'Tipo'                => $tipoTexto,
+                'MetodoPago'          => $metodo,
+                'FormaPago'           => $formaPago,
+                'MontoCredito'        => $montoCredito,
+                'TotalRequisicion'    => $total,
+            ];
+        }
+
+        return $this->respond([
+            'datos'   => $datos,
+            'totales' => [
+                'cantidad'      => count($datos),
+                'total_general' => round($totalGeneral, 2),
+            ],
+        ]);
+    }
+
+    /**
+     * Exporta a Excel el reporte de requisiciones pagadas.
+     */
+    public function exportarPagosRealizadosJson()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+            $datos = $json['datos'] ?? [];
+            $fechaCorte = $json['fechaCorte'] ?? null;
+            $nombreEmpresa = $json['nombreEmpresa'] ?? 'Grupo MBM';
+            $fechaHoy = date('d/m/Y H:i:s');
+
+            if (empty($datos)) {
+                return $this->fail('No hay datos para generar el Excel');
+            }
+
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Pagos Realizados');
+
+            $sheet->setCellValue('A1', $nombreEmpresa);
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $sheet->setCellValue('A2', 'REPORTE DE REQUISICIONES PAGADAS');
+            $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12);
+            $sheet->setCellValue('A3', 'Fecha de creación: ' . $fechaHoy);
+            $sheet->getStyle('A3')->getFont()->setItalic(true)->setSize(10);
+            if ($fechaCorte) {
+                $sheet->setCellValue('A4', 'Fecha de corte: ' . date('d/m/Y', strtotime($fechaCorte)));
+                $sheet->getStyle('A4')->getFont()->setItalic(true)->setSize(10);
+            }
+
+            $headers = ['Folio', 'Razón Social', 'Complejo', 'Departamento', 'Usuario Solicitante', 'Fecha Solicitud', 'Fecha Aprob. Jefe', 'Fecha Aprob. Dirección', 'Fecha OC', 'Fecha Pago Realizado', 'Fecha Comprobante', 'Estado', 'Forma de Pago', 'Crédito Proveedor', 'Total Requisición'];
+
+            $cols = [];
+            for ($i = 0; $i < count($headers); $i++) {
+                $cols[] = $this->getColumnLetter($i);
+            }
+
+            $headerStyle = [
+                'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F2937']],
+            ];
+            $borderStyle = [
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'E5E7EB']]],
+            ];
+
+            $headerRow = $fechaCorte ? 6 : 5;
+            foreach ($headers as $i => $h) {
+                $sheet->setCellValue($cols[$i] . $headerRow, $h);
+                $sheet->getStyle($cols[$i] . $headerRow)->applyFromArray($headerStyle);
+                $sheet->getColumnDimension($cols[$i])->setAutoSize(true);
+            }
+
+            $row = $headerRow + 1;
+            $totalGeneral = 0;
+            foreach ($datos as $v) {
+                $total = (float) ($v['TotalRequisicion'] ?? 0);
+                $totalGeneral += $total;
+
+                $sheet->setCellValue($cols[0] . $row, $v['No_Folio'] ?? '');
+                $sheet->setCellValue($cols[1] . $row, $v['RazonSocial'] ?? '');
+                $sheet->setCellValue($cols[2] . $row, $v['Complejo'] ?? '');
+                $sheet->setCellValue($cols[3] . $row, $v['Departamento'] ?? '');
+                $sheet->setCellValue($cols[4] . $row, $v['Usuario'] ?? '');
+                $sheet->setCellValue($cols[5] . $row, $v['FechaSolicitud'] ?? '');
+                $sheet->setCellValue($cols[6] . $row, $v['FechaAprobacionJefe'] ?? '');
+                $sheet->setCellValue($cols[7] . $row, $v['FechaAprobacion'] ?? '');
+                $sheet->setCellValue($cols[8] . $row, $v['FechaOC'] ?? '');
+                $sheet->setCellValue($cols[9] . $row, $v['FechaPagoRealizado'] ?? '');
+                $sheet->setCellValue($cols[10] . $row, $v['FechaComprobante'] ?? '');
+                $sheet->setCellValue($cols[11] . $row, $v['Estado'] ?? '');
+                $sheet->setCellValue($cols[12] . $row, $v['FormaPago'] ?? '');
+                $sheet->setCellValue($cols[13] . $row, $v['MontoCredito'] ?? '');
+                if ($v['MontoCredito'] !== null) {
+                    $sheet->getStyle($cols[13] . $row)->getNumberFormat()->setFormatCode('$#,##0.00');
+                }
+                $sheet->setCellValue($cols[14] . $row, $total);
+                $sheet->getStyle($cols[14] . $row)->getNumberFormat()->setFormatCode('$#,##0.00');
+                $sheet->getStyle($cols[0] . $row . ':' . $cols[14] . $row)->applyFromArray($borderStyle);
+                $row++;
+            }
+
+            $sheet->setCellValue($cols[13] . ($row + 1), 'TOTAL GENERAL');
+            $sheet->getStyle($cols[13] . ($row + 1))->getFont()->setBold(true);
+            $sheet->getStyle($cols[13] . ($row + 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->setCellValue($cols[14] . ($row + 1), $totalGeneral);
+            $sheet->getStyle($cols[14] . ($row + 1))->getFont()->setBold(true);
+            $sheet->getStyle($cols[14] . ($row + 1))->getNumberFormat()->setFormatCode('$#,##0.00');
+
+            $writer = new Xlsx($spreadsheet);
+            $this->response->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            $this->response->setHeader('Content-Disposition', 'attachment; filename="pagos_realizados_' . date('Ymd') . '.xlsx"');
+            $writer->save('php://output');
+            exit;
+
+        } catch (\Throwable $e) {
+            log_message('error', '[exportarPagosRealizadosJson] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    /**
+     * Exporta a PDF el reporte de requisiciones pagadas.
+     */
+    public function exportarPagosRealizadosPdf()
+    {
+        try {
+            $json   = $this->request->getJSON(true);
+            $datos  = $json['datos'] ?? [];
+            $filtros = $json['filtros'] ?? [];
+            $fechaCorte = $json['fechaCorte'] ?? null;
+            $nombreEmpresa = $json['nombreEmpresa'] ?? 'Grupo MBM';
+            $fechaHoy = date('d/m/Y H:i:s');
+
+            if (empty($datos)) {
+                return $this->fail('No hay datos para generar el PDF');
+            }
+
+            $pdf = new PDF('L', 'mm', 'Letter');
+            $pdf->AliasNbPages();
+            $pdf->SetAutoPageBreak(false);
+            $pdf->setHeaderTitle('REPORTE REQUISICIONES PAGADAS');
+            $pdf->AddPage();
+
+            $pdf->SetFont('Arial', 'B', 12);
+            $pdf->SetTextColor(18, 18, 18);
+            $pdf->Cell(0, 7, $this->_iso('REPORTE DE REQUISICIONES PAGADAS'), 0, 1, 'L');
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetTextColor(90, 90, 90);
+            $pdf->Cell(0, 4, $this->_iso('Empresa: ' . $nombreEmpresa), 0, 1, 'L');
+
+            $filtrosStr = [];
+            if (!empty($filtros['razonesSociales'])) {
+                $filtrosStr[] = 'Razón Social: ' . (is_array($filtros['razonesSociales']) ? implode(', ', $filtros['razonesSociales']) : $filtros['razonesSociales']);
+            }
+            if (!empty($filtros['complejos'])) {
+                $filtrosStr[] = 'Complejo: ' . (is_array($filtros['complejos']) ? implode(', ', $filtros['complejos']) : $filtros['complejos']);
+            }
+            if (!empty($filtros['departamentos'])) {
+                $filtrosStr[] = 'Departamentos: ' . (is_array($filtros['departamentos']) ? implode(', ', $filtros['departamentos']) : $filtros['departamentos']);
+            }
+            if (!empty($filtros['usuarios'])) {
+                $filtrosStr[] = 'Usuario: ' . (is_array($filtros['usuarios']) ? implode(', ', $filtros['usuarios']) : $filtros['usuarios']);
+            }
+            if (!empty($filtros['formasPago'])) {
+                $filtrosStr[] = 'Forma de Pago: ' . (is_array($filtros['formasPago']) ? implode(', ', $filtros['formasPago']) : $filtros['formasPago']);
+            }
+            if (!empty($filtros['tipos'])) {
+                $filtrosStr[] = 'Tipo: ' . (is_array($filtros['tipos']) ? implode(', ', $filtros['tipos']) : $filtros['tipos']);
+            }
+            $pdf->Cell(0, 4, $this->_iso('Filtros: ' . (empty($filtrosStr) ? 'Ninguno' : implode(' | ', $filtrosStr))), 0, 1, 'L');
+            if ($fechaCorte) {
+                $pdf->Cell(0, 4, $this->_iso('Fecha de corte: ' . date('d/m/Y', strtotime($fechaCorte))), 0, 1, 'L');
+            }
+            $pdf->Cell(0, 4, $this->_iso('Generado: ' . $fechaHoy), 0, 1, 'L');
+            $pdf->Ln(2);
+
+            $headers = ['Folio', 'Razón Social', 'Complejo', 'Departamento', 'Usuario', 'F. Solic.', 'F. Aprob. Jefe', 'F. Aprob. Dir.', 'F. OC', 'F. Pago Real.', 'F. Comprob.', 'Estado', 'Forma Pago', 'Crédito', 'Total Req.'];
+            $colW    = [12, 24, 16, 18, 18, 14, 13, 13, 13, 13, 13, 14, 14, 13, 20];
+            $lineH   = 5;
+
+            $pdf->SetWidths($colW);
+            $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+
+            $pdf->SetFont('Arial', '', 7);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetDrawColor(229, 231, 235);
+            $totalGeneral = 0;
+
+            foreach ($datos as $item) {
+                $total = (float) ($item['TotalRequisicion'] ?? 0);
+                $totalGeneral += $total;
+
+                $cells = [
+                    $item['No_Folio'] ?? 'N/A',
+                    $item['RazonSocial'] ?? 'N/A',
+                    $item['Complejo'] ?? 'N/A',
+                    $item['Departamento'] ?? 'N/A',
+                    $item['Usuario'] ?? 'N/A',
+                    $item['FechaSolicitud'] ?? 'N/A',
+                    $item['FechaAprobacionJefe'] ?? 'N/A',
+                    $item['FechaAprobacion'] ?? 'N/A',
+                    $item['FechaOC'] ?? 'N/A',
+                    $item['FechaPagoRealizado'] ?? 'N/A',
+                    $item['FechaComprobante'] ?? 'N/A',
+                    $item['Estado'] ?? 'N/A',
+                    $item['FormaPago'] ?? 'N/A',
+                    $item['MontoCredito'] !== null ? '$' . number_format((float) $item['MontoCredito'], 2) : 'N/A',
+                    '$' . number_format($total, 2),
+                ];
+
+                $lineCounts = [];
+                foreach ($cells as $i => $c) {
+                    $lineCounts[$i] = $pdf->NbLines($colW[$i], $this->_iso($c));
+                }
+                $h = max($lineCounts) * $lineH;
+
+                if ($pdf->GetY() + $h > $pdf->getPageBreakTrigger()) {
+                    $pdf->AddPage();
+                    $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+                    $pdf->SetFont('Arial', '', 7);
+                    $pdf->SetTextColor(0, 0, 0);
+                    $pdf->SetDrawColor(229, 231, 235);
+                }
+
+                $aligns = [];
+                foreach ($cells as $i => $v) {
+                    $aligns[$i] = ($i === 13 || $i === 14) ? 'R' : 'L';
+                }
+                $pdf->SetX(8);
+                $pdf->drawTableRow($colW, array_map(fn($v) => $this->_iso((string) $v), $cells), $aligns, $lineH, false);
+            }
+
+            $this->_dibujarTotalGeneral($pdf, $colW, 'TOTAL: $' . number_format($totalGeneral, 2));
+
+            $this->response->setHeader('Content-Type', 'application/pdf');
+            $pdf->Output('D', 'pagos_realizados_' . date('Ymd') . '.pdf');
+            exit;
+
+        } catch (\Throwable $e) {
+            log_message('error', '[exportarPagosRealizadosPdf] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
 }

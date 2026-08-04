@@ -109,6 +109,15 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-emerald-700 text-xs">Reporte Pagos Pendientes</span>
             </button>
+            <button @click="irAPantalla('pagos_realizados')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-blue-600" fill="none" stroke-width="2" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15l3-3" />
+                        <circle cx="12" cy="12" r="9" />
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-blue-700 text-xs">Reporte Requisiciones Pagadas</span>
+            </button>
         </div>
     </div>
 
@@ -1847,7 +1856,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
                         <select x-ref="choicesRazonSinCoti" multiple>
-                            <option x-for="rs in opcionesRazonesSinCoti" :key="'rs-' + rs" :value="rs" x-text="rs"></option>
+                            <template x-for="rs in opcionesRazonesSinCoti" :key="'rs-' + rs"><option :value="rs" x-text="rs"></option></template>
                         </select>
                     </div>
 
@@ -2023,7 +2032,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Usuario</label>
                         <select x-ref="choicesUsuarioPagosPend" multiple>
-                            <option x-for="us in opcionesUsuariosPagosPend" :key="'us-' + us" :value="us" x-text="us"></option>
+                            <template x-for="us in opcionesUsuariosPagosPend" :key="'us-' + us"><option :value="us" x-text="us"></option></template>
                         </select>
                     </div>
                 </div>
@@ -2032,28 +2041,28 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
                         <select x-ref="choicesRazonPagosPend" multiple>
-                            <option x-for="rs in opcionesRazonesPagosPend" :key="'rs-' + rs" :value="rs" x-text="rs"></option>
+                            <template x-for="rs in opcionesRazonesPagosPend" :key="'rs-' + rs"><option :value="rs" x-text="rs"></option></template>
                         </select>
                     </div>
 
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Complejo</label>
                         <select x-ref="choicesComplejoPagosPend" multiple>
-                            <option x-for="cp in opcionesComplejosPagosPend" :key="'cp-' + cp" :value="cp" x-text="cp"></option>
+                            <template x-for="cp in opcionesComplejosPagosPend" :key="'cp-' + cp"><option :value="cp" x-text="cp"></option></template>
                         </select>
                     </div>
 
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
                         <select x-ref="choicesDeptosPagosPend" multiple>
-                            <option x-for="dp in opcionesDeptosPagosPend" :key="'dp-' + dp" :value="dp" x-text="dp"></option>
+                            <template x-for="dp in opcionesDeptosPagosPend" :key="'dp-' + dp"><option :value="dp" x-text="dp"></option></template>
                         </select>
                     </div>
 
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Estado</label>
                         <select x-ref="choicesEstadoPagosPend" multiple>
-                            <option x-for="es in opcionesEstadosPagosPend" :key="'es-' + es" :value="es" x-text="es"></option>
+                            <template x-for="es in opcionesEstadosPagosPend" :key="'es-' + es"><option :value="es" x-text="es"></option></template>
                         </select>
                     </div>
                 </div>
@@ -2192,6 +2201,222 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <button @click="confirmarExportacionPagosPendientes()"
                                 class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-all">
                             Exportar <span x-text="tipoExportacionPagosPend === 'excel' ? 'Excel' : 'PDF'"></span>
+                        </button>
+                    </div>
+                </div>
+             </div>
+         </div>
+     </template>
+
+    <!-- Pantalla: Reporte Requisiciones Pagadas -->
+    <template x-if="pantalla === 'pagos_realizados'">
+        <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-sky-700 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
+                <div class="flex flex-wrap items-center gap-3 md:gap-4">
+                    <button @click="abrirModalFechaCorteRealizados('excel')"
+                            class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exportar Excel
+                    </button>
+                    <button @click="abrirModalFechaCorteRealizados('pdf')"
+                            class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Generar PDF
+                    </button>
+                    <h2 class="text-xl font-bold text-sky-800">Requisiciones Pagadas</h2>
+                </div>
+            </div>
+
+            <!-- Panel de Filtros Avanzados -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Folio</label>
+                        <input type="text" x-model="filtroTextoFolioPagosRealizados" placeholder="Buscar folio..."
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Forma de Pago</label>
+                        <select x-ref="choicesFormaPagoPagosRealizados" multiple>
+                            <option value="Contado">Contado</option>
+                            <option value="Crédito">Crédito</option>
+                            <option value="En Espera">En Espera</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Tipo</label>
+                        <select x-ref="choicesTipoPagosRealizados" multiple>
+                            <option value="Producto">Producto</option>
+                            <option value="Servicio">Servicio</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Usuario</label>
+                        <select x-ref="choicesUsuarioPagosRealizados" multiple>
+                            <template x-for="us in opcionesUsuariosPagosRealizados" :key="'us-r-' + us"><option :value="us" x-text="us"></option></template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
+                        <select x-ref="choicesRazonPagosRealizados" multiple>
+                            <template x-for="rs in opcionesRazonesPagosRealizados" :key="'rs-r-' + rs"><option :value="rs" x-text="rs"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Complejo</label>
+                        <select x-ref="choicesComplejoPagosRealizados" multiple>
+                            <template x-for="cp in opcionesComplejosPagosRealizados" :key="'cp-r-' + cp"><option :value="cp" x-text="cp"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
+                        <select x-ref="choicesDeptosPagosRealizados" multiple>
+                            <template x-for="dp in opcionesDeptosPagosRealizados" :key="'dp-r-' + dp"><option :value="dp" x-text="dp"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="hidden md:block"></div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button @click="limpiarFiltrosPagosRealizados()" class="px-4 py-1.5 bg-slate-800 text-white text-[10px] font-bold rounded-lg hover:bg-slate-900 transition-all uppercase tracking-widest">
+                        Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="min-w-full border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">
+                        <tr>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Folio</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Razón Social</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Complejo</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Departamento</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Usuario</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Solicitud</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Aprob. Jefe</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Aprob. Dir.</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. OC</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Pago Realizado</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Comprobante</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Estado</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Forma Pago</th>
+                            <th class="border border-slate-200 px-2 py-2 text-right">Crédito Proveedor</th>
+                            <th class="border border-slate-200 px-2 py-2 text-right">Total Req.</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        <template x-if="cargando">
+                            <tr>
+                                <td colspan="15" class="text-center py-12 text-gray-500 italic">Cargando requisiciones pagadas...</td>
+                            </tr>
+                        </template>
+                        <template x-if="!cargando && paginatedPagosRealizados.length === 0">
+                            <tr>
+                                <td colspan="15" class="text-center py-12 text-gray-400 italic">No se encontraron requisiciones pagadas.</td>
+                            </tr>
+                        </template>
+                        <template x-for="(p, index) in paginatedPagosRealizados" :key="'pagosr-' + p.ID_Solicitud">
+                            <tr class="text-xs border-b border-slate-100 transition-colors hover:bg-sky-50/40">
+                                <td class="px-2 py-2 text-center font-mono font-bold text-sky-800" x-text="p.No_Folio"></td>
+                                <td class="px-3 py-2 text-left font-bold text-gray-800" x-text="p.RazonSocial"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Complejo"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Departamento"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Usuario"></td>
+                                <td class="px-2 py-2 text-center text-gray-600" x-text="p.FechaSolicitud || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaAprobacionJefe || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaAprobacion || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaOC || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaPagoRealizado || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaComprobante || '—'"></td>
+                                <td class="px-2 py-2 text-center">
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide whitespace-nowrap bg-green-100 text-green-800"
+                                          x-text="p.Estado"></span>
+                                </td>
+                                <td class="px-2 py-2 text-center" x-text="p.FormaPago"></td>
+                                <td class="px-2 py-2 text-right font-bold" x-text="p.MontoCredito !== null && p.MontoCredito !== undefined ? formatearMoneda(p.MontoCredito) : '—'"></td>
+                                <td class="px-2 py-2 text-right font-bold text-gray-800" x-text="formatearMoneda(p.TotalRequisicion)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot x-show="!cargando && pagosRealizadosFiltradas.length > 0" class="bg-slate-100">
+                        <tr>
+                            <td colspan="14" class="px-3 py-3 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Totales:</td>
+                            <td class="px-2 py-3 text-right font-black text-sky-800" x-text="formatearMoneda(totalGeneralPagosRealizados)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Resumen -->
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" x-show="!cargando && pagosRealizadosFiltradas.length > 0">
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-sky-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Requisiciones</span>
+                    <span class="text-lg font-black text-sky-700" x-text="pagosRealizadosFiltradas.length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-emerald-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Productos</span>
+                    <span class="text-lg font-black text-emerald-700" x-text="pagosRealizadosFiltradas.filter(p => p.Tipo === 'Producto').length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-slate-800 rounded-lg">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total General</span>
+                    <span class="text-lg font-black text-white" x-text="formatearMoneda(totalGeneralPagosRealizados)"></span>
+                </div>
+            </div>
+
+            <!-- Controles de Paginación -->
+            <div class="flex justify-between items-center mt-4" x-show="totalPagesPagosRealizados > 1">
+                <span class="text-xs text-gray-600 font-medium">
+                    Página <span x-text="currentPagePagosRealizados"></span> de <span x-text="totalPagesPagosRealizados"></span>
+                </span>
+                <div class="flex items-center gap-1">
+                    <button @click="cambiarPaginaPagosRealizados(1)" :disabled="currentPagePagosRealizados === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                    <button @click="cambiarPaginaPagosRealizados(currentPagePagosRealizados - 1)" :disabled="currentPagePagosRealizados === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+                    <span class="px-3 py-1 border rounded bg-sky-600 text-white text-xs font-bold" x-text="currentPagePagosRealizados"></span>
+                    <button @click="cambiarPaginaPagosRealizados(currentPagePagosRealizados + 1)" :disabled="currentPagePagosRealizados === totalPagesPagosRealizados"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                    <button @click="cambiarPaginaPagosRealizados(totalPagesPagosRealizados)" :disabled="currentPagePagosRealizados === totalPagesPagosRealizados"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                </div>
+            </div>
+
+            <!-- Modal Fecha de Corte -->
+            <div x-show="modalFechaCorteAbierto" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fadeIn" @click.outside="cerrarModalFechaCorteRealizados()">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-slate-800">Fecha de Corte</h3>
+                        <button @click="cerrarModalFechaCorteRealizados()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+                    </div>
+                    <p class="text-xs text-gray-600 mb-4">
+                        Se exportarán las requisiciones cuya <strong>fecha más reciente</strong> (solicitud, aprobación, OC, pago o comprobante) sea anterior o igual a la fecha de corte.
+                    </p>
+                    <div class="flex flex-col gap-1 mb-6">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha de corte</label>
+                        <input type="date" x-model="fechaCorteExport"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button @click="cerrarModalFechaCorteRealizados()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition-all">Cancelar</button>
+                        <button @click="confirmarExportacionPagosRealizados()"
+                                class="px-4 py-2 bg-sky-600 text-white text-xs font-bold rounded-lg hover:bg-sky-700 transition-all">
+                            Exportar <span x-text="tipoExportacionPagosRealizados === 'excel' ? 'Excel' : 'PDF'"></span>
                         </button>
                     </div>
                 </div>
