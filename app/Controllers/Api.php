@@ -19,6 +19,7 @@ use App\Libraries\SolicitudTipo;
 use App\Libraries\Status;
 use App\Libraries\MBSMail;
 use App\Libraries\MetodoPago;
+use App\Libraries\PDF;
 use App\Controllers\GenerarPDF;
 use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
@@ -193,7 +194,117 @@ class Api extends ResourceController
     }
 
     /**
+     * Exporta el directorio de proveedores a PDF (tabla plana de 12 columnas),
+     * equivalente al reporte de Excel `exportarProveedoresExcel`.
+     */
+    public function exportarProveedoresPdf()
+    {
+        $proveedorModel = new ProveedorModel();
+        $proveedores = $proveedorModel->orderBy('RazonSocial', 'ASC')->findAll();
+
+        $headers = [
+            'ID', 'Razón Social', 'Correo', 'RFC', 'Banco', 'Cuenta', 'Clabe',
+            'Tel. Contacto', 'Nombre Contacto', 'Servicio', 'Días Crédito', 'Monto Crédito'
+        ];
+        $fieldKeys = [
+            'ID_Proveedor', 'RazonSocial', 'Correo', 'RFC', 'Banco', 'Cuenta', 'Clabe',
+            'Tel_Contacto', 'Nombre_Contacto', 'Servicio', 'Dias_Credito', 'Monto_Credito'
+        ];
+
+        $pdf = new PDF('L', 'mm', 'Letter');
+        $pdf->AliasNbPages();
+        $pdf->setHeaderTitle('Directorio de Proveedores');
+        $pdf->SetAutoPageBreak(false);
+        $pdf->AddPage();
+
+        $colW = [8, 62, 26, 14, 18, 14, 16, 16, 26, 24, 14, 18];
+        $pdf->SetWidths($colW);
+        $lineH = 4.6;
+
+        $this->_dibujarCabecera($pdf, $colW, $headers, $lineH);
+
+        $pdf->SetFont('Arial', '', 8);
+        $rowFill = false;
+        foreach ($proveedores as $p) {
+            $cells = [];
+            foreach ($fieldKeys as $k) {
+                $val = $p[$k] ?? '';
+                if (in_array($k, ['Monto_Credito'], true)) {
+                    $val = '$' . number_format((float) $val, 2);
+                }
+                $cells[] = $this->_iso((string) $val);
+            }
+
+            $lineCounts = [];
+            foreach ($cells as $i => $c) {
+                $lineCounts[$i] = $pdf->NbLines($colW[$i], $c);
+            }
+            $h = max($lineCounts) * $lineH;
+            if ($pdf->GetY() + $h > $pdf->getPageBreakTrigger()) {
+                $pdf->AddPage();
+                $this->_dibujarCabecera($pdf, $colW, $headers, $lineH);
+                $pdf->SetFont('Arial', '', 8);
+            }
+
+            $startY = $pdf->GetY();
+            $x = 8;
+            foreach ($cells as $i => $c) {
+                $pdf->SetXY($x, $startY);
+                $pdf->MultiCell($colW[$i], $lineH, $c, 1, $i === 0 ? 'C' : 'L', $rowFill);
+                $x += $colW[$i];
+            }
+            $pdf->SetY($startY + $h);
+            $rowFill = !$rowFill;
+        }
+
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->SetFillColor(226, 232, 240);
+        $totalW = (float) array_sum($colW);
+        if ($pdf->GetY() + $lineH > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage();
+            $this->_dibujarCabecera($pdf, $colW, $headers, $lineH);
+        }
+        $pdf->SetX(8);
+        $pdf->Cell($totalW, $lineH, $this->_iso('Total de proveedores: ' . count($proveedores)), 1, 0, 'L', true);
+
+        $this->response->setHeader('Content-Type', 'application/pdf');
+        $pdf->Output('D', 'directorio_proveedores.pdf');
+        exit;
+    }
+
+    /**
+     * Convierte texto UTF-8 a ISO-8859-1 (compatible con las fuentes base de FPDF).
+     */
+    protected function _iso(string $text): string
+    {
+        return mb_convert_encoding($text ?? '', 'ISO-8859-1', 'UTF-8');
+    }
+
+    /**
+     * Dibuja la fila de encabezado de la tabla de proveedores.
+     */
+    protected function _dibujarCabecera($pdf, array $colW, array $headers, float $lineH): void
+    {
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->SetFillColor(226, 232, 240);
+        $pdf->SetTextColor(15);
+        $maxLines = 1;
+        foreach ($headers as $i => $h) {
+            $maxLines = max($maxLines, $pdf->NbLines($colW[$i], $this->_iso($h)));
+        }
+        $hy = $pdf->GetY();
+        $x = 8;
+        foreach ($headers as $i => $h) {
+            $pdf->SetXY($x, $hy);
+            $pdf->MultiCell($colW[$i], $lineH, $this->_iso($h), 1, 'C', true);
+            $x += $colW[$i];
+        }
+        $pdf->SetY($hy + $maxLines * $lineH);
+    }
+
+    /**
      * Obtiene un proveedor por su ID.
+     *
      * @param int|null $id El ID del proveedor.
      * @return \CodeIgniter\HTTP\Response
      */

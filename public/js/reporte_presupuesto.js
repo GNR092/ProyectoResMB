@@ -324,6 +324,10 @@ function registrarComponenteReportePresupuesto() {
                 window.location.href = `${BASE_URL}api/providers/exportar-excel`;
             },
 
+            exportarProveedoresPdf() {
+                window.location.href = `${BASE_URL}api/providers/exportar-pdf`;
+            },
+
             async cargarReporteCompras() {
                 if (!this.verGlobal && (!this.idPlace || this.idPlace.length === 0)) return;
                 this.cargando = true;
