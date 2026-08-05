@@ -124,23 +124,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <!-- Pantalla 5: Directorio de Proveedores -->
     <template x-if="pantalla === 'proveedores'">
         <div id="pantalla-lista-proveedores" class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-6">
-            <div class="flex items-center justify-between mb-4">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-orange-600 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
-                <div class="flex items-center gap-4">
-                    <button @click="exportarProveedoresExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <button @click="exportarProveedoresPdf()" class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Generar PDF
-                    </button>
-                    <h2 class="text-2xl font-semibold text-center text-gray-800">Directorio de Proveedores</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-orange-600 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="exportarProveedoresPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarProveedoresExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Directorio de Proveedores</h2>
             </div>
 
             <!-- Buscadores -->
@@ -310,23 +308,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'compras'">
         <div class="animate-fadeIn">
             <div id="div-reportes" x-data="Reportes(<?= htmlspecialchars(json_encode($tabledata ?? []), ENT_QUOTES, 'UTF-8') ?>)">
-                <div class="flex items-center justify-between mb-6">
-                    <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                    <div class="flex items-center gap-4">
-                        <button @click="generarReporteCSV" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Exportar Excel
-                        </button>
-                        <button @click="exportarComprasPdf()" class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Generar PDF
-                        </button>
-                        <h2 class="text-xl font-bold text-gray-800">Reporte Pagado/Por Pagar Autorizado</h2>
+                <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                    <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                            <a @click="exportarComprasPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                PDF
+                            </a>
+                            <a @click="generarReporteCSV" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                EXCEL
+                            </a>
+                        </div>
                     </div>
+                    <h2 class="text-xl font-bold text-gray-800">Reporte Pagado/Por Pagar Autorizado</h2>
                 </div>
 
                 <!-- Controles de Filtro -->
@@ -639,35 +635,31 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
                     <!-- CONTENEDOR PRINCIPAL: Tabla de Vencimientos -->
                     <div id="div-vencimientos">
-                        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-                            <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-amber-700 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
-                            <div class="flex flex-wrap items-center gap-3 md:gap-4">
-                                <!-- Botón Exportar Excel -->
-                                <button @click="exportarVencimientosExcel()" 
-                                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Exportar Excel
-                                </button>
-                                <button @click="exportarVencimientosPdf()" 
-                                        class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Generar PDF
-                                </button>
-
-                                <!-- Toggle Detallado (Estilo Presupuesto Global) -->
-                                <div class="flex items-center">
-                                    <label class="inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
-                                        <div class="relative w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-                                        <span class="ms-3 text-[10px] font-bold text-slate-700 uppercase tracking-tight">Reporte Detallado</span>
-                                    </label>
+                        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                            <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                                <div class="flex flex-col gap-2">
+                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                                        <a @click="exportarVencimientosPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            PDF
+                                        </a>
+                                        <a @click="exportarVencimientosExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            EXCEL
+                                        </a>
+                                    </div>
+                                    <!-- Toggle Detallado (Estilo Presupuesto Global) -->
+                                    <div class="flex items-center">
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
+                                            <div class="relative w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                                            <span class="ms-3 text-[10px] font-bold text-slate-700 uppercase tracking-tight">Reporte Detallado</span>
+                                        </label>
+                                    </div>
                                 </div>
-                                <h2 class="text-xl font-bold text-slate-800">Reportes de Credito</h2>
                             </div>
+                            <h2 class="text-xl font-bold text-slate-800">Reportes de Credito</h2>
                         </div>
 
                         <!-- Panel de Filtros Avanzados -->
@@ -865,23 +857,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             <!-- Pantalla: Solo Ejecutado -->
     <template x-if="pantalla === 'solo_ejecutado'">
         <div class="animate-fadeIn">
-            <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-cyan-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <div class="flex items-center gap-4">
-                    <button x-show="departamentos.length > 0" @click="exportarSoloEjecutadoExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <button x-show="departamentos.length > 0" @click="generarSoloEjecutadoPdf()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7m-9 3h6m-6 3h6M6 9l6 3 6-3" />
-                        </svg>
-                        Generar PDF
-                    </button>
-                    <h2 class="text-xl font-bold text-gray-800">Importe Ejecutado Mensual</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-cyan-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div x-show="departamentos.length > 0" class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="generarSoloEjecutadoPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarSoloEjecutadoExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Importe Ejecutado Mensual</h2>
             </div>
 
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
@@ -1060,23 +1050,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <!-- Pantalla: Solo Presupuesto -->
     <template x-if="pantalla === 'solo_presupuesto'">
         <div class="animate-fadeIn">
-            <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-indigo-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <div class="flex items-center gap-4">
-                    <button x-show="departamentos.length > 0" @click="exportarSoloPresupuestoExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <button x-show="departamentos.length > 0" @click="generarSoloPresupuestoPdf()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7m-9 3h6m-6 3h6M6 9l6 3 6-3" />
-                        </svg>
-                        Generar PDF
-                    </button>
-                    <h2 class="text-xl font-bold text-gray-800">Presupuesto Asignado Mensual</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-indigo-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div x-show="departamentos.length > 0" class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="generarSoloPresupuestoPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarSoloPresupuestoExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Presupuesto Asignado Mensual</h2>
             </div>
 
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
@@ -1262,23 +1250,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <!-- Pantalla 2: Reporte Presupuesto vs Ejecutado -->
     <template x-if="pantalla === 'presupuesto'">
         <div class="animate-fadeIn">
-            <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-blue-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <div class="flex items-center gap-4">
-                    <button x-show="departamentos.length > 0" @click="exportarExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <button x-show="departamentos.length > 0" @click="generarPresupuestoVsEjecutadoPdf()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7m-9 3h6m-6 3h6M6 9l6 3 6-3" />
-                        </svg>
-                        Generar PDF
-                    </button>
-                    <h2 class="text-xl font-bold text-gray-800">Presupuesto vs Ejecutado Mensual</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-blue-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div x-show="departamentos.length > 0" class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="generarPresupuestoVsEjecutadoPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Presupuesto vs Ejecutado Mensual</h2>
             </div>
 
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
@@ -1784,25 +1770,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <!-- Pantalla: Solicitudes Sin Cotizar -->
     <template x-if="pantalla === 'sincotizar'">
         <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-sky-700 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
-                <div class="flex flex-wrap items-center gap-3 md:gap-4">
-                    <button @click="exportarSolicitudesSinCotizarExcel()"
-                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <button @click="exportarSolicitudesSinCotizarPdf()"
-                            class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Generar PDF
-                    </button>
-                    <h2 class="text-xl font-bold text-slate-800">Solicitudes Sin Cotizar</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="exportarSolicitudesSinCotizarPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarSolicitudesSinCotizarExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Solicitudes Sin Cotizar</h2>
             </div>
 
             <!-- Panel de Filtros Avanzados -->
@@ -1864,7 +1846,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Complejo</label>
                         <select x-ref="choicesComplejoSinCoti" multiple>
-                            <option x-for="cp in opcionesComplejosSinCoti" :key="'cp-' + cp" :value="cp" x-text="cp"></option>
+                            <template x-for="cp in opcionesComplejosSinCoti" :key="'cp-' + cp"><option :value="cp" x-text="cp"></option></template>
                         </select>
                     </div>
 
@@ -1872,7 +1854,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
                         <select x-ref="choicesDeptoSinCoti" multiple>
-                            <option x-for="dp in opcionesDeptosSinCoti" :key="'dp-' + dp" :value="dp" x-text="dp"></option>
+                            <template x-for="dp in opcionesDeptosSinCoti" :key="'dp-' + dp"><option :value="dp" x-text="dp"></option></template>
                         </select>
                     </div>
                 </div>
@@ -1982,25 +1964,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
     <template x-if="pantalla === 'pagos_pendientes'">
         <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-emerald-700 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
-                <div class="flex flex-wrap items-center gap-3 md:gap-4">
-                    <button @click="abrirModalFechaCorte('excel')"
-                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <button @click="abrirModalFechaCorte('pdf')"
-                            class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Generar PDF
-                    </button>
-                    <h2 class="text-xl font-bold text-slate-800">Reporte Pagos Pendientes</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-emerald-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="abrirModalFechaCorte('pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="abrirModalFechaCorte('excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-slate-800">Reporte Pagos Pendientes</h2>
             </div>
 
             <!-- Panel de Filtros Avanzados -->
@@ -2204,32 +2182,28 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </button>
                     </div>
                 </div>
-             </div>
-         </div>
-     </template>
+            </div>
+        </div>
+    </template>
 
     <!-- Pantalla: Reporte Requisiciones Pagadas -->
     <template x-if="pantalla === 'pagos_realizados'">
         <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-sky-700 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
-                <div class="flex flex-wrap items-center gap-3 md:gap-4">
-                    <button @click="abrirModalFechaCorteRealizados('excel')"
-                            class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <button @click="abrirModalFechaCorteRealizados('pdf')"
-                            class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Generar PDF
-                    </button>
-                    <h2 class="text-xl font-bold text-sky-800">Requisiciones Pagadas</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="abrirModalFechaCorteRealizados('pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="abrirModalFechaCorteRealizados('excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Requisiciones Pagadas</h2>
             </div>
 
             <!-- Panel de Filtros Avanzados -->
@@ -2429,4 +2403,15 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     [x-cloak] { display: none !important; }
+
+    /* Connected Pill Buttons - Exportar (matching producción mbmgestor) */
+    .text-gold-metallic { color: #eab308; }
+    .border-gold-metallic\/20 { border-color: rgba(234, 179, 8, 0.2); }
+    .bg-gray-100\/50 { background-color: rgba(229, 231, 235, 0.5); }
+    .text-emerald-500 { color: #059669; }
+    .hover\:bg-rose-600:hover { background-color: #dc2626; }
+    .hover\:text-rose-600:hover { color: #dc2626; }
+    .hover\:text-white:hover { color: #fff; }
+    .hover\:bg-emerald-600:hover { background-color: #059669; }
+    .hover\:text-emerald-500:hover { color: #059669; }
 </style>

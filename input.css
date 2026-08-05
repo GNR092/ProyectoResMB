@@ -38,7 +38,9 @@
     --color-carbon-700: #3c3c3c;
     --color-carbon-800: #282828;
     --color-carbon-900: #141414;
-    --color-carbon-950: #0a0a0a
+    --color-carbon-950: #0a0a0a;
+    /* Colores de producción (mbmgestor) */
+    --color-gold-metallic: #eab308;
 }
 
 /* Estilos para compactar Selectores de Catálogo (Choices.js) */

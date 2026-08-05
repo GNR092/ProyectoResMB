@@ -200,8 +200,8 @@
     --color-carbon-700: #3c3c3c;
     --color-carbon-800: #282828;
     --color-carbon-900: #141414;
-    --color-carbon-950: #0a0a0a
-;
+    --color-carbon-950: #0a0a0a;
+    --color-gold-metallic: #eab308;
   }
 }
 @layer base {
@@ -1288,6 +1288,15 @@
   .border-emerald-500 {
     border-color: var(--color-emerald-500);
   }
+  .border-gold-metallic {
+    border-color: var(--color-gold-metallic);
+  }
+  .border-gold-metallic\/20 {
+    border-color: color-mix(in srgb, #eab308 20%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-gold-metallic) 20%, transparent);
+    }
+  }
   .border-gray-50 {
     border-color: var(--color-gray-50);
   }
@@ -1514,8 +1523,7 @@
     background-color: var(--color-carbon-800);
   }
   .bg-carbon-950\/20 {
-    background-color: color-mix(in srgb, #0a0a0a
- 20%, transparent);
+    background-color: color-mix(in srgb, #0a0a0a 20%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-carbon-950) 20%, transparent);
     }
@@ -1546,6 +1554,12 @@
   }
   .bg-gray-100 {
     background-color: var(--color-gray-100);
+  }
+  .bg-gray-100\/50 {
+    background-color: color-mix(in srgb, oklch(96.7% 0.003 264.542) 50%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-gray-100) 50%, transparent);
+    }
   }
   .bg-gray-200 {
     background-color: var(--color-gray-200);
@@ -2170,6 +2184,9 @@
   .text-emerald-300 {
     color: var(--color-emerald-300);
   }
+  .text-emerald-500 {
+    color: var(--color-emerald-500);
+  }
   .text-emerald-600 {
     color: var(--color-emerald-600);
   }
@@ -2178,6 +2195,9 @@
   }
   .text-emerald-800 {
     color: var(--color-emerald-800);
+  }
+  .text-gold-metallic {
+    color: var(--color-gold-metallic);
   }
   .text-gray-200 {
     color: var(--color-gray-200);
@@ -2274,6 +2294,9 @@
   }
   .text-red-800 {
     color: var(--color-red-800);
+  }
+  .text-rose-600 {
+    color: var(--color-rose-600);
   }
   .text-sky-600 {
     color: var(--color-sky-600);
@@ -3137,6 +3160,13 @@
       }
     }
   }
+  .hover\:bg-emerald-600 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-emerald-600);
+      }
+    }
+  }
   .hover\:bg-emerald-700 {
     &:hover {
       @media (hover: hover) {
@@ -3331,6 +3361,13 @@
     &:hover {
       @media (hover: hover) {
         background-color: var(--color-red-700);
+      }
+    }
+  }
+  .hover\:bg-rose-600 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-rose-600);
       }
     }
   }
