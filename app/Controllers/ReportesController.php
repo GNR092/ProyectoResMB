@@ -526,6 +526,35 @@ class ReportesController extends ResourceController
     }
 
     /**
+     * Recorre la jerarquía del reporte (nodos + detalles/partidas) y determina
+     * si existe al menos un importe excedido. Se usa para que las exportaciones
+     * muestren la columna "Importe Excedido" bajo las mismas condiciones que la
+     * vista, independientemente del flag enviado por el frontend.
+     */
+    private function _datosTienenExcedidos(array $datos): bool
+    {
+        foreach ($datos as $nodo) {
+            if (!is_array($nodo)) continue;
+
+            $totales = $nodo['totales'] ?? $nodo;
+            if ((float)($totales['excedido'] ?? $totales['pExcedido'] ?? 0) > 0) return true;
+
+            if (!empty($nodo['detalles']) && is_array($nodo['detalles'])) {
+                foreach ($nodo['detalles'] as $d) {
+                    if ((float)($d['excedido'] ?? $d['exce'] ?? 0) > 0) return true;
+                }
+            }
+
+            foreach (['segmentos', 'complejos', 'departamentos'] as $k) {
+                if (!empty($nodo[$k]) && is_array($nodo[$k]) && $this->_datosTienenExcedidos($nodo[$k])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * EXPORTAR EXCEL DESDE JSON (PANTALLA 2)
      */
     public function exportarDatosJson()
@@ -533,7 +562,7 @@ class ReportesController extends ResourceController
         try {
             $json = $this->request->getJSON(true); 
             $datos = $json['datos'] ?? []; 
-            $hayExcedidos = $json['hayExcedidos'] ?? false;
+            $hayExcedidos = ($json['hayExcedidos'] ?? false) || $this->_datosTienenExcedidos($datos);
             $pantalla = $json['pantalla'] ?? 'presupuesto';
             $mesesSeleccionados = $json['mesesSeleccionados'] ?? [];
 
@@ -1686,7 +1715,7 @@ $cols[] = chr(65 + $i);
         try {
             $json  = $this->request->getJSON(true);
             $datos = $json['datos'] ?? [];
-            $hayExcedidos = !empty($json['hayExcedidos']);
+            $hayExcedidos = !empty($json['hayExcedidos']) || $this->_datosTienenExcedidos($datos);
             $mesesSeleccionados = $json['mesesSeleccionados'] ?? [];
             $titulo    = $json['titulo'] ?? 'Presupuesto vs Ejecutado';
             $mesAnio   = $json['mesAnio'] ?? (date('Y') . '-' . date('n'));
@@ -2050,7 +2079,8 @@ $cols[] = chr(65 + $i);
         $x += $denomW;
 
         $compras = $tg['comprometido'] + $tg['ejecutado'];
-        $disp    = $tg['asignado'] - $compras;
+        $disp    = max(0, $tg['asignado'] - $compras);
+        $tgExcedido = max(0, $compras - $tg['asignado']);
         $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($tg['asignado'])), 'LR', 0, 'R', true);
         $x += $moneyW;
         $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($tg['comprometido'])), 'LR', 0, 'R', true);
@@ -2062,7 +2092,7 @@ $cols[] = chr(65 + $i);
         $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($disp)), 'LR', 0, 'R', true);
         $x += $moneyW;
         if ($hayExcedidos) {
-            $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($tg['excedido'])), 'LR', 0, 'R', true);
+            $pdf->Cell($moneyW, 7, $this->_iso($this->_fmtMoney($tgExcedido)), 'LR', 0, 'R', true);
             $x += $moneyW;
         }
         $perc = $tg['asignado'] > 0 ? round(($compras / $tg['asignado']) * 100, 1) : 0;

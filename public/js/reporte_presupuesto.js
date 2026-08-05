@@ -1982,12 +1982,31 @@ function registrarComponenteReportePresupuesto() {
                     complex.departamentos.push(uniClon);
                 });
 
+                // Detectar importes excedidos en todos los niveles, incluyendo partidas (detalles).
+                // La columna debe aparecer si CUALQUIER partida supera el 100% de ejecución,
+                // aunque el total agregado de la unidad no se exceda.
+                const detectarExcedidos = (nodo) => {
+                    if (!nodo) return;
+                    if (parseFloat(nodo.totales?.excedido || 0) > 0) this.hayExcedidos = true;
+                    if (Array.isArray(nodo.detalles)) {
+                        nodo.detalles.forEach(d => {
+                            if (parseFloat(d.excedido ?? d.exce ?? 0) > 0) this.hayExcedidos = true;
+                        });
+                    }
+                    ['segmentos', 'complejos', 'departamentos'].forEach(k => {
+                        if (Array.isArray(nodo[k])) nodo[k].forEach(child => detectarExcedidos(child));
+                    });
+                };
+
                 rsGrupos.forEach(rs => {
                     calc(rs.totales);
                     rs.segmentos.forEach(seg => {
                         calc(seg.totales);
                         seg.complejos.forEach(c => calc(c.totales));
                     });
+                    if (this.pantalla === 'presupuesto' || this.pantalla === 'completo') {
+                        detectarExcedidos(rs);
+                    }
                 });
 
                 // Calcular Totales Generales Consolidados (incluyendo meses)
