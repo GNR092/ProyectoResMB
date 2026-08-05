@@ -137,6 +137,24 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     ?>
     const ICON_SVG_VERSION = "<?= $iconVersion ?>";
 </script>
+<script>
+    (function () {
+        var aside = document.querySelector('aside');
+        if (!aside) return;
+        var storageKey = 'sidebar_scroll_' + (CURRENT_USER_ID || 'default');
+
+        aside.addEventListener('scroll', function () {
+            localStorage.setItem(storageKey, aside.scrollTop);
+        });
+
+        var saved = localStorage.getItem(storageKey);
+        if (saved !== null) {
+            requestAnimationFrame(function () {
+                aside.scrollTop = Number(saved);
+            });
+        }
+    })();
+</script>
 <script src="<?= base_url() ?>js/choices.min.js" defer></script>
 <script src="<?= base_url() ?>js/alpine@3.14.8.js" defer></script>
 <script src="<?= base_url() ?>js/utils.js?v=<?= filemtime(

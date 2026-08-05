@@ -125,7 +125,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'proveedores'">
         <div id="pantalla-lista-proveedores" class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-6">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-orange-600 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-orange-600 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
                         <a @click="exportarProveedoresPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
@@ -309,7 +309,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
         <div class="animate-fadeIn">
             <div id="div-reportes" x-data="Reportes(<?= htmlspecialchars(json_encode($tabledata ?? []), ENT_QUOTES, 'UTF-8') ?>)">
                 <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
-                    <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                    <button @click="irAPantalla('menu')" class="text-base text-black hover:text-red-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
                     <div class="flex flex-col gap-2">
                         <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
                             <a @click="exportarComprasPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
@@ -495,7 +495,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             <!-- CONTENEDOR PRINCIPAL: Tabla de Movimientos -->
             <div id="div-movimientos">
                 <div class="flex items-center justify-between mb-6">
-                    <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                    <button @click="irAPantalla('menu')" class="text-base text-black hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
                     <div class="flex items-center gap-4">
                         <button x-show="movimientosProveedor.length > 0" @click="exportarMovimientosExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -636,7 +636,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <!-- CONTENEDOR PRINCIPAL: Tabla de Vencimientos -->
                     <div id="div-vencimientos">
                         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
-                            <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                            <button @click="irAPantalla('menu')" class="text-base text-black hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
                                 <div class="flex flex-col gap-2">
                                     <div class="flex items-center gap-3">
                                     <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
@@ -858,7 +858,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'solo_ejecutado'">
         <div class="animate-fadeIn">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-cyan-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-cyan-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
                 <div x-show="departamentos.length > 0" class="flex flex-col gap-2">
                     <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
                         <a @click="generarSoloEjecutadoPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
@@ -1051,7 +1051,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'solo_presupuesto'">
         <div class="animate-fadeIn">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-indigo-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-indigo-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
                 <div x-show="departamentos.length > 0" class="flex flex-col gap-2">
                     <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
                         <a @click="generarSoloPresupuestoPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
@@ -1251,7 +1251,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'presupuesto'">
         <div class="animate-fadeIn">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-blue-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-blue-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
                 <div x-show="departamentos.length > 0" class="flex flex-col gap-2">
                     <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
                         <a @click="generarPresupuestoVsEjecutadoPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
@@ -1448,7 +1448,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'cuentas'">
         <div class="animate-fadeIn">
             <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-green-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-green-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
                 <div class="flex items-center gap-4">
                     <button x-show="departamentosBancos.length > 0" @click="exportarBancosExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1560,7 +1560,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'completo'">
         <div class="animate-fadeIn">
             <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-purple-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-purple-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
                 <div class="flex items-center gap-4">
                     <button x-show="departamentosCompleto.length > 0" @click="exportarReporteCompletoExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1771,7 +1771,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'sincotizar'">
         <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
                         <a @click="exportarSolicitudesSinCotizarPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
@@ -1965,7 +1965,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'pagos_pendientes'">
         <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-emerald-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-emerald-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
                         <a @click="abrirModalFechaCorte('pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
@@ -2190,7 +2190,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'pagos_realizados'">
         <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
                         <a @click="abrirModalFechaCorteRealizados('pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
