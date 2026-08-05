@@ -500,6 +500,7 @@ class Api extends ResourceController
                 'por_mes'          => $this->request->getGet('por_mes'),
                 'folio'            => $this->request->getGet('folio'),
                 'tipo'             => $this->request->getGet('tipo'),
+                'metodo'           => $this->request->getGet('metodo'),
                 'proveedores'      => $this->request->getGet('proveedores'),
                 'razones_sociales' => $this->request->getGet('razones_sociales'),
                 'departamentos'    => $this->request->getGet('departamentos'),
@@ -509,6 +510,53 @@ class Api extends ResourceController
 
             $userId = session('id');
             $result = $this->api->getSolicitudPaginated($page, $perPage, $filters, $userId);
+            return $this->respond($result, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Obtiene proveedores paginados con filtros server-side (razón social y RFC).
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getProvidersPaginated()
+    {
+        try {
+            $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+            $perPage = max(1, (int) ($this->request->getGet('per_page') ?? 10));
+
+            $filters = [
+                'razon_social' => $this->request->getGet('razon_social'),
+                'rfc'          => $this->request->getGet('rfc'),
+                'servicio'     => $this->request->getGet('servicio'),
+            ];
+
+            $result = $this->api->getProveedoresPaginated($page, $perPage, $filters);
+            return $this->respond($result, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Obtiene partidas presupuestales paginadas con filtros server-side
+     * (nombre, complejos y áreas de operación).
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getGruposPresupuestalesPaginated()
+    {
+        try {
+            $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+            $perPage = max(1, (int) ($this->request->getGet('per_page') ?? 10));
+
+            $filters = [
+                'nombre'   => $this->request->getGet('nombre'),
+                'lugares'  => $this->request->getGet('lugares'),
+                'unidades' => $this->request->getGet('unidades'),
+            ];
+
+            $result = $this->api->getGruposPresupuestalesPaginated($page, $perPage, $filters);
             return $this->respond($result, HttpStatus::OK);
         } catch (\Exception $e) {
             return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
@@ -3549,7 +3597,12 @@ class Api extends ResourceController
 
             if ($fecha) {
                 if ($porMes) {
-                    $builder->where("to_char(Solicitud.Fecha, 'YYYY-MM')", substr($fecha, 0, 7));
+                    // Filtro por mes portable PostgreSQL/MySQL: rango de fechas calculado en PHP
+                    $mes = substr($fecha, 0, 7);
+                    $inicio = $mes . '-01';
+                    $fin = date('Y-m-t', strtotime($inicio));
+                    $builder->where('Solicitud.Fecha >=', $inicio)
+                          ->where('Solicitud.Fecha <=', $fin);
                 } else {
                     $builder->where('Solicitud.Fecha', $fecha);
                 }

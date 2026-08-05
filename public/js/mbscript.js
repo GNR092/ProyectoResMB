@@ -3207,20 +3207,61 @@ function initCrudProveedores() {
 }
 
 function initProveedorTabla() {
-  setupClientSideTable({
-    rowsSelector: '#tabla-proveedores tr[data-id]',
-    paginationSelector: 'paginacion-proveedores',
+  createPaginatedTableServer({
+    tableSelector: '#tabla-proveedores',
+    paginationSelector: '#paginacion-proveedores',
+    endpoint: 'api/providers/paginated',
     filterFormSelector: '#form-filtros-proveedores',
-    filterFunction: (row, form) => {
-      const nombreFiltro = (form.querySelector('#buscar-nombre')?.value || '').toLowerCase()
-      const servicioFiltro = (form.querySelector('#buscar-servicio')?.value || '').toLowerCase()
-
-      const razonsocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || ''
-      const servicio = row.querySelector('.servicio')?.textContent.toLowerCase() || ''
-
-      return razonsocial.includes(nombreFiltro) && servicio.includes(servicioFiltro)
-    },
     rowsPerPage: 10,
+    renderRow: (item) => {
+      const tieneCredito = (item.Dias_Credito ?? 0) > 0
+      return `
+        <tr data-id="${escapeHTML(item.ID_Proveedor)}"
+            data-rfc="${escapeHTML(item.RFC)}"
+            data-banco="${escapeHTML(item.Banco)}"
+            data-cuenta="${escapeHTML(item.Cuenta)}"
+            data-clabe="${escapeHTML(item.Clabe)}"
+            data-tel-contacto="${escapeHTML(item.Tel_Contacto)}"
+            data-nombre-contacto="${escapeHTML(item.Nombre_Contacto)}"
+            data-tiene-credito="${tieneCredito ? '1' : '0'}"
+            data-dias-credito="${escapeHTML(item.Dias_Credito ?? 0)}"
+            data-monto-credito="${escapeHTML(item.Monto_Credito ?? 0)}"
+            data-correo="${escapeHTML(item.Correo ?? '')}">
+            <td class="px-3 py-2 border-b razonsocial">${escapeHTML(item.RazonSocial)}</td>
+            <td class="px-3 py-2 border-b">${escapeHTML(item.RFC)}</td>
+            <td class="px-3 py-2 border-b">${escapeHTML(item.Banco)}</td>
+            <td class="px-3 py-2 border-b">${escapeHTML(item.Tel_Contacto)}</td>
+            <td class="px-3 py-2 border-b servicio">${escapeHTML(item.Servicio)}</td>
+            <td class="px-2 py-2 border-b align-top text-center acciones">
+                <div class="flex flex-col items-center space-y-1 h-full justify-center">
+                    <a href="#"
+                       id="btn-editar-proveedor-${escapeHTML(item.ID_Proveedor)}"
+                       class="btn-editar text-green-600 hover:text-green-800"
+                       data-id="${escapeHTML(item.ID_Proveedor)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+                        </svg>
+                    </a>
+                    <a href="#"
+                       id="btn-eliminar-proveedor-${escapeHTML(item.ID_Proveedor)}"
+                       class="btn-eliminar text-red-600 hover:text-red-800"
+                       data-id="${escapeHTML(item.ID_Proveedor)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                        </svg>
+                    </a>
+                </div>
+            </td>
+        </tr>`
+    },
+    buildFilterParams: () => {
+      const params = {}
+      const nombre = document.getElementById('buscar-nombre')?.value.trim() || ''
+      const servicio = document.getElementById('buscar-servicio')?.value.trim() || ''
+      if (nombre) params.razon_social = nombre
+      if (servicio) params.servicio = servicio
+      return params
+    },
   })
 }
 
@@ -4374,22 +4415,45 @@ function initCrudCuentas() {
 }
 
 function initCuentasTabla() {
-  setupClientSideTable({
-    rowsSelector: '#tabla-cuentas tr[data-id]',
-    paginationSelector: 'paginacion-cuentas',
+  createPaginatedTableServer({
+    tableSelector: '#tabla-cuentas',
+    paginationSelector: '#paginacion-cuentas',
+    endpoint: 'api/providers/paginated',
     filterFormSelector: '#form-filtros-cuentas',
-    filterFunction: (row, form) => {
-      const razonSocialFiltro = (
-        document.getElementById('buscar-razonsocial-cuenta')?.value || ''
-      ).toLowerCase()
-      const rfcFiltro = (document.getElementById('buscar-rfc-cuenta')?.value || '').toLowerCase()
-
-      const razonSocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || ''
-      const rfc = row.querySelector('.rfc')?.textContent.toLowerCase() || ''
-
-      return razonSocial.includes(razonSocialFiltro) && rfc.includes(rfcFiltro)
-    },
     rowsPerPage: 10,
+    renderRow: (item) => {
+      const id = item.ID_Proveedor
+      return `
+        <tr data-id="${escapeHTML(id)}"
+            data-razonsocial="${escapeHTML(item.RazonSocial)}"
+            data-rfc="${escapeHTML(item.RFC)}">
+            <td class="px-3 py-2 border-b razonsocial">${escapeHTML(item.RazonSocial)}</td>
+            <td class="px-3 py-2 border-b rfc">${escapeHTML(item.RFC)}</td>
+            <td class="px-3 py-2 border-b banco">${escapeHTML(item.Banco)}</td>
+            <td class="px-2 py-2 border-b align-top text-center acciones">
+                <div class="flex flex-col items-center space-y-1 h-full justify-center">
+                    <a href="#"
+                       id="btn-editar-cuenta-${escapeHTML(id)}"
+                       class="btn-editar text-green-600 hover:text-green-800"
+                       data-id="${escapeHTML(id)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                             stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+                        </svg>
+                    </a>
+                </div>
+            </td>
+        </tr>`
+    },
+    buildFilterParams: () => {
+      const params = {}
+      const razonSocial = document.getElementById('buscar-razonsocial-cuenta')?.value.trim() || ''
+      const rfc = document.getElementById('buscar-rfc-cuenta')?.value.trim() || ''
+      if (razonSocial) params.razon_social = razonSocial
+      if (rfc) params.rfc = rfc
+      return params
+    },
   })
 }
 
@@ -5001,30 +5065,6 @@ function initCrudGrupos() {
   initGruposForm()
   initGruposEditarForm()
   initGruposActions(tabla)
-
-  // Restaurar filtros si existen
-  const inputNombre = document.getElementById('buscar-nombre-grupo');
-
-  if (inputNombre && filtrosPersistidosGrupos.nombre) {
-    inputNombre.value = filtrosPersistidosGrupos.nombre;
-  }
-
-  // Esperar un momento a que las instancias de Choices se inicialicen
-  setTimeout(() => {
-    if (choicesLugarFiltro && filtrosPersistidosGrupos.lugares.length > 0) {
-      choicesLugarFiltro.setChoiceByValue(filtrosPersistidosGrupos.lugares);
-    }
-    if (choicesUnidadFiltro && filtrosPersistidosGrupos.unidades.length > 0) {
-      choicesUnidadFiltro.setChoiceByValue(filtrosPersistidosGrupos.unidades);
-    }
-
-    // Forzar la actualización de la tabla disparando 'input' y 'change' en el formulario de filtros
-    const formFiltros = document.getElementById('form-filtros-grupos');
-    if (formFiltros) {
-      formFiltros.dispatchEvent(new Event('input', { bubbles: true }));
-      formFiltros.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  }, 200);
 }
 
 function initGruposTabla() {
@@ -5082,27 +5122,80 @@ function initGruposTabla() {
     });
   }
 
-  setupClientSideTable({
-    rowsSelector: '#tabla-grupos tr[data-id]',
-    paginationSelector: 'paginacion-grupos',
-    filterFormSelector: '#form-filtros-grupos',
-    filterFunction: (row, form) => {
-      const nomFiltro = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase();
-      const lugaresSel = choicesLugarFiltro ? choicesLugarFiltro.getValue(true).map(v => v.toLowerCase()) : [];
-      const unidadesSel = choicesUnidadFiltro ? choicesUnidadFiltro.getValue(true).map(v => v.toLowerCase()) : [];
-      
-      const textoCelda = row.querySelector('.unidad-grupo')?.textContent.toLowerCase() || '';
-      const nombreRow = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || '';
-      
-      const matchNombre = nombreRow.includes(nomFiltro);
-      const matchLugar = lugaresSel.length === 0 || lugaresSel.some(l => textoCelda.includes(`(${l})`));
-      
-      const nombreUnidadEnCelda = textoCelda.split(' (')[0];
-      const matchUnidad = unidadesSel.length === 0 || unidadesSel.some(u => nombreUnidadEnCelda.includes(u));
+  // Restaurar filtros persistidos ANTES de inicializar la tabla server-side,
+  // para que la única petición inicial ya los incluya (evita doble carga).
+  const inputNombre = document.getElementById('buscar-nombre-grupo');
+  if (inputNombre && filtrosPersistidosGrupos.nombre) {
+    inputNombre.value = filtrosPersistidosGrupos.nombre;
+  }
+  if (choicesLugarFiltro && filtrosPersistidosGrupos.lugares.length > 0) {
+    choicesLugarFiltro.setChoiceByValue(filtrosPersistidosGrupos.lugares);
+  }
+  if (choicesUnidadFiltro && filtrosPersistidosGrupos.unidades.length > 0) {
+    choicesUnidadFiltro.setChoiceByValue(filtrosPersistidosGrupos.unidades);
+  }
 
-      return matchNombre && matchLugar && matchUnidad;
-    },
+const tieneEdicion = container.dataset.tieneEdicion === '1'
+
+  createPaginatedTableServer({
+    tableSelector: '#tabla-grupos',
+    paginationSelector: '#paginacion-grupos',
+    endpoint: 'api/grupos-presupuestales/paginated',
+    filterFormSelector: '#form-filtros-grupos',
     rowsPerPage: 10,
+    renderRow: (item) => {
+      const esActivo = item.activo === true || item.activo === 1 || item.activo === 't' || item.activo === '1'
+      const esManual = item.es_manual === true || item.es_manual === 1 || item.es_manual === 't' || item.es_manual === '1'
+      const unidadText = `${item.UnidadNombre || 'N/A'} (${item.PlaceNombre || 'N/A'})`
+
+      return `
+        <tr data-id="${escapeHTML(item.ID_GrupoPresupuestal)}"
+            data-nombre="${escapeHTML(item.Nombre)}"
+            data-descripcion="${escapeHTML(item.Descripcion)}"
+            data-id-unidad="${escapeHTML(item.ID_UnidadOperativa ?? '')}"
+            data-activo="${esActivo ? '1' : '0'}"
+            data-es-manual="${esManual ? '1' : '0'}"
+            class="${!esActivo ? 'opacity-60' : ''}">
+            <td class="px-3 py-2 border-b nombre-grupo">${escapeHTML(item.Nombre)}</td>
+            <td class="px-3 py-2 border-b descripcion-grupo">${escapeHTML(item.Descripcion)}</td>
+            <td class="px-3 py-2 border-b unidad-grupo">${escapeHTML(unidadText)}</td>
+            <td class="px-3 py-2 border-b text-center">${esManual ? '<span class="text-blue-600 font-bold">SÍ</span>' : '<span class="text-gray-400">NO</span>'}</td>
+            <td class="px-3 py-2 border-b text-center">${esActivo ? '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">Activo</span>' : '<span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">Inactivo</span>'}</td>
+            ${tieneEdicion ? `
+            <td class="px-2 py-2 border-b align-top text-center acciones">
+                <div class="flex flex-col items-center space-y-1 h-full justify-center">
+                    <a href="#"
+                       id="btn-editar-grupos-${escapeHTML(item.ID_GrupoPresupuestal)}"
+                       class="btn-editar text-green-600 hover:text-green-800"
+                       data-id="${escapeHTML(item.ID_GrupoPresupuestal)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+                        </svg>
+                    </a>
+                    ${esActivo ? `
+                    <a href="#"
+                       id="btn-eliminar-grupos-${escapeHTML(item.ID_GrupoPresupuestal)}"
+                       class="btn-eliminar text-red-600 hover:text-red-800"
+                       title="Desactivar Grupo"
+                       data-id="${escapeHTML(item.ID_GrupoPresupuestal)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                        </svg>
+                    </a>` : ''}
+                </div>
+            </td>` : ''}
+        </tr>`
+    },
+    buildFilterParams: () => {
+      const params = {}
+      const nombre = document.getElementById('buscar-nombre-grupo')?.value.trim() || ''
+      const lugaresSel = choicesLugarFiltro ? choicesLugarFiltro.getValue(true) : []
+      const unidadesSel = choicesUnidadFiltro ? choicesUnidadFiltro.getValue(true) : []
+      if (nombre) params.nombre = nombre
+      if (lugaresSel.length) params.lugares = lugaresSel
+      if (unidadesSel.length) params.unidades = unidadesSel
+      return params
+    },
   })
 }
 
@@ -5524,229 +5617,11 @@ async function GenerarOrden(id, button) {
   }
 }
 
-/**
- * Lógica para limpiar almacenamiento
- */
-
-window.initLimpiarAlmacenamiento = function () {
-  let currentPath = ''
-  let selectedItems = new Set()
-
-  window.navegarA = async function (path) {
-    currentPath = path
-
-    // Boton de regresar
-    const backBtnContainer = document.getElementById('back-button-container')
-    if (backBtnContainer) {
-      if (path === '') {
-        backBtnContainer.classList.add('hidden')
-      } else {
-        backBtnContainer.classList.remove('hidden')
-      }
-    }
-
-    actualizarToolbar()
-    actualizarSelectAllCheck(false)
-    renderBreadcrumbs(path)
-
-    const tbody = document.getElementById('file-list')
-    if (!tbody) return
-    tbody.innerHTML =
-      '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Cargando...</td></tr>'
-
-    const files = await fetchFiles(path)
-    renderFiles(files)
-  }
-
-  window.navegarArriba = function () {
-    if (currentPath === '') return
-
-    const parts = currentPath.split('/')
-    parts.pop()
-    const parentPath = parts.join('/')
-    window.navegarA(parentPath)
-  }
-
-  window.toggleSelection = function (path) {
-    if (selectedItems.has(path)) {
-      selectedItems.delete(path)
-    } else {
-      selectedItems.add(path)
-    }
-    actualizarToolbar()
-  }
-
-  window.toggleSelectAll = function () {
-    const mainCheckbox = document.getElementById('select-all')
-    const checkboxes = document.querySelectorAll('.file-checkbox')
-    const isChecked = mainCheckbox.checked
-    checkboxes.forEach((cb) => {
-      cb.checked = isChecked
-      if (isChecked) {
-        selectedItems.add(cb.value)
-      } else {
-        selectedItems.delete(cb.value)
-      }
-    })
-    actualizarToolbar()
-  }
-
-  // limpiar selección
-  window.limpiarSeleccion = function () {
-    selectedItems.clear()
-    actualizarToolbar()
-    document.querySelectorAll('.file-checkbox').forEach((cb) => (cb.checked = false))
-    actualizarSelectAllCheck(false)
-    document
-      .querySelectorAll('#file-list tr.bg-blue-50')
-      .forEach((row) => row.classList.remove('bg-blue-50'))
-  }
-
-  window.ejecutarAccion = function (tipo) {
-    const listaParaEnviar = Array.from(selectedItems)
-    if (listaParaEnviar.length === 0) return
-
-    const mensaje =
-      tipo === 'eliminar'
-        ? `¿Estás seguro de ELIMINAR ${listaParaEnviar.length} elementos?\nEsta acción no se puede deshacer.`
-        : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`
-
-    if (confirm(mensaje)) {
-      console.group('🚀 EJECUTANDO ACCIÓN: ' + tipo.toUpperCase())
-      console.log('Rutas a procesar:', listaParaEnviar)
-      console.groupEnd()
-      alert(`Acción "${tipo}" simulada. Revisa la consola.`)
-    }
-  }
-
-  async function fetchFiles(path) {
-    try {
-      return await SendDataEnd(`api/storage/list?path=${encodeURIComponent(path)}`)
-    } catch (error) {
-      console.error('Error al obtener archivos:', error)
-      const tbody = document.getElementById('file-list')
-      if (tbody)
-        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Error: ${error.message}</td></tr>`
-      return []
-    }
-  }
-
-  function renderFiles(files) {
-    const tbody = document.getElementById('file-list')
-    if (!tbody) return
-    tbody.innerHTML = ''
-
-    if (!files || files.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Carpeta vacía</td></tr>'
-      return
-    }
-
-    const iconFolder = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`
-    const iconFileGeneric = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>`
-
-    files.sort((a, b) => {
-      if (a.type === b.type) return a.name.localeCompare(b.name)
-      return a.type === 'folder' ? -1 : 1
-    })
-
-    files.forEach((file) => {
-      const isFolder = file.type === 'folder'
-      const isPdf = file.name.toLowerCase().endsWith('.pdf')
-      const isImg = file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i)
-
-      let currentIcon = iconFileGeneric
-      if (isFolder) {
-        currentIcon = iconFolder
-      } else if (isPdf) {
-        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9h6v6H9z" /></svg>`
-      } else if (isImg) {
-        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
-      }
-
-      const isChecked = selectedItems.has(file.path) ? 'checked' : ''
-
-      const row = document.createElement('tr')
-      row.className = `transition cursor-pointer ${isChecked ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`
-
-      row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
-                    <input type="checkbox" value="${file.path}" ${isChecked} onchange="toggleSelection('${file.path}'); this.closest('tr').classList.toggle('bg-blue-50', this.checked);" class="file-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4">
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap flex items-center">
-                    ${currentIcon}
-                    <span class="${isFolder ? 'font-medium text-gray-900' : 'text-gray-700'}">${file.name}</span>
-                </td>
-                `
-
-      row.addEventListener('click', (e) => {
-        if (e.target.type === 'checkbox') return
-
-        if (isFolder) {
-          window.navegarA(file.path)
-        } else {
-          const url = `${BASE_URL}api/storage/serve?path=${encodeURIComponent(file.path)}`
-          window.open(url, '_blank')
-        }
-      })
-
-      tbody.appendChild(row)
-    })
-  }
-
-  function renderBreadcrumbs(path) {
-    const container = document.getElementById('breadcrumbs')
-    if (!container) return
-
-    let html = `<button onclick="navegarA('')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>uploads</button>`
-
-    if (path) {
-      const parts = path.split('/')
-      let accumulatedPath = ''
-      parts.forEach((part, index) => {
-        accumulatedPath += (index > 0 ? '/' : '') + part
-        const pathForClick = accumulatedPath
-        html += `<span class="text-gray-400 mx-1">/</span>`
-        if (index === parts.length - 1) {
-          html += `<span class="font-medium text-gray-800 px-2">${part}</span>`
-        } else {
-          html += `<button onclick="navegarA('${pathForClick}')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded">${part}</button>`
-        }
-      })
-    }
-    container.innerHTML = html
-  }
-
-  function actualizarToolbar() {
-    const toolbar = document.getElementById('toolbar')
-    const countSpan = document.getElementById('selected-count')
-    if (!toolbar || !countSpan) return
-
-    const count = selectedItems.size
-    countSpan.textContent = count
-    if (count > 0) {
-      toolbar.classList.remove('hidden')
-      toolbar.classList.add('flex')
-    } else {
-      toolbar.classList.add('hidden')
-      toolbar.classList.remove('flex')
-    }
-  }
-
-  function actualizarSelectAllCheck(checked) {
-    const cb = document.getElementById('select-all')
-    if (cb) cb.checked = checked
-  }
-
-  window.navegarA('')
-}
-
 //==================================================================================================================
 /**
  * Varios
  */
 // Inicializar
-document.addEventListener('DOMContentLoaded', initCrudProveedores)
 
 async function GenerarOrden(id, button) {
   if (

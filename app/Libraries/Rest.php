@@ -460,147 +460,159 @@ class Rest
         $deptId = $filters['dept_id'] ?? null;
         $isException = !empty($filters['is_exception']);
 
-        $subquery = $this->db->table('Cotizacion')
-            ->select('Cotizacion.ID_Solicitud, OrdenCompra.Estado as OrdenEstado')
-            ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'inner')
-            ->getCompiledSelect();
-
         $selectFields = 'Solicitud.ID_Solicitud, Solicitud.No_Folio, Solicitud.Fecha, Solicitud.Estado, Solicitud.MetodoPago, Solicitud.Tipo, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre, Razon_Social.Nombre as Complejo';
 
-        $baseJoins = function ($query) use ($subquery) {
+        // JOINs base comunes (LEFT JOINs directos - funcionan igual en PG y MySQL)
+        $baseJoins = function ($query) {
             $query->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
                   ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
                   ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
                   ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
-                  ->join("($subquery) SubOrden", 'SubOrden.ID_Solicitud = Solicitud.ID_Solicitud', 'left');
+                  ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
+                  ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left');
         };
 
-        $applyFilters = function ($query) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException) {
-            $selectedEstado = $filters['estado'] ?? '';
+        // Factoría de filtros: recibe el nombre de la columna OC estado según el join usado
+        $makeApplyFilters = function (string $ocEstadoCol) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException) {
+            return function ($query) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException, $ocEstadoCol) {
+                $selectedEstado = $filters['estado'] ?? '';
 
-            if ($onlyDeclined) {
-                if (!empty($selectedEstado) && in_array($selectedEstado, $declinedStatuses)) {
-                    // Si se filtra por un estado declinado específico, no aplicamos la restricción general whereIn para evitar conflictos
-                } else {
-                    $query->whereIn('Solicitud.Estado', $declinedStatuses);
-                }
-            } else {
-                $currentExclusions = $excludedStatuses;
-                if (!empty($selectedEstado)) {
-                    // Removemos el estado seleccionado de las exclusiones generales si el usuario lo busca explícitamente
-                    $currentExclusions = array_diff($currentExclusions, [$selectedEstado]);
-                }
-                if (!empty($currentExclusions)) {
-                    $query->whereNotIn('Solicitud.Estado', $currentExclusions);
-                }
-            }
-
-            if ($deptId && $userId && !$isException) {
-                $query->groupStart()
-                      ->where('Solicitud.ID_Dpto', $deptId)
-                      ->orWhere('Solicitud.ID_Usuario', $userId)
-                      ->groupEnd();
-            } elseif ($deptId && !$isException) {
-                $query->where('Solicitud.ID_Dpto', $deptId);
-            }
-
-            if (!empty($filters['estado'])) {
-                $orderStatuses = [
-                    Status::Espera_Programacion,
-                    Status::Programada,
-                    Status::Por_Pagar,
-                    Status::Pagada
-                ];
-
-                if (in_array($filters['estado'], $orderStatuses)) {
-                    $query->where('Solicitud.Estado', Status::Aprobada);
-                    $query->where('SubOrden.OrdenEstado', $filters['estado']);
-                } elseif ($filters['estado'] === Status::Aprobada) {
-                    $query->where('Solicitud.Estado', Status::Aprobada);
-                    $query->groupStart()
-                          ->where('SubOrden.OrdenEstado IS NULL')
-                          ->orWhere('SubOrden.OrdenEstado', '')
-                          ->groupEnd();
-                } else {
-                    $query->where('Solicitud.Estado', $filters['estado']);
-                }
-            }
-
-            if (!empty($filters['fecha'])) {
-                if (!empty($filters['por_mes'])) {
-                    $query->where("to_char(Solicitud.Fecha, 'YYYY-MM')", substr($filters['fecha'], 0, 7));
-                } else {
-                    $query->where('Solicitud.Fecha', $filters['fecha']);
-                }
-            }
-
-            if (!empty($filters['folio'])) {
-                $query->like('Solicitud.No_Folio', $filters['folio']);
-            }
-
-            if (!empty($filters['tipo'])) {
-                if ($filters['tipo'] === 'Producto') {
-                    $query->whereIn('Solicitud.Tipo', [0, 1]);
-                } elseif ($filters['tipo'] === 'Servicio') {
-                    $query->where('Solicitud.Tipo', 2);
-                }
-            }
-
-            if (!empty($filters['proveedores'])) {
-                $provs = is_array($filters['proveedores']) ? $filters['proveedores'] : explode(',', $filters['proveedores']);
-                $provs = array_filter(array_map('trim', $provs));
-                if (!empty($provs)) {
-                    $query->whereIn('Proveedor.RazonSocial', $provs);
-                }
-            }
-
-            if (!empty($filters['razones_sociales'])) {
-                $razones = is_array($filters['razones_sociales']) ? $filters['razones_sociales'] : explode(',', $filters['razones_sociales']);
-                $razones = array_filter(array_map('trim', $razones));
-                if (!empty($razones)) {
-                    $query->whereIn('Razon_Social.Nombre', $razones);
-                }
-            }
-
-            if (!empty($filters['departamentos'])) {
-                $deptos = is_array($filters['departamentos']) ? $filters['departamentos'] : explode(',', $filters['departamentos']);
-                $deptos = array_filter(array_map('trim', $deptos));
-                if (!empty($deptos)) {
-                    $query->groupStart();
-                    $first = true;
-                    foreach ($deptos as $dpto) {
-                        $parts = explode('|', $dpto);
-                        $nombre = trim($parts[0]);
-                        $place = isset($parts[1]) ? trim($parts[1]) : '';
-                        if ($first) {
-                            $query->where('Departamentos.Nombre', $nombre);
-                            if ($place !== '') {
-                                $query->where('Places.Nombre_Corto', $place);
-                            }
-                            $first = false;
-                        } else {
-                            $query->orGroupStart()->where('Departamentos.Nombre', $nombre);
-                            if ($place !== '') {
-                                $query->where('Places.Nombre_Corto', $place);
-                            }
-                            $query->groupEnd();
-                        }
+                if ($onlyDeclined) {
+                    if (!empty($selectedEstado) && in_array($selectedEstado, $declinedStatuses)) {
+                    } else {
+                        $query->whereIn('Solicitud.Estado', $declinedStatuses);
                     }
-                    $query->groupEnd();
+                } else {
+                    $currentExclusions = $excludedStatuses;
+                    if (!empty($selectedEstado)) {
+                        $currentExclusions = array_diff($currentExclusions, [$selectedEstado]);
+                    }
+                    if (!empty($currentExclusions)) {
+                        $query->whereNotIn('Solicitud.Estado', $currentExclusions);
+                    }
                 }
-            }
+
+                if ($deptId && $userId && !$isException) {
+                    $query->groupStart()
+                          ->where('Solicitud.ID_Dpto', $deptId)
+                          ->orWhere('Solicitud.ID_Usuario', $userId)
+                          ->groupEnd();
+                } elseif ($deptId && !$isException) {
+                    $query->where('Solicitud.ID_Dpto', $deptId);
+                }
+
+                if (!empty($filters['estado'])) {
+                    $orderStatuses = [
+                        Status::Espera_Programacion,
+                        Status::Programada,
+                        Status::Por_Pagar,
+                        Status::Pagada
+                    ];
+
+                    if (in_array($filters['estado'], $orderStatuses)) {
+                        $query->where('Solicitud.Estado', Status::Aprobada);
+                        $query->where($ocEstadoCol, $filters['estado']);
+                    } elseif ($filters['estado'] === Status::Aprobada) {
+                        $query->where('Solicitud.Estado', Status::Aprobada);
+                        $query->groupStart()
+                              ->where($ocEstadoCol . ' IS NULL')
+                              ->orWhere($ocEstadoCol, '')
+                              ->groupEnd();
+                    } else {
+                        $query->where('Solicitud.Estado', $filters['estado']);
+                    }
+                }
+
+                if (!empty($filters['fecha'])) {
+                    if (!empty($filters['por_mes'])) {
+                        $mes = substr($filters['fecha'], 0, 7);
+                        $inicio = $mes . '-01';
+                        $fin = date('Y-m-t', strtotime($inicio));
+                        $query->where('Solicitud.Fecha >=', $inicio)
+                              ->where('Solicitud.Fecha <=', $fin);
+                    } else {
+                        $query->where('Solicitud.Fecha', $filters['fecha']);
+                    }
+                }
+
+                if (!empty($filters['folio'])) {
+                    $query->like('Solicitud.No_Folio', $filters['folio']);
+                }
+
+                if (!empty($filters['tipo'])) {
+                    if ($filters['tipo'] === 'Producto') {
+                        $query->whereIn('Solicitud.Tipo', [0, 1]);
+                    } elseif ($filters['tipo'] === 'Servicio') {
+                        $query->where('Solicitud.Tipo', 2);
+                    }
+                }
+
+                if (isset($filters['metodo']) && $filters['metodo'] !== '') {
+                    $query->where('Solicitud.MetodoPago', $filters['metodo']);
+                }
+
+                if (!empty($filters['proveedores'])) {
+                    $provs = is_array($filters['proveedores']) ? $filters['proveedores'] : explode(',', $filters['proveedores']);
+                    $provs = array_filter(array_map('trim', $provs));
+                    if (!empty($provs)) {
+                        $query->whereIn('Proveedor.RazonSocial', $provs);
+                    }
+                }
+
+                if (!empty($filters['razones_sociales'])) {
+                    $razones = is_array($filters['razones_sociales']) ? $filters['razones_sociales'] : explode(',', $filters['razones_sociales']);
+                    $razones = array_filter(array_map('trim', $razones));
+                    if (!empty($razones)) {
+                        $query->whereIn('Razon_Social.Nombre', $razones);
+                    }
+                }
+
+                if (!empty($filters['departamentos'])) {
+                    $deptos = is_array($filters['departamentos']) ? $filters['departamentos'] : explode(',', $filters['departamentos']);
+                    $deptos = array_filter(array_map('trim', $deptos));
+                    if (!empty($deptos)) {
+                        $query->groupStart();
+                        $first = true;
+                        foreach ($deptos as $dpto) {
+                            $parts = explode('|', $dpto);
+                            $nombre = trim($parts[0]);
+                            $place = isset($parts[1]) ? trim($parts[1]) : '';
+                            if ($first) {
+                                $query->where('Departamentos.Nombre', $nombre);
+                                if ($place !== '') {
+                                    $query->where('Places.Nombre_Corto', $place);
+                                }
+                                $first = false;
+                            } else {
+                                $query->orGroupStart()->where('Departamentos.Nombre', $nombre);
+                                if ($place !== '') {
+                                    $query->where('Places.Nombre_Corto', $place);
+                                }
+                                $query->groupEnd();
+                            }
+                        }
+                        $query->groupEnd();
+                    }
+                }
+            };
         };
 
-        // COUNT query
+        // COUNT query: LEFT JOINs + WHERE para replicar semántica INNER JOIN (solo solicitudes con Cotización Y OrdenCompra)
+        // Compatible PostgreSQL + MySQL: sin subquery, solo condiciones WHERE
+        $applyFiltersCount = $makeApplyFilters('OrdenCompra.Estado');
         $countBuilder = $solicitudModel->select('COUNT(*) as total');
         $baseJoins($countBuilder);
-        $applyFilters($countBuilder);
+        $applyFiltersCount($countBuilder);
+        // Replicar INNER JOIN semántica: solo contar si EXISTE Cotizacion Y OrdenCompra
+        $countBuilder->where('Cotizacion.ID_Cotizacion IS NOT NULL')
+                     ->where('OrdenCompra.ID_OrdenCompra IS NOT NULL');
         $total = (int) $countBuilder->get()->getRow()->total;
 
-        // DATA query
+        // DATA query: LEFT JOINs directos (acceso a campos Cotización, incluye solicitudes sin OC)
+        $applyFiltersData = $makeApplyFilters('OrdenCompra.Estado');
         $builder = $solicitudModel->select($selectFields);
         $baseJoins($builder);
-        $applyFilters($builder);
+        $applyFiltersData($builder);
 
         $offset = ($page - 1) * $perPage;
         $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')
@@ -2100,6 +2112,53 @@ class Rest
         $results = $proveedorModel->findAll();
         return $results ?: [];
     }
+
+    /**
+     * Obtiene proveedores paginados con filtros server-side.
+     *
+     * Compatible con PostgreSQL y MariaDB/MySQL (sin funciones mono-motor:
+     * la búsqueda insensible a mayúsculas se resuelve con LOWER() portable).
+     *
+     * @param int   $page    Página actual (inicia en 1).
+     * @param int   $perPage Registros por página.
+     * @param array $filters Filtros opcionales: razon_social, rfc.
+     * @return array ['data' => [], 'total' => int, 'page' => int, 'perPage' => int]
+     */
+    public function getProveedoresPaginated(int $page = 1, int $perPage = 10, array $filters = []): array
+    {
+        $builder = $this->db->table('Proveedor');
+
+        $applyFilters = function (BaseBuilder $query) use ($filters): void {
+            if (!empty($filters['razon_social'])) {
+                $query->where($this->likeInsensitive('RazonSocial', $filters['razon_social']));
+            }
+            if (!empty($filters['rfc'])) {
+                $query->where($this->likeInsensitive('RFC', $filters['rfc']));
+            }
+            if (!empty($filters['servicio'])) {
+                $query->where($this->likeInsensitive('Servicio', $filters['servicio']));
+            }
+        };
+
+        $applyFilters($builder);
+
+        $totalBuilder = clone $builder;
+        $total = (int) $totalBuilder->select('COUNT(*) as total')->get()->getRow()->total;
+
+        $rows = $builder->select('ID_Proveedor, RazonSocial, RFC, Banco, Cuenta, Clabe, Tel_Contacto, Nombre_Contacto, Servicio, Correo, Dias_Credito, Monto_Credito')
+            ->orderBy('RazonSocial', 'ASC')
+            ->limit($perPage)
+            ->offset(($page - 1) * $perPage)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'data'    => $rows,
+            'total'   => $total,
+            'page'    => $page,
+            'perPage' => $perPage,
+        ];
+    }
     /**
      * Obtiene el ID y Nombre de todos los proveedores.
      *
@@ -2126,6 +2185,76 @@ class Rest
             ->orderBy('RazonSocial', 'ASC')
             ->findAll();
         return $results;
+    }
+    //endregion
+
+    //region Grupos presupuestales
+    /**
+     * Obtiene partidas presupuestales paginadas con filtros server-side.
+     *
+     * Compatible con PostgreSQL y MariaDB/MySQL (sin funciones mono-motor:
+     * la búsqueda insensible a mayúsculas se resuelve con LOWER() portable).
+     *
+     * @param int   $page    Página actual (inicia en 1).
+     * @param int   $perPage Registros por página.
+     * @param array $filters Filtros opcionales: nombre, lugares[], unidades[].
+     * @return array ['data' => [], 'total' => int, 'page' => int, 'perPage' => int]
+     */
+    public function getGruposPresupuestalesPaginated(int $page = 1, int $perPage = 10, array $filters = []): array
+    {
+        $builder = $this->db->table('GrupoPresupuestal')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
+            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left');
+
+        if (!empty($filters['nombre'])) {
+            $builder->where($this->likeInsensitive('GrupoPresupuestal.Nombre', $filters['nombre']));
+        }
+        if (!empty($filters['lugares'])) {
+            $lugares = array_filter((array) $filters['lugares'], fn($v) => $v !== '' && $v !== null);
+            if (!empty($lugares)) {
+                $builder->whereIn('Places.Nombre_Corto', $lugares);
+            }
+        }
+        if (!empty($filters['unidades'])) {
+            $unidades = array_filter((array) $filters['unidades'], fn($v) => $v !== '' && $v !== null);
+            if (!empty($unidades)) {
+                $builder->whereIn('UnidadOperativa.Nombre', $unidades);
+            }
+        }
+
+        $totalBuilder = clone $builder;
+        $total = (int) $totalBuilder->select('COUNT(*) as total')->get()->getRow()->total;
+
+        $rows = $builder->select('GrupoPresupuestal.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
+            ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
+            ->limit($perPage)
+            ->offset(($page - 1) * $perPage)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'data'    => $rows,
+            'total'   => $total,
+            'page'    => $page,
+            'perPage' => $perPage,
+        ];
+    }
+
+    /**
+     * Construye una condición LIKE insensible a mayúsculas portable
+     * (PostgreSQL + MariaDB/MySQL).
+     *
+     * El identificador se escapa por driver (comillas dobles / backticks) y el
+     * valor se compara en minúsculas con LOWER(). Se evita like(..., true)
+     * porque el driver Postgre de CI4 no escapa el prefijo de tabla en ILIKE.
+     *
+     * @return string Condición SQL completa, lista para where().
+     */
+    private function likeInsensitive(string $column, string $value): string
+    {
+        $col = $this->db->escapeIdentifiers($column);
+
+        return 'LOWER(' . $col . ') LIKE ' . $this->db->escape('%' . mb_strtolower($value) . '%');
     }
     //endregion
 

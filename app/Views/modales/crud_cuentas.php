@@ -27,38 +27,14 @@
             </tr>
             </thead>
             <tbody id="tabla-cuentas">
-            <?php if (!empty($cuentas)): ?>
-                <?php foreach ($cuentas as $index => $cuenta): ?>
-                    <tr data-id="<?= $cuenta['ID_Proveedor'] ?>"
-                        data-razonsocial="<?= esc($cuenta['RazonSocial']) ?>"
-                        data-rfc="<?= esc($cuenta['RFC']) ?>"
-                        class="<?= $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' ?>">
-
-                        <td class="px-3 py-2 border-b razonsocial"><?= esc($cuenta['RazonSocial']) ?></td>
-                        <td class="px-3 py-2 border-b rfc"><?= esc($cuenta['RFC']) ?></td>
-                        <td class="px-3 py-2 border-b banco"><?= esc($cuenta['Banco']) ?></td>
-
-                        <td class="px-2 py-2 border-b align-top text-center acciones">
-                            <div class="flex flex-col items-center space-y-1 h-full justify-center">
-                                <a href="#"
-                                   id="btn-editar-cuenta-<?= $cuenta['ID_Proveedor'] ?>"
-                                   class="btn-editar text-green-600 hover:text-green-800"
-                                   data-id="<?= $cuenta['ID_Proveedor'] ?>">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                         stroke-width="1.5" stroke="currentColor" class="size-6">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
-                                    </svg>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
+            <noscript>
                 <tr>
-                    <td colspan="4" class="px-3 py-4 text-center text-gray-500">No hay cuentas registradas</td>
+                    <td colspan="4" class="px-3 py-4 text-center text-red-500">
+                        Se requiere JavaScript para cargar la tabla de cuentas.
+                    </td>
                 </tr>
-            <?php endif; ?>
+            </noscript>
+            <!-- Las filas se cargan vía API: GET api/providers/paginated (createPaginatedTableServer) -->
             </tbody>
         </table>
     </div>

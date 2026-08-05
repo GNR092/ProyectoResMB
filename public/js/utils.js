@@ -1752,3 +1752,6 @@ function createPaginatedTableServer(config) {
   // Initial load
   loadPage(currentPage)
 }
+
+// Export escapeHTML for global use (used by mbscript.js)
+window.escapeHTML = escapeHTML;

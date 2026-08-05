@@ -112,6 +112,7 @@ if (!file_exists($installerLockFile)) {
         //region proveedores
         $routes->get('api/providers/all', 'Api::getAllProviders');
         $routes->get('api/providers/full-list', 'Api::getFullProvidersList');
+        $routes->get('api/providers/paginated', 'Api::getProvidersPaginated');
         $routes->get('api/providers/exportar-excel', 'Api::exportarProveedoresExcel');
         $routes->get('api/providers/exportar-pdf', 'Api::exportarProveedoresPdf');
         $routes->get('api/provider/(:num)', 'Api::getProviderById/$1');
@@ -221,6 +222,9 @@ if (!file_exists($installerLockFile)) {
             'modales/crud_grupos_presupuestales/eliminar/(:num)',
             'Modales::eliminarGrupo/$1',
         );
+
+        // API Partidas Presupuestales (paginación server-side)
+        $routes->get('api/grupos-presupuestales/paginated', 'Api::getGruposPresupuestalesPaginated');
 
         // Rutas API Presupuesto Dictamen
         $routes->get('api/presupuesto/cambios', 'PresupuestoApiController::getCambiosPendientes');

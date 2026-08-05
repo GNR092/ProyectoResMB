@@ -293,12 +293,9 @@ class Modales extends BaseController
                 return view('modales/dictamen_solicitudes', $data);
 
             case 'crud_proveedores':
-                $proveedorModel = new ProveedorModel();
-
-                // Traer todos los registros de proveedores
-                $data['proveedores'] = $proveedorModel->orderBy('ID_Proveedor', 'ASC')->findAll();
-
-                return view('modales/crud_proveedores', $data);
+                // La tabla principal (directorio de proveedores) se carga vía API paginada:
+                // GET api/providers/paginated (createPaginatedTableServer)
+                return view('modales/crud_proveedores');
 
             case 'limpiar_almacenamiento':
                 return view('modales/limpiar_almacenamiento');
@@ -511,11 +508,9 @@ class Modales extends BaseController
                 return view('modales/crud_departamento', $data);
 
             case 'crud_cuentas':
-                // Llenamos la tabla principal con los datos del proveedor
-                $proveedorModel = new ProveedorModel();
-                $data['cuentas'] = $proveedorModel->orderBy('RazonSocial', 'ASC')->findAll();
-
-                return view('modales/crud_cuentas', $data);
+                // La tabla principal (proveedores) se carga vía API paginada:
+                // GET api/providers/paginated (createPaginatedTableServer)
+                return view('modales/crud_cuentas');
 
             case 'correcciones':
                 $razonSocialModel = new RazonSocialModel();
@@ -536,12 +531,8 @@ class Modales extends BaseController
                 $unidadesModel = new UnidadOperativaModel();
                 $solicitudesCambioModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-                $data['grupos'] = $grupoModel
-                    ->select('GrupoPresupuestal.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
-                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
-                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
-                    ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
-                    ->findAll();
+                // La tabla principal (partidas) se carga vía API paginada:
+                // GET api/grupos-presupuestales/paginated (createPaginatedTableServer)
 
                 $data['unidades_operativas'] = $unidadesModel
                     ->select('UnidadOperativa.*, Places.Nombre_Corto as PlaceNombre')
