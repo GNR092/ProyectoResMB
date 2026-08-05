@@ -808,6 +808,7 @@ function FichasPago() {
   return {
     // --- ESTADO ---
     todasLasFichas: [],
+    facturasPendientesReporte: [],
     loading: true,
     
     // Filtros por pestaña (contado/credito)
@@ -828,6 +829,19 @@ function FichasPago() {
         const data = await SendDataEnd('api/facturas-por-pagar');
 
         this.todasLasFichas = data || [];
+
+        // Dataset completo del reporte (mismo formato que Pagos Pendientes),
+        // limitado a OC 'Por Pagar', para las exportaciones Excel/PDF.
+        this.facturasPendientesReporte = [];
+        try {
+          const res = await fetch(`${BASE_URL}api/reportes/facturas-pendientes`);
+          if (res.ok) {
+            const repData = await res.json();
+            this.facturasPendientesReporte = Array.isArray(repData.datos) ? repData.datos : [];
+          }
+        } catch (repError) {
+          console.error('Error cargando reporte facturas pendientes:', repError);
+        }
 
         // Extraer opciones de filtro una sola vez
         this.opcionesFiltro.deptos = [...new Set(this.todasLasFichas.map(f => f.DepartamentoNombre))].filter(Boolean).sort();
@@ -895,7 +909,80 @@ function FichasPago() {
       const [anio, mes, dia] = String(v).split('-');
       if (!anio || !mes || !dia) return String(v);
       return `${dia}/${mes}/${anio}`;
-    }
+    },
+
+    /**
+     * Genera el reporte Excel/PDF de facturas pendientes.
+     * Respeta los filtros activos de la pestaña correspondiente.
+     * @param {string|null} metodo - null (todas), '0' (contado), '1' (crédito).
+     * @param {string} tipo - 'excel' | 'pdf'.
+     */
+    async exportarFacturasPendientes(metodo, tipo) {
+      const fichasFiltradas = metodo === null
+        ? [...this.getFichas('0'), ...this.getFichas('1')]
+        : this.getFichas(metodo)
+
+      if (fichasFiltradas.length === 0) {
+        mostrarNotificacion('No hay facturas pendientes para exportar.', 'warning')
+        return
+      }
+
+      const ids = new Set(fichasFiltradas.map((f) => String(f.ID_Solicitud)))
+      const datos = (this.facturasPendientesReporte || []).filter((d) =>
+        ids.has(String(d.ID_Solicitud)),
+      )
+
+      if (datos.length === 0) {
+        mostrarNotificacion('No hay datos para generar el reporte.', 'warning')
+        return
+      }
+
+      const esExcel = tipo === 'excel'
+      const etiqueta = metodo === '0' ? 'Contado' : metodo === '1' ? 'Crédito' : 'Contado y Crédito'
+      const notif = typeof mostrarNotificacion !== 'undefined'
+        ? mostrarNotificacion(`Generando ${esExcel ? 'Excel' : 'PDF'} de Facturas Pendientes (${etiqueta})...`, 'info', 0)
+        : null
+
+      const payload = {
+        datos,
+        fechaCorte: null,
+        nombreEmpresa: 'Grupo MBM',
+        filtros: {
+          formasPago: metodo === '0' ? ['Contado'] : metodo === '1' ? ['Crédito'] : [],
+          estados: ['Por Pagar'],
+        },
+      }
+
+      const endpoint = esExcel
+        ? 'api/reportes/pagos-pendientes/exportar-datos'
+        : 'api/reportes/pagos-pendientes/exportar-pdf'
+
+      try {
+        const res = await fetch(`${BASE_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `facturas_pendientes_${new Date().toISOString().split('T')[0]}.${esExcel ? 'xlsx' : 'pdf'}`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(url)
+        mostrarNotificacion('Reporte generado correctamente.', 'success')
+      } catch (error) {
+        console.error('Error exportarFacturasPendientes:', error)
+        mostrarNotificacion('Error al generar el reporte.', 'error')
+      } finally {
+        if (notif && typeof notif.click === 'function') notif.click()
+      }
+    },
   };
 }
 

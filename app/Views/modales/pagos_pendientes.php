@@ -1,6 +1,21 @@
 <div x-data="Object.assign(FichasPago(), { screen: 'menu' })" x-init="init()" @reload-pagos-fichas.window="init()">
     <!-- Pantalla principal -->
     <div x-show="screen === 'menu'" id="pagos-menu" class="p-6">
+        <!-- Descargas del reporte (contado + crédito) -->
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Descargar Reporte Global</span>
+            <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                <a @click="exportarFacturasPendientes(null, 'pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                    <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    PDF
+                </a>
+                <a @click="exportarFacturasPendientes(null, 'excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                    <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    EXCEL
+                </a>
+            </div>
+        </div>
+
         <div class="flex flex-col sm:flex-row gap-2">
             <button @click="screen = 'contado'"
                     class="w-full sm:w-auto flex-grow px-4 py-3 m-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ">
@@ -22,9 +37,19 @@
         <!-- Tabla de solicitudes de contado -->
         <div id="tabla-contado" class="overflow-x-auto">
 
-            <div class="flex justify-between items-center mb-4">
-                <button @click="screen = 'menu'" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-                <h2 class="text-lg font-semibold">Pago de contado</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
+                <button @click="screen = 'menu'" class="text-base text-black hover:text-emerald-700 flex items-center gap-1 font-semibold">&larr; Regresar</button>
+                <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                    <a @click="exportarFacturasPendientes('0', 'pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                        <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        PDF
+                    </a>
+                    <a @click="exportarFacturasPendientes('0', 'excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                        <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        EXCEL
+                    </a>
+                </div>
+                <h2 class="text-xl font-bold text-slate-800">Pago de contado</h2>
             </div>
 
             <!-- Filtros -->
@@ -98,10 +123,19 @@
         <!-- Tabla de solicitudes a crédito -->
         <div id="tabla-credito" class="overflow-x-auto">
 
-            <div class="flex justify-between items-center mb-4">
-                <button @click="screen = 'menu'" class="text-sm text-gray-600 hover:text-gray-900">&larr; Regresar</button>
-                <h2 class="text-lg font-semibold">Pago a crédito</h2>
-                <div></div>
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
+                <button @click="screen = 'menu'" class="text-base text-black hover:text-emerald-700 flex items-center gap-1 font-semibold">&larr; Regresar</button>
+                <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                    <a @click="exportarFacturasPendientes('1', 'pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                        <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        PDF
+                    </a>
+                    <a @click="exportarFacturasPendientes('1', 'excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                        <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        EXCEL
+                    </a>
+                </div>
+                <h2 class="text-xl font-bold text-slate-800">Pago a crédito</h2>
             </div>
 
             <!-- Filtros -->

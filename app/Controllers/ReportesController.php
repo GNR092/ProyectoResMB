@@ -2419,20 +2419,50 @@ $cols[] = chr(65 + $i);
      */
     public function getPagosPendientesReporte()
     {
+        return $this->respond($this->_pagosPendientesDatos());
+    }
+
+    /**
+     * Reporte de facturas pendientes de pago (solo OC en estado 'Por Pagar').
+     *
+     * Corresponde exactamente a las requisiciones que muestra la pantalla
+     * "Facturas Pendientes". Acepta ?metodo=0 (contado) o ?metodo=1 (crédito).
+     */
+    public function getFacturasPendientesReporte()
+    {
+        $metodo = $this->request->getGet('metodo');
+        $metodo = in_array($metodo, ['0', '1'], true) ? (int) $metodo : null;
+
+        return $this->respond($this->_pagosPendientesDatos(Status::Por_Pagar, $metodo));
+    }
+
+    /**
+     * Datos compartidos del reporte de pagos pendientes.
+     *
+     * @param string|null $estadoOC Cuando se define, limita a OC con ese estado
+     *                              (p. ej. 'Por Pagar' para facturas pendientes).
+     * @param int|null    $metodo   Filtro opcional por Solicitud.MetodoPago (0 contado, 1 crédito).
+     */
+    private function _pagosPendientesDatos(?string $estadoOC = null, ?int $metodo = null): array
+    {
         $solicitudModel = new SolicitudModel();
         $productoModel  = new SolicitudProductModel();
         $servicioModel  = new SolicitudServiciosModel();
         $bitacoraModel  = new BitacoraModel();
 
-        $solicitudes = $solicitudModel
+        $query = $solicitudModel
             ->select("Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as ComplejoNombre, Razon_Social.Nombre as RazonSocialNombre, Usuarios.Nombre as UsuarioNombre, Cotizacion.ID_Cotizacion, Cotizacion.Total as CotizacionTotal, Cotizacion.ID_Proveedor as CotizacionProveedor, OrdenCompra.ID_OrdenCompra, OrdenCompra.ID_Proveedor as OCProveedor, OrdenCompra.Estado as OCEstado, OrdenCompra.Fecha as OCFecha, OrdenCompra.FechaPagoRealizado, OrdenCompra.Fecha_Comprobante")
             ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
             ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
             ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
             ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
             ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
-            ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left')
-            ->groupStart()
+            ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left');
+
+        if ($estadoOC !== null) {
+            $query->where('OrdenCompra.Estado', $estadoOC);
+        } else {
+            $query->groupStart()
                 ->groupStart()
                     ->whereIn('Solicitud.Estado', [Status::En_Revision, Status::Aprobada])
                     ->where('OrdenCompra.ID_OrdenCompra IS NULL')
@@ -2441,16 +2471,21 @@ $cols[] = chr(65 + $i);
                     ->where('OrdenCompra.ID_OrdenCompra IS NOT NULL')
                     ->whereIn('OrdenCompra.Estado', [Status::Espera_Programacion, Status::Programada, Status::Por_Pagar])
                 ->groupEnd()
-            ->groupEnd()
-            ->orderBy('Solicitud.Fecha', 'ASC')
-            ->findAll();
+            ->groupEnd();
+        }
+
+        if ($metodo !== null) {
+            $query->where('Solicitud.MetodoPago', $metodo);
+        }
+
+        $solicitudes = $query->orderBy('Solicitud.Fecha', 'ASC')->findAll();
 
         $ids = array_column($solicitudes, 'ID_Solicitud');
         if (empty($ids)) {
-            return $this->respond([
+            return [
                 'datos'   => [],
                 'totales' => ['cantidad' => 0, 'total_general' => 0, 'saldo_total' => 0],
-            ]);
+            ];
         }
 
         // --- Proveedores (crédito) ---
@@ -2566,6 +2601,9 @@ $cols[] = chr(65 + $i);
 
             $totalGeneral += $total;
 
+            // Estado efectivo: OC si existe, sino Solicitud (ciclo Solicitud → Cotización → OC)
+            $estadoEfectivo = $sol['OCEstado'] ?? $sol['Estado'] ?? 'N/A';
+
             $datos[] = [
                 'ID_Solicitud'        => (int) $sol['ID_Solicitud'],
                 'No_Folio'            => $sol['No_Folio'] ?? 'N/A',
@@ -2580,7 +2618,7 @@ $cols[] = chr(65 + $i);
                 'FechaPagoRealizado'  => $fechas['FechaPagoRealizado'],
                 'FechaComprobante'    => $fechas['FechaComprobante'],
                 'FechaMasReciente'    => $fechaMasReciente,
-                'Estado'              => $sol['Estado'] ?? 'N/A',
+                'Estado'              => $estadoEfectivo,
                 'EstadoOC'            => $sol['OCEstado'] ?? null,
                 'Tipo'                => $tipoTexto,
                 'MetodoPago'          => $metodo,
@@ -2591,14 +2629,14 @@ $cols[] = chr(65 + $i);
             ];
         }
 
-        return $this->respond([
+        return [
             'datos'   => $datos,
             'totales' => [
                 'cantidad'      => count($datos),
                 'total_general' => round($totalGeneral, 2),
                 'saldo_total'   => round($saldoTotal, 2),
             ],
-        ]);
+        ];
     }
 
     /**
