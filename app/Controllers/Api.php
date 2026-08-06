@@ -564,6 +564,30 @@ class Api extends ResourceController
     }
 
     /**
+     * Obtiene el catálogo de productos y servicios paginado con filtros
+     * server-side (nombre, departamento de operación y partida presupuestal).
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getCatalogoPaginated()
+    {
+        try {
+            $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+            $perPage = max(1, (int) ($this->request->getGet('per_page') ?? 10));
+
+            $filters = [
+                'nombre'       => $this->request->getGet('nombre'),
+                'departamento' => $this->request->getGet('departamento'),
+                'grupo'        => $this->request->getGet('grupo'),
+            ];
+
+            $result = $this->api->getCatalogoPaginated($page, $perPage, $filters);
+            return $this->respond($result, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
      * Obtiene los detalles de una solicitud específica.
      * @param int|null $id El ID de la solicitud.
      * @return \CodeIgniter\HTTP\Response

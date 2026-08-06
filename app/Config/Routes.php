@@ -101,6 +101,7 @@ if (!file_exists($installerLockFile)) {
         // Catálogo De Productos Y Servicios
         $routes->get('api/catalogo/filtrado', 'Api::getCatalogoFiltradoDinamico');
         $routes->get('api/catalogo/all', 'Api::getCatalogoMaestro');
+        $routes->get('api/catalogo/paginated', 'Api::getCatalogoPaginated');
         $routes->post('api/catalogo/create', 'Api::createCatalogo');
         $routes->post('api/catalogo/update/(:num)', 'Api::updateCatalogo/$1');
         $routes->post('api/catalogo/delete/(:num)', 'Api::deleteCatalogo/$1');

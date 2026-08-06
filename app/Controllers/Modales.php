@@ -624,32 +624,15 @@ class Modales extends BaseController
                 return $this->bitacora();
 
             case 'catalogo_productos':
-                $catalogoModel = new CatalogoProductosModel();
                 $rsModel = new RazonSocialModel();
                 $segmentoModel = new SegmentoNegocioModel();
                 $placeModel = new PlacesModel();
                 $deptoModel = new UnidadOperativaModel();
                 $grupoModel = new GrupoPresupuestalModel();
 
-                $catalogo = $catalogoModel->getFullCatalogo();
-                // Normalización de catálogo para compatibilidad cross-DB
-                foreach ($catalogo as &$item) {
-                    $item['ID_CatalogoProd'] = $item['ID_CatalogoProd'] ?? $item['id_catalogoprod'] ?? null;
-                    $item['Nombre'] = $item['Nombre'] ?? $item['nombre'] ?? '';
-                    $item['ID_RazonSocial'] = $item['ID_RazonSocial'] ?? $item['id_razonsocial'] ?? null;
-                    $item['ID_Place'] = $item['ID_Place'] ?? $item['id_place'] ?? null;
-                    $item['ID_Dpto'] = $item['ID_Dpto'] ?? $item['id_dpto'] ?? null;
-                    $item['ID_GrupoPresupuestal'] = $item['ID_GrupoPresupuestal'] ?? $item['id_grupopresupuestal'] ?? null;
-                    
-                    // Alias específicos
-                    $item['RazonSocial_Nombre'] = $item['RazonSocial_Nombre'] ?? $item['razonsocial_nombre'] ?? '-';
-                    $item['Place_Nombre'] = $item['Place_Nombre'] ?? $item['place_nombre'] ?? '-';
-                    $item['Departamento_Nombre'] = $item['Departamento_Nombre'] ?? $item['departamento_nombre'] ?? '-';
-                    $item['GrupoPresupuestal_Nombre'] = $item['GrupoPresupuestal_Nombre'] ?? $item['grupopresupuestal_nombre'] ?? 'SIN ASIGNAR';
-                }
-                unset($item);
+                // La tabla principal del catálogo se carga vía API paginada:
+                // GET api/catalogo/paginated (createPaginatedTableServer)
 
-                $data['catalogo'] = $catalogo;
                 $data['razones_sociales'] = $rsModel->orderBy('Nombre', 'ASC')->findAll();
                 $data['segmentos'] = $segmentoModel->orderBy('nombre', 'ASC')->findAll();
                 $data['places'] = $placeModel->orderBy('Nombre_Corto', 'ASC')->findAll();

@@ -2241,6 +2241,53 @@ class Rest
     }
 
     /**
+     * Obtiene el catálogo de productos y servicios con paginación server-side.
+     *
+     * Compatible PostgreSQL + MariaDB/MySQL (filtros insensibles a mayúsculas
+     * con LOWER(), igual que el resto de listados paginados).
+     *
+     * @param int   $page    Página actual (inicia en 1).
+     * @param int   $perPage Registros por página.
+     * @param array $filters Filtros opcionales: nombre, departamento, grupo.
+     * @return array ['data' => [], 'total' => int, 'page' => int, 'perPage' => int]
+     */
+    public function getCatalogoPaginated(int $page = 1, int $perPage = 10, array $filters = []): array
+    {
+        $builder = $this->db->table('Catalogo_Productos')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Catalogo_Productos.ID_RazonSocial', 'left')
+            ->join('Places', 'Places.ID_Place = Catalogo_Productos.ID_Place', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Catalogo_Productos.ID_Dpto', 'left')
+            ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Catalogo_Productos.ID_GrupoPresupuestal', 'left');
+
+        if (!empty($filters['nombre'])) {
+            $builder->where($this->likeInsensitive('Catalogo_Productos.Nombre', $filters['nombre']));
+        }
+        if (!empty($filters['departamento'])) {
+            $builder->where($this->likeInsensitive('UnidadOperativa.Nombre', $filters['departamento']));
+        }
+        if (!empty($filters['grupo'])) {
+            $builder->where($this->likeInsensitive('GrupoPresupuestal.Nombre', $filters['grupo']));
+        }
+
+        $totalBuilder = clone $builder;
+        $total = (int) $totalBuilder->select('COUNT(*) as total')->get()->getRow()->total;
+
+        $rows = $builder->select('Catalogo_Productos.ID_CatalogoProd, Catalogo_Productos.ID_RazonSocial, Catalogo_Productos.id_segmento, Catalogo_Productos.ID_Place, Catalogo_Productos.ID_Dpto, Catalogo_Productos.ID_GrupoPresupuestal, Catalogo_Productos.Nombre, Razon_Social.Nombre as RazonSocial_Nombre, Places.Nombre_Corto as Place_Nombre, UnidadOperativa.Nombre as Departamento_Nombre, GrupoPresupuestal.Nombre as GrupoPresupuestal_Nombre')
+            ->orderBy('Catalogo_Productos.Nombre', 'ASC')
+            ->limit($perPage)
+            ->offset(($page - 1) * $perPage)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'data'    => $rows,
+            'total'   => $total,
+            'page'    => $page,
+            'perPage' => $perPage,
+        ];
+    }
+
+    /**
      * Construye una condición LIKE insensible a mayúsculas portable
      * (PostgreSQL + MariaDB/MySQL).
      *

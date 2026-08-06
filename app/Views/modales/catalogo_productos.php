@@ -37,42 +37,14 @@
                 </tr>
             </thead>
             <tbody id="tabla-catalogo-body" class="bg-white divide-y divide-gray-200">
-                <?php if (!empty($catalogo)): ?>
-                    <?php foreach ($catalogo as $item): ?>
-                        <tr data-id="<?= $item['ID_CatalogoProd'] ?>" 
-                            data-nombre="<?= esc($item['Nombre']) ?>"
-                            data-rs="<?= $item['ID_RazonSocial'] ?>"
-                            data-seg="<?= $item['id_segmento'] ?>"
-                            data-place="<?= $item['ID_Place'] ?>"
-                            data-depto="<?= $item['ID_Dpto'] ?>"
-                            data-grupo="<?= $item['ID_GrupoPresupuestal'] ?>"
-                            class="hover:bg-gray-50 transition">
-                            <td class="px-4 py-3 font-medium text-gray-900"><?= esc($item['Nombre']) ?></td>
-                            <td class="px-4 py-3 text-gray-600"><?= esc($item['RazonSocial_Nombre'] ?? '-') ?></td>
-                            <td class="px-4 py-3">
-                                <div class="text-xs font-semibold text-gray-800"><?= esc($item['Place_Nombre'] ?? '-') ?></div>
-                                <div class="text-[10px] text-gray-500 uppercase"><?= esc($item['Departamento_Nombre'] ?? '-') ?></div>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-[10px] font-bold">
-                                    <?= esc($item['GrupoPresupuestal_Nombre'] ?? 'SIN ASIGNAR') ?>
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 text-center space-x-2">
-                                <button class="btn-editar-cat text-blue-600 hover:text-blue-800 transition" title="Editar">
-                                    <svg class="size-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                </button>
-                                <button class="btn-eliminar-cat text-red-600 hover:text-red-800 transition" title="Eliminar">
-                                    <svg class="size-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="5" class="px-4 py-10 text-center text-gray-400 italic">No hay productos registrados en el catálogo.</td>
-                    </tr>
-                <?php endif; ?>
+            <noscript>
+                <tr>
+                    <td colspan="5" class="px-4 py-10 text-center text-red-500">
+                        Se requiere JavaScript para cargar el catálogo de productos y servicios.
+                    </td>
+                </tr>
+            </noscript>
+            <!-- Las filas se cargan vía API: GET api/catalogo/paginated (createPaginatedTableServer) -->
             </tbody>
         </table>
     </div>

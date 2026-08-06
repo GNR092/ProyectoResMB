@@ -2311,25 +2311,51 @@ function initCatalogoProductos() {
     }
   }
 
-  // Paginación y Filtros (Tabla principal)
-  setupClientSideTable({
-    rowsSelector: '#tabla-catalogo-body tr[data-id]',
-    paginationSelector: 'paginacion-catalogo',
+  // Paginación y Filtros (Tabla principal) - server-side
+  createPaginatedTableServer({
+    tableSelector: '#tabla-catalogo-body',
+    paginationSelector: '#paginacion-catalogo',
+    endpoint: 'api/catalogo/paginated',
     filterFormSelector: '#form-filtros-catalogo',
-    filterFunction: (row) => {
-      const nombre = (document.getElementById('buscar-nombre-catalogo')?.value || '').toLowerCase()
+    rowsPerPage: 10,
+    renderRow: (item) => `
+        <tr data-id="${escapeHTML(item.ID_CatalogoProd)}"
+            data-nombre="${escapeHTML(item.Nombre)}"
+            data-rs="${escapeHTML(item.ID_RazonSocial)}"
+            data-seg="${escapeHTML(item.id_segmento)}"
+            data-place="${escapeHTML(item.ID_Place)}"
+            data-depto="${escapeHTML(item.ID_Dpto)}"
+            data-grupo="${escapeHTML(item.ID_GrupoPresupuestal)}"
+            class="hover:bg-gray-50 transition">
+            <td class="px-4 py-3 font-medium text-gray-900">${escapeHTML(item.Nombre)}</td>
+            <td class="px-4 py-3 text-gray-600">${escapeHTML(item.RazonSocial_Nombre ?? '-')}</td>
+            <td class="px-4 py-3">
+                <div class="text-xs font-semibold text-gray-800">${escapeHTML(item.Place_Nombre ?? '-')}</div>
+                <div class="text-[10px] text-gray-500 uppercase">${escapeHTML(item.Departamento_Nombre ?? '-')}</div>
+            </td>
+            <td class="px-4 py-3">
+                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-[10px] font-bold">
+                    ${escapeHTML(item.GrupoPresupuestal_Nombre ?? 'SIN ASIGNAR')}
+                </span>
+            </td>
+            <td class="px-4 py-3 text-center space-x-2">
+                <button class="btn-editar-cat text-blue-600 hover:text-blue-800 transition" title="Editar">
+                    <svg class="size-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button class="btn-eliminar-cat text-red-600 hover:text-red-800 transition" title="Eliminar">
+                    <svg class="size-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+            </td>
+        </tr>`,
+    buildFilterParams: () => {
+      const params = {}
+      const nombre = document.getElementById('buscar-nombre-catalogo')?.value.trim() || ''
       const depto = document.getElementById('filtro-departamento-catalogo')?.value || ''
       const grupo = document.getElementById('filtro-grupo-catalogo')?.value || ''
-
-      const rowNombre = row.dataset.nombre.toLowerCase()
-      const rowDepto = row.querySelector('.text-gray-500')?.innerText || ''
-      const rowGrupo = row.querySelector('.bg-blue-100')?.innerText || ''
-
-      return (
-        rowNombre.includes(nombre) &&
-        (depto === '' || rowDepto.includes(depto)) &&
-        (grupo === '' || rowGrupo.includes(grupo))
-      )
+      if (nombre) params.nombre = nombre
+      if (depto) params.departamento = depto
+      if (grupo) params.grupo = grupo
+      return params
     },
   })
 
