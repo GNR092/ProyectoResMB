@@ -466,7 +466,7 @@ function getStatus(status) {
 function getStatusText(status) {
   switch (status) {
     case 'Dept_Rechazada':
-      return
+      return 'Rechazada'
     case 'Espera_Programacion':
       return 'En espera de programación de pago'
     case 'Por Pagar':
@@ -1378,6 +1378,14 @@ function getStatusSVG(status) {
     case 'por pagar':
       svgClass = 'text-yellow-500'
       iconId = 'porpagar'
+      break
+    case 'programada':
+      svgClass = 'text-blue-500'
+      iconId = 'programado'
+      break
+    case 'dept_rechazada':
+      svgClass = 'text-red-500'
+      iconId = 'rechazado'
       break
     default:
       return ''

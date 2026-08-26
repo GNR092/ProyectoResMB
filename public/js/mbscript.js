@@ -1586,6 +1586,18 @@ function initPaginacionHistorial() {
         svgClass = 'text-yellow-500'
         iconId = 'porpagar'
         break
+      case 'espera_programacion de pago':
+        svgClass = 'text-orange-500'
+        iconId = 'espera_programacion'
+        break
+      case 'programada':
+        svgClass = 'text-blue-500'
+        iconId = 'programado'
+        break
+      case 'dept_rechazada':
+        svgClass = 'text-red-500'
+        iconId = 'rechazado'
+        break
       default:
         return ''
     }
