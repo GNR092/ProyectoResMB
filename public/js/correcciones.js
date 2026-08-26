@@ -495,7 +495,13 @@ function _renderTablaProductos(data, sol, optionsGruposHtml, ui) {
                 </thead>
                 <tbody class="divide-y divide-[#F3F4F6]">
                     ${productos.map((prod, index) => {
-                        const selectHtml = optionsGruposHtml.replace(`value="${prod.ID_GrupoPresupuestal}"`, `value="${prod.ID_GrupoPresupuestal}" selected`);
+                        let selectHtml = optionsGruposHtml.replace(`value="${prod.ID_GrupoPresupuestal}"`, `value="${prod.ID_GrupoPresupuestal}" selected`);
+
+                        // FIX: Si el replace no encontró el grupo, inyectar dinámicamente la opción
+                        if (prod.ID_GrupoPresupuestal && !selectHtml.includes('selected')) {
+                            const nombreGrupo = prod.GrupoPresupuestalNombre || 'Partida asignada';
+                            selectHtml = `<option value="${prod.ID_GrupoPresupuestal}" selected>${nombreGrupo}</option>` + selectHtml;
+                        }
                         return `
                         <tr class="hover:bg-[#FCFCFD] transition-colors">
                             <td class="p-5 align-top">

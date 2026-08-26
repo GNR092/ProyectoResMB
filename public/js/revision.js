@@ -328,6 +328,12 @@ function RevisionX() {
                       }
                   }
 
+                  // FIX: Fallback al nombre del JOIN si no se encontró en grupos_presupuestales
+                  if (nombreGrupo === 'No asignado' && p.GrupoPresupuestalNombre) {
+                      nombreGrupo = p.GrupoPresupuestalNombre;
+                      idGrupo = idGrupoAsignado || '';
+                  }
+
                   gruposHtml = `
                     <div class="text-sm font-semibold text-blue-700">${nombreGrupo}</div>
                     <input type="hidden" name="id_grupo_presupuestal[${itemId}]" value="${idGrupo}">

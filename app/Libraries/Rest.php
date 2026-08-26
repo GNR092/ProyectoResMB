@@ -860,6 +860,26 @@ class Rest
                 ->findAll();
         }
 
+        // FIX: Asegurar que la partida asignada a cada producto siempre aparezca
+        // en grupos_presupuestales, aunque no pase el filtro de Place/es_manual
+        if (!empty($solicitud['grupos_presupuestales']) && !empty($productos)) {
+            $gruposIds = array_column($solicitud['grupos_presupuestales'], 'ID_GrupoPresupuestal');
+            foreach ($productos as $p) {
+                $idGrupo = $p['ID_GrupoPresupuestal'] ?? null;
+                if ($idGrupo && !in_array($idGrupo, $gruposIds)) {
+                    $grupoFaltante = $grupoModel
+                        ->select('GrupoPresupuestal.*, UnidadOperativa.ID_Place')
+                        ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
+                        ->where('GrupoPresupuestal.ID_GrupoPresupuestal', $idGrupo)
+                        ->first();
+                    if ($grupoFaltante) {
+                        $solicitud['grupos_presupuestales'][] = $grupoFaltante;
+                        $gruposIds[] = $idGrupo;
+                    }
+                }
+            }
+        }
+
         $ivaValue = $solicitud['IVA'] ?? false;
         $ivaHabilitado = ($ivaValue === 't' || $ivaValue === '1' || $ivaValue === 1 || $ivaValue === true);
         $factorIVA = $ivaHabilitado ? 1.16 : 1.0;
