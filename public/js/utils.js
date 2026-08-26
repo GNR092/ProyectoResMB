@@ -1367,6 +1367,9 @@ function getStatusSVG(status) {
       iconId = 'revision'
       break
     case 'espera_programacion':
+      svgClass = 'text-orange-500'
+      iconId = 'espera_programacion'
+      break
     case 'aprobacion pendiente':
       svgClass = 'text-orange-500'
       iconId = 'pendiente'

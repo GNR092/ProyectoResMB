@@ -1544,66 +1544,6 @@ function initPaginacionHistorial() {
     opcionPendiente.classList.remove('hidden')
   }
 
-  function getStatusSVG(statusus) {
-    if (!statusus) return ''
-    const statususLower = statusus.toLowerCase()
-    const iconUrl = `icons/icons.svg?v=${window.ICON_SVG_VERSION || '1.0'}`
-    let svgClass = ''
-    let iconId = ''
-
-    switch (statususLower) {
-      case 'aprobada':
-      case 'pagada':
-        svgClass = 'text-green-600'
-        iconId = 'aceptado'
-        break
-      case 'en espera':
-        svgClass = 'text-yellow-500'
-        iconId = 'en_espera'
-        break
-      case 'rechazada':
-      case 'cancelada':
-        svgClass = 'text-red-500'
-        iconId = 'rechazado'
-        break
-      case 'cotizando':
-        svgClass = 'text-blue-500'
-        iconId = 'cotizacion'
-        break
-      case 'en revision':
-        svgClass = 'text-blue-500'
-        iconId = 'revision'
-        break
-      case 'aprobacion pendiente':
-        svgClass = 'text-orange-500'
-        iconId = 'pendiente'
-        break
-      case 'en proceso de pago':
-        svgClass = 'text-yellow-500'
-        iconId = 'procesopago'
-        break
-      case 'por pagar':
-        svgClass = 'text-yellow-500'
-        iconId = 'porpagar'
-        break
-      case 'espera_programacion de pago':
-        svgClass = 'text-orange-500'
-        iconId = 'espera_programacion'
-        break
-      case 'programada':
-        svgClass = 'text-blue-500'
-        iconId = 'programado'
-        break
-      case 'dept_rechazada':
-        svgClass = 'text-red-500'
-        iconId = 'rechazado'
-        break
-      default:
-        return ''
-    }
-    return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
-  }
-
   const exceptions = [
     'Compras',
     'Administración',
