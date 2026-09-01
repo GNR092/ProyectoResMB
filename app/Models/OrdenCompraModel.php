@@ -33,6 +33,7 @@ class OrdenCompraModel extends Model
         'File_Complemento',
         'FechaRefPago',
         'FechaPagoRealizado',
+        'Fecha_Comprobante',
     ];
 
     // Dates

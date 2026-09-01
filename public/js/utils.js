@@ -343,6 +343,72 @@ function InputPrompt(title, message, isRequired = true) {
   })
 }
 
+/**
+ * Muestra un modal para capturar la fecha del comprobante de pago (obligatoria).
+ * Se usa al intentar guardar el comprobante: si se cancela o no se llena, se resuelve null
+ * y el comprobante NO se adjunta.
+ * Valor inicial por defecto: la fecha actual (editable por el usuario).
+ * @param {string} valorInicial - Fecha inicial (AAAA-MM-DD), opcional. Vacío = fecha de hoy.
+ * @returns {Promise<string|null>} - Fecha capturada (AAAA-MM-DD) o null si se cancela.
+ */
+function PromptFechaComprobante(valorInicial = '') {
+  return new Promise((resolve) => {
+    const modalOverlay = document.createElement('div')
+    modalOverlay.className =
+      'fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50'
+    modalOverlay.style.zIndex = '2147483647'
+
+    // Valor inicial por defecto: fecha actual en zona local (AAAA-MM-DD), siempre editable.
+    if (!valorInicial) {
+      const hoy = new Date()
+      valorInicial = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+    }
+
+    let modalHtml = `
+            <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+                <h3 class="text-lg font-bold mb-4">Fecha del comprobante</h3>
+                <p class="text-sm text-gray-600 mb-4">Indique la fecha que aparece en el comprobante de pago (foto/PDF). Este paso es obligatorio.</p>
+                <label for="promptFechaInput" class="block text-sm font-medium text-gray-700 mb-2">Fecha del comprobante</label>
+                <input type="date" id="promptFechaInput" value="${valorInicial}"
+                       class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button id="cancelarFechaBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
+                    <button id="confirmarFechaBtn" class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700">Confirmar</button>
+                </div>
+            </div>
+        `
+    modalOverlay.innerHTML = modalHtml
+    document.body.appendChild(modalOverlay)
+
+    const input = document.getElementById('promptFechaInput')
+    input.focus()
+
+    const closeModal = (value) => {
+      modalOverlay.remove()
+      resolve(value)
+    }
+
+    document.getElementById('cancelarFechaBtn').addEventListener('click', () => closeModal(null))
+
+    document.getElementById('confirmarFechaBtn').addEventListener('click', () => {
+      const value = input.value.trim()
+      if (!value) {
+        mostrarNotificacion('La fecha del comprobante es obligatoria.', 'error')
+        input.focus()
+        input.classList.add('border-red-500')
+        return
+      }
+      closeModal(value)
+    })
+
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        closeModal(null)
+      }
+    })
+  })
+}
+
 function GetFiles(data) {
   let html = ''
   if (data.OrdenCompra['File_Factura']) {
@@ -400,7 +466,7 @@ function getStatus(status) {
 function getStatusText(status) {
   switch (status) {
     case 'Dept_Rechazada':
-      return
+      return 'Rechazada'
     case 'Espera_Programacion':
       return 'En espera de programación de pago'
     case 'Por Pagar':
@@ -1301,6 +1367,9 @@ function getStatusSVG(status) {
       iconId = 'revision'
       break
     case 'espera_programacion':
+      svgClass = 'text-orange-500'
+      iconId = 'espera_programacion'
+      break
     case 'aprobacion pendiente':
       svgClass = 'text-orange-500'
       iconId = 'pendiente'
@@ -1312,6 +1381,14 @@ function getStatusSVG(status) {
     case 'por pagar':
       svgClass = 'text-yellow-500'
       iconId = 'porpagar'
+      break
+    case 'programada':
+      svgClass = 'text-blue-500'
+      iconId = 'programado'
+      break
+    case 'dept_rechazada':
+      svgClass = 'text-red-500'
+      iconId = 'rechazado'
       break
     default:
       return ''
@@ -1514,3 +1591,178 @@ function toggleWhatsAppGlobal(btn) {
     }
   })
 }
+
+/**
+ * Crea una tabla paginada con datos obtenidos del servidor (paginación server-side).
+ * Escalable a miles de registros sin límite.
+ * @param {object} config
+ * @param {string} config.tableSelector - Selector del tbody de la tabla.
+ * @param {string} config.paginationSelector - Selector del contenedor de la paginación.
+ * @param {string} config.endpoint - URL base de la API (ej: '/api/historic/paginated').
+ * @param {function} config.renderRow - Función que recibe un item y devuelve el HTML de la fila (tr).
+ * @param {number} [config.rowsPerPage=10] - Filas por página.
+ * @param {string} [config.filterFormSelector] - Selector del formulario de filtros.
+ * @param {function} [config.buildFilterParams] - Función que recibe el form y devuelve objeto con params extra.
+ * @param {string} [config.loadingMessage='Cargando...'] - Mensaje de carga.
+ * @param {string} [config.noResultsMessage='No se encontraron resultados.'] - Mensaje sin resultados.
+ * @param {function} [config.onDataLoaded] - Callback que se ejecuta después de cargar y renderizar los datos.
+ */
+function createPaginatedTableServer(config) {
+  const table = document.querySelector(config.tableSelector)
+  const paginationEl = document.querySelector(config.paginationSelector)
+  const rowsPerPage = config.rowsPerPage || 10
+  const filterForm = config.filterFormSelector ? document.querySelector(config.filterFormSelector) : null
+
+  let currentPage = 1
+  let totalPages = 0
+  let currentData = []
+  let isLoading = false
+
+  function buildUrl(page) {
+    const params = new URLSearchParams()
+    params.set('page', page)
+    params.set('per_page', rowsPerPage)
+
+    if (filterForm && config.buildFilterParams) {
+      const extra = config.buildFilterParams(filterForm)
+      for (const [key, value] of Object.entries(extra)) {
+        if (value !== null && value !== undefined && value !== '') {
+          if (Array.isArray(value)) {
+            value.forEach(v => params.append(key + '[]', v))
+          } else {
+            params.set(key, value)
+          }
+        }
+      }
+    }
+
+    return config.endpoint + '?' + params.toString()
+  }
+
+  async function loadPage(page) {
+    if (isLoading) return
+    isLoading = true
+
+    if (config.loadingMessage !== false) {
+      table.innerHTML = `<tr><td colspan="100" class="text-center py-4">${config.loadingMessage || 'Cargando...'}</td></tr>`
+    }
+
+    try {
+      const url = buildUrl(page)
+      const response = await fetch(url)
+      const result = await response.json()
+
+      currentData = result.data || []
+      currentPage = result.page || page
+      totalPages = Math.ceil((result.total || 0) / rowsPerPage)
+
+      renderTable(currentData)
+      renderPagination(totalPages, currentPage)
+
+      if (config.onDataLoaded) config.onDataLoaded(currentData)
+    } catch (err) {
+      console.error('Error loading page:', err)
+      table.innerHTML = `<tr><td colspan="100" class="text-center py-4 text-red-500">Error al cargar datos</td></tr>`
+    } finally {
+      isLoading = false
+    }
+  }
+
+  function renderTable(data) {
+    if (!data || data.length === 0) {
+      table.innerHTML = `<tr><td colspan="100" class="text-center py-4">${config.noResultsMessage || 'No se encontraron resultados.'}</td></tr>`
+      return
+    }
+
+    table.innerHTML = data.map(item => config.renderRow(item)).join('')
+  }
+
+  function renderPagination(totalPages, currentPage) {
+    if (!paginationEl) return
+    paginationEl.innerHTML = ''
+    if (totalPages <= 1) return
+
+    paginationEl.style.flexWrap = 'wrap'
+    paginationEl.style.justifyContent = 'center'
+    paginationEl.style.gap = '0.5rem'
+
+    const pages = generatePaginationNumbers(currentPage, totalPages, 7)
+
+    pages.forEach((item) => {
+      const button = document.createElement('button')
+
+      switch (item.type) {
+        case 'first':
+          button.innerHTML = '&laquo;'
+          button.title = 'Primera página'
+          button.disabled = currentPage === 1
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (!button.disabled) button.onclick = () => loadPage(1)
+          break
+        case 'prev':
+          button.innerHTML = '&lsaquo;'
+          button.title = 'Página anterior'
+          button.disabled = !item.value
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (item.value) button.onclick = () => loadPage(item.value)
+          break
+        case 'next':
+          button.innerHTML = '&rsaquo;'
+          button.title = 'Página siguiente'
+          button.disabled = !item.value
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (item.value) button.onclick = () => loadPage(item.value)
+          break
+        case 'last':
+          button.innerHTML = '&raquo;'
+          button.title = 'Última página'
+          button.disabled = currentPage === totalPages
+          button.className =
+            'px-2 py-1 border rounded bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed'
+          if (!button.disabled) button.onclick = () => loadPage(totalPages)
+          break
+        case '...':
+          button.textContent = '...'
+          button.className = 'px-2 text-gray-400 cursor-default'
+          button.disabled = true
+          break
+        case 'number':
+          button.textContent = item.value
+          button.className = `px-3 py-1 border rounded ${item.active ? 'bg-blue-500 text-white' : 'bg-white text-black hover:bg-gray-100'}`
+          button.onclick = () => loadPage(item.value)
+          break
+      }
+
+      paginationEl.appendChild(button)
+    })
+  }
+
+  // Public method to reload (e.g., after filter change)
+  function reload() {
+    currentPage = 1
+    loadPage(1)
+  }
+
+  // Expose reload for external calls
+  config.reload = reload
+
+  // Watch filter changes with simple debounce
+  let filterTimer = null
+  if (filterForm) {
+    const handleFilterChange = () => {
+      if (filterTimer) clearTimeout(filterTimer)
+      filterTimer = setTimeout(reload, 300)
+    }
+    filterForm.addEventListener('input', handleFilterChange)
+    filterForm.addEventListener('change', handleFilterChange)
+  }
+
+  // Initial load
+  loadPage(currentPage)
+}
+
+// Export escapeHTML for global use (used by mbscript.js)
+window.escapeHTML = escapeHTML;

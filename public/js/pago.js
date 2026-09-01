@@ -553,6 +553,14 @@ async function uploadComprobante(idSolicitud) {
     return;
   }
 
+  // Paso obligatorio: capturar la fecha del comprobante en un modal.
+  // Si el usuario cancela o no la llena, NO se adjunta el comprobante.
+  const fechaComprobante = await PromptFechaComprobante();
+  if (!fechaComprobante) {
+    mostrarNotificacion('Operación cancelada. El comprobante no se adjuntó.', 'info');
+    return;
+  }
+
   const uploadButton = document.getElementById('btn-upload-comprobante');
   const originalHtml = uploadButton.innerHTML;
 
@@ -570,6 +578,7 @@ async function uploadComprobante(idSolicitud) {
 
   const formData = new FormData();
   formData.append('ficha', file);
+  formData.append('fecha_comprobante', fechaComprobante);
 
   try {
     const result = await SendDataEnd(`api/solicitudes/cambiarEstado/${idSolicitud}`, {
@@ -766,7 +775,13 @@ async function guardarEstadoPorPagar(idSolicitud) {
     }
   } catch (error) {
     console.error('State Update Error:', error);
-    mostrarNotificacion('Ocurrió un fallo al intentar guardar los cambios.', 'error');
+    const serverMessage = error?.data?.messages?.[0] || error?.data?.message || error?.data || null;
+    mostrarNotificacion(
+      serverMessage
+        ? `Error: ${serverMessage}`
+        : 'Ocurrió un fallo al intentar guardar los cambios.',
+      'error'
+    );
   }
 }
 
@@ -786,13 +801,14 @@ function verRequisicionPago(id) {
 }
 
 /**
- * Lógica para el modal "Facturas pendientes" (Fichas de Pago)
- * Gestiona el listado de órdenes listas para pago final con semaforización de vencimientos.
+ * Lógica para el modal "Facturas Pendientes" (Fichas de Pago)
+ * Gestiona el listado de órdenes listas para pago final.
  */
 function FichasPago() {
   return {
     // --- ESTADO ---
     todasLasFichas: [],
+    facturasPendientesReporte: [],
     loading: true,
     
     // Filtros por pestaña (contado/credito)
@@ -805,46 +821,27 @@ function FichasPago() {
     opcionesFiltro: { deptos: [], complejos: [] },
 
     /**
-     * Inicializa la carga de facturas y procesa la semaforización.
+     * Inicializa la carga de facturas.
      */
     async init() {
       this.loading = true;
       try {
         const data = await SendDataEnd('api/facturas-por-pagar');
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
 
-        this.todasLasFichas = (data || []).map(ficha => {
-          // Procesamiento preventivo de semaforización para Crédito
-          let semaforo = { clase: 'hover:bg-gray-50', diasTexto: '', sort: 9999 };
-          
-          if (String(ficha.MetodoPago) === '1' && ficha.Fecha_Aprobacion) {
-            const [anio, mes, dia] = ficha.Fecha_Aprobacion.split(' ')[0].split('-').map(Number);
-            const vencimiento = new Date(anio, mes - 1, dia);
-            vencimiento.setDate(vencimiento.getDate() + (parseInt(ficha.Dias_Credito) || 0));
+        this.todasLasFichas = data || [];
 
-            const diffDays = Math.floor((vencimiento - hoy) / 86400000);
-            semaforo.sort = diffDays;
-
-            if (diffDays < 0) {
-              semaforo.clase = 'bg-gray-900 text-white hover:bg-gray-800';
-              semaforo.diasTexto = `Vencido (${Math.abs(diffDays)} días)`;
-            } else if (diffDays === 0) {
-              semaforo.clase = 'bg-red-100 text-red-800 hover:bg-red-200 font-bold';
-              semaforo.diasTexto = 'Vence hoy';
-            } else if (diffDays < 5) {
-              semaforo.clase = 'bg-red-100 text-red-800 hover:bg-red-200';
-              semaforo.diasTexto = `${diffDays} días`;
-            } else if (diffDays < 15) {
-              semaforo.clase = 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-              semaforo.diasTexto = `${diffDays} días`;
-            } else {
-              semaforo.diasTexto = `${diffDays} días`;
-            }
+        // Dataset completo del reporte (mismo formato que Pagos Pendientes),
+        // limitado a OC 'Por Pagar', para las exportaciones Excel/PDF.
+        this.facturasPendientesReporte = [];
+        try {
+          const res = await fetch(`${BASE_URL}api/reportes/facturas-pendientes`);
+          if (res.ok) {
+            const repData = await res.json();
+            this.facturasPendientesReporte = Array.isArray(repData.datos) ? repData.datos : [];
           }
-
-          return { ...ficha, semaforo };
-        });
+        } catch (repError) {
+          console.error('Error cargando reporte facturas pendientes:', repError);
+        }
 
         // Extraer opciones de filtro una sola vez
         this.opcionesFiltro.deptos = [...new Set(this.todasLasFichas.map(f => f.DepartamentoNombre))].filter(Boolean).sort();
@@ -855,14 +852,14 @@ function FichasPago() {
 
       } catch (error) {
         console.error('Error FichasPago:', error);
-        mostrarNotificacion('Error al cargar las facturas pendientes.', 'error');
+        mostrarNotificacion('Error al cargar los Pagos Realizados.', 'error');
       } finally {
         this.loading = false;
       }
     },
 
     /**
-     * Retorna la lista filtrada y ordenada según el método de pago solicitado.
+     * Retorna la lista filtrada según el método de pago solicitado.
      */
     getFichas(metodo) {
       const tipo = metodo === '0' ? 'contado' : 'credito';
@@ -880,11 +877,6 @@ function FichasPago() {
         }
         return true;
       });
-
-      // Ordenar crédito por urgencia
-      if (metodo === '1') {
-        filtradas.sort((a, b) => a.semaforo.sort - b.semaforo.sort);
-      }
 
       return filtradas;
     },
@@ -905,7 +897,92 @@ function FichasPago() {
 
     formatCurrency(v) {
       return parseFloat(v || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-    }
+    },
+
+    /**
+     * Formatea la fecha del comprobante (AAAA-MM-DD) a DD/MM/AAAA.
+     * @param {string} v - Fecha en formato AAAA-MM-DD.
+     * @returns {string} - Fecha formateada o 'N/A' si no hay valor.
+     */
+    formatFecha(v) {
+      if (!v) return 'N/A';
+      const [anio, mes, dia] = String(v).split('-');
+      if (!anio || !mes || !dia) return String(v);
+      return `${dia}/${mes}/${anio}`;
+    },
+
+    /**
+     * Genera el reporte Excel/PDF de facturas pendientes.
+     * Respeta los filtros activos de la pestaña correspondiente.
+     * @param {string|null} metodo - null (todas), '0' (contado), '1' (crédito).
+     * @param {string} tipo - 'excel' | 'pdf'.
+     */
+    async exportarFacturasPendientes(metodo, tipo) {
+      const fichasFiltradas = metodo === null
+        ? [...this.getFichas('0'), ...this.getFichas('1')]
+        : this.getFichas(metodo)
+
+      if (fichasFiltradas.length === 0) {
+        mostrarNotificacion('No hay facturas pendientes para exportar.', 'warning')
+        return
+      }
+
+      const ids = new Set(fichasFiltradas.map((f) => String(f.ID_Solicitud)))
+      const datos = (this.facturasPendientesReporte || []).filter((d) =>
+        ids.has(String(d.ID_Solicitud)),
+      )
+
+      if (datos.length === 0) {
+        mostrarNotificacion('No hay datos para generar el reporte.', 'warning')
+        return
+      }
+
+      const esExcel = tipo === 'excel'
+      const etiqueta = metodo === '0' ? 'Contado' : metodo === '1' ? 'Crédito' : 'Contado y Crédito'
+      const notif = typeof mostrarNotificacion !== 'undefined'
+        ? mostrarNotificacion(`Generando ${esExcel ? 'Excel' : 'PDF'} de Facturas Pendientes (${etiqueta})...`, 'info', 0)
+        : null
+
+      const payload = {
+        datos,
+        fechaCorte: null,
+        nombreEmpresa: 'Grupo MBM',
+        filtros: {
+          formasPago: metodo === '0' ? ['Contado'] : metodo === '1' ? ['Crédito'] : [],
+          estados: ['Por Pagar'],
+        },
+      }
+
+      const endpoint = esExcel
+        ? 'api/reportes/pagos-pendientes/exportar-datos'
+        : 'api/reportes/pagos-pendientes/exportar-pdf'
+
+      try {
+        const res = await fetch(`${BASE_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `facturas_pendientes_${new Date().toISOString().split('T')[0]}.${esExcel ? 'xlsx' : 'pdf'}`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(url)
+        mostrarNotificacion('Reporte generado correctamente.', 'success')
+      } catch (error) {
+        console.error('Error exportarFacturasPendientes:', error)
+        mostrarNotificacion('Error al generar el reporte.', 'error')
+      } finally {
+        if (notif && typeof notif.click === 'function') notif.click()
+      }
+    },
   };
 }
 

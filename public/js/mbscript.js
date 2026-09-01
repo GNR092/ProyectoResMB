@@ -386,7 +386,25 @@ async function cargarListaCompletaProductos(input, dropdown) {
     }
 
     try {
-        dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500 italic animate-pulse">Cargando catálogo...</div>';
+        // Preservar el buscador si existe, o limpiar todo
+        const searchInput = dropdown.querySelector('.buscador-producto');
+        const sinResultados = dropdown.querySelector('.sin-resultados-busqueda');
+
+        if (searchInput) {
+            // Limpiar búsqueda anterior
+            searchInput.value = '';
+            if (sinResultados) sinResultados.classList.add('hidden');
+            // Crear/quitar solo el contenedor de resultados, preservando el buscador
+            let listaContainer = dropdown.querySelector('.resultados-lista');
+            if (!listaContainer) {
+                listaContainer = document.createElement('div');
+                listaContainer.className = 'resultados-lista';
+                dropdown.appendChild(listaContainer);
+            }
+            listaContainer.innerHTML = '<div class="p-3 text-sm text-gray-500 italic animate-pulse">Cargando catálogo...</div>';
+        } else {
+            dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500 italic animate-pulse">Cargando catálogo...</div>';
+        }
         dropdown.classList.remove('hidden');
 
         const url = `${BASE_URL}api/productos/buscar?${params}`;
@@ -397,8 +415,17 @@ async function cargarListaCompletaProductos(input, dropdown) {
         renderResultadosCatalogo(input.closest('tr'), productos, dropdown);
     } catch (error) {
         console.error('Error al cargar catálogo:', error);
-        dropdown.innerHTML = '<div class="p-3 text-sm text-red-500 italic">Error al cargar productos.</div>';
-        dropdown.classList.add('hidden'); // Ocultar dropdown en caso de error
+        // Preservar el buscador en caso de error
+        const searchInput = dropdown.querySelector('.buscador-producto');
+        if (searchInput) {
+            let listaContainer = dropdown.querySelector('.resultados-lista');
+            if (listaContainer) {
+                listaContainer.innerHTML = '<div class="p-3 text-sm text-red-500 italic">Error al cargar productos.</div>';
+            }
+        } else {
+            dropdown.innerHTML = '<div class="p-3 text-sm text-red-500 italic">Error al cargar productos.</div>';
+        }
+        dropdown.classList.add('hidden');
     }
 }
 
@@ -469,9 +496,9 @@ function renderResultadosCatalogo(fila, productos, dropdown) {
 
         // Encabezados de sección
         if (index === 0 && tieneFavoritos && esFav) {
-            html += '<div class="bg-yellow-100 px-3 py-1 text-[10px] font-bold text-yellow-800 border-b sticky top-0 z-10">★ PRODUCTOS FRECUENTES</div>';
+            html += '<div class="encabezado-seccion bg-yellow-100 px-3 py-1 text-[10px] font-bold text-yellow-800 border-b sticky top-0 z-10">★ PRODUCTOS FRECUENTES</div>';
         } else if (index > 0 && esFav === false && (productos[index-1].es_favorito || productos[index-1].esFav)) {
-            html += '<div class="bg-gray-100 px-3 py-1 text-[10px] font-bold text-gray-600 border-b border-t sticky top-0 z-10">TODOS LOS PRODUCTOS</div>';
+            html += '<div class="encabezado-seccion bg-gray-100 px-3 py-1 text-[10px] font-bold text-gray-600 border-b border-t sticky top-0 z-10">TODOS LOS PRODUCTOS</div>';
         }
 
         html += `
@@ -489,10 +516,40 @@ function renderResultadosCatalogo(fila, productos, dropdown) {
         `;
     });
 
-    dropdown.innerHTML = html;
+    // Preservar el buscador si ya existe, o crear la estructura completa
+    let listaContainer = dropdown.querySelector('.resultados-lista');
+    if (!listaContainer) {
+        // Primera vez: reconstruir dropdown con buscador + contenedor de resultados
+        const searchInput = dropdown.querySelector('.buscador-producto');
+        const sinResultados = dropdown.querySelector('.sin-resultados-busqueda');
+
+        if (!searchInput) {
+            // Si no hay buscador en el HTML (fallback), crear la estructura completa
+            dropdown.innerHTML = `
+                <div class="sticky top-0 z-20 bg-white border-b px-3 py-2 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+                    </svg>
+                    <input type="text" class="buscador-producto flex-1 border rounded px-2 py-1 text-sm"
+                           placeholder="Buscar producto..." autocomplete="off">
+                </div>
+                <div class="sin-resultados-busqueda hidden px-3 py-4 text-center text-sm text-gray-500 italic"></div>
+                <div class="resultados-lista"></div>
+            `;
+        } else {
+            // El buscador ya existe en el HTML, solo agregar el contenedor de resultados
+            listaContainer = document.createElement('div');
+            listaContainer.className = 'resultados-lista';
+            dropdown.appendChild(listaContainer);
+        }
+        listaContainer = dropdown.querySelector('.resultados-lista');
+    }
+
+    listaContainer.innerHTML = html;
 
     // Asignar eventos de click a las opciones
-    dropdown.querySelectorAll('.opcion-producto').forEach(opcion => {
+    listaContainer.querySelectorAll('.opcion-producto').forEach(opcion => {
         opcion.addEventListener('click', (e) => {
             e.stopPropagation();
             seleccionarProductoCatalogo(fila, {
@@ -506,6 +563,76 @@ function renderResultadosCatalogo(fila, productos, dropdown) {
             dropdown.classList.add('hidden');
         });
     });
+
+    // Registrar evento de búsqueda si no estaba registrado
+    const searchInput = dropdown.querySelector('.buscador-producto');
+    if (searchInput && !searchInput._hasSearchHandler) {
+        searchInput._hasSearchHandler = true;
+        let searchTimeout = null;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                filtrarProductosEnDropdown(dropdown, searchInput.value);
+            }, 200);
+        });
+    }
+
+    // Asegurar que el div de sin resultados exista
+    if (!dropdown.querySelector('.sin-resultados-busqueda')) {
+        const sinResultados = document.createElement('div');
+        sinResultados.className = 'sin-resultados-busqueda hidden px-3 py-4 text-center text-sm text-gray-500 italic';
+        dropdown.insertBefore(sinResultados, dropdown.querySelector('.resultados-lista'));
+    }
+}
+
+/**
+ * Filtra los productos visibles en el dropdown según el texto de búsqueda.
+ * Filtra por nombre, SKU y alias de forma case-insensitive.
+ * Preserva/oculta encabezados de sección según si tienen productos visibles.
+ */
+function filtrarProductosEnDropdown(dropdown, texto) {
+    const normalizado = texto.toLowerCase().trim();
+    const opciones = dropdown.querySelectorAll('.opcion-producto');
+    const encabezados = dropdown.querySelectorAll('.encabezado-seccion');
+    const sinResultados = dropdown.querySelector('.sin-resultados-busqueda');
+    let hayVisibles = false;
+
+    opciones.forEach(opcion => {
+        const nombre = (opcion.dataset.nombre || '').toLowerCase();
+        const sku = (opcion.dataset.sku || '').toLowerCase();
+        const alias = (opcion.dataset.alias || '').toLowerCase();
+        const coincide = !normalizado || nombre.includes(normalizado) || sku.includes(normalizado) || alias.includes(normalizado);
+        if (coincide) {
+            opcion.classList.remove('hidden');
+            hayVisibles = true;
+        } else {
+            opcion.classList.add('hidden');
+        }
+    });
+
+    // Ocultar/mostrar encabezados de sección según si tienen productos visibles debajo
+    encabezados.forEach(encabezado => {
+        let siguiente = encabezado.nextElementSibling;
+        let tieneVisibles = false;
+        while (siguiente && !siguiente.classList.contains('encabezado-seccion')) {
+            if (siguiente.classList.contains('opcion-producto') && !siguiente.classList.contains('hidden')) {
+                tieneVisibles = true;
+                break;
+            }
+            siguiente = siguiente.nextElementSibling;
+        }
+        encabezado.classList.toggle('hidden', !tieneVisibles);
+    });
+
+    // Mostrar/ocultar mensaje de sin resultados
+    if (sinResultados) {
+        if (normalizado && !hayVisibles) {
+            sinResultados.textContent = `Sin resultados para "${texto.trim()}"`;
+            sinResultados.classList.remove('hidden');
+        } else {
+            sinResultados.classList.add('hidden');
+        }
+    }
 }
 
 /**
@@ -1417,54 +1544,6 @@ function initPaginacionHistorial() {
     opcionPendiente.classList.remove('hidden')
   }
 
-  function getStatusSVG(statusus) {
-    if (!statusus) return ''
-    const statususLower = statusus.toLowerCase()
-    const iconUrl = `icons/icons.svg?v=${window.ICON_SVG_VERSION || '1.0'}`
-    let svgClass = ''
-    let iconId = ''
-
-    switch (statususLower) {
-      case 'aprobada':
-      case 'pagada':
-        svgClass = 'text-green-600'
-        iconId = 'aceptado'
-        break
-      case 'en espera':
-        svgClass = 'text-yellow-500'
-        iconId = 'en_espera'
-        break
-      case 'rechazada':
-      case 'cancelada':
-        svgClass = 'text-red-500'
-        iconId = 'rechazado'
-        break
-      case 'cotizando':
-        svgClass = 'text-blue-500'
-        iconId = 'cotizacion'
-        break
-      case 'en revision':
-        svgClass = 'text-blue-500'
-        iconId = 'revision'
-        break
-      case 'aprobacion pendiente':
-        svgClass = 'text-orange-500'
-        iconId = 'pendiente'
-        break
-      case 'en proceso de pago':
-        svgClass = 'text-yellow-500'
-        iconId = 'procesopago'
-        break
-      case 'por pagar':
-        svgClass = 'text-yellow-500'
-        iconId = 'porpagar'
-        break
-      default:
-        return ''
-    }
-    return `<svg class="${svgClass} mx-auto size-6" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="${iconUrl}#${iconId}"></use></svg>`
-  }
-
   const exceptions = [
     'Compras',
     'Administración',
@@ -1473,36 +1552,18 @@ function initPaginacionHistorial() {
     'Direccion Campus',
     'Contaduría',
   ]
-  let url = 'api/historic'
-  if (
-    typeof USER_DEPT_NAME !== 'undefined' &&
-    typeof USER_DEPT_ID !== 'undefined' &&
-    USER_DEPT_ID &&
-    !exceptions.includes(USER_DEPT_NAME)
-  ) {
-    url = `api/historic/department/${USER_DEPT_ID}`
-  }
 
-  // Añadir parámetro de vista declinada
-  if (isVistaDeclinadas) {
-    url += (url.includes('?') ? '&' : '?') + 'vista=declinadas'
-  }
-
-  createPaginatedTable({
+  createPaginatedTableServer({
     tableSelector: '#tabla-historial tbody',
-    paginationSelector: 'paginacion-historial',
-    endpoint: url,
-    filterFormSelector: '#modal-contenido', // Container for filters, used to attach events
+    paginationSelector: '#paginacion-historial',
+    endpoint: 'api/historic/paginated',
+    filterFormSelector: '#modal-contenido',
 
     renderRow: (item) => {
       const status = getStatusText(item.Estado)
       const svg = getStatusSVG(item.Estado)
       const MetodoPag = getMetodoPago(item.MetodoPago)
-
-      // El valor que viene del backend (item.MontoTotal) ya es el 'Total' de la tabla Cotizacion
       const totalRaw = parseFloat(item.MontoTotal) || 0
-
-      // Formateo de moneda
       const montoFormateado = new Intl.NumberFormat('es-MX', {
         style: 'currency',
         currency: 'MXN',
@@ -1538,70 +1599,45 @@ function initPaginacionHistorial() {
   `
     },
 
-    filterFunction: (allData, form) => {
-      const fechaFiltro = document.getElementById('filtro-fecha').value
-      const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
+    buildFilterParams: (form) => {
+      const params = {}
+      if (isVistaDeclinadas) params.vista = 'declinadas'
+
       const estadoFiltro = document.getElementById('filtro-estado').value
-      const folioFiltro = document.getElementById('filtro-folio')?.value.toLowerCase() || ''
+      if (estadoFiltro) params.estado = estadoFiltro
+
+      const fechaFiltro = document.getElementById('filtro-fecha').value
+      if (fechaFiltro) {
+        params.fecha = fechaFiltro
+        const filtrarPorMes = document.getElementById('filtrar-por-mes').checked
+        if (filtrarPorMes) params.por_mes = '1'
+      }
+
+      const folioFiltro = document.getElementById('filtro-folio')?.value || ''
+      if (folioFiltro) params.folio = folioFiltro
+
       const tipoFiltro = document.getElementById('filtro-tipo-historial')?.value || ''
-      const departamentosSeleccionados = choicesDepartamento
-        ? choicesDepartamento.getValue(true)
-        : []
+      if (tipoFiltro) params.tipo = tipoFiltro
+
       const proveedoresSeleccionados = choicesProveedor ? choicesProveedor.getValue(true) : []
+      if (proveedoresSeleccionados.length > 0) params.proveedores = proveedoresSeleccionados
+
       const razonesSeleccionadas = choicesRazonSocial ? choicesRazonSocial.getValue(true) : []
+      if (razonesSeleccionadas.length > 0) params.razones_sociales = razonesSeleccionadas
 
-      return allData.filter((item) => {
-        const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro
-        
-        const coincideTipo = !tipoFiltro || 
-            (tipoFiltro === 'Producto' && (item.Tipo == 0 || item.Tipo == 1)) || 
-            (tipoFiltro === 'Servicio' && item.Tipo == 2);
+      const departamentosSeleccionados = choicesDepartamento ? choicesDepartamento.getValue(true) : []
+      if (departamentosSeleccionados.length > 0) params.departamentos = departamentosSeleccionados
 
-        const coincideProveedor =
-          proveedoresSeleccionados.length === 0 ||
-          (item.ProveedorNombre && proveedoresSeleccionados.includes(item.ProveedorNombre))
+      if (
+        typeof USER_DEPT_NAME !== 'undefined' &&
+        typeof USER_DEPT_ID !== 'undefined' &&
+        USER_DEPT_ID &&
+        !exceptions.includes(USER_DEPT_NAME)
+      ) {
+        params.dept_id = USER_DEPT_ID
+      }
 
-        const coincideFolio =
-          !folioFiltro || (item.No_Folio && item.No_Folio.toLowerCase().includes(folioFiltro))
-
-        let coincideDepartamento = true
-        if (departamentosSeleccionados.length > 0) {
-          const itemDepartamentoCompleto = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`
-          coincideDepartamento = departamentosSeleccionados.includes(itemDepartamentoCompleto)
-        } else {
-          coincideDepartamento = true
-        }
-
-        let coincideRazon = true
-        if (razonesSeleccionadas.length > 0) {
-          coincideRazon = razonesSeleccionadas.includes(item.Complejo)
-        }
-
-        if (choicesDepartamento && choicesDepartamento.getValue(true).length === 0) {
-          coincideDepartamento = true
-        }
-
-        const passesOtherFilters = coincideEstado && coincideDepartamento && coincideProveedor && coincideFolio && coincideTipo && coincideRazon
-
-        if (!fechaFiltro) {
-          return passesOtherFilters
-        }
-
-        const fechaItem = item.Fecha
-        if (filtrarPorMes) {
-          const mesFiltro = fechaFiltro.slice(0, 7)
-          const mesItem = fechaItem.slice(0, 7)
-          return (
-            mesItem === mesFiltro &&
-            passesOtherFilters
-          )
-        } else {
-          return (
-            fechaItem === fechaFiltro &&
-            passesOtherFilters
-          )
-        }
-      })
+      return params
     },
   })
 }
@@ -2227,25 +2263,51 @@ function initCatalogoProductos() {
     }
   }
 
-  // Paginación y Filtros (Tabla principal)
-  setupClientSideTable({
-    rowsSelector: '#tabla-catalogo-body tr[data-id]',
-    paginationSelector: 'paginacion-catalogo',
+  // Paginación y Filtros (Tabla principal) - server-side
+  createPaginatedTableServer({
+    tableSelector: '#tabla-catalogo-body',
+    paginationSelector: '#paginacion-catalogo',
+    endpoint: 'api/catalogo/paginated',
     filterFormSelector: '#form-filtros-catalogo',
-    filterFunction: (row) => {
-      const nombre = (document.getElementById('buscar-nombre-catalogo')?.value || '').toLowerCase()
+    rowsPerPage: 10,
+    renderRow: (item) => `
+        <tr data-id="${escapeHTML(item.ID_CatalogoProd)}"
+            data-nombre="${escapeHTML(item.Nombre)}"
+            data-rs="${escapeHTML(item.ID_RazonSocial)}"
+            data-seg="${escapeHTML(item.id_segmento)}"
+            data-place="${escapeHTML(item.ID_Place)}"
+            data-depto="${escapeHTML(item.ID_Dpto)}"
+            data-grupo="${escapeHTML(item.ID_GrupoPresupuestal)}"
+            class="hover:bg-gray-50 transition">
+            <td class="px-4 py-3 font-medium text-gray-900">${escapeHTML(item.Nombre)}</td>
+            <td class="px-4 py-3 text-gray-600">${escapeHTML(item.RazonSocial_Nombre ?? '-')}</td>
+            <td class="px-4 py-3">
+                <div class="text-xs font-semibold text-gray-800">${escapeHTML(item.Place_Nombre ?? '-')}</div>
+                <div class="text-[10px] text-gray-500 uppercase">${escapeHTML(item.Departamento_Nombre ?? '-')}</div>
+            </td>
+            <td class="px-4 py-3">
+                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-[10px] font-bold">
+                    ${escapeHTML(item.GrupoPresupuestal_Nombre ?? 'SIN ASIGNAR')}
+                </span>
+            </td>
+            <td class="px-4 py-3 text-center space-x-2">
+                <button class="btn-editar-cat text-blue-600 hover:text-blue-800 transition" title="Editar">
+                    <svg class="size-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button class="btn-eliminar-cat text-red-600 hover:text-red-800 transition" title="Eliminar">
+                    <svg class="size-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+            </td>
+        </tr>`,
+    buildFilterParams: () => {
+      const params = {}
+      const nombre = document.getElementById('buscar-nombre-catalogo')?.value.trim() || ''
       const depto = document.getElementById('filtro-departamento-catalogo')?.value || ''
       const grupo = document.getElementById('filtro-grupo-catalogo')?.value || ''
-
-      const rowNombre = row.dataset.nombre.toLowerCase()
-      const rowDepto = row.querySelector('.text-gray-500')?.innerText || ''
-      const rowGrupo = row.querySelector('.bg-blue-100')?.innerText || ''
-
-      return (
-        rowNombre.includes(nombre) &&
-        (depto === '' || rowDepto.includes(depto)) &&
-        (grupo === '' || rowGrupo.includes(grupo))
-      )
+      if (nombre) params.nombre = nombre
+      if (depto) params.departamento = depto
+      if (grupo) params.grupo = grupo
+      return params
     },
   })
 
@@ -3123,20 +3185,61 @@ function initCrudProveedores() {
 }
 
 function initProveedorTabla() {
-  setupClientSideTable({
-    rowsSelector: '#tabla-proveedores tr[data-id]',
-    paginationSelector: 'paginacion-proveedores',
+  createPaginatedTableServer({
+    tableSelector: '#tabla-proveedores',
+    paginationSelector: '#paginacion-proveedores',
+    endpoint: 'api/providers/paginated',
     filterFormSelector: '#form-filtros-proveedores',
-    filterFunction: (row, form) => {
-      const nombreFiltro = (form.querySelector('#buscar-nombre')?.value || '').toLowerCase()
-      const servicioFiltro = (form.querySelector('#buscar-servicio')?.value || '').toLowerCase()
-
-      const razonsocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || ''
-      const servicio = row.querySelector('.servicio')?.textContent.toLowerCase() || ''
-
-      return razonsocial.includes(nombreFiltro) && servicio.includes(servicioFiltro)
-    },
     rowsPerPage: 10,
+    renderRow: (item) => {
+      const tieneCredito = (item.Dias_Credito ?? 0) > 0
+      return `
+        <tr data-id="${escapeHTML(item.ID_Proveedor)}"
+            data-rfc="${escapeHTML(item.RFC)}"
+            data-banco="${escapeHTML(item.Banco)}"
+            data-cuenta="${escapeHTML(item.Cuenta)}"
+            data-clabe="${escapeHTML(item.Clabe)}"
+            data-tel-contacto="${escapeHTML(item.Tel_Contacto)}"
+            data-nombre-contacto="${escapeHTML(item.Nombre_Contacto)}"
+            data-tiene-credito="${tieneCredito ? '1' : '0'}"
+            data-dias-credito="${escapeHTML(item.Dias_Credito ?? 0)}"
+            data-monto-credito="${escapeHTML(item.Monto_Credito ?? 0)}"
+            data-correo="${escapeHTML(item.Correo ?? '')}">
+            <td class="px-3 py-2 border-b razonsocial">${escapeHTML(item.RazonSocial)}</td>
+            <td class="px-3 py-2 border-b">${escapeHTML(item.RFC)}</td>
+            <td class="px-3 py-2 border-b">${escapeHTML(item.Banco)}</td>
+            <td class="px-3 py-2 border-b">${escapeHTML(item.Tel_Contacto)}</td>
+            <td class="px-3 py-2 border-b servicio">${escapeHTML(item.Servicio)}</td>
+            <td class="px-2 py-2 border-b align-top text-center acciones">
+                <div class="flex flex-col items-center space-y-1 h-full justify-center">
+                    <a href="#"
+                       id="btn-editar-proveedor-${escapeHTML(item.ID_Proveedor)}"
+                       class="btn-editar text-green-600 hover:text-green-800"
+                       data-id="${escapeHTML(item.ID_Proveedor)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+                        </svg>
+                    </a>
+                    <a href="#"
+                       id="btn-eliminar-proveedor-${escapeHTML(item.ID_Proveedor)}"
+                       class="btn-eliminar text-red-600 hover:text-red-800"
+                       data-id="${escapeHTML(item.ID_Proveedor)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                        </svg>
+                    </a>
+                </div>
+            </td>
+        </tr>`
+    },
+    buildFilterParams: () => {
+      const params = {}
+      const nombre = document.getElementById('buscar-nombre')?.value.trim() || ''
+      const servicio = document.getElementById('buscar-servicio')?.value.trim() || ''
+      if (nombre) params.razon_social = nombre
+      if (servicio) params.servicio = servicio
+      return params
+    },
   })
 }
 
@@ -4290,22 +4393,45 @@ function initCrudCuentas() {
 }
 
 function initCuentasTabla() {
-  setupClientSideTable({
-    rowsSelector: '#tabla-cuentas tr[data-id]',
-    paginationSelector: 'paginacion-cuentas',
+  createPaginatedTableServer({
+    tableSelector: '#tabla-cuentas',
+    paginationSelector: '#paginacion-cuentas',
+    endpoint: 'api/providers/paginated',
     filterFormSelector: '#form-filtros-cuentas',
-    filterFunction: (row, form) => {
-      const razonSocialFiltro = (
-        document.getElementById('buscar-razonsocial-cuenta')?.value || ''
-      ).toLowerCase()
-      const rfcFiltro = (document.getElementById('buscar-rfc-cuenta')?.value || '').toLowerCase()
-
-      const razonSocial = row.querySelector('.razonsocial')?.textContent.toLowerCase() || ''
-      const rfc = row.querySelector('.rfc')?.textContent.toLowerCase() || ''
-
-      return razonSocial.includes(razonSocialFiltro) && rfc.includes(rfcFiltro)
-    },
     rowsPerPage: 10,
+    renderRow: (item) => {
+      const id = item.ID_Proveedor
+      return `
+        <tr data-id="${escapeHTML(id)}"
+            data-razonsocial="${escapeHTML(item.RazonSocial)}"
+            data-rfc="${escapeHTML(item.RFC)}">
+            <td class="px-3 py-2 border-b razonsocial">${escapeHTML(item.RazonSocial)}</td>
+            <td class="px-3 py-2 border-b rfc">${escapeHTML(item.RFC)}</td>
+            <td class="px-3 py-2 border-b banco">${escapeHTML(item.Banco)}</td>
+            <td class="px-2 py-2 border-b align-top text-center acciones">
+                <div class="flex flex-col items-center space-y-1 h-full justify-center">
+                    <a href="#"
+                       id="btn-editar-cuenta-${escapeHTML(id)}"
+                       class="btn-editar text-green-600 hover:text-green-800"
+                       data-id="${escapeHTML(id)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                             stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+                        </svg>
+                    </a>
+                </div>
+            </td>
+        </tr>`
+    },
+    buildFilterParams: () => {
+      const params = {}
+      const razonSocial = document.getElementById('buscar-razonsocial-cuenta')?.value.trim() || ''
+      const rfc = document.getElementById('buscar-rfc-cuenta')?.value.trim() || ''
+      if (razonSocial) params.razon_social = razonSocial
+      if (rfc) params.rfc = rfc
+      return params
+    },
   })
 }
 
@@ -4917,30 +5043,6 @@ function initCrudGrupos() {
   initGruposForm()
   initGruposEditarForm()
   initGruposActions(tabla)
-
-  // Restaurar filtros si existen
-  const inputNombre = document.getElementById('buscar-nombre-grupo');
-
-  if (inputNombre && filtrosPersistidosGrupos.nombre) {
-    inputNombre.value = filtrosPersistidosGrupos.nombre;
-  }
-
-  // Esperar un momento a que las instancias de Choices se inicialicen
-  setTimeout(() => {
-    if (choicesLugarFiltro && filtrosPersistidosGrupos.lugares.length > 0) {
-      choicesLugarFiltro.setChoiceByValue(filtrosPersistidosGrupos.lugares);
-    }
-    if (choicesUnidadFiltro && filtrosPersistidosGrupos.unidades.length > 0) {
-      choicesUnidadFiltro.setChoiceByValue(filtrosPersistidosGrupos.unidades);
-    }
-
-    // Forzar la actualización de la tabla disparando 'input' y 'change' en el formulario de filtros
-    const formFiltros = document.getElementById('form-filtros-grupos');
-    if (formFiltros) {
-      formFiltros.dispatchEvent(new Event('input', { bubbles: true }));
-      formFiltros.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  }, 200);
 }
 
 function initGruposTabla() {
@@ -4998,27 +5100,80 @@ function initGruposTabla() {
     });
   }
 
-  setupClientSideTable({
-    rowsSelector: '#tabla-grupos tr[data-id]',
-    paginationSelector: 'paginacion-grupos',
-    filterFormSelector: '#form-filtros-grupos',
-    filterFunction: (row, form) => {
-      const nomFiltro = (document.getElementById('buscar-nombre-grupo')?.value || '').toLowerCase();
-      const lugaresSel = choicesLugarFiltro ? choicesLugarFiltro.getValue(true).map(v => v.toLowerCase()) : [];
-      const unidadesSel = choicesUnidadFiltro ? choicesUnidadFiltro.getValue(true).map(v => v.toLowerCase()) : [];
-      
-      const textoCelda = row.querySelector('.unidad-grupo')?.textContent.toLowerCase() || '';
-      const nombreRow = row.querySelector('.nombre-grupo')?.textContent.toLowerCase() || '';
-      
-      const matchNombre = nombreRow.includes(nomFiltro);
-      const matchLugar = lugaresSel.length === 0 || lugaresSel.some(l => textoCelda.includes(`(${l})`));
-      
-      const nombreUnidadEnCelda = textoCelda.split(' (')[0];
-      const matchUnidad = unidadesSel.length === 0 || unidadesSel.some(u => nombreUnidadEnCelda.includes(u));
+  // Restaurar filtros persistidos ANTES de inicializar la tabla server-side,
+  // para que la única petición inicial ya los incluya (evita doble carga).
+  const inputNombre = document.getElementById('buscar-nombre-grupo');
+  if (inputNombre && filtrosPersistidosGrupos.nombre) {
+    inputNombre.value = filtrosPersistidosGrupos.nombre;
+  }
+  if (choicesLugarFiltro && filtrosPersistidosGrupos.lugares.length > 0) {
+    choicesLugarFiltro.setChoiceByValue(filtrosPersistidosGrupos.lugares);
+  }
+  if (choicesUnidadFiltro && filtrosPersistidosGrupos.unidades.length > 0) {
+    choicesUnidadFiltro.setChoiceByValue(filtrosPersistidosGrupos.unidades);
+  }
 
-      return matchNombre && matchLugar && matchUnidad;
-    },
+const tieneEdicion = container.dataset.tieneEdicion === '1'
+
+  createPaginatedTableServer({
+    tableSelector: '#tabla-grupos',
+    paginationSelector: '#paginacion-grupos',
+    endpoint: 'api/grupos-presupuestales/paginated',
+    filterFormSelector: '#form-filtros-grupos',
     rowsPerPage: 10,
+    renderRow: (item) => {
+      const esActivo = item.activo === true || item.activo === 1 || item.activo === 't' || item.activo === '1'
+      const esManual = item.es_manual === true || item.es_manual === 1 || item.es_manual === 't' || item.es_manual === '1'
+      const unidadText = `${item.UnidadNombre || 'N/A'} (${item.PlaceNombre || 'N/A'})`
+
+      return `
+        <tr data-id="${escapeHTML(item.ID_GrupoPresupuestal)}"
+            data-nombre="${escapeHTML(item.Nombre)}"
+            data-descripcion="${escapeHTML(item.Descripcion)}"
+            data-id-unidad="${escapeHTML(item.ID_UnidadOperativa ?? '')}"
+            data-activo="${esActivo ? '1' : '0'}"
+            data-es-manual="${esManual ? '1' : '0'}"
+            class="${!esActivo ? 'opacity-60' : ''}">
+            <td class="px-3 py-2 border-b nombre-grupo">${escapeHTML(item.Nombre)}</td>
+            <td class="px-3 py-2 border-b descripcion-grupo">${escapeHTML(item.Descripcion)}</td>
+            <td class="px-3 py-2 border-b unidad-grupo">${escapeHTML(unidadText)}</td>
+            <td class="px-3 py-2 border-b text-center">${esManual ? '<span class="text-blue-600 font-bold">SÍ</span>' : '<span class="text-gray-400">NO</span>'}</td>
+            <td class="px-3 py-2 border-b text-center">${esActivo ? '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">Activo</span>' : '<span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">Inactivo</span>'}</td>
+            ${tieneEdicion ? `
+            <td class="px-2 py-2 border-b align-top text-center acciones">
+                <div class="flex flex-col items-center space-y-1 h-full justify-center">
+                    <a href="#"
+                       id="btn-editar-grupos-${escapeHTML(item.ID_GrupoPresupuestal)}"
+                       class="btn-editar text-green-600 hover:text-green-800"
+                       data-id="${escapeHTML(item.ID_GrupoPresupuestal)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+                        </svg>
+                    </a>
+                    ${esActivo ? `
+                    <a href="#"
+                       id="btn-eliminar-grupos-${escapeHTML(item.ID_GrupoPresupuestal)}"
+                       class="btn-eliminar text-red-600 hover:text-red-800"
+                       title="Desactivar Grupo"
+                       data-id="${escapeHTML(item.ID_GrupoPresupuestal)}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
+                        </svg>
+                    </a>` : ''}
+                </div>
+            </td>` : ''}
+        </tr>`
+    },
+    buildFilterParams: () => {
+      const params = {}
+      const nombre = document.getElementById('buscar-nombre-grupo')?.value.trim() || ''
+      const lugaresSel = choicesLugarFiltro ? choicesLugarFiltro.getValue(true) : []
+      const unidadesSel = choicesUnidadFiltro ? choicesUnidadFiltro.getValue(true) : []
+      if (nombre) params.nombre = nombre
+      if (lugaresSel.length) params.lugares = lugaresSel
+      if (unidadesSel.length) params.unidades = unidadesSel
+      return params
+    },
   })
 }
 
@@ -5440,229 +5595,11 @@ async function GenerarOrden(id, button) {
   }
 }
 
-/**
- * Lógica para limpiar almacenamiento
- */
-
-window.initLimpiarAlmacenamiento = function () {
-  let currentPath = ''
-  let selectedItems = new Set()
-
-  window.navegarA = async function (path) {
-    currentPath = path
-
-    // Boton de regresar
-    const backBtnContainer = document.getElementById('back-button-container')
-    if (backBtnContainer) {
-      if (path === '') {
-        backBtnContainer.classList.add('hidden')
-      } else {
-        backBtnContainer.classList.remove('hidden')
-      }
-    }
-
-    actualizarToolbar()
-    actualizarSelectAllCheck(false)
-    renderBreadcrumbs(path)
-
-    const tbody = document.getElementById('file-list')
-    if (!tbody) return
-    tbody.innerHTML =
-      '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Cargando...</td></tr>'
-
-    const files = await fetchFiles(path)
-    renderFiles(files)
-  }
-
-  window.navegarArriba = function () {
-    if (currentPath === '') return
-
-    const parts = currentPath.split('/')
-    parts.pop()
-    const parentPath = parts.join('/')
-    window.navegarA(parentPath)
-  }
-
-  window.toggleSelection = function (path) {
-    if (selectedItems.has(path)) {
-      selectedItems.delete(path)
-    } else {
-      selectedItems.add(path)
-    }
-    actualizarToolbar()
-  }
-
-  window.toggleSelectAll = function () {
-    const mainCheckbox = document.getElementById('select-all')
-    const checkboxes = document.querySelectorAll('.file-checkbox')
-    const isChecked = mainCheckbox.checked
-    checkboxes.forEach((cb) => {
-      cb.checked = isChecked
-      if (isChecked) {
-        selectedItems.add(cb.value)
-      } else {
-        selectedItems.delete(cb.value)
-      }
-    })
-    actualizarToolbar()
-  }
-
-  // limpiar selección
-  window.limpiarSeleccion = function () {
-    selectedItems.clear()
-    actualizarToolbar()
-    document.querySelectorAll('.file-checkbox').forEach((cb) => (cb.checked = false))
-    actualizarSelectAllCheck(false)
-    document
-      .querySelectorAll('#file-list tr.bg-blue-50')
-      .forEach((row) => row.classList.remove('bg-blue-50'))
-  }
-
-  window.ejecutarAccion = function (tipo) {
-    const listaParaEnviar = Array.from(selectedItems)
-    if (listaParaEnviar.length === 0) return
-
-    const mensaje =
-      tipo === 'eliminar'
-        ? `¿Estás seguro de ELIMINAR ${listaParaEnviar.length} elementos?\nEsta acción no se puede deshacer.`
-        : `¿Deseas comprimir ${listaParaEnviar.length} elementos?`
-
-    if (confirm(mensaje)) {
-      console.group('🚀 EJECUTANDO ACCIÓN: ' + tipo.toUpperCase())
-      console.log('Rutas a procesar:', listaParaEnviar)
-      console.groupEnd()
-      alert(`Acción "${tipo}" simulada. Revisa la consola.`)
-    }
-  }
-
-  async function fetchFiles(path) {
-    try {
-      return await SendDataEnd(`api/storage/list?path=${encodeURIComponent(path)}`)
-    } catch (error) {
-      console.error('Error al obtener archivos:', error)
-      const tbody = document.getElementById('file-list')
-      if (tbody)
-        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Error: ${error.message}</td></tr>`
-      return []
-    }
-  }
-
-  function renderFiles(files) {
-    const tbody = document.getElementById('file-list')
-    if (!tbody) return
-    tbody.innerHTML = ''
-
-    if (!files || files.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">Carpeta vacía</td></tr>'
-      return
-    }
-
-    const iconFolder = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500 mr-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`
-    const iconFileGeneric = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>`
-
-    files.sort((a, b) => {
-      if (a.type === b.type) return a.name.localeCompare(b.name)
-      return a.type === 'folder' ? -1 : 1
-    })
-
-    files.forEach((file) => {
-      const isFolder = file.type === 'folder'
-      const isPdf = file.name.toLowerCase().endsWith('.pdf')
-      const isImg = file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i)
-
-      let currentIcon = iconFileGeneric
-      if (isFolder) {
-        currentIcon = iconFolder
-      } else if (isPdf) {
-        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9h6v6H9z" /></svg>`
-      } else if (isImg) {
-        currentIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
-      }
-
-      const isChecked = selectedItems.has(file.path) ? 'checked' : ''
-
-      const row = document.createElement('tr')
-      row.className = `transition cursor-pointer ${isChecked ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`
-
-      row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()">
-                    <input type="checkbox" value="${file.path}" ${isChecked} onchange="toggleSelection('${file.path}'); this.closest('tr').classList.toggle('bg-blue-50', this.checked);" class="file-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4">
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap flex items-center">
-                    ${currentIcon}
-                    <span class="${isFolder ? 'font-medium text-gray-900' : 'text-gray-700'}">${file.name}</span>
-                </td>
-                `
-
-      row.addEventListener('click', (e) => {
-        if (e.target.type === 'checkbox') return
-
-        if (isFolder) {
-          window.navegarA(file.path)
-        } else {
-          const url = `${BASE_URL}api/storage/serve?path=${encodeURIComponent(file.path)}`
-          window.open(url, '_blank')
-        }
-      })
-
-      tbody.appendChild(row)
-    })
-  }
-
-  function renderBreadcrumbs(path) {
-    const container = document.getElementById('breadcrumbs')
-    if (!container) return
-
-    let html = `<button onclick="navegarA('')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>uploads</button>`
-
-    if (path) {
-      const parts = path.split('/')
-      let accumulatedPath = ''
-      parts.forEach((part, index) => {
-        accumulatedPath += (index > 0 ? '/' : '') + part
-        const pathForClick = accumulatedPath
-        html += `<span class="text-gray-400 mx-1">/</span>`
-        if (index === parts.length - 1) {
-          html += `<span class="font-medium text-gray-800 px-2">${part}</span>`
-        } else {
-          html += `<button onclick="navegarA('${pathForClick}')" class="text-blue-600 hover:underline hover:bg-blue-50 px-2 py-1 rounded">${part}</button>`
-        }
-      })
-    }
-    container.innerHTML = html
-  }
-
-  function actualizarToolbar() {
-    const toolbar = document.getElementById('toolbar')
-    const countSpan = document.getElementById('selected-count')
-    if (!toolbar || !countSpan) return
-
-    const count = selectedItems.size
-    countSpan.textContent = count
-    if (count > 0) {
-      toolbar.classList.remove('hidden')
-      toolbar.classList.add('flex')
-    } else {
-      toolbar.classList.add('hidden')
-      toolbar.classList.remove('flex')
-    }
-  }
-
-  function actualizarSelectAllCheck(checked) {
-    const cb = document.getElementById('select-all')
-    if (cb) cb.checked = checked
-  }
-
-  window.navegarA('')
-}
-
 //==================================================================================================================
 /**
  * Varios
  */
 // Inicializar
-document.addEventListener('DOMContentLoaded', initCrudProveedores)
 
 async function GenerarOrden(id, button) {
   if (

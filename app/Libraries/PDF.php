@@ -162,4 +162,39 @@ class PDF extends Fpdi
         }
         return $nl;
     }
+
+    /**
+     * Dibuja una fila de tabla con altura UNIFORME: borde/fondo usando la altura
+     * de la fila (max líneas * lineH) y el texto con MultiCell sin borde.
+     * Evita el descuadre de la cuadrícula cuando una celda hace wrap a N líneas.
+     *
+     * @param array $colW   Anchos de columna.
+     * @param array $cells  Textos de cada celda (ya con codificación correcta).
+     * @param array $aligns Alineación por columna ('L','C','R').
+     * @param float $lineH  Altura de línea.
+     * @param bool  $fill   Si se pinta el fondo de la fila (usa el color de relleno actual).
+     * @return float Altura total de la fila dibujada.
+     */
+    function drawTableRow(array $colW, array $cells, array $aligns, float $lineH, bool $fill = false): float
+    {
+        $lineCounts = [];
+        $n = min(count($colW), count($cells));
+        for ($i = 0; $i < $n; $i++) {
+            $lineCounts[$i] = $this->NbLines($colW[$i], $cells[$i]);
+        }
+        $h = max($lineCounts) * $lineH;
+
+        $sy = $this->GetY();
+        $x0 = $this->GetX();
+        $x = $x0;
+        for ($i = 0; $i < $n; $i++) {
+            $this->Rect($x, $sy, $colW[$i], $h, $fill ? 'DF' : 'D');
+            $this->SetXY($x, $sy);
+            $this->MultiCell($colW[$i], $lineH, $cells[$i], 0, $aligns[$i] ?? 'L', false);
+            $x += $colW[$i];
+        }
+        $this->SetX($x0);
+        $this->SetY($sy + $h);
+        return $h;
+    }
 }

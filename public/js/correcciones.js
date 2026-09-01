@@ -71,22 +71,13 @@ function initControlMaestro() {
         });
     }
 
-    // 2. Construcción de Endpoint con Cache Buster
-    let urlEndpoint = 'api/historic';
+    // 2. Inicializar Tabla con Paginación y Filtrado Server-side
     const DEPT_EXCEPTIONS = ['Compras', 'Administración', 'Direccion', 'Tesoreria', 'Direccion Campus', 'Contaduría'];
-    
-    // Si el usuario no pertenece a departamentos administrativos, filtramos por su departamento
-    if (typeof USER_DEPT_NAME !== 'undefined' && USER_DEPT_ID && !DEPT_EXCEPTIONS.includes(USER_DEPT_NAME)) {
-        urlEndpoint = `api/historic/department/${USER_DEPT_ID}`;
-    }
 
-    const finalEndpoint = `${urlEndpoint}${urlEndpoint.includes('?') ? '&' : '?'}_t=${Date.now()}`;
-
-    // 3. Inicializar Tabla con Paginación y Filtrado
-    createPaginatedTable({
+    createPaginatedTableServer({
         tableSelector: '#tabla-maestro tbody',
-        paginationSelector: 'paginacion-maestro',
-        endpoint: finalEndpoint,
+        paginationSelector: '#paginacion-maestro',
+        endpoint: 'api/historic/paginated',
         filterFormSelector: '#filtros-maestro-container',
 
         renderRow: (item) => {
@@ -125,48 +116,44 @@ function initControlMaestro() {
             </tr>`;
         },
 
-        filterFunction: (allData) => {
-            // OPTIMIZACIÓN: Capturamos valores del DOM una sola vez antes de iterar
-            const folioFiltro = inputFolio?.value.toLowerCase().trim() || '';
+        buildFilterParams: () => {
+            // OPTIMIZACIÓN: Capturamos valores del DOM una sola vez
+            const params = {};
+
+            const folioFiltro = inputFolio?.value.trim() || '';
+            if (folioFiltro) params.folio = folioFiltro;
+
             const fechaFiltro = inputFecha?.value || '';
-            const filtrarPorMes = checkMes?.checked || false;
+            if (fechaFiltro) {
+                params.fecha = fechaFiltro;
+                if (checkMes?.checked) params.por_mes = '1';
+            }
+
             const estadoFiltro = selectEstado?.value || '';
-            const metodoFiltro = selectMetodo?.value || '';
+            if (estadoFiltro) params.estado = estadoFiltro;
+
             const tipoFiltro = selectTipo?.value || '';
-            
-            const deptosSeleccionados = choicesDeptoMaestro ? choicesDeptoMaestro.getValue(true) : [];
+            if (tipoFiltro) params.tipo = tipoFiltro;
+
+            const metodoFiltro = selectMetodo?.value || '';
+            if (metodoFiltro) params.metodo = metodoFiltro;
+
             const razonesSeleccionadas = choicesRazonMaestro ? choicesRazonMaestro.getValue(true) : [];
+            if (razonesSeleccionadas.length > 0) params.razones_sociales = razonesSeleccionadas;
 
-            return allData.filter((item) => {
-                const coincideFolio = !folioFiltro || (item.No_Folio && item.No_Folio.toLowerCase().includes(folioFiltro));
-                const coincideEstado = !estadoFiltro || item.Estado === estadoFiltro;
-                const coincideMetodo = !metodoFiltro || item.MetodoPago == metodoFiltro;
-                
-                const coincideTipo = !tipoFiltro || 
-                    (tipoFiltro === 'Producto' && (item.Tipo == 0 || item.Tipo == 1)) || 
-                    (tipoFiltro === 'Servicio' && item.Tipo == 2);
+            const deptosSeleccionados = choicesDeptoMaestro ? choicesDeptoMaestro.getValue(true) : [];
+            if (deptosSeleccionados.length > 0) params.departamentos = deptosSeleccionados;
 
-                let coincideDepto = true;
-                if (deptosSeleccionados.length > 0) {
-                    const deptoFull = `${item.DepartamentoNombre}|${item.PlaceNombre || ''}`;
-                    coincideDepto = deptosSeleccionados.includes(deptoFull);
-                }
+            if (
+                typeof USER_DEPT_NAME !== 'undefined' &&
+                typeof USER_DEPT_ID !== 'undefined' &&
+                USER_DEPT_ID &&
+                !DEPT_EXCEPTIONS.includes(USER_DEPT_NAME)
+            ) {
+                params.dept_id = USER_DEPT_ID;
+            }
 
-                let coincideRazon = true;
-                if (razonesSeleccionadas.length > 0) {
-                    coincideRazon = razonesSeleccionadas.includes(item.Complejo);
-                }
-
-                const passesOtherFilters = coincideFolio && coincideEstado && coincideDepto && coincideMetodo && coincideTipo && coincideRazon;
-
-                if (!fechaFiltro) return passesOtherFilters;
-                
-                // Comparación de fechas optimizada
-                if (filtrarPorMes) {
-                    return item.Fecha.startsWith(fechaFiltro.slice(0, 7)) && passesOtherFilters;
-                }
-                return item.Fecha === fechaFiltro && passesOtherFilters;
-            });
+            return params;
         }
     });
 }
@@ -508,7 +495,13 @@ function _renderTablaProductos(data, sol, optionsGruposHtml, ui) {
                 </thead>
                 <tbody class="divide-y divide-[#F3F4F6]">
                     ${productos.map((prod, index) => {
-                        const selectHtml = optionsGruposHtml.replace(`value="${prod.ID_GrupoPresupuestal}"`, `value="${prod.ID_GrupoPresupuestal}" selected`);
+                        let selectHtml = optionsGruposHtml.replace(`value="${prod.ID_GrupoPresupuestal}"`, `value="${prod.ID_GrupoPresupuestal}" selected`);
+
+                        // FIX: Si el replace no encontró el grupo, inyectar dinámicamente la opción
+                        if (prod.ID_GrupoPresupuestal && !selectHtml.includes('selected')) {
+                            const nombreGrupo = prod.GrupoPresupuestalNombre || 'Partida asignada';
+                            selectHtml = `<option value="${prod.ID_GrupoPresupuestal}" selected>${nombreGrupo}</option>` + selectHtml;
+                        }
                         return `
                         <tr class="hover:bg-[#FCFCFD] transition-colors">
                             <td class="p-5 align-top">

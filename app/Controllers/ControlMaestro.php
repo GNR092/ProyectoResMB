@@ -410,6 +410,11 @@ class ControlMaestro extends BaseController
                         $datosUpdateOrden['FechaRefPago']       = $fechaRefPago;
                         $datosUpdateOrden['FechaPagoRealizado'] = $fechaPagoRealizado;
 
+                        // Si cambió el proveedor, sincronizar la OC con el nuevo ID_Proveedor (ya se actualizó Solicitud y Cotización)
+                        if ($cambioProveedor) {
+                            $datosUpdateOrden['ID_Proveedor'] = $idProveedor;
+                        }
+
                         $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $orden['ID_OrdenCompra'])->update($datosUpdateOrden);
                     }
                 }

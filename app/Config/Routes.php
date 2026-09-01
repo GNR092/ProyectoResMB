@@ -101,6 +101,7 @@ if (!file_exists($installerLockFile)) {
         // Catálogo De Productos Y Servicios
         $routes->get('api/catalogo/filtrado', 'Api::getCatalogoFiltradoDinamico');
         $routes->get('api/catalogo/all', 'Api::getCatalogoMaestro');
+        $routes->get('api/catalogo/paginated', 'Api::getCatalogoPaginated');
         $routes->post('api/catalogo/create', 'Api::createCatalogo');
         $routes->post('api/catalogo/update/(:num)', 'Api::updateCatalogo/$1');
         $routes->post('api/catalogo/delete/(:num)', 'Api::deleteCatalogo/$1');
@@ -112,16 +113,20 @@ if (!file_exists($installerLockFile)) {
         //region proveedores
         $routes->get('api/providers/all', 'Api::getAllProviders');
         $routes->get('api/providers/full-list', 'Api::getFullProvidersList');
+        $routes->get('api/providers/paginated', 'Api::getProvidersPaginated');
         $routes->get('api/providers/exportar-excel', 'Api::exportarProveedoresExcel');
+        $routes->get('api/providers/exportar-pdf', 'Api::exportarProveedoresPdf');
         $routes->get('api/provider/(:num)', 'Api::getProviderById/$1');
 
         // Historial
         $routes->get('api/bitacora', 'Api::bitacora');
         $routes->get('api/historic', 'Api::getHistorial');
+        $routes->get('api/historic/paginated', 'Api::getHistorialPaginated');
         $routes->get('api/historic/department/(:num)', 'Api::getHistorialByDepartment/$1');
         $routes->get('api/historic/movimientos-proveedor', 'Api::getMovimientosProveedor', ['filter' => 'mantenimiento']);
         $routes->get('api/historic/reporte-vencimientos', 'Api::getReporteVencimientos', ['filter' => 'mantenimiento']);
         $routes->post('api/vencimientos/exportar-datos', 'ReportesController::exportarVencimientosJson');
+        $routes->post('api/vencimientos/exportar-pdf', 'ReportesController::exportarVencimientosPdf');
         $routes->post('api/historic/exportar-movimientos', 'Api::exportarMovimientosExcel');
         $routes->get('api/historial/exportar', 'Api::exportarHistorial');
 
@@ -219,6 +224,9 @@ if (!file_exists($installerLockFile)) {
             'Modales::eliminarGrupo/$1',
         );
 
+        // API Partidas Presupuestales (paginación server-side)
+        $routes->get('api/grupos-presupuestales/paginated', 'Api::getGruposPresupuestalesPaginated');
+
         // Rutas API Presupuesto Dictamen
         $routes->get('api/presupuesto/cambios', 'PresupuestoApiController::getCambiosPendientes');
         $routes->post('api/presupuesto/dictaminar', 'PresupuestoApiController::dictaminarCambio');
@@ -234,6 +242,27 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/presupuesto/exportar/(:any)/(:num)/(:any)', 'ReportesController::exportarComparativo/$1/$2/$3');
         $routes->post('api/presupuesto/exportar-datos', 'ReportesController::exportarDatosJson');
         $routes->post('api/presupuesto/exportar-mensual-datos', 'ReportesController::exportarMensualJson');
+        $routes->post('api/presupuesto/exportar-mensual-pdf', 'ReportesController::exportarMensualPdf');
+        $routes->post('api/presupuesto/exportar-vs-ejecutado-pdf', 'ReportesController::exportarPresupuestoVsEjecutadoPdf');
+        $routes->post('api/compras/exportar-pdf', 'ReportesController::exportarComprasPdf');
+
+        // Rutas API Solicitudes Sin Cotizar
+        $routes->get('api/solicitudes/sin-cotizar', 'ReportesController::getSolicitudesSinCotizar');
+        $routes->post('api/solicitudes/sin-cotizar/exportar-datos', 'ReportesController::exportarSolicitudesSinCotizarJson');
+        $routes->post('api/solicitudes/sin-cotizar/exportar-pdf', 'ReportesController::exportarSolicitudesSinCotizarPdf');
+
+        // Rutas API Reporte Pagos Pendientes
+        $routes->get('api/reportes/pagos-pendientes', 'ReportesController::getPagosPendientesReporte');
+        $routes->post('api/reportes/pagos-pendientes/exportar-datos', 'ReportesController::exportarPagosPendientesJson');
+        $routes->post('api/reportes/pagos-pendientes/exportar-pdf', 'ReportesController::exportarPagosPendientesPdf');
+
+        // Rutas API Reporte Facturas Pendientes (pantalla de fichas de pago)
+        $routes->get('api/reportes/facturas-pendientes', 'ReportesController::getFacturasPendientesReporte');
+
+        // Rutas API Reporte Requisiciones Pagadas
+        $routes->get('api/reportes/pagos-realizados', 'ReportesController::getPagosRealizadosReporte');
+        $routes->post('api/reportes/pagos-realizados/exportar-datos', 'ReportesController::exportarPagosRealizadosJson');
+        $routes->post('api/reportes/pagos-realizados/exportar-pdf', 'ReportesController::exportarPagosRealizadosPdf');
 
         // Rutas API Saldos Bancarios
         $routes->get('api/saldos-bancarios/estructura/(:num)/(:num)/(:num)', 'PresupuestoApiController::getEstructuraSaldos/$1/$2/$3');

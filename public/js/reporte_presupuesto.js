@@ -62,6 +62,69 @@ function registrarComponenteReportePresupuesto() {
             choicesPlaceVenc: null,
             choicesDeptoVenc: null,
 
+            // Solicitudes sin cotizar
+            solicitudesSinCotizar: [],
+            totalesSinCoti: { cantidad: 0, costo_total: 0 },
+            filtroTextoFolioSinCoti: '',
+            filtroFechaDesdeSinCoti: '',
+            filtroFechaHastaSinCoti: '',
+            filtrosEstadoSinCoti: ['Aprobacion Pendiente', 'En espera'],
+            filtrosRazonSinCoti: [],
+            filtrosComplejoSinCoti: [],
+            filtrosDeptoSinCoti: [],
+            filtrosTipoSinCoti: [],
+            currentPageSinCoti: 1,
+            rowsPerPageSinCoti: 15,
+            choicesEstadoSinCoti: null,
+            choicesRazonSinCoti: null,
+            choicesComplejoSinCoti: null,
+            choicesDeptoSinCoti: null,
+            choicesTipoSinCoti: null,
+
+            // Reporte Pagos Pendientes
+            pagosPendientes: [],
+            totalesPagosPend: { cantidad: 0, total_general: 0, saldo_total: 0 },
+            filtroTextoFolioPagosPend: '',
+            filtrosRazonPagosPend: [],
+            filtrosComplejoPagosPend: [],
+            filtrosDeptosPagosPend: [],
+            filtrosUsuarioPagosPend: [],
+            filtrosFormaPagoPagosPend: [],
+            filtrosTipoPagosPend: [],
+            filtrosEstadoPagosPend: [],
+            currentPagePagosPend: 1,
+            rowsPerPagePagosPend: 15,
+            choicesRazonPagosPend: null,
+            choicesComplejoPagosPend: null,
+            choicesDeptosPagosPend: null,
+            choicesUsuarioPagosPend: null,
+            choicesFormaPagoPagosPend: null,
+            choicesTipoPagosPend: null,
+            choicesEstadoPagosPend: null,
+            modalFechaCorteAbierto: false,
+            fechaCorteExport: '',
+            tipoExportacionPagosPend: 'excel',
+
+            // Reporte Requisiciones Pagadas
+            pagosRealizados: [],
+            totalesPagosRealizados: { cantidad: 0, total_general: 0 },
+            filtroTextoFolioPagosRealizados: '',
+            filtrosRazonPagosRealizados: [],
+            filtrosComplejoPagosRealizados: [],
+            filtrosDeptosPagosRealizados: [],
+            filtrosUsuarioPagosRealizados: [],
+            filtrosFormaPagoPagosRealizados: [],
+            filtrosTipoPagosRealizados: [],
+            currentPagePagosRealizados: 1,
+            rowsPerPagePagosRealizados: 15,
+            choicesRazonPagosRealizados: null,
+            choicesComplejoPagosRealizados: null,
+            choicesDeptosPagosRealizados: null,
+            choicesUsuarioPagosRealizados: null,
+            choicesFormaPagoPagosRealizados: null,
+            choicesTipoPagosRealizados: null,
+            tipoExportacionPagosRealizados: 'excel',
+
             // Paginación y filtrado movimientos
             currentPageMovimientos: 1,
             rowsPerPageMovimientos: 15,
@@ -194,6 +257,34 @@ function registrarComponenteReportePresupuesto() {
                 this.reporteCompras = [];
                 this.movimientosProveedor = [];
 
+                this.solicitudesSinCotizar = [];
+                this.totalesSinCoti = { cantidad: 0, costo_total: 0 };
+                this.filtroTextoFolioSinCoti = '';
+                this.filtroFechaDesdeSinCoti = '';
+                this.filtroFechaHastaSinCoti = '';
+                this.filtrosEstadoSinCoti = ['Aprobacion Pendiente', 'En espera'];
+                this.filtrosRazonSinCoti = [];
+                this.filtrosComplejoSinCoti = [];
+                this.filtrosDeptoSinCoti = [];
+                this.filtrosTipoSinCoti = [];
+                this.currentPageSinCoti = 1;
+
+                this.pagosPendientes = [];
+                this.totalesPagosPend = { cantidad: 0, total_general: 0, saldo_total: 0 };
+                this.filtroTextoFolioPagosPend = '';
+                this.filtrosRazonPagosPend = [];
+                this.filtrosComplejoPagosPend = [];
+                this.filtrosDeptosPagosPend = [];
+                this.filtrosUsuarioPagosPend = [];
+                this.filtrosFormaPagoPagosPend = [];
+                this.filtrosTipoPagosPend = [];
+                this.filtrosEstadoPagosPend = [];
+                this.currentPagePagosPend = 1;
+                this.modalFechaCorteAbierto = false;
+                ['choicesRazonPagosPend', 'choicesComplejoPagosPend', 'choicesDeptosPagosPend', 'choicesUsuarioPagosPend', 'choicesFormaPagoPagosPend', 'choicesTipoPagosPend', 'choicesEstadoPagosPend'].forEach(c => {
+                    if (this[c]) { try { this[c].destroy(); } catch (e) { /* noop */ } this[c] = null; }
+                });
+
                 this.dptosSeleccionados = [];
                 this.verGlobal = false;
                 
@@ -233,6 +324,17 @@ function registrarComponenteReportePresupuesto() {
                         if (nueva === 'vencimientos') {
                             this.cargarReporteVencimientos();
                             this.initChoicesVencimientos();
+                        }
+                        if (nueva === 'sincotizar') {
+                            this.cargarSolicitudesSinCotizar();
+                        }
+                        if (nueva === 'pagos_pendientes') {
+                            this.cargarPagosPendientes();
+                            this.initChoicesPagosPendientes();
+                        }
+                        if (nueva === 'pagos_realizados') {
+                            this.cargarPagosRealizados();
+                            this.initChoicesPagosRealizados();
                         }
                     });
                 }
@@ -322,6 +424,10 @@ function registrarComponenteReportePresupuesto() {
 
             exportarProveedoresExcel() {
                 window.location.href = `${BASE_URL}api/providers/exportar-excel`;
+            },
+
+            exportarProveedoresPdf() {
+                window.location.href = `${BASE_URL}api/providers/exportar-pdf`;
             },
 
             async cargarReporteCompras() {
@@ -598,6 +704,779 @@ function registrarComponenteReportePresupuesto() {
                 initOne('choicesDeptoVenc', 'filtrosDeptosVenc', 'choicesDeptoVenc');
             },
 
+            // ============ SOLICITUDES SIN COTIZAR ============
+
+            async cargarSolicitudesSinCotizar() {
+                this.cargando = true;
+                this.solicitudesSinCotizar = [];
+                this.currentPageSinCoti = 1;
+                try {
+                    const res = await fetch(`${BASE_URL}api/solicitudes/sin-cotizar`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.solicitudesSinCotizar = Array.isArray(data.datos) ? data.datos : [];
+                        this.totalesSinCoti = data.totales || { cantidad: 0, costo_total: 0 };
+                        this.$nextTick(() => this.initChoicesSinCotizar());
+                    } else {
+                        this.mensaje = 'Error al cargar las solicitudes sin cotizar.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error("Error cargando solicitudes sin cotizar:", e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargando = false;
+                }
+            },
+
+            initChoicesSinCotizar() {
+                if (typeof Choices === 'undefined') return;
+
+                const config = { removeItemButton: true, itemSelectText: '', allowHTML: true, shouldSort: false, searchPlaceholderValue: 'Buscar...' };
+
+                const initOne = (ref, prop, choicesProp) => {
+                    const el = this.$refs[ref];
+                    if (!el) return;
+                    if (this[choicesProp]) this[choicesProp].destroy();
+                    this[choicesProp] = new Choices(el, config);
+                    el.addEventListener('change', () => {
+                        this[prop] = this[choicesProp].getValue(true).map(String);
+                        this.currentPageSinCoti = 1;
+                    });
+                };
+
+                initOne('choicesRazonSinCoti', 'filtrosRazonSinCoti', 'choicesRazonSinCoti');
+                initOne('choicesComplejoSinCoti', 'filtrosComplejoSinCoti', 'choicesComplejoSinCoti');
+                initOne('choicesDeptoSinCoti', 'filtrosDeptoSinCoti', 'choicesDeptoSinCoti');
+                initOne('choicesTipoSinCoti', 'filtrosTipoSinCoti', 'choicesTipoSinCoti');
+
+                const elEstado = this.$refs['choicesEstadoSinCoti'];
+                if (elEstado) {
+                    if (this.choicesEstadoSinCoti) this.choicesEstadoSinCoti.destroy();
+                    this.choicesEstadoSinCoti = new Choices(elEstado, config);
+                    this.choicesEstadoSinCoti.setChoiceByValue(this.filtrosEstadoSinCoti);
+                    elEstado.addEventListener('change', () => {
+                        this.filtrosEstadoSinCoti = this.choicesEstadoSinCoti.getValue(true).map(String);
+                        this.currentPageSinCoti = 1;
+                    });
+                }
+            },
+
+            get opcionesRazonesSinCoti() {
+                return [...new Set(this.solicitudesSinCotizar.map(s => s.RazonSocial).filter(Boolean))];
+            },
+
+            get opcionesComplejosSinCoti() {
+                return [...new Set(this.solicitudesSinCotizar.map(s => s.Complejo).filter(Boolean))];
+            },
+
+            get opcionesDeptosSinCoti() {
+                return [...new Set(this.solicitudesSinCotizar.map(s => s.Departamento).filter(Boolean))];
+            },
+
+            get solicitudesSinCotizarFiltradas() {
+                const source = Array.isArray(this.solicitudesSinCotizar) ? this.solicitudesSinCotizar : [];
+                if (source.length === 0) return [];
+
+                const searchFolio = (this.filtroTextoFolioSinCoti || '').trim().toLowerCase();
+                const selEstados = (this.filtrosEstadoSinCoti || []).map(String);
+                const selRazones = (this.filtrosRazonSinCoti || []).map(String);
+                const selComplejos = (this.filtrosComplejoSinCoti || []).map(String);
+                const selDeptos = (this.filtrosDeptoSinCoti || []).map(String);
+                const selTipos = (this.filtrosTipoSinCoti || []).map(String);
+
+                const fechaIni = this.filtroFechaDesdeSinCoti ? new Date(this.filtroFechaDesdeSinCoti + 'T00:00:00') : null;
+                const fechaFin = this.filtroFechaHastaSinCoti ? new Date(this.filtroFechaHastaSinCoti + 'T23:59:59') : null;
+
+                const filtered = source.filter(s => {
+                    if (selEstados.length > 0 && !selEstados.includes(String(s.Estado))) return false;
+                    if (selRazones.length > 0 && !selRazones.includes(String(s.RazonSocial))) return false;
+                    if (selComplejos.length > 0 && !selComplejos.includes(String(s.Complejo))) return false;
+                    if (selDeptos.length > 0 && !selDeptos.includes(String(s.Departamento))) return false;
+                    if (selTipos.length > 0 && !selTipos.includes(s.Tipo)) return false;
+
+                    if (searchFolio && !(s.No_Folio || '').toLowerCase().includes(searchFolio)) return false;
+
+                    if (s.FechaSolicitud) {
+                        const fechaSolic = s.FechaSolicitud.includes(' ')
+                            ? new Date(s.FechaSolicitud.replace(' ', 'T'))
+                            : new Date(s.FechaSolicitud + 'T00:00:00');
+                        if (fechaIni && fechaSolic < fechaIni) return false;
+                        if (fechaFin && fechaSolic > fechaFin) return false;
+                    }
+                    return true;
+                });
+
+                return filtered.sort((a, b) => new Date(b.FechaSolicitud || 0) - new Date(a.FechaSolicitud || 0));
+            },
+
+            get totalPagesSinCoti() {
+                return Math.ceil(this.solicitudesSinCotizarFiltradas.length / this.rowsPerPageSinCoti) || 1;
+            },
+
+            get paginatedSinCoti() {
+                const filtrados = this.solicitudesSinCotizarFiltradas;
+                const start = (this.currentPageSinCoti - 1) * this.rowsPerPageSinCoti;
+                return filtrados.slice(start, start + this.rowsPerPageSinCoti);
+            },
+
+            get totalCostoSinCoti() {
+                return this.solicitudesSinCotizarFiltradas.reduce((acc, s) => acc + (parseFloat(s.CostoTotal) || 0), 0);
+            },
+
+            cambiarPaginaSinCoti(page) {
+                if (page < 1 || page > this.totalPagesSinCoti) return;
+                this.currentPageSinCoti = page;
+            },
+
+            limpiarFiltrosSinCoti() {
+                const refsChoice = ['choicesEstadoSinCoti', 'choicesRazonSinCoti', 'choicesComplejoSinCoti', 'choicesDeptoSinCoti', 'choicesTipoSinCoti'];
+                refsChoice.forEach(r => { if (this[r]) this[r].removeActiveItems(); });
+                this.filtroTextoFolioSinCoti = '';
+                this.filtroFechaDesdeSinCoti = '';
+                this.filtroFechaHastaSinCoti = '';
+                this.filtrosEstadoSinCoti = ['Aprobacion Pendiente', 'En espera'];
+                this.filtrosRazonSinCoti = [];
+                this.filtrosComplejoSinCoti = [];
+                this.filtrosDeptoSinCoti = [];
+                this.filtrosTipoSinCoti = [];
+                this.currentPageSinCoti = 1;
+                if (this.choicesEstadoSinCoti && this.choicesEstadoSinCoti.getValue(true).length === 0) {
+                    this.choicesEstadoSinCoti.setChoiceByValue(this.filtrosEstadoSinCoti);
+                }
+            },
+
+            async exportarSolicitudesSinCotizarExcel() {
+                const filteredData = this.solicitudesSinCotizarFiltradas;
+                if (filteredData.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando Excel de Solicitudes Sin Cotizar...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos: filteredData,
+                        filtros: {
+                            desde: this.filtroFechaDesdeSinCoti,
+                            hasta: this.filtroFechaHastaSinCoti,
+                            estados: (this.filtrosEstadoSinCoti || []).join(', '),
+                            razonesSociales: (this.filtrosRazonSinCoti || []).join(', '),
+                            complejos: (this.filtrosComplejoSinCoti || []).join(', '),
+                            departamentos: (this.filtrosDeptoSinCoti || []).join(', '),
+                            tipos: (this.filtrosTipoSinCoti || []).join(', ')
+                        }
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/solicitudes/sin-cotizar/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `solicitudes_sin_cotizar_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert("Error al generar el archivo Excel.");
+                    }
+                } catch (e) {
+                    console.error("Error exportarSolicitudesSinCotizarExcel:", e);
+                    alert("Error al generar el Excel.");
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            async exportarSolicitudesSinCotizarPdf() {
+                const filteredData = this.solicitudesSinCotizarFiltradas;
+                if (filteredData.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando PDF de Solicitudes Sin Cotizar...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos: filteredData,
+                        filtros: {
+                            desde: this.filtroFechaDesdeSinCoti,
+                            hasta: this.filtroFechaHastaSinCoti,
+                            estados: (this.filtrosEstadoSinCoti || []).join(', '),
+                            razonesSociales: (this.filtrosRazonSinCoti || []).join(', '),
+                            complejos: (this.filtrosComplejoSinCoti || []).join(', '),
+                            departamentos: (this.filtrosDeptoSinCoti || []).join(', '),
+                            tipos: (this.filtrosTipoSinCoti || []).join(', ')
+                        }
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/solicitudes/sin-cotizar/exportar-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `solicitudes_sin_cotizar_${new Date().toISOString().split('T')[0]}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) {
+                    console.error('Error exportarSolicitudesSinCotizarPdf:', e);
+                    alert('Error al generar el PDF.');
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            // ============ REPORTE REQUISICIONES PAGADAS ============
+
+            async cargarPagosRealizados() {
+                this.cargando = true;
+                this.pagosRealizados = [];
+                this.currentPagePagosRealizados = 1;
+                try {
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-realizados`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.pagosRealizados = Array.isArray(data.datos) ? data.datos : [];
+                        this.totalesPagosRealizados = data.totales || { cantidad: 0, total_general: 0 };
+                        this.$nextTick(() => this.initChoicesPagosRealizados());
+                    } else {
+                        console.error('Error al cargar el reporte de requisiciones pagadas:', await res.text());
+                        this.mensaje = 'Error al cargar el reporte de requisiciones pagadas.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error('Error cargando requisiciones pagadas:', e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargando = false;
+                }
+            },
+
+            initChoicesPagosRealizados() {
+                if (typeof Choices === 'undefined') return;
+
+                const config = { removeItemButton: true, itemSelectText: '', allowHTML: true, shouldSort: false, placeholder: true, placeholderValue: 'Seleccione...', searchPlaceholderValue: 'Buscar...' };
+
+                const initOne = (ref, prop, choicesProp) => {
+                    const el = this.$refs[ref];
+                    if (!el) return;
+                    try {
+                        if (this[choicesProp]) this[choicesProp].destroy();
+                        this[choicesProp] = new Choices(el, config);
+                        el.addEventListener('change', () => {
+                            this[prop] = this[choicesProp].getValue(true).map(String);
+                            this.currentPagePagosRealizados = 1;
+                        });
+                    } catch (e) {
+                        console.error('Error inicializando Choices en ' + ref + ':', e);
+                    }
+                };
+
+                initOne('choicesRazonPagosRealizados', 'filtrosRazonPagosRealizados', 'choicesRazonPagosRealizados');
+                initOne('choicesComplejoPagosRealizados', 'filtrosComplejoPagosRealizados', 'choicesComplejoPagosRealizados');
+                initOne('choicesDeptosPagosRealizados', 'filtrosDeptosPagosRealizados', 'choicesDeptosPagosRealizados');
+                initOne('choicesUsuarioPagosRealizados', 'filtrosUsuarioPagosRealizados', 'choicesUsuarioPagosRealizados');
+                initOne('choicesFormaPagoPagosRealizados', 'filtrosFormaPagoPagosRealizados', 'choicesFormaPagoPagosRealizados');
+                initOne('choicesTipoPagosRealizados', 'filtrosTipoPagosRealizados', 'choicesTipoPagosRealizados');
+            },
+
+            _uniqOpcionesRealizados(campo) {
+                const arr = Array.isArray(this.pagosRealizados) ? this.pagosRealizados : [];
+                return [...new Set(arr.map(s => (s && s[campo] ? String(s[campo]).trim() : '')).filter(v => v && v.toLowerCase() !== 'n/a'))];
+            },
+
+            get opcionesRazonesPagosRealizados() {
+                return this._uniqOpcionesRealizados('RazonSocial');
+            },
+
+            get opcionesComplejosPagosRealizados() {
+                return this._uniqOpcionesRealizados('Complejo');
+            },
+
+            get opcionesDeptosPagosRealizados() {
+                return this._uniqOpcionesRealizados('Departamento');
+            },
+
+            get opcionesUsuariosPagosRealizados() {
+                return this._uniqOpcionesRealizados('Usuario');
+            },
+
+            get opcionesFormasPagoPagosRealizados() {
+                return this._uniqOpcionesRealizados('FormaPago');
+            },
+
+            get pagosRealizadosFiltradas() {
+                const source = Array.isArray(this.pagosRealizados) ? this.pagosRealizados : [];
+                if (source.length === 0) return [];
+
+                const searchFolio = (this.filtroTextoFolioPagosRealizados || '').trim().toLowerCase();
+                const selRazones = (this.filtrosRazonPagosRealizados || []).map(String);
+                const selComplejos = (this.filtrosComplejoPagosRealizados || []).map(String);
+                const selDeptos = (this.filtrosDeptosPagosRealizados || []).map(String);
+                const selUsuarios = (this.filtrosUsuarioPagosRealizados || []).map(String);
+                const selFormas = (this.filtrosFormaPagoPagosRealizados || []).map(String);
+                const selTipos = (this.filtrosTipoPagosRealizados || []).map(String);
+
+                const filtered = source.filter(s => {
+                    if (selRazones.length > 0 && !selRazones.includes(String(s.RazonSocial))) return false;
+                    if (selComplejos.length > 0 && !selComplejos.includes(String(s.Complejo))) return false;
+                    if (selDeptos.length > 0 && !selDeptos.includes(String(s.Departamento))) return false;
+                    if (selUsuarios.length > 0 && !selUsuarios.includes(String(s.Usuario))) return false;
+                    if (selFormas.length > 0 && !selFormas.includes(String(s.FormaPago))) return false;
+                    if (selTipos.length > 0 && !selTipos.includes(s.Tipo)) return false;
+
+                    if (searchFolio && !(s.No_Folio || '').toLowerCase().includes(searchFolio)) return false;
+                    return true;
+                });
+
+                return filtered.sort((a, b) => new Date(a.FechaSolicitud || 0) - new Date(b.FechaSolicitud || 0));
+            },
+
+            get totalPagesPagosRealizados() {
+                return Math.ceil(this.pagosRealizadosFiltradas.length / this.rowsPerPagePagosRealizados) || 1;
+            },
+
+            get paginatedPagosRealizados() {
+                const filtrados = this.pagosRealizadosFiltradas;
+                const start = (this.currentPagePagosRealizados - 1) * this.rowsPerPagePagosRealizados;
+                return filtrados.slice(start, start + this.rowsPerPagePagosRealizados);
+            },
+
+            get totalGeneralPagosRealizados() {
+                return this.pagosRealizadosFiltradas.reduce((acc, s) => acc + (parseFloat(s.TotalRequisicion) || 0), 0);
+            },
+
+            cambiarPaginaPagosRealizados(page) {
+                if (page < 1 || page > this.totalPagesPagosRealizados) return;
+                this.currentPagePagosRealizados = page;
+            },
+
+            limpiarFiltrosPagosRealizados() {
+                const refsChoice = ['choicesRazonPagosRealizados', 'choicesComplejoPagosRealizados', 'choicesDeptosPagosRealizados', 'choicesUsuarioPagosRealizados', 'choicesFormaPagoPagosRealizados', 'choicesTipoPagosRealizados'];
+                refsChoice.forEach(r => { if (this[r]) this[r].removeActiveItems(); });
+                this.filtroTextoFolioPagosRealizados = '';
+                this.filtrosRazonPagosRealizados = [];
+                this.filtrosComplejoPagosRealizados = [];
+                this.filtrosDeptosPagosRealizados = [];
+                this.filtrosUsuarioPagosRealizados = [];
+                this.filtrosFormaPagoPagosRealizados = [];
+                this.filtrosTipoPagosRealizados = [];
+                this.currentPagePagosRealizados = 1;
+            },
+
+            abrirModalFechaCorteRealizados(tipo) {
+                this.tipoExportacionPagosRealizados = tipo || 'excel';
+                this.fechaCorteExport = new Date().toISOString().split('T')[0];
+                this.modalFechaCorteAbierto = true;
+            },
+
+            cerrarModalFechaCorteRealizados() {
+                this.modalFechaCorteAbierto = false;
+            },
+
+            async confirmarExportacionPagosRealizados() {
+                if (!this.fechaCorteExport) {
+                    alert('Selecciona una fecha de corte.');
+                    return;
+                }
+                const corte = this.fechaCorteExport;
+                const datos = this.pagosRealizadosFiltradas.filter(s => {
+                    if (!s.FechaMasReciente) return true;
+                    return String(s.FechaMasReciente) <= corte;
+                });
+                if (datos.length === 0) {
+                    alert('No hay requisiciones que entren dentro de la fecha de corte seleccionada.');
+                    return;
+                }
+
+                this.modalFechaCorteAbierto = false;
+                if (this.tipoExportacionPagosRealizados === 'excel') {
+                    await this.exportarPagosRealizadosExcel(datos, corte);
+                } else {
+                    await this.exportarPagosRealizadosPdf(datos, corte);
+                }
+            },
+
+            async exportarPagosRealizadosExcel(datos, fechaCorte) {
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando Excel de Requisiciones Pagadas...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos,
+                        fechaCorte,
+                        nombreEmpresa: window.APP_NOMBRE_EMPRESA || '',
+                        filtros: {
+                            razonesSociales: (this.filtrosRazonPagosRealizados || []).join(', '),
+                            complejos: (this.filtrosComplejoPagosRealizados || []).join(', '),
+                            departamentos: (this.filtrosDeptosPagosRealizados || []).join(', '),
+                            usuarios: (this.filtrosUsuarioPagosRealizados || []).join(', '),
+                            formasPago: (this.filtrosFormaPagoPagosRealizados || []).join(', '),
+                            tipos: (this.filtrosTipoPagosRealizados || []).join(', ')
+                        }
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-realizados/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `pagos_realizados_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert("Error al generar el archivo Excel.");
+                    }
+                } catch (e) {
+                    console.error("Error exportarPagosRealizadosExcel:", e);
+                    alert("Error al generar el Excel.");
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            async exportarPagosRealizadosPdf(datos, fechaCorte) {
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando PDF de Requisiciones Pagadas...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos,
+                        fechaCorte,
+                        nombreEmpresa: window.APP_NOMBRE_EMPRESA || '',
+                        filtros: {
+                            razonesSociales: (this.filtrosRazonPagosRealizados || []).join(', '),
+                            complejos: (this.filtrosComplejoPagosRealizados || []).join(', '),
+                            departamentos: (this.filtrosDeptosPagosRealizados || []).join(', '),
+                            usuarios: (this.filtrosUsuarioPagosRealizados || []).join(', '),
+                            formasPago: (this.filtrosFormaPagoPagosRealizados || []).join(', '),
+                            tipos: (this.filtrosTipoPagosRealizados || []).join(', ')
+                        }
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-realizados/exportar-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `pagos_realizados_${new Date().toISOString().split('T')[0]}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) {
+                    console.error('Error exportarPagosRealizadosPdf:', e);
+                    alert('Error al generar el PDF.');
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+
+            async cargarPagosPendientes() {
+                this.cargando = true;
+                this.pagosPendientes = [];
+                this.currentPagePagosPend = 1;
+                try {
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-pendientes`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.pagosPendientes = Array.isArray(data.datos) ? data.datos : [];
+                        this.totalesPagosPend = data.totales || { cantidad: 0, total_general: 0, saldo_total: 0 };
+                        this.$nextTick(() => this.initChoicesPagosPendientes());
+                    } else {
+                        console.error('Error al cargar el reporte de pagos pendientes:', await res.text());
+                        this.mensaje = 'Error al cargar el reporte de pagos pendientes.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error('Error cargando pagos pendientes:', e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargando = false;
+                }
+            },
+
+            initChoicesPagosPendientes() {
+                if (typeof Choices === 'undefined') return;
+
+                const config = { removeItemButton: true, itemSelectText: '', allowHTML: true, shouldSort: false, placeholder: true, placeholderValue: 'Seleccione...', searchPlaceholderValue: 'Buscar...' };
+
+                const initOne = (ref, prop, choicesProp) => {
+                    const el = this.$refs[ref];
+                    if (!el) return;
+                    try {
+                        if (this[choicesProp]) this[choicesProp].destroy();
+                        this[choicesProp] = new Choices(el, config);
+                        el.addEventListener('change', () => {
+                            this[prop] = this[choicesProp].getValue(true).map(String);
+                            this.currentPagePagosPend = 1;
+                        });
+                    } catch (e) {
+                        console.error('Error inicializando Choices en ' + ref + ':', e);
+                    }
+                };
+
+                initOne('choicesRazonPagosPend', 'filtrosRazonPagosPend', 'choicesRazonPagosPend');
+                initOne('choicesComplejoPagosPend', 'filtrosComplejoPagosPend', 'choicesComplejoPagosPend');
+                initOne('choicesDeptosPagosPend', 'filtrosDeptosPagosPend', 'choicesDeptosPagosPend');
+                initOne('choicesUsuarioPagosPend', 'filtrosUsuarioPagosPend', 'choicesUsuarioPagosPend');
+                initOne('choicesFormaPagoPagosPend', 'filtrosFormaPagoPagosPend', 'choicesFormaPagoPagosPend');
+                initOne('choicesTipoPagosPend', 'filtrosTipoPagosPend', 'choicesTipoPagosPend');
+                initOne('choicesEstadoPagosPend', 'filtrosEstadoPagosPend', 'choicesEstadoPagosPend');
+            },
+
+            _uniqOpciones(campo) {
+                const arr = Array.isArray(this.pagosPendientes) ? this.pagosPendientes : [];
+                return [...new Set(arr.map(s => (s && s[campo] ? String(s[campo]).trim() : '')).filter(v => v && v.toLowerCase() !== 'n/a'))];
+            },
+
+            get opcionesRazonesPagosPend() {
+                return this._uniqOpciones('RazonSocial');
+            },
+
+            get opcionesComplejosPagosPend() {
+                return this._uniqOpciones('Complejo');
+            },
+
+            get opcionesDeptosPagosPend() {
+                return this._uniqOpciones('Departamento');
+            },
+
+            get opcionesUsuariosPagosPend() {
+                return this._uniqOpciones('Usuario');
+            },
+
+            get opcionesFormasPagoPagosPend() {
+                return this._uniqOpciones('FormaPago');
+            },
+
+            get opcionesEstadosPagosPend() {
+                const arr = Array.isArray(this.pagosPendientes) ? this.pagosPendientes : [];
+                return [...new Set(arr.map(s => (s.EstadoOC || s.Estado || '').trim()).filter(v => v && v.toLowerCase() !== 'n/a'))];
+            },
+
+            get pagosPendientesFiltradas() {
+                const source = Array.isArray(this.pagosPendientes) ? this.pagosPendientes : [];
+                if (source.length === 0) return [];
+
+                const searchFolio = (this.filtroTextoFolioPagosPend || '').trim().toLowerCase();
+                const selRazones = (this.filtrosRazonPagosPend || []).map(String);
+                const selComplejos = (this.filtrosComplejoPagosPend || []).map(String);
+                const selDeptos = (this.filtrosDeptosPagosPend || []).map(String);
+                const selUsuarios = (this.filtrosUsuarioPagosPend || []).map(String);
+                const selFormas = (this.filtrosFormaPagoPagosPend || []).map(String);
+                const selTipos = (this.filtrosTipoPagosPend || []).map(String);
+                const selEstados = (this.filtrosEstadoPagosPend || []).map(String);
+
+                                const filtered = source.filter(s => {
+                    if (selRazones.length > 0 && !selRazones.includes(String(s.RazonSocial))) return false;
+                    if (selComplejos.length > 0 && !selComplejos.includes(String(s.Complejo))) return false;
+                    if (selDeptos.length > 0 && !selDeptos.includes(String(s.Departamento))) return false;
+                    if (selUsuarios.length > 0 && !selUsuarios.includes(String(s.Usuario))) return false;
+                    if (selFormas.length > 0 && !selFormas.includes(String(s.FormaPago))) return false;
+                    if (selTipos.length > 0 && !selTipos.includes(s.Tipo)) return false;
+                    if (selEstados.length > 0 && !selEstados.includes(String(s.EstadoOC || s.Estado))) return false;
+
+                    if (searchFolio && !(s.No_Folio || '').toLowerCase().includes(searchFolio)) return false;
+                    return true;
+                });
+
+                return filtered.sort((a, b) => new Date(a.FechaSolicitud || 0) - new Date(b.FechaSolicitud || 0));
+            },
+
+            get totalPagesPagosPend() {
+                return Math.ceil(this.pagosPendientesFiltradas.length / this.rowsPerPagePagosPend) || 1;
+            },
+
+            get paginatedPagosPend() {
+                const filtrados = this.pagosPendientesFiltradas;
+                const start = (this.currentPagePagosPend - 1) * this.rowsPerPagePagosPend;
+                return filtrados.slice(start, start + this.rowsPerPagePagosPend);
+            },
+
+            get totalGeneralPagosPend() {
+                return this.pagosPendientesFiltradas.reduce((acc, s) => acc + (parseFloat(s.TotalRequisicion) || 0), 0);
+            },
+
+            get saldoTotalPagosPend() {
+                const total = this.pagosPendientesFiltradas.reduce((acc, s) => acc + (parseFloat(s.SaldoCredito) || 0), 0);
+                return Math.round(total * 100) / 100;
+            },
+
+            cambiarPaginaPagosPend(page) {
+                if (page < 1 || page > this.totalPagesPagosPend) return;
+                this.currentPagePagosPend = page;
+            },
+
+            limpiarFiltrosPagosPend() {
+                const refsChoice = ['choicesRazonPagosPend', 'choicesComplejoPagosPend', 'choicesDeptosPagosPend', 'choicesUsuarioPagosPend', 'choicesFormaPagoPagosPend', 'choicesTipoPagosPend', 'choicesEstadoPagosPend'];
+                refsChoice.forEach(r => { if (this[r]) this[r].removeActiveItems(); });
+                this.filtroTextoFolioPagosPend = '';
+                this.filtrosRazonPagosPend = [];
+                this.filtrosComplejoPagosPend = [];
+                this.filtrosDeptosPagosPend = [];
+                this.filtrosUsuarioPagosPend = [];
+                this.filtrosFormaPagoPagosPend = [];
+                this.filtrosTipoPagosPend = [];
+                this.filtrosEstadoPagosPend = [];
+                this.currentPagePagosPend = 1;
+            },
+
+            abrirModalFechaCorte(tipo) {
+                this.tipoExportacionPagosPend = tipo || 'excel';
+                this.fechaCorteExport = new Date().toISOString().split('T')[0];
+                this.modalFechaCorteAbierto = true;
+            },
+
+            cerrarModalFechaCorte() {
+                this.modalFechaCorteAbierto = false;
+            },
+
+            async confirmarExportacionPagosPendientes() {
+                if (!this.fechaCorteExport) {
+                    alert('Selecciona una fecha de corte.');
+                    return;
+                }
+                const corte = this.fechaCorteExport;
+                const datos = this.pagosPendientesFiltradas.filter(s => {
+                    if (!s.FechaMasReciente) return true;
+                    return String(s.FechaMasReciente) <= corte;
+                });
+                if (datos.length === 0) {
+                    alert('No hay requisiciones que entren dentro de la fecha de corte seleccionada.');
+                    return;
+                }
+                this.modalFechaCorteAbierto = false;
+                if (this.tipoExportacionPagosPend === 'excel') {
+                    await this.exportarPagosPendientesExcel(datos, corte);
+                } else {
+                    await this.exportarPagosPendientesPdf(datos, corte);
+                }
+            },
+
+            async exportarPagosPendientesExcel(datos, fechaCorte) {
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando Excel de Pagos Pendientes...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos,
+                        fechaCorte,
+                        filtros: {
+                            razonesSociales: (this.filtrosRazonPagosPend || []).join(', '),
+                            complejos: (this.filtrosComplejoPagosPend || []).join(', '),
+                            departamentos: (this.filtrosDeptosPagosPend || []).join(', '),
+                            usuarios: (this.filtrosUsuarioPagosPend || []).join(', '),
+                            formasPago: (this.filtrosFormaPagoPagosPend || []).join(', '),
+                            tipos: (this.filtrosTipoPagosPend || []).join(', '),
+                            estados: (this.filtrosEstadoPagosPend || []).join(', ')
+                        }
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-pendientes/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `pagos_pendientes_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert("Error al generar el archivo Excel.");
+                    }
+                } catch (e) {
+                    console.error("Error exportarPagosPendientesExcel:", e);
+                    alert("Error al generar el Excel.");
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            async exportarPagosPendientesPdf(datos, fechaCorte) {
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando PDF de Pagos Pendientes...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos,
+                        fechaCorte,
+                        filtros: {
+                            razonesSociales: (this.filtrosRazonPagosPend || []).join(', '),
+                            complejos: (this.filtrosComplejoPagosPend || []).join(', '),
+                            departamentos: (this.filtrosDeptosPagosPend || []).join(', '),
+                            usuarios: (this.filtrosUsuarioPagosPend || []).join(', '),
+                            formasPago: (this.filtrosFormaPagoPagosPend || []).join(', '),
+                            tipos: (this.filtrosTipoPagosPend || []).join(', '),
+                            estados: (this.filtrosEstadoPagosPend || []).join(', ')
+                        }
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-pendientes/exportar-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `pagos_pendientes_${new Date().toISOString().split('T')[0]}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) {
+                    console.error('Error exportarPagosPendientesPdf:', e);
+                    alert('Error al generar el PDF.');
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
             get totalPagesVencimientos() {
                 return Math.ceil(this.vencimientosFiltrados.length / this.rowsPerPageVencimientos) || 1;
             },
@@ -725,7 +1604,7 @@ function registrarComponenteReportePresupuesto() {
                     if (notif && typeof notif.click === 'function') notif.click();
                 }
             },
-
+            
             async mostrarVerMovimiento(idSolicitud) {
                 const divMovimientos = document.getElementById('div-movimientos');
                 const divVencimientos = document.getElementById('div-vencimientos');
@@ -876,7 +1755,7 @@ function registrarComponenteReportePresupuesto() {
                                         <p class="text-sm font-bold text-gray-800 tracking-tight">${data.RazonSocialNombre || 'N/A'}</p>
                                     </div>
                                     <div class="md:col-span-2 flex flex-col gap-1 items-end justify-center">
-                                        <p class="text-[10px] text-black-500 uppercase font-bold mb-1 tracking-widest text-gray-600">Inversión Total</p>
+                                        <p class="text-[10px] text-black-500 uppercase font-bold mb-1 tracking-widest text-gray-600">Importe Total</p>
                                         <p class="text-2xl font-black text-gray-800 tracking-tighter drop-shadow-sm">${format(data.cotizacion?.Total || 0)}</p>
                                     </div>
                                     <div class="flex flex-col gap-1">
@@ -1103,12 +1982,31 @@ function registrarComponenteReportePresupuesto() {
                     complex.departamentos.push(uniClon);
                 });
 
+                // Detectar importes excedidos en todos los niveles, incluyendo partidas (detalles).
+                // La columna debe aparecer si CUALQUIER partida supera el 100% de ejecución,
+                // aunque el total agregado de la unidad no se exceda.
+                const detectarExcedidos = (nodo) => {
+                    if (!nodo) return;
+                    if (parseFloat(nodo.totales?.excedido || 0) > 0) this.hayExcedidos = true;
+                    if (Array.isArray(nodo.detalles)) {
+                        nodo.detalles.forEach(d => {
+                            if (parseFloat(d.excedido ?? d.exce ?? 0) > 0) this.hayExcedidos = true;
+                        });
+                    }
+                    ['segmentos', 'complejos', 'departamentos'].forEach(k => {
+                        if (Array.isArray(nodo[k])) nodo[k].forEach(child => detectarExcedidos(child));
+                    });
+                };
+
                 rsGrupos.forEach(rs => {
                     calc(rs.totales);
                     rs.segmentos.forEach(seg => {
                         calc(seg.totales);
                         seg.complejos.forEach(c => calc(c.totales));
                     });
+                    if (this.pantalla === 'presupuesto' || this.pantalla === 'completo') {
+                        detectarExcedidos(rs);
+                    }
                 });
 
                 // Calcular Totales Generales Consolidados (incluyendo meses)
@@ -1290,6 +2188,94 @@ function registrarComponenteReportePresupuesto() {
                 finally { if (notif && typeof notif.click === 'function') notif.click(); }
             },
 
+            async generarSoloPresupuestoPdf() {
+                if (this.departamentos.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const rsNombre = (!this.verGlobal && this.idRazonSocial)
+                    ? (this.razonesSociales.find(r => r.ID_RazonSocial === this.idRazonSocial)?.Nombre || '')
+                    : 'Consolidado Global';
+
+                const notif = typeof mostrarNotificacion !== 'undefined' ? mostrarNotificacion('Generando PDF de Presupuesto Asignado...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        titulo: 'Presupuesto Asignado',
+                        pantalla: this.pantalla,
+                        campo: 'asignado',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        mesesSeleccionados: this.mesesSeleccionados,
+                        nombreEmpresa: rsNombre
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto/exportar-mensual-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `presupuesto_asignado_${this.anio}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif && typeof notif.click === 'function') notif.click(); }
+            },
+
+            async generarSoloEjecutadoPdf() {
+                if (this.departamentos.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const rsNombre = (!this.verGlobal && this.idRazonSocial)
+                    ? (this.razonesSociales.find(r => r.ID_RazonSocial === this.idRazonSocial)?.Nombre || '')
+                    : 'Consolidado Global';
+
+                const notif = typeof mostrarNotificacion !== 'undefined' ? mostrarNotificacion('Generando PDF de Importe Ejecutado...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        titulo: 'Importe Ejecutado',
+                        pantalla: this.pantalla,
+                        campo: 'ejecutado',
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        mesesSeleccionados: this.mesesSeleccionados,
+                        nombreEmpresa: rsNombre
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto/exportar-mensual-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `importe_ejecutado_${this.anio}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif && typeof notif.click === 'function') notif.click(); }
+            },
+
             async exportarSoloEjecutadoExcel() {
                 if (this.departamentos.length === 0) {
                     alert("No hay datos para exportar.");
@@ -1364,6 +2350,50 @@ function registrarComponenteReportePresupuesto() {
                 finally { if (notif) notif.click(); }
             },
 
+            async generarPresupuestoVsEjecutadoPdf() {
+                if (this.departamentos.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const rsNombre = (!this.verGlobal && this.idRazonSocial)
+                    ? (this.razonesSociales.find(r => r.ID_RazonSocial === this.idRazonSocial)?.Nombre || '')
+                    : 'Consolidado Global';
+
+                const notif = typeof mostrarNotificacion !== 'undefined' ? mostrarNotificacion('Generando PDF de Presupuesto vs Ejecutado...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        titulo: 'Presupuesto vs Ejecutado',
+                        pantalla: this.pantalla,
+                        mesAnio: this.anio + '-' + this.meses.join(','),
+                        datos: this.departamentosAgrupados,
+                        hayExcedidos: this.hayExcedidos,
+                        mesesSeleccionados: this.mesesSeleccionados,
+                        nombreEmpresa: rsNombre
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/presupuesto/exportar-vs-ejecutado-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `presupuesto_vs_ejecutado_${this.anio}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) { console.error(e); }
+                finally { if (notif && typeof notif.click === 'function') notif.click(); }
+            },
+
             async exportarVencimientosExcel() {
                 const filteredData = this.vencimientosFiltrados;
                 if (filteredData.length === 0) {
@@ -1406,6 +2436,56 @@ function registrarComponenteReportePresupuesto() {
                     console.error("Error exportando excel:", e); 
                 } finally { 
                     if (notif) notif.click(); 
+                }
+            },
+
+            async exportarVencimientosPdf() {
+                const filteredData = this.vencimientosFiltrados;
+                if (!filteredData || filteredData.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando PDF de Vencimientos...', 'info', 0) : null;
+
+                try {
+                    let nombreEmpresa = 'Corporativo MBM';
+                    if (this.filtrosRazonesVenc && this.filtrosRazonesVenc.length === 1) {
+                        const idRS = parseInt(this.filtrosRazonesVenc[0]);
+                        const rsObj = this.razonesSociales.find(r => parseInt(r.ID_RazonSocial) === idRS);
+                        if (rsObj) nombreEmpresa = rsObj.Nombre;
+                    }
+
+                    const payload = {
+                        reporteDetallado: this.reporteDetallado,
+                        datos: filteredData,
+                        nombreEmpresa: nombreEmpresa
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/vencimientos/exportar-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `reporte_vencimientos_${this.reporteDetallado ? 'detallado' : 'agrupado'}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) {
+                    console.error('Error exportarVencimientosPdf:', e);
+                    alert('Error al generar el PDF.');
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
                 }
             },
 

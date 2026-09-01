@@ -293,12 +293,9 @@ class Modales extends BaseController
                 return view('modales/dictamen_solicitudes', $data);
 
             case 'crud_proveedores':
-                $proveedorModel = new ProveedorModel();
-
-                // Traer todos los registros de proveedores
-                $data['proveedores'] = $proveedorModel->orderBy('ID_Proveedor', 'ASC')->findAll();
-
-                return view('modales/crud_proveedores', $data);
+                // La tabla principal (directorio de proveedores) se carga vía API paginada:
+                // GET api/providers/paginated (createPaginatedTableServer)
+                return view('modales/crud_proveedores');
 
             case 'limpiar_almacenamiento':
                 return view('modales/limpiar_almacenamiento');
@@ -511,11 +508,9 @@ class Modales extends BaseController
                 return view('modales/crud_departamento', $data);
 
             case 'crud_cuentas':
-                // Llenamos la tabla principal con los datos del proveedor
-                $proveedorModel = new ProveedorModel();
-                $data['cuentas'] = $proveedorModel->orderBy('RazonSocial', 'ASC')->findAll();
-
-                return view('modales/crud_cuentas', $data);
+                // La tabla principal (proveedores) se carga vía API paginada:
+                // GET api/providers/paginated (createPaginatedTableServer)
+                return view('modales/crud_cuentas');
 
             case 'correcciones':
                 $razonSocialModel = new RazonSocialModel();
@@ -536,12 +531,8 @@ class Modales extends BaseController
                 $unidadesModel = new UnidadOperativaModel();
                 $solicitudesCambioModel = new \App\Models\SolicitudesCambioPresupuestoModel();
 
-                $data['grupos'] = $grupoModel
-                    ->select('GrupoPresupuestal.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
-                    ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
-                    ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left')
-                    ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
-                    ->findAll();
+                // La tabla principal (partidas) se carga vía API paginada:
+                // GET api/grupos-presupuestales/paginated (createPaginatedTableServer)
 
                 $data['unidades_operativas'] = $unidadesModel
                     ->select('UnidadOperativa.*, Places.Nombre_Corto as PlaceNombre')
@@ -633,32 +624,15 @@ class Modales extends BaseController
                 return $this->bitacora();
 
             case 'catalogo_productos':
-                $catalogoModel = new CatalogoProductosModel();
                 $rsModel = new RazonSocialModel();
                 $segmentoModel = new SegmentoNegocioModel();
                 $placeModel = new PlacesModel();
                 $deptoModel = new UnidadOperativaModel();
                 $grupoModel = new GrupoPresupuestalModel();
 
-                $catalogo = $catalogoModel->getFullCatalogo();
-                // Normalización de catálogo para compatibilidad cross-DB
-                foreach ($catalogo as &$item) {
-                    $item['ID_CatalogoProd'] = $item['ID_CatalogoProd'] ?? $item['id_catalogoprod'] ?? null;
-                    $item['Nombre'] = $item['Nombre'] ?? $item['nombre'] ?? '';
-                    $item['ID_RazonSocial'] = $item['ID_RazonSocial'] ?? $item['id_razonsocial'] ?? null;
-                    $item['ID_Place'] = $item['ID_Place'] ?? $item['id_place'] ?? null;
-                    $item['ID_Dpto'] = $item['ID_Dpto'] ?? $item['id_dpto'] ?? null;
-                    $item['ID_GrupoPresupuestal'] = $item['ID_GrupoPresupuestal'] ?? $item['id_grupopresupuestal'] ?? null;
-                    
-                    // Alias específicos
-                    $item['RazonSocial_Nombre'] = $item['RazonSocial_Nombre'] ?? $item['razonsocial_nombre'] ?? '-';
-                    $item['Place_Nombre'] = $item['Place_Nombre'] ?? $item['place_nombre'] ?? '-';
-                    $item['Departamento_Nombre'] = $item['Departamento_Nombre'] ?? $item['departamento_nombre'] ?? '-';
-                    $item['GrupoPresupuestal_Nombre'] = $item['GrupoPresupuestal_Nombre'] ?? $item['grupopresupuestal_nombre'] ?? 'SIN ASIGNAR';
-                }
-                unset($item);
+                // La tabla principal del catálogo se carga vía API paginada:
+                // GET api/catalogo/paginated (createPaginatedTableServer)
 
-                $data['catalogo'] = $catalogo;
                 $data['razones_sociales'] = $rsModel->orderBy('Nombre', 'ASC')->findAll();
                 $data['segmentos'] = $segmentoModel->orderBy('nombre', 'ASC')->findAll();
                 $data['places'] = $placeModel->orderBy('Nombre_Corto', 'ASC')->findAll();
@@ -1346,10 +1320,17 @@ class Modales extends BaseController
             'activo'          => true
         ];
 
-        if ($model->insert($data)) {
-            return $this->response->setJSON(['success' => true]);
-        } else {
-            return $this->failAudit('No se pudo insertar el lugar. Verifique los datos.', 'Catalogos', 'FALLO_REGISTRO_PLACE');
+        try {
+            if ($model->insert($data)) {
+                return $this->response->setJSON(['success' => true]);
+            } else {
+                return $this->failAudit('No se pudo insertar el lugar. Verifique los datos.', 'Catalogos', 'FALLO_REGISTRO_PLACE');
+            }
+        } catch (\Throwable $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error de base de datos. Asegúrese de ejecutar las migraciones en el servidor: ' . $e->getMessage()
+            ]);
         }
     }
     public function editarPlace($id)
@@ -1448,12 +1429,15 @@ class Modales extends BaseController
                 $data['activo'] = ($valPost === 'on' || $valPost === '1' || $valPost === 1 || $valPost === true);
             }
 
-            // --- AJUSTE DINÁMICO DE VALIDACIÓN ---
-            // Sobreescribimos la regla para este caso específico inyectando el ID a ignorar
-            $model->setValidationRule('Nombre_Corto', "required|is_unique[Places.Nombre_Corto,ID_Place,$id]");
-
-            if ($model->update($id, $data)) {
-                return $this->response->setJSON(['success' => true]);
+            try {
+                if ($model->update($id, $data)) {
+                    return $this->response->setJSON(['success' => true]);
+                }
+            } catch (\Throwable $e) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Error de base de datos al actualizar. Asegúrese de ejecutar las migraciones en el servidor: ' . $e->getMessage()
+                ]);
             }
 
             $errors = $model->errors();

@@ -75,7 +75,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ReporteCompras"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-red-700 text-xs">Reporte Pagado/Por Pagar</span>
+                <span class="font-bold text-gray-700 group-hover:text-red-700 text-xs">Reporte Pagado/Por Pagar Autorizado</span>
             </button>
             <button @click="irAPantalla('movimientos')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-teal-300 hover:bg-teal-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -91,7 +91,32 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ReporteVencimientos"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-yellow-700 text-xs">Reportes De Vencimiento</span>
+                <span class="font-bold text-gray-700 group-hover:text-yellow-700 text-xs">Reportes De Creditos</span>
+            </button>
+            <button @click="irAPantalla('sincotizar')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-sky-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#en_espera"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-sky-700 text-xs">Solicitudes Sin Cotizar</span>
+            </button>
+            <button @click="irAPantalla('pagos_pendientes')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-emerald-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-emerald-700 text-xs">Reporte Pagos Pendientes</span>
+            </button>
+            <button @click="irAPantalla('pagos_realizados')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-blue-600" fill="none" stroke-width="2" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15l3-3" />
+                        <circle cx="12" cy="12" r="9" />
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-blue-700 text-xs">Reporte Requisiciones Pagadas</span>
             </button>
         </div>
     </div>
@@ -99,17 +124,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <!-- Pantalla 5: Directorio de Proveedores -->
     <template x-if="pantalla === 'proveedores'">
         <div id="pantalla-lista-proveedores" class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-6">
-            <div class="flex items-center justify-between mb-4">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-orange-600 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
-                <div class="flex items-center gap-4">
-                    <button @click="exportarProveedoresExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <h2 class="text-2xl font-semibold text-center text-gray-800">Directorio de Proveedores</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-orange-600 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="exportarProveedoresPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarProveedoresExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Directorio de Proveedores</h2>
             </div>
 
             <!-- Buscadores -->
@@ -279,17 +308,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'compras'">
         <div class="animate-fadeIn">
             <div id="div-reportes" x-data="Reportes(<?= htmlspecialchars(json_encode($tabledata ?? []), ENT_QUOTES, 'UTF-8') ?>)">
-                <div class="flex items-center justify-between mb-6">
-                    <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                    <div class="flex items-center gap-4">
-                        <button @click="generarReporteCSV" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Exportar Excel
-                        </button>
-                        <h2 class="text-xl font-bold text-gray-800">Reporte Pagado/Por Pagar</h2>
+                <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                    <button @click="irAPantalla('menu')" class="text-base text-black hover:text-red-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                            <a @click="exportarComprasPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                PDF
+                            </a>
+                            <a @click="generarReporteCSV" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                EXCEL
+                            </a>
+                        </div>
                     </div>
+                    <h2 class="text-xl font-bold text-gray-800">Reporte Pagado/Por Pagar Autorizado</h2>
                 </div>
 
                 <!-- Controles de Filtro -->
@@ -462,11 +495,11 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             <!-- CONTENEDOR PRINCIPAL: Tabla de Movimientos -->
             <div id="div-movimientos">
                 <div class="flex items-center justify-between mb-6">
-                    <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                    <button @click="irAPantalla('menu')" class="text-base text-black hover:text-red-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
                     <div class="flex items-center gap-4">
                         <button x-show="movimientosProveedor.length > 0" @click="exportarMovimientosExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l3-3m-3 3l3 3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             Exportar Excel
                         </button>
@@ -597,33 +630,36 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             </div>
             </template>
 
-            <!-- Pantalla 8: Reportes de Vencimiento -->
+            <!-- Pantalla 8: Reportes de Creditos -->
             <template x-if="pantalla === 'vencimientos'">
                 <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
                     <!-- CONTENEDOR PRINCIPAL: Tabla de Vencimientos -->
                     <div id="div-vencimientos">
-                        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-                            <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-amber-700 flex items-center gap-1 font-semibold">&larr; Volver al menú</button>
-                            <div class="flex flex-wrap items-center gap-3 md:gap-4">
-                                <!-- Botón Exportar Excel -->
-                                <button @click="exportarVencimientosExcel()" 
-                                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    Exportar Excel
-                                </button>
-
-                                <!-- Toggle Detallado (Estilo Presupuesto Global) -->
-                                <div class="flex items-center">
-                                    <label class="inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
-                                        <div class="relative w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-                                        <span class="ms-3 text-[10px] font-bold text-slate-700 uppercase tracking-tight">Reporte Detallado</span>
-                                    </label>
+                        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                            <button @click="irAPantalla('menu')" class="text-base text-black hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                                <div class="flex flex-col gap-2">
+                                    <div class="flex items-center gap-3">
+                                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                                        <a @click="exportarVencimientosPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            PDF
+                                        </a>
+                                        <a @click="exportarVencimientosExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            EXCEL
+                                        </a>
+                                    </div>
+                                    <!-- Toggle Detallado (Estilo Presupuesto Global) -->
+                                    <div class="flex items-center">
+                                        <label class="inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" x-model="reporteDetallado" @change="currentPageVencimientos = 1" class="sr-only peer">
+                                            <div class="relative w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                                            <span class="ms-3 text-[10px] font-bold text-slate-700 uppercase tracking-tight">Reporte Detallado</span>
+                                        </label>
+                                    </div>
                                 </div>
-                                <h2 class="text-xl font-bold text-slate-800">Reportes de Vencimiento</h2>
                             </div>
+                            <h2 class="text-xl font-bold text-slate-800">Reportes de Credito</h2>
                         </div>
 
                         <!-- Panel de Filtros Avanzados -->
@@ -821,17 +857,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             <!-- Pantalla: Solo Ejecutado -->
     <template x-if="pantalla === 'solo_ejecutado'">
         <div class="animate-fadeIn">
-            <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-cyan-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <div class="flex items-center gap-4">
-                    <button x-show="departamentos.length > 0" @click="exportarSoloEjecutadoExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <h2 class="text-xl font-bold text-gray-800">Importe Ejecutado Mensual</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-cyan-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div x-show="departamentos.length > 0" class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="generarSoloEjecutadoPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarSoloEjecutadoExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Importe Ejecutado Mensual</h2>
             </div>
 
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
@@ -1010,17 +1050,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <!-- Pantalla: Solo Presupuesto -->
     <template x-if="pantalla === 'solo_presupuesto'">
         <div class="animate-fadeIn">
-            <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-indigo-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <div class="flex items-center gap-4">
-                    <button x-show="departamentos.length > 0" @click="exportarSoloPresupuestoExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <h2 class="text-xl font-bold text-gray-800">Presupuesto Asignado Mensual</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-indigo-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div x-show="departamentos.length > 0" class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="generarSoloPresupuestoPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarSoloPresupuestoExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Presupuesto Asignado Mensual</h2>
             </div>
 
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
@@ -1206,17 +1250,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <!-- Pantalla 2: Reporte Presupuesto vs Ejecutado -->
     <template x-if="pantalla === 'presupuesto'">
         <div class="animate-fadeIn">
-            <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-blue-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
-                <div class="flex items-center gap-4">
-                    <button x-show="departamentos.length > 0" @click="exportarExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Exportar Excel
-                    </button>
-                    <h2 class="text-xl font-bold text-gray-800">Presupuesto vs Ejecutado Mensual</h2>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-blue-600 flex items-center gap-1 font-medium mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div x-show="departamentos.length > 0" class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="generarPresupuestoVsEjecutadoPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
                 </div>
+                <h2 class="text-xl font-bold text-gray-800">Presupuesto vs Ejecutado Mensual</h2>
             </div>
 
             <div class="flex flex-wrap items-start gap-x-6 gap-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
@@ -1400,7 +1448,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'cuentas'">
         <div class="animate-fadeIn">
             <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-green-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-green-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
                 <div class="flex items-center gap-4">
                     <button x-show="departamentosBancos.length > 0" @click="exportarBancosExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1512,7 +1560,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
     <template x-if="pantalla === 'completo'">
         <div class="animate-fadeIn">
             <div class="flex items-center justify-between mb-6">
-                <button @click="irAPantalla('menu')" class="text-sm text-gray-600 hover:text-purple-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-purple-600 flex items-center gap-1 font-medium">&larr; Volver al menú</button>
                 <div class="flex items-center gap-4">
                     <button x-show="departamentosCompleto.length > 0" @click="exportarReporteCompletoExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all text-xs font-bold shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1718,10 +1766,652 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             </div>
         </div>
     </template>
+
+    <!-- Pantalla: Solicitudes Sin Cotizar -->
+    <template x-if="pantalla === 'sincotizar'">
+        <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="exportarSolicitudesSinCotizarPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarSolicitudesSinCotizarExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Solicitudes Sin Cotizar</h2>
+            </div>
+
+            <!-- Panel de Filtros Avanzados -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <!-- Folio -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Folio</label>
+                        <input type="text" x-model="filtroTextoFolioSinCoti" placeholder="Buscar folio..."
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+
+                    <!-- Desde -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha Desde</label>
+                        <input type="date" x-model="filtroFechaDesdeSinCoti" @change="currentPageSinCoti = 1"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+
+                    <!-- Hasta -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha Hasta</label>
+                        <input type="date" x-model="filtroFechaHastaSinCoti" @change="currentPageSinCoti = 1"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+
+                    <!-- Tipo -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Tipo</label>
+                        <select x-ref="choicesTipoSinCoti" multiple>
+                            <option value="Producto">Producto</option>
+                            <option value="Servicio">Servicio</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Estado -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Estado</label>
+                        <select x-ref="choicesEstadoSinCoti" multiple>
+                            <option value="Aprobacion Pendiente">Aprobacion Pendiente</option>
+                            <option value="En espera">En espera</option>
+                            <option value="Rechazada">Rechazada</option>
+                            <option value="Dept_Rechazada">Depto Rechazada</option>
+                            <option value="Cancelada">Cancelada</option>
+                        </select>
+                    </div>
+
+                    <!-- Razón Social -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
+                        <select x-ref="choicesRazonSinCoti" multiple>
+                            <template x-for="rs in opcionesRazonesSinCoti" :key="'rs-' + rs"><option :value="rs" x-text="rs"></option></template>
+                        </select>
+                    </div>
+
+                    <!-- Complejo -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Complejo</label>
+                        <select x-ref="choicesComplejoSinCoti" multiple>
+                            <template x-for="cp in opcionesComplejosSinCoti" :key="'cp-' + cp"><option :value="cp" x-text="cp"></option></template>
+                        </select>
+                    </div>
+
+                    <!-- Departamento -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
+                        <select x-ref="choicesDeptoSinCoti" multiple>
+                            <template x-for="dp in opcionesDeptosSinCoti" :key="'dp-' + dp"><option :value="dp" x-text="dp"></option></template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button @click="limpiarFiltrosSinCoti()" class="px-4 py-1.5 bg-slate-800 text-white text-[10px] font-bold rounded-lg hover:bg-slate-900 transition-all uppercase tracking-widest">
+                        Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="min-w-full border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">
+                        <tr>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Folio</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Razón Social</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Complejo</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Departamento</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Usuario</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Fecha Solicitud</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">F. Aprob. Jefe</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Estado</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Tipo</th>
+                            <th class="border border-slate-200 px-3 py-2 text-right">Costo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        <template x-if="cargando">
+                            <tr>
+                                <td colspan="10" class="text-center py-12 text-gray-500 italic">Cargando solicitudes...</td>
+                            </tr>
+                        </template>
+                        <template x-if="!cargando && paginatedSinCoti.length === 0">
+                            <tr>
+                                <td colspan="10" class="text-center py-12 text-gray-400 italic">No se encontraron solicitudes sin cotizar.</td>
+                            </tr>
+                        </template>
+                        <template x-for="(s, index) in paginatedSinCoti" :key="'sincoti-' + s.ID_Solicitud">
+                            <tr class="text-xs border-b border-slate-100 transition-colors hover:bg-sky-50/40">
+                                <td class="px-2 py-2 text-center font-mono font-bold text-blue-800" x-text="s.No_Folio"></td>
+                                <td class="px-3 py-2 text-left font-bold text-gray-800" x-text="s.RazonSocial"></td>
+                                <td class="px-3 py-2 text-left" x-text="s.Complejo"></td>
+                                <td class="px-3 py-2 text-left" x-text="s.Departamento"></td>
+                                <td class="px-3 py-2 text-left" x-text="s.Usuario"></td>
+                                <td class="px-3 py-2 text-center text-gray-600" x-text="(s.FechaSolicitud || '').slice(0, 16)"></td>
+                                <td class="px-3 py-2 text-center" x-text="(s.FechaAprobacionJefe || '').slice(0, 16) || '—'"></td>
+                                <td class="px-3 py-2 text-center">
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide"
+                                          :class="s.Estado === 'Aprobacion Pendiente' ? 'bg-amber-100 text-amber-800' : (s.Estado === 'En espera' ? 'bg-sky-100 text-sky-800' : (s.Estado === 'Cancelada' || s.Estado === 'Rechazada' || s.Estado === 'Dept_Rechazada' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'))"
+                                          x-text="s.Estado"></span>
+                                </td>
+                                <td class="px-3 py-2 text-center text-gray-600" x-text="s.Tipo"></td>
+                                <td class="px-3 py-2 text-right font-bold text-gray-800" x-text="formatearMoneda(s.CostoTotal)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot x-show="!cargando && solicitudesSinCotizarFiltradas.length > 0" class="bg-slate-100">
+                        <tr>
+                            <td colspan="9" class="px-3 py-3 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Total General:</td>
+                            <td class="px-3 py-3 text-right font-black text-slate-800" x-text="formatearMoneda(totalCostoSinCoti)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Resumen -->
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" x-show="!cargando && solicitudesSinCotizarFiltradas.length > 0">
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-sky-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Solicitudes</span>
+                    <span class="text-lg font-black text-sky-700" x-text="solicitudesSinCotizarFiltradas.length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-amber-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Aprobación Pendiente</span>
+                    <span class="text-lg font-black text-amber-700" x-text="solicitudesSinCotizarFiltradas.filter(s => s.Estado === 'Aprobacion Pendiente').length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-green-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">En Espera / Sin Cotizar</span>
+                    <span class="text-lg font-black text-green-700" x-text="solicitudesSinCotizarFiltradas.filter(s => s.Estado === 'En espera').length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-slate-800 rounded-lg">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Costo Total Estimado</span>
+                    <span class="text-lg font-black text-white" x-text="formatearMoneda(totalCostoSinCoti)"></span>
+                </div>
+            </div>
+
+            <!-- Controles de Paginación -->
+            <div class="flex justify-between items-center mt-4" x-show="totalPagesSinCoti > 1">
+                <span class="text-xs text-gray-600 font-medium">
+                    Página <span x-text="currentPageSinCoti"></span> de <span x-text="totalPagesSinCoti"></span>
+                </span>
+                <div class="flex items-center gap-1">
+                    <button @click="cambiarPaginaSinCoti(1)" :disabled="currentPageSinCoti === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                    <button @click="cambiarPaginaSinCoti(currentPageSinCoti - 1)" :disabled="currentPageSinCoti === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+                    <span class="px-3 py-1 border rounded bg-sky-600 text-white text-xs font-bold" x-text="currentPageSinCoti"></span>
+                    <button @click="cambiarPaginaSinCoti(currentPageSinCoti + 1)" :disabled="currentPageSinCoti === totalPagesSinCoti"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                    <button @click="cambiarPaginaSinCoti(totalPagesSinCoti)" :disabled="currentPageSinCoti === totalPagesSinCoti"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template x-if="pantalla === 'pagos_pendientes'">
+        <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-emerald-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="abrirModalFechaCorte('pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="abrirModalFechaCorte('excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
+                </div>
+                <h2 class="text-xl font-bold text-slate-800">Reporte Pagos Pendientes</h2>
+            </div>
+
+            <!-- Panel de Filtros Avanzados -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Folio</label>
+                        <input type="text" x-model="filtroTextoFolioPagosPend" placeholder="Buscar folio..."
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Forma de Pago</label>
+                        <select x-ref="choicesFormaPagoPagosPend" multiple>
+                            <option value="Contado">Contado</option>
+                            <option value="Crédito">Crédito</option>
+                            <option value="En Espera">En Espera</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Tipo</label>
+                        <select x-ref="choicesTipoPagosPend" multiple>
+                            <option value="Producto">Producto</option>
+                            <option value="Servicio">Servicio</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Usuario</label>
+                        <select x-ref="choicesUsuarioPagosPend" multiple>
+                            <template x-for="us in opcionesUsuariosPagosPend" :key="'us-' + us"><option :value="us" x-text="us"></option></template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
+                        <select x-ref="choicesRazonPagosPend" multiple>
+                            <template x-for="rs in opcionesRazonesPagosPend" :key="'rs-' + rs"><option :value="rs" x-text="rs"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Complejo</label>
+                        <select x-ref="choicesComplejoPagosPend" multiple>
+                            <template x-for="cp in opcionesComplejosPagosPend" :key="'cp-' + cp"><option :value="cp" x-text="cp"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
+                        <select x-ref="choicesDeptosPagosPend" multiple>
+                            <template x-for="dp in opcionesDeptosPagosPend" :key="'dp-' + dp"><option :value="dp" x-text="dp"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Estado</label>
+                        <select x-ref="choicesEstadoPagosPend" multiple>
+                            <template x-for="es in opcionesEstadosPagosPend" :key="'es-' + es"><option :value="es" x-text="es"></option></template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button @click="limpiarFiltrosPagosPend()" class="px-4 py-1.5 bg-slate-800 text-white text-[10px] font-bold rounded-lg hover:bg-slate-900 transition-all uppercase tracking-widest">
+                        Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="min-w-full border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">
+                        <tr>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Folio</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Razón Social</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Complejo</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Departamento</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Usuario</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Solicitud</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Aprob. Jefe</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Aprob. Dir.</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. OC</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Pago Realizado</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Comprobante</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Estado</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Forma Pago</th>
+                            <th class="border border-slate-200 px-2 py-2 text-right">Crédito</th>
+                            <th class="border border-slate-200 px-2 py-2 text-right">Total Req.</th>
+                            <th class="border border-slate-200 px-2 py-2 text-right">Saldo Crédito</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        <template x-if="cargando">
+                            <tr>
+                                <td colspan="16" class="text-center py-12 text-gray-500 italic">Cargando pagos pendientes...</td>
+                            </tr>
+                        </template>
+                        <template x-if="!cargando && paginatedPagosPend.length === 0">
+                            <tr>
+                                <td colspan="16" class="text-center py-12 text-gray-400 italic">No se encontraron pagos pendientes.</td>
+                            </tr>
+                        </template>
+                        <template x-for="(p, index) in paginatedPagosPend" :key="'pagospp-' + p.ID_Solicitud">
+                            <tr class="text-xs border-b border-slate-100 transition-colors hover:bg-emerald-50/40">
+                                <td class="px-2 py-2 text-center font-mono font-bold text-emerald-800" x-text="p.No_Folio"></td>
+                                <td class="px-3 py-2 text-left font-bold text-gray-800" x-text="p.RazonSocial"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Complejo"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Departamento"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Usuario"></td>
+                                <td class="px-2 py-2 text-center text-gray-600" x-text="p.FechaSolicitud || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaAprobacionJefe || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaAprobacion || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaOC || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaPagoRealizado || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaComprobante || '—'"></td>
+                                <td class="px-2 py-2 text-center">
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide whitespace-nowrap"
+                                          :class="(p.EstadoOC ? p.EstadoOC : p.Estado) === 'Por Pagar' ? 'bg-amber-100 text-amber-800' : (p.EstadoOC ? p.EstadoOC : p.Estado) === 'Programada' ? 'bg-sky-100 text-sky-800' : (p.EstadoOC ? p.EstadoOC : p.Estado) === 'Espera_Programacion' ? 'bg-indigo-100 text-indigo-800' : p.Estado === 'Aprobada' ? 'bg-green-100 text-green-800' : p.Estado === 'En revision' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'"
+                                          x-text="p.EstadoOC ? p.EstadoOC : p.Estado"></span>
+                                </td>
+                                <td class="px-2 py-2 text-center" x-text="p.FormaPago"></td>
+                                <td class="px-2 py-2 text-right font-bold" x-text="p.MontoCredito !== null && p.MontoCredito !== undefined ? formatearMoneda(p.MontoCredito) : '—'"></td>
+                                <td class="px-2 py-2 text-right font-bold text-gray-800" x-text="formatearMoneda(p.TotalRequisicion)"></td>
+                                <td class="px-2 py-2 text-right font-bold" :class="p.SaldoCredito !== null && p.SaldoCredito !== undefined && p.SaldoCredito < 0 ? 'text-red-600' : 'text-emerald-700'" x-text="p.SaldoCredito !== null && p.SaldoCredito !== undefined ? formatearMoneda(p.SaldoCredito) : '—'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot x-show="!cargando && pagosPendientesFiltradas.length > 0" class="bg-slate-100">
+                        <tr>
+                            <td colspan="15" class="px-3 py-3 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Totales:</td>
+                            <td class="px-2 py-3 text-right font-black text-slate-800" x-text="formatearMoneda(totalGeneralPagosPend)"></td>
+                            <td class="px-2 py-3 text-right font-black text-emerald-700" x-text="formatearMoneda(saldoTotalPagosPend)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Resumen -->
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" x-show="!cargando && pagosPendientesFiltradas.length > 0">
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-emerald-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Requisiciones</span>
+                    <span class="text-lg font-black text-emerald-700" x-text="pagosPendientesFiltradas.length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-amber-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Sin Orden de Compra</span>
+                    <span class="text-lg font-black text-amber-700" x-text="pagosPendientesFiltradas.filter(p => !p.EstadoOC).length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-blue-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Por Pagar (OC)</span>
+                    <span class="text-lg font-black text-blue-700" x-text="pagosPendientesFiltradas.filter(p => p.EstadoOC === 'Por Pagar').length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-slate-800 rounded-lg">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total General</span>
+                    <span class="text-lg font-black text-white" x-text="formatearMoneda(totalGeneralPagosPend)"></span>
+                </div>
+            </div>
+
+            <!-- Controles de Paginación -->
+            <div class="flex justify-between items-center mt-4" x-show="totalPagesPagosPend > 1">
+                <span class="text-xs text-gray-600 font-medium">
+                    Página <span x-text="currentPagePagosPend"></span> de <span x-text="totalPagesPagosPend"></span>
+                </span>
+                <div class="flex items-center gap-1">
+                    <button @click="cambiarPaginaPagosPend(1)" :disabled="currentPagePagosPend === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                    <button @click="cambiarPaginaPagosPend(currentPagePagosPend - 1)" :disabled="currentPagePagosPend === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+                    <span class="px-3 py-1 border rounded bg-emerald-600 text-white text-xs font-bold" x-text="currentPagePagosPend"></span>
+                    <button @click="cambiarPaginaPagosPend(currentPagePagosPend + 1)" :disabled="currentPagePagosPend === totalPagesPagosPend"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                    <button @click="cambiarPaginaPagosPend(totalPagesPagosPend)" :disabled="currentPagePagosPend === totalPagesPagosPend"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                </div>
+            </div>
+
+            <!-- Modal Fecha de Corte -->
+            <div x-show="modalFechaCorteAbierto" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fadeIn" @click.outside="cerrarModalFechaCorte()">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-slate-800">Fecha de Corte</h3>
+                        <button @click="cerrarModalFechaCorte()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+                    </div>
+                    <p class="text-xs text-gray-600 mb-4">
+                        Se exportarán las requisiciones cuya <strong>fecha más reciente</strong> (solicitud, aprobación, OC, pago o comprobante) sea anterior o igual a la fecha de corte.
+                    </p>
+                    <div class="flex flex-col gap-1 mb-6">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha de corte</label>
+                        <input type="date" x-model="fechaCorteExport"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button @click="cerrarModalFechaCorte()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition-all">Cancelar</button>
+                        <button @click="confirmarExportacionPagosPendientes()"
+                                class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-all">
+                            Exportar <span x-text="tipoExportacionPagosPend === 'excel' ? 'Excel' : 'PDF'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Pantalla: Reporte Requisiciones Pagadas -->
+    <template x-if="pantalla === 'pagos_realizados'">
+        <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-sky-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="abrirModalFechaCorteRealizados('pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="abrirModalFechaCorteRealizados('excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Requisiciones Pagadas</h2>
+            </div>
+
+            <!-- Panel de Filtros Avanzados -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Folio</label>
+                        <input type="text" x-model="filtroTextoFolioPagosRealizados" placeholder="Buscar folio..."
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Forma de Pago</label>
+                        <select x-ref="choicesFormaPagoPagosRealizados" multiple>
+                            <option value="Contado">Contado</option>
+                            <option value="Crédito">Crédito</option>
+                            <option value="En Espera">En Espera</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Tipo</label>
+                        <select x-ref="choicesTipoPagosRealizados" multiple>
+                            <option value="Producto">Producto</option>
+                            <option value="Servicio">Servicio</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Usuario</label>
+                        <select x-ref="choicesUsuarioPagosRealizados" multiple>
+                            <template x-for="us in opcionesUsuariosPagosRealizados" :key="'us-r-' + us"><option :value="us" x-text="us"></option></template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
+                        <select x-ref="choicesRazonPagosRealizados" multiple>
+                            <template x-for="rs in opcionesRazonesPagosRealizados" :key="'rs-r-' + rs"><option :value="rs" x-text="rs"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Complejo</label>
+                        <select x-ref="choicesComplejoPagosRealizados" multiple>
+                            <template x-for="cp in opcionesComplejosPagosRealizados" :key="'cp-r-' + cp"><option :value="cp" x-text="cp"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
+                        <select x-ref="choicesDeptosPagosRealizados" multiple>
+                            <template x-for="dp in opcionesDeptosPagosRealizados" :key="'dp-r-' + dp"><option :value="dp" x-text="dp"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="hidden md:block"></div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button @click="limpiarFiltrosPagosRealizados()" class="px-4 py-1.5 bg-slate-800 text-white text-[10px] font-bold rounded-lg hover:bg-slate-900 transition-all uppercase tracking-widest">
+                        Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="min-w-full border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">
+                        <tr>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Folio</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Razón Social</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Complejo</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Departamento</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Usuario</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Solicitud</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Aprob. Jefe</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Aprob. Dir.</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. OC</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Pago Realizado</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Comprobante</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Estado</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Forma Pago</th>
+                            <th class="border border-slate-200 px-2 py-2 text-right">Crédito Proveedor</th>
+                            <th class="border border-slate-200 px-2 py-2 text-right">Total Req.</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        <template x-if="cargando">
+                            <tr>
+                                <td colspan="15" class="text-center py-12 text-gray-500 italic">Cargando requisiciones pagadas...</td>
+                            </tr>
+                        </template>
+                        <template x-if="!cargando && paginatedPagosRealizados.length === 0">
+                            <tr>
+                                <td colspan="15" class="text-center py-12 text-gray-400 italic">No se encontraron requisiciones pagadas.</td>
+                            </tr>
+                        </template>
+                        <template x-for="(p, index) in paginatedPagosRealizados" :key="'pagosr-' + p.ID_Solicitud">
+                            <tr class="text-xs border-b border-slate-100 transition-colors hover:bg-sky-50/40">
+                                <td class="px-2 py-2 text-center font-mono font-bold text-sky-800" x-text="p.No_Folio"></td>
+                                <td class="px-3 py-2 text-left font-bold text-gray-800" x-text="p.RazonSocial"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Complejo"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Departamento"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Usuario"></td>
+                                <td class="px-2 py-2 text-center text-gray-600" x-text="p.FechaSolicitud || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaAprobacionJefe || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaAprobacion || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaOC || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaPagoRealizado || '—'"></td>
+                                <td class="px-2 py-2 text-center" x-text="p.FechaComprobante || '—'"></td>
+                                <td class="px-2 py-2 text-center">
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide whitespace-nowrap bg-green-100 text-green-800"
+                                          x-text="p.Estado"></span>
+                                </td>
+                                <td class="px-2 py-2 text-center" x-text="p.FormaPago"></td>
+                                <td class="px-2 py-2 text-right font-bold" x-text="p.MontoCredito !== null && p.MontoCredito !== undefined ? formatearMoneda(p.MontoCredito) : '—'"></td>
+                                <td class="px-2 py-2 text-right font-bold text-gray-800" x-text="formatearMoneda(p.TotalRequisicion)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot x-show="!cargando && pagosRealizadosFiltradas.length > 0" class="bg-slate-100">
+                        <tr>
+                            <td colspan="14" class="px-3 py-3 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Totales:</td>
+                            <td class="px-2 py-3 text-right font-black text-sky-800" x-text="formatearMoneda(totalGeneralPagosRealizados)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Resumen -->
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" x-show="!cargando && pagosRealizadosFiltradas.length > 0">
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-sky-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Requisiciones</span>
+                    <span class="text-lg font-black text-sky-700" x-text="pagosRealizadosFiltradas.length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-emerald-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Productos</span>
+                    <span class="text-lg font-black text-emerald-700" x-text="pagosRealizadosFiltradas.filter(p => p.Tipo === 'Producto').length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-slate-800 rounded-lg">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total General</span>
+                    <span class="text-lg font-black text-white" x-text="formatearMoneda(totalGeneralPagosRealizados)"></span>
+                </div>
+            </div>
+
+            <!-- Controles de Paginación -->
+            <div class="flex justify-between items-center mt-4" x-show="totalPagesPagosRealizados > 1">
+                <span class="text-xs text-gray-600 font-medium">
+                    Página <span x-text="currentPagePagosRealizados"></span> de <span x-text="totalPagesPagosRealizados"></span>
+                </span>
+                <div class="flex items-center gap-1">
+                    <button @click="cambiarPaginaPagosRealizados(1)" :disabled="currentPagePagosRealizados === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                    <button @click="cambiarPaginaPagosRealizados(currentPagePagosRealizados - 1)" :disabled="currentPagePagosRealizados === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+                    <span class="px-3 py-1 border rounded bg-sky-600 text-white text-xs font-bold" x-text="currentPagePagosRealizados"></span>
+                    <button @click="cambiarPaginaPagosRealizados(currentPagePagosRealizados + 1)" :disabled="currentPagePagosRealizados === totalPagesPagosRealizados"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                    <button @click="cambiarPaginaPagosRealizados(totalPagesPagosRealizados)" :disabled="currentPagePagosRealizados === totalPagesPagosRealizados"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                </div>
+            </div>
+
+            <!-- Modal Fecha de Corte -->
+            <div x-show="modalFechaCorteAbierto" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fadeIn" @click.outside="cerrarModalFechaCorteRealizados()">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-slate-800">Fecha de Corte</h3>
+                        <button @click="cerrarModalFechaCorteRealizados()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+                    </div>
+                    <p class="text-xs text-gray-600 mb-4">
+                        Se exportarán las requisiciones cuya <strong>fecha más reciente</strong> (solicitud, aprobación, OC, pago o comprobante) sea anterior o igual a la fecha de corte.
+                    </p>
+                    <div class="flex flex-col gap-1 mb-6">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha de corte</label>
+                        <input type="date" x-model="fechaCorteExport"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button @click="cerrarModalFechaCorteRealizados()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition-all">Cancelar</button>
+                        <button @click="confirmarExportacionPagosRealizados()"
+                                class="px-4 py-2 bg-sky-600 text-white text-xs font-bold rounded-lg hover:bg-sky-700 transition-all">
+                            Exportar <span x-text="tipoExportacionPagosRealizados === 'excel' ? 'Excel' : 'PDF'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>
 
 <style>
     .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     [x-cloak] { display: none !important; }
+
+    /* Connected Pill Buttons - Exportar (matching producción mbmgestor) */
+    .text-gold-metallic { color: #eab308; }
+    .border-gold-metallic\/20 { border-color: rgba(234, 179, 8, 0.2); }
+    .bg-gray-100\/50 { background-color: rgba(229, 231, 235, 0.5); }
+    .text-emerald-500 { color: #059669; }
+    .hover\:bg-rose-600:hover { background-color: #dc2626; }
+    .hover\:text-rose-600:hover { color: #dc2626; }
+    .hover\:text-white:hover { color: #fff; }
+    .hover\:bg-emerald-600:hover { background-color: #059669; }
+    .hover\:text-emerald-500:hover { color: #059669; }
 </style>

@@ -19,6 +19,7 @@ use App\Libraries\SolicitudTipo;
 use App\Libraries\Status;
 use App\Libraries\MBSMail;
 use App\Libraries\MetodoPago;
+use App\Libraries\PDF;
 use App\Controllers\GenerarPDF;
 use App\Models\ProveedorModel;
 use App\Models\RazonSocialModel;
@@ -193,7 +194,165 @@ class Api extends ResourceController
     }
 
     /**
+     * Exporta el directorio de proveedores a PDF con formato visual
+     * consistente con el reporte de presupuesto mensual.
+     */
+    public function exportarProveedoresPdf()
+    {
+        $proveedorModel = new ProveedorModel();
+        $proveedores = $proveedorModel->orderBy('RazonSocial', 'ASC')->findAll();
+
+        if (empty($proveedores)) {
+            return $this->fail('No hay proveedores para generar el PDF');
+        }
+
+        $headers = [
+            'ID', 'Razón Social', 'Correo', 'RFC', 'Banco', 'Cuenta', 'Clabe',
+            'Tel. Contacto', 'Nombre Contacto', 'Servicio', 'Días Crédito', 'Monto Crédito'
+        ];
+        $fieldKeys = [
+            'ID_Proveedor', 'RazonSocial', 'Correo', 'RFC', 'Banco', 'Cuenta', 'Clabe',
+            'Tel_Contacto', 'Nombre_Contacto', 'Servicio', 'Dias_Credito', 'Monto_Credito'
+        ];
+
+        $pdf = new PDF('L', 'mm', 'Letter');
+        $pdf->AliasNbPages();
+        $pdf->SetAutoPageBreak(false);
+        $pdf->setHeaderTitle('Directorio de Proveedores');
+        $pdf->AddPage();
+
+        // --- Bloque informativo (título + metadata) ---
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->SetTextColor(18, 18, 18);
+        $pdf->Cell(0, 7, $this->_iso('REPORTE DIRECTORIO DE PROVEEDORES'), 0, 1, 'L');
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->SetTextColor(90, 90, 90);
+        $pdf->Cell(0, 4, $this->_iso('Empresa: Grupo MBM'), 0, 1, 'L');
+        $pdf->Cell(0, 4, $this->_iso('Generado: ' . date('d/m/Y H:i:s')), 0, 1, 'L');
+        $pdf->Cell(0, 4, $this->_iso('Total registros: ' . count($proveedores)), 0, 1, 'L');
+        $pdf->Ln(2);
+
+        // --- Anchos de columnas ---
+        $contentW = 259.4; // usable width Letter Landscape
+        $colW = [8, 62, 26, 14, 18, 14, 16, 16, 26, 24, 14, 18];
+        $lineH = 4.6;
+
+        $pdf->SetWidths($colW);
+
+        // --- Encabezado de tabla (estilo oscuro) ---
+        $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+
+        // --- Filas de datos ---
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetDrawColor(229, 231, 235);
+
+        foreach ($proveedores as $p) {
+            $cells = [];
+            foreach ($fieldKeys as $k) {
+                $val = $p[$k] ?? '';
+                if (in_array($k, ['Monto_Credito'], true)) {
+                    $val = '$' . number_format((float) $val, 2);
+                }
+                $cells[] = $this->_iso((string) $val);
+            }
+
+            $lineCounts = [];
+            foreach ($cells as $i => $c) {
+                $lineCounts[$i] = $pdf->NbLines($colW[$i], $c);
+            }
+            $h = max($lineCounts) * $lineH;
+
+            if ($pdf->GetY() + $h > $pdf->getPageBreakTrigger()) {
+                $pdf->AddPage();
+                $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+                $pdf->SetFont('Arial', '', 8);
+                $pdf->SetTextColor(0, 0, 0);
+                $pdf->SetDrawColor(229, 231, 235);
+            }
+
+            $aligns = [];
+            foreach ($cells as $i => $v) {
+                $aligns[$i] = ($i === 0 || $i === 10) ? 'C' : 'L';
+            }
+            $pdf->SetX(8);
+            $pdf->drawTableRow($colW, $cells, $aligns, $lineH, false);
+        }
+
+        // --- Footer: Total General (estilo oscuro) ---
+        $this->_dibujarTotalGeneral($pdf, $colW, 'Total de proveedores: ' . count($proveedores));
+
+        $this->response->setHeader('Content-Type', 'application/pdf');
+        $pdf->Output('D', 'directorio_proveedores.pdf');
+        exit;
+    }
+
+    /**
+     * Dibuja la fila de encabezado con estilo oscuro (fondo RGB 31,41,55).
+     */
+    protected function _dibujarCabeceraOscura($pdf, array $colW, array $headers, float $lineH): void
+    {
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->SetFillColor(31, 41, 55);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetDrawColor(26, 26, 26);
+
+        $pdf->SetX(8);
+        $pdf->drawTableRow($colW, array_map(fn($h) => $this->_iso($h), $headers), array_fill(0, count($headers), 'C'), $lineH, true);
+    }
+
+    /**
+     * Dibuja la fila de total general con estilo oscuro.
+     */
+    protected function _dibujarTotalGeneral($pdf, array $colW, string $label): void
+    {
+        $totalW = array_sum($colW);
+
+        if ($pdf->GetY() + 7 > $pdf->getPageBreakTrigger()) {
+            $pdf->AddPage();
+        }
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->SetFillColor(31, 41, 55);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetDrawColor(26, 26, 26);
+        $pdf->SetX(8);
+        $pdf->Cell($totalW, 7, $this->_iso($label), 1, 0, 'R', true);
+    }
+
+    /**
+     * Convierte texto UTF-8 a ISO-8859-1 (compatible con las fuentes base de FPDF).
+     */
+    protected function _iso(string $text): string
+    {
+        return mb_convert_encoding($text ?? '', 'ISO-8859-1', 'UTF-8');
+    }
+
+    /**
+     * Dibuja la fila de encabezado de la tabla de proveedores.
+     */
+    protected function _dibujarCabecera($pdf, array $colW, array $headers, float $lineH): void
+    {
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->SetFillColor(226, 232, 240);
+        $pdf->SetTextColor(15);
+        $maxLines = 1;
+        foreach ($headers as $i => $h) {
+            $maxLines = max($maxLines, $pdf->NbLines($colW[$i], $this->_iso($h)));
+        }
+        $hy = $pdf->GetY();
+        $x = 8;
+        foreach ($headers as $i => $h) {
+            $pdf->SetXY($x, $hy);
+            $pdf->MultiCell($colW[$i], $lineH, $this->_iso($h), 1, 'C', true);
+            $x += $colW[$i];
+        }
+        $pdf->SetY($hy + $maxLines * $lineH);
+    }
+
+    /**
      * Obtiene un proveedor por su ID.
+     *
      * @param int|null $id El ID del proveedor.
      * @return \CodeIgniter\HTTP\Response
      */
@@ -318,6 +477,111 @@ class Api extends ResourceController
 
             $results = $this->api->getSolicitudByDepartment((int) $id, (int) $userId, $onlyDeclined);
             return $this->respond($results, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Obtiene el historial paginado con filtros server-side.
+     * Ilimitado: devuelve solo la página solicitada, sin límite de registros totales.
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getHistorialPaginated()
+    {
+        try {
+            $page = (int) ($this->request->getGet('page') ?? 1);
+            $perPage = (int) ($this->request->getGet('per_page') ?? 10);
+
+            $filters = [
+                'vista'            => $this->request->getGet('vista'),
+                'estado'           => $this->request->getGet('estado'),
+                'fecha'            => $this->request->getGet('fecha'),
+                'por_mes'          => $this->request->getGet('por_mes'),
+                'folio'            => $this->request->getGet('folio'),
+                'tipo'             => $this->request->getGet('tipo'),
+                'metodo'           => $this->request->getGet('metodo'),
+                'proveedores'      => $this->request->getGet('proveedores'),
+                'razones_sociales' => $this->request->getGet('razones_sociales'),
+                'departamentos'    => $this->request->getGet('departamentos'),
+                'dept_id'          => $this->request->getGet('dept_id'),
+                'is_exception'     => $this->request->getGet('is_exception'),
+            ];
+
+            $userId = session('id');
+            $result = $this->api->getSolicitudPaginated($page, $perPage, $filters, $userId);
+            return $this->respond($result, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Obtiene proveedores paginados con filtros server-side (razón social y RFC).
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getProvidersPaginated()
+    {
+        try {
+            $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+            $perPage = max(1, (int) ($this->request->getGet('per_page') ?? 10));
+
+            $filters = [
+                'razon_social' => $this->request->getGet('razon_social'),
+                'rfc'          => $this->request->getGet('rfc'),
+                'servicio'     => $this->request->getGet('servicio'),
+            ];
+
+            $result = $this->api->getProveedoresPaginated($page, $perPage, $filters);
+            return $this->respond($result, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Obtiene partidas presupuestales paginadas con filtros server-side
+     * (nombre, complejos y áreas de operación).
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getGruposPresupuestalesPaginated()
+    {
+        try {
+            $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+            $perPage = max(1, (int) ($this->request->getGet('per_page') ?? 10));
+
+            $filters = [
+                'nombre'   => $this->request->getGet('nombre'),
+                'lugares'  => $this->request->getGet('lugares'),
+                'unidades' => $this->request->getGet('unidades'),
+            ];
+
+            $result = $this->api->getGruposPresupuestalesPaginated($page, $perPage, $filters);
+            return $this->respond($result, HttpStatus::OK);
+        } catch (\Exception $e) {
+            return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Obtiene el catálogo de productos y servicios paginado con filtros
+     * server-side (nombre, departamento de operación y partida presupuestal).
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getCatalogoPaginated()
+    {
+        try {
+            $page = max(1, (int) ($this->request->getGet('page') ?? 1));
+            $perPage = max(1, (int) ($this->request->getGet('per_page') ?? 10));
+
+            $filters = [
+                'nombre'       => $this->request->getGet('nombre'),
+                'departamento' => $this->request->getGet('departamento'),
+                'grupo'        => $this->request->getGet('grupo'),
+            ];
+
+            $result = $this->api->getCatalogoPaginated($page, $perPage, $filters);
+            return $this->respond($result, HttpStatus::OK);
         } catch (\Exception $e) {
             return $this->fail($e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(), HttpStatus::INTERNAL_SERVER_ERROR);
         }
@@ -1988,6 +2252,7 @@ class Api extends ResourceController
                     // Si no existe esa columna exacta, usa 'OrdenCompra.Fecha' o la que uses para calcular vencimiento.
                     'Solicitud.Fecha_Aprobacion',
                     'OrdenCompra.Estado as EstadoOrden',
+                    'OrdenCompra.Fecha_Comprobante',
                     'Departamentos.Nombre as DepartamentoNombre',
                     'Razon_Social.Nombre as Complejo',
 
@@ -2300,8 +2565,23 @@ class Api extends ResourceController
         if ($this->request->is('json')) {
             $json = $this->request->getJSON();
             $nuevoEstado = $json->nuevoEstado ?? null;
+            $fechaComprobante = $json->fecha_comprobante ?? null;
         } else {
             $nuevoEstado = $this->request->getPost('nuevoEstado');
+            $fechaComprobante = $this->request->getPost('fecha_comprobante');
+        }
+
+        // Validar formato de fecha (YYYY-MM-DD) si se envía.
+        if (!empty($fechaComprobante)) {
+            $fechaComprobante = trim($fechaComprobante);
+            $d = \DateTime::createFromFormat('Y-m-d', $fechaComprobante);
+            if (!$d || $d->format('Y-m-d') !== $fechaComprobante) {
+                return $this->failValidationAudit(
+                    'La fecha del comprobante no es válida. Use el formato AAAA-MM-DD.',
+                );
+            }
+        } else {
+            $fechaComprobante = null;
         }
 
         $facturaFiles = $this->request->getFileMultiple('factura');
@@ -2376,9 +2656,13 @@ class Api extends ResourceController
                 log_message('info', $comprobanteFileName);
                 if ($comprobanteFileName) {
                     // Changed $savedFile to $comprobanteFileName
-                    $ordenCompraModel->update($idOrdenCompra, [
+                    $updateComprobante = [
                         'File_Comprobante' => $comprobanteFileName,
-                    ]);
+                    ];
+                    if (!empty($fechaComprobante)) {
+                        $updateComprobante['Fecha_Comprobante'] = $fechaComprobante;
+                    }
+                    $ordenCompraModel->update($idOrdenCompra, $updateComprobante);
                     $comprobanteSavedPath = FPath::FCOMPROBANTES . $comprobanteFileName; // Set full path
                 } else {
                     return $this->failServerError('No se pudo guardar el archivo del comprobante.');
@@ -2401,8 +2685,9 @@ class Api extends ResourceController
                     $to = getenv('EMAIL_TO_TEST');
                     if (empty($to)) {
                         if (!$proveedorData || empty($proveedorData['Correo'])) {
-                            throw new \Exception(
-                                'No se pudo encontrar un correo electrónico para el proveedor.',
+                            return $this->fail(
+                                'No se puede cambiar el estado. El proveedor no tiene un correo electrónico registrado.',
+                                \CodeIgniter\HTTP\Response::HTTP_UNPROCESSABLE_ENTITY,
                             );
                         }
                         $to = $proveedorData['Correo'];
@@ -2581,6 +2866,11 @@ class Api extends ResourceController
                 $datosActualizar = [
                     'Estado' => $nuevoEstado,
                 ];
+
+                // Si el usuario capturó la fecha del comprobante, la persistimos junto al cambio de estado
+                if (!empty($fechaComprobante)) {
+                    $datosActualizar['Fecha_Comprobante'] = $fechaComprobante;
+                }
 
                 // Si el estado que recibimos es el del botón ("Por Pagar"), inyectamos la fecha actual
                 if ($nuevoEstado === 'Por Pagar' || (class_exists('Status') && $nuevoEstado === Status::Por_Pagar)) {
@@ -3331,7 +3621,12 @@ class Api extends ResourceController
 
             if ($fecha) {
                 if ($porMes) {
-                    $builder->where("to_char(Solicitud.Fecha, 'YYYY-MM')", substr($fecha, 0, 7));
+                    // Filtro por mes portable PostgreSQL/MySQL: rango de fechas calculado en PHP
+                    $mes = substr($fecha, 0, 7);
+                    $inicio = $mes . '-01';
+                    $fin = date('Y-m-t', strtotime($inicio));
+                    $builder->where('Solicitud.Fecha >=', $inicio)
+                          ->where('Solicitud.Fecha <=', $fin);
                 } else {
                     $builder->where('Solicitud.Fecha', $fecha);
                 }
@@ -4125,7 +4420,7 @@ class Api extends ResourceController
         $sheet->getStyle('O1:U1')->applyFromArray($styleProveedor);
 
         $subHeaders = [
-            'Folio', 'Fecha', 'Estado', 'Solicitante', 'Departamento', 'Unidad Operativa', 'Complejo', 'Inversión Total',
+            'Folio', 'Fecha', 'Estado', 'Solicitante', 'Departamento', 'Unidad Operativa', 'Complejo', 'Importe Total',
             'Estado Orden', 'Fecha Orden', 'Ref. Pago', 'F. Pago Realizado', 'Factura', 'Comprobante',
             'Proveedor', 'RFC', 'Banco', 'Cuenta', 'CLABE', 'Contacto', 'Teléfono'
         ];
@@ -4173,7 +4468,7 @@ class Api extends ResourceController
 
         // Fila de Totales
         $lastDataRow = $row - 1;
-        $sheet->setCellValue('A' . $row, 'TOTAL GENERAL DE INVERSIÓN:');
+        $sheet->setCellValue('A' . $row, 'TOTAL GENERAL:');
         $sheet->mergeCells('A' . $row . ':G' . $row);
         $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setBold(true);
         $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);

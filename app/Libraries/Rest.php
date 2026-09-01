@@ -438,6 +438,260 @@ class Rest
     }
 
     /**
+     * Obtiene solicitudes paginadas con filtros del lado del servidor.
+     * Sin límite de registros, escala a miles de solicitudes.
+     *
+     * @param int      $page      Número de página (1-indexed).
+     * @param int      $perPage   Registros por página.
+     * @param array    $filters   Filtros: vista, estado, fecha, por_mes, folio, tipo, proveedores, razones_sociales, departamentos, dept_id, is_exception.
+     * @param int|null $userId    ID del usuario para filtrar por sus solicitudes.
+     * @return array Con 'data', 'total', 'page', 'perPage'.
+     */
+    public function getSolicitudPaginated(int $page = 1, int $perPage = 10, array $filters = [], ?int $userId = null): array
+    {
+        $solicitudModel = new \App\Models\SolicitudModel();
+        $cotizacionModel = new \App\Models\CotizacionModel();
+        $ordenCompraModel = new \App\Models\OrdenCompraModel();
+        $proveedorModel = new \App\Models\ProveedorModel();
+
+        $declinedStatuses = [Status::Dept_Rechazada, Status::Rechazada, 'Cancelada'];
+        $excludedStatuses = array_merge($declinedStatuses, [Status::Aprobacion_pendiente]);
+        $onlyDeclined = ($filters['vista'] ?? '') === 'declinadas';
+        $deptId = $filters['dept_id'] ?? null;
+        $isException = !empty($filters['is_exception']);
+
+        $selectFields = 'Solicitud.ID_Solicitud, Solicitud.No_Folio, Solicitud.Fecha, Solicitud.Estado, Solicitud.MetodoPago, Solicitud.Tipo, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre, Razon_Social.Nombre as Complejo';
+
+        // JOINs base comunes (LEFT JOINs directos - funcionan igual en PG y MySQL)
+        $baseJoins = function ($query) {
+            $query->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+                  ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+                  ->join('Proveedor', 'Proveedor.ID_Proveedor = Solicitud.ID_Proveedor', 'left')
+                  ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+                  ->join('Cotizacion', 'Cotizacion.ID_Solicitud = Solicitud.ID_Solicitud', 'left')
+                  ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left');
+        };
+
+        // Factoría de filtros: recibe el nombre de la columna OC estado según el join usado
+        $makeApplyFilters = function (string $ocEstadoCol) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException) {
+            return function ($query) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException, $ocEstadoCol) {
+                $selectedEstado = $filters['estado'] ?? '';
+
+                if ($onlyDeclined) {
+                    if (!empty($selectedEstado) && in_array($selectedEstado, $declinedStatuses)) {
+                    } else {
+                        $query->whereIn('Solicitud.Estado', $declinedStatuses);
+                    }
+                } else {
+                    $currentExclusions = $excludedStatuses;
+                    if (!empty($selectedEstado)) {
+                        $currentExclusions = array_diff($currentExclusions, [$selectedEstado]);
+                    }
+                    if (!empty($currentExclusions)) {
+                        $query->whereNotIn('Solicitud.Estado', $currentExclusions);
+                    }
+                }
+
+                if ($deptId && $userId && !$isException) {
+                    $query->groupStart()
+                          ->where('Solicitud.ID_Dpto', $deptId)
+                          ->orWhere('Solicitud.ID_Usuario', $userId)
+                          ->groupEnd();
+                } elseif ($deptId && !$isException) {
+                    $query->where('Solicitud.ID_Dpto', $deptId);
+                }
+
+                if (!empty($filters['estado'])) {
+                    $orderStatuses = [
+                        Status::Espera_Programacion,
+                        Status::Programada,
+                        Status::Por_Pagar,
+                        Status::Pagada
+                    ];
+
+                    if (in_array($filters['estado'], $orderStatuses)) {
+                        $query->where('Solicitud.Estado', Status::Aprobada);
+                        $query->where($ocEstadoCol, $filters['estado']);
+                    } elseif ($filters['estado'] === Status::Aprobada) {
+                        $query->where('Solicitud.Estado', Status::Aprobada);
+                        $query->groupStart()
+                              ->where($ocEstadoCol . ' IS NULL')
+                              ->orWhere($ocEstadoCol, '')
+                              ->groupEnd();
+                    } else {
+                        $query->where('Solicitud.Estado', $filters['estado']);
+                    }
+                }
+
+                if (!empty($filters['fecha'])) {
+                    if (!empty($filters['por_mes'])) {
+                        $mes = substr($filters['fecha'], 0, 7);
+                        $inicio = $mes . '-01';
+                        $fin = date('Y-m-t', strtotime($inicio));
+                        $query->where('Solicitud.Fecha >=', $inicio)
+                              ->where('Solicitud.Fecha <=', $fin);
+                    } else {
+                        $query->where('Solicitud.Fecha', $filters['fecha']);
+                    }
+                }
+
+                if (!empty($filters['folio'])) {
+                    $query->like('Solicitud.No_Folio', $filters['folio']);
+                }
+
+                if (!empty($filters['tipo'])) {
+                    if ($filters['tipo'] === 'Producto') {
+                        $query->whereIn('Solicitud.Tipo', [0, 1]);
+                    } elseif ($filters['tipo'] === 'Servicio') {
+                        $query->where('Solicitud.Tipo', 2);
+                    }
+                }
+
+                if (isset($filters['metodo']) && $filters['metodo'] !== '') {
+                    $query->where('Solicitud.MetodoPago', $filters['metodo']);
+                }
+
+                if (!empty($filters['proveedores'])) {
+                    $provs = is_array($filters['proveedores']) ? $filters['proveedores'] : explode(',', $filters['proveedores']);
+                    $provs = array_filter(array_map('trim', $provs));
+                    if (!empty($provs)) {
+                        $query->whereIn('Proveedor.RazonSocial', $provs);
+                    }
+                }
+
+                if (!empty($filters['razones_sociales'])) {
+                    $razones = is_array($filters['razones_sociales']) ? $filters['razones_sociales'] : explode(',', $filters['razones_sociales']);
+                    $razones = array_filter(array_map('trim', $razones));
+                    if (!empty($razones)) {
+                        $query->whereIn('Razon_Social.Nombre', $razones);
+                    }
+                }
+
+                if (!empty($filters['departamentos'])) {
+                    $deptos = is_array($filters['departamentos']) ? $filters['departamentos'] : explode(',', $filters['departamentos']);
+                    $deptos = array_filter(array_map('trim', $deptos));
+                    if (!empty($deptos)) {
+                        $query->groupStart();
+                        $first = true;
+                        foreach ($deptos as $dpto) {
+                            $parts = explode('|', $dpto);
+                            $nombre = trim($parts[0]);
+                            $place = isset($parts[1]) ? trim($parts[1]) : '';
+                            if ($first) {
+                                $query->where('Departamentos.Nombre', $nombre);
+                                if ($place !== '') {
+                                    $query->where('Places.Nombre_Corto', $place);
+                                }
+                                $first = false;
+                            } else {
+                                $query->orGroupStart()->where('Departamentos.Nombre', $nombre);
+                                if ($place !== '') {
+                                    $query->where('Places.Nombre_Corto', $place);
+                                }
+                                $query->groupEnd();
+                            }
+                        }
+                        $query->groupEnd();
+                    }
+                }
+            };
+        };
+
+        // COUNT query: LEFT JOINs + WHERE para replicar semántica INNER JOIN (solo solicitudes con Cotización Y OrdenCompra)
+        // Compatible PostgreSQL + MySQL: sin subquery, solo condiciones WHERE
+        $applyFiltersCount = $makeApplyFilters('OrdenCompra.Estado');
+        $countBuilder = $solicitudModel->select('COUNT(*) as total');
+        $baseJoins($countBuilder);
+        $applyFiltersCount($countBuilder);
+        // Replicar INNER JOIN semántica: solo contar si EXISTE Cotizacion Y OrdenCompra
+        $countBuilder->where('Cotizacion.ID_Cotizacion IS NOT NULL')
+                     ->where('OrdenCompra.ID_OrdenCompra IS NOT NULL');
+        $total = (int) $countBuilder->get()->getRow()->total;
+
+        // DATA query: LEFT JOINs directos (acceso a campos Cotización, incluye solicitudes sin OC)
+        $applyFiltersData = $makeApplyFilters('OrdenCompra.Estado');
+        $builder = $solicitudModel->select($selectFields);
+        $baseJoins($builder);
+        $applyFiltersData($builder);
+
+        $offset = ($page - 1) * $perPage;
+        $solicitudes = $builder->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->limit($perPage)
+            ->offset($offset)
+            ->findAll();
+
+        if (empty($solicitudes)) {
+            return ['data' => [], 'total' => $total, 'page' => $page, 'perPage' => $perPage];
+        }
+
+        $solicitudIds = array_column($solicitudes, 'ID_Solicitud');
+
+        $cotizaciones = $cotizacionModel
+            ->select('ID_Cotizacion, ID_Solicitud, Total, ID_Proveedor')
+            ->whereIn('ID_Solicitud', $solicitudIds)
+            ->findAll();
+
+        $mapaMontos = [];
+        $mapaRelacion = [];
+        $cotizacionIds = [];
+        $proveedorIds = [];
+
+        foreach ($cotizaciones as $cot) {
+            $idSol = $cot['ID_Solicitud'];
+            if (!isset($mapaMontos[$idSol])) {
+                $mapaMontos[$idSol] = 0;
+            }
+            $mapaMontos[$idSol] += (float) $cot['Total'];
+            $mapaRelacion[$idSol] = $cot['ID_Cotizacion'];
+            $cotizacionIds[] = $cot['ID_Cotizacion'];
+            if (!empty($cot['ID_Proveedor'])) {
+                $proveedorIds[] = $cot['ID_Proveedor'];
+            }
+        }
+
+        $proveedoresMap = [];
+        if (!empty($proveedorIds)) {
+            $proveedores = $proveedorModel->whereIn('ID_Proveedor', array_unique($proveedorIds))->findAll();
+            foreach ($proveedores as $p) {
+                $proveedoresMap[$p['ID_Proveedor']] = $p['RazonSocial'];
+            }
+        }
+
+        $mapaOrdenes = [];
+        if (!empty($cotizacionIds)) {
+            $ordenes = $ordenCompraModel
+                ->select('ID_Cotizacion, Estado')
+                ->whereIn('ID_Cotizacion', $cotizacionIds)
+                ->findAll();
+            foreach ($ordenes as $orden) {
+                $mapaOrdenes[$orden['ID_Cotizacion']] = $orden['Estado'];
+            }
+        }
+
+        $data = [];
+        foreach ($solicitudes as $sol) {
+            $idSol = $sol['ID_Solicitud'];
+            $sol['MontoTotal'] = $mapaMontos[$idSol] ?? 0;
+
+            if ($sol['Estado'] === Status::Aprobada && isset($mapaRelacion[$idSol])) {
+                $idCot = $mapaRelacion[$idSol];
+                if (isset($mapaOrdenes[$idCot]) && !empty($mapaOrdenes[$idCot])) {
+                    $sol['Estado'] = $mapaOrdenes[$idCot];
+                }
+            }
+
+            $data[] = $sol;
+        }
+
+        return [
+            'data' => $data,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+        ];
+    }
+
+    /**
      * Obtiene una solicitud por su ID.
      *
      * @param int $id El ID de la solicitud.
@@ -604,6 +858,26 @@ class Rest
                 ->join('Catalogo_Productos', 'Catalogo_Productos.ID_CatalogoProd = Solicitud_Servicios.ID_CatalogoProd', 'left')
                 ->where('ID_Solicitud', $id)
                 ->findAll();
+        }
+
+        // FIX: Asegurar que la partida asignada a cada producto siempre aparezca
+        // en grupos_presupuestales, aunque no pase el filtro de Place/es_manual
+        if (!empty($solicitud['grupos_presupuestales']) && !empty($productos)) {
+            $gruposIds = array_column($solicitud['grupos_presupuestales'], 'ID_GrupoPresupuestal');
+            foreach ($productos as $p) {
+                $idGrupo = $p['ID_GrupoPresupuestal'] ?? null;
+                if ($idGrupo && !in_array($idGrupo, $gruposIds)) {
+                    $grupoFaltante = $grupoModel
+                        ->select('GrupoPresupuestal.*, UnidadOperativa.ID_Place')
+                        ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
+                        ->where('GrupoPresupuestal.ID_GrupoPresupuestal', $idGrupo)
+                        ->first();
+                    if ($grupoFaltante) {
+                        $solicitud['grupos_presupuestales'][] = $grupoFaltante;
+                        $gruposIds[] = $idGrupo;
+                    }
+                }
+            }
         }
 
         $ivaValue = $solicitud['IVA'] ?? false;
@@ -1858,6 +2132,53 @@ class Rest
         $results = $proveedorModel->findAll();
         return $results ?: [];
     }
+
+    /**
+     * Obtiene proveedores paginados con filtros server-side.
+     *
+     * Compatible con PostgreSQL y MariaDB/MySQL (sin funciones mono-motor:
+     * la búsqueda insensible a mayúsculas se resuelve con LOWER() portable).
+     *
+     * @param int   $page    Página actual (inicia en 1).
+     * @param int   $perPage Registros por página.
+     * @param array $filters Filtros opcionales: razon_social, rfc.
+     * @return array ['data' => [], 'total' => int, 'page' => int, 'perPage' => int]
+     */
+    public function getProveedoresPaginated(int $page = 1, int $perPage = 10, array $filters = []): array
+    {
+        $builder = $this->db->table('Proveedor');
+
+        $applyFilters = function (BaseBuilder $query) use ($filters): void {
+            if (!empty($filters['razon_social'])) {
+                $query->where($this->likeInsensitive('RazonSocial', $filters['razon_social']));
+            }
+            if (!empty($filters['rfc'])) {
+                $query->where($this->likeInsensitive('RFC', $filters['rfc']));
+            }
+            if (!empty($filters['servicio'])) {
+                $query->where($this->likeInsensitive('Servicio', $filters['servicio']));
+            }
+        };
+
+        $applyFilters($builder);
+
+        $totalBuilder = clone $builder;
+        $total = (int) $totalBuilder->select('COUNT(*) as total')->get()->getRow()->total;
+
+        $rows = $builder->select('ID_Proveedor, RazonSocial, RFC, Banco, Cuenta, Clabe, Tel_Contacto, Nombre_Contacto, Servicio, Correo, Dias_Credito, Monto_Credito')
+            ->orderBy('RazonSocial', 'ASC')
+            ->limit($perPage)
+            ->offset(($page - 1) * $perPage)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'data'    => $rows,
+            'total'   => $total,
+            'page'    => $page,
+            'perPage' => $perPage,
+        ];
+    }
     /**
      * Obtiene el ID y Nombre de todos los proveedores.
      *
@@ -1884,6 +2205,123 @@ class Rest
             ->orderBy('RazonSocial', 'ASC')
             ->findAll();
         return $results;
+    }
+    //endregion
+
+    //region Grupos presupuestales
+    /**
+     * Obtiene partidas presupuestales paginadas con filtros server-side.
+     *
+     * Compatible con PostgreSQL y MariaDB/MySQL (sin funciones mono-motor:
+     * la búsqueda insensible a mayúsculas se resuelve con LOWER() portable).
+     *
+     * @param int   $page    Página actual (inicia en 1).
+     * @param int   $perPage Registros por página.
+     * @param array $filters Filtros opcionales: nombre, lugares[], unidades[].
+     * @return array ['data' => [], 'total' => int, 'page' => int, 'perPage' => int]
+     */
+    public function getGruposPresupuestalesPaginated(int $page = 1, int $perPage = 10, array $filters = []): array
+    {
+        $builder = $this->db->table('GrupoPresupuestal')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = GrupoPresupuestal.ID_UnidadOperativa', 'left')
+            ->join('Places', 'Places.ID_Place = UnidadOperativa.ID_Place', 'left');
+
+        if (!empty($filters['nombre'])) {
+            $builder->where($this->likeInsensitive('GrupoPresupuestal.Nombre', $filters['nombre']));
+        }
+        if (!empty($filters['lugares'])) {
+            $lugares = array_filter((array) $filters['lugares'], fn($v) => $v !== '' && $v !== null);
+            if (!empty($lugares)) {
+                $builder->whereIn('Places.Nombre_Corto', $lugares);
+            }
+        }
+        if (!empty($filters['unidades'])) {
+            $unidades = array_filter((array) $filters['unidades'], fn($v) => $v !== '' && $v !== null);
+            if (!empty($unidades)) {
+                $builder->whereIn('UnidadOperativa.Nombre', $unidades);
+            }
+        }
+
+        $totalBuilder = clone $builder;
+        $total = (int) $totalBuilder->select('COUNT(*) as total')->get()->getRow()->total;
+
+        $rows = $builder->select('GrupoPresupuestal.*, UnidadOperativa.Nombre as UnidadNombre, Places.Nombre_Corto as PlaceNombre')
+            ->orderBy('GrupoPresupuestal.Nombre', 'ASC')
+            ->limit($perPage)
+            ->offset(($page - 1) * $perPage)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'data'    => $rows,
+            'total'   => $total,
+            'page'    => $page,
+            'perPage' => $perPage,
+        ];
+    }
+
+    /**
+     * Obtiene el catálogo de productos y servicios con paginación server-side.
+     *
+     * Compatible PostgreSQL + MariaDB/MySQL (filtros insensibles a mayúsculas
+     * con LOWER(), igual que el resto de listados paginados).
+     *
+     * @param int   $page    Página actual (inicia en 1).
+     * @param int   $perPage Registros por página.
+     * @param array $filters Filtros opcionales: nombre, departamento, grupo.
+     * @return array ['data' => [], 'total' => int, 'page' => int, 'perPage' => int]
+     */
+    public function getCatalogoPaginated(int $page = 1, int $perPage = 10, array $filters = []): array
+    {
+        $builder = $this->db->table('Catalogo_Productos')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Catalogo_Productos.ID_RazonSocial', 'left')
+            ->join('Places', 'Places.ID_Place = Catalogo_Productos.ID_Place', 'left')
+            ->join('UnidadOperativa', 'UnidadOperativa.ID_UnidadOperativa = Catalogo_Productos.ID_Dpto', 'left')
+            ->join('GrupoPresupuestal', 'GrupoPresupuestal.ID_GrupoPresupuestal = Catalogo_Productos.ID_GrupoPresupuestal', 'left');
+
+        if (!empty($filters['nombre'])) {
+            $builder->where($this->likeInsensitive('Catalogo_Productos.Nombre', $filters['nombre']));
+        }
+        if (!empty($filters['departamento'])) {
+            $builder->where($this->likeInsensitive('UnidadOperativa.Nombre', $filters['departamento']));
+        }
+        if (!empty($filters['grupo'])) {
+            $builder->where($this->likeInsensitive('GrupoPresupuestal.Nombre', $filters['grupo']));
+        }
+
+        $totalBuilder = clone $builder;
+        $total = (int) $totalBuilder->select('COUNT(*) as total')->get()->getRow()->total;
+
+        $rows = $builder->select('Catalogo_Productos.ID_CatalogoProd, Catalogo_Productos.ID_RazonSocial, Catalogo_Productos.id_segmento, Catalogo_Productos.ID_Place, Catalogo_Productos.ID_Dpto, Catalogo_Productos.ID_GrupoPresupuestal, Catalogo_Productos.Nombre, Razon_Social.Nombre as RazonSocial_Nombre, Places.Nombre_Corto as Place_Nombre, UnidadOperativa.Nombre as Departamento_Nombre, GrupoPresupuestal.Nombre as GrupoPresupuestal_Nombre')
+            ->orderBy('Catalogo_Productos.Nombre', 'ASC')
+            ->limit($perPage)
+            ->offset(($page - 1) * $perPage)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'data'    => $rows,
+            'total'   => $total,
+            'page'    => $page,
+            'perPage' => $perPage,
+        ];
+    }
+
+    /**
+     * Construye una condición LIKE insensible a mayúsculas portable
+     * (PostgreSQL + MariaDB/MySQL).
+     *
+     * El identificador se escapa por driver (comillas dobles / backticks) y el
+     * valor se compara en minúsculas con LOWER(). Se evita like(..., true)
+     * porque el driver Postgre de CI4 no escapa el prefijo de tabla en ILIKE.
+     *
+     * @return string Condición SQL completa, lista para where().
+     */
+    private function likeInsensitive(string $column, string $value): string
+    {
+        $col = $this->db->escapeIdentifiers($column);
+
+        return 'LOWER(' . $col . ') LIKE ' . $this->db->escape('%' . mb_strtolower($value) . '%');
     }
     //endregion
 
