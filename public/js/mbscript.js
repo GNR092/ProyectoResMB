@@ -2238,6 +2238,9 @@ function initCatalogoProductos() {
   })
 
   // Botones Navegación
+  // Migrar
+  if(typeof initMigracionesCatalogo === 'function') initMigracionesCatalogo();
+
   const btnAgregar = document.getElementById('btn-agregar-catalogo')
   if (btnAgregar) {
     btnAgregar.onclick = () => {

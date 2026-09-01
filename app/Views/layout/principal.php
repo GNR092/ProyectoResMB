@@ -185,6 +185,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     FCPATH . 'js/gasto_manual.js',
 ) ?>" defer></script>
 <script src="<?= base_url() ?>js/bitacora.js?v=<?= file_exists(FCPATH . 'js/bitacora.js') ? filemtime(FCPATH . 'js/bitacora.js') : time() ?>" defer></script>
+<script src="<?= base_url() ?>js/migraciones.js?v=<?= file_exists(FCPATH . 'js/migraciones.js') ? filemtime(FCPATH . 'js/migraciones.js') : time() ?>" defer></script>
 </body>
 
 </html>

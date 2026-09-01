@@ -105,6 +105,8 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/catalogo/create', 'Api::createCatalogo');
         $routes->post('api/catalogo/update/(:num)', 'Api::updateCatalogo/$1');
         $routes->post('api/catalogo/delete/(:num)', 'Api::deleteCatalogo/$1');
+        $routes->post('api/migraciones/preview', 'MigracionesController::preview');
+        $routes->post('api/migraciones/ejecutar', 'MigracionesController::ejecutar');
         //endregion
 
         //region departamentos
