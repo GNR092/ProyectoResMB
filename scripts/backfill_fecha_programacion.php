@@ -45,7 +45,9 @@ if (!$db->fieldExists('FechaProgramacion', 'OrdenCompra')) {
 
 $estados = [
     Status::Programada, Status::Por_Pagar, Status::Pagada, Status::En_Proceso_Pago,
+    Status::Espera_Programacion,
     'Programada', 'Por Pagar', 'Pagada', 'En Proceso de Pago', 'En_Proceso_Pago',
+    'Espera_Programacion',
 ];
 $estados = array_values(array_unique($estados));
 
