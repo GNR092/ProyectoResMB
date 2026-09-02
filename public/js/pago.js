@@ -167,10 +167,13 @@ function Pagos() {
       const confirm = await Confirmar('Programar Pagos', `¿Desea programar ${this.selectedOrdenes.length} pago(s)?`);
       if (!confirm) return;
 
+      // Generar fecha de programación en hora México (America/Mexico_City) YYYY-MM-DD HH:MM:SS
+      const fechaProgramacion = new Date().toLocaleString('sv-SE', { timeZone: 'America/Mexico_City' });
+
       try {
         const result = await SendDataEnd('api/orden/programar-pagos', {
           method: 'POST',
-          body: { ids: this.selectedOrdenes },
+          body: { ids: this.selectedOrdenes, fechaProgramacion },
         });
 
         if (result.success) {
@@ -906,7 +909,8 @@ function FichasPago() {
      */
     formatFecha(v) {
       if (!v) return 'N/A';
-      const [anio, mes, dia] = String(v).split('-');
+      const datePart = String(v).split(' ')[0];
+      const [anio, mes, dia] = datePart.split('-');
       if (!anio || !mes || !dia) return String(v);
       return `${dia}/${mes}/${anio}`;
     },

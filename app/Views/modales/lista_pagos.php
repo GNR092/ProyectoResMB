@@ -51,37 +51,41 @@
         </div>
 
         <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-[1100px] w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                 <tr>
-                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Folio</th>
-                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha Aprob.</th>
-                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Complejo</th>
-                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Depto.</th>
-                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Proveedor</th>
-                    <th class="py-3 px-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
-                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Método</th>
-                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
-                    <th class="py-3 px-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Folio</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">F. Solicitud</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Fecha Aprob.</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">F. Programación</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Complejo</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Depto.</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Proveedor</th>
+                    <th class="py-3 px-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Total</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Método</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Estado</th>
+                    <th class="py-3 px-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Acciones</th>
                 </tr>
                 </thead>
                 <tbody id="tablaListaPagos" class="bg-white divide-y divide-gray-200">
                 <tr x-show="loading">
-                    <td colspan="9" class="text-center py-4">Cargando pagos...</td>
+                    <td colspan="11" class="text-center py-4">Cargando pagos...</td>
                 </tr>
                 <tr x-show="!loading && pagosFiltrados.length === 0">
-                    <td colspan="9" class="text-center py-4 text-gray-500">
+                    <td colspan="11" class="text-center py-4 text-gray-500">
                         No hay pagos programados que coincidan con los filtros.
                     </td>
                 </tr>
                 <template x-for="(pago, idx) in paginatedPagos" :key="'pago-' + idx">
                     <tr class="hover:bg-blue-50/30 transition-colors">
-                        <td class="py-3 px-4 text-sm font-medium text-gray-900" x-text="pago.No_Folio"></td>
-                        <td class="py-3 px-4 text-sm text-gray-600" x-text="formatDate(pago.FechaOrden)"></td>
-                        <td class="py-3 px-4 text-sm text-gray-600" x-text="pago.RazonSocial"></td>
-                        <td class="py-3 px-4 text-sm text-gray-600" x-text="pago.Departamento"></td>
-                        <td class="py-3 px-4 text-sm text-gray-600" x-text="pago.Proveedor"></td>
-                        <td class="py-3 px-4 text-sm font-bold text-blue-700 text-right" x-text="formatCurrency(pago.Total)"></td>
+                        <td class="py-3 px-4 text-sm font-medium text-gray-900 whitespace-nowrap" x-text="pago.No_Folio"></td>
+                        <td class="py-3 px-4 text-sm text-gray-600 whitespace-nowrap" x-text="formatDate(pago.FechaSolicitud)"></td>
+                        <td class="py-3 px-4 text-sm text-gray-600 whitespace-nowrap" x-text="formatDate(pago.FechaOrden)"></td>
+                        <td class="py-3 px-4 text-sm text-gray-600 whitespace-nowrap" x-text="formatDate(pago.FechaProgramacion)"></td>
+                        <td class="py-3 px-4 text-sm text-gray-600 whitespace-nowrap" x-text="pago.RazonSocial"></td>
+                        <td class="py-3 px-4 text-sm text-gray-600 whitespace-nowrap" x-text="pago.Departamento"></td>
+                        <td class="py-3 px-4 text-sm text-gray-600 whitespace-nowrap" x-text="pago.Proveedor"></td>
+                        <td class="py-3 px-4 text-sm font-bold text-blue-700 text-right whitespace-nowrap" x-text="formatCurrency(pago.Total)"></td>
                         <td class="py-3 px-4 text-sm">
                             <span :class="pago.MetodoPago == 0 ? 'bg-indigo-100 text-indigo-800' : 'bg-green-100 text-green-800'" 
                                   class="px-2 py-0.5 rounded text-xs font-medium" 

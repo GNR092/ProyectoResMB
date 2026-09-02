@@ -23,6 +23,7 @@ class OrdenCompraModel extends Model
         'ID_Proveedor',
         'Estado',
         'Fecha',
+        'FechaProgramacion',
         'File_Factura',
         'File_Comprobante',
         'File_ReqPag',

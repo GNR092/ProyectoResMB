@@ -2188,18 +2188,21 @@ class Api extends ResourceController
     {
         try {
             $db = \Config\Database::connect();
+            $hasFechaProg = $db->fieldExists('FechaProgramacion', 'OrdenCompra');
+            $selectFechaProg = $hasFechaProg ? 'OrdenCompra.FechaProgramacion' : 'NULL as FechaProgramacion';
 
             $data = $db->table('OrdenCompra')
                 ->select([
                     'Solicitud.ID_Solicitud',
                     'Solicitud.No_Folio',
                     'Solicitud.MetodoPago',
-                    'Solicitud.Fecha', // Mantenemos esta por si se usa en la vista HTML
-
-                    // --- NUEVOS CAMPOS AGREGADOS ---
+                    'Solicitud.Fecha as FechaSolicitud',
+                    'Solicitud.Fecha_Aprobacion',
                     'OrdenCompra.Fecha as FechaOrden',
+                    $selectFechaProg,
                     'OrdenCompra.FechaRefPago',
-                    // -------------------------------
+                    'OrdenCompra.FechaPagoRealizado',
+                    'OrdenCompra.Fecha_Comprobante',
 
                     'OrdenCompra.Estado as EstadoOrden',
                     'Departamentos.Nombre as DepartamentoNombre',
@@ -2242,17 +2245,22 @@ class Api extends ResourceController
     {
         try {
             $db = \Config\Database::connect();
+            $hasFechaProg = $db->fieldExists('FechaProgramacion', 'OrdenCompra');
+            $selectFechaProg = $hasFechaProg ? 'OrdenCompra.FechaProgramacion' : 'NULL as FechaProgramacion';
 
             $data = $db->table('OrdenCompra')
                 ->select([
                     'Solicitud.ID_Solicitud',
                     'Solicitud.No_Folio',
                     'Solicitud.MetodoPago',
-                    // Necesitamos Fecha_Aprobacion para el semáforo.
-                    // Si no existe esa columna exacta, usa 'OrdenCompra.Fecha' o la que uses para calcular vencimiento.
+                    'Solicitud.Fecha as FechaSolicitud',
                     'Solicitud.Fecha_Aprobacion',
+                    $selectFechaProg,
+                    'OrdenCompra.Fecha as FechaOrden',
                     'OrdenCompra.Estado as EstadoOrden',
                     'OrdenCompra.Fecha_Comprobante',
+                    'OrdenCompra.FechaPagoRealizado',
+                    'OrdenCompra.FechaRefPago',
                     'Departamentos.Nombre as DepartamentoNombre',
                     'Razon_Social.Nombre as Complejo',
 
@@ -4110,6 +4118,19 @@ class Api extends ResourceController
         }
 
         $ids = $json->ids;
+        // Fecha de programación viene del JS en hora México (YYYY-MM-DD HH:MM:SS America/Mexico_City)
+        $fechaProgramacion = $json->fechaProgramacion ?? null;
+        if (!empty($fechaProgramacion)) {
+            $fechaProgramacion = trim((string) $fechaProgramacion);
+            $dt = \DateTime::createFromFormat('Y-m-d H:i:s', $fechaProgramacion, new \DateTimeZone('America/Mexico_City'));
+            if (!$dt || $dt->format('Y-m-d H:i:s') !== $fechaProgramacion) {
+                return $this->failValidationAudit('Formato de fechaProgramacion inválido. Use YYYY-MM-DD HH:MM:SS (hora México).');
+            }
+        } else {
+            // Fallback server-side en hora México si JS no la envía (compatibilidad)
+            $fechaProgramacion = (new \DateTime('now', new \DateTimeZone('America/Mexico_City')))->format('Y-m-d H:i:s');
+        }
+
         $ordenCompraModel = new OrdenCompraModel();
         $cotizacionModel = new CotizacionModel();
         $db = \Config\Database::connect();
@@ -4121,9 +4142,14 @@ class Api extends ResourceController
                 if ($cotizacion) {
                     $orden = $ordenCompraModel->where('ID_Cotizacion', $cotizacion['ID_Cotizacion'])->first();
                     if ($orden) {
-                        $ordenCompraModel->update($orden['ID_OrdenCompra'], [
-                            'Estado' => Status::Programada
-                        ]);
+                        $updateData = ['Estado' => Status::Programada];
+                        if ($db->fieldExists('FechaProgramacion', 'OrdenCompra')) {
+                            $updateData['FechaProgramacion'] = $fechaProgramacion;
+                        } else {
+                            // Fallback temporal hasta migrar: no pisar Fecha (creación)
+                            log_message('warning', '[programarPagos] FechaProgramacion no existe, solo se actualiza Estado. Ejecutar migración.');
+                        }
+                        $ordenCompraModel->update($orden['ID_OrdenCompra'], $updateData);
                         $this->notificarWhatsApp($idSolicitud);
                     }
                 }
@@ -4146,20 +4172,28 @@ class Api extends ResourceController
 
     public function getPagosProgramados()
     {
+        $db = \Config\Database::connect();
+        $hasFechaProg = $db->fieldExists('FechaProgramacion', 'OrdenCompra');
+        $selectFechaProg = $hasFechaProg ? 'OrdenCompra.FechaProgramacion' : 'NULL as FechaProgramacion';
         $ordenCompraModel = new OrdenCompraModel();
 
         $data = $ordenCompraModel
             ->select([
                 'Solicitud.ID_Solicitud',
                 'Solicitud.No_Folio',
+                'Solicitud.Fecha as FechaSolicitud',
+                'Solicitud.Fecha_Aprobacion',
                 'Proveedor.RazonSocial as Proveedor',
                 'Razon_Social.Nombre as RazonSocial',
-                // AGREGAMOS ESTE CAMPO:
                 'Departamentos.Nombre as Departamento',
                 'Cotizacion.Total',
                 'OrdenCompra.Estado',
                 'Solicitud.MetodoPago',
-                'OrdenCompra.Fecha as FechaOrden'
+                'OrdenCompra.Fecha as FechaOrden',
+                $selectFechaProg,
+                'OrdenCompra.FechaRefPago',
+                'OrdenCompra.FechaPagoRealizado',
+                'OrdenCompra.Fecha_Comprobante'
             ])
             ->join('Cotizacion', 'Cotizacion.ID_Cotizacion = OrdenCompra.ID_Cotizacion', 'left')
             ->join('Solicitud', 'Solicitud.ID_Solicitud = Cotizacion.ID_Solicitud', 'left')

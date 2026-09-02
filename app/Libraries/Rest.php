@@ -460,7 +460,9 @@ class Rest
         $deptId = $filters['dept_id'] ?? null;
         $isException = !empty($filters['is_exception']);
 
-        $selectFields = 'Solicitud.ID_Solicitud, Solicitud.No_Folio, Solicitud.Fecha, Solicitud.Estado, Solicitud.MetodoPago, Solicitud.Tipo, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre, Razon_Social.Nombre as Complejo';
+        $hasFechaProg = $this->db->fieldExists('FechaProgramacion', 'OrdenCompra');
+        $selectFechaProg = $hasFechaProg ? 'OrdenCompra.FechaProgramacion as FechaProgramacion' : 'NULL as FechaProgramacion';
+        $selectFields = 'Solicitud.ID_Solicitud, Solicitud.No_Folio, Solicitud.Fecha as FechaSolicitud, Solicitud.Fecha_Aprobacion, ' . $selectFechaProg . ', OrdenCompra.Fecha_Comprobante as FechaComprobante, OrdenCompra.FechaPagoRealizado, OrdenCompra.Fecha as FechaOrden, Solicitud.Estado, Solicitud.MetodoPago, Solicitud.Tipo, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as PlaceNombre, Proveedor.RazonSocial as ProveedorNombre, Razon_Social.Nombre as Complejo';
 
         // JOINs base comunes (LEFT JOINs directos - funcionan igual en PG y MySQL)
         $baseJoins = function ($query) {

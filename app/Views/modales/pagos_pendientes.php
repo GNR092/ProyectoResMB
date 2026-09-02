@@ -76,30 +76,38 @@
                 </div>
             </div>
 
-            <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
+            <table class="min-w-[1300px] w-full text-sm text-left text-gray-700 border border-gray-200 border-separate border-spacing-0">
                 <thead class="bg-gray-100 text-gray-800 font-bold">
                 <tr>
-                    <th class="px-4 py-2 border-b">Departamento</th>
-                    <th class="px-4 py-2 border-b">Complejo</th>
-                    <th class="px-4 py-2 border-b">No. Folio</th>
-                    <th class="px-4 py-2 border-b">Proveedor</th>
-                    <th class="px-4 py-2 border-b">Banco</th>
-                    <th class="px-4 py-2 border-b">Importe</th>
-                    <th class="px-4 py-2 border-b">Fecha de pago</th>
-                    <th class="px-4 py-2 border-b text-center">Acciones</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Departamento</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Complejo</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">No. Folio</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Proveedor</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Banco</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Importe</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">F. Solicitud</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">F. Autorización</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">F. Programación</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Fecha Carga Comprobante</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">F. Pago Real</th>
+                    <th class="px-4 py-2 border-b text-center whitespace-nowrap sticky right-0 bg-gray-100 z-20 shadow-[-4px_0_6px_rgba(0,0,0,0.08)] border-l">Acciones</th>
                 </tr>
                 </thead>
                 <tbody id="body-contado">
                     <template x-for="f in getFichas('0')" :key="f.ID_Solicitud">
-                        <tr class="hover:bg-gray-50 transition border-b">
-                            <td class="px-4 py-2" x-text="f.DepartamentoNombre"></td>
-                            <td class="px-4 py-2" x-text="f.Complejo"></td>
-                            <td class="px-4 py-2 font-mono text-blue-600 font-bold" x-text="f.No_Folio"></td>
-                            <td class="px-4 py-2" x-text="f.RazonSocial"></td>
-                            <td class="px-4 py-2 text-gray-500" x-text="f.Banco || '-'"></td>
-                            <td class="px-4 py-2 font-semibold" x-text="formatCurrency(f.Total)"></td>
-                            <td class="px-4 py-2" x-text="formatFecha(f.Fecha_Comprobante)"></td>
-                            <td class="px-4 py-2 text-center">
+                        <tr class="hover:bg-gray-50 transition border-b group">
+                            <td class="px-4 py-2 whitespace-nowrap" x-text="f.DepartamentoNombre"></td>
+                            <td class="px-4 py-2 whitespace-nowrap" x-text="f.Complejo"></td>
+                            <td class="px-4 py-2 font-mono text-blue-600 font-bold whitespace-nowrap" x-text="f.No_Folio"></td>
+                            <td class="px-4 py-2 whitespace-nowrap" x-text="f.RazonSocial"></td>
+                            <td class="px-4 py-2 text-gray-500 whitespace-nowrap" x-text="f.Banco || '-'"></td>
+                            <td class="px-4 py-2 font-semibold whitespace-nowrap" x-text="formatCurrency(f.Total)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.FechaSolicitud)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.Fecha_Aprobacion)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.FechaProgramacion)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.Fecha_Comprobante)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.FechaPagoRealizado)"></td>
+                            <td class="px-4 py-2 text-center whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50 z-10 shadow-[-4px_0_6px_rgba(0,0,0,0.08)] border-l">
                                 <button @click="mostrarDetalleFicha(f.ID_Solicitud, '0')"
                                         class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-xs uppercase">
                                     VER
@@ -108,7 +116,7 @@
                         </tr>
                     </template>
                     <tr x-show="getFichas('0').length === 0">
-                        <td colspan="8" class="px-4 py-3 text-center text-gray-500" x-text="loading ? 'Cargando datos...' : 'No hay registros disponibles.'"></td>
+                        <td colspan="12" class="px-4 py-3 text-center text-gray-500" x-text="loading ? 'Cargando datos...' : 'No hay registros disponibles.'"></td>
                     </tr>
                 </tbody>
             </table>
@@ -162,30 +170,38 @@
                 </div>
             </div>
 
-            <table class="min-w-full text-sm text-left text-gray-700 border border-gray-200">
+            <table class="min-w-[1300px] w-full text-sm text-left text-gray-700 border border-gray-200 border-separate border-spacing-0">
                 <thead class="bg-gray-100 text-gray-800 font-bold">
                 <tr>
-                    <th class="px-4 py-2 border-b">Departamento</th>
-                    <th class="px-4 py-2 border-b">Complejo</th>
-                    <th class="px-4 py-2 border-b">No. Folio</th>
-                    <th class="px-4 py-2 border-b">Proveedor</th>
-                    <th class="px-4 py-2 border-b">Banco</th>
-                    <th class="px-4 py-2 border-b">Importe</th>
-                    <th class="px-4 py-2 border-b">Fecha de pago</th>
-                    <th class="px-4 py-2 border-b text-center">Acciones</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Departamento</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Complejo</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">No. Folio</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Proveedor</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Banco</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Importe</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">F. Solicitud</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">F. Autorización</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">F. Programación</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">Fecha Carga Comprobante</th>
+                    <th class="px-4 py-2 border-b whitespace-nowrap">F. Pago Real</th>
+                    <th class="px-4 py-2 border-b text-center whitespace-nowrap sticky right-0 bg-gray-100 z-20 shadow-[-4px_0_6px_rgba(0,0,0,0.08)] border-l">Acciones</th>
                 </tr>
                 </thead>
                 <tbody id="body-credito">
                     <template x-for="f in getFichas('1')" :key="f.ID_Solicitud">
-                        <tr class="transition border-b">
-                            <td class="px-4 py-2" x-text="f.DepartamentoNombre"></td>
-                            <td class="px-4 py-2" x-text="f.Complejo"></td>
-                            <td class="px-4 py-2 font-mono font-bold" x-text="f.No_Folio"></td>
-                            <td class="px-4 py-2" x-text="f.RazonSocial"></td>
-                            <td class="px-4 py-2" x-text="f.Banco || '-'"></td>
-                            <td class="px-4 py-2 font-bold" x-text="formatCurrency(f.Total)"></td>
-                            <td class="px-4 py-2" x-text="formatFecha(f.Fecha_Comprobante)"></td>
-                            <td class="px-4 py-2 text-center">
+                        <tr class="transition border-b group">
+                            <td class="px-4 py-2 whitespace-nowrap" x-text="f.DepartamentoNombre"></td>
+                            <td class="px-4 py-2 whitespace-nowrap" x-text="f.Complejo"></td>
+                            <td class="px-4 py-2 font-mono font-bold whitespace-nowrap" x-text="f.No_Folio"></td>
+                            <td class="px-4 py-2 whitespace-nowrap" x-text="f.RazonSocial"></td>
+                            <td class="px-4 py-2 whitespace-nowrap" x-text="f.Banco || '-'"></td>
+                            <td class="px-4 py-2 font-bold whitespace-nowrap" x-text="formatCurrency(f.Total)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.FechaSolicitud)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.Fecha_Aprobacion)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.FechaProgramacion)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.Fecha_Comprobante)"></td>
+                            <td class="px-4 py-2 whitespace-nowrap text-xs" x-text="formatFecha(f.FechaPagoRealizado)"></td>
+                            <td class="px-4 py-2 text-center whitespace-nowrap sticky right-0 bg-white group-hover:bg-gray-50 z-10 shadow-[-4px_0_6px_rgba(0,0,0,0.08)] border-l">
                                 <button @click="mostrarDetalleFicha(f.ID_Solicitud, '1')"
                                         class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition text-xs uppercase">
                                     VER
@@ -194,7 +210,7 @@
                         </tr>
                     </template>
                     <tr x-show="getFichas('1').length === 0">
-                        <td colspan="8" class="px-4 py-3 text-center text-gray-500" x-text="loading ? 'Cargando datos...' : 'No hay registros disponibles.'"></td>
+                        <td colspan="12" class="px-4 py-3 text-center text-gray-500" x-text="loading ? 'Cargando datos...' : 'No hay registros disponibles.'"></td>
                     </tr>
                 </tbody>
             </table>

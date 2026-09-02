@@ -91,7 +91,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         <use xlink:href="<?= $iconUrl ?>#ReporteVencimientos"></use>
                     </svg>
                 </div>
-                <span class="font-bold text-gray-700 group-hover:text-yellow-700 text-xs">Reportes De Creditos</span>
+                <span class="font-bold text-gray-700 group-hover:text-yellow-700 text-xs">Reportes De Pagos a Creditos</span>
             </button>
             <button @click="irAPantalla('sincotizar')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -630,7 +630,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             </div>
             </template>
 
-            <!-- Pantalla 8: Reportes de Creditos -->
+            <!-- Pantalla 8: Reportes de Pagos Creditos -->
             <template x-if="pantalla === 'vencimientos'">
                 <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
                     <!-- CONTENEDOR PRINCIPAL: Tabla de Vencimientos -->
@@ -659,7 +659,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                     </div>
                                 </div>
                             </div>
-                            <h2 class="text-xl font-bold text-slate-800">Reportes de Credito</h2>
+                            <h2 class="text-xl font-bold text-slate-800">Reportes de Pagos a Credito</h2>
                         </div>
 
                         <!-- Panel de Filtros Avanzados -->
@@ -1966,16 +1966,32 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
         <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
                 <button @click="irAPantalla('menu')" class="text-base text-black hover:text-emerald-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
-                        <a @click="abrirModalFechaCorte('pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
-                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            PDF
-                        </a>
-                        <a @click="abrirModalFechaCorte('excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
-                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            EXCEL
-                        </a>
+                <div class="flex flex-col sm:flex-row gap-4 items-center sm:items-end">
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Detallado</span>
+                        <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                            <a @click="abrirModalFechaCorte('pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                PDF
+                            </a>
+                            <a @click="abrirModalFechaCorte('excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                EXCEL
+                            </a>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Global</span>
+                        <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                            <a @click="abrirModalFechaCorteGlobal('pdf')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                PDF
+                            </a>
+                            <a @click="abrirModalFechaCorteGlobal('excel')" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                                <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                EXCEL
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <h2 class="text-xl font-bold text-slate-800">Reporte Pagos Pendientes</h2>
@@ -2061,29 +2077,28 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             <th class="border border-slate-200 px-3 py-2 text-left">Razón Social</th>
                             <th class="border border-slate-200 px-2 py-2 text-left">Complejo</th>
                             <th class="border border-slate-200 px-2 py-2 text-left">Departamento</th>
+                            <th class="border border-slate-200 px-2 py-2 text-left">Proveedor</th>
                             <th class="border border-slate-200 px-2 py-2 text-left">Usuario</th>
                             <th class="border border-slate-200 px-2 py-2 text-center">F. Solicitud</th>
                             <th class="border border-slate-200 px-2 py-2 text-center">F. Aprob. Jefe</th>
                             <th class="border border-slate-200 px-2 py-2 text-center">F. Aprob. Dir.</th>
                             <th class="border border-slate-200 px-2 py-2 text-center">F. OC</th>
-                            <th class="border border-slate-200 px-2 py-2 text-center">F. Pago Realizado</th>
+                            <th class="border border-slate-200 px-2 py-2 text-center">F. Carga Comprobante</th>
                             <th class="border border-slate-200 px-2 py-2 text-center">F. Comprobante</th>
                             <th class="border border-slate-200 px-2 py-2 text-center">Estado</th>
                             <th class="border border-slate-200 px-2 py-2 text-center">Forma Pago</th>
-                            <th class="border border-slate-200 px-2 py-2 text-right">Crédito</th>
                             <th class="border border-slate-200 px-2 py-2 text-right">Total Req.</th>
-                            <th class="border border-slate-200 px-2 py-2 text-right">Saldo Crédito</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white">
                         <template x-if="cargando">
                             <tr>
-                                <td colspan="16" class="text-center py-12 text-gray-500 italic">Cargando pagos pendientes...</td>
+                                <td colspan="15" class="text-center py-12 text-gray-500 italic">Cargando pagos pendientes...</td>
                             </tr>
                         </template>
                         <template x-if="!cargando && paginatedPagosPend.length === 0">
                             <tr>
-                                <td colspan="16" class="text-center py-12 text-gray-400 italic">No se encontraron pagos pendientes.</td>
+                                <td colspan="15" class="text-center py-12 text-gray-400 italic">No se encontraron pagos pendientes.</td>
                             </tr>
                         </template>
                         <template x-for="(p, index) in paginatedPagosPend" :key="'pagospp-' + p.ID_Solicitud">
@@ -2092,6 +2107,7 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                 <td class="px-3 py-2 text-left font-bold text-gray-800" x-text="p.RazonSocial"></td>
                                 <td class="px-2 py-2 text-left" x-text="p.Complejo"></td>
                                 <td class="px-2 py-2 text-left" x-text="p.Departamento"></td>
+                                <td class="px-2 py-2 text-left" x-text="p.Proveedor || '—'"></td>
                                 <td class="px-2 py-2 text-left" x-text="p.Usuario"></td>
                                 <td class="px-2 py-2 text-center text-gray-600" x-text="p.FechaSolicitud || '—'"></td>
                                 <td class="px-2 py-2 text-center" x-text="p.FechaAprobacionJefe || '—'"></td>
@@ -2105,17 +2121,14 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                                           x-text="p.EstadoOC ? p.EstadoOC : p.Estado"></span>
                                 </td>
                                 <td class="px-2 py-2 text-center" x-text="p.FormaPago"></td>
-                                <td class="px-2 py-2 text-right font-bold" x-text="p.MontoCredito !== null && p.MontoCredito !== undefined ? formatearMoneda(p.MontoCredito) : '—'"></td>
                                 <td class="px-2 py-2 text-right font-bold text-gray-800" x-text="formatearMoneda(p.TotalRequisicion)"></td>
-                                <td class="px-2 py-2 text-right font-bold" :class="p.SaldoCredito !== null && p.SaldoCredito !== undefined && p.SaldoCredito < 0 ? 'text-red-600' : 'text-emerald-700'" x-text="p.SaldoCredito !== null && p.SaldoCredito !== undefined ? formatearMoneda(p.SaldoCredito) : '—'"></td>
                             </tr>
                         </template>
                     </tbody>
                     <tfoot x-show="!cargando && pagosPendientesFiltradas.length > 0" class="bg-slate-100">
                         <tr>
-                            <td colspan="15" class="px-3 py-3 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Totales:</td>
+                            <td colspan="14" class="px-3 py-3 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Totales:</td>
                             <td class="px-2 py-3 text-right font-black text-slate-800" x-text="formatearMoneda(totalGeneralPagosPend)"></td>
-                            <td class="px-2 py-3 text-right font-black text-emerald-700" x-text="formatearMoneda(saldoTotalPagosPend)"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -2159,30 +2172,58 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
             </div>
 
-            <!-- Modal Fecha de Corte -->
-            <div x-show="modalFechaCorteAbierto" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fadeIn" @click.outside="cerrarModalFechaCorte()">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold text-slate-800">Fecha de Corte</h3>
-                        <button @click="cerrarModalFechaCorte()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
-                    </div>
-                    <p class="text-xs text-gray-600 mb-4">
-                        Se exportarán las requisiciones cuya <strong>fecha más reciente</strong> (solicitud, aprobación, OC, pago o comprobante) sea anterior o igual a la fecha de corte.
-                    </p>
-                    <div class="flex flex-col gap-1 mb-6">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha de corte</label>
-                        <input type="date" x-model="fechaCorteExport"
-                               class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button @click="cerrarModalFechaCorte()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition-all">Cancelar</button>
-                        <button @click="confirmarExportacionPagosPendientes()"
-                                class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-all">
-                            Exportar <span x-text="tipoExportacionPagosPend === 'excel' ? 'Excel' : 'PDF'"></span>
-                        </button>
+            <!-- Modal Fecha de Corte Detallado -->
+            <template x-teleport="body">
+                <div x-show="modalFechaCorteAbierto && pantalla === 'pagos_pendientes'" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" style="position:fixed;inset:0;" @click.self="cerrarModalFechaCorte()">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fadeIn" @click.outside="cerrarModalFechaCorte()">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-slate-800">Fecha de Corte - Detallado</h3>
+                            <button @click="cerrarModalFechaCorte()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-4">
+                            Se exportarán las requisiciones cuya <strong>fecha más reciente</strong> (solicitud, aprobación, OC, pago o comprobante) sea anterior o igual a la fecha de corte.
+                        </p>
+                        <div class="flex flex-col gap-1 mb-6">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha de corte</label>
+                            <input type="date" x-model="fechaCorteExport"
+                                   class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button @click="cerrarModalFechaCorte()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition-all">Cancelar</button>
+                            <button @click="confirmarExportacionPagosPendientes()"
+                                    class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-all">
+                                Exportar <span x-text="tipoExportacionPagosPend === 'excel' ? 'Excel' : 'PDF'"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </template>
+            <!-- Modal Fecha de Corte Global -->
+            <template x-teleport="body">
+                <div x-show="modalFechaCorteGlobalAbierto && pantalla === 'pagos_pendientes'" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" style="position:fixed;inset:0;" @click.self="cerrarModalFechaCorteGlobal()">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fadeIn" @click.outside="cerrarModalFechaCorteGlobal()">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-slate-800">Fecha de Corte - Global</h3>
+                            <button @click="cerrarModalFechaCorteGlobal()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-4">
+                            Se exportará el reporte global agrupado por <strong>Proveedor, Razón Social y Complejo</strong> con el total sumarizado. Solo se incluirán requisiciones con fecha más reciente ≤ fecha de corte.
+                        </p>
+                        <div class="flex flex-col gap-1 mb-6">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha de corte</label>
+                            <input type="date" x-model="fechaCorteGlobal"
+                                   class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button @click="cerrarModalFechaCorteGlobal()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition-all">Cancelar</button>
+                            <button @click="confirmarExportacionPagosPendientesGlobal()"
+                                    class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-all">
+                                Exportar Global <span x-text="tipoExportacionGlobal === 'excel' ? 'Excel' : 'PDF'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
         </div>
     </template>
 
@@ -2372,29 +2413,31 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             </div>
 
             <!-- Modal Fecha de Corte -->
-            <div x-show="modalFechaCorteAbierto" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fadeIn" @click.outside="cerrarModalFechaCorteRealizados()">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold text-slate-800">Fecha de Corte</h3>
-                        <button @click="cerrarModalFechaCorteRealizados()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
-                    </div>
-                    <p class="text-xs text-gray-600 mb-4">
-                        Se exportarán las requisiciones cuya <strong>fecha más reciente</strong> (solicitud, aprobación, OC, pago o comprobante) sea anterior o igual a la fecha de corte.
-                    </p>
-                    <div class="flex flex-col gap-1 mb-6">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha de corte</label>
-                        <input type="date" x-model="fechaCorteExport"
-                               class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-sky-400 bg-white">
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button @click="cerrarModalFechaCorteRealizados()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition-all">Cancelar</button>
-                        <button @click="confirmarExportacionPagosRealizados()"
-                                class="px-4 py-2 bg-sky-600 text-white text-xs font-bold rounded-lg hover:bg-sky-700 transition-all">
-                            Exportar <span x-text="tipoExportacionPagosRealizados === 'excel' ? 'Excel' : 'PDF'"></span>
-                        </button>
+            <template x-teleport="body">
+                <div x-show="modalFechaCorteAbierto && pantalla === 'pagos_realizados'" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4" style="position:fixed;inset:0;" @click.self="cerrarModalFechaCorteRealizados()">
+                    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fadeIn" @click.outside="cerrarModalFechaCorteRealizados()">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-slate-800">Fecha de Corte</h3>
+                            <button @click="cerrarModalFechaCorteRealizados()" class="text-gray-500 hover:text-gray-700 text-xl leading-none">&times;</button>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-4">
+                            Se exportarán las requisiciones cuya <strong>fecha más reciente</strong> (solicitud, aprobación, OC, pago o comprobante) sea anterior o igual a la fecha de corte.
+                        </p>
+                        <div class="flex flex-col gap-1 mb-6">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha de corte</label>
+                            <input type="date" x-model="fechaCorteExport"
+                                   class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button @click="cerrarModalFechaCorteRealizados()" class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition-all">Cancelar</button>
+                            <button @click="confirmarExportacionPagosRealizados()"
+                                    class="px-4 py-2 bg-sky-600 text-white text-xs font-bold rounded-lg hover:bg-sky-700 transition-all">
+                                Exportar <span x-text="tipoExportacionPagosRealizados === 'excel' ? 'Excel' : 'PDF'"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </div>
     </template>
 </div>

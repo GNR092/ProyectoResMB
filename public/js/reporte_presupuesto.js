@@ -104,6 +104,9 @@ function registrarComponenteReportePresupuesto() {
             modalFechaCorteAbierto: false,
             fechaCorteExport: '',
             tipoExportacionPagosPend: 'excel',
+            modalFechaCorteGlobalAbierto: false,
+            fechaCorteGlobal: '',
+            tipoExportacionGlobal: 'excel',
 
             // Reporte Requisiciones Pagadas
             pagosRealizados: [],
@@ -281,6 +284,7 @@ function registrarComponenteReportePresupuesto() {
                 this.filtrosEstadoPagosPend = [];
                 this.currentPagePagosPend = 1;
                 this.modalFechaCorteAbierto = false;
+                this.modalFechaCorteGlobalAbierto = false;
                 ['choicesRazonPagosPend', 'choicesComplejoPagosPend', 'choicesDeptosPagosPend', 'choicesUsuarioPagosPend', 'choicesFormaPagoPagosPend', 'choicesTipoPagosPend', 'choicesEstadoPagosPend'].forEach(c => {
                     if (this[c]) { try { this[c].destroy(); } catch (e) { /* noop */ } this[c] = null; }
                 });
@@ -1367,6 +1371,16 @@ function registrarComponenteReportePresupuesto() {
                 this.modalFechaCorteAbierto = false;
             },
 
+            abrirModalFechaCorteGlobal(tipo) {
+                this.tipoExportacionGlobal = tipo || 'excel';
+                this.fechaCorteGlobal = new Date().toISOString().split('T')[0];
+                this.modalFechaCorteGlobalAbierto = true;
+            },
+
+            cerrarModalFechaCorteGlobal() {
+                this.modalFechaCorteGlobalAbierto = false;
+            },
+
             async confirmarExportacionPagosPendientes() {
                 if (!this.fechaCorteExport) {
                     alert('Selecciona una fecha de corte.');
@@ -1472,6 +1486,132 @@ function registrarComponenteReportePresupuesto() {
                 } catch (e) {
                     console.error('Error exportarPagosPendientesPdf:', e);
                     alert('Error al generar el PDF.');
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            get pagosPendientesGlobalAgrupado() {
+                const fuente = Array.isArray(this.pagosPendientesFiltradas) ? this.pagosPendientesFiltradas : [];
+                const corte = this.fechaCorteGlobal || null;
+                const map = new Map();
+                for (const r of fuente) {
+                    if (corte && r.FechaMasReciente && String(r.FechaMasReciente) > corte) continue;
+                    const prov = (r.Proveedor || '—').trim() || '—';
+                    const razon = (r.RazonSocial || '—').trim() || '—';
+                    const complejo = (r.Complejo || '—').trim() || '—';
+                    const key = `${prov}||${razon}||${complejo}`;
+                    let g = map.get(key);
+                    if (!g) {
+                        g = { Proveedor: prov, RazonSocial: razon, Complejo: complejo, Total: 0 };
+                        map.set(key, g);
+                    }
+                    g.Total += parseFloat(r.TotalRequisicion) || 0;
+                }
+                const arr = [...map.values()].map(g => ({ ...g, Total: Math.round(g.Total * 100) / 100 }));
+                arr.sort((a, b) => a.Proveedor.localeCompare(b.Proveedor) || a.RazonSocial.localeCompare(b.RazonSocial) || a.Complejo.localeCompare(b.Complejo));
+                return arr;
+            },
+
+            async confirmarExportacionPagosPendientesGlobal() {
+                if (!this.fechaCorteGlobal) {
+                    alert('Selecciona una fecha de corte.');
+                    return;
+                }
+                const corte = this.fechaCorteGlobal;
+                // pagosPendientesGlobalAgrupado ya filtra por corte via getter
+                const datos = this.pagosPendientesGlobalAgrupado;
+                if (datos.length === 0) {
+                    alert('No hay datos que entren dentro de la fecha de corte seleccionada.');
+                    return;
+                }
+                this.modalFechaCorteGlobalAbierto = false;
+                if (this.tipoExportacionGlobal === 'excel') {
+                    await this.exportarPagosPendientesGlobalExcel(datos, corte);
+                } else {
+                    await this.exportarPagosPendientesGlobalPdf(datos, corte);
+                }
+            },
+
+            async exportarPagosPendientesGlobalExcel(datos, fechaCorte) {
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando Excel Global de Pagos Pendientes...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos,
+                        fechaCorte,
+                        filtros: {
+                            razonesSociales: (this.filtrosRazonPagosPend || []).join(', '),
+                            complejos: (this.filtrosComplejoPagosPend || []).join(', '),
+                            departamentos: (this.filtrosDeptosPagosPend || []).join(', '),
+                            usuarios: (this.filtrosUsuarioPagosPend || []).join(', '),
+                            formasPago: (this.filtrosFormaPagoPagosPend || []).join(', '),
+                            tipos: (this.filtrosTipoPagosPend || []).join(', '),
+                            estados: (this.filtrosEstadoPagosPend || []).join(', ')
+                        }
+                    };
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-pendientes/global/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `pagos_pendientes_global_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert("Error al generar el archivo Excel Global.");
+                    }
+                } catch (e) {
+                    console.error("Error exportarPagosPendientesGlobalExcel:", e);
+                    alert("Error al generar el Excel Global.");
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            async exportarPagosPendientesGlobalPdf(datos, fechaCorte) {
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando PDF Global de Pagos Pendientes...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos,
+                        fechaCorte,
+                        filtros: {
+                            razonesSociales: (this.filtrosRazonPagosPend || []).join(', '),
+                            complejos: (this.filtrosComplejoPagosPend || []).join(', '),
+                            departamentos: (this.filtrosDeptosPagosPend || []).join(', '),
+                            usuarios: (this.filtrosUsuarioPagosPend || []).join(', '),
+                            formasPago: (this.filtrosFormaPagoPagosPend || []).join(', '),
+                            tipos: (this.filtrosTipoPagosPend || []).join(', '),
+                            estados: (this.filtrosEstadoPagosPend || []).join(', ')
+                        }
+                    };
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-pendientes/global/exportar-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `pagos_pendientes_global_${new Date().toISOString().split('T')[0]}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF Global.');
+                    }
+                } catch (e) {
+                    console.error('Error exportarPagosPendientesGlobalPdf:', e);
+                    alert('Error al generar el PDF Global.');
                 } finally {
                     if (notif && typeof notif.click === 'function') notif.click();
                 }

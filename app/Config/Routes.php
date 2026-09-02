@@ -257,6 +257,8 @@ if (!file_exists($installerLockFile)) {
         $routes->get('api/reportes/pagos-pendientes', 'ReportesController::getPagosPendientesReporte');
         $routes->post('api/reportes/pagos-pendientes/exportar-datos', 'ReportesController::exportarPagosPendientesJson');
         $routes->post('api/reportes/pagos-pendientes/exportar-pdf', 'ReportesController::exportarPagosPendientesPdf');
+        $routes->post('api/reportes/pagos-pendientes/global/exportar-datos', 'ReportesController::exportarPagosPendientesGlobalJson');
+        $routes->post('api/reportes/pagos-pendientes/global/exportar-pdf', 'ReportesController::exportarPagosPendientesGlobalPdf');
 
         // Rutas API Reporte Facturas Pendientes (pantalla de fichas de pago)
         $routes->get('api/reportes/facturas-pendientes', 'ReportesController::getFacturasPendientesReporte');

@@ -66,11 +66,13 @@ function abrirModal(opcion) {
 
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
-    modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto')
-    modalBox.classList.add('max-w-[95vw]', 'mx-4')
+    modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto', 'max-w-[95vw]')
+    modalBox.classList.add('w-full', 'mx-auto')
+    modalBox.style.maxWidth = 'min(95vw, calc(100% - 2rem))'
   } else {
     modal.classList.add('justify-center')
-    modalBox.classList.remove('max-w-[95vw]')
+    modalBox.classList.remove('max-w-[95vw]', 'max-w-[min(95vw,calc(100%-2rem))]')
+    modalBox.style.maxWidth = ''
     modalBox.classList.add('max-w-4xl', 'mx-4', 'sm:mx-auto')
   }
 
@@ -1568,29 +1570,36 @@ function initPaginacionHistorial() {
         style: 'currency',
         currency: 'MXN',
       }).format(totalRaw)
+      const fmtFecha = (v) => {
+        if (!v) return '<span class="text-gray-400">N/A</span>';
+        const d = String(v).split(' ')[0].split('-');
+        if (d.length !== 3 || !d[0] || !d[1] || !d[2]) return String(v);
+        return `${d[2]}/${d[1]}/${d[0]}`;
+      };
 
       return `
-    <tr class="text-center hover:bg-gray-50 transition">
+    <tr class="text-center hover:bg-gray-50 transition group">
         <td class="hidden border px-4 py-2">${item.ID_Solicitud}</td>
-        <td class="border px-4 py-2 font-medium">${item.No_Folio || 'N/A'}</td>
-        <td class="border px-4 py-2 text-sm">${item.Fecha}</td>
-        <td class="border px-4 py-2 text-xs font-semibold">${item.Complejo || '<span class="text-gray-400">N/A</span>'}</td>
-        <td class="border px-4 py-2 text-xs text-gray-600">${item.DepartamentoNombre} - ${item.PlaceNombre}</td>
-        
-        <td class="border px-4 py-2 text-sm text-left px-6">${item.ProveedorNombre || '<span class="text-gray-400">N/A</span>'}</td>
-        
-        <td class="border px-4 py-2 font-bold text-gray-800">
+        <td class="border px-4 py-2 font-medium whitespace-nowrap">${item.No_Folio || 'N/A'}</td>
+        <td class="border px-4 py-2 text-xs font-semibold whitespace-nowrap">${item.Complejo || '<span class="text-gray-400">N/A</span>'}</td>
+        <td class="border px-4 py-2 text-xs text-gray-600 whitespace-nowrap">${item.DepartamentoNombre} - ${item.PlaceNombre}</td>
+        <td class="border px-4 py-2 text-sm text-left px-6 whitespace-nowrap">${item.ProveedorNombre || '<span class="text-gray-400">N/A</span>'}</td>
+        <td class="border px-4 py-2 font-bold text-gray-800 whitespace-nowrap">
             ${totalRaw > 0 ? montoFormateado : '<span class="text-gray-400">$0.00</span>'}
         </td>
-        
-        <td class="border px-4 py-2 col-estado" data-estado="${status}" title="${status}">
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaSolicitud || item.Fecha)}</td>
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.Fecha_Aprobacion)}</td>
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaProgramacion)}</td>
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaComprobante)}</td>
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaPagoRealizado)}</td>
+        <td class="border px-4 py-2 col-estado whitespace-nowrap" data-estado="${status}" title="${status}">
             <div class="flex flex-col items-center">
                 ${svg}
                 <span class="text-[10px] uppercase font-bold">${status}</span>
             </div>
         </td>
-        <td class="border px-4 py-2 text-xs">${MetodoPag}</td>
-        <td class="border px-4 py-2">
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${MetodoPag}</td>
+        <td class="border px-4 py-2 whitespace-nowrap text-center sticky right-0 bg-white group-hover:bg-gray-50 z-10 border-l" style="box-shadow: -4px 0 6px rgba(0,0,0,0.08), inset -1px 0 0 #d1d5db;">
             <button class="text-blue-600 hover:text-blue-800 font-semibold transition" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">
                 Detalles
             </button>

@@ -136,20 +136,24 @@
 
 
     <!-- Tabla -->
-    <div class="overflow-x-auto">
-        <table class="w-full border-collapse border border-gray-300" id="tabla-historial">
+    <div class="overflow-x-auto w-full" style="max-width:100%; overscroll-behavior-x: contain; overflow-y: hidden; margin-right:-1px; padding-right:1px;">
+        <table class="w-full border-collapse border border-gray-300" id="tabla-historial" style="min-width:1200px;">
             <thead class="bg-gray-100">
             <tr>
                 <th class="hidden border px-4 py-2">ID</th>
-                <th class="border px-4 py-2">Folio</th>
-                <th class="border px-4 py-2">Fecha</th>
-                <th class="border px-4 py-2">Razón Social</th>
-                <th class="border px-4 py-2">Departamento</th>
-                <th class="border px-4 py-2">Proveedor</th>
-                <th class="border px-4 py-2">Monto</th>
-                <th class="border px-4 py-2">Estado</th>
-                <th class="border px-4 py-2">Metodo de pago</th>
-                <th class="border px-4 py-2">Acción</th>
+                <th class="border px-4 py-2 whitespace-nowrap">Folio</th>
+                <th class="border px-4 py-2 whitespace-nowrap">Razón Social</th>
+                <th class="border px-4 py-2 whitespace-nowrap">Departamento</th>
+                <th class="border px-4 py-2 whitespace-nowrap">Proveedor</th>
+                <th class="border px-4 py-2 whitespace-nowrap">Monto</th>
+                <th class="border px-4 py-2 whitespace-nowrap">F. Solicitud</th>
+                <th class="border px-4 py-2 whitespace-nowrap">F. Autorización</th>
+                <th class="border px-4 py-2 whitespace-nowrap">F. Programación</th>
+                <th class="border px-4 py-2 whitespace-nowrap">Fecha Carga Comprobante</th>
+                <th class="border px-4 py-2 whitespace-nowrap">F. Pago Real</th>
+                <th class="border px-4 py-2 whitespace-nowrap">Estado</th>
+                <th class="border px-4 py-2 whitespace-nowrap">Metodo de pago</th>
+                <th class="border px-4 py-2 whitespace-nowrap text-center sticky right-0 bg-gray-100 z-20 border-l" style="box-shadow: -4px 0 6px rgba(0,0,0,0.08), inset -1px 0 0 #d1d5db;">Acción</th>
             </tr>
             </thead>
             <tbody>
