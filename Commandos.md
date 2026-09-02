@@ -4,6 +4,9 @@
 # Limpiar cache de CodeIgniter4
 docker exec -it codeigniter_app_fpm php spark cache:clear
 
+# Ejecutar migraciones
+docker exec -it codeigniter_app_fpm php spark migrate
+
 # Mostrar ayuda general de Spark
 docker exec -it codeigniter_app_fpm php spark list
 
@@ -53,4 +56,14 @@ git checkout "nombre de la branch"
 git pull
 # Forzar actualizacion borra datos
 git pull --rebase
+# Hacer comit (antes de subir datos al git)
+git status
+git add . #Todos los archivos
+git add  app/Database/Migrations/2026-04-22-175644_AddBudgetFieldsToSolicitudServicios.php #O Bien la ruta completa
+
+#Crear el commit
+git commit -m "titulo del commit" -m "Descripcion del commit"
+
+# Importar cambios del servidor hacia el git 
+git push 
 ```

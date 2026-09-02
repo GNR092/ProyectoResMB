@@ -28,8 +28,8 @@ class CreateCatalogoProductosTable extends Migration
                 'null'       => true,
             ],
             'ID_Place' => [
-                'type'       => 'INT',
-                'constraint' => 11,
+                'type'       => 'BIGINT',
+                'constraint' => 20,
                 'unsigned'   => true,
                 'null'       => true,
             ],
