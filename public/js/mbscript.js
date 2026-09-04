@@ -1587,17 +1587,17 @@ function initPaginacionHistorial() {
         <td class="border px-4 py-2 font-bold text-gray-800 whitespace-nowrap">
             ${totalRaw > 0 ? montoFormateado : '<span class="text-gray-400">$0.00</span>'}
         </td>
-        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaSolicitud || item.Fecha)}</td>
-        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.Fecha_Aprobacion)}</td>
-        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaProgramacion)}</td>
-        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaComprobante)}</td>
-        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaPagoRealizado)}</td>
         <td class="border px-4 py-2 col-estado whitespace-nowrap" data-estado="${status}" title="${status}">
             <div class="flex flex-col items-center">
                 ${svg}
                 <span class="text-[10px] uppercase font-bold">${status}</span>
             </div>
         </td>
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaSolicitud || item.Fecha)}</td>
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.Fecha_Aprobacion)}</td>
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaProgramacion)}</td>
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaComprobante)}</td>
+        <td class="border px-4 py-2 text-xs whitespace-nowrap">${fmtFecha(item.FechaPagoRealizado)}</td>
         <td class="border px-4 py-2 text-xs whitespace-nowrap">${MetodoPag}</td>
         <td class="border px-4 py-2 whitespace-nowrap text-center sticky right-0 bg-white group-hover:bg-gray-50 z-10 border-l" style="box-shadow: -4px 0 6px rgba(0,0,0,0.08), inset -1px 0 0 #d1d5db;">
             <button class="text-blue-600 hover:text-blue-800 font-semibold transition" onclick="mostrarVerHistorial(${item.ID_Solicitud}); return false;">
