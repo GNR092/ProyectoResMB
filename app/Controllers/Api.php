@@ -1621,6 +1621,67 @@ class Api extends ResourceController
                     $cfls = ['Cotizacion_Files' => implode(',', $tmp)];
                     $this->api->updateCotizacionById((int)$idCotizacion, $cfls);
                 }
+            } elseif (!empty($request['reutilizar_evidencia']) && $request['reutilizar_evidencia'] == '1') {
+                // === REUTILIZAR EVIDENCIAS COMO COTIZACIÓN (copiar todos) ===
+                if (empty($solicitud['Archivo'])) {
+                    return $this->fail('La solicitud no tiene evidencias para reutilizar como cotización.', HttpStatus::BAD_REQUEST);
+                }
+
+                $idCotizacion = $idCotizacionSeleccionada;
+                if (!$idCotizacion) {
+                    $cot = $this->api->getCotizacionBySolicitudID($idSolicitud);
+                    $idCotizacion = $cot ? $cot['ID_Cotizacion'] : null;
+                }
+                if (!$idCotizacion && $idProveedorGanador) {
+                    $idCotizacion = $cotizacionModel->insert([
+                        'ID_Solicitud' => $idSolicitud,
+                        'ID_Proveedor' => $idProveedorGanador,
+                        'Total' => 0,
+                        'ID_Usuario_Cotiza' => session('id') ?? 1
+                    ]);
+                }
+                if (!$idCotizacion) {
+                    return $this->fail('No se pudo identificar/crear la cotización para reutilizar evidencias.', HttpStatus::INTERNAL_SERVER_ERROR);
+                }
+
+                $evidencias = array_filter(array_map('trim', explode(',', $solicitud['Archivo'])));
+                if (empty($evidencias)) {
+                    return $this->fail('La solicitud no tiene evidencias válidas para reutilizar.', HttpStatus::BAD_REQUEST);
+                }
+
+                if (!is_dir($folder) && !mkdir($folder, 0777, true) && !is_dir($folder)) {
+                    log_message('error', "[reutilizar_evidencia] No se pudo crear carpeta cotizaciones: $folder");
+                    return $this->failServerError('No se pudo preparar la carpeta de cotizaciones.');
+                }
+
+                $tmp = [];
+                $count = 0;
+                $sourceFolder = FPath::FSOLICITUD . $safeDate . DIRECTORY_SEPARATOR;
+                foreach ($evidencias as $origName) {
+                    $origPath = $sourceFolder . $origName;
+                    if (!file_exists($origPath)) {
+                        log_message('error', "[reutilizar_evidencia] Evidencia no encontrada: $origPath");
+                        continue;
+                    }
+                    $ext = pathinfo($origName, PATHINFO_EXTENSION);
+                    $baseFileName = 'cotizacion_' . $idCotizacion . '_' . $safeDate . '_' . $count++ . '_' . uniqid();
+                    $destName = $ext ? $baseFileName . '.' . $ext : $baseFileName;
+                    $destPath = $folder . DIRECTORY_SEPARATOR . $destName;
+                    if (!copy($origPath, $destPath)) {
+                        log_message('error', "[reutilizar_evidencia] Falló copy $origPath -> $destPath");
+                        continue;
+                    }
+                    $tmp[] = $destName;
+                }
+
+                if (empty($tmp)) {
+                    return $this->fail('No se pudo reutilizar ninguna evidencia como cotización (archivos no encontrados o error de copia).', HttpStatus::INTERNAL_SERVER_ERROR);
+                }
+
+                $cfls = ['Cotizacion_Files' => implode(',', $tmp)];
+                $this->api->updateCotizacionById((int)$idCotizacion, $cfls);
+                log_message('info', "[reutilizar_evidencia] Solicitud $idSolicitud: " . count($tmp) . " evidencias reutilizadas como cotización ($idCotizacion): " . implode(',', $tmp));
+                // No se borra Solicitud.Archivo — queda duplicado evidencia + cotización
             }
 
             return $this->respondUpdated(['success' => true, 'message' => 'Solicitud enviada a revisión.']);

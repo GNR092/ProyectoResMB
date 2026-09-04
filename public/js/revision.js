@@ -572,16 +572,28 @@ function RevisionX() {
                   const adjuntarSoloSolicitante =
                       document.getElementById('adjuntar-solicitante-check')?.checked || false
                   const archivos = document.getElementById('archivos-revision').files
+                  let reutilizarEvidencia = false
 
                   if (!adjuntarSoloSolicitante && archivos.length === 0) {
-                      mostrarNotificacion(
-                          'Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.',
-                          'error',
-                      )
-                      return
+                      if (!data.Archivo) {
+                          mostrarNotificacion(
+                              'Debe adjuntar al menos un archivo de cotización o marcar la opción de usar el del solicitante.',
+                              'error',
+                          )
+                          return
+                      }
+                      if (!(await Confirmar(
+                          'Sin cotización adjunta',
+                          'No has adjuntado cotización, ¿readjuntar la evidencia como cotización y enviarla a revisión?'
+                      ))) {
+                          return
+                      }
+                      reutilizarEvidencia = true
                   }
 
-                  if (!adjuntarSoloSolicitante && archivos.length > 0) {
+                  if (reutilizarEvidencia) {
+                      formData.append('reutilizar_evidencia', '1')
+                  } else if (!adjuntarSoloSolicitante && archivos.length > 0) {
                       for (let i = 0; i < archivos.length; i++) {
                           formData.append('cotizacion_files[]', archivos[i])
                       }
