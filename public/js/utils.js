@@ -369,7 +369,7 @@ function PromptFechaComprobante(valorInicial = '') {
                 <h3 class="text-lg font-bold mb-4">Fecha del comprobante</h3>
                 <p class="text-sm text-gray-600 mb-4">Indique la fecha que aparece en el comprobante de pago (foto/PDF). Este paso es obligatorio.</p>
                 <label for="promptFechaInput" class="block text-sm font-medium text-gray-700 mb-2">Fecha del comprobante</label>
-                <input type="date" id="promptFechaInput" value="${valorInicial}"
+                <input type="date" id="promptFechaInput" value="${valorInicial}" max="${valorInicial}"
                        class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 <div class="mt-6 flex justify-end space-x-4">
                     <button id="cancelarFechaBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancelar</button>
