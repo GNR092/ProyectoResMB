@@ -29,6 +29,7 @@ class MBSMail
         $this->mail->SMTPSecure = getenv('EMAIL_ENCRYPTION') ?: PHPMailer::ENCRYPTION_SMTPS;
         $this->mail->Port = getenv('EMAIL_PORT') ?: 465;
         $this->mail->CharSet = 'UTF-8';
+        $this->mail->Timeout = 10;
     }
 
     /**

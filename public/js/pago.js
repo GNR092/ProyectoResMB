@@ -1293,8 +1293,13 @@ async function CerrarOrden(idSolicitud, metodoPago) {
       mostrarNotificacion(result.message || 'Fallo al cerrar la orden.', 'error');
     }
   } catch (error) {
-    console.error('CerrarOrden Error:', error);
-    mostrarNotificacion('Ocurrió un error crítico al intentar finalizar la orden.', 'error');
+    console.error('CerrarOrden Error:', error.message, { status: error.status, statusText: error.statusText, data: error.data, fullError: error });
+    const serverDetail = error.data && typeof error.data === 'object' && (error.data.message || error.data.messages) ? (error.data.message || (Array.isArray(error.data.messages) ? error.data.messages[0] : error.data.messages)) : null;
+    let detalle = error.message && !error.message.includes('<html') ? error.message : 'Ocurrió un error crítico al intentar finalizar la orden.';
+    if (typeof error.data === 'string' && error.data.includes('504')) {
+      detalle = '504 Gateway Time-out — el servidor tardó en responder (posible fallo SMTP a compras@campusmerida.com). Revisa la consola y writable/logs.';
+    }
+    mostrarNotificacion(serverDetail || detalle, 'error');
   }
 }
 

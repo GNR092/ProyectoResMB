@@ -95,7 +95,19 @@ async function SendDataEnd(endpoint, options = {}) {
         errorData = await response.text()
       }
 
-      const serverMsg = (typeof errorData === 'object' && errorData?.message) ? errorData.message : (typeof errorData === 'string' ? errorData : 'Error en la solicitud HTTP')
+      let serverMsg = (typeof errorData === 'object' && errorData !== null && (errorData.message || errorData.messages)) ? (errorData.message || (Array.isArray(errorData.messages) ? errorData.messages[0] : errorData.messages)) : (typeof errorData === 'string' ? errorData : 'Error en la solicitud HTTP')
+      if (typeof errorData === 'string' && errorData.includes('<html')) {
+        const titleMatch = errorData.match(/<title>(.*?)<\/title>/i)
+        const h1Match = errorData.match(/<h1>(.*?)<\/h1>/i)
+        const extracted = (h1Match && h1Match[1]) || (titleMatch && titleMatch[1]) || '504 Gateway Time-out'
+        serverMsg = extracted + ' - ' + endpoint + ' (revisa Network y logs SMTP)'
+        console.error(`[SendDataEnd] ${endpoint} -> ${response.status} ${response.statusText}`, { serverMsg, status: response.status, statusText: response.statusText, data: errorData.substring(0, 800) })
+      }
+      if (typeof serverMsg === 'string' && serverMsg.length > 600) serverMsg = serverMsg.substring(0, 600)
+      // Si el mensaje contiene HTML residual, intentar limpiar
+      if (typeof serverMsg === 'string' && serverMsg.includes('padding to disable')) {
+        serverMsg = serverMsg.split('<!--')[0].trim()
+      }
       const error = new Error(serverMsg)
       error.status = response.status
       error.statusText = response.statusText

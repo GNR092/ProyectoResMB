@@ -2790,7 +2790,12 @@ class Api extends ResourceController
                         'Opciones de adjunto para correo Por Pagar: ' . print_r($options, true),
                     );
 
-                    $mail->send_email($to, $subject, $message, $options);
+                    try {
+                        $mail->send_email($to, $subject, $message, $options);
+                    } catch (\Exception $mailEx) {
+                        log_message('error', '[cambiarEstadoOrden Por_Pagar mail] ' . $mailEx->getMessage() . ' to=' . $to . ' solicitud=' . $idSolicitud);
+                        throw new \Exception("Error al enviar el correo: " . $mailEx->getMessage());
+                    }
                     log_message(
                         'info',
                         "Correo de comprobante de pago enviado a {$to} para solicitud {$idSolicitud}.",
@@ -2858,10 +2863,15 @@ class Api extends ResourceController
                             'proveedorNombre' => $proveedorNombre,
                             'razonNombre' => $razonNombre,
                         ]);
-                        $mail->send_email($toProveedor, $subject, $messageProveedor, [
-                            'attachments' => [$attachmentPath],
-                            'fromName' => $razonNombre,
-                        ]);
+                        try {
+                            $mail->send_email($toProveedor, $subject, $messageProveedor, [
+                                'attachments' => [$attachmentPath],
+                                'fromName' => $razonNombre,
+                            ]);
+                        } catch (\Exception $mailEx) {
+                            log_message('error', '[cambiarEstadoOrden Pagada mail proveedor] ' . $mailEx->getMessage() . ' to=' . $toProveedor);
+                            throw new \Exception("Error al enviar correo a proveedor: " . $mailEx->getMessage());
+                        }
                     } else {
                         log_message(
                             'warning',
@@ -2878,11 +2888,16 @@ class Api extends ResourceController
                             'proveedorNombre' => $proveedorNombre,
                             'razonNombre' => $razonNombre,
                         ]);
-                        $mail->send_email($ccCompras, $subject, $messageCompras, [
-                            'attachments' => [$attachmentPath],
-                            'fromName' => $razonNombre,
-                            'isHtml' => true,
-                        ]);
+                        try {
+                            $mail->send_email($ccCompras, $subject, $messageCompras, [
+                                'attachments' => [$attachmentPath],
+                                'fromName' => $razonNombre,
+                                'isHtml' => true,
+                            ]);
+                        } catch (\Exception $mailEx) {
+                            log_message('error', '[cambiarEstadoOrden Pagada mail compras] ' . $mailEx->getMessage() . ' to=' . $ccCompras);
+                            // No bloquea cierre si falla CC compras, solo log
+                        }
                     } else {
                         log_message(
                             'warning',
@@ -2899,11 +2914,16 @@ class Api extends ResourceController
                             'proveedorNombre' => $proveedorNombre,
                             'razonNombre' => $razonNombre,
                         ]);
-                        $mail->send_email($ccTesoreria, $subject, $messageTesoreria, [
-                            'attachments' => [$attachmentPath],
-                            'fromName' => $razonNombre,
-                            'isHtml' => true,
-                        ]);
+                        try {
+                            $mail->send_email($ccTesoreria, $subject, $messageTesoreria, [
+                                'attachments' => [$attachmentPath],
+                                'fromName' => $razonNombre,
+                                'isHtml' => true,
+                            ]);
+                        } catch (\Exception $mailEx) {
+                            log_message('error', '[cambiarEstadoOrden Pagada mail tesoreria] ' . $mailEx->getMessage() . ' to=' . $ccTesoreria);
+                            // No bloquea cierre si falla CC tesorería
+                        }
                     } else {
                         log_message(
                             'warning',
