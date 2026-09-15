@@ -96,7 +96,7 @@ function initControlMaestro() {
             <tr class="text-center hover:bg-gray-50 transition border-b border-gray-100">
                 <td class="hidden border-r px-4 py-2">${item.ID_Solicitud}</td>
                 <td class="border-r px-4 py-2 font-medium text-gray-800">${item.No_Folio || 'N/A'}</td>
-                <td class="border-r px-4 py-2 text-sm text-gray-600">${item.Fecha}</td>
+                <td class="border-r px-4 py-2 text-sm text-gray-600">${item.FechaSolicitud || item.Fecha || ''}</td>
                 <td class="border-r px-4 py-2 text-xs text-gray-500">${item.DepartamentoNombre || ''}</td>
                 <td class="border-r px-4 py-2 text-sm text-left px-4">${item.ProveedorNombre || 'N/A'}</td>
                 <td class="border-r px-4 py-2 font-bold ${claseMonto}">${totalRaw > 0 ? montoFormateado : '$0.00'}</td>
