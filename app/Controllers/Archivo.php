@@ -472,7 +472,8 @@ class Archivo extends BaseController
             }
         }
 
-        $filePath = WRITEPATH . 'uploads/solicitud/' . $solicitud['Fecha'] . '/' . $fileName;
+        $safeDate = explode(' ', $solicitud['Fecha'])[0];
+        $filePath = WRITEPATH . 'uploads/solicitud/' . $safeDate . '/' . $fileName;
 
         if (!file_exists($filePath)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound(
