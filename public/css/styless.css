@@ -1,4 +1,4 @@
-/*! tailwindcss v4.2.4 | MIT License | https://tailwindcss.com */
+/*! tailwindcss v4.3.0 | MIT License | https://tailwindcss.com */
 @layer properties;
 @layer theme, base, components, utilities;
 @layer theme {
@@ -395,12 +395,6 @@
   .inset-y-0 {
     inset-block: calc(var(--spacing) * 0);
   }
-  .start {
-    inset-inline-start: var(--spacing);
-  }
-  .end {
-    inset-inline-end: var(--spacing);
-  }
   .top-0 {
     top: calc(var(--spacing) * 0);
   }
@@ -433,6 +427,9 @@
   }
   .right-5 {
     right: calc(var(--spacing) * 5);
+  }
+  .bottom-0 {
+    bottom: calc(var(--spacing) * 0);
   }
   .bottom-5 {
     bottom: calc(var(--spacing) * 5);
@@ -484,6 +481,9 @@
   }
   .m-1 {
     margin: calc(var(--spacing) * 1);
+  }
+  .-mx-4 {
+    margin-inline: calc(var(--spacing) * -4);
   }
   .mx-1 {
     margin-inline: calc(var(--spacing) * 1);
@@ -717,6 +717,9 @@
   .max-h-\[90vh\] {
     max-height: 90vh;
   }
+  .max-h-\[calc\(100vh-140px\)\] {
+    max-height: calc(100vh - 140px);
+  }
   .min-h-\[50vh\] {
     min-height: 50vh;
   }
@@ -846,8 +849,8 @@
   .max-w-\[340px\] {
     max-width: 340px;
   }
-  .max-w-full {
-    max-width: 100%;
+  .max-w-\[min\(95vw\,calc\(100\%-2rem\)\)\] {
+    max-width: min(95vw, calc(100% - 2rem));
   }
   .max-w-lg {
     max-width: var(--container-lg);
@@ -884,9 +887,6 @@
   }
   .min-w-\[1100px\] {
     min-width: 1100px;
-  }
-  .min-w-\[1200px\] {
-    min-width: 1200px;
   }
   .min-w-\[1300px\] {
     min-width: 1300px;
@@ -1157,9 +1157,6 @@
   }
   .overflow-y-auto {
     overflow-y: auto;
-  }
-  .overscroll-x-contain {
-    overscroll-behavior-x: contain;
   }
   .rounded {
     border-radius: 0.25rem;
@@ -4140,11 +4137,6 @@
   .lg\:col-span-2 {
     @media (width >= 64rem) {
       grid-column: span 2 / span 2;
-    }
-  }
-  .lg\:min-w-\[1350px\] {
-    @media (width >= 64rem) {
-      min-width: 1350px;
     }
   }
   .lg\:grid-cols-4 {

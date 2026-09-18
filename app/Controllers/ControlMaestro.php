@@ -187,7 +187,8 @@ class ControlMaestro extends BaseController
             // Limpieza Cotización
             if (($nivelNuevo > 0 && $nivelNuevo < 3) && $rowCot && !empty($rowCot->Cotizacion_Files)) {
                 $files = explode(',', $rowCot->Cotizacion_Files);
-                foreach ($files as $f) @unlink(WRITEPATH . 'uploads/cotizaciones/' . $solicitudOriginal->Fecha . '/' . trim($f));
+                $safeDateCot = explode(' ', $solicitudOriginal->Fecha)[0];
+                foreach ($files as $f) @unlink(WRITEPATH . 'uploads/cotizaciones/' . $safeDateCot . '/' . trim($f));
                 $this->db->table('Cotizacion')->where('ID_Cotizacion', $idCotizacion)->update(['Cotizacion_Files' => null]);
             }
 

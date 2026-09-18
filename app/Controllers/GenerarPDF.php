@@ -47,13 +47,14 @@ class GenerarPDF extends BaseController
         $this->_mostrarComentarios($pdf, $solicitud);
         if (!empty($solicitud['Archivo'])) {
             $archivos = explode(',', $solicitud['Archivo']);
+            $safeDateRef = explode(' ', $solicitud['Fecha'])[0];
             foreach ($archivos as $index => $file) {
                 $trimmedFile = trim($file);
                 if (empty($trimmedFile)) continue;
                 
                 $this->_adjuntarArchivo(
                     $pdf,
-                    FPath::FSOLICITUD . $solicitud['Fecha'] . '/',
+                    FPath::FSOLICITUD . $safeDateRef . '/',
                     $trimmedFile,
                     'Referencia ' . ($index + 1),
                 );
@@ -102,10 +103,11 @@ class GenerarPDF extends BaseController
         // 2. Referencias del Solicitante
         if (!empty($solicitud['Archivo'])) {
             $archivos = explode(',', $solicitud['Archivo']);
+            $safeDateRef = explode(' ', $solicitud['Fecha'])[0];
             foreach ($archivos as $index => $file) {
                 $trimmedFile = trim($file);
                 if (empty($trimmedFile)) continue;
-                $this->_adjuntarArchivo($pdf, FPath::FSOLICITUD . $solicitud['Fecha'] . '/', $trimmedFile, 'Referencia ' . ($index + 1));
+                $this->_adjuntarArchivo($pdf, FPath::FSOLICITUD . $safeDateRef . '/', $trimmedFile, 'Referencia ' . ($index + 1));
             }
         }
 
@@ -209,13 +211,14 @@ class GenerarPDF extends BaseController
         $this->_mostrarComentarios($pdf, $solicitud);
         if ($adjuntararchivo && !empty($solicitud['Archivo'])) {
             $archivos = explode(',', $solicitud['Archivo']);
+            $safeDateRef = explode(' ', $solicitud['Fecha'])[0];
             foreach ($archivos as $index => $file) {
                 $trimmedFile = trim($file);
                 if (empty($trimmedFile)) continue;
 
                 $this->_adjuntarArchivo(
                     $pdf,
-                    FPath::FSOLICITUD . $solicitud['Fecha'] . '/',
+                    FPath::FSOLICITUD . $safeDateRef . '/',
                     $trimmedFile,
                     'Referencia ' . ($index + 1),
                 );
