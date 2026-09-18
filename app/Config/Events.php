@@ -83,11 +83,11 @@ Events::on('pre_system', static function (): void {
     if (CI_DEBUG && ! is_cli()) {
         Events::on('DBQuery', 'CodeIgniter\Debug\Toolbar\Collectors\Database::collect');
         service('toolbar')->respond();
-        // Hot Reload route - for framework use on the hot reloader.
-        if (ENVIRONMENT === 'development') {
-            service('routes')->get('__hot-reload', static function (): void {
-                (new HotReloader())->run();
-            });
-        }
+        // Hot Reload deshabilitado para evitar bloqueo de sesión (auth pendiente)
+        // if (ENVIRONMENT === 'development') {
+        //     service('routes')->get('__hot-reload', static function (): void {
+        //         (new HotReloader())->run();
+        //     });
+        // }
     }
 });

@@ -103,7 +103,6 @@ class Toolbar extends BaseConfig
      * @var list<string>
      */
     public array $watchedDirectories = [
-        'app',
     ];
 
     /**
