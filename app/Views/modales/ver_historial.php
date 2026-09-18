@@ -1,6 +1,29 @@
 <?php
 // Vista de historial
 ?>
+<style>
+/* Fix: dropdowns Choices de filtros por encima del thead sticky (z-20) y esquina (z-30) */
+#div-historial .choices.is-open {
+    position: relative;
+    z-index: 50;
+}
+#div-historial .choices__list--dropdown.is-active,
+#div-historial .choices__list[aria-expanded].is-active {
+    z-index: 50;
+}
+/* La tabla usa border-separate para que los bordes viajen con las celdas sticky;
+   se anulan los bordes duplicados para mantener divisiones de 1px */
+#tabla-historial th + th,
+#tabla-historial td + td {
+    border-left-width: 0;
+}
+#tabla-historial tbody tr:first-child td {
+    border-top-width: 0;
+}
+#tabla-historial tbody tr + tr td {
+    border-top-width: 0;
+}
+</style>
 
 <!-- Pantalla 1: historial -->
 <div id="div-historial" class="p-4 flex flex-col max-h-[calc(100vh-140px)]">
@@ -137,23 +160,23 @@
 
     <!-- Tabla con scroll horizontal: barra nativa única, paginación fuera del scroll -->
     <div id="historial-table-wrap" class="overflow-auto w-full flex-1 border border-gray-300 rounded-md" style="max-width:100%; max-height:52vh; overscroll-behavior: contain; margin-right:-1px; padding-right:1px;">
-        <table class="w-full border-collapse" id="tabla-historial" style="min-width:1200px;">
-            <thead class="bg-gray-100 sticky top-0 z-10">
+        <table class="w-full border-separate border-spacing-0" id="tabla-historial" style="min-width:1200px;">
+            <thead class="bg-gray-100">
             <tr>
-                <th class="hidden border px-4 py-2">ID</th>
-                <th class="border px-4 py-2 whitespace-nowrap">Folio</th>
-                <th class="border px-4 py-2 whitespace-nowrap">Razón Social</th>
-                <th class="border px-4 py-2 whitespace-nowrap">Departamento</th>
-                <th class="border px-4 py-2 whitespace-nowrap">Proveedor</th>
-                <th class="border px-4 py-2 whitespace-nowrap">Monto</th>
-                <th class="border px-4 py-2 whitespace-nowrap">Estado</th>
-                <th class="border px-4 py-2 whitespace-nowrap">F. Solicitud</th>
-                <th class="border px-4 py-2 whitespace-nowrap">F. Autorización</th>
-                <th class="border px-4 py-2 whitespace-nowrap">F. Programación</th>
-                <th class="border px-4 py-2 whitespace-nowrap">Fecha Carga Comprobante</th>
-                <th class="border px-4 py-2 whitespace-nowrap">F. Pago Real</th>
-                <th class="border px-4 py-2 whitespace-nowrap">Metodo de pago</th>
-                <th class="border px-4 py-2 whitespace-nowrap text-center sticky right-0 bg-gray-100 z-25 border-l" style="box-shadow: -4px 0 6px rgba(0,0,0,0.08), inset -1px 0 0 #d1d5db;">Acción</th>
+                <th class="hidden border px-4 py-2 sticky top-0 z-20 bg-gray-100">ID</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Folio</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Razón Social</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Departamento</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Proveedor</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Monto</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Estado</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">F. Solicitud</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">F. Autorización</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">F. Programación</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Fecha Carga Comprobante</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">F. Pago Real</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Metodo de pago</th>
+                <th class="border px-4 py-2 whitespace-nowrap text-center sticky top-0 right-0 bg-gray-100 z-30 border-l" style="box-shadow: -4px 0 6px rgba(0,0,0,0.08), inset -1px 0 0 #d1d5db;">Acción</th>
             </tr>
             </thead>
             <tbody>
