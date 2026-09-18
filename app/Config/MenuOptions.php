@@ -73,6 +73,11 @@ class MenuOptions extends BaseConfig
                 'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#Fix"></use></svg>',
             ],
 
+            'calendario' => [
+                'label' => 'Mi Calendario',
+                'icon' => '<svg class="size-6 shrink-0" fill="none" stroke-width="1.5" stroke="currentColor"><use xlink:href="' . $iconUrl . '#calendario"></use></svg>',
+            ],
+
             // ******** DIRECCION *******//
             'TituloDireccion' => [
                 'label' => 'Dirección',

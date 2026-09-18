@@ -15,6 +15,11 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     <link rel="stylesheet" href="<?= base_url('css/choices.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>?v=<?= $version ?>">
     <link rel="stylesheet" href="<?= base_url('css/modal-anim.css') ?>?v=<?= time() ?>">
+    <link rel="stylesheet" href="<?= base_url('css/fullcalendar-carbon.css') ?>?v=<?= filemtime(FCPATH . 'css/fullcalendar-carbon.css') ?>">
+
+    <!-- FullCalendar Standard Bundle (incluye core, interaction, daygrid, timegrid, list, multimonth) -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.21/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.21/locales/es.global.min.js"></script>
 
     <script>
         window.BASE_URL = "<?= base_url() ?>";
@@ -186,6 +191,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 ) ?>" defer></script>
 <script src="<?= base_url() ?>js/bitacora.js?v=<?= file_exists(FCPATH . 'js/bitacora.js') ? filemtime(FCPATH . 'js/bitacora.js') : time() ?>" defer></script>
 <script src="<?= base_url() ?>js/migraciones.js?v=<?= file_exists(FCPATH . 'js/migraciones.js') ? filemtime(FCPATH . 'js/migraciones.js') : time() ?>" defer></script>
+    <script type="module" src="<?= base_url() ?>js/calendario.js?v=<?= filemtime(FCPATH . 'js/calendario.js') ?>"></script>
 </body>
 
 </html>

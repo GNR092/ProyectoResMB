@@ -84,6 +84,7 @@ if (!file_exists($installerLockFile)) {
 
         // Modales
         $routes->get('modales/ReportePresupuesto', 'ReportesController::index');
+        $routes->get('modales/calendario', 'Modales::mostrar/calendario');
         $routes->get('modales/(:segment)', 'Modales::mostrar/$1');
         $routes->get('modales/vistas/product_row', 'Modales::getProductTableRow');
         $routes->get('modales/vistas/product_row_sin_cotizar', 'Modales::getProductTableRowSinCotizar');
@@ -108,6 +109,15 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/migraciones/preview', 'MigracionesController::preview');
         $routes->post('api/migraciones/ejecutar', 'MigracionesController::ejecutar');
         //endregion
+
+        // API Calendario
+        $routes->group('api/calendario', ['filter' => ['auth', 'mantenimiento']], function ($routes) {
+            $routes->get('eventos', 'Calendario::index');
+            $routes->post('eventos', 'Calendario::create');
+            $routes->put('eventos/(:num)', 'Calendario::update/$1');
+            $routes->delete('eventos/(:num)', 'Calendario::delete/$1');
+            $routes->post('eventos/(:num)/move', 'Calendario::move/$1');
+        });
 
         //region departamentos
         $routes->get('api/departments/all', 'Api::getDepartments');

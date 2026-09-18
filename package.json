@@ -28,6 +28,11 @@
   },
   "homepage": "https://github.com/GNR092/ProyectoResMB#readme",
   "dependencies": {
+    "@fullcalendar/core": "^6.1.15",
+    "@fullcalendar/daygrid": "^6.1.15",
+    "@fullcalendar/interaction": "^6.1.15",
+    "@fullcalendar/list": "^6.1.15",
+    "@fullcalendar/timegrid": "^6.1.15",
     "@tailwindcss/postcss": "^4.1.11",
     "choices.js": "^11.1.0",
     "postcss": "^8.5.6",

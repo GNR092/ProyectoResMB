@@ -62,7 +62,7 @@ function abrirModal(opcion) {
   const contenido = document.getElementById('modal-contenido')
   const modalBox = titulo.parentElement
 
-  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto', 'bitacora', 'catalogo_productos']
+  const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto', 'bitacora', 'catalogo_productos', 'calendario']
 
   if (modalesAnchos.includes(opcion)) {
     modal.classList.remove('justify-center')
@@ -118,6 +118,7 @@ function abrirModal(opcion) {
     GastoManual: 'Registrar Gastos Indirectos',
     bitacora: 'Auditoría de Bitácora',
     catalogo_productos: 'Catálogo De Productos Y Servicios',
+    calendario: 'Mi Calendario',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
@@ -163,6 +164,7 @@ function abrirModal(opcion) {
           SegmentoNegocio: initCrudSegmentos,
           solicitar_material: initSolicitarMaterialTodo,
           GastoManual: registrarComponenteGastoManual,
+          calendario: initCalendario,
         }
 
         const inicializador = inicializadores[opcion]
@@ -5696,5 +5698,11 @@ window.globalCancelarSolicitud = async function (idSolicitud, callbackExito) {
   } catch (error) {
     if (notif.click) notif.click()
     mostrarNotificacion('Error de conexión', 'error')
+  }
+}
+
+function initCalendario() {
+  if (!window.calendarioApp) {
+    console.error('calendarioApp no cargado');
   }
 }

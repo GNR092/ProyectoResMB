@@ -40,6 +40,8 @@ class Home extends BaseController
                 'ReportePresupuesto',
                 'TituloCatalogos',
                 'catalogo_productos',
+                'TituloCalendario',
+                'calendario',
             ],
 
             // ********** Rol Dirección
@@ -156,6 +158,8 @@ class Home extends BaseController
                 'GastoManual',
                 'TituloCatalogos',
                 'catalogo_productos',
+                'TituloCalendario',
+                'calendario',
             ],
 
             // Rol por defecto (Jefes de Departamento)

@@ -668,6 +668,9 @@ class Modales extends BaseController
 
                 return view('modales/catalogo_productos', $data);
 
+            case 'calendario':
+                return view('modales/calendario');
+
             default:
                 return 'Opción no válida';
         }
