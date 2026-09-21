@@ -113,6 +113,7 @@ if (!file_exists($installerLockFile)) {
         // API Calendario
         $routes->group('api/calendario', ['filter' => ['auth', 'mantenimiento']], function ($routes) {
             $routes->get('eventos', 'Calendario::index');
+            $routes->get('solicitudes', 'Calendario::solicitudes');
             $routes->post('eventos', 'Calendario::create');
             $routes->put('eventos/(:segment)', 'Calendario::update/$1');
             $routes->delete('eventos/(:segment)', 'Calendario::delete/$1');

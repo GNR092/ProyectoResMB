@@ -26,12 +26,10 @@ function calendarioApp() {
     };
     const normalizeToLocalInput = (str) => {
         if (!str) return '';
-        // datetime-local necesita YYYY-MM-DDTHH:mm[:ss] sin zona
         if (str.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(str)) {
             const d = new Date(str);
             if (!isNaN(d)) return toLocalStr(d);
         }
-        // ya es local tipo 2026-09-21T10:00:00 — recorta segundos si hace falta pero deja compatible
         return str.substring(0, 19);
     };
 
@@ -43,14 +41,59 @@ function calendarioApp() {
             start: '',
             end: '',
             color: '#FF5722',
+            ID_Solicitud: '',
         },
         showEventModal: false,
+        showDetalle: false,
         isWeekView: false,
+        isListView: false,
+        filtros: {
+            folio: '',
+            estado: '',
+            tipo: '',
+            fecha: '',
+            por_mes: false,
+        },
+        solicitudesCache: [],
         colors: COLORS,
 
         async init() {
             this.renderCalendar();
             this.setupResponsiveView();
+            await this.cargarSolicitudes();
+        },
+
+        async cargarSolicitudes() {
+            try {
+                const params = new URLSearchParams();
+                if (this.filtros.folio) params.set('folio', this.filtros.folio);
+                if (this.filtros.estado) params.set('estado', this.filtros.estado);
+                if (this.filtros.tipo) params.set('tipo', this.filtros.tipo);
+                if (this.filtros.fecha) {
+                    params.set('fecha', this.filtros.fecha);
+                    if (this.filtros.por_mes) params.set('por_mes', '1');
+                }
+                params.set('per_page', '50');
+                const qs = params.toString() ? `?${params.toString()}` : '';
+                const res = await fetch(`${BASE_URL}api/calendario/solicitudes${qs}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const json = await res.json();
+                if (json.success) {
+                    this.solicitudesCache = json.data || [];
+                }
+            } catch (e) {
+                console.error('cargarSolicitudes', e);
+            }
+        },
+
+        async filtrarSolicitudes() {
+            await this.cargarSolicitudes();
+        },
+
+        limpiarFiltros() {
+            this.filtros = { folio: '', estado: '', tipo: '', fecha: '', por_mes: false };
+            this.cargarSolicitudes();
         },
 
         setupResponsiveView() {
@@ -105,7 +148,11 @@ function calendarioApp() {
                 eventDrop: (info) => this.moveEvent(info.event),
                 eventResize: (info) => this.moveEvent(info.event),
                 eventDidMount: (info) => this.styleEvent(info),
-                datesSet: (info) => { this.isWeekView = info.view.type === 'timeGridWeek'; this.applyCarbonTheme(); },
+                datesSet: (info) => {
+                    this.isWeekView = info.view.type === 'timeGridWeek';
+                    this.isListView = info.view.type === 'listWeek';
+                    this.applyCarbonTheme();
+                },
             });
             calendar.render();
             this.applyCarbonTheme();
@@ -113,36 +160,30 @@ function calendarioApp() {
 
         handleSelect(info) {
             const viewType = calendar.view.type;
-            // Vista Mes: click/drag en día → navegar a vista Día, no crear
             if (viewType === 'dayGridMonth') {
                 calendar.changeView('timeGridDay', info.startStr);
                 calendar.unselect();
                 return;
             }
-            // listWeek no dispara select (lista), se maneja en dateClick
             if (viewType === 'listWeek') {
                 calendar.unselect();
                 return;
             }
-            // timeGridWeek / timeGridDay: arrastre (rango marcado) → normalizar a local para datetime-local
             this.openEventModal(null, { startStr: toLocalStr(info.start), endStr: toLocalStr(info.end) });
         },
 
         handleDateClick(info) {
             const viewType = calendar.view.type;
-            // Mes: navegar a día individual
             if (viewType === 'dayGridMonth') {
                 calendar.changeView('timeGridDay', info.dateStr);
                 return;
             }
-            // Lista móvil: crear evento 30min a partir del click
             if (viewType === 'listWeek') {
                 const start = info.date;
                 const end = new Date(start.getTime() + 30 * 60 * 1000);
                 this.openEventModal(null, { startStr: toLocalStr(start), endStr: toLocalStr(end) });
                 return;
             }
-            // Semana/Día: click simple → 1 slot 30min (select solo dispara con arrastre por selectMinDistance)
             if (viewType === 'timeGridWeek' || viewType === 'timeGridDay') {
                 const start = info.date;
                 const end = new Date(start.getTime() + 30 * 60 * 1000);
@@ -195,6 +236,13 @@ function calendarioApp() {
             info.el.style.borderRadius = '6px';
             info.el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             info.el.classList.add('fc-event-custom');
+            // Tooltip con folio/estado si hay espacio
+            const folio = info.event.extendedProps.No_Folio;
+            const estado = info.event.extendedProps.EstadoSolicitud;
+            if ((folio || estado) && info.el.offsetWidth > 80) {
+                const tip = [folio, estado].filter(Boolean).join(' — ');
+                info.el.setAttribute('title', `${info.event.title} — ${tip}`);
+            }
         },
 
         async loadEvents(start, end) {
@@ -211,13 +259,27 @@ function calendarioApp() {
             selectedEvent = event;
 
             if (event) {
+                const rawTitle = event.extendedProps.evento_raw || event.title;
+                // Si title ya contiene folio, extraer raw
+                const titleClean = rawTitle.includes(' — ') ? rawTitle.split(' — ')[0] : rawTitle;
                 this.eventForm = {
                     id: event.id,
-                    title: event.title,
+                    title: titleClean,
                     start: normalizeToLocalInput(event.startStr),
                     end: normalizeToLocalInput(event.endStr || event.startStr),
                     color: event.extendedProps.color || '#FF5722',
+                    ID_Solicitud: event.extendedProps.ID_Solicitud ? String(event.extendedProps.ID_Solicitud) : '',
                 };
+                // Asegurar que la solicitud del evento esté en cache (por si filtros la ocultaron)
+                if (this.eventForm.ID_Solicitud && !this.solicitudesCache.find(s => String(s.ID_Solicitud) === String(this.eventForm.ID_Solicitud))) {
+                    const folio = event.extendedProps.No_Folio || '';
+                    this.solicitudesCache.unshift({
+                        ID_Solicitud: this.eventForm.ID_Solicitud,
+                        No_Folio: folio || `ID ${this.eventForm.ID_Solicitud}`,
+                        Estado: event.extendedProps.EstadoSolicitud || '',
+                        Fecha: ''
+                    });
+                }
             } else {
                 const startStr = normalizeToLocalInput(selectInfo ? selectInfo.startStr : '');
                 const endStr = normalizeToLocalInput(selectInfo ? (selectInfo.endStr || selectInfo.startStr) : '');
@@ -227,6 +289,7 @@ function calendarioApp() {
                     start: startStr,
                     end: endStr,
                     color: randomColor(),
+                    ID_Solicitud: '',
                 };
             }
 
@@ -242,12 +305,54 @@ function calendarioApp() {
 
         closeEventModal() {
             this.showEventModal = false;
-            this.eventForm = { id: '', title: '', start: '', end: '', color: randomColor() };
+            this.eventForm = { id: '', title: '', start: '', end: '', color: randomColor(), ID_Solicitud: '' };
             document.body.style.overflow = '';
             if (calendar) calendar.unselect();
         },
 
+        async verDetalleDesdeModal() {
+            const id = this.eventForm.ID_Solicitud;
+            if (!id) return;
+            this.closeEventModal();
+            await this.verDetalleSolicitud(id);
+        },
+
+        async verDetalleSolicitud(idSolicitud) {
+            if (!idSolicitud) idSolicitud = this.eventForm.ID_Solicitud;
+            if (!idSolicitud) return;
+            this.showDetalle = true;
+            const container = document.getElementById('detalles-calendario-solicitud');
+            if (container) container.innerHTML = '<p class="text-center text-gray-500 py-8">Cargando detalles...</p>';
+            // Ocultar calendar se hace via x-show
+            setTimeout(() => { if (calendar) calendar.updateSize(); }, 50);
+            try {
+                const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`);
+                let html = '';
+                if (typeof generarDetallesSolicitudHTML === 'function') html += generarDetallesSolicitudHTML(data);
+                if (typeof generarComentariosHtml === 'function') html += generarComentariosHtml(data);
+                if (typeof generarProductosServiciosHTML === 'function') html += generarProductosServiciosHTML(data);
+                if (data.ComentariosUser) {
+                    html += `<div class="mt-6 p-4 border rounded-lg bg-gray-100"><h4 class="text-md font-bold text-gray-700 mb-2">Comentarios del solicitante</h4><p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p></div>`;
+                }
+                if (typeof generarSeccionAdjuntos === 'function') html += generarSeccionAdjuntos(data);
+                if (container) container.innerHTML = html || '<p class="text-red-500">Sin datos</p>';
+            } catch (e) {
+                if (container) container.innerHTML = `<p class="text-red-500">Error cargando detalles: ${e.message || e}</p>`;
+            }
+        },
+
+        regresarCalendario() {
+            this.showDetalle = false;
+            const container = document.getElementById('detalles-calendario-solicitud');
+            if (container) container.innerHTML = '';
+            this.$nextTick(() => { if (calendar) { calendar.updateSize(); calendar.render(); } });
+        },
+
         async saveEvent() {
+            if (!this.eventForm.ID_Solicitud) {
+                alert('Debe seleccionar una requisición vinculada');
+                return;
+            }
             const url = this.eventModalMode === 'create'
                 ? `${BASE_URL}api/calendario/eventos`
                 : `${BASE_URL}api/calendario/eventos/${this.eventForm.id}`;
@@ -265,11 +370,13 @@ function calendarioApp() {
                     fecha_inicio: this.eventForm.start.replace('T', ' '),
                     fecha_fin: this.eventForm.end.replace('T', ' '),
                     color_evento: this.eventForm.color,
+                    ID_Solicitud: this.eventForm.ID_Solicitud,
                 }),
             });
             const json = await res.json();
             if (!json.success) {
-                alert(json.message || 'Error guardando');
+                const msg = json.messages ? JSON.stringify(json.messages) : (json.message || 'Error guardando');
+                alert(msg);
                 return;
             }
             if (this.eventModalMode === 'create') {
@@ -278,6 +385,11 @@ function calendarioApp() {
                 selectedEvent.setProp('title', json.data.title);
                 selectedEvent.setProp('backgroundColor', json.data.backgroundColor);
                 selectedEvent.setProp('borderColor', json.data.borderColor);
+                selectedEvent.setExtendedProp('ID_Solicitud', json.data.extendedProps.ID_Solicitud);
+                selectedEvent.setExtendedProp('No_Folio', json.data.extendedProps.No_Folio);
+                selectedEvent.setExtendedProp('EstadoSolicitud', json.data.extendedProps.EstadoSolicitud);
+                selectedEvent.setExtendedProp('evento_raw', json.data.extendedProps.evento_raw);
+                selectedEvent.setExtendedProp('color', json.data.extendedProps.color);
                 selectedEvent.setStart(json.data.start);
                 selectedEvent.setEnd(json.data.end);
             }
@@ -285,7 +397,6 @@ function calendarioApp() {
         },
 
         async moveEvent(event) {
-            // Normalizar a Y-m-d H:i:s local para valid_date MySQL/PG — usar Date si hay zona
             const toLocal = (d) => toLocalStr(d).replace('T', ' ');
             const startLocal = event.start ? toLocal(event.start) : normalizeToLocalInput(event.startStr).replace('T', ' ');
             const endLocal = event.end ? toLocal(event.end) : normalizeToLocalInput(event.endStr || event.startStr).replace('T', ' ');

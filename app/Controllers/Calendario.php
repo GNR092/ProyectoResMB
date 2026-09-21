@@ -34,6 +34,74 @@ class Calendario extends ResourceController
         return $this->respond(['success' => true, 'data' => $data], HttpStatus::OK);
     }
 
+    /**
+     * Listado ligero de solicitudes para selector del calendario.
+     * Todos los estados, busqueda por folio, filtros avanzados solo si se proveen.
+     * GET api/calendario/solicitudes?search=&folio=&estado=&tipo=&fecha=&proveedores=&razones_sociales=&departamentos=&page=&per_page=
+     */
+    public function solicitudes()
+    {
+        $search = trim((string)($this->request->getGet('search') ?? $this->request->getGet('folio') ?? ''));
+        $folio = trim((string)($this->request->getGet('folio') ?? $search));
+        $estado = $this->request->getGet('estado');
+        $tipo = $this->request->getGet('tipo');
+        $fecha = $this->request->getGet('fecha');
+        $porMes = $this->request->getGet('por_mes');
+        $proveedores = $this->request->getGet('proveedores');
+        $razones = $this->request->getGet('razones_sociales');
+        $departamentos = $this->request->getGet('departamentos');
+        $page = max(1, (int)($this->request->getGet('page') ?? 1));
+        $perPage = max(1, min(50, (int)($this->request->getGet('per_page') ?? 20)));
+
+        $filters = [
+            'folio' => $folio,
+            'estado' => $estado,
+            'tipo' => $tipo,
+            'fecha' => $fecha,
+            'por_mes' => $porMes,
+            'proveedores' => $proveedores,
+            'razones_sociales' => $razones,
+            'departamentos' => $departamentos,
+        ];
+        // limpiar vacios
+        $filters = array_filter($filters, fn($v) => $v !== null && $v !== '' && $v !== []);
+
+        // Soporte search generico: si search y no folio, mapear a folio
+        if ($search !== '' && empty($filters['folio'])) {
+            $filters['folio'] = $search;
+        }
+
+        $userId = session('id');
+        $deptId = session('id_departamento_usuario');
+
+        try {
+            $result = $this->api->getSolicitudPaginated($page, $perPage, $filters, $userId);
+            // Mapear a formato ligero para Choices
+            $data = array_map(function ($item) {
+                return [
+                    'ID_Solicitud' => $item['ID_Solicitud'] ?? $item['id_solicitud'] ?? null,
+                    'No_Folio' => $item['No_Folio'] ?? $item['no_folio'] ?? '',
+                    'Fecha' => $item['Fecha'] ?? '',
+                    'Estado' => $item['Estado'] ?? $item['EstadoOrden'] ?? '',
+                    'EstadoOrden' => $item['EstadoOrden'] ?? null,
+                    'Tipo' => $item['Tipo'] ?? null,
+                    'RazonSocial' => $item['RazonSocial'] ?? $item['RazonSocialNombre'] ?? '',
+                    'Proveedor' => $item['Proveedor'] ?? $item['ProveedorNombre'] ?? '',
+                    'Departamento' => $item['Departamento'] ?? $item['DepartamentoNombre'] ?? '',
+                ];
+            }, $result['data'] ?? []);
+
+            return $this->respond([
+                'success' => true,
+                'data' => $data,
+                'pagination' => $result['pagination'] ?? null,
+            ], HttpStatus::OK);
+        } catch (\Throwable $e) {
+            log_message('error', 'Calendario::solicitudes ' . $e->getMessage());
+            return $this->failServerError('Error cargando solicitudes');
+        }
+    }
+
     public function create()
     {
         $userId = session('id');
@@ -43,11 +111,17 @@ class Calendario extends ResourceController
             'fecha_inicio' => 'required|valid_date[Y-m-d H:i:s]',
             'fecha_fin'    => 'required|valid_date[Y-m-d H:i:s]',
             'color_evento' => 'required|max_length[20]',
+            'ID_Solicitud' => 'required|is_natural_no_zero',
         ];
         if (!$this->validateData($payload, $rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
         $data = $this->validator->getValidated();
+        // Verificar que la solicitud exista
+        $solExists = $this->api->getSolicitudWithProducts((int)$data['ID_Solicitud']);
+        if (!$solExists) {
+            return $this->failValidationErrors(['ID_Solicitud' => 'La solicitud seleccionada no existe']);
+        }
         $data['ID_Usuario'] = $userId;
         if ($this->model->insert($data)) {
             $evento = $this->model->find($this->model->getInsertID());
@@ -72,11 +146,18 @@ class Calendario extends ResourceController
             'fecha_inicio' => 'valid_date[Y-m-d H:i:s]',
             'fecha_fin'    => 'valid_date[Y-m-d H:i:s]',
             'color_evento' => 'max_length[20]',
+            'ID_Solicitud' => 'permit_empty|is_natural_no_zero',
         ];
         if (!$this->validateData($payload, $rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
         $data = $this->validator->getValidated();
+        if (isset($data['ID_Solicitud']) && $data['ID_Solicitud'] !== '' && $data['ID_Solicitud'] !== null) {
+            $solExists = $this->api->getSolicitudWithProducts((int)$data['ID_Solicitud']);
+            if (!$solExists) {
+                return $this->failValidationErrors(['ID_Solicitud' => 'La solicitud seleccionada no existe']);
+            }
+        }
         if (empty($data)) {
             return $this->failValidationErrors(['evento' => 'Nada que actualizar']);
         }
@@ -144,14 +225,35 @@ class Calendario extends ResourceController
 
     private function formatEvent(array $e): array
     {
+        $folio = null;
+        $estadoSol = null;
+        if (!empty($e['ID_Solicitud'])) {
+            try {
+                $sol = $this->api->getSolicitudWithProducts((int)$e['ID_Solicitud']);
+                if ($sol) {
+                    $folio = $sol['No_Folio'] ?? null;
+                    $estadoSol = $sol['EstadoOrden'] ?? $sol['Estado'] ?? null;
+                }
+            } catch (\Throwable $ex) {}
+        }
+        $title = $e['evento'];
+        if ($folio) {
+            $title = $title . ' — ' . $folio;
+        }
         return [
             'id'              => (string)$e['id'],
-            'title'           => $e['evento'],
+            'title'           => $title,
             'start'           => $e['fecha_inicio'],
             'end'             => $e['fecha_fin'],
             'backgroundColor' => $e['color_evento'],
             'borderColor'     => $e['color_evento'],
-            'extendedProps'   => ['color' => $e['color_evento']],
+            'extendedProps'   => [
+                'color' => $e['color_evento'],
+                'ID_Solicitud' => $e['ID_Solicitud'] ?? null,
+                'No_Folio' => $folio,
+                'EstadoSolicitud' => $estadoSol,
+                'evento_raw' => $e['evento'],
+            ],
             'allDay'          => false,
         ];
     }
