@@ -168,13 +168,14 @@ function calendarioApp() {
 
         renderCalendar() {
             const el = document.getElementById('calendar');
-            const isMobileSel = window.innerWidth < 640;
+            const isMobile = window.innerWidth < 640;
+            const isMobileSel = isMobile;
             calendar = new Calendar(el, {
                 initialView: 'timeGridWeek',
                 locale: esLocale,
-                height: 'auto',
-                contentHeight: 'auto',
-                expandRows: false,
+                height: isMobile ? 'auto' : '100%',
+                contentHeight: isMobile ? 'auto' : undefined,
+                expandRows: isMobile ? false : true,
                 themeSystem: 'standard',
                 headerToolbar: {
                     left: 'prev,next today',
