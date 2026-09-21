@@ -3,7 +3,8 @@ $iconPath = FCPATH . 'icons/icons.svg';
 $version = file_exists($iconPath) ? filemtime($iconPath) : time();
 $iconUrl = "/icons/icons.svg?v=$version";
 ?>
-<div class="h-full flex flex-col relative" x-data="calendarioApp()" x-init="init()">
+<div x-data="calendarioApp()" x-init="init()">
+<div class="h-full flex flex-col">
     <!-- Filtros de búsqueda SOLO en modo Lista -->
     <div x-show="isListView" x-cloak x-transition
          class="mb-3 p-3 bg-white rounded-xl border border-carbon-100 shadow-sm">
@@ -70,13 +71,15 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Inyectado por verDetalleSolicitud() -->
         </div>
     </div>
+</div>
 
-    <!-- Modal crear/editar -->
+    <!-- Modal crear/editar — teletransportado a body para centrado viewport real, no cortado por modal principal -->
+    <template x-teleport="body">
     <div x-show="showEventModal" x-cloak x-transition.opacity
-         class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4"
+         class="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4 overflow-y-auto"
          @click.self="closeEventModal"
          @keydown.escape.window="closeEventModal">
-        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4" @click.outside="closeEventModal">
+        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg mx-auto my-auto max-h-[90vh] overflow-y-auto" @click.outside="closeEventModal">
             <h3 class="text-lg font-semibold mb-4 text-carbon-900" x-text="eventModalMode === 'create' ? 'Nuevo Evento' : 'Editar Evento'"></h3>
             <form @submit.prevent="saveEvent" class="space-y-4">
                 <div>
@@ -84,15 +87,67 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <input type="text" x-model="eventForm.title" required class="w-full border border-carbon-300 rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" x-ref="titleInput">
                 </div>
                 <!-- Selector requisición obligatorio -->
-                <div>
+                <div class="space-y-2">
                     <label class="block text-sm font-medium text-carbon-700">Requisición vinculada <span class="text-red-500">*</span></label>
-                    <select x-model="eventForm.ID_Solicitud" required class="w-full border border-carbon-300 rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm" id="cal-solicitud-select">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <svg class="size-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                        </div>
+                        <input type="text" x-model="busquedaModal" @input.debounce.400ms="filtrarModal()" placeholder="Buscar por número de folio — ej. 123" class="w-full border border-carbon-300 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                    </div>
+                    <p class="text-xs text-gray-400">Escribe solo el número, sin MBSP-</p>
+                    <!-- Filtros avanzados colapsables -->
+                    <details class="group rounded-lg border border-carbon-100 bg-carbon-50/50">
+                        <summary class="flex items-center justify-between px-3 py-2 text-xs font-medium text-indigo-600 cursor-pointer list-none">
+                            <span>Filtros avanzados</span>
+                            <svg class="size-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+                        </summary>
+                        <div class="grid grid-cols-2 gap-3 p-3 pt-0">
+                            <div>
+                                <label class="block text-xs font-medium text-carbon-600">Estado</label>
+                                <select x-model="filtrosModal.estado" @change="filtrarModal()" class="w-full border border-carbon-200 rounded-lg px-2 py-1.5 mt-1 text-sm outline-none focus:border-indigo-400">
+                                    <option value="">Todos</option>
+                                    <option value="En espera">En espera</option>
+                                    <option value="Aprobada">Aprobada</option>
+                                    <option value="Rechazada">Rechazada</option>
+                                    <option value="Cotizando">Cotizando</option>
+                                    <option value="Aprobacion pendiente">Aprobación Pendiente</option>
+                                    <option value="En revision">En revisión</option>
+                                    <option value="Espera_Programacion">Espera Programación</option>
+                                    <option value="Programada">Programada</option>
+                                    <option value="Por Pagar">Por Pagar</option>
+                                    <option value="Pagada">Pagada</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-carbon-600">Tipo</label>
+                                <select x-model="filtrosModal.tipo" @change="filtrarModal()" class="w-full border border-carbon-200 rounded-lg px-2 py-1.5 mt-1 text-sm outline-none focus:border-indigo-400">
+                                    <option value="">Todos</option>
+                                    <option value="Producto">Producto</option>
+                                    <option value="Servicio">Servicio</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-carbon-600">Proveedor</label>
+                                <input type="text" x-model="filtrosModal.proveedor" @input.debounce.400ms="filtrarModal()" placeholder="Filtrar por proveedor" class="w-full border border-carbon-200 rounded-lg px-2 py-1.5 mt-1 text-sm outline-none focus:border-indigo-400">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-carbon-600">Complejo</label>
+                                <input type="text" x-model="filtrosModal.complejo" @input.debounce.400ms="filtrarModal()" placeholder="Ej. MB Resort" class="w-full border border-carbon-200 rounded-lg px-2 py-1.5 mt-1 text-sm outline-none focus:border-indigo-400">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-medium text-carbon-600">Departamento</label>
+                                <input type="text" x-model="filtrosModal.departamento" @input.debounce.400ms="filtrarModal()" placeholder="Ej. Mantenimiento" class="w-full border border-carbon-200 rounded-lg px-2 py-1.5 mt-1 text-sm outline-none focus:border-indigo-400">
+                            </div>
+                        </div>
+                    </details>
+                    <select x-model="eventForm.ID_Solicitud" required class="w-full border border-carbon-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm" id="cal-solicitud-select" size="6">
                         <option value="">Seleccione una requisición</option>
-                        <template x-for="sol in solicitudesCache" :key="sol.ID_Solicitud">
-                            <option :value="sol.ID_Solicitud" x-text="`${sol.No_Folio} — ${sol.Estado} — ${sol.Fecha}`"></option>
+                        <template x-for="sol in solicitudesFiltradasModal" :key="sol.ID_Solicitud">
+                            <option :value="sol.ID_Solicitud" x-text="formatoOpcionSolicitud(sol)"></option>
                         </template>
                     </select>
-                    <p class="text-xs text-gray-400 mt-1" x-show="solicitudesCache.length===0">Sin resultados para los filtros actuales</p>
+                    <p class="text-xs text-gray-400" x-show="solicitudesFiltradasModal.length===0">Sin resultados — prueba otro número o ajusta filtros avanzados</p>
                 </div>
                 <!-- Botón ver detalles — idéntico a historial -->
                 <div x-show="eventForm.ID_Solicitud" class="flex justify-end">
@@ -125,4 +180,5 @@ $iconUrl = "/icons/icons.svg?v=$version";
             </form>
         </div>
     </div>
+    </template>
 </div>

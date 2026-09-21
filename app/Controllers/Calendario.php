@@ -43,6 +43,13 @@ class Calendario extends ResourceController
     {
         $search = trim((string)($this->request->getGet('search') ?? $this->request->getGet('folio') ?? ''));
         $folio = trim((string)($this->request->getGet('folio') ?? $search));
+        // Normalizar folio: aceptar solo números (ej. 123 -> MBSP-123, MBSP-123 -> 123)
+        if ($folio !== '') {
+            $folioNorm = preg_replace('/^MBSP-?/i', '', $folio);
+            // Si es solo números, buscar por substring numérico (like %123%)
+            // Mantener folio normalizado para like flexible
+            $folio = $folioNorm !== '' ? $folioNorm : $folio;
+        }
         $estado = $this->request->getGet('estado');
         $tipo = $this->request->getGet('tipo');
         $fecha = $this->request->getGet('fecha');
@@ -76,8 +83,14 @@ class Calendario extends ResourceController
 
         try {
             $result = $this->api->getSolicitudPaginated($page, $perPage, $filters, $userId);
-            // Mapear a formato ligero para Choices
+            // Mapear a formato ligero para Choices - incluye Monto y Proveedor para mostrar en selector
             $data = array_map(function ($item) {
+                // Monto puede venir como Total (Cotizacion), Monto, o calculado
+                $monto = $item['Total'] ?? $item['Monto'] ?? $item['CotizacionTotal'] ?? $item['total'] ?? '';
+                if ($monto === '' && isset($item['cotizacion']['Total'])) $monto = $item['cotizacion']['Total'];
+                $proveedor = $item['Proveedor'] ?? $item['ProveedorNombre'] ?? $item['RazonSocialProveedor'] ?? $item['RazonSocial'] ?? '';
+                // Fallback para nombre proveedor desde cotización
+                if ($proveedor === '' && isset($item['cotizacion']['ProveedorNombre'])) $proveedor = $item['cotizacion']['ProveedorNombre'];
                 return [
                     'ID_Solicitud' => $item['ID_Solicitud'] ?? $item['id_solicitud'] ?? null,
                     'No_Folio' => $item['No_Folio'] ?? $item['no_folio'] ?? '',
@@ -86,8 +99,9 @@ class Calendario extends ResourceController
                     'EstadoOrden' => $item['EstadoOrden'] ?? null,
                     'Tipo' => $item['Tipo'] ?? null,
                     'RazonSocial' => $item['RazonSocial'] ?? $item['RazonSocialNombre'] ?? '',
-                    'Proveedor' => $item['Proveedor'] ?? $item['ProveedorNombre'] ?? '',
+                    'Proveedor' => $proveedor,
                     'Departamento' => $item['Departamento'] ?? $item['DepartamentoNombre'] ?? '',
+                    'Monto' => $monto,
                 ];
             }, $result['data'] ?? []);
 

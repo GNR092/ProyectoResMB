@@ -55,6 +55,8 @@ function calendarioApp() {
             fecha: '',
             por_mes: false,
         },
+        busquedaModal: '',
+        filtrosModal: { estado: '', tipo: '', proveedor: '', complejo: '', departamento: '', fecha: '' },
         solicitudesCache: [],
         colors: COLORS,
 
@@ -95,6 +97,56 @@ function calendarioApp() {
         limpiarFiltros() {
             this.filtros = { folio: '', estado: '', tipo: '', fecha: '', por_mes: false };
             this.cargarSolicitudes();
+        },
+
+        get solicitudesFiltradasModal() {
+            if (!this.busquedaModal || !this.busquedaModal.trim()) return this.solicitudesCache;
+            const q = this.busquedaModal.trim().replace(/^MBSP-?/i, '').toLowerCase();
+            return this.solicitudesCache.filter(s => {
+                const folio = (s.No_Folio || '').toLowerCase();
+                const folioNum = folio.replace(/^mbsp-?/i, '');
+                return folio.includes(q) || folioNum.includes(q) || String(s.ID_Solicitud).includes(q);
+            });
+        },
+
+        formatoOpcionSolicitud(sol) {
+            const folio = sol.No_Folio || `ID ${sol.ID_Solicitud}`;
+            const estado = sol.Estado || sol.EstadoOrden || '';
+            const prov = sol.Proveedor || sol.RazonSocial || '';
+            const monto = sol.Monto ? ` — $${Number(sol.Monto).toLocaleString('es-MX', {minimumFractionDigits:2})}` : '';
+            const provPart = prov ? ` — ${prov}` : '';
+            return `${folio} — ${estado}${provPart}${monto}`;
+        },
+
+        async filtrarModal() {
+            const q = (this.busquedaModal || '').trim().replace(/^MBSP-?/i, '');
+            const hasAdv = this.filtrosModal.estado || this.filtrosModal.tipo || this.filtrosModal.proveedor || this.filtrosModal.complejo || this.filtrosModal.departamento;
+            try {
+                const params = new URLSearchParams();
+                if (q) params.set('folio', q);
+                if (this.filtrosModal.estado) params.set('estado', this.filtrosModal.estado);
+                if (this.filtrosModal.tipo) params.set('tipo', this.filtrosModal.tipo);
+                if (this.filtrosModal.proveedor) params.set('proveedores', this.filtrosModal.proveedor);
+                // Complejo y departamento se envían como filtro departamentos "Nombre|Complejo"
+                if (this.filtrosModal.departamento || this.filtrosModal.complejo) {
+                    const dep = (this.filtrosModal.departamento || '').trim();
+                    const comp = (this.filtrosModal.complejo || '').trim();
+                    const depFiltro = comp ? `${dep}|${comp}` : dep;
+                    // Si solo complejo sin depto, buscar por complejo como departamento con pipe vacío
+                    params.set('departamentos', depFiltro || `|${comp}`);
+                }
+                params.set('per_page', '50');
+                // Solo buscar si hay algún filtro, si no recargar lista base
+                if (!q && !hasAdv) {
+                    await this.cargarSolicitudes();
+                    return;
+                }
+                const res = await fetch(`${BASE_URL}api/calendario/solicitudes?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const json = await res.json();
+                if (json.success) this.solicitudesCache = json.data || [];
+            } catch (e) { console.error('filtrarModal', e); }
         },
 
         setupResponsiveView() {
@@ -258,6 +310,8 @@ function calendarioApp() {
         openEventModal(event, selectInfo = null) {
             this.eventModalMode = event ? 'edit' : 'create';
             selectedEvent = event;
+            this.busquedaModal = '';
+            this.filtrosModal = { estado: '', tipo: '', proveedor: '', complejo: '', departamento: '', fecha: '' };
 
             if (event) {
                 const rawTitle = event.extendedProps.evento_raw || event.title;
