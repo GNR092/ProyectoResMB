@@ -50,7 +50,11 @@ class CreateEventosCalendario extends Migration
         $this->forge->addForeignKey('ID_Usuario', 'Usuarios', 'ID_Usuario', 'CASCADE', 'CASCADE');
         $this->forge->addKey('ID_Usuario');
         $this->forge->addKey(['fecha_inicio', 'fecha_fin']);
-        $this->forge->createTable('eventos_calendario', true, ['ENGINE' => 'InnoDB']);
+        $attributes = [];
+        if ($this->db->getPlatform() === 'MySQLi') {
+            $attributes = ['ENGINE' => 'InnoDB'];
+        }
+        $this->forge->createTable('eventos_calendario', true, $attributes);
     }
 
     public function down()

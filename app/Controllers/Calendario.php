@@ -37,16 +37,17 @@ class Calendario extends ResourceController
     public function create()
     {
         $userId = session('id');
-        $data = $this->validate([
+        $payload = $this->request->getJSON(true) ?? $this->request->getVar();
+        $rules = [
             'evento'       => 'required|max_length[250]',
             'fecha_inicio' => 'required|valid_date[Y-m-d H:i:s]',
             'fecha_fin'    => 'required|valid_date[Y-m-d H:i:s]',
             'color_evento' => 'required|max_length[20]',
-        ]);
-        if (!$data) {
+        ];
+        if (!$this->validateData($payload, $rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
-
+        $data = $this->validator->getValidated();
         $data['ID_Usuario'] = $userId;
         if ($this->model->insert($data)) {
             $evento = $this->model->find($this->model->getInsertID());
@@ -63,14 +64,19 @@ class Calendario extends ResourceController
             return $this->failNotFound('Evento no encontrado');
         }
 
-        $data = $this->validate([
+        $payload = $this->request->getJSON(true) ?? $this->request->getVar();
+        $rules = [
             'evento'       => 'max_length[250]',
             'fecha_inicio' => 'valid_date[Y-m-d H:i:s]',
             'fecha_fin'    => 'valid_date[Y-m-d H:i:s]',
             'color_evento' => 'max_length[20]',
-        ]);
-        if ($data === false) {
+        ];
+        if (!$this->validateData($payload, $rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
+        }
+        $data = $this->validator->getValidated();
+        if (empty($data)) {
+            return $this->failValidationErrors(['evento' => 'Nada que actualizar']);
         }
 
         if ($this->model->update($id, $data)) {
@@ -101,13 +107,15 @@ class Calendario extends ResourceController
             return $this->failNotFound('Evento no encontrado');
         }
 
-        $data = $this->validate([
+        $payload = $this->request->getJSON(true) ?? $this->request->getVar();
+        $rules = [
             'start' => 'required|valid_date[Y-m-d H:i:s]',
             'end'   => 'required|valid_date[Y-m-d H:i:s]',
-        ]);
-        if (!$data) {
+        ];
+        if (!$this->validateData($payload, $rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
+        $data = $this->validator->getValidated();
 
         if ($this->model->update($id, [
             'fecha_inicio' => $data['start'],
