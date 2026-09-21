@@ -15,7 +15,8 @@ class CreateEventosCalendario extends Migration
                 'auto_increment' => true,
             ],
             'ID_Usuario' => [
-                'type' => 'BIGINT',
+                'type' => 'INT',
+                'constraint' => 5,
                 'unsigned' => true,
             ],
             'evento' => [
