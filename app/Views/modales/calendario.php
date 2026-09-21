@@ -71,20 +71,6 @@ $iconUrl = "/icons/icons.svg?v=$version";
         </div>
     </div>
 
-    <!-- Overlay flechas Semana -->
-    <button type="button" x-show="isWeekView && !showDetalle" x-cloak x-transition
-            @click="prevWeek()"
-            class="pointer-events-auto absolute left-2 top-1/2 -translate-y-1/2 z-10 size-9 bg-white border border-carbon-200 rounded-full shadow-md hover:bg-carbon-50 hover:border-carbon-300 text-carbon-700 flex items-center justify-center transition"
-            aria-label="Semana anterior" title="Semana anterior">
-        <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-    </button>
-    <button type="button" x-show="isWeekView && !showDetalle" x-cloak x-transition
-            @click="nextWeek()"
-            class="pointer-events-auto absolute right-2 top-1/2 -translate-y-1/2 z-10 size-9 bg-white border border-carbon-200 rounded-full shadow-md hover:bg-carbon-50 hover:border-carbon-300 text-carbon-700 flex items-center justify-center transition"
-            aria-label="Semana siguiente" title="Semana siguiente">
-        <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-    </button>
-
     <!-- Modal crear/editar -->
     <div x-show="showEventModal" x-cloak x-transition.opacity
          class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4"

@@ -45,6 +45,7 @@ function calendarioApp() {
         },
         showEventModal: false,
         showDetalle: false,
+        returnToEventModal: false,
         isWeekView: false,
         isListView: false,
         filtros: {
@@ -304,6 +305,7 @@ function calendarioApp() {
         nextWeek() { if (calendar) calendar.next(); },
 
         closeEventModal() {
+            this.returnToEventModal = false;
             this.showEventModal = false;
             this.eventForm = { id: '', title: '', start: '', end: '', color: randomColor(), ID_Solicitud: '' };
             document.body.style.overflow = '';
@@ -313,7 +315,9 @@ function calendarioApp() {
         async verDetalleDesdeModal() {
             const id = this.eventForm.ID_Solicitud;
             if (!id) return;
-            this.closeEventModal();
+            this.returnToEventModal = true;
+            this.showEventModal = false;
+            document.body.style.overflow = '';
             await this.verDetalleSolicitud(id);
         },
 
@@ -346,6 +350,12 @@ function calendarioApp() {
             const container = document.getElementById('detalles-calendario-solicitud');
             if (container) container.innerHTML = '';
             this.$nextTick(() => { if (calendar) { calendar.updateSize(); calendar.render(); } });
+            if (this.returnToEventModal) {
+                this.returnToEventModal = false;
+                this.showEventModal = true;
+                document.body.style.overflow = 'hidden';
+                this.$nextTick(() => this.$refs.titleInput?.focus());
+            }
         },
 
         async saveEvent() {

@@ -118,7 +118,7 @@ function abrirModal(opcion) {
     GastoManual: 'Registrar Gastos Indirectos',
     bitacora: 'Auditoría de Bitácora',
     catalogo_productos: 'Catálogo De Productos Y Servicios',
-    calendario: 'Mi Calendario',
+    calendario: 'Agenda De Salidas',
   }
   titulos['aprobar_solicitudes'] = 'Aprobar Requisiciones de Empleados'
 
