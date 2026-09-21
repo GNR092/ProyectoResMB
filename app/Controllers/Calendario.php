@@ -59,9 +59,11 @@ class Calendario extends ResourceController
     public function update($id = null)
     {
         $userId = session('id');
-        $evento = $this->model->delUsuario($userId)->find($id);
+        $id = is_numeric($id) ? (int)$id : $id;
+        $evento = $this->model->delUsuario((int)$userId)->find($id);
         if (!$evento) {
-            return $this->failNotFound('Evento no encontrado');
+            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) return $this->failNotFound('Evento no encontrado');
         }
 
         $payload = $this->request->getJSON(true) ?? $this->request->getVar();
@@ -88,9 +90,11 @@ class Calendario extends ResourceController
     public function delete($id = null)
     {
         $userId = session('id');
-        $evento = $this->model->delUsuario($userId)->find($id);
+        $id = is_numeric($id) ? (int)$id : $id;
+        $evento = $this->model->delUsuario((int)$userId)->find($id);
         if (!$evento) {
-            return $this->failNotFound('Evento no encontrado');
+            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) return $this->failNotFound('Evento no encontrado');
         }
 
         if ($this->model->delete($id)) {
@@ -102,12 +106,24 @@ class Calendario extends ResourceController
     public function move($id = null)
     {
         $userId = session('id');
-        $evento = $this->model->delUsuario($userId)->find($id);
+        $id = is_numeric($id) ? (int)$id : $id;
+        $evento = $this->model->delUsuario((int)$userId)->find($id);
         if (!$evento) {
-            return $this->failNotFound('Evento no encontrado');
+            // Fallback con tipo string por si el driver trata id como string
+            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) {
+                return $this->failNotFound('Evento no encontrado');
+            }
         }
 
-        $payload = $this->request->getJSON(true) ?? $this->request->getVar();
+        $payload = $this->request->getJSON(true);
+        if (!is_array($payload) || empty($payload)) {
+            $payload = $this->request->getVar();
+            if (!is_array($payload)) $payload = [];
+        }
+        // Normalizar payload por compatibilidad JS (start/end ya vienen Y-m-d H:i:s desde toLocalStr)
+        if (isset($payload['start'])) $payload['start'] = trim($payload['start']);
+        if (isset($payload['end'])) $payload['end'] = trim($payload['end']);
         $rules = [
             'start' => 'required|valid_date[Y-m-d H:i:s]',
             'end'   => 'required|valid_date[Y-m-d H:i:s]',
@@ -135,6 +151,7 @@ class Calendario extends ResourceController
             'end'             => $e['fecha_fin'],
             'backgroundColor' => $e['color_evento'],
             'borderColor'     => $e['color_evento'],
+            'extendedProps'   => ['color' => $e['color_evento']],
             'allDay'          => false,
         ];
     }

@@ -114,9 +114,9 @@ if (!file_exists($installerLockFile)) {
         $routes->group('api/calendario', ['filter' => ['auth', 'mantenimiento']], function ($routes) {
             $routes->get('eventos', 'Calendario::index');
             $routes->post('eventos', 'Calendario::create');
-            $routes->put('eventos/(:num)', 'Calendario::update/$1');
-            $routes->delete('eventos/(:num)', 'Calendario::delete/$1');
-            $routes->post('eventos/(:num)/move', 'Calendario::move/$1');
+            $routes->put('eventos/(:segment)', 'Calendario::update/$1');
+            $routes->delete('eventos/(:segment)', 'Calendario::delete/$1');
+            $routes->post('eventos/(:segment)/move', 'Calendario::move/$1');
         });
 
         //region departamentos

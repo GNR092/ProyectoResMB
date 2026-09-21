@@ -8,6 +8,12 @@ const COLORS = [
     { value: '#009688', label: 'Verde azulado' },
     { value: '#2196F3', label: 'Azul' },
     { value: '#9C27B0', label: 'Índigo' },
+    { value: '#E91E63', label: 'Rosa' },
+    { value: '#00BCD4', label: 'Cyan' },
+    { value: '#FF9800', label: 'Naranja intenso' },
+    { value: '#4CAF50', label: 'Verde' },
+    { value: '#3F51B5', label: 'Índigo azulado' },
+    { value: '#795548', label: 'Marrón' },
 ];
 
 function calendarioApp() {
@@ -183,7 +189,7 @@ function calendarioApp() {
         },
 
         styleEvent(info) {
-            const color = info.event.extendedProps.color || '#FF5722';
+            const color = info.event.extendedProps.color || info.event.backgroundColor || '#FF5722';
             info.el.style.backgroundColor = color;
             info.el.style.borderColor = color;
             info.el.style.borderRadius = '6px';
@@ -279,6 +285,10 @@ function calendarioApp() {
         },
 
         async moveEvent(event) {
+            // Normalizar a Y-m-d H:i:s local para valid_date MySQL/PG — usar Date si hay zona
+            const toLocal = (d) => toLocalStr(d).replace('T', ' ');
+            const startLocal = event.start ? toLocal(event.start) : normalizeToLocalInput(event.startStr).replace('T', ' ');
+            const endLocal = event.end ? toLocal(event.end) : normalizeToLocalInput(event.endStr || event.startStr).replace('T', ' ');
             const res = await fetch(`${BASE_URL}api/calendario/eventos/${event.id}/move`, {
                 method: 'POST',
                 headers: {
@@ -287,8 +297,8 @@ function calendarioApp() {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token-name"]')?.content || '',
                 },
                 body: JSON.stringify({
-                    start: event.startStr.replace('T', ' '),
-                    end: (event.endStr || event.startStr).replace('T', ' '),
+                    start: startLocal,
+                    end: endLocal,
                 }),
             });
             const json = await res.json();
