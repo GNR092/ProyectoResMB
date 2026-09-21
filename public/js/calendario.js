@@ -273,7 +273,7 @@ function calendarioApp() {
                 return;
             }
             if (this.eventModalMode === 'create') {
-                calendar.addEvent(json.data);
+                calendar.addEvent(json.data, true);
             } else {
                 selectedEvent.setProp('title', json.data.title);
                 selectedEvent.setProp('backgroundColor', json.data.backgroundColor);
