@@ -259,18 +259,37 @@ function calendarioApp() {
             if (!calendar) return;
             const el = calendar.el;
             if (!el) return;
+            const isMobile = window.innerWidth < 640;
 
             el.querySelectorAll('.fc-toolbar').forEach(tb => {
-                tb.classList.add('bg-carbon-800', 'text-carbon-200', 'rounded-t-xl', 'px-4', 'py-3');
+                tb.classList.add('bg-carbon-800', 'text-carbon-200', 'rounded-t-xl', 'px-3', 'sm:px-4', 'py-2', 'sm:py-3', 'flex', 'flex-wrap', 'gap-2', 'items-center', 'justify-between');
+                // Título fluido
+                tb.querySelectorAll('.fc-toolbar-title').forEach(t => {
+                    t.style.fontSize = 'clamp(0.875rem, 4vw, 1.125rem)';
+                    t.style.lineHeight = '1.2';
+                });
                 tb.querySelectorAll('.fc-button').forEach(btn => {
                     btn.classList.remove('fc-button-primary');
-                    btn.classList.add('bg-carbon-700', 'hover:bg-carbon-600', 'text-carbon-100', 'border-0', 'rounded-lg', 'px-3', 'py-1.5', 'text-sm', 'font-medium', 'transition-colors');
+                    // Touch target 44px en móvil
+                    if (isMobile) {
+                        btn.classList.add('bg-carbon-700', 'hover:bg-carbon-600', 'text-carbon-100', 'border-0', 'rounded-lg', 'px-3.5', 'py-2.5', 'text-xs', 'font-medium', 'transition-colors', 'min-h-[44px]', 'min-w-[44px]');
+                        btn.style.fontSize = 'clamp(0.75rem, 3vw, 0.8125rem)';
+                    } else {
+                        btn.classList.add('bg-carbon-700', 'hover:bg-carbon-600', 'text-carbon-100', 'border-0', 'rounded-lg', 'px-3', 'py-1.5', 'text-sm', 'font-medium', 'transition-colors');
+                    }
                 });
                 const todayBtn = tb.querySelector('.fc-today-button');
                 if (todayBtn) {
                     todayBtn.classList.remove('bg-carbon-700', 'hover:bg-carbon-600');
                     todayBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700', 'text-white');
                 }
+            });
+            // Footer toolbar también
+            el.querySelectorAll('.fc-footer-toolbar').forEach(tb => {
+                tb.classList.add('bg-carbon-800', 'text-carbon-200', 'rounded-b-xl', 'px-3', 'sm:px-4', 'py-2', 'flex', 'flex-wrap', 'gap-2', 'justify-center');
+                tb.querySelectorAll('.fc-button').forEach(btn => {
+                    if (isMobile) btn.classList.add('min-h-[44px]', 'min-w-[44px]');
+                });
             });
 
             el.querySelectorAll('.fc-col-header-cell').forEach(cell => {
@@ -294,11 +313,21 @@ function calendarioApp() {
 
         styleEvent(info) {
             const color = info.event.extendedProps.color || info.event.backgroundColor || '#FF5722';
+            const isMobile = window.innerWidth < 640;
             info.el.style.backgroundColor = color;
             info.el.style.borderColor = color;
             info.el.style.borderRadius = '6px';
             info.el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             info.el.classList.add('fc-event-custom');
+            // Touch target mínimo y fuente fluida en móvil
+            if (isMobile) {
+                info.el.style.minHeight = '28px';
+                info.el.style.fontSize = 'clamp(0.7rem, 2.8vw, 0.8125rem)';
+                info.el.style.padding = '4px 6px';
+            } else {
+                info.el.style.fontSize = '';
+                info.el.style.minHeight = '';
+            }
             // Tooltip con folio/estado si hay espacio
             const folio = info.event.extendedProps.No_Folio;
             const estado = info.event.extendedProps.EstadoSolicitud;
@@ -391,7 +420,6 @@ function calendarioApp() {
             this.showDetalle = true;
             const container = document.getElementById('detalles-calendario-solicitud');
             if (container) container.innerHTML = '<p class="text-center text-gray-500 py-8">Cargando detalles...</p>';
-            // Ocultar calendar se hace via x-show
             setTimeout(() => { if (calendar) calendar.updateSize(); }, 50);
             try {
                 const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`);
@@ -400,10 +428,23 @@ function calendarioApp() {
                 if (typeof generarComentariosHtml === 'function') html += generarComentariosHtml(data);
                 if (typeof generarProductosServiciosHTML === 'function') html += generarProductosServiciosHTML(data);
                 if (data.ComentariosUser) {
-                    html += `<div class="mt-6 p-4 border rounded-lg bg-gray-100"><h4 class="text-md font-bold text-gray-700 mb-2">Comentarios del solicitante</h4><p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p></div>`;
+                    html += `<div class="mt-6 p-3 sm:p-4 border rounded-lg bg-gray-100 overflow-x-auto"><h4 class="text-sm sm:text-md font-bold text-gray-700 mb-2">Comentarios del solicitante</h4><p class="text-gray-800 whitespace-pre-wrap break-words text-sm">${data.ComentariosUser}</p></div>`;
                 }
                 if (typeof generarSeccionAdjuntos === 'function') html += generarSeccionAdjuntos(data);
-                if (container) container.innerHTML = html || '<p class="text-red-500">Sin datos</p>';
+                html = html || '<p class="text-red-500">Sin datos</p>';
+                // Wrapper responsive para tablas anchas inyectadas (sin tocar utils.js)
+                if (container) {
+                    container.innerHTML = `<div class="min-w-0 overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">${html}</div>`;
+                    // Asegurar que tablas internas sean scrollables en móvil
+                    container.querySelectorAll('table').forEach(t => {
+                        t.style.minWidth = '600px';
+                        t.classList.add('w-full');
+                        const wrap = t.parentElement;
+                        if (wrap && !wrap.classList.contains('overflow-x-auto')) {
+                            wrap.classList.add('overflow-x-auto');
+                        }
+                    });
+                }
             } catch (e) {
                 if (container) container.innerHTML = `<p class="text-red-500">Error cargando detalles: ${e.message || e}</p>`;
             }

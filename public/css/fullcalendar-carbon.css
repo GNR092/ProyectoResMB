@@ -225,6 +225,19 @@
 
 #calendar, #calendar .fc { overflow: visible; }
 
+/* === Agenda-only container queries (no afecta otros calendarios) === */
+#calendar { container-type: inline-size; container-name: cal; }
+
+@container cal (max-width: 640px) {
+    #calendar .fc-toolbar { flex-wrap: wrap; gap: .5rem; }
+    #calendar .fc-toolbar-chunk { display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem; }
+    #calendar .fc-toolbar-title { font-size: clamp(.875rem,4vw,1rem) !important; width:100%; text-align:center; }
+    #calendar .fc-button { min-height:44px; min-width:44px; }
+}
+@container cal (max-width: 380px) {
+    #calendar .fc-toolbar-title { font-size: clamp(.8rem, 4.5vw, .95rem) !important; }
+}
+
 .fc-theme-standard .fc-popover-close {
     color: var(--color-carbon-500);
     opacity: 1;
@@ -277,29 +290,41 @@
 }
 
 @media (max-width: 639px) {
-    .fc-theme-standard .fc-toolbar {
+    /* Scoped solo a #calendar para no romper otros .fc */
+    #calendar.fc-theme-standard .fc-toolbar,
+    #calendar .fc-toolbar {
         flex-wrap: wrap;
         gap: 0.5rem;
         padding: 0.5rem;
     }
 
-    .fc-theme-standard .fc-toolbar-chunk {
+    #calendar .fc-toolbar-chunk {
         flex: 1 1 auto;
         display: flex;
         justify-content: center;
+        flex-wrap: wrap;
+        gap: .25rem;
     }
 
-    .fc-theme-standard .fc-toolbar-title {
-        font-size: 1rem;
+    #calendar .fc-toolbar-title {
+        font-size: clamp(0.875rem, 4vw, 1rem);
         order: -1;
         width: 100%;
         text-align: center;
         margin-bottom: 0.25rem;
     }
 
-    .fc-theme-standard .fc-button {
-        padding: 0.375rem 0.5rem;
-        font-size: 0.75rem;
+    #calendar .fc-button {
+        padding: 0.625rem 0.875rem;
+        font-size: clamp(0.75rem, 3vw, 0.8125rem);
+        min-height: 44px;
+        min-width: 44px;
+    }
+    #calendar .fc-footer-toolbar {
+        flex-wrap: wrap;
+        gap: .5rem;
+        justify-content: center;
+        padding: 0.5rem;
     }
 
     .fc-theme-standard .fc-col-header-cell-cushion {
@@ -311,9 +336,10 @@
         font-size: 0.6875rem;
     }
 
-    .fc-theme-standard .fc-event {
-        font-size: 0.75rem;
-        padding: 1px 4px;
+    #calendar .fc-event {
+        font-size: clamp(0.7rem, 2.8vw, 0.75rem);
+        padding: 2px 6px;
+        min-height: 28px;
     }
 
     .fc-theme-standard .fc-list-heading td {
