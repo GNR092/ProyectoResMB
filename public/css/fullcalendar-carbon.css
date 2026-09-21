@@ -228,6 +228,11 @@
 /* === Agenda-only container queries (no afecta otros calendarios) === */
 #calendar { container-type: inline-size; container-name: cal; }
 
+/* Opción A: touch-action para long-press drag sin romper scroll */
+#calendar .fc-timegrid, #calendar .fc-daygrid { touch-action: pan-y; }
+#calendar .fc-selecting, #calendar .fc-selecting .fc-timegrid { touch-action: none; }
+#calendar .fc-highlight { opacity: .35; }
+
 @container cal (max-width: 640px) {
     #calendar .fc-toolbar { flex-wrap: wrap; gap: .5rem; }
     #calendar .fc-toolbar-chunk { display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem; }
@@ -365,4 +370,14 @@
 #calendar .fc {
     border-radius: 12px;
     overflow: hidden;
+}
+
+#calendar .fc-timegrid .fc-scroller,
+#calendar .fc-timegrid-body {
+    max-height: none;
+    overflow: hidden;
+}
+
+#calendar .fc-timegrid-slot:last-child {
+    border-bottom: none;
 }

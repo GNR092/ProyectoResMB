@@ -19,6 +19,7 @@ const COLORS = [
 function calendarioApp() {
     let calendar = null;
     let selectedEvent = null;
+    let lastTouchStart = 0;
     const randomColor = () => COLORS[Math.floor(Math.random() * COLORS.length)].value;
     const toLocalStr = (d) => {
         const pad = (n) => String(n).padStart(2, '0');
@@ -167,10 +168,13 @@ function calendarioApp() {
 
         renderCalendar() {
             const el = document.getElementById('calendar');
+            const isMobileSel = window.innerWidth < 640;
             calendar = new Calendar(el, {
                 initialView: 'timeGridWeek',
                 locale: esLocale,
-                height: '100%',
+                height: 'auto',
+                contentHeight: 'auto',
+                expandRows: false,
                 themeSystem: 'standard',
                 headerToolbar: {
                     left: 'prev,next today',
@@ -179,7 +183,7 @@ function calendarioApp() {
                 },
                 buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', list: 'Lista' },
                 slotMinTime: '06:00:00',
-                slotMaxTime: '22:00:00',
+                slotMaxTime: '21:00:00',
                 slotDuration: '00:30:00',
                 slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
                 allDaySlot: false,
@@ -187,7 +191,13 @@ function calendarioApp() {
                 editable: true,
                 selectable: true,
                 selectMirror: true,
-                selectMinDistance: 5,
+                selectMinDistance: isMobileSel ? 12 : 5,
+                selectLongPressDelay: isMobileSel ? 400 : 0,
+                eventLongPressDelay: isMobileSel ? 400 : 0,
+                selectAllow: (info) => {
+                    if (window.innerWidth >= 640) return true;
+                    return (info.end - info.start) >= 15*60*1000;
+                },
                 unselectAuto: false,
                 dayMaxEvents: 0,
                 moreLinkContent: (args) => {
@@ -219,6 +229,13 @@ function calendarioApp() {
             });
             calendar.render();
             this.applyCarbonTheme();
+            // Track touch start para gatear dateClick con 400ms en móvil
+            const calElForTouch = document.getElementById('calendar');
+            if (calElForTouch) {
+                calElForTouch.addEventListener('touchstart', () => { lastTouchStart = Date.now(); }, {passive: true});
+                // Exponer para handleDateClick
+                calendar._agendaTouchStart = () => lastTouchStart;
+            }
         },
 
         handleSelect(info) {
@@ -236,6 +253,10 @@ function calendarioApp() {
         },
 
         handleDateClick(info) {
+            if (window.innerWidth < 640) {
+                const startTs = (calendar && calendar._agendaTouchStart) ? calendar._agendaTouchStart() : 0;
+                if (Date.now() - startTs < 400) return;
+            }
             const viewType = calendar.view.type;
             if (viewType === 'dayGridMonth') {
                 calendar.changeView('timeGridDay', info.dateStr);

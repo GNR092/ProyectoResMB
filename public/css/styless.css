@@ -4150,6 +4150,11 @@
       display: flex;
     }
   }
+  .sm\:hidden {
+    @media (width >= 40rem) {
+      display: none;
+    }
+  }
   .sm\:h-full {
     @media (width >= 40rem) {
       height: 100%;

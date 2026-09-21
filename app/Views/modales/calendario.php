@@ -54,6 +54,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
     <!-- Contenedor calendario — container query target -->
     <div id="calendar" class="flex-1 min-h-[50dvh] sm:min-h-0 bg-white rounded-xl border border-carbon-100 overflow-auto sm:overflow-hidden" x-show="!showDetalle" style="container-type:inline-size; container-name:cal"></div>
+    <p class="sm:hidden text-center text-[11px] text-gray-400 py-1 px-2">Mantén pulsado 0.4s y arrastra para crear bloque horario</p>
 
     <!-- Detalle requisición (pantalla 2) — envuelto para scroll-x en móvil -->
     <div id="div-calendario-detalle" x-show="showDetalle" x-cloak
