@@ -189,7 +189,13 @@ function calendarioApp() {
                 selectMirror: true,
                 selectMinDistance: 5,
                 unselectAuto: false,
-                dayMaxEvents: true,
+                dayMaxEvents: 0,
+                moreLinkContent: (args) => {
+                    // dayMaxEvents:0 => args.num = total del día (todos colapsados)
+                    // Texto exacto "# Salidas" sin signo +
+                    const n = args.num;
+                    return `${n} Salidas`;
+                },
                 events: (fetchInfo, successCallback, failureCallback) => {
                     this.loadEvents(fetchInfo.startStr, fetchInfo.endStr)
                         .then(successCallback)
@@ -204,7 +210,11 @@ function calendarioApp() {
                 datesSet: (info) => {
                     this.isWeekView = info.view.type === 'timeGridWeek';
                     this.isListView = info.view.type === 'listWeek';
+                    const isDayView = info.view.type === 'timeGridDay';
+                    const calEl = document.getElementById('calendar');
+                    if (calEl) calEl.style.overflow = isDayView ? 'auto' : 'hidden';
                     this.applyCarbonTheme();
+                    setTimeout(() => calendar.updateSize(), 50);
                 },
             });
             calendar.render();

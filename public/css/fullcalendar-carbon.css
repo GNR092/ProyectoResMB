@@ -4,8 +4,8 @@
     --fc-button-hover-bg-color: var(--color-carbon-600);
     --fc-button-active-bg-color: var(--color-carbon-800);
     --fc-button-text-color: var(--color-carbon-100);
-    --fc-today-bg-color: var(--color-indigo-600);
-    --fc-today-hover-bg-color: var(--color-indigo-700);
+    --fc-today-bg-color: rgba(234, 179, 8, 0.22);
+    --fc-today-hover-bg-color: rgba(234, 179, 8, 0.3);
     --fc-event-bg-color: var(--color-indigo-600);
     --fc-event-border-color: var(--color-indigo-600);
     --fc-event-text-color: #fff;
@@ -100,12 +100,12 @@
 }
 
 .fc-theme-standard .fc-day-today {
-    background-color: rgba(33, 150, 243, 0.08) !important;
+    background-color: rgba(234, 179, 8, 0.18) !important;
 }
 
 .fc-theme-standard .fc-day-today .fc-daygrid-day-top {
-    color: var(--color-indigo-700);
-    font-weight: 600;
+    color: var(--color-carbon-900);
+    font-weight: 700;
 }
 
 .fc-theme-standard .fc-scrollgrid {
@@ -203,6 +203,9 @@
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     background: #fff;
+    max-height: 60vh;
+    overflow: auto;
+    z-index: 40;
 }
 
 .fc-theme-standard .fc-popover-header {
@@ -216,7 +219,11 @@
 
 .fc-theme-standard .fc-popover-body {
     padding: 0.5rem;
+    max-height: 50vh;
+    overflow: auto;
 }
+
+#calendar, #calendar .fc { overflow: visible; }
 
 .fc-theme-standard .fc-popover-close {
     color: var(--color-carbon-500);
@@ -227,16 +234,36 @@
     color: var(--color-red-600);
 }
 
+.fc-daygrid-day-frame { position: relative; }
+
+.fc-theme-standard .fc-daygrid-day-bottom {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    pointer-events: none;
+}
+
 .fc-theme-standard .fc-daygrid-more-link {
-    color: var(--color-indigo-600);
-    font-weight: 500;
-    font-size: 0.75rem;
-    padding: 0 0.5rem;
+    pointer-events: auto;
+    color: #000 !important;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    text-align: center;
+    display: inline-block;
+    background: #fff;
+    border: 1px solid #e7e7e7;
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .fc-theme-standard .fc-daygrid-more-link:hover {
-    color: var(--color-indigo-700);
-    text-decoration: underline;
+    color: #000 !important;
+    text-decoration: none;
+    background: #f6f6f6;
 }
 
 .fc-direction-ltr .fc-daygrid-event.fc-event-end,

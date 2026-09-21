@@ -69,10 +69,25 @@ function abrirModal(opcion) {
     modalBox.classList.remove('max-w-4xl', 'mx-4', 'sm:mx-auto', 'max-w-[95vw]')
     modalBox.classList.add('w-full', 'mx-auto')
     modalBox.style.maxWidth = 'min(95vw, calc(100% - 2rem))'
+    if (opcion === 'calendario') {
+      modalBox.style.height = '92vh'
+      modalBox.style.maxHeight = '92vh'
+      modalBox.classList.add('flex', 'flex-col')
+      contenido.classList.add('flex', 'flex-col', 'flex-1', 'min-h-0', 'overflow-hidden')
+    } else {
+      modalBox.style.height = ''
+      modalBox.style.maxHeight = ''
+      modalBox.classList.remove('flex', 'flex-col')
+      contenido.classList.remove('flex', 'flex-col', 'flex-1', 'min-h-0', 'overflow-hidden')
+    }
   } else {
     modal.classList.add('justify-center')
     modalBox.classList.remove('max-w-[95vw]', 'max-w-[min(95vw,calc(100%-2rem))]')
     modalBox.style.maxWidth = ''
+    modalBox.style.height = ''
+    modalBox.style.maxHeight = ''
+    modalBox.classList.remove('flex', 'flex-col')
+    contenido.classList.remove('flex', 'flex-col', 'flex-1', 'min-h-0', 'overflow-hidden')
     modalBox.classList.add('max-w-4xl', 'mx-4', 'sm:mx-auto')
   }
 

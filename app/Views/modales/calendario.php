@@ -3,8 +3,7 @@ $iconPath = FCPATH . 'icons/icons.svg';
 $version = file_exists($iconPath) ? filemtime($iconPath) : time();
 $iconUrl = "/icons/icons.svg?v=$version";
 ?>
-<div x-data="calendarioApp()" x-init="init()">
-<div class="h-full flex flex-col">
+<div class="h-full flex flex-col min-h-0 flex-1 relative" x-data="calendarioApp()" x-init="init()">
     <!-- Filtros de búsqueda SOLO en modo Lista -->
     <div x-show="isListView" x-cloak x-transition
          class="mb-3 p-3 bg-white rounded-xl border border-carbon-100 shadow-sm">
@@ -54,11 +53,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
     </div>
 
     <!-- Contenedor calendario -->
-    <div id="calendar" class="flex-1 min-h-[400px] max-h-[calc(100vh-160px)] bg-white rounded-xl border border-carbon-100 overflow-hidden" x-show="!showDetalle"></div>
+    <div id="calendar" class="flex-1 min-h-0 bg-white rounded-xl border border-carbon-100 overflow-hidden" x-show="!showDetalle"></div>
 
     <!-- Detalle requisición (pantalla 2) — reutiliza generar* de utils.js -->
     <div id="div-calendario-detalle" x-show="showDetalle" x-cloak
-         class="flex-1 bg-white rounded-xl border border-carbon-100 overflow-auto p-4 max-h-[calc(100vh-160px)]">
+         class="flex-1 bg-white rounded-xl border border-carbon-100 overflow-auto p-4 min-h-0">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-bold">Detalles de la requisicion</h3>
             <button type="button" @click="regresarCalendario()" class="p-2 rounded-full hover:bg-gray-200 transition" title="Regresar al calendario">
@@ -71,7 +70,6 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <!-- Inyectado por verDetalleSolicitud() -->
         </div>
     </div>
-</div>
 
     <!-- Modal crear/editar — teletransportado a body para centrado viewport real, no cortado por modal principal -->
     <template x-teleport="body">
