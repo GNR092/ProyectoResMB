@@ -580,15 +580,25 @@ class Rest
                             $nombre = trim($parts[0]);
                             $place = isset($parts[1]) ? trim($parts[1]) : '';
                             if ($first) {
-                                $query->where('Departamentos.Nombre', $nombre);
-                                if ($place !== '') {
+                                if ($nombre === '' && $place !== '') {
+                                    // Solo complejo: filtrar solo por Place, sin exigir Nombre vacío
                                     $query->where('Places.Nombre_Corto', $place);
+                                } else {
+                                    $query->where('Departamentos.Nombre', $nombre);
+                                    if ($place !== '') {
+                                        $query->where('Places.Nombre_Corto', $place);
+                                    }
                                 }
                                 $first = false;
                             } else {
-                                $query->orGroupStart()->where('Departamentos.Nombre', $nombre);
-                                if ($place !== '') {
+                                $query->orGroupStart();
+                                if ($nombre === '' && $place !== '') {
                                     $query->where('Places.Nombre_Corto', $place);
+                                } else {
+                                    $query->where('Departamentos.Nombre', $nombre);
+                                    if ($place !== '') {
+                                        $query->where('Places.Nombre_Corto', $place);
+                                    }
                                 }
                                 $query->groupEnd();
                             }

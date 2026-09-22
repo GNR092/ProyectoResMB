@@ -49,28 +49,14 @@ function calendarioApp() {
         returnToEventModal: false,
         isWeekView: false,
         isListView: false,
-        filtros: {
-            folio: '',
-            estado: '',
-            tipo: '',
-            fecha: '',
-            por_mes: false,
-            proveedor: '',
-            complejo: '',
-            departamento: '',
-        },
         busquedaModal: '',
         filtrosModal: { estado: '', tipo: '', proveedor: '', complejo: '', departamento: '', fecha: '' },
         solicitudesCache: [],
         colors: COLORS,
         filtrosAvanzadosCargados: false,
-        filtrosListaInicializados: false,
         choicesProveedor: null,
         choicesComplejo: null,
         choicesDepartamento: null,
-        choicesProveedorLista: null,
-        choicesComplejoLista: null,
-        choicesDepartamentoLista: null,
         proveedoresList: [],
         complejosList: [],
         departamentosList: [],
@@ -86,13 +72,6 @@ function calendarioApp() {
         async cargarSolicitudes() {
             try {
                 const params = new URLSearchParams();
-                if (this.filtros.folio) params.set('folio', this.filtros.folio);
-                if (this.filtros.estado) params.set('estado', this.filtros.estado);
-                if (this.filtros.tipo) params.set('tipo', this.filtros.tipo);
-                if (this.filtros.fecha) {
-                    params.set('fecha', this.filtros.fecha);
-                    if (this.filtros.por_mes) params.set('por_mes', '1');
-                }
                 params.set('per_page', '50');
                 const qs = params.toString() ? `?${params.toString()}` : '';
                 const res = await fetch(`${BASE_URL}api/calendario/solicitudes${qs}`, {
@@ -107,50 +86,6 @@ function calendarioApp() {
             }
         },
 
-        async filtrarSolicitudes() {
-            await this.cargarSolicitudes();
-            this.aplicarFiltrosLocales();
-        },
-
-        aplicarFiltrosLocales() {
-            if (!this.isListView || !this.calendar) return;
-            const f = this.filtros;
-            const filtrados = this.eventosCache.filter(ev => {
-                const ext = ev.extendedProps || {};
-                const startStr = ev.startStr || ev.start || '';
-                if (f.folio && !(ext.No_Folio || '').toLowerCase().includes(f.folio.toLowerCase())) return false;
-                if (f.estado && ext.EstadoSolicitud !== f.estado) return false;
-                if (f.tipo) {
-                    const t = ext.TipoSolicitud;
-                    if (f.tipo === 'Producto' && ![0, 1, '0', '1'].includes(t)) return false;
-                    if (f.tipo === 'Servicio' && t !== 2 && t !== '2') return false;
-                }
-                if (f.proveedor && (ext.Proveedor || '') !== f.proveedor) return false;
-                if (f.complejo && (ext.Complejo || '') !== f.complejo) return false;
-                if (f.departamento) {
-                    const depVal = ext.Departamento ? `${ext.Departamento}|${ext.Complejo || ''}` : '';
-                    if (depVal !== f.departamento && (ext.Departamento || '') !== f.departamento) return false;
-                }
-                if (f.fecha) {
-                    const evDate = (startStr || '').slice(0, 10);
-                    if (f.por_mes) {
-                        if (!evDate.startsWith(f.fecha.slice(0, 7))) return false;
-                    } else if (evDate !== f.fecha) return false;
-                }
-                return true;
-            });
-            this.calendar.removeAllEvents();
-            this.calendar.addEventSource(filtrados);
-        },
-
-        limpiarFiltros() {
-            this.filtros = { folio: '', estado: '', tipo: '', fecha: '', por_mes: false, proveedor: '', complejo: '', departamento: '' };
-            this.filtrosModal = { estado: '', tipo: '', proveedor: '', complejo: '', departamento: '', fecha: '' };
-            this.busquedaModal = '';
-            this.cargarSolicitudes();
-            [this.choicesProveedor, this.choicesComplejo, this.choicesDepartamento, this.choicesProveedorLista, this.choicesComplejoLista, this.choicesDepartamentoLista].forEach(c => c?.setChoiceByValue(''));
-        },
-
         onToggleFiltrosAvanzados(event) {
             if (event.target.open && !this.filtrosAvanzadosCargados) {
                 this.cargarFiltrosAvanzados().then(() => {
@@ -160,14 +95,6 @@ function calendarioApp() {
                     });
                 });
                 this.filtrosAvanzadosCargados = true;
-                // Si estamos en modo lista, también inicializar Choices de lista
-                if (this.isListView) {
-                    this.$nextTick(() => {
-                        this.populateSelects();
-                        this.initChoicesFiltrosLista();
-                    });
-                    this.filtrosListaInicializados = true;
-                }
             }
         },
 
@@ -179,15 +106,21 @@ function calendarioApp() {
                     fetch(`${BASE_URL}api/places/all`, {headers:{'X-Requested-With':'XMLHttpRequest'}}).then(r=>r.json()),
                 ]);
                 const norm = (res) => Array.isArray(res) ? res : (res.data || res.result || []);
-                this.proveedoresList = norm(prov).map(p => ({value: String(p.ID_Proveedor), label: p.RazonSocial}));
-                // Departamentos: usar formato "Nombre|PlaceNombre" que espera la API
-                this.departamentosList = norm(dept).map(d => ({
-                    value: `${d.Nombre}|${d.Place || ''}`,  // Formato que espera la API: "Nombre|PlaceNombre"
-                    label: `${d.Nombre} - ${d.Place || ''}`,
-                    placeNombre: d.Place || ''
-                }));
-                // Complejos (Places): cargar desde nuevo endpoint
-                this.complejosList = norm(places).map(c => ({value: c.Nombre_Corto, label: c.Nombre_Corto}));
+                this.proveedoresList = norm(prov).map(p => ({value: p.RazonSocial, label: p.RazonSocial}));
+                // Departamentos: usar formato "Nombre|PlaceNombre" que espera la API — robusto a alias Place/PlaceNombre/Nombre_Corto
+                this.departamentosList = norm(dept).map(d => {
+                    const placeVal = d.Place || d.PlaceNombre || d.Nombre_Corto || d.place_nombre || '';
+                    return {
+                        value: `${d.Nombre}|${placeVal}`,
+                        label: `${d.Nombre} - ${placeVal || 'Sin complejo'}`,
+                        placeNombre: placeVal
+                    };
+                });
+                // Complejos (Places): cargar desde nuevo endpoint — robusto a alias
+                this.complejosList = norm(places).map(c => {
+                    const val = c.Nombre_Corto || c.Nombre || c.Place || '';
+                    return {value: val, label: val};
+                }).filter(c => c.value);
             } catch(e) { console.error('cargarFiltrosAvanzados', e); }
         },
 
@@ -197,14 +130,10 @@ function calendarioApp() {
                 selectEl.innerHTML = `<option value="">${placeholder}</option>` + 
                     list.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
             };
-            // Modal filters
+            // Modal filters (lista eliminada)
             fill(this.$refs.filtroProveedor, this.proveedoresList, 'Todos los proveedores');
             fill(this.$refs.filtroComplejo, this.complejosList, 'Todos los complejos');
             fill(this.$refs.filtroDepartamento, this.departamentosList, 'Todos los departamentos');
-            // List filters
-            fill(this.$refs.filtroProveedorLista, this.proveedoresList, 'Todos los proveedores');
-            fill(this.$refs.filtroComplejoLista, this.complejosList, 'Todos los complejos');
-            fill(this.$refs.filtroDepartamentoLista, this.departamentosList, 'Todos los departamentos');
         },
 
         initChoicesFiltros() {
@@ -215,15 +144,13 @@ function calendarioApp() {
             this.choicesComplejo = new Choices(this.$refs.filtroComplejo, {...cfg, placeholderValue:'Todos los complejos'});
             this.choicesDepartamento = new Choices(this.$refs.filtroDepartamento, {...cfg, placeholderValue:'Todos los departamentos'});
 
-            // Complejo → filtra Departamentos
+            // Complejo → filtra Departamentos (único fetch dentro de filtrarDepartamentosPorComplejo para evitar carrera con proveedor)
             this.$refs.filtroComplejo?.addEventListener('choice', (e) => {
                 this.filtrosModal.complejo = e.detail.value;
-                this.filtrarModal();
                 this.filtrarDepartamentosPorComplejo(e.detail.value);
             });
             this.$refs.filtroComplejo?.addEventListener('removeItem', () => {
                 this.filtrosModal.complejo = '';
-                this.filtrarModal();
                 this.filtrarDepartamentosPorComplejo('');
             });
 
@@ -239,60 +166,33 @@ function calendarioApp() {
         filtrarDepartamentosPorComplejo(placeNombre) {
             const select = this.$refs.filtroDepartamento;
             if (!select || !this.choicesDepartamento) return;
-            const opts = this.departamentosList
-                .filter(d => !placeNombre || d.placeNombre === placeNombre)
-                .map(d => `<option value="${d.value}">${d.label}</option>`).join('');
+            const prevVal = this.filtrosModal.departamento;
+            const filtered = this.departamentosList.filter(d => !placeNombre || d.placeNombre === placeNombre);
+            const opts = filtered.map(d => `<option value="${d.value}">${d.label}</option>`).join('');
             select.innerHTML = `<option value="">Todos los departamentos</option>` + opts;
-            const val = select.value;
+            const stillExists = filtered.some(d => d.value === prevVal);
+            const nextVal = stillExists ? prevVal : '';
+            // Guardar referencia a handlers para re-atachar tras destroy (asegura compatibilidad departamento+proveedor+complejo)
             this.choicesDepartamento.destroy();
             this.choicesDepartamento = new Choices(select, {removeItemButton:true, placeholder:true, placeholderValue:'Todos los departamentos', searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'});
-            if (val) this.choicesDepartamento.setChoiceByValue(val);
-            this.filtrosModal.departamento = select.value;
+            if (nextVal) {
+                this.choicesDepartamento.setChoiceByValue(nextVal);
+                this.filtrosModal.departamento = nextVal;
+            } else {
+                this.filtrosModal.departamento = '';
+            }
+            // Re-atachar listeners de departamento (destroy limpia los del select)
+            // Evitamos duplicados removiendo previos si existen
+            if (this._deptChoiceHandler) select.removeEventListener('choice', this._deptChoiceHandler);
+            if (this._deptChangeHandler) select.removeEventListener('change', this._deptChangeHandler);
+            if (this._deptRemoveHandler) select.removeEventListener('removeItem', this._deptRemoveHandler);
+            this._deptChoiceHandler = (e) => { this.filtrosModal.departamento = e.detail.value; this.filtrarModal(); };
+            this._deptChangeHandler = () => { this.filtrosModal.departamento = select.value; this.filtrarModal(); };
+            this._deptRemoveHandler = () => { this.filtrosModal.departamento = select.value || ''; this.filtrarModal(); };
+            select.addEventListener('choice', this._deptChoiceHandler);
+            select.addEventListener('change', this._deptChangeHandler);
+            select.addEventListener('removeItem', this._deptRemoveHandler);
             this.filtrarModal();
-        },
-
-        initChoicesFiltrosLista() {
-            if (typeof Choices === 'undefined') return;
-            [this.choicesProveedorLista, this.choicesComplejoLista, this.choicesDepartamentoLista].forEach(c => c?.destroy());
-            const cfg = {removeItemButton:true, placeholder:true, searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'};
-            this.choicesProveedorLista = new Choices(this.$refs.filtroProveedorLista, {...cfg, placeholderValue:'Todos los proveedores'});
-            this.choicesComplejoLista = new Choices(this.$refs.filtroComplejoLista, {...cfg, placeholderValue:'Todos los complejos'});
-            this.choicesDepartamentoLista = new Choices(this.$refs.filtroDepartamentoLista, {...cfg, placeholderValue:'Todos los departamentos'});
-
-            // Complejo → filtra Departamentos (Lista)
-            this.$refs.filtroComplejoLista?.addEventListener('choice', (e) => {
-                this.filtros.complejo = e.detail.value;
-                this.aplicarFiltrosLocales();
-                this.filtrarDepartamentosListaPorComplejo(e.detail.value);
-            });
-            this.$refs.filtroComplejoLista?.addEventListener('removeItem', () => {
-                this.filtros.complejo = '';
-                this.aplicarFiltrosLocales();
-                this.filtrarDepartamentosListaPorComplejo('');
-            });
-
-            // Proveedor/Departamento sync (Lista)
-            [['filtroProveedorLista','proveedor'], ['filtroDepartamentoLista','departamento']].forEach(([ref,key])=>{
-                const el=this.$refs[ref]; if(!el) return;
-                el.addEventListener('change',()=>{ this.filtros[key]=el.value; this.aplicarFiltrosLocales(); });
-                el.addEventListener('choice',(e)=>{ this.filtros[key]=e.detail.value; this.aplicarFiltrosLocales(); });
-                el.addEventListener('removeItem',()=>{ this.filtros[key]=el.value||''; this.aplicarFiltrosLocales(); });
-            });
-        },
-
-        filtrarDepartamentosListaPorComplejo(placeNombre) {
-            const select = this.$refs.filtroDepartamentoLista;
-            if (!select || !this.choicesDepartamentoLista) return;
-            const opts = this.departamentosList
-                .filter(d => !placeNombre || d.placeNombre === placeNombre)
-                .map(d => `<option value="${d.value}">${d.label}</option>`).join('');
-            select.innerHTML = `<option value="">Todos los departamentos</option>` + opts;
-            const val = select.value;
-            this.choicesDepartamentoLista.destroy();
-            this.choicesDepartamentoLista = new Choices(select, {removeItemButton:true, placeholder:true, placeholderValue:'Todos los departamentos', searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'});
-            if (val) this.choicesDepartamentoLista.setChoiceByValue(val);
-            this.filtros.departamento = select.value;
-            this.aplicarFiltrosLocales();
         },
 
         get solicitudesFiltradasModal() {
@@ -324,12 +224,14 @@ function calendarioApp() {
                 if (this.filtrosModal.tipo) params.set('tipo', this.filtrosModal.tipo);
                 if (this.filtrosModal.proveedor) params.set('proveedores', this.filtrosModal.proveedor);
                 // Complejo y departamento se envían como filtro departamentos "Nombre|Complejo"
-                if (this.filtrosModal.departamento || this.filtrosModal.complejo) {
-                    const dep = (this.filtrosModal.departamento || '').trim();
-                    const comp = (this.filtrosModal.complejo || '').trim();
-                    const depFiltro = comp ? `${dep}|${comp}` : dep;
-                    // Si solo complejo sin depto, buscar por complejo como departamento con pipe vacío
-                    params.set('departamentos', depFiltro || `|${comp}`);
+                // Corregido: evitar duplicar Place y manejar solo-complejo correctamente
+                if (this.filtrosModal.departamento && this.filtrosModal.complejo) {
+                    const nombreOnly = this.filtrosModal.departamento.split('|')[0].trim();
+                    params.set('departamentos', `${nombreOnly}|${this.filtrosModal.complejo.trim()}`);
+                } else if (this.filtrosModal.departamento) {
+                    params.set('departamentos', this.filtrosModal.departamento.trim());
+                } else if (this.filtrosModal.complejo) {
+                    params.set('departamentos', `|${this.filtrosModal.complejo.trim()}`);
                 }
                 params.set('per_page', '50');
                 // Solo buscar si hay algún filtro, si no recargar lista base
@@ -425,23 +327,6 @@ function calendarioApp() {
                     this.lastViewType = info.view.type;
                     this.applyCarbonTheme();
                     setTimeout(() => calendar.updateSize(), 50);
-                    // Lazy-load filtros avanzados al entrar en modo Lista
-                    if (this.isListView) {
-                        if (!this.filtrosAvanzadosCargados) {
-                            this.cargarFiltrosAvanzados().then(() => {
-                                this.$nextTick(() => {
-                                    this.populateSelects();
-                                    this.initChoicesFiltrosLista();
-                                });
-                            });
-                            this.filtrosAvanzadosCargados = true;
-                        } else if (!this.filtrosListaInicializados) {
-                            // Data ya cargada pero Choices de lista no inicializados
-                            this.populateSelects();
-                            this.initChoicesFiltrosLista();
-                        }
-                        this.filtrosListaInicializados = true;
-                    }
                 },
             });
             calendar.render();
