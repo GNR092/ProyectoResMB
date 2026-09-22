@@ -190,6 +190,7 @@ if (!file_exists($installerLockFile)) {
 
         //razon social
         $routes->get('api/razonsocial/all', 'Api::getAllRazonSocial');
+        $routes->get('api/places/all', 'Api::getAllPlaces');
         $routes->post('modales/razonsocial/insertar', 'Modales::insertarRazonSocial');
         $routes->post('modales/razonsocial/editar/(:num)', 'Modales::editarRazonSocial/$1');
         $routes->post('modales/razonsocial/eliminar/(:num)', 'Modales::eliminarRazonSocial/$1');

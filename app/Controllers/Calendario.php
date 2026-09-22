@@ -247,6 +247,7 @@ class Calendario extends ResourceController
                 if ($sol) {
                     $folio = $sol['No_Folio'] ?? null;
                     $estadoSol = $sol['EstadoOrden'] ?? $sol['Estado'] ?? null;
+                    $tipoSol = $sol['Tipo'] ?? null;
                 }
             } catch (\Throwable $ex) {}
         }
@@ -266,6 +267,11 @@ class Calendario extends ResourceController
                 'ID_Solicitud' => $e['ID_Solicitud'] ?? null,
                 'No_Folio' => $folio,
                 'EstadoSolicitud' => $estadoSol,
+                'TipoSolicitud' => $tipoSol,
+                'Proveedor' => $sol['ProveedorNombre'] ?? $sol['Proveedor'] ?? '',
+                'Complejo' => $sol['PlaceNombre'] ?? $sol['Complejo'] ?? '',
+                'Departamento' => $sol['DepartamentoNombre'] ?? '',
+                'FechaSolicitud' => $sol['FechaSolicitud'] ?? $sol['Fecha'] ?? '',
                 'evento_raw' => $e['evento'],
             ],
             'allDay'          => false,

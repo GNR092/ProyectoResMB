@@ -40,6 +40,28 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Fecha</label>
                 <input type="date" x-model="filtros.fecha" @change="filtrarSolicitudes()" class="border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm w-full outline-blue-500 min-h-[44px] sm:min-h-0">
             </div>
+            <!-- Filtros avanzados en lista: Proveedor, Complejo, Departamento -->
+            <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Proveedor</label>
+                <select x-ref="filtroProveedorLista" x-model="filtros.proveedor" @change="aplicarFiltrosLocales()"
+                        class="w-full border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm outline-blue-500 min-h-[44px] sm:min-h-0">
+                    <option value="">Todos los proveedores</option>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Complejo</label>
+                <select x-ref="filtroComplejoLista" x-model="filtros.complejo" @change="aplicarFiltrosLocales()"
+                        class="w-full border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm outline-blue-500 min-h-[44px] sm:min-h-0">
+                    <option value="">Todos los complejos</option>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Departamento</label>
+                <select x-ref="filtroDepartamentoLista" x-model="filtros.departamento" @change="aplicarFiltrosLocales()"
+                        class="w-full border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm outline-blue-500 min-h-[44px] sm:min-h-0">
+                    <option value="">Todos los departamentos</option>
+                </select>
+            </div>
             <div class="flex items-center gap-2 py-1 xs:col-span-2 sm:col-auto sm:pb-2">
                 <label class="flex items-center gap-1.5 text-xs sm:text-xs text-gray-600 cursor-pointer min-h-[44px] sm:min-h-0 px-1">
                     <input type="checkbox" x-model="filtros.por_mes" @change="filtrarSolicitudes()" class="accent-blue-600 size-4"> Mes
@@ -96,7 +118,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     </div>
                     <p class="text-xs text-gray-400">Escribe solo el número, sin MBSP-</p>
                     <!-- Filtros avanzados colapsables -->
-                    <details class="group rounded-lg border border-carbon-100 bg-carbon-50/50">
+                    <details class="group rounded-lg border border-carbon-100 bg-carbon-50/50" x-ref="detallesFiltros" @toggle="onToggleFiltrosAvanzados($event)">
                         <summary class="flex items-center justify-between px-3 py-2.5 sm:py-2 text-xs font-medium text-indigo-600 cursor-pointer list-none min-h-[44px] sm:min-h-0">
                             <span>Filtros avanzados</span>
                             <svg class="size-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
@@ -128,15 +150,30 @@ $iconUrl = "/icons/icons.svg?v=$version";
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-carbon-600">Proveedor</label>
-                                <input type="text" x-model="filtrosModal.proveedor" @input.debounce.400ms="filtrarModal()" placeholder="Filtrar por proveedor" class="w-full border border-carbon-200 rounded-lg px-2 py-2 sm:py-1.5 mt-1 text-sm outline-none focus:border-indigo-400 min-h-[44px] sm:min-h-0">
+                                <select x-ref="filtroProveedor" id="cal-filtro-proveedor"
+                                        x-model="filtrosModal.proveedor"
+                                        @change="filtrarModal()"
+                                        class="w-full border border-carbon-200 rounded-lg px-2 py-2 sm:py-1.5 mt-1 text-sm outline-none focus:border-indigo-400 min-h-[44px] sm:min-h-0">
+                                    <option value="">Todos los proveedores</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-carbon-600">Complejo</label>
-                                <input type="text" x-model="filtrosModal.complejo" @input.debounce.400ms="filtrarModal()" placeholder="Ej. MB Resort" class="w-full border border-carbon-200 rounded-lg px-2 py-2 sm:py-1.5 mt-1 text-sm outline-none focus:border-indigo-400 min-h-[44px] sm:min-h-0">
+                                <select x-ref="filtroComplejo" id="cal-filtro-complejo"
+                                        x-model="filtrosModal.complejo"
+                                        @change="filtrarModal()"
+                                        class="w-full border border-carbon-200 rounded-lg px-2 py-2 sm:py-1.5 mt-1 text-sm outline-none focus:border-indigo-400 min-h-[44px] sm:min-h-0">
+                                    <option value="">Todos los complejos</option>
+                                </select>
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-medium text-carbon-600">Departamento</label>
-                                <input type="text" x-model="filtrosModal.departamento" @input.debounce.400ms="filtrarModal()" placeholder="Ej. Mantenimiento" class="w-full border border-carbon-200 rounded-lg px-2 py-2 sm:py-1.5 mt-1 text-sm outline-none focus:border-indigo-400 min-h-[44px] sm:min-h-0">
+                                <select x-ref="filtroDepartamento" id="cal-filtro-departamento"
+                                        x-model="filtrosModal.departamento"
+                                        @change="filtrarModal()"
+                                        class="w-full border border-carbon-200 rounded-lg px-2 py-2 sm:py-1.5 mt-1 text-sm outline-none focus:border-indigo-400 min-h-[44px] sm:min-h-0">
+                                    <option value="">Todos los departamentos</option>
+                                </select>
                             </div>
                         </div>
                     </details>

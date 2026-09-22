@@ -3264,6 +3264,21 @@ class Api extends ResourceController
     }
 
     /**
+     * Obtiene todos los lugares/complejos (Places).
+     * @return \CodeIgniter\HTTP\Response
+     */
+    public function getAllPlaces()
+    {
+        $placesModel = new \App\Models\PlacesModel();
+        $data = $placesModel
+            ->select('ID_Place, Nombre_Corto, ID_RazonSocial')
+            ->orderBy('Nombre_Corto', 'ASC')
+            ->findAll();
+
+        return $this->respond($data);
+    }
+
+    /**
      * Actualiza los datos de un usuario utilizando su correo electrónico como identificador.
      * Espera un JSON con "email" y "data".
      *

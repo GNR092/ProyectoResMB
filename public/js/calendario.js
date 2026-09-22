@@ -55,11 +55,27 @@ function calendarioApp() {
             tipo: '',
             fecha: '',
             por_mes: false,
+            proveedor: '',
+            complejo: '',
+            departamento: '',
         },
         busquedaModal: '',
         filtrosModal: { estado: '', tipo: '', proveedor: '', complejo: '', departamento: '', fecha: '' },
         solicitudesCache: [],
         colors: COLORS,
+        filtrosAvanzadosCargados: false,
+        filtrosListaInicializados: false,
+        choicesProveedor: null,
+        choicesComplejo: null,
+        choicesDepartamento: null,
+        choicesProveedorLista: null,
+        choicesComplejoLista: null,
+        choicesDepartamentoLista: null,
+        proveedoresList: [],
+        complejosList: [],
+        departamentosList: [],
+        eventosCache: [],
+        lastViewType: null,
 
         async init() {
             this.renderCalendar();
@@ -93,11 +109,190 @@ function calendarioApp() {
 
         async filtrarSolicitudes() {
             await this.cargarSolicitudes();
+            this.aplicarFiltrosLocales();
+        },
+
+        aplicarFiltrosLocales() {
+            if (!this.isListView || !this.calendar) return;
+            const f = this.filtros;
+            const filtrados = this.eventosCache.filter(ev => {
+                const ext = ev.extendedProps || {};
+                const startStr = ev.startStr || ev.start || '';
+                if (f.folio && !(ext.No_Folio || '').toLowerCase().includes(f.folio.toLowerCase())) return false;
+                if (f.estado && ext.EstadoSolicitud !== f.estado) return false;
+                if (f.tipo) {
+                    const t = ext.TipoSolicitud;
+                    if (f.tipo === 'Producto' && ![0, 1, '0', '1'].includes(t)) return false;
+                    if (f.tipo === 'Servicio' && t !== 2 && t !== '2') return false;
+                }
+                if (f.proveedor && (ext.Proveedor || '') !== f.proveedor) return false;
+                if (f.complejo && (ext.Complejo || '') !== f.complejo) return false;
+                if (f.departamento) {
+                    const depVal = ext.Departamento ? `${ext.Departamento}|${ext.Complejo || ''}` : '';
+                    if (depVal !== f.departamento && (ext.Departamento || '') !== f.departamento) return false;
+                }
+                if (f.fecha) {
+                    const evDate = (startStr || '').slice(0, 10);
+                    if (f.por_mes) {
+                        if (!evDate.startsWith(f.fecha.slice(0, 7))) return false;
+                    } else if (evDate !== f.fecha) return false;
+                }
+                return true;
+            });
+            this.calendar.removeAllEvents();
+            this.calendar.addEventSource(filtrados);
         },
 
         limpiarFiltros() {
-            this.filtros = { folio: '', estado: '', tipo: '', fecha: '', por_mes: false };
+            this.filtros = { folio: '', estado: '', tipo: '', fecha: '', por_mes: false, proveedor: '', complejo: '', departamento: '' };
+            this.filtrosModal = { estado: '', tipo: '', proveedor: '', complejo: '', departamento: '', fecha: '' };
+            this.busquedaModal = '';
             this.cargarSolicitudes();
+            [this.choicesProveedor, this.choicesComplejo, this.choicesDepartamento, this.choicesProveedorLista, this.choicesComplejoLista, this.choicesDepartamentoLista].forEach(c => c?.setChoiceByValue(''));
+        },
+
+        onToggleFiltrosAvanzados(event) {
+            if (event.target.open && !this.filtrosAvanzadosCargados) {
+                this.cargarFiltrosAvanzados().then(() => {
+                    this.$nextTick(() => {
+                        this.populateSelects();
+                        this.initChoicesFiltros();
+                    });
+                });
+                this.filtrosAvanzadosCargados = true;
+                // Si estamos en modo lista, también inicializar Choices de lista
+                if (this.isListView) {
+                    this.$nextTick(() => {
+                        this.populateSelects();
+                        this.initChoicesFiltrosLista();
+                    });
+                    this.filtrosListaInicializados = true;
+                }
+            }
+        },
+
+        async cargarFiltrosAvanzados() {
+            try {
+                const [prov, dept, places] = await Promise.all([
+                    fetch(`${BASE_URL}api/providers/all`, {headers:{'X-Requested-With':'XMLHttpRequest'}}).then(r=>r.json()),
+                    fetch(`${BASE_URL}api/departments/all`, {headers:{'X-Requested-With':'XMLHttpRequest'}}).then(r=>r.json()),
+                    fetch(`${BASE_URL}api/places/all`, {headers:{'X-Requested-With':'XMLHttpRequest'}}).then(r=>r.json()),
+                ]);
+                const norm = (res) => Array.isArray(res) ? res : (res.data || res.result || []);
+                this.proveedoresList = norm(prov).map(p => ({value: String(p.ID_Proveedor), label: p.RazonSocial}));
+                // Departamentos: usar formato "Nombre|PlaceNombre" que espera la API
+                this.departamentosList = norm(dept).map(d => ({
+                    value: `${d.Nombre}|${d.Place || ''}`,  // Formato que espera la API: "Nombre|PlaceNombre"
+                    label: `${d.Nombre} - ${d.Place || ''}`,
+                    placeNombre: d.Place || ''
+                }));
+                // Complejos (Places): cargar desde nuevo endpoint
+                this.complejosList = norm(places).map(c => ({value: c.Nombre_Corto, label: c.Nombre_Corto}));
+            } catch(e) { console.error('cargarFiltrosAvanzados', e); }
+        },
+
+        populateSelects() {
+            const fill = (selectEl, list, placeholder) => {
+                if (!selectEl) return;
+                selectEl.innerHTML = `<option value="">${placeholder}</option>` + 
+                    list.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+            };
+            // Modal filters
+            fill(this.$refs.filtroProveedor, this.proveedoresList, 'Todos los proveedores');
+            fill(this.$refs.filtroComplejo, this.complejosList, 'Todos los complejos');
+            fill(this.$refs.filtroDepartamento, this.departamentosList, 'Todos los departamentos');
+            // List filters
+            fill(this.$refs.filtroProveedorLista, this.proveedoresList, 'Todos los proveedores');
+            fill(this.$refs.filtroComplejoLista, this.complejosList, 'Todos los complejos');
+            fill(this.$refs.filtroDepartamentoLista, this.departamentosList, 'Todos los departamentos');
+        },
+
+        initChoicesFiltros() {
+            if (typeof Choices === 'undefined') return;
+            [this.choicesProveedor, this.choicesComplejo, this.choicesDepartamento].forEach(c => c?.destroy());
+            const cfg = {removeItemButton:true, placeholder:true, searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'};
+            this.choicesProveedor = new Choices(this.$refs.filtroProveedor, {...cfg, placeholderValue:'Todos los proveedores'});
+            this.choicesComplejo = new Choices(this.$refs.filtroComplejo, {...cfg, placeholderValue:'Todos los complejos'});
+            this.choicesDepartamento = new Choices(this.$refs.filtroDepartamento, {...cfg, placeholderValue:'Todos los departamentos'});
+
+            // Complejo → filtra Departamentos
+            this.$refs.filtroComplejo?.addEventListener('choice', (e) => {
+                this.filtrosModal.complejo = e.detail.value;
+                this.filtrarModal();
+                this.filtrarDepartamentosPorComplejo(e.detail.value);
+            });
+            this.$refs.filtroComplejo?.addEventListener('removeItem', () => {
+                this.filtrosModal.complejo = '';
+                this.filtrarModal();
+                this.filtrarDepartamentosPorComplejo('');
+            });
+
+            // Proveedor/Departamento sync
+            [['filtroProveedor','proveedor'], ['filtroDepartamento','departamento']].forEach(([ref,key])=>{
+                const el=this.$refs[ref]; if(!el) return;
+                el.addEventListener('change',()=>{ this.filtrosModal[key]=el.value; this.filtrarModal(); });
+                el.addEventListener('choice',(e)=>{ this.filtrosModal[key]=e.detail.value; this.filtrarModal(); });
+                el.addEventListener('removeItem',()=>{ this.filtrosModal[key]=el.value||''; this.filtrarModal(); });
+            });
+        },
+
+        filtrarDepartamentosPorComplejo(placeNombre) {
+            const select = this.$refs.filtroDepartamento;
+            if (!select || !this.choicesDepartamento) return;
+            const opts = this.departamentosList
+                .filter(d => !placeNombre || d.placeNombre === placeNombre)
+                .map(d => `<option value="${d.value}">${d.label}</option>`).join('');
+            select.innerHTML = `<option value="">Todos los departamentos</option>` + opts;
+            const val = select.value;
+            this.choicesDepartamento.destroy();
+            this.choicesDepartamento = new Choices(select, {removeItemButton:true, placeholder:true, placeholderValue:'Todos los departamentos', searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'});
+            if (val) this.choicesDepartamento.setChoiceByValue(val);
+            this.filtrosModal.departamento = select.value;
+            this.filtrarModal();
+        },
+
+        initChoicesFiltrosLista() {
+            if (typeof Choices === 'undefined') return;
+            [this.choicesProveedorLista, this.choicesComplejoLista, this.choicesDepartamentoLista].forEach(c => c?.destroy());
+            const cfg = {removeItemButton:true, placeholder:true, searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'};
+            this.choicesProveedorLista = new Choices(this.$refs.filtroProveedorLista, {...cfg, placeholderValue:'Todos los proveedores'});
+            this.choicesComplejoLista = new Choices(this.$refs.filtroComplejoLista, {...cfg, placeholderValue:'Todos los complejos'});
+            this.choicesDepartamentoLista = new Choices(this.$refs.filtroDepartamentoLista, {...cfg, placeholderValue:'Todos los departamentos'});
+
+            // Complejo → filtra Departamentos (Lista)
+            this.$refs.filtroComplejoLista?.addEventListener('choice', (e) => {
+                this.filtros.complejo = e.detail.value;
+                this.aplicarFiltrosLocales();
+                this.filtrarDepartamentosListaPorComplejo(e.detail.value);
+            });
+            this.$refs.filtroComplejoLista?.addEventListener('removeItem', () => {
+                this.filtros.complejo = '';
+                this.aplicarFiltrosLocales();
+                this.filtrarDepartamentosListaPorComplejo('');
+            });
+
+            // Proveedor/Departamento sync (Lista)
+            [['filtroProveedorLista','proveedor'], ['filtroDepartamentoLista','departamento']].forEach(([ref,key])=>{
+                const el=this.$refs[ref]; if(!el) return;
+                el.addEventListener('change',()=>{ this.filtros[key]=el.value; this.aplicarFiltrosLocales(); });
+                el.addEventListener('choice',(e)=>{ this.filtros[key]=e.detail.value; this.aplicarFiltrosLocales(); });
+                el.addEventListener('removeItem',()=>{ this.filtros[key]=el.value||''; this.aplicarFiltrosLocales(); });
+            });
+        },
+
+        filtrarDepartamentosListaPorComplejo(placeNombre) {
+            const select = this.$refs.filtroDepartamentoLista;
+            if (!select || !this.choicesDepartamentoLista) return;
+            const opts = this.departamentosList
+                .filter(d => !placeNombre || d.placeNombre === placeNombre)
+                .map(d => `<option value="${d.value}">${d.label}</option>`).join('');
+            select.innerHTML = `<option value="">Todos los departamentos</option>` + opts;
+            const val = select.value;
+            this.choicesDepartamentoLista.destroy();
+            this.choicesDepartamentoLista = new Choices(select, {removeItemButton:true, placeholder:true, placeholderValue:'Todos los departamentos', searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'});
+            if (val) this.choicesDepartamentoLista.setChoiceByValue(val);
+            this.filtros.departamento = select.value;
+            this.aplicarFiltrosLocales();
         },
 
         get solicitudesFiltradasModal() {
@@ -224,8 +419,29 @@ function calendarioApp() {
                     const isDayView = info.view.type === 'timeGridDay';
                     const calEl = document.getElementById('calendar');
                     if (calEl) calEl.style.overflow = isDayView ? 'auto' : 'hidden';
+                    if (this.lastViewType && this.lastViewType !== info.view.type) {
+                        this.eventosCache = [];
+                    }
+                    this.lastViewType = info.view.type;
                     this.applyCarbonTheme();
                     setTimeout(() => calendar.updateSize(), 50);
+                    // Lazy-load filtros avanzados al entrar en modo Lista
+                    if (this.isListView) {
+                        if (!this.filtrosAvanzadosCargados) {
+                            this.cargarFiltrosAvanzados().then(() => {
+                                this.$nextTick(() => {
+                                    this.populateSelects();
+                                    this.initChoicesFiltrosLista();
+                                });
+                            });
+                            this.filtrosAvanzadosCargados = true;
+                        } else if (!this.filtrosListaInicializados) {
+                            // Data ya cargada pero Choices de lista no inicializados
+                            this.populateSelects();
+                            this.initChoicesFiltrosLista();
+                        }
+                        this.filtrosListaInicializados = true;
+                    }
                 },
             });
             calendar.render();
@@ -365,6 +581,7 @@ function calendarioApp() {
             });
             const json = await res.json();
             if (!json.success) throw new Error(json.message || 'Error cargando eventos');
+            this.eventosCache = json.data;
             return json.data;
         },
 
