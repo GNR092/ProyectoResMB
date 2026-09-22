@@ -1,0 +1,33 @@
+/* Agenda — solo esta vista, no afecta otros Choices */
+#agenda-vista select[x-ref^="filtro"] + .choices,
+#agenda-modal select[x-ref^="filtro"] + .choices{width:100% !important; min-width:0 !important;}
+#agenda-vista select[x-ref^="filtro"] + .choices .choices__inner,
+#agenda-modal select[x-ref^="filtro"] + .choices .choices__inner{width:100% !important; min-height:44px !important; padding-right:2.75rem !important; background:#f9fafb !important; border-color:#e5e7eb !important;}
+#agenda-vista select[x-ref^="filtro"] + .choices .choices__list--single,
+#agenda-modal select[x-ref^="filtro"] + .choices .choices__list--single{padding-right:1rem !important; width:100% !important;}
+#agenda-vista select[x-ref^="filtro"] + .choices .choices__list--single .choices__item,
+#agenda-modal select[x-ref^="filtro"] + .choices .choices__list--single .choices__item{overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; max-width:100% !important; padding-right:.5rem !important;}
+/* X 14px red-500 #EF4444 justo encima de flecha — solo agenda */
+#agenda-vista .choices[data-type*="select-one"] .choices__button,
+#agenda-modal .choices[data-type*="select-one"] .choices__button{width:14px !important; height:14px !important; background-size:14px !important; opacity:1 !important; right:12px !important; top:32% !important; margin-right:0 !important; border-radius:4px !important; transform:translateY(-50%) !important; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath fill='%23EF4444' d='M7 5.59L11.59 1 13 2.41 8.41 7 13 11.59 11.59 13 7 8.41 2.41 13 1 11.59 5.59 7 1 2.41 2.41 1z'/%3E%3C/svg%3E") !important; left:auto !important;}
+#agenda-vista .choices .choices__button:hover,
+#agenda-modal .choices .choices__button:hover{background-color:#fee2e2 !important;}
+#agenda-vista .choices[data-type*="select-one"]::after,
+#agenda-modal .choices[data-type*="select-one"]::after{right:12px !important; top:68% !important; border-color:#6b7280 transparent transparent !important; border-width:5px !important; transform:translateY(-50%) !important;}
+@media (max-width:639px){
+  #agenda-vista .choices[data-type*="select-one"] .choices__button,
+  #agenda-modal .choices[data-type*="select-one"] .choices__button{width:28px !important; height:28px !important; background-size:14px !important; background-position:center !important; top:30% !important;}
+  #agenda-vista .choices[data-type*="select-one"]::after,
+  #agenda-modal .choices[data-type*="select-one"]::after{top:70% !important; right:12px !important;}
+}
+@media (min-width:640px){
+  #agenda-vista select[x-ref="filtroProveedor"] + .choices,
+  #agenda-vista select[x-ref="filtroComplejo"] + .choices,
+  #agenda-vista select[x-ref="filtroDepartamento"] + .choices,
+  #agenda-vista select[x-ref="filtroProveedorLista"] + .choices,
+  #agenda-vista select[x-ref="filtroComplejoLista"] + .choices,
+  #agenda-vista select[x-ref="filtroDepartamentoLista"] + .choices,
+  #agenda-modal select[x-ref="filtroProveedor"] + .choices,
+  #agenda-modal select[x-ref="filtroComplejo"] + .choices,
+  #agenda-modal select[x-ref="filtroDepartamento"] + .choices{min-width:180px !important; flex:1 1 180px !important; max-width:260px !important;}
+}

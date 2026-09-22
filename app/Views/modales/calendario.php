@@ -3,11 +3,11 @@ $iconPath = FCPATH . 'icons/icons.svg';
 $version = file_exists($iconPath) ? filemtime($iconPath) : time();
 $iconUrl = "/icons/icons.svg?v=$version";
 ?>
-<div class="h-[min(85dvh,92vh)] sm:h-full flex flex-col min-h-0 flex-1 relative @container" x-data="calendarioApp()" x-init="init()" style="container-type:inline-size; container-name:agenda">
+<div id="agenda-vista" class="h-[min(85dvh,92vh)] sm:h-full flex flex-col min-h-0 flex-1 relative @container" x-data="calendarioApp()" x-init="init()" style="container-type:inline-size; container-name:agenda">
     <!-- Filtros lista (solo visible en listWeek) — filtran fc-list-table en tiempo real -->
     <div x-show="isListView && !showDetalle" x-cloak x-transition
          class="mb-3 p-2 sm:p-3 bg-white rounded-xl border border-carbon-100 shadow-sm">
-        <div class="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap sm:items-end gap-2 sm:gap-3">
+        <div class="grid grid-cols-1 sm:flex sm:flex-wrap sm:items-end gap-2 sm:gap-3">
             <div class="flex flex-col gap-1 min-w-0">
                 <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Folio</label>
                 <input type="text" x-model="filtrosLista.folio" @input.debounce.300ms="filtrarLista()" placeholder="MBSP-..." class="border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm w-full sm:w-32 outline-blue-500 min-h-[44px] sm:min-h-0">
@@ -36,25 +36,25 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <option value="Servicio">Servicio</option>
                 </select>
             </div>
-            <div class="flex flex-col gap-1 min-w-0">
+            <div class="flex flex-col gap-1 flex-1 min-w-[140px] sm:min-w-[180px] max-w-full">
                 <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Proveedor</label>
                 <select x-ref="filtroProveedorLista" class="w-full border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm outline-blue-500 min-h-[44px] sm:min-h-0">
                     <option value="">Todos</option>
                 </select>
             </div>
-            <div class="flex flex-col gap-1 min-w-0">
+            <div class="flex flex-col gap-1 flex-1 min-w-[140px] sm:min-w-[180px] max-w-full">
                 <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Complejo</label>
                 <select x-ref="filtroComplejoLista" class="w-full border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm outline-blue-500 min-h-[44px] sm:min-h-0">
                     <option value="">Todos</option>
                 </select>
             </div>
-            <div class="flex flex-col gap-1 min-w-0">
+            <div class="flex flex-col gap-1 flex-1 min-w-[140px] sm:min-w-[180px] max-w-full">
                 <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Departamento</label>
                 <select x-ref="filtroDepartamentoLista" class="w-full border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm outline-blue-500 min-h-[44px] sm:min-h-0">
                     <option value="">Todos</option>
                 </select>
             </div>
-            <div class="flex items-center gap-2 py-1 xs:col-span-2 sm:col-auto sm:pb-2">
+            <div class="flex items-center gap-2 py-1 sm:col-auto sm:pb-2">
                 <button type="button" @click="limpiarFiltrosLista()" class="text-xs text-indigo-600 hover:text-indigo-800 underline min-h-[44px] px-2">Limpiar</button>
                 <span class="text-xs text-gray-400" x-text="eventosCache.length ? eventosCache.length + ' salidas (filtradas de ' + eventosCacheOriginal.length + ')' : ''"></span>
             </div>
@@ -82,7 +82,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
     <!-- Modal crear/editar — teletransportado a body para centrado viewport real, no cortado por modal principal -->
     <template x-teleport="body">
-    <div x-show="showEventModal" x-cloak x-transition.opacity
+    <div id="agenda-modal" x-show="showEventModal" x-cloak x-transition.opacity
          class="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-2 sm:p-4 overflow-y-auto"
          @click.self="closeEventModal"
          @keydown.escape.window="closeEventModal">

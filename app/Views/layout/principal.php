@@ -16,6 +16,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     <link rel="stylesheet" href="<?= base_url('css/styless.css') ?>?v=<?= $version ?>">
     <link rel="stylesheet" href="<?= base_url('css/modal-anim.css') ?>?v=<?= time() ?>">
     <link rel="stylesheet" href="<?= base_url('css/fullcalendar-carbon.css') ?>?v=<?= filemtime(FCPATH . 'css/fullcalendar-carbon.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('css/agenda.css') ?>?v=<?= file_exists(FCPATH . 'css/agenda.css') ? filemtime(FCPATH . 'css/agenda.css') : time() ?>">
 
     <!-- FullCalendar Standard Bundle (incluye core, interaction, daygrid, timegrid, list, multimonth) -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.21/index.global.min.js"></script>
