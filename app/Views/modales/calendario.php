@@ -4,6 +4,62 @@ $version = file_exists($iconPath) ? filemtime($iconPath) : time();
 $iconUrl = "/icons/icons.svg?v=$version";
 ?>
 <div class="h-[min(85dvh,92vh)] sm:h-full flex flex-col min-h-0 flex-1 relative @container" x-data="calendarioApp()" x-init="init()" style="container-type:inline-size; container-name:agenda">
+    <!-- Filtros lista (solo visible en listWeek) — filtran fc-list-table en tiempo real -->
+    <div x-show="isListView && !showDetalle" x-cloak x-transition
+         class="mb-3 p-2 sm:p-3 bg-white rounded-xl border border-carbon-100 shadow-sm">
+        <div class="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap sm:items-end gap-2 sm:gap-3">
+            <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Folio</label>
+                <input type="text" x-model="filtrosLista.folio" @input.debounce.300ms="filtrarLista()" placeholder="MBSP-..." class="border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm w-full sm:w-32 outline-blue-500 min-h-[44px] sm:min-h-0">
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Estado</label>
+                <select x-model="filtrosLista.estado" @change="filtrarLista()" class="border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm w-full sm:w-36 outline-blue-500 min-h-[44px] sm:min-h-0">
+                    <option value="">Todos</option>
+                    <option value="En espera">En espera</option>
+                    <option value="Aprobada">Aprobada</option>
+                    <option value="Rechazada">Rechazada</option>
+                    <option value="Cotizando">Cotizando</option>
+                    <option value="Aprobacion pendiente">Aprobación Pendiente</option>
+                    <option value="En revision">En revisión</option>
+                    <option value="Espera_Programacion">Espera Programación</option>
+                    <option value="Programada">Programada</option>
+                    <option value="Por Pagar">Por Pagar</option>
+                    <option value="Pagada">Pagada</option>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Tipo</label>
+                <select x-model="filtrosLista.tipo" @change="filtrarLista()" class="border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm w-full sm:w-28 outline-blue-500 min-h-[44px] sm:min-h-0">
+                    <option value="">Todos</option>
+                    <option value="Producto">Producto</option>
+                    <option value="Servicio">Servicio</option>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Proveedor</label>
+                <select x-ref="filtroProveedorLista" class="w-full border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm outline-blue-500 min-h-[44px] sm:min-h-0">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Complejo</label>
+                <select x-ref="filtroComplejoLista" class="w-full border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm outline-blue-500 min-h-[44px] sm:min-h-0">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-[10px] font-bold text-gray-500 uppercase ml-1">Departamento</label>
+                <select x-ref="filtroDepartamentoLista" class="w-full border border-gray-300 p-2.5 sm:p-2 rounded-md text-sm outline-blue-500 min-h-[44px] sm:min-h-0">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2 py-1 xs:col-span-2 sm:col-auto sm:pb-2">
+                <button type="button" @click="limpiarFiltrosLista()" class="text-xs text-indigo-600 hover:text-indigo-800 underline min-h-[44px] px-2">Limpiar</button>
+                <span class="text-xs text-gray-400" x-text="eventosCache.length ? eventosCache.length + ' salidas (filtradas de ' + eventosCacheOriginal.length + ')' : ''"></span>
+            </div>
+        </div>
+    </div>
     <!-- Contenedor calendario — container query target -->
     <div id="calendar" class="flex-1 min-h-[50dvh] sm:min-h-0 bg-white rounded-xl border border-carbon-100 overflow-auto sm:overflow-hidden" x-show="!showDetalle" style="container-type:inline-size; container-name:cal"></div>
     <p class="sm:hidden text-center text-[11px] text-gray-400 py-1 px-2">Mantén pulsado 0.4s y arrastra para crear bloque horario</p>

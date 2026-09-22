@@ -241,6 +241,11 @@ class Calendario extends ResourceController
     {
         $folio = null;
         $estadoSol = null;
+        $tipoSol = null;
+        $proveedorNombre = '';
+        $complejoNombre = '';
+        $departamentoNombre = '';
+        $fechaSolicitud = '';
         if (!empty($e['ID_Solicitud'])) {
             try {
                 $sol = $this->api->getSolicitudWithProducts((int)$e['ID_Solicitud']);
@@ -248,6 +253,11 @@ class Calendario extends ResourceController
                     $folio = $sol['No_Folio'] ?? null;
                     $estadoSol = $sol['EstadoOrden'] ?? $sol['Estado'] ?? null;
                     $tipoSol = $sol['Tipo'] ?? null;
+                    // Alias robusto: getSolicitudWithProducts expone RazonSocialNombre/PlaceNombre/DepartamentoNombre
+                    $proveedorNombre = $sol['RazonSocialNombre'] ?? $sol['ProveedorNombre'] ?? $sol['Proveedor'] ?? $sol['RazonSocial'] ?? '';
+                    $complejoNombre = $sol['PlaceNombre'] ?? $sol['Complejo'] ?? $sol['RazonSocialNombre'] ?? '';
+                    $departamentoNombre = $sol['DepartamentoNombre'] ?? $sol['Departamento'] ?? '';
+                    $fechaSolicitud = $sol['FechaSolicitud'] ?? $sol['Fecha'] ?? '';
                 }
             } catch (\Throwable $ex) {}
         }
@@ -268,10 +278,10 @@ class Calendario extends ResourceController
                 'No_Folio' => $folio,
                 'EstadoSolicitud' => $estadoSol,
                 'TipoSolicitud' => $tipoSol,
-                'Proveedor' => $sol['ProveedorNombre'] ?? $sol['Proveedor'] ?? '',
-                'Complejo' => $sol['PlaceNombre'] ?? $sol['Complejo'] ?? '',
-                'Departamento' => $sol['DepartamentoNombre'] ?? '',
-                'FechaSolicitud' => $sol['FechaSolicitud'] ?? $sol['Fecha'] ?? '',
+                'Proveedor' => $proveedorNombre,
+                'Complejo' => $complejoNombre,
+                'Departamento' => $departamentoNombre,
+                'FechaSolicitud' => $fechaSolicitud,
                 'evento_raw' => $e['evento'],
             ],
             'allDay'          => false,

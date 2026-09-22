@@ -51,16 +51,22 @@ function calendarioApp() {
         isListView: false,
         busquedaModal: '',
         filtrosModal: { estado: '', tipo: '', proveedor: '', complejo: '', departamento: '', fecha: '' },
+        filtrosLista: { folio: '', estado: '', tipo: '', proveedor: '', complejo: '', departamento: '' },
         solicitudesCache: [],
         colors: COLORS,
         filtrosAvanzadosCargados: false,
+        filtrosListaInicializados: false,
         choicesProveedor: null,
         choicesComplejo: null,
         choicesDepartamento: null,
+        choicesProveedorLista: null,
+        choicesComplejoLista: null,
+        choicesDepartamentoLista: null,
         proveedoresList: [],
         complejosList: [],
         departamentosList: [],
         eventosCache: [],
+        eventosCacheOriginal: [],
         lastViewType: null,
 
         async init() {
@@ -92,6 +98,7 @@ function calendarioApp() {
                     this.$nextTick(() => {
                         this.populateSelects();
                         this.initChoicesFiltros();
+                        if (this.isListView) { this.initChoicesFiltrosLista(); this.filtrosListaInicializados = true; }
                     });
                 });
                 this.filtrosAvanzadosCargados = true;
@@ -130,10 +137,12 @@ function calendarioApp() {
                 selectEl.innerHTML = `<option value="">${placeholder}</option>` + 
                     list.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
             };
-            // Modal filters (lista eliminada)
             fill(this.$refs.filtroProveedor, this.proveedoresList, 'Todos los proveedores');
             fill(this.$refs.filtroComplejo, this.complejosList, 'Todos los complejos');
             fill(this.$refs.filtroDepartamento, this.departamentosList, 'Todos los departamentos');
+            fill(this.$refs.filtroProveedorLista, this.proveedoresList, 'Todos los proveedores');
+            fill(this.$refs.filtroComplejoLista, this.complejosList, 'Todos los complejos');
+            fill(this.$refs.filtroDepartamentoLista, this.departamentosList, 'Todos los departamentos');
         },
 
         initChoicesFiltros() {
@@ -182,7 +191,6 @@ function calendarioApp() {
                 this.filtrosModal.departamento = '';
             }
             // Re-atachar listeners de departamento (destroy limpia los del select)
-            // Evitamos duplicados removiendo previos si existen
             if (this._deptChoiceHandler) select.removeEventListener('choice', this._deptChoiceHandler);
             if (this._deptChangeHandler) select.removeEventListener('change', this._deptChangeHandler);
             if (this._deptRemoveHandler) select.removeEventListener('removeItem', this._deptRemoveHandler);
@@ -193,6 +201,142 @@ function calendarioApp() {
             select.addEventListener('change', this._deptChangeHandler);
             select.addEventListener('removeItem', this._deptRemoveHandler);
             this.filtrarModal();
+        },
+
+        initChoicesFiltrosLista() {
+            if (typeof Choices === 'undefined') return;
+            [this.choicesProveedorLista, this.choicesComplejoLista, this.choicesDepartamentoLista].forEach(c => c?.destroy());
+            const cfg = {removeItemButton:true, placeholder:true, searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'};
+            this.choicesProveedorLista = new Choices(this.$refs.filtroProveedorLista, {...cfg, placeholderValue:'Todos los proveedores'});
+            this.choicesComplejoLista = new Choices(this.$refs.filtroComplejoLista, {...cfg, placeholderValue:'Todos los complejos'});
+            this.choicesDepartamentoLista = new Choices(this.$refs.filtroDepartamentoLista, {...cfg, placeholderValue:'Todos los departamentos'});
+            this.$refs.filtroComplejoLista?.addEventListener('choice', (e) => {
+                if (this._suppressListaFilter) return;
+                this.filtrosLista.complejo = e.detail.value;
+                this.filtrarDepartamentosListaPorComplejo(e.detail.value);
+            });
+            this.$refs.filtroComplejoLista?.addEventListener('removeItem', () => {
+                if (this._suppressListaFilter) return;
+                this.filtrosLista.complejo = '';
+                this.filtrarDepartamentosListaPorComplejo('');
+            });
+            [['filtroProveedorLista','proveedor'], ['filtroDepartamentoLista','departamento']].forEach(([ref,key])=>{
+                const el=this.$refs[ref]; if(!el) return;
+                el.addEventListener('change',()=>{ if(this._suppressListaFilter) return; this.filtrosLista[key]=el.value; this.filtrarLista(); });
+                el.addEventListener('choice',(e)=>{ if(this._suppressListaFilter) return; this.filtrosLista[key]=e.detail.value; this.filtrarLista(); });
+                el.addEventListener('removeItem',()=>{ if(this._suppressListaFilter) return; this.filtrosLista[key]=el.value||''; this.filtrarLista(); });
+            });
+        },
+
+        filtrarDepartamentosListaPorComplejo(placeNombre) {
+            const select = this.$refs.filtroDepartamentoLista;
+            if (!select || !this.choicesDepartamentoLista) return;
+            const prevVal = this.filtrosLista.departamento;
+            const filtered = this.departamentosList.filter(d => !placeNombre || d.placeNombre === placeNombre);
+            const opts = filtered.map(d => `<option value="${d.value}">${d.label}</option>`).join('');
+            select.innerHTML = `<option value="">Todos los departamentos</option>` + opts;
+            const stillExists = filtered.some(d => d.value === prevVal);
+            const nextVal = stillExists ? prevVal : '';
+            this.choicesDepartamentoLista.destroy();
+            this.choicesDepartamentoLista = new Choices(select, {removeItemButton:true, placeholder:true, placeholderValue:'Todos los departamentos', searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'});
+            if (nextVal) { this.choicesDepartamentoLista.setChoiceByValue(nextVal); this.filtrosLista.departamento = nextVal; } else { this.filtrosLista.departamento = ''; }
+            if (this._deptListaChoiceHandler) select.removeEventListener('choice', this._deptListaChoiceHandler);
+            if (this._deptListaChangeHandler) select.removeEventListener('change', this._deptListaChangeHandler);
+            if (this._deptListaRemoveHandler) select.removeEventListener('removeItem', this._deptListaRemoveHandler);
+            this._deptListaChoiceHandler = (e) => { this.filtrosLista.departamento = e.detail.value; this.filtrarLista(); };
+            this._deptListaChangeHandler = () => { this.filtrosLista.departamento = select.value; this.filtrarLista(); };
+            this._deptListaRemoveHandler = () => { this.filtrosLista.departamento = select.value || ''; this.filtrarLista(); };
+            select.addEventListener('choice', this._deptListaChoiceHandler);
+            select.addEventListener('change', this._deptListaChangeHandler);
+            select.addEventListener('removeItem', this._deptListaRemoveHandler);
+            this.filtrarLista();
+        },
+
+        filtrarLista() {
+            if (!calendar) return;
+            let src = this.eventosCacheOriginal.length ? this.eventosCacheOriginal : this.eventosCache;
+            if (!src.length && calendar.getEvents().length) {
+                src = calendar.getEvents().map(ev => ({
+                    id: ev.id, title: ev.title, start: ev.startStr, end: ev.endStr,
+                    backgroundColor: ev.backgroundColor, borderColor: ev.borderColor,
+                    extendedProps: {...ev.extendedProps}
+                }));
+                this.eventosCacheOriginal = src.map(e => ({...e, extendedProps:{...e.extendedProps}}));
+            }
+            const f = this.filtrosLista;
+            const hasAny = f.folio || f.estado || f.tipo || f.proveedor || f.complejo || f.departamento;
+            if (!hasAny) {
+                calendar.removeAllEvents();
+                calendar.addEventSource(src);
+                this.eventosCache = src.map(e => ({...e, extendedProps:{...e.extendedProps}}));
+                return;
+            }
+            const norm = v => String(v||'').trim().toLowerCase();
+            const folioNorm = norm(f.folio).replace(/^mbsp-?/i,'');
+            const filtrados = src.filter(ev => {
+                const ext = ev.extendedProps || {};
+                const noFolio = norm(ext.No_Folio);
+                const noFolioRaw = String(ext.No_Folio||'').toLowerCase();
+                const estado = norm(ext.EstadoSolicitud);
+                const tipo = ext.TipoSolicitud;
+                const prov = norm(ext.Proveedor);
+                const comp = norm(ext.Complejo);
+                const depto = norm(ext.Departamento);
+                const deptoKey = depto ? `${depto}|${comp}` : '';
+                const fProv = norm(f.proveedor);
+                const fComp = norm(f.complejo);
+                const fDepto = norm(f.departamento);
+                const fDeptoKeyNorm = fDepto;
+                if (f.folio) {
+                    const idStr = String(ext.ID_Solicitud||'');
+                    if (!noFolio.includes(folioNorm) && !noFolioRaw.includes(folioNorm) && !idStr.includes(folioNorm)) return false;
+                }
+                if (f.estado && estado !== norm(f.estado)) return false;
+                if (f.tipo) {
+                    const tipoStr = String(tipo);
+                    if (f.tipo === 'Producto' && !['0','1'].includes(tipoStr)) return false;
+                    if (f.tipo === 'Servicio' && tipoStr !== '2') return false;
+                }
+                if (f.proveedor && prov !== fProv) return false;
+                if (f.complejo && comp !== fComp) return false;
+                if (f.departamento) {
+                    if (deptoKey !== fDeptoKeyNorm && depto !== fDeptoKeyNorm) return false;
+                }
+                return true;
+            });
+            calendar.removeAllEvents();
+            calendar.addEventSource(filtrados);
+            this.eventosCache = filtrados.map(e => ({...e, extendedProps:{...e.extendedProps}}));
+        },
+
+        limpiarFiltrosLista() {
+            this._suppressListaFilter = true;
+            this.filtrosLista = { folio:'', estado:'', tipo:'', proveedor:'', complejo:'', departamento:'' };
+            const clearChoice = (choice) => { try { choice.setChoiceByValue(''); } catch(e){} };
+            if (this.choicesProveedorLista) clearChoice(this.choicesProveedorLista);
+            if (this.choicesComplejoLista) clearChoice(this.choicesComplejoLista);
+            if (this.choicesDepartamentoLista) clearChoice(this.choicesDepartamentoLista);
+            // Restaurar lista completa de deptos tras limpiar complejo
+            if (this.choicesDepartamentoLista) {
+                const select = this.$refs.filtroDepartamentoLista;
+                if (select) {
+                    select.innerHTML = `<option value="">Todos los departamentos</option>` + this.departamentosList.map(d => `<option value="${d.value}">${d.label}</option>`).join('');
+                    try { this.choicesDepartamentoLista.destroy(); } catch(e){}
+                    this.choicesDepartamentoLista = new Choices(select, {removeItemButton:true, placeholder:true, placeholderValue:'Todos los departamentos', searchPlaceholderValue:'Buscar...', itemSelectText:'', noResultsText:'Sin resultados', noChoicesText:'Sin opciones'});
+                    // re-atachar listeners lista
+                    if (this._deptListaChoiceHandler) select.removeEventListener('choice', this._deptListaChoiceHandler);
+                    if (this._deptListaChangeHandler) select.removeEventListener('change', this._deptListaChangeHandler);
+                    if (this._deptListaRemoveHandler) select.removeEventListener('removeItem', this._deptListaRemoveHandler);
+                    this._deptListaChoiceHandler = (e) => { if(this._suppressListaFilter) return; this.filtrosLista.departamento = e.detail.value; this.filtrarLista(); };
+                    this._deptListaChangeHandler = () => { if(this._suppressListaFilter) return; this.filtrosLista.departamento = select.value; this.filtrarLista(); };
+                    this._deptListaRemoveHandler = () => { if(this._suppressListaFilter) return; this.filtrosLista.departamento = select.value || ''; this.filtrarLista(); };
+                    select.addEventListener('choice', this._deptListaChoiceHandler);
+                    select.addEventListener('change', this._deptListaChangeHandler);
+                    select.addEventListener('removeItem', this._deptListaRemoveHandler);
+                }
+            }
+            this._suppressListaFilter = false;
+            this.filtrarLista();
         },
 
         get solicitudesFiltradasModal() {
@@ -323,10 +467,20 @@ function calendarioApp() {
                     if (calEl) calEl.style.overflow = isDayView ? 'auto' : 'hidden';
                     if (this.lastViewType && this.lastViewType !== info.view.type) {
                         this.eventosCache = [];
+                        // No vaciar eventosCacheOriginal para que filtrarLista no quede src 0 mientras carga nueva semana
                     }
                     this.lastViewType = info.view.type;
                     this.applyCarbonTheme();
                     setTimeout(() => calendar.updateSize(), 50);
+                    if (this.isListView && !this.filtrosListaInicializados) {
+                        if (!this.filtrosAvanzadosCargados) {
+                            this.cargarFiltrosAvanzados().then(()=>{ this.$nextTick(()=>{ this.populateSelects(); this.initChoicesFiltrosLista(); }); });
+                            this.filtrosAvanzadosCargados = true;
+                        } else {
+                            this.$nextTick(()=>{ this.populateSelects(); this.initChoicesFiltrosLista(); });
+                        }
+                        this.filtrosListaInicializados = true;
+                    }
                 },
             });
             calendar.render();
@@ -466,8 +620,37 @@ function calendarioApp() {
             });
             const json = await res.json();
             if (!json.success) throw new Error(json.message || 'Error cargando eventos');
-            this.eventosCache = json.data;
-            return json.data;
+            const cloneDeep = (arr) => (arr||[]).map(e => ({...e, extendedProps:{...(e.extendedProps||{})}}));
+            this.eventosCacheOriginal = cloneDeep(json.data);
+            this.eventosCache = cloneDeep(json.data);
+            const f = this.filtrosLista;
+            const hasLista = f && (f.folio || f.estado || f.tipo || f.proveedor || f.complejo || f.departamento);
+            if (this.isListView && hasLista) {
+                const norm = v => String(v||'').trim().toLowerCase();
+                const folioNorm = norm(f.folio).replace(/^mbsp-?/i,'');
+                const filtrados = this.eventosCacheOriginal.filter(ev => {
+                    const ext = ev.extendedProps || {};
+                    const noFolio = norm(ext.No_Folio);
+                    const noFolioRaw = String(ext.No_Folio||'').toLowerCase();
+                    const estado = norm(ext.EstadoSolicitud);
+                    const tipo = ext.TipoSolicitud;
+                    const prov = norm(ext.Proveedor);
+                    const comp = norm(ext.Complejo);
+                    const depto = norm(ext.Departamento);
+                    const deptoKey = depto ? `${depto}|${comp}` : '';
+                    const fProv = norm(f.proveedor); const fComp = norm(f.complejo); const fDepto = norm(f.departamento);
+                    if (f.folio) { const idStr = String(ext.ID_Solicitud||''); if (!noFolio.includes(folioNorm) && !noFolioRaw.includes(folioNorm) && !idStr.includes(folioNorm)) return false; }
+                    if (f.estado && estado !== norm(f.estado)) return false;
+                    if (f.tipo) { const ts = String(tipo); if (f.tipo === 'Producto' && !['0','1'].includes(ts)) return false; if (f.tipo === 'Servicio' && ts !== '2') return false; }
+                    if (f.proveedor && prov !== fProv) return false;
+                    if (f.complejo && comp !== fComp) return false;
+                    if (f.departamento && deptoKey !== fDepto && depto !== fDepto) return false;
+                    return true;
+                });
+                this.eventosCache = cloneDeep(filtrados);
+                return filtrados;
+            }
+            return cloneDeep(json.data);
         },
 
         openEventModal(event, selectInfo = null) {
