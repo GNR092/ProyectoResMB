@@ -224,35 +224,68 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 </div>
                 <!-- Evidencias (solo en modo edición) -->
                 <div x-show="eventModalMode === 'edit'" class="mt-6 pt-4 border-t border-carbon-200">
-                    <div class="flex items-center justify-between mb-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                         <h4 class="text-sm font-semibold text-carbon-700">Evidencias</h4>
-                        <span class="text-xs text-gray-500" x-text="archivos.length + ' archivo(s)'"></span>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <button type="button"
+                                    @click="generarEvidenciasPdf"
+                                    :disabled="!archivos.length"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium min-h-[40px] transition
+                                           disabled:opacity-50 disabled:cursor-not-allowed
+                                           bg-indigo-600 text-white hover:bg-indigo-700">
+                                <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                Ver Evidencias (PDF)
+                            </button>
+                            <button type="button" @click="toggleEvidenciasIndividuales"
+                                    class="text-sm text-indigo-600 hover:text-indigo-800 underline min-h-[40px] flex items-center">
+                                <span x-text="mostrarEvidenciasIndividuales ? 'Ocultar evidencias individuales' : 'Desplegar evidencias individuales'"></span>
+                            </button>
+                        </div>
                     </div>
+
                     <div class="mb-3" x-show="!soloLectura && eventForm.estatus !== 'cancelado'">
                         <label class="block text-xs font-medium text-carbon-600 mb-1">Adjuntar archivos</label>
                         <input type="file" x-ref="archivosInput" multiple @change="subirArchivos"
                                class="w-full border border-carbon-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0"
                                :disabled="subiendoArchivos">
-                        <p class="text-xs text-gray-400 mt-1">PDF, imágenes, Word, Excel, TXT (máx. 10 MB c/u)</p>
+                        <p class="text-xs text-gray-400 mt-1">Imágenes (JPG, PNG, GIF, WebP, BMP, TIFF) máx. 10 MB c/u</p>
                     </div>
-                    <div x-show="archivos.length > 0" class="space-y-2 max-h-60 overflow-auto">
+
+                    <!-- Lista individual (colapsable) -->
+                    <div x-show="mostrarEvidenciasIndividuales" x-transition class="space-y-2 max-h-60 overflow-auto">
                         <template x-for="a in archivos" :key="a.id_archivo">
-                            <div class="flex items-center justify-between gap-2 p-3 bg-carbon-50 rounded-lg border border-carbon-100">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-carbon-50 rounded-lg border border-carbon-100">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-carbon-900 truncate" x-text="a.nombre_archivo"></p>
                                     <p class="text-xs text-gray-500 truncate" x-text="a.nombre_usuario ? 'Subido por: ' + a.nombre_usuario : ''"></p>
                                     <p class="text-xs text-gray-400" x-text="formatoFecha(a.fecha_subida)"></p>
                                 </div>
-                                <button type="button" @click="descargarArchivo(a)"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition shrink-0 min-h-[36px]"
-                                        :disabled="subiendoArchivos">
-                                    <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                    Descargar
-                                </button>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <button type="button" @click="verArchivo(a)"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition min-h-[36px]"
+                                            :disabled="subiendoArchivos">
+                                        <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        Ver
+                                    </button>
+                                    <button type="button" @click="descargarArchivo(a)"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition min-h-[36px]"
+                                            :disabled="subiendoArchivos">
+                                        <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        Descargar
+                                    </button>
+                                </div>
                             </div>
                         </template>
+                        <p x-show="archivos.length === 0" class="text-xs text-gray-400 text-center py-4">Sin evidencias adjuntas</p>
                     </div>
-                    <p x-show="archivos.length === 0" class="text-xs text-gray-400 text-center py-4">Sin evidencias adjuntas</p>
+
+                    <!-- Estado colapsado -->
+                    <p x-show="!mostrarEvidenciasIndividuales && archivos.length > 0" class="text-xs text-gray-400 text-center py-2">
+                        <span x-text="archivos.length"></span> evidencia(s) adjunta(s) — haz clic en "Desplegar" para verlas
+                    </p>
+                    <p x-show="!mostrarEvidenciasIndividuales && archivos.length === 0" class="text-xs text-gray-400 text-center py-4">Sin evidencias adjuntas</p>
                 </div>
             </form>
         </div>

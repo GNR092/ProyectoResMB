@@ -85,6 +85,7 @@ function calendarioApp() {
         lastViewType: null,
         archivos: [],
         subiendoArchivos: false,
+        mostrarEvidenciasIndividuales: false,
 
         async init() {
             this.renderCalendar();
@@ -997,6 +998,19 @@ function calendarioApp() {
 
         async descargarArchivo(archivo) {
             window.open(archivo.url_descarga, '_blank');
+        },
+
+        verArchivo(archivo) {
+            window.open(archivo.url_preview, '_blank');
+        },
+
+        generarEvidenciasPdf() {
+            if (!this.eventForm.id || !this.archivos?.length) return;
+            window.open(`${BASE_URL}api/calendario/eventos/${this.eventForm.id}/evidencias-pdf`, '_blank');
+        },
+
+        toggleEvidenciasIndividuales() {
+            this.mostrarEvidenciasIndividuales = !this.mostrarEvidenciasIndividuales;
         },
 
         formatoFecha(fecha) {

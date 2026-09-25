@@ -122,6 +122,8 @@ if (!file_exists($installerLockFile)) {
             $routes->post('eventos/(:segment)/archivos', 'Calendario::uploadArchivos/$1');
             $routes->get('eventos/(:segment)/archivos', 'Calendario::getArchivos/$1');
             $routes->get('eventos/(:segment)/archivos/(:num)/download', 'Calendario::downloadArchivo/$1/$2');
+            $routes->get('eventos/(:segment)/archivos/(:num)/preview', 'Calendario::previewArchivo/$1/$2');
+            $routes->get('eventos/(:segment)/evidencias-pdf', 'Calendario::generarEvidenciasPdf/$1');
         });
 
         //region departamentos

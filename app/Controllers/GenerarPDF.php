@@ -654,7 +654,7 @@ class GenerarPDF extends BaseController
         }
     }
 
-    private function _importPdfPages(PDF $pdf, string $pathForImport, string $title): void
+    protected static function _importPdfPages(PDF $pdf, string $pathForImport, string $title): void
     {
         $pageCount = $pdf->setSourceFile($pathForImport);
         for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {

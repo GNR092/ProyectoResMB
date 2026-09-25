@@ -19,7 +19,7 @@ class Home extends BaseController
         $opcionesDisponibles = $configMenu->opciones;
 
         // Definir permisos por rol/departamento
-        $permisosPorDepto = [
+    $permisosPorDepto = [
             // Rol SuperAdmin: ve todo
             'Administración' => array_keys($opcionesDisponibles),
             

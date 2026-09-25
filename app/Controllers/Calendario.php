@@ -442,13 +442,8 @@ class Calendario extends ResourceController
 
             // Validar tipo MIME y tamaño (máx 10MB)
             $allowedMimes = [
-                'application/pdf',
                 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'text/plain',
+                'image/bmp', 'image/tiff',
             ];
             $maxSize = 10 * 1024 * 1024; // 10MB
 
@@ -609,7 +604,8 @@ class Calendario extends ResourceController
                 'nombre_archivo'  => $a['nombre_archivo'],
                 'nombre_usuario'  => $a['nombre_usuario'] ?? '',
                 'fecha_subida'    => $a['fecha_subida'],
-                'url_descarga'    => base_url('api/calendario/' . $e['id'] . '/archivos/' . $a['id_archivo'] . '/download'),
+                'url_descarga'    => base_url('api/calendario/eventos/' . $e['id'] . '/archivos/' . $a['id_archivo'] . '/download'),
+                'url_preview'     => base_url('api/calendario/eventos/' . $e['id'] . '/archivos/' . $a['id_archivo'] . '/preview'),
             ];
         }, $archivos);
 
@@ -680,6 +676,141 @@ class Calendario extends ResourceController
         }
 
         return $this->response->download($filePath, null)->setFileName($archivo['nombre_archivo']);
+    }
+
+    /**
+     * Vista previa inline de un archivo (PDF/imagen)
+     * GET api/calendario/eventos/{id}/archivos/{id_archivo}/preview
+     */
+    public function previewArchivo($id = null, $idArchivo = null)
+    {
+        $rol = $this->rolCalendario();
+        if ($rol === 'otro') {
+            return $this->failForbidden('Sin acceso a la Agenda de Salidas');
+        }
+        $userId = session('id');
+        $id = is_numeric($id) ? (int)$id : $id;
+        if ($rol === 'admin' || $rol === 'contaduria') {
+            $evento = $this->model->find($id);
+        } else {
+            $evento = $this->model->delUsuario((int)$userId)->find($id);
+        }
+        if (!$evento) {
+            $evento = ($rol === 'admin' || $rol === 'contaduria')
+                ? $this->model->find($id)
+                : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) return $this->failNotFound('Evento no encontrado');
+        }
+
+        $idArchivo = is_numeric($idArchivo) ? (int)$idArchivo : $idArchivo;
+        $archivo = $this->archivosModel->find($idArchivo);
+        if (!$archivo || $archivo['id_evento'] != $id) {
+            return $this->failNotFound('Archivo no encontrado');
+        }
+
+        $filePath = WRITEPATH . 'uploads/eventos/' . $archivo['nombre_archivo'];
+        if (!file_exists($filePath)) {
+            return $this->failNotFound('Archivo físico no encontrado');
+        }
+
+        $mime = mime_content_type($filePath);
+        $allowedMimes = [
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            'image/bmp', 'image/tiff',
+        ];
+        if (!in_array($mime, $allowedMimes)) {
+            return $this->failNotFound('Vista previa no disponible para este tipo de archivo');
+        }
+
+        return $this->response
+            ->setHeader('Content-Type', $mime)
+            ->setHeader('Content-Disposition', 'inline; filename="' . $archivo['nombre_archivo'] . '"')
+            ->setBody(file_get_contents($filePath));
+    }
+
+    /**
+     * Genera PDF consolidado con todas las evidencias del evento
+     * GET api/calendario/eventos/{id}/evidencias-pdf
+     */
+    public function generarEvidenciasPdf($id = null)
+    {
+        $rol = $this->rolCalendario();
+        if ($rol === 'otro') {
+            return $this->failForbidden('Sin acceso a la Agenda de Salidas');
+        }
+        $userId = session('id');
+        $id = is_numeric($id) ? (int)$id : $id;
+        if ($rol === 'admin' || $rol === 'contaduria') {
+            $evento = $this->model->find($id);
+        } else {
+            $evento = $this->model->delUsuario((int)$userId)->find($id);
+        }
+        if (!$evento) {
+            $evento = ($rol === 'admin' || $rol === 'contaduria')
+                ? $this->model->find($id)
+                : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) return $this->failNotFound('Evento no encontrado');
+        }
+
+        $archivos = $this->archivosModel->getByEventoAsc($id);
+        if (empty($archivos)) {
+            return $this->failNotFound('El evento no tiene evidencias adjuntas');
+        }
+
+        // Obtener folio de la solicitud relacionada (para nombre del archivo PDF)
+        $folio = null;
+        if (!empty($evento['ID_Solicitud'])) {
+            try {
+                $sol = $this->api->getSolicitudWithProducts((int)$evento['ID_Solicitud']);
+                $folio = $sol['No_Folio'] ?? null;
+            } catch (\Throwable $ex) {}
+        }
+
+        // Configurar límites para PDFs grandes
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+
+        $pdf = new \App\Libraries\PDF('P', 'mm', 'Letter');
+        $pdf->AliasNbPages();
+
+        foreach ($archivos as $a) {
+            $filePath = WRITEPATH . 'uploads/eventos/' . $a['nombre_archivo'];
+            if (!file_exists($filePath)) {
+                continue;
+            }
+
+            $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+            $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+            $isPdf = $ext === 'pdf';
+
+            // FPDF requiere AddPage() antes de cualquier salida (Title, Cell, Image, etc.)
+            $pdf->AddPage();
+            
+            // Título del archivo
+            $pdf->Title(mb_convert_encoding($a['nombre_archivo'], 'ISO-8859-1', 'UTF-8'), 0, 0, 0, 0, 'C', 'B', 12);
+            $pdf->Ln(3);
+            
+            // Metadatos
+            $pdf->SetFont('Arial', '', 8);
+            $usuario = mb_convert_encoding($a['nombre_usuario'] ?? 'N/A', 'ISO-8859-1', 'UTF-8');
+            $fecha = date('d/m/Y H:i', strtotime($a['fecha_subida']));
+            $pdf->Cell(0, 5, 'Subido por: ' . $usuario . ' | ' . $fecha, 0, 1, 'L');
+            $pdf->Ln(5);
+
+            if ($isImage) {
+                [$w, $h] = getimagesize($filePath);
+                $maxW = 190;
+                $maxH = 230;
+                $ratio = min($maxW / $w, $maxH / $h);
+                $pdf->Image($filePath, 10, $pdf->GetY(), $w * $ratio, $h * $ratio);
+            } elseif ($isPdf) {
+                // Reutilizar método estático de GenerarPDF para importar páginas
+                \App\Controllers\GenerarPDF::_importPdfPages($pdf, $filePath, mb_convert_encoding($a['nombre_archivo'], 'ISO-8859-1', 'UTF-8'));
+            }
+        }
+
+        $this->response->setHeader('Content-Type', 'application/pdf');
+        $pdf->Output('I', 'Evidencias-' . ($folio ?? $id) . '.pdf');
     }
 
     /**

@@ -26,12 +26,22 @@ class EventoArchivosModel extends Model
     protected $deletedField  = '';
 
     /**
-     * Obtiene todos los archivos de un evento
+     * Obtiene todos los archivos de un evento (más reciente primero)
      */
     public function getByEvento(int $idEvento): array
     {
         return $this->where('id_evento', $idEvento)
                     ->orderBy('fecha_subida', 'DESC')
+                    ->findAll();
+    }
+
+    /**
+     * Obtiene todos los archivos de un evento (más antiguo primero)
+     */
+    public function getByEventoAsc(int $idEvento): array
+    {
+        return $this->where('id_evento', $idEvento)
+                    ->orderBy('fecha_subida', 'ASC')
                     ->findAll();
     }
 }
