@@ -86,6 +86,7 @@ function calendarioApp() {
         archivos: [],
         subiendoArchivos: false,
         mostrarEvidenciasIndividuales: false,
+        mostrarArchivados: false,
 
         async init() {
             this.renderCalendar();
@@ -305,6 +306,15 @@ function calendarioApp() {
                 const fComp = norm(f.complejo);
                 const fDepto = norm(f.departamento);
                 const fDeptoKeyNorm = fDepto;
+
+                // Filtrar por archivados (eventos cancelados)
+                const estatus = ext.estatus || 'pendiente';
+                if (this.mostrarArchivados) {
+                    if (estatus !== 'cancelado') return false;
+                } else {
+                    if (estatus === 'cancelado') return false;
+                }
+
                 if (f.folio) {
                     const idStr = String(ext.ID_Solicitud||'');
                     if (!noFolio.includes(folioNorm) && !noFolioRaw.includes(folioNorm) && !idStr.includes(folioNorm)) return false;
@@ -325,6 +335,11 @@ function calendarioApp() {
             calendar.removeAllEvents();
             calendar.addEventSource(filtrados);
             this.eventosCache = filtrados.map(e => ({...e, extendedProps:{...e.extendedProps}}));
+        },
+
+        toggleArchivados() {
+            this.mostrarArchivados = !this.mostrarArchivados;
+            this.filtrarLista();
         },
 
         limpiarFiltrosLista() {
@@ -476,7 +491,25 @@ function calendarioApp() {
                 dateClick: (info) => this.handleDateClick(info),
                 eventDrop: (info) => this.moveEvent(info.event),
                 eventResize: (info) => this.moveEvent(info.event),
-                eventDidMount: (info) => this.styleEvent(info),
+                eventDidMount: (info) => {
+                    this.styleEvent(info);
+                    // Agregar icono de evidencia SOLO en vista lista (listWeek)
+                    if (calendar.view.type === 'listWeek') {
+                        const archivos = info.event.extendedProps.archivos || [];
+                        if (archivos.length > 0) {
+                            const titleEl = info.el.querySelector('.fc-event-title');
+                            if (titleEl && !titleEl.querySelector('.evidencia-icon')) {
+                                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                                svg.setAttribute('class', 'w-5 h-5 text-blue-400 shrink-0 evidencia-icon');
+                                svg.innerHTML = '<use href="/icons/icons.svg#evidencia"></use>';
+                                titleEl.style.display = 'flex';
+                                titleEl.style.alignItems = 'center';
+                                titleEl.style.gap = '0.5rem';
+                                titleEl.appendChild(svg);
+                            }
+                        }
+                    }
+                },
                 datesSet: (info) => {
                     this.isWeekView = info.view.type === 'timeGridWeek';
                     this.isListView = info.view.type === 'listWeek';

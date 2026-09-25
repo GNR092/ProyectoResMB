@@ -613,6 +613,10 @@ class Calendario extends ResourceController
         if ($folio) {
             $title = $title . ' — ' . $folio;
         }
+        // Agregar estado de la solicitud al título
+        if ($estadoSol) {
+            $title = $title . ' — ' . $estadoSol;
+        }
         $estatus = $e['estatus'] ?? 'pendiente';
         return [
             'id'              => (string)$e['id'],

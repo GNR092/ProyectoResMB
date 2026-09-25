@@ -148,7 +148,7 @@
 }
 
 .fc-theme-standard .fc-list-event-dot {
-    border-radius: 50%;
+    display: none;
 }
 
 .fc-theme-standard .fc-event {

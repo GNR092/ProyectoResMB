@@ -65,6 +65,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             </div>
             <div class="flex items-center gap-2 py-1 sm:col-auto sm:pb-2">
                 <button type="button" @click="limpiarFiltrosLista()" class="text-xs text-indigo-600 hover:text-indigo-800 underline min-h-[44px] px-2">Limpiar</button>
+                <button type="button" @click="toggleArchivados" class="text-xs text-amber-600 hover:text-amber-800 underline min-h-[44px] px-2" x-text="mostrarArchivados ? 'Ocultar archivados' : 'Ver archivados'"></button>
                 <span class="text-xs text-gray-400" x-text="eventosCache.length ? eventosCache.length + ' salidas (filtradas de ' + eventosCacheOriginal.length + ')' : ''"></span>
             </div>
         </div>
