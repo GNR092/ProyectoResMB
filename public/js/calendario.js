@@ -814,6 +814,20 @@ function calendarioApp() {
                 : `${BASE_URL}api/calendario/eventos/${this.eventForm.id}`;
             const method = this.eventModalMode === 'create' ? 'POST' : 'PUT';
 
+            // En modo editar, solo enviamos fechas (el backend ignora el resto para Compras)
+            const body = this.eventModalMode === 'create'
+                ? {
+                    evento: this.eventForm.title,
+                    fecha_inicio: toApiDate(this.eventForm.start),
+                    fecha_fin: toApiDate(this.eventForm.end),
+                    color_evento: this.eventForm.color,
+                    ID_Solicitud: this.eventForm.ID_Solicitud,
+                }
+                : {
+                    fecha_inicio: toApiDate(this.eventForm.start),
+                    fecha_fin: toApiDate(this.eventForm.end),
+                };
+
             const res = await fetch(url, {
                 method,
                 headers: {
@@ -821,14 +835,7 @@ function calendarioApp() {
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token-name"]')?.content || '',
                 },
-                body: JSON.stringify({
-                    evento: this.eventForm.title,
-                    fecha_inicio: toApiDate(this.eventForm.start),
-                    fecha_fin: toApiDate(this.eventForm.end),
-                    color_evento: this.eventForm.color,
-                    ID_Solicitud: this.eventForm.ID_Solicitud,
-                    estatus: this.eventForm.estatus,
-                }),
+                body: JSON.stringify(body),
             });
             const json = await res.json();
             if (!json.success) {
@@ -859,6 +866,12 @@ function calendarioApp() {
                 try { event.revert(); } catch (e) {}
                 return;
             }
+            // Si el evento está cancelado, no permitir mover (el backend también bloquea)
+            if (event.extendedProps?.estatus === 'cancelado') {
+                try { event.revert(); } catch (e) {}
+                alert('Evento cancelado, no se puede mover');
+                return;
+            }
             const toLocal = (d) => toLocalStr(d).replace('T', ' ');
             const startLocal = event.start ? toLocal(event.start) : normalizeToLocalInput(event.startStr).replace('T', ' ');
             const endLocal = event.end ? toLocal(event.end) : normalizeToLocalInput(event.endStr || event.startStr).replace('T', ' ');
@@ -887,16 +900,13 @@ function calendarioApp() {
                 return;
             }
             if (!confirm('¿Cancelar este evento? El evento se marcará como cancelado pero no se eliminará.')) return;
-            const res = await fetch(`${BASE_URL}api/calendario/eventos/${this.eventForm.id}`, {
-                method: 'PUT',
+            const res = await fetch(`${BASE_URL}api/calendario/eventos/${this.eventForm.id}/cancelar`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token-name"]')?.content || '',
                 },
-                body: JSON.stringify({
-                    estatus: 'cancelado',
-                }),
             });
             const json = await res.json();
             if (json.success) {
@@ -937,6 +947,11 @@ function calendarioApp() {
         async subirArchivos() {
             if (!puedeEditarAgenda) {
                 alert('Solo el departamento de Compras puede adjuntar evidencias');
+                return;
+            }
+            // El backend bloquea si está cancelado, pero avisamos antes para mejor UX
+            if (this.eventForm.estatus === 'cancelado') {
+                alert('Evento cancelado, no se pueden adjuntar evidencias');
                 return;
             }
             const input = this.$refs.archivosInput;

@@ -100,7 +100,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
             <form @submit.prevent="saveEvent" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-carbon-700">Título</label>
-                    <input type="text" x-model="eventForm.title" required :disabled="soloLectura" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0" x-ref="titleInput">
+                    <input type="text" x-model="eventForm.title" required :disabled="soloLectura || eventModalMode === 'edit'" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0" x-ref="titleInput">
                 </div>
                 <!-- Selector requisición obligatorio -->
                 <div class="space-y-2">
@@ -109,7 +109,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                             <svg class="size-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                         </div>
-                        <input type="text" x-model="busquedaModal" @input.debounce.400ms="filtrarModal()" :disabled="soloLectura" placeholder="Buscar por número de folio — ej. 123" class="w-full border border-carbon-300 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0">
+                        <input type="text" x-model="busquedaModal" @input.debounce.400ms="filtrarModal()" :disabled="soloLectura || eventModalMode === 'edit'" placeholder="Buscar por número de folio — ej. 123" class="w-full border border-carbon-300 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0">
                     </div>
                     <p class="text-xs text-gray-400">Escribe solo el número, sin MBSP-</p>
                     <!-- Filtros avanzados colapsables -->
@@ -172,7 +172,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                             </div>
                         </div>
                     </details>
-                    <select x-model="eventForm.ID_Solicitud" required :disabled="soloLectura" class="w-full border border-carbon-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm max-h-[28vh] sm:max-h-none" id="cal-solicitud-select" size="4">
+                    <select x-model="eventForm.ID_Solicitud" required :disabled="soloLectura || eventModalMode === 'edit'" class="w-full border border-carbon-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm max-h-[28vh] sm:max-h-none" id="cal-solicitud-select" size="4">
                         <option value="">Seleccione una requisición</option>
                         <template x-for="sol in solicitudesFiltradasModal" :key="sol.ID_Solicitud">
                             <option :value="sol.ID_Solicitud" x-text="formatoOpcionSolicitud(sol)"></option>
@@ -187,31 +187,30 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         Ver detalles
                     </button>
                 </div>
-                <!-- Estatus del evento -->
+                <!-- Estatus del evento (solo lectura, se actualiza automáticamente) -->
                 <div>
                     <label class="block text-sm font-medium text-carbon-700">Estatus</label>
-                    <select x-model="eventForm.estatus" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0"
-                            :disabled="soloLectura || archivos.length > 0">
-                        <option value="pendiente">Pendiente</option>
-                        <option value="cancelado">Cancelado</option>
-                        <option value="evidencia">Evidencia</option>
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1" x-show="archivos.length > 0">
-                        El estatus se administra automáticamente al adjuntar evidencias.
+                    <div class="w-full px-3 py-2.5 sm:py-2 mt-1 border border-carbon-300 rounded-lg bg-white min-h-[44px] sm:min-h-0">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                              :class="eventForm.estatus === 'cancelado' ? 'bg-red-100 text-red-800' : (eventForm.estatus === 'evidencia' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800')"
+                              x-text="eventForm.estatus === 'cancelado' ? 'Cancelado' : (eventForm.estatus === 'evidencia' ? 'Evidencia' : 'Pendiente')"></span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        El estatus se actualiza solo: <span x-show="eventForm.estatus === 'pendiente'">al cancelar o al adjuntar evidencia</span><span x-show="eventForm.estatus === 'evidencia'">al adjuntar evidencia</span><span x-show="eventForm.estatus === 'cancelado'">al cancelar (bloqueado)</span>.
                     </p>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-sm font-medium text-carbon-700">Inicio</label>
-                        <input type="datetime-local" x-model="eventForm.start" required step="1800" :disabled="soloLectura" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0">
+                        <input type="datetime-local" x-model="eventForm.start" required step="1800" :disabled="soloLectura || eventForm.estatus === 'cancelado'" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-carbon-700">Fin</label>
-                        <input type="datetime-local" x-model="eventForm.end" required step="1800" :disabled="soloLectura" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0">
+                        <input type="datetime-local" x-model="eventForm.end" required step="1800" :disabled="soloLectura || eventForm.estatus === 'cancelado'" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0">
                     </div>
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 pt-4">
-                    <button x-show="!soloLectura && eventModalMode === 'edit' && eventForm.estatus !== 'cancelado'"
+                    <button x-show="!soloLectura && eventModalMode === 'edit' && eventForm.estatus === 'pendiente'"
                             type="button" @click="cancelarEvento"
                             class="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 transition-colors text-sm font-medium shadow-sm min-h-[44px] sm:min-h-0 w-full sm:w-auto">
                         <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -229,7 +228,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         <h4 class="text-sm font-semibold text-carbon-700">Evidencias</h4>
                         <span class="text-xs text-gray-500" x-text="archivos.length + ' archivo(s)'"></span>
                     </div>
-                    <div class="mb-3" x-show="!soloLectura">
+                    <div class="mb-3" x-show="!soloLectura && eventForm.estatus !== 'cancelado'">
                         <label class="block text-xs font-medium text-carbon-600 mb-1">Adjuntar archivos</label>
                         <input type="file" x-ref="archivosInput" multiple @change="subirArchivos"
                                class="w-full border border-carbon-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0"

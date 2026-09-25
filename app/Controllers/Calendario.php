@@ -154,7 +154,6 @@ class Calendario extends ResourceController
             'fecha_fin'    => 'required|valid_date[Y-m-d H:i:s]',
             'color_evento' => 'required|max_length[20]',
             'ID_Solicitud' => 'required|is_natural_no_zero',
-            'estatus'      => 'permit_empty|in_list[pendiente,cancelado,evidencia]',
         ];
         if (!$this->validateData($payload, $rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
@@ -170,7 +169,7 @@ class Calendario extends ResourceController
             return $this->failValidationErrors(['ID_Solicitud' => 'La solicitud seleccionada no existe']);
         }
         $data['ID_Usuario'] = $userId;
-        $data['estatus']    = $data['estatus'] ?? 'pendiente';
+        $data['estatus']    = 'pendiente'; // Siempre pendiente al crear, sin aceptar del payload
         if ($this->model->insert($data)) {
             $evento = $this->model->find($this->model->getInsertID());
             return $this->respondCreated(['success' => true, 'data' => $this->formatEvent($evento)]);
@@ -181,7 +180,7 @@ class Calendario extends ResourceController
     public function update($id = null)
     {
         if (!$this->puedeEditarAgenda()) {
-            return $this->failForbidden('Solo Compras puede editar o cancelar eventos');
+            return $this->failForbidden('Solo Compras puede editar eventos');
         }
         $rol = $this->rolCalendario();
         $userId = session('id');
@@ -198,6 +197,12 @@ class Calendario extends ResourceController
             if (!$evento) return $this->failNotFound('Evento no encontrado');
         }
 
+        // Bloqueo total si el evento está cancelado
+        $estatusActual = (string)($evento['estatus'] ?? 'pendiente');
+        if ($estatusActual === 'cancelado') {
+            return $this->failValidationErrors(['evento' => 'Evento cancelado, no se puede modificar']);
+        }
+
         $payload = $this->request->getJSON(true);
         if (!is_array($payload) || $payload === []) {
             $payload = $this->request->getVar();
@@ -211,17 +216,28 @@ class Calendario extends ResourceController
             }
         }
 
-        $rules = [
-            'evento'       => 'max_length[250]',
-            'color_evento' => 'max_length[20]',
-            'ID_Solicitud' => 'permit_empty|is_natural_no_zero',
-            'estatus'      => 'permit_empty|in_list[pendiente,cancelado,evidencia]',
-        ];
-        if (array_key_exists('fecha_inicio', $payload)) {
-            $rules['fecha_inicio'] = 'valid_date[Y-m-d H:i:s]';
-        }
-        if (array_key_exists('fecha_fin', $payload)) {
-            $rules['fecha_fin'] = 'valid_date[Y-m-d H:i:s]';
+        // Compras: solo fecha_inicio y fecha_fin; Admin: todo lo anterior
+        if ($rol === 'admin') {
+            $rules = [
+                'evento'       => 'max_length[250]',
+                'color_evento' => 'max_length[20]',
+                'ID_Solicitud' => 'permit_empty|is_natural_no_zero',
+                'estatus'      => 'permit_empty|in_list[pendiente,cancelado,evidencia]',
+            ];
+            if (array_key_exists('fecha_inicio', $payload)) {
+                $rules['fecha_inicio'] = 'valid_date[Y-m-d H:i:s]';
+            }
+            if (array_key_exists('fecha_fin', $payload)) {
+                $rules['fecha_fin'] = 'valid_date[Y-m-d H:i:s]';
+            }
+        } else {
+            // Solo Compras: solo fechas
+            $rules = [
+                'fecha_inicio' => 'valid_date[Y-m-d H:i:s]',
+                'fecha_fin'    => 'valid_date[Y-m-d H:i:s]',
+            ];
+            // Filtrar payload: solo fechas
+            $payload = array_intersect_key($payload, array_flip(['fecha_inicio', 'fecha_fin']));
         }
 
         if (!$this->validateData($payload, $rules)) {
@@ -229,14 +245,27 @@ class Calendario extends ResourceController
         }
         $data = $this->validator->getValidated();
 
-        if (isset($data['ID_Solicitud']) && $data['ID_Solicitud'] !== '' && $data['ID_Solicitud'] !== null) {
-            $solExists = $this->api->getSolicitudWithProducts((int)$data['ID_Solicitud']);
-            if (!$solExists) {
-                return $this->failValidationErrors(['ID_Solicitud' => 'La solicitud seleccionada no existe']);
+        if ($rol === 'admin') {
+            if (isset($data['ID_Solicitud']) && $data['ID_Solicitud'] !== '' && $data['ID_Solicitud'] !== null) {
+                $solExists = $this->api->getSolicitudWithProducts((int)$data['ID_Solicitud']);
+                if (!$solExists) {
+                    return $this->failValidationErrors(['ID_Solicitud' => 'La solicitud seleccionada no existe']);
+                }
             }
-        }
-        if (empty($data)) {
-            return $this->failValidationErrors(['evento' => 'Nada que actualizar']);
+            // Validaciones de estatus para Admin
+            $tieneEvidencia = (bool)$this->archivosModel->where('id_evento', $id)->first();
+            $estatusNuevo  = (string)($data['estatus'] ?? $estatusActual);
+            if ($tieneEvidencia && $estatusNuevo === 'pendiente') {
+                return $this->failValidationErrors(['estatus' => 'Un evento con evidencias no puede volver a "pendiente"']);
+            }
+            if (!$tieneEvidencia && $estatusNuevo === 'evidencia') {
+                return $this->failValidationErrors(['estatus' => 'El estatus "evidencia" solo se asigna al adjuntar archivos']);
+            }
+        } else {
+            // Compras: no puede cambiar estatus vía update
+            if (empty($data)) {
+                return $this->failValidationErrors(['evento' => 'Nada que actualizar (solo fecha_inicio/fecha_fin)']);
+            }
         }
 
         // Validar orden de fechas (usando valores nuevos o existentes)
@@ -246,21 +275,48 @@ class Calendario extends ResourceController
             return $this->failValidationErrors(['fecha_fin' => 'La fecha de fin debe ser posterior a la de inicio']);
         }
 
-        $estatusActual = (string)($evento['estatus'] ?? 'pendiente');
-        $estatusNuevo  = (string)($data['estatus'] ?? $estatusActual);
-        $tieneEvidencia = (bool)$this->archivosModel->where('id_evento', $id)->first();
-
-        if ($tieneEvidencia && $estatusNuevo === 'pendiente') {
-            return $this->failValidationErrors(['estatus' => 'Un evento con evidencias no puede volver a "pendiente"']);
-        }
-        if (!$tieneEvidencia && $estatusNuevo === 'evidencia') {
-            return $this->failValidationErrors(['estatus' => 'El estatus "evidencia" solo se asigna al adjuntar archivos']);
-        }
-
         if ($this->model->update($id, $data)) {
             return $this->respond(['success' => true, 'data' => $this->formatEvent($this->model->find($id))]);
         }
         return $this->failServerError('No se pudo actualizar');
+    }
+
+    /**
+     * Cancela un evento (pendiente -> cancelado).
+     * POST api/calendario/eventos/{id}/cancelar
+     */
+    public function cancelar($id = null)
+    {
+        if (!$this->puedeEditarAgenda()) {
+            return $this->failForbidden('Solo Compras puede cancelar eventos');
+        }
+        $rol = $this->rolCalendario();
+        $userId = session('id');
+        $id = is_numeric($id) ? (int)$id : $id;
+        if ($rol === 'admin') {
+            $evento = $this->model->find($id);
+        } else {
+            $evento = $this->model->delUsuario((int)$userId)->find($id);
+        }
+        if (!$evento) {
+            $evento = $rol === 'admin'
+                ? $this->model->find($id)
+                : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) return $this->failNotFound('Evento no encontrado');
+        }
+
+        $estatusActual = (string)($evento['estatus'] ?? 'pendiente');
+        if ($estatusActual === 'cancelado') {
+            return $this->failValidationErrors(['evento' => 'El evento ya está cancelado']);
+        }
+        if ($estatusActual === 'evidencia') {
+            return $this->failValidationErrors(['evento' => 'No se puede cancelar un evento con evidencias adjuntas']);
+        }
+
+        if ($this->model->update($id, ['estatus' => 'cancelado'])) {
+            return $this->respond(['success' => true, 'data' => $this->formatEvent($this->model->find($id))]);
+        }
+        return $this->failServerError('No se pudo cancelar');
     }
 
     public function delete($id = null)
@@ -292,6 +348,12 @@ class Calendario extends ResourceController
             if (!$evento) {
                 return $this->failNotFound('Evento no encontrado');
             }
+        }
+
+        // Bloquear si está cancelado
+        $estatusActual = (string)($evento['estatus'] ?? 'pendiente');
+        if ($estatusActual === 'cancelado') {
+            return $this->failValidationErrors(['evento' => 'Evento cancelado, no se puede mover']);
         }
 
         $payload = $this->request->getJSON(true);
@@ -351,6 +413,12 @@ class Calendario extends ResourceController
                 ? $this->model->find($id)
                 : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
             if (!$evento) return $this->failNotFound('Evento no encontrado');
+        }
+
+        // Bloquear si está cancelado
+        $estatusActual = (string)($evento['estatus'] ?? 'pendiente');
+        if ($estatusActual === 'cancelado') {
+            return $this->failValidationErrors(['evento' => 'Evento cancelado, no se pueden adjuntar evidencias']);
         }
 
         $files = $this->request->getFiles();
