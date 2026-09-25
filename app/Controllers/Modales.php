@@ -669,6 +669,34 @@ class Modales extends BaseController
                 return view('modales/catalogo_productos', $data);
 
             case 'calendario':
+                $idDeptoCal = session('id_departamento_usuario');
+                $nombreDeptoCal = '';
+                try {
+                    if (!empty($idDeptoCal)) {
+                        $deptoCal = (new DepartamentosModel())->find($idDeptoCal);
+                        $nombreDeptoCal = (string)($deptoCal['Nombre'] ?? '');
+                    }
+                } catch (\Throwable $e) {
+                    $nombreDeptoCal = '';
+                }
+                if ($nombreDeptoCal === '') {
+                    $nombreDeptoCal = (string)session('departamento_usuario');
+                }
+                $nombreDeptoCal = preg_replace('/\s*\(.*\)\s*/', '', $nombreDeptoCal) ?? $nombreDeptoCal;
+                $normCal = mb_strtolower(trim($nombreDeptoCal));
+                $normCal = str_replace(
+                    ['á', 'é', 'í', 'ó', 'ú', 'ü', 'ñ'],
+                    ['a', 'e', 'i', 'o', 'u', 'u', 'n'],
+                    $normCal
+                );
+                $esAdminCal = strpos($normCal, 'administraci') !== false;
+                $esComprasCal = strpos($normCal, 'compras') !== false;
+                $esContaCal = strpos($normCal, 'contadur') !== false;
+                if (!($esAdminCal || $esComprasCal || $esContaCal)) {
+                    return $this->response->setStatusCode(403)->setBody(
+                        "<p class='text-red-500 p-4'>Sin acceso a la Agenda de Salidas.</p>"
+                    );
+                }
                 return view('modales/calendario');
 
             default:

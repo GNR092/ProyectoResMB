@@ -5,6 +5,7 @@ namespace App\Controllers;
 use CodeIgniter\RESTful\ResourceController;
 use App\Models\EventoCalendarioModel;
 use App\Models\EventoArchivosModel;
+use App\Models\DepartamentosModel;
 use App\Libraries\Rest;
 use App\Libraries\HttpStatus;
 
@@ -24,13 +25,22 @@ class Calendario extends ResourceController
 
     public function index()
     {
+        $rol = $this->rolCalendario();
+        if ($rol === 'otro') {
+            return $this->failForbidden('Sin acceso a la Agenda de Salidas');
+        }
         $userId = session('id');
         $start = $this->request->getGet('start') ?? date('Y-m-01');
         $end   = $this->request->getGet('end')   ?? date('Y-m-t');
 
-        $eventos = $this->model->delUsuario($userId)
-                               ->enRango($start, $end)
-                               ->findAll();
+        // Contaduría y Administración ven todos los eventos; Compras solo los propios.
+        if ($rol === 'contaduria' || $rol === 'admin') {
+            $eventos = $this->model->enRango($start, $end)->findAll();
+        } else {
+            $eventos = $this->model->delUsuario($userId)
+                                   ->enRango($start, $end)
+                                   ->findAll();
+        }
 
         $data = array_map(fn($e) => $this->formatEvent($e), $eventos);
 
@@ -44,6 +54,10 @@ class Calendario extends ResourceController
      */
     public function solicitudes()
     {
+        $rol = $this->rolCalendario();
+        if ($rol === 'otro') {
+            return $this->failForbidden('Sin acceso a la Agenda de Salidas');
+        }
         $search = trim((string)($this->request->getGet('search') ?? $this->request->getGet('folio') ?? ''));
         $folio = trim((string)($this->request->getGet('folio') ?? $search));
         // Normalizar folio: aceptar solo números (ej. 123 -> MBSP-123, MBSP-123 -> 123)
@@ -121,6 +135,9 @@ class Calendario extends ResourceController
 
     public function create()
     {
+        if (!$this->puedeEditarAgenda()) {
+            return $this->failForbidden('Solo Compras puede crear eventos');
+        }
         $userId = session('id');
         $payload = $this->request->getJSON(true) ?? $this->request->getVar();
         if (!is_array($payload)) {
@@ -163,11 +180,21 @@ class Calendario extends ResourceController
 
     public function update($id = null)
     {
+        if (!$this->puedeEditarAgenda()) {
+            return $this->failForbidden('Solo Compras puede editar o cancelar eventos');
+        }
+        $rol = $this->rolCalendario();
         $userId = session('id');
         $id = is_numeric($id) ? (int)$id : $id;
-        $evento = $this->model->delUsuario((int)$userId)->find($id);
+        if ($rol === 'admin') {
+            $evento = $this->model->find($id);
+        } else {
+            $evento = $this->model->delUsuario((int)$userId)->find($id);
+        }
         if (!$evento) {
-            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            $evento = $rol === 'admin'
+                ? $this->model->find($id)
+                : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
             if (!$evento) return $this->failNotFound('Evento no encontrado');
         }
 
@@ -246,12 +273,22 @@ class Calendario extends ResourceController
 
     public function move($id = null)
     {
+        if (!$this->puedeEditarAgenda()) {
+            return $this->failForbidden('Solo Compras puede mover eventos');
+        }
+        $rol = $this->rolCalendario();
         $userId = session('id');
         $id = is_numeric($id) ? (int)$id : $id;
-        $evento = $this->model->delUsuario((int)$userId)->find($id);
+        if ($rol === 'admin') {
+            $evento = $this->model->find($id);
+        } else {
+            $evento = $this->model->delUsuario((int)$userId)->find($id);
+        }
         if (!$evento) {
             // Fallback con tipo string por si el driver trata id como string
-            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            $evento = $rol === 'admin'
+                ? $this->model->find($id)
+                : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
             if (!$evento) {
                 return $this->failNotFound('Evento no encontrado');
             }
@@ -293,6 +330,10 @@ class Calendario extends ResourceController
      */
     public function uploadArchivos($id = null)
     {
+        if (!$this->puedeEditarAgenda()) {
+            return $this->failForbidden('Solo Compras puede adjuntar evidencias');
+        }
+        $rol = $this->rolCalendario();
         $userId = session('id');
         $nombreUsuario = trim((string) session('nombre_usuario'));
         if ($nombreUsuario === '') {
@@ -300,9 +341,15 @@ class Calendario extends ResourceController
         }
 
         $id = is_numeric($id) ? (int)$id : $id;
-        $evento = $this->model->delUsuario((int)$userId)->find($id);
+        if ($rol === 'admin') {
+            $evento = $this->model->find($id);
+        } else {
+            $evento = $this->model->delUsuario((int)$userId)->find($id);
+        }
         if (!$evento) {
-            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            $evento = $rol === 'admin'
+                ? $this->model->find($id)
+                : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
             if (!$evento) return $this->failNotFound('Evento no encontrado');
         }
 
@@ -395,11 +442,21 @@ class Calendario extends ResourceController
      */
     public function getArchivos($id = null)
     {
+        $rol = $this->rolCalendario();
+        if ($rol === 'otro') {
+            return $this->failForbidden('Sin acceso a la Agenda de Salidas');
+        }
         $userId = session('id');
         $id = is_numeric($id) ? (int)$id : $id;
-        $evento = $this->model->delUsuario((int)$userId)->find($id);
+        if ($rol === 'admin' || $rol === 'contaduria') {
+            $evento = $this->model->find($id);
+        } else {
+            $evento = $this->model->delUsuario((int)$userId)->find($id);
+        }
         if (!$evento) {
-            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            $evento = ($rol === 'admin' || $rol === 'contaduria')
+                ? $this->model->find($id)
+                : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
             if (!$evento) return $this->failNotFound('Evento no encontrado');
         }
 
@@ -409,6 +466,47 @@ class Calendario extends ResourceController
             'success' => true,
             'data'    => $archivos,
         ], HttpStatus::OK);
+    }
+
+    /**
+     * Rol del usuario actual para la Agenda de Salidas.
+     * Resuelve el nombre del departamento desde BD (tolerante a
+     * "Contaduría/Contaduria" y al sufijo " (Place)" de sesión).
+     * @return 'admin'|'compras'|'contaduria'|'otro'
+     */
+    private function rolCalendario(): string
+    {
+        $nombre = '';
+        try {
+            $idDepto = session('id_departamento_usuario');
+            if (!empty($idDepto)) {
+                $depto = (new DepartamentosModel())->find($idDepto);
+                $nombre = (string)($depto['Nombre'] ?? '');
+            }
+        } catch (\Throwable $e) {
+            $nombre = '';
+        }
+        if ($nombre === '') {
+            $nombre = (string)session('departamento_usuario');
+        }
+        // Quitar sufijo " (Place)" y normalizar acentos/mayúsculas
+        $nombre = preg_replace('/\s*\(.*\)\s*/', '', $nombre) ?? $nombre;
+        $norm = mb_strtolower(trim($nombre));
+        $norm = str_replace(
+            ['á', 'é', 'í', 'ó', 'ú', 'ü', 'ñ'],
+            ['a', 'e', 'i', 'o', 'u', 'u', 'n'],
+            $norm
+        );
+        if (strpos($norm, 'administraci') !== false) return 'admin';
+        if (strpos($norm, 'compras') !== false) return 'compras';
+        if (strpos($norm, 'contadur') !== false) return 'contaduria';
+        return 'otro';
+    }
+
+    private function puedeEditarAgenda(): bool
+    {
+        $rol = $this->rolCalendario();
+        return $rol === 'admin' || $rol === 'compras';
     }
 
     private function formatEvent(array $e): array
@@ -484,11 +582,21 @@ class Calendario extends ResourceController
      */
     public function downloadArchivo($id = null, $idArchivo = null)
     {
+        $rol = $this->rolCalendario();
+        if ($rol === 'otro') {
+            return $this->failForbidden('Sin acceso a la Agenda de Salidas');
+        }
         $userId = session('id');
         $id = is_numeric($id) ? (int)$id : $id;
-        $evento = $this->model->delUsuario((int)$userId)->find($id);
+        if ($rol === 'admin' || $rol === 'contaduria') {
+            $evento = $this->model->find($id);
+        } else {
+            $evento = $this->model->delUsuario((int)$userId)->find($id);
+        }
         if (!$evento) {
-            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            $evento = ($rol === 'admin' || $rol === 'contaduria')
+                ? $this->model->find($id)
+                : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
             if (!$evento) return $this->failNotFound('Evento no encontrado');
         }
 

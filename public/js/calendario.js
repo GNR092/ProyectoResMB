@@ -20,6 +20,13 @@ function calendarioApp() {
     let calendar = null;
     let selectedEvent = null;
     let lastTouchStart = 0;
+    // Permisos Agenda: solo Compras (+Administración) puede crear/editar/cancelar/evidencia.
+    // Contaduría y resto quedan en solo lectura (el backend es la autoridad final).
+    const normDeptoAgenda = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const deptoAgendaNorm = normDeptoAgenda(typeof USER_DEPT_NAME !== 'undefined' ? USER_DEPT_NAME : (window.USER_DEPT_NAME || ''));
+    const esAdminAgenda = deptoAgendaNorm.includes('administraci');
+    const esComprasAgenda = deptoAgendaNorm.includes('compras');
+    const puedeEditarAgenda = esAdminAgenda || esComprasAgenda;
     const randomColor = () => COLORS[Math.floor(Math.random() * COLORS.length)].value;
     const toLocalStr = (d) => {
         const pad = (n) => String(n).padStart(2, '0');
@@ -53,6 +60,7 @@ function calendarioApp() {
         },
         showEventModal: false,
         showDetalle: false,
+        soloLectura: false,
         returnToEventModal: false,
         isWeekView: false,
         isListView: false,
@@ -439,8 +447,8 @@ function calendarioApp() {
                 slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
                 allDaySlot: false,
                 navLinks: true,
-                editable: true,
-                selectable: true,
+                editable: puedeEditarAgenda,
+                selectable: puedeEditarAgenda,
                 selectMirror: true,
                 selectMinDistance: isMobileSel ? 12 : 5,
                 selectLongPressDelay: isMobileSel ? 400 : 0,
@@ -504,6 +512,10 @@ function calendarioApp() {
         },
 
         handleSelect(info) {
+            if (!puedeEditarAgenda) {
+                if (calendar) calendar.unselect();
+                return;
+            }
             const viewType = calendar.view.type;
             if (viewType === 'dayGridMonth') {
                 calendar.changeView('timeGridDay', info.startStr);
@@ -518,6 +530,7 @@ function calendarioApp() {
         },
 
         handleDateClick(info) {
+            if (!puedeEditarAgenda) return;
             if (window.innerWidth < 640) {
                 const startTs = (calendar && calendar._agendaTouchStart) ? calendar._agendaTouchStart() : 0;
                 if (Date.now() - startTs < 400) return;
@@ -664,6 +677,7 @@ function calendarioApp() {
 
         openEventModal(event, selectInfo = null) {
             this.eventModalMode = event ? 'edit' : 'create';
+            this.soloLectura = !puedeEditarAgenda;
             selectedEvent = event;
             this.busquedaModal = '';
             this.filtrosModal = { estado: '', tipo: '', proveedor: '', complejo: '', departamento: '', fecha: '' };
@@ -720,6 +734,7 @@ function calendarioApp() {
         closeEventModal() {
             this.returnToEventModal = false;
             this.showEventModal = false;
+            this.soloLectura = false;
             this.eventForm = { id: '', title: '', start: '', end: '', color: randomColor(), ID_Solicitud: '', estatus: 'pendiente' };
             this.archivos = [];
             this.subiendoArchivos = false;
@@ -786,6 +801,10 @@ function calendarioApp() {
         },
 
         async saveEvent() {
+            if (!puedeEditarAgenda) {
+                alert('Solo el departamento de Compras puede crear o editar eventos');
+                return;
+            }
             if (!this.eventForm.ID_Solicitud) {
                 alert('Debe seleccionar una requisición vinculada');
                 return;
@@ -836,6 +855,10 @@ function calendarioApp() {
         },
 
         async moveEvent(event) {
+            if (!puedeEditarAgenda) {
+                try { event.revert(); } catch (e) {}
+                return;
+            }
             const toLocal = (d) => toLocalStr(d).replace('T', ' ');
             const startLocal = event.start ? toLocal(event.start) : normalizeToLocalInput(event.startStr).replace('T', ' ');
             const endLocal = event.end ? toLocal(event.end) : normalizeToLocalInput(event.endStr || event.startStr).replace('T', ' ');
@@ -859,6 +882,10 @@ function calendarioApp() {
         },
 
         async cancelarEvento() {
+            if (!puedeEditarAgenda) {
+                alert('Solo el departamento de Compras puede cancelar eventos');
+                return;
+            }
             if (!confirm('¿Cancelar este evento? El evento se marcará como cancelado pero no se eliminará.')) return;
             const res = await fetch(`${BASE_URL}api/calendario/eventos/${this.eventForm.id}`, {
                 method: 'PUT',
@@ -908,6 +935,10 @@ function calendarioApp() {
         },
 
         async subirArchivos() {
+            if (!puedeEditarAgenda) {
+                alert('Solo el departamento de Compras puede adjuntar evidencias');
+                return;
+            }
             const input = this.$refs.archivosInput;
             if (!input || !input.files.length) return;
             this.subiendoArchivos = true;

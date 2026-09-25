@@ -71,7 +71,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
     </div>
     <!-- Contenedor calendario — container query target -->
     <div id="calendar" class="flex-1 min-h-[50dvh] sm:min-h-0 bg-white rounded-xl border border-carbon-100 overflow-auto sm:overflow-hidden" x-show="!showDetalle" style="container-type:inline-size; container-name:cal"></div>
-    <p class="sm:hidden text-center text-[11px] text-gray-400 py-1 px-2">Mantén pulsado 0.4s y arrastra para crear bloque horario</p>
+    <p x-show="!soloLectura" class="sm:hidden text-center text-[11px] text-gray-400 py-1 px-2">Mantén pulsado 0.4s y arrastra para crear bloque horario</p>
 
     <!-- Detalle requisición (pantalla 2) — envuelto para scroll-x en móvil -->
     <div id="div-calendario-detalle" x-show="showDetalle" x-cloak
@@ -96,11 +96,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
          @click.self="closeEventModal"
          @keydown.escape.window="closeEventModal">
         <div class="bg-white rounded-xl shadow-xl p-4 sm:p-6 w-[calc(100vw-1rem)] sm:w-full max-w-[min(32rem,95vw)] mx-auto my-auto max-h-[85dvh] sm:max-h-[90vh] overflow-y-auto" @click.outside="closeEventModal">
-            <h3 class="text-base sm:text-lg font-semibold mb-4 text-carbon-900" x-text="eventModalMode === 'create' ? 'Nuevo Evento' : 'Editar Evento'"></h3>
+            <h3 class="text-base sm:text-lg font-semibold mb-4 text-carbon-900" x-text="soloLectura ? 'Detalle del evento' : (eventModalMode === 'create' ? 'Nuevo Evento' : 'Editar Evento')"></h3>
             <form @submit.prevent="saveEvent" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-carbon-700">Título</label>
-                    <input type="text" x-model="eventForm.title" required class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0" x-ref="titleInput">
+                    <input type="text" x-model="eventForm.title" required :disabled="soloLectura" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0" x-ref="titleInput">
                 </div>
                 <!-- Selector requisición obligatorio -->
                 <div class="space-y-2">
@@ -109,7 +109,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                             <svg class="size-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
                         </div>
-                        <input type="text" x-model="busquedaModal" @input.debounce.400ms="filtrarModal()" placeholder="Buscar por número de folio — ej. 123" class="w-full border border-carbon-300 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0">
+                        <input type="text" x-model="busquedaModal" @input.debounce.400ms="filtrarModal()" :disabled="soloLectura" placeholder="Buscar por número de folio — ej. 123" class="w-full border border-carbon-300 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0">
                     </div>
                     <p class="text-xs text-gray-400">Escribe solo el número, sin MBSP-</p>
                     <!-- Filtros avanzados colapsables -->
@@ -172,7 +172,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                             </div>
                         </div>
                     </details>
-                    <select x-model="eventForm.ID_Solicitud" required class="w-full border border-carbon-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm max-h-[28vh] sm:max-h-none" id="cal-solicitud-select" size="4">
+                    <select x-model="eventForm.ID_Solicitud" required :disabled="soloLectura" class="w-full border border-carbon-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm max-h-[28vh] sm:max-h-none" id="cal-solicitud-select" size="4">
                         <option value="">Seleccione una requisición</option>
                         <template x-for="sol in solicitudesFiltradasModal" :key="sol.ID_Solicitud">
                             <option :value="sol.ID_Solicitud" x-text="formatoOpcionSolicitud(sol)"></option>
@@ -191,7 +191,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 <div>
                     <label class="block text-sm font-medium text-carbon-700">Estatus</label>
                     <select x-model="eventForm.estatus" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0"
-                            :disabled="archivos.length > 0">
+                            :disabled="soloLectura || archivos.length > 0">
                         <option value="pendiente">Pendiente</option>
                         <option value="cancelado">Cancelado</option>
                         <option value="evidencia">Evidencia</option>
@@ -203,15 +203,15 @@ $iconUrl = "/icons/icons.svg?v=$version";
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-sm font-medium text-carbon-700">Inicio</label>
-                        <input type="datetime-local" x-model="eventForm.start" required step="1800" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0">
+                        <input type="datetime-local" x-model="eventForm.start" required step="1800" :disabled="soloLectura" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-carbon-700">Fin</label>
-                        <input type="datetime-local" x-model="eventForm.end" required step="1800" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0">
+                        <input type="datetime-local" x-model="eventForm.end" required step="1800" :disabled="soloLectura" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0">
                     </div>
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 pt-4">
-                    <button x-show="eventModalMode === 'edit' && eventForm.estatus !== 'cancelado'"
+                    <button x-show="!soloLectura && eventModalMode === 'edit' && eventForm.estatus !== 'cancelado'"
                             type="button" @click="cancelarEvento"
                             class="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 transition-colors text-sm font-medium shadow-sm min-h-[44px] sm:min-h-0 w-full sm:w-auto">
                         <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -219,8 +219,8 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     </button>
                     <span x-show="eventModalMode !== 'edit'" class="hidden sm:block"></span>
                     <div class="flex gap-2 w-full sm:w-auto">
-                        <button type="button" @click="closeEventModal" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 border border-carbon-300 rounded-lg text-carbon-700 hover:bg-carbon-50 transition-colors min-h-[44px] sm:min-h-0 text-sm font-medium">Cancelar</button>
-                        <button type="submit" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors min-h-[44px] sm:min-h-0 text-sm font-medium" x-text="eventModalMode === 'create' ? 'Crear' : 'Guardar'"></button>
+                        <button type="button" @click="closeEventModal" x-text="soloLectura ? 'Cerrar' : 'Cancelar'" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 border border-carbon-300 rounded-lg text-carbon-700 hover:bg-carbon-50 transition-colors min-h-[44px] sm:min-h-0 text-sm font-medium">Cancelar</button>
+                        <button type="submit" x-show="!soloLectura" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors min-h-[44px] sm:min-h-0 text-sm font-medium" x-text="eventModalMode === 'create' ? 'Crear' : 'Guardar'"></button>
                     </div>
                 </div>
                 <!-- Evidencias (solo en modo edición) -->
@@ -229,7 +229,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         <h4 class="text-sm font-semibold text-carbon-700">Evidencias</h4>
                         <span class="text-xs text-gray-500" x-text="archivos.length + ' archivo(s)'"></span>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" x-show="!soloLectura">
                         <label class="block text-xs font-medium text-carbon-600 mb-1">Adjuntar archivos</label>
                         <input type="file" x-ref="archivosInput" multiple @change="subirArchivos"
                                class="w-full border border-carbon-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0"
