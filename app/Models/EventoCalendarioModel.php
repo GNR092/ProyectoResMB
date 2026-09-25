@@ -16,7 +16,7 @@ class EventoCalendarioModel extends Model
     protected $returnType = 'array';
     protected $useSoftDeletes = true;
     protected $protectFields = true;
-    protected $allowedFields = ['ID_Usuario', 'ID_Solicitud', 'evento', 'color_evento', 'fecha_inicio', 'fecha_fin'];
+    protected $allowedFields = ['ID_Usuario', 'ID_Solicitud', 'evento', 'color_evento', 'fecha_inicio', 'fecha_fin', 'estatus'];
     protected $useTimestamps = true;
     protected $dateFormat = 'datetime';
     protected $createdField = 'created_at';

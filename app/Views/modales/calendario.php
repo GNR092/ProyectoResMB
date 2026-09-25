@@ -171,12 +171,25 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     </select>
                     <p class="text-xs text-gray-400" x-show="solicitudesFiltradasModal.length===0">Sin resultados — prueba otro número o ajusta filtros avanzados</p>
                 </div>
-                <!-- Botón ver detalles — idéntico a historial -->
+<!-- Botón ver detalles — idéntico a historial -->
                 <div x-show="eventForm.ID_Solicitud" class="flex justify-end">
                     <button type="button" @click="verDetalleDesdeModal()" class="inline-flex items-center gap-1.5 px-3 py-2.5 sm:py-1.5 bg-white border border-carbon-200 rounded-lg text-sm text-carbon-700 hover:bg-carbon-50 transition min-h-[44px] sm:min-h-0">
-                        <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         Ver detalles
                     </button>
+                </div>
+                <!-- Estatus del evento -->
+                <div>
+                    <label class="block text-sm font-medium text-carbon-700">Estatus</label>
+                    <select x-model="eventForm.estatus" class="w-full border border-carbon-300 rounded-lg px-3 py-2.5 sm:py-2 mt-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-sm min-h-[44px] sm:min-h-0"
+                            :disabled="archivos.length > 0">
+                        <option value="pendiente">Pendiente</option>
+                        <option value="cancelado">Cancelado</option>
+                        <option value="evidencia">Evidencia</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1" x-show="archivos.length > 0">
+                        El estatus se administra automáticamente al adjuntar evidencias.
+                    </p>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
@@ -189,15 +202,49 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     </div>
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 pt-4">
-                    <button x-show="eventModalMode === 'edit'" type="button" @click="deleteEvent" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 transition-colors text-sm font-medium shadow-sm min-h-[44px] sm:min-h-0 w-full sm:w-auto">
-                        <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
-                        Eliminar
+                    <button x-show="eventModalMode === 'edit' && eventForm.estatus !== 'cancelado'"
+                            type="button" @click="cancelarEvento"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 transition-colors text-sm font-medium shadow-sm min-h-[44px] sm:min-h-0 w-full sm:w-auto">
+                        <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Cancelar evento
                     </button>
                     <span x-show="eventModalMode !== 'edit'" class="hidden sm:block"></span>
                     <div class="flex gap-2 w-full sm:w-auto">
                         <button type="button" @click="closeEventModal" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 border border-carbon-300 rounded-lg text-carbon-700 hover:bg-carbon-50 transition-colors min-h-[44px] sm:min-h-0 text-sm font-medium">Cancelar</button>
                         <button type="submit" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors min-h-[44px] sm:min-h-0 text-sm font-medium" x-text="eventModalMode === 'create' ? 'Crear' : 'Guardar'"></button>
                     </div>
+                </div>
+                <!-- Evidencias (solo en modo edición) -->
+                <div x-show="eventModalMode === 'edit'" class="mt-6 pt-4 border-t border-carbon-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-sm font-semibold text-carbon-700">Evidencias</h4>
+                        <span class="text-xs text-gray-500" x-text="archivos.length + ' archivo(s)'"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium text-carbon-600 mb-1">Adjuntar archivos</label>
+                        <input type="file" x-ref="archivosInput" multiple @change="subirArchivos"
+                               class="w-full border border-carbon-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0"
+                               :disabled="subiendoArchivos">
+                        <p class="text-xs text-gray-400 mt-1">PDF, imágenes, Word, Excel, TXT (máx. 10 MB c/u)</p>
+                    </div>
+                    <div x-show="archivos.length > 0" class="space-y-2 max-h-60 overflow-auto">
+                        <template x-for="a in archivos" :key="a.id_archivo">
+                            <div class="flex items-center justify-between gap-2 p-3 bg-carbon-50 rounded-lg border border-carbon-100">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-carbon-900 truncate" x-text="a.nombre_archivo"></p>
+                                    <p class="text-xs text-gray-500 truncate" x-text="a.nombre_usuario ? 'Subido por: ' + a.nombre_usuario : ''"></p>
+                                    <p class="text-xs text-gray-400" x-text="formatoFecha(a.fecha_subida)"></p>
+                                </div>
+                                <button type="button" @click="descargarArchivo(a)"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition shrink-0 min-h-[36px]"
+                                        :disabled="subiendoArchivos">
+                                    <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    Descargar
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                    <p x-show="archivos.length === 0" class="text-xs text-gray-400 text-center py-4">Sin evidencias adjuntas</p>
                 </div>
             </form>
         </div>

@@ -43,6 +43,7 @@ function calendarioApp() {
             end: '',
             color: '#FF5722',
             ID_Solicitud: '',
+            estatus: 'pendiente',
         },
         showEventModal: false,
         showDetalle: false,
@@ -68,6 +69,8 @@ function calendarioApp() {
         eventosCache: [],
         eventosCacheOriginal: [],
         lastViewType: null,
+        archivos: [],
+        subiendoArchivos: false,
 
         async init() {
             this.renderCalendar();
@@ -670,6 +673,7 @@ function calendarioApp() {
                     end: normalizeToLocalInput(event.endStr || event.startStr),
                     color: event.extendedProps.color || '#FF5722',
                     ID_Solicitud: event.extendedProps.ID_Solicitud ? String(event.extendedProps.ID_Solicitud) : '',
+                    estatus: event.extendedProps.estatus || 'pendiente',
                 };
                 // Asegurar que la solicitud del evento esté en cache (por si filtros la ocultaron)
                 if (this.eventForm.ID_Solicitud && !this.solicitudesCache.find(s => String(s.ID_Solicitud) === String(this.eventForm.ID_Solicitud))) {
@@ -691,6 +695,7 @@ function calendarioApp() {
                     end: endStr,
                     color: randomColor(),
                     ID_Solicitud: '',
+                    estatus: 'pendiente',
                 };
             }
 
@@ -793,6 +798,7 @@ function calendarioApp() {
                     fecha_fin: this.eventForm.end.replace('T', ' '),
                     color_evento: this.eventForm.color,
                     ID_Solicitud: this.eventForm.ID_Solicitud,
+                    estatus: this.eventForm.estatus,
                 }),
             });
             const json = await res.json();
@@ -812,6 +818,7 @@ function calendarioApp() {
                 selectedEvent.setExtendedProp('EstadoSolicitud', json.data.extendedProps.EstadoSolicitud);
                 selectedEvent.setExtendedProp('evento_raw', json.data.extendedProps.evento_raw);
                 selectedEvent.setExtendedProp('color', json.data.extendedProps.color);
+                selectedEvent.setExtendedProp('estatus', json.data.extendedProps.estatus);
                 selectedEvent.setStart(json.data.start);
                 selectedEvent.setEnd(json.data.end);
             }
@@ -841,22 +848,103 @@ function calendarioApp() {
             }
         },
 
-        async deleteEvent() {
-            if (!confirm('¿Eliminar este evento?')) return;
+        async cancelarEvento() {
+            if (!confirm('¿Cancelar este evento? El evento se marcará como cancelado pero no se eliminará.')) return;
             const res = await fetch(`${BASE_URL}api/calendario/eventos/${this.eventForm.id}`, {
-                method: 'DELETE',
+                method: 'PUT',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token-name"]')?.content || '',
                 },
+                body: JSON.stringify({
+                    estatus: 'cancelado',
+                }),
             });
             const json = await res.json();
             if (json.success) {
-                selectedEvent.remove();
+                selectedEvent.setExtendedProp('estatus', 'cancelado');
+                this.eventForm.estatus = 'cancelado';
                 this.closeEventModal();
+                if (typeof mostrarNotificacion === 'function') {
+                    mostrarNotificacion('Evento cancelado', 'success');
+                }
             } else {
-                alert(json.message || 'Error eliminando');
+                const msg = json.messages ? JSON.stringify(json.messages) : (json.message || 'Error cancelando');
+                alert(msg);
             }
+        },
+
+        async cargarArchivos() {
+            if (!this.eventForm.id) return;
+            try {
+                const res = await fetch(`${BASE_URL}api/calendario/eventos/${this.eventForm.id}/archivos`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const json = await res.json();
+                if (json.success) {
+                    this.archivos = json.data || [];
+                } else {
+                    this.archivos = [];
+                }
+            } catch (e) {
+                console.error('cargarArchivos', e);
+                this.archivos = [];
+            }
+        },
+
+        async subirArchivos() {
+            const input = this.$refs.archivosInput;
+            if (!input || !input.files.length) return;
+            this.subiendoArchivos = true;
+            const formData = new FormData();
+            for (const file of input.files) {
+                formData.append('archivos[]', file);
+            }
+            try {
+                const res = await fetch(`${BASE_URL}api/calendario/eventos/${this.eventForm.id}/archivos`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token-name"]')?.content || '',
+                    },
+                    body: formData,
+                });
+                const json = await res.json();
+                if (json.success) {
+                    this.archivos = json.data.evento.extendedProps.archivos || [];
+                    this.eventForm.estatus = json.data.evento.extendedProps.estatus;
+                    if (typeof mostrarNotificacion === 'function') {
+                        if (json.data.guardados?.length) {
+                            mostrarNotificacion(`${json.data.guardados.length} archivo(s) subido(s)`, 'success');
+                        }
+                        if (json.data.errores?.length) {
+                            mostrarNotificacion(json.data.errores.join('; '), 'warning');
+                        }
+                    }
+                } else {
+                    const msg = json.messages ? JSON.stringify(json.messages) : (json.message || 'Error subiendo archivos');
+                    alert(msg);
+                }
+            } catch (e) {
+                console.error('subirArchivos', e);
+                alert('Error de conexión al subir archivos');
+            } finally {
+                this.subiendoArchivos = false;
+                input.value = '';
+            }
+        },
+
+        async descargarArchivo(archivo) {
+            window.open(archivo.url_descarga, '_blank');
+        },
+
+        formatoFecha(fecha) {
+            if (!fecha) return '';
+            const d = new Date(fecha);
+            if (isNaN(d)) return fecha;
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
         },
     };
 }

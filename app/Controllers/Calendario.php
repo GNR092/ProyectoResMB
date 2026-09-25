@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use CodeIgniter\RESTful\ResourceController;
 use App\Models\EventoCalendarioModel;
+use App\Models\EventoArchivosModel;
 use App\Libraries\Rest;
 use App\Libraries\HttpStatus;
 
@@ -11,11 +12,13 @@ class Calendario extends ResourceController
 {
     protected $format = 'json';
     protected $model;
+    protected $archivosModel;
     protected $api;
 
     public function __construct()
     {
         $this->model = new EventoCalendarioModel();
+        $this->archivosModel = new EventoArchivosModel();
         $this->api = new Rest();
     }
 
@@ -126,6 +129,7 @@ class Calendario extends ResourceController
             'fecha_fin'    => 'required|valid_date[Y-m-d H:i:s]',
             'color_evento' => 'required|max_length[20]',
             'ID_Solicitud' => 'required|is_natural_no_zero',
+            'estatus'      => 'permit_empty|in_list[pendiente,cancelado,evidencia]',
         ];
         if (!$this->validateData($payload, $rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
@@ -137,6 +141,7 @@ class Calendario extends ResourceController
             return $this->failValidationErrors(['ID_Solicitud' => 'La solicitud seleccionada no existe']);
         }
         $data['ID_Usuario'] = $userId;
+        $data['estatus']    = $data['estatus'] ?? 'pendiente';
         if ($this->model->insert($data)) {
             $evento = $this->model->find($this->model->getInsertID());
             return $this->respondCreated(['success' => true, 'data' => $this->formatEvent($evento)]);
@@ -161,6 +166,7 @@ class Calendario extends ResourceController
             'fecha_fin'    => 'valid_date[Y-m-d H:i:s]',
             'color_evento' => 'max_length[20]',
             'ID_Solicitud' => 'permit_empty|is_natural_no_zero',
+            'estatus'      => 'permit_empty|in_list[pendiente,cancelado,evidencia]',
         ];
         if (!$this->validateData($payload, $rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
@@ -184,18 +190,10 @@ class Calendario extends ResourceController
 
     public function delete($id = null)
     {
-        $userId = session('id');
-        $id = is_numeric($id) ? (int)$id : $id;
-        $evento = $this->model->delUsuario((int)$userId)->find($id);
-        if (!$evento) {
-            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
-            if (!$evento) return $this->failNotFound('Evento no encontrado');
-        }
-
-        if ($this->model->delete($id)) {
-            return $this->respondDeleted(['success' => true, 'message' => 'Evento eliminado']);
-        }
-        return $this->failServerError('No se pudo eliminar');
+        return $this->respond([
+            'success' => false,
+            'message' => 'Los eventos no se eliminan, solo se cancelan (cambie el estatus a "cancelado")',
+        ], 405);
     }
 
     public function move($id = null)
@@ -237,6 +235,130 @@ class Calendario extends ResourceController
         return $this->failServerError('No se pudo mover');
     }
 
+    /**
+     * Sube archivos adjuntos a un evento
+     * POST api/calendario/{id}/archivos
+     */
+    public function uploadArchivos($id = null)
+    {
+        $userId = session('id');
+        $nombreUsuario = trim((string) session('nombre_usuario'));
+        if ($nombreUsuario === '') {
+            return $this->failValidationErrors(['archivos' => 'No se pudo identificar al usuario']);
+        }
+
+        $id = is_numeric($id) ? (int)$id : $id;
+        $evento = $this->model->delUsuario((int)$userId)->find($id);
+        if (!$evento) {
+            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) return $this->failNotFound('Evento no encontrado');
+        }
+
+        $files = $this->request->getFiles();
+        if (empty($files) || !isset($files['archivos'])) {
+            return $this->failValidationErrors(['archivos' => 'No se enviaron archivos']);
+        }
+
+        $uploadedFiles = $files['archivos'];
+        if (!is_array($uploadedFiles)) {
+            $uploadedFiles = [$uploadedFiles];
+        }
+
+        $saved = [];
+        $errors = [];
+
+        foreach ($uploadedFiles as $file) {
+            if ($file->getError() !== UPLOAD_ERR_OK) {
+                $errors[] = $file->getClientName() . ': ' . $file->getErrorString();
+                continue;
+            }
+
+            // Validar tipo MIME y tamaño (máx 10MB)
+            $allowedMimes = [
+                'application/pdf',
+                'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'text/plain',
+            ];
+            $maxSize = 10 * 1024 * 1024; // 10MB
+
+            // getMimeType() detecta el tipo en el servidor (más seguro que el MIME del cliente)
+            if (!in_array($file->getMimeType(), $allowedMimes)) {
+                $errors[] = $file->getClientName() . ': Tipo de archivo no permitido';
+                continue;
+            }
+            if ($file->getSize() > $maxSize) {
+                $errors[] = $file->getClientName() . ': Archivo excede 10MB';
+                continue;
+            }
+
+            // Generar nombre único
+            $ext = $file->getClientExtension();
+            $newName = 'evento_' . $id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+
+            // Mover a writable/uploads/eventos/
+            $uploadPath = WRITEPATH . 'uploads/eventos/';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            if ($file->move($uploadPath, $newName)) {
+                $inserted = $this->archivosModel->insert([
+                    'id_evento'      => $id,
+                    'nombre_archivo' => $newName,
+                    'nombre_usuario' => $nombreUsuario,
+                ]);
+                if ($inserted) {
+                    $saved[] = $newName;
+                } else {
+                    unlink($uploadPath . $newName);
+                    $errors[] = $file->getClientName() . ': Error al registrar en BD';
+                }
+            } else {
+                $errors[] = $file->getClientName() . ': Error al guardar';
+            }
+        }
+
+        // Auto-cambiar estatus a 'evidencia' si se subió al menos un archivo
+        if (!empty($saved) && $evento['estatus'] !== 'evidencia') {
+            $this->model->update($id, ['estatus' => 'evidencia']);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data'    => [
+                'guardados' => $saved,
+                'errores'   => $errors,
+                'evento'    => $this->formatEvent($this->model->find($id)),
+            ],
+        ], HttpStatus::OK);
+    }
+
+    /**
+     * Lista archivos de un evento
+     * GET api/calendario/{id}/archivos
+     */
+    public function getArchivos($id = null)
+    {
+        $userId = session('id');
+        $id = is_numeric($id) ? (int)$id : $id;
+        $evento = $this->model->delUsuario((int)$userId)->find($id);
+        if (!$evento) {
+            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) return $this->failNotFound('Evento no encontrado');
+        }
+
+        $archivos = $this->archivosModel->getByEvento($id);
+
+        return $this->respond([
+            'success' => true,
+            'data'    => $archivos,
+        ], HttpStatus::OK);
+    }
+
     private function formatEvent(array $e): array
     {
         $folio = null;
@@ -253,7 +375,6 @@ class Calendario extends ResourceController
                     $folio = $sol['No_Folio'] ?? null;
                     $estadoSol = $sol['EstadoOrden'] ?? $sol['Estado'] ?? null;
                     $tipoSol = $sol['Tipo'] ?? null;
-                    // Alias robusto: getSolicitudWithProducts expone RazonSocialNombre/PlaceNombre/DepartamentoNombre
                     $proveedorNombre = $sol['RazonSocialNombre'] ?? $sol['ProveedorNombre'] ?? $sol['Proveedor'] ?? $sol['RazonSocial'] ?? '';
                     $complejoNombre = $sol['PlaceNombre'] ?? $sol['Complejo'] ?? $sol['RazonSocialNombre'] ?? '';
                     $departamentoNombre = $sol['DepartamentoNombre'] ?? $sol['Departamento'] ?? '';
@@ -261,6 +382,19 @@ class Calendario extends ResourceController
                 }
             } catch (\Throwable $ex) {}
         }
+
+        // Obtener archivos del evento
+        $archivos = $this->archivosModel->getByEvento((int)$e['id']);
+        $archivosData = array_map(function ($a) use ($e) {
+            return [
+                'id_archivo'      => $a['id_archivo'],
+                'nombre_archivo'  => $a['nombre_archivo'],
+                'nombre_usuario'  => $a['nombre_usuario'] ?? '',
+                'fecha_subida'    => $a['fecha_subida'],
+                'url_descarga'    => base_url('api/calendario/' . $e['id'] . '/archivos/' . $a['id_archivo'] . '/download'),
+            ];
+        }, $archivos);
+
         $title = $e['evento'];
         if ($folio) {
             $title = $title . ' — ' . $folio;
@@ -273,18 +407,48 @@ class Calendario extends ResourceController
             'backgroundColor' => $e['color_evento'],
             'borderColor'     => $e['color_evento'],
             'extendedProps'   => [
-                'color' => $e['color_evento'],
-                'ID_Solicitud' => $e['ID_Solicitud'] ?? null,
-                'No_Folio' => $folio,
-                'EstadoSolicitud' => $estadoSol,
-                'TipoSolicitud' => $tipoSol,
-                'Proveedor' => $proveedorNombre,
-                'Complejo' => $complejoNombre,
-                'Departamento' => $departamentoNombre,
-                'FechaSolicitud' => $fechaSolicitud,
-                'evento_raw' => $e['evento'],
+                'color'            => $e['color_evento'],
+                'estatus'          => $e['estatus'] ?? 'pendiente',
+                'ID_Solicitud'     => $e['ID_Solicitud'] ?? null,
+                'No_Folio'         => $folio,
+                'EstadoSolicitud'  => $estadoSol,
+                'TipoSolicitud'    => $tipoSol,
+                'Proveedor'        => $proveedorNombre,
+                'Complejo'         => $complejoNombre,
+                'Departamento'     => $departamentoNombre,
+                'FechaSolicitud'   => $fechaSolicitud,
+                'evento_raw'       => $e['evento'],
+                'archivos'         => $archivosData,
             ],
             'allDay'          => false,
         ];
+    }
+
+    /**
+     * Descarga un archivo de un evento
+     * GET api/calendario/{id}/archivos/{id_archivo}/download
+     */
+    public function downloadArchivo($id = null, $idArchivo = null)
+    {
+        $userId = session('id');
+        $id = is_numeric($id) ? (int)$id : $id;
+        $evento = $this->model->delUsuario((int)$userId)->find($id);
+        if (!$evento) {
+            $evento = $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) return $this->failNotFound('Evento no encontrado');
+        }
+
+        $idArchivo = is_numeric($idArchivo) ? (int)$idArchivo : $idArchivo;
+        $archivo = $this->archivosModel->find($idArchivo);
+        if (!$archivo || $archivo['id_evento'] != $id) {
+            return $this->failNotFound('Archivo no encontrado');
+        }
+
+        $filePath = WRITEPATH . 'uploads/eventos/' . $archivo['nombre_archivo'];
+        if (!file_exists($filePath)) {
+            return $this->failNotFound('Archivo físico no encontrado');
+        }
+
+        return $this->response->download($filePath, null)->setFileName($archivo['nombre_archivo']);
     }
 }

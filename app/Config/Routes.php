@@ -116,8 +116,11 @@ if (!file_exists($installerLockFile)) {
             $routes->get('solicitudes', 'Calendario::solicitudes');
             $routes->post('eventos', 'Calendario::create');
             $routes->put('eventos/(:segment)', 'Calendario::update/$1');
-            $routes->delete('eventos/(:segment)', 'Calendario::delete/$1');
             $routes->post('eventos/(:segment)/move', 'Calendario::move/$1');
+            // Archivos adjuntos
+            $routes->post('eventos/(:segment)/archivos', 'Calendario::uploadArchivos/$1');
+            $routes->get('eventos/(:segment)/archivos', 'Calendario::getArchivos/$1');
+            $routes->get('eventos/(:segment)/archivos/(:num)/download', 'Calendario::downloadArchivo/$1/$2');
         });
 
         //region departamentos
