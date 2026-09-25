@@ -283,7 +283,7 @@ function calendarioApp() {
                 this.eventosCacheOriginal = src.map(e => ({...e, extendedProps:{...e.extendedProps}}));
             }
             const f = this.filtrosLista;
-            const hasAny = f.folio || f.estado || f.tipo || f.proveedor || f.complejo || f.departamento;
+            const hasAny = f.folio || f.estado || f.tipo || f.proveedor || f.complejo || f.departamento || this.mostrarArchivados;
             if (!hasAny) {
                 calendar.removeAllEvents();
                 calendar.addEventSource(src);
