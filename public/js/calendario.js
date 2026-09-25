@@ -33,6 +33,12 @@ function calendarioApp() {
         }
         return str.substring(0, 19);
     };
+    const toApiDate = (v) => {
+        if (!v) return v;
+        let s = String(v).trim().replace('T', ' ');
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(s)) s += ':00';
+        return s;
+    };
 
     return {
         eventModalMode: 'create',
@@ -675,6 +681,8 @@ function calendarioApp() {
                     ID_Solicitud: event.extendedProps.ID_Solicitud ? String(event.extendedProps.ID_Solicitud) : '',
                     estatus: event.extendedProps.estatus || 'pendiente',
                 };
+                this.archivos = event.extendedProps.archivos || [];
+                this.subiendoArchivos = false;
                 // Asegurar que la solicitud del evento esté en cache (por si filtros la ocultaron)
                 if (this.eventForm.ID_Solicitud && !this.solicitudesCache.find(s => String(s.ID_Solicitud) === String(this.eventForm.ID_Solicitud))) {
                     const folio = event.extendedProps.No_Folio || '';
@@ -712,7 +720,9 @@ function calendarioApp() {
         closeEventModal() {
             this.returnToEventModal = false;
             this.showEventModal = false;
-            this.eventForm = { id: '', title: '', start: '', end: '', color: randomColor(), ID_Solicitud: '' };
+            this.eventForm = { id: '', title: '', start: '', end: '', color: randomColor(), ID_Solicitud: '', estatus: 'pendiente' };
+            this.archivos = [];
+            this.subiendoArchivos = false;
             document.body.style.overflow = '';
             if (calendar) calendar.unselect();
         },
@@ -794,8 +804,8 @@ function calendarioApp() {
                 },
                 body: JSON.stringify({
                     evento: this.eventForm.title,
-                    fecha_inicio: this.eventForm.start.replace('T', ' '),
-                    fecha_fin: this.eventForm.end.replace('T', ' '),
+                    fecha_inicio: toApiDate(this.eventForm.start),
+                    fecha_fin: toApiDate(this.eventForm.end),
                     color_evento: this.eventForm.color,
                     ID_Solicitud: this.eventForm.ID_Solicitud,
                     estatus: this.eventForm.estatus,
@@ -865,6 +875,10 @@ function calendarioApp() {
             if (json.success) {
                 selectedEvent.setExtendedProp('estatus', 'cancelado');
                 this.eventForm.estatus = 'cancelado';
+                // Repintar evento con clase de cancelado (gris + tachado)
+                selectedEvent.setProp('classNames', json.data.classNames || []);
+                selectedEvent.setProp('backgroundColor', json.data.backgroundColor);
+                selectedEvent.setProp('borderColor', json.data.borderColor);
                 this.closeEventModal();
                 if (typeof mostrarNotificacion === 'function') {
                     mostrarNotificacion('Evento cancelado', 'success');

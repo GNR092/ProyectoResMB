@@ -123,6 +123,14 @@ class Calendario extends ResourceController
     {
         $userId = session('id');
         $payload = $this->request->getJSON(true) ?? $this->request->getVar();
+        if (!is_array($payload)) {
+            $payload = [];
+        }
+        foreach (['fecha_inicio', 'fecha_fin'] as $campo) {
+            if (array_key_exists($campo, $payload)) {
+                $payload[$campo] = $this->normalizarFecha($payload[$campo]);
+            }
+        }
         $rules = [
             'evento'       => 'required|max_length[250]',
             'fecha_inicio' => 'required|valid_date[Y-m-d H:i:s]',
@@ -135,6 +143,10 @@ class Calendario extends ResourceController
             return $this->failValidationErrors($this->validator->getErrors());
         }
         $data = $this->validator->getValidated();
+        // Verificar orden de fechas
+        if (strtotime($data['fecha_fin']) <= strtotime($data['fecha_inicio'])) {
+            return $this->failValidationErrors(['fecha_fin' => 'La fecha de fin debe ser posterior a la de inicio']);
+        }
         // Verificar que la solicitud exista
         $solExists = $this->api->getSolicitudWithProducts((int)$data['ID_Solicitud']);
         if (!$solExists) {
@@ -159,19 +171,37 @@ class Calendario extends ResourceController
             if (!$evento) return $this->failNotFound('Evento no encontrado');
         }
 
-        $payload = $this->request->getJSON(true) ?? $this->request->getVar();
+        $payload = $this->request->getJSON(true);
+        if (!is_array($payload) || $payload === []) {
+            $payload = $this->request->getVar();
+        }
+        if (!is_array($payload)) {
+            $payload = [];
+        }
+        foreach (['fecha_inicio', 'fecha_fin'] as $campo) {
+            if (array_key_exists($campo, $payload)) {
+                $payload[$campo] = $this->normalizarFecha($payload[$campo]);
+            }
+        }
+
         $rules = [
             'evento'       => 'max_length[250]',
-            'fecha_inicio' => 'valid_date[Y-m-d H:i:s]',
-            'fecha_fin'    => 'valid_date[Y-m-d H:i:s]',
             'color_evento' => 'max_length[20]',
             'ID_Solicitud' => 'permit_empty|is_natural_no_zero',
             'estatus'      => 'permit_empty|in_list[pendiente,cancelado,evidencia]',
         ];
+        if (array_key_exists('fecha_inicio', $payload)) {
+            $rules['fecha_inicio'] = 'valid_date[Y-m-d H:i:s]';
+        }
+        if (array_key_exists('fecha_fin', $payload)) {
+            $rules['fecha_fin'] = 'valid_date[Y-m-d H:i:s]';
+        }
+
         if (!$this->validateData($payload, $rules)) {
             return $this->failValidationErrors($this->validator->getErrors());
         }
         $data = $this->validator->getValidated();
+
         if (isset($data['ID_Solicitud']) && $data['ID_Solicitud'] !== '' && $data['ID_Solicitud'] !== null) {
             $solExists = $this->api->getSolicitudWithProducts((int)$data['ID_Solicitud']);
             if (!$solExists) {
@@ -180,6 +210,24 @@ class Calendario extends ResourceController
         }
         if (empty($data)) {
             return $this->failValidationErrors(['evento' => 'Nada que actualizar']);
+        }
+
+        // Validar orden de fechas (usando valores nuevos o existentes)
+        $inicio = $data['fecha_inicio'] ?? $evento['fecha_inicio'];
+        $fin    = $data['fecha_fin']    ?? $evento['fecha_fin'];
+        if (strtotime($fin) <= strtotime($inicio)) {
+            return $this->failValidationErrors(['fecha_fin' => 'La fecha de fin debe ser posterior a la de inicio']);
+        }
+
+        $estatusActual = (string)($evento['estatus'] ?? 'pendiente');
+        $estatusNuevo  = (string)($data['estatus'] ?? $estatusActual);
+        $tieneEvidencia = (bool)$this->archivosModel->where('id_evento', $id)->first();
+
+        if ($tieneEvidencia && $estatusNuevo === 'pendiente') {
+            return $this->failValidationErrors(['estatus' => 'Un evento con evidencias no puede volver a "pendiente"']);
+        }
+        if (!$tieneEvidencia && $estatusNuevo === 'evidencia') {
+            return $this->failValidationErrors(['estatus' => 'El estatus "evidencia" solo se asigna al adjuntar archivos']);
         }
 
         if ($this->model->update($id, $data)) {
@@ -214,9 +262,9 @@ class Calendario extends ResourceController
             $payload = $this->request->getVar();
             if (!is_array($payload)) $payload = [];
         }
-        // Normalizar payload por compatibilidad JS (start/end ya vienen Y-m-d H:i:s desde toLocalStr)
-        if (isset($payload['start'])) $payload['start'] = trim($payload['start']);
-        if (isset($payload['end'])) $payload['end'] = trim($payload['end']);
+        // Normalizar fechas usando el helper (maneja T y segundos faltantes)
+        if (isset($payload['start'])) $payload['start'] = $this->normalizarFecha($payload['start']);
+        if (isset($payload['end'])) $payload['end'] = $this->normalizarFecha($payload['end']);
         $rules = [
             'start' => 'required|valid_date[Y-m-d H:i:s]',
             'end'   => 'required|valid_date[Y-m-d H:i:s]',
@@ -225,6 +273,10 @@ class Calendario extends ResourceController
             return $this->failValidationErrors($this->validator->getErrors());
         }
         $data = $this->validator->getValidated();
+
+        if (strtotime($data['end']) <= strtotime($data['start'])) {
+            return $this->failValidationErrors(['end' => 'La fecha de fin debe ser posterior a la de inicio']);
+        }
 
         if ($this->model->update($id, [
             'fecha_inicio' => $data['start'],
@@ -399,6 +451,7 @@ class Calendario extends ResourceController
         if ($folio) {
             $title = $title . ' — ' . $folio;
         }
+        $estatus = $e['estatus'] ?? 'pendiente';
         return [
             'id'              => (string)$e['id'],
             'title'           => $title,
@@ -406,6 +459,7 @@ class Calendario extends ResourceController
             'end'             => $e['fecha_fin'],
             'backgroundColor' => $e['color_evento'],
             'borderColor'     => $e['color_evento'],
+            'classNames'      => $estatus === 'cancelado' ? ['ev-cancelado'] : [],
             'extendedProps'   => [
                 'color'            => $e['color_evento'],
                 'estatus'          => $e['estatus'] ?? 'pendiente',
@@ -450,5 +504,34 @@ class Calendario extends ResourceController
         }
 
         return $this->response->download($filePath, null)->setFileName($archivo['nombre_archivo']);
+    }
+
+    /**
+     * Normaliza fechas de la API a 'Y-m-d H:i:s'.
+     *
+     * Los <input type="datetime-local"> entregan 'Y-m-d\TH:i' (sin segundos),
+     * formato que valid_date[Y-m-d H:i:s] rechaza. Acepta ambas variantes
+     * con o sin separador 'T'.
+     */
+    private function normalizarFecha($valor): string
+    {
+        $original = is_string($valor) ? $valor : '';
+        $valor    = str_replace('T', ' ', trim((string) $valor));
+
+        foreach (['Y-m-d H:i:s', 'Y-m-d H:i'] as $formato) {
+            $fecha   = \DateTime::createFromFormat($formato, $valor);
+            $errores = \DateTime::getLastErrors();
+            if ($fecha === false) {
+                continue;
+            }
+            if ($errores !== false && ($errores['warning_count'] > 0 || $errores['error_count'] > 0)) {
+                continue;
+            }
+            return $fecha->format('Y-m-d H:i:s');
+        }
+
+        // Formato no reconocido: se devuelve intacto para que valid_date
+        // genere el mensaje de error al usuario.
+        return $original;
     }
 }

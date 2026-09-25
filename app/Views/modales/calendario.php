@@ -3,6 +3,15 @@ $iconPath = FCPATH . 'icons/icons.svg';
 $version = file_exists($iconPath) ? filemtime($iconPath) : time();
 $iconUrl = "/icons/icons.svg?v=$version";
 ?>
+<style>
+/* Eventos cancelados: gris + tachado */
+.fc .ev-cancelado {
+    background-color: #9ca3af !important;
+    border-color: #6b7280 !important;
+    opacity: .8;
+}
+.fc .ev-cancelado .fc-event-title { text-decoration: line-through; }
+</style>
 <div id="agenda-vista" class="h-[min(85dvh,92vh)] sm:h-full flex flex-col min-h-0 flex-1 relative @container" x-data="calendarioApp()" x-init="init()" style="container-type:inline-size; container-name:agenda">
     <!-- Filtros lista (solo visible en listWeek) — filtran fc-list-table en tiempo real -->
     <div x-show="isListView && !showDetalle" x-cloak x-transition
