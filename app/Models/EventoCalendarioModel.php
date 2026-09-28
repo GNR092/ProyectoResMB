@@ -10,6 +10,13 @@ class EventoCalendarioModel extends Model
     use AuditTrait;
     protected $auditClasificacion = 'Calendario';
 
+    // Auditoria en bitacora: sin estos callbacks el AuditTrait nunca se ejecuta
+    protected $afterInsert  = ['auditInsert'];
+    protected $beforeUpdate = ['captureOldData'];
+    protected $afterUpdate  = ['auditUpdate'];
+    protected $beforeDelete = ['captureOldData'];
+    protected $afterDelete  = ['auditDelete'];
+
     protected $table = 'eventos_calendario';
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;

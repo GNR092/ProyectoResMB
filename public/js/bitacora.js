@@ -30,6 +30,7 @@ function bitacoraApp() {
                 'PresupuestoMensual': 'Gasto Mensual',
                 'Presupuesto': 'Presupuestos',
                 'Sistema': 'Errores Críticos',
+                'eventos_calendario': 'Agenda de Salidas',
                 'GENERAL': 'General'
             },
             acciones: {
@@ -43,6 +44,8 @@ function bitacoraApp() {
                 'APROBAR_Y_COTIZAR': 'Aprobación de Solicitud',
                 'CREAR_COTIZACION_MASIVA': 'Generación de Cotizaciones',
                 'SUBIR_ARCHIVOS_COTIZACION': 'Carga de Documentos',
+                'SUBIR_ARCHIVOS_AGENDA': 'Carga de Evidencias en Agenda',
+                'FALLO_SUBIR_ARCHIVOS_AGENDA': 'Fallo al Cargar Evidencias en Agenda',
                 'FALLO_LOGIN': 'Error de Autenticación'
             }
         },
@@ -50,7 +53,7 @@ function bitacoraApp() {
             modulos: [
                 'Solicitud', 'Cotizacion', 'Compras', 'OrdenCompra', 'Usuarios', 
                 'Catalogos', 'Autenticacion', 'PresupuestoAnual', 
-                'PresupuestoMensual', 'Presupuesto', 'Sistema'
+                'PresupuestoMensual', 'Presupuesto', 'Sistema', 'eventos_calendario'
             ],
             usuarios: [],
             departamentos: []
@@ -205,7 +208,9 @@ function bitacoraApp() {
                 'FALLO_LOGIN': 'bg-red-100 text-red-700 border-red-200',
                 'APROBAR_Y_COTIZAR': 'bg-indigo-100 text-indigo-700 border-indigo-200',
                 'CREAR_COTIZACION_MASIVA': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-                'SUBIR_ARCHIVOS_COTIZACION': 'bg-teal-100 text-teal-700 border-teal-200'
+                'SUBIR_ARCHIVOS_COTIZACION': 'bg-teal-100 text-teal-700 border-teal-200',
+                'SUBIR_ARCHIVOS_AGENDA': 'bg-teal-100 text-teal-700 border-teal-200',
+                'FALLO_SUBIR_ARCHIVOS_AGENDA': 'bg-red-100 text-red-700 border-red-200'
             };
             return classes[action] || 'bg-slate-50 text-slate-600 border-slate-100';
         },

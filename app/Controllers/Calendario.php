@@ -489,6 +489,20 @@ class Calendario extends ResourceController
             $this->model->update($id, ['estatus' => 'evidencia']);
         }
 
+        // Auditoria en bitacora (EventoArchivosModel no usa AuditTrait)
+        \CodeIgniter\Events\Events::trigger('auditoria', [
+            'tipo_accion'   => !empty($saved) ? 'SUBIR_ARCHIVOS_AGENDA' : 'FALLO_SUBIR_ARCHIVOS_AGENDA',
+            'clasificacion' => 'Calendario',
+            'modulo'        => 'eventos_calendario',
+            'solicitud_id'  => $evento['ID_Solicitud'] ?? null,
+            'estado'        => !empty($saved) ? 'exito' : 'fallido',
+            'valores_nuevos' => json_encode([
+                'id_evento' => $id,
+                'guardados' => $saved,
+                'errores'   => $errors,
+            ]),
+        ]);
+
         return $this->respond([
             'success' => true,
             'data'    => [
