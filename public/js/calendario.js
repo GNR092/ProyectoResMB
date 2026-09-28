@@ -457,8 +457,8 @@ function calendarioApp() {
                     right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
                 },
                 buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', list: 'Lista' },
-                slotMinTime: '06:00:00',
-                slotMaxTime: '21:00:00',
+                slotMinTime: '09:00:00',
+                slotMaxTime: '18:00:00',
                 slotDuration: '00:30:00',
                 slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
                 allDaySlot: false,
