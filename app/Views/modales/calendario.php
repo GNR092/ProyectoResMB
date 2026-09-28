@@ -97,7 +97,15 @@ $iconUrl = "/icons/icons.svg?v=$version";
          @click.self="closeEventModal"
          @keydown.escape.window="closeEventModal">
         <div class="bg-white rounded-xl shadow-xl p-4 sm:p-6 w-[calc(100vw-1rem)] sm:w-full max-w-[min(32rem,95vw)] mx-auto my-auto max-h-[85dvh] sm:max-h-[90vh] overflow-y-auto" @click.outside="closeEventModal">
-            <h3 class="text-base sm:text-lg font-semibold mb-4 text-carbon-900" x-text="soloLectura ? 'Detalle del evento' : (eventModalMode === 'create' ? 'Nuevo Evento' : 'Editar Evento')"></h3>
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <h3 class="text-base sm:text-lg font-semibold text-carbon-900" x-text="soloLectura ? 'Detalle del evento' : (eventModalMode === 'create' ? 'Nuevo Evento' : 'Editar Evento')"></h3>
+                <button type="button" @click="closeEventModal" title="Cerrar" aria-label="Cerrar"
+                        class="shrink-0 -mt-2 -mr-2 p-2.5 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition min-h-[44px] min-w-[44px]">
+                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
             <form @submit.prevent="saveEvent" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-carbon-700">Título</label>
@@ -217,11 +225,7 @@ $iconUrl = "/icons/icons.svg?v=$version";
                         <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Cancelar evento
                     </button>
-                    <span x-show="eventModalMode !== 'edit'" class="hidden sm:block"></span>
-                    <div class="flex gap-2 w-full sm:w-auto">
-                        <button type="button" @click="closeEventModal" x-text="soloLectura ? 'Cerrar' : 'Cancelar'" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 border border-carbon-300 rounded-lg text-carbon-700 hover:bg-carbon-50 transition-colors min-h-[44px] sm:min-h-0 text-sm font-medium">Cancelar</button>
-                        <button type="submit" x-show="!soloLectura" class="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors min-h-[44px] sm:min-h-0 text-sm font-medium" x-text="eventModalMode === 'create' ? 'Crear' : 'Guardar'"></button>
-                    </div>
+                    <button type="submit" x-show="!soloLectura" class="w-full sm:w-auto sm:ml-auto px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors min-h-[44px] sm:min-h-0 text-sm font-medium" x-text="eventModalMode === 'create' ? 'Crear' : 'Guardar'"></button>
                 </div>
                 <!-- Evidencias (solo en modo edición) -->
                 <div x-show="eventModalMode === 'edit'" class="mt-6 pt-4 border-t border-carbon-200">
