@@ -158,7 +158,7 @@ out/
 coverage/
 .eslintcache
 *.tsbuildinfo
-Tasks.md
+/Tasks.md
 [tT]est.php
 composer.lock
 GEMINI.md
