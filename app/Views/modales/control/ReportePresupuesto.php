@@ -3,6 +3,13 @@
 $razonesJson = json_encode($razones_sociales ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 $placesJson  = json_encode($places ?? [], JSON_HEX_APOS | JSON_HEX_QUOT);
 
+// El reporte de Solicitudes Realizadas filtra por Departamentos.Nombre, asi que
+// el catalogo se pasa como lista de nombres (no de objetos ID_Dpto/Nombre).
+$deptosJson  = json_encode(
+    array_values(array_filter(array_column($departamentos ?? [], 'Nombre'))),
+    JSON_HEX_APOS | JSON_HEX_QUOT
+);
+
 $iconPath = FCPATH . 'icons/icons.svg';
 $version = file_exists($iconPath) ? filemtime($iconPath) : time();
 $iconUrl = base_url("icons/icons.svg?v=$version");
@@ -12,7 +19,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
      class="p-6 min-h-[400px] rounded-2xl bg-slate-50 border border-slate-200"
      x-data="reportePresupuestoComponent"
      data-razones-json='<?= esc($razonesJson) ?>'
-     data-places-json='<?= esc($placesJson) ?>'>
+     data-places-json='<?= esc($placesJson) ?>'
+     data-departamentos-json='<?= esc($deptosJson) ?>'>
 
     <!-- Pantalla 1: Menú Principal -->
     <div x-show="pantalla === 'menu'" x-cloak class="animate-fadeIn">
@@ -100,6 +108,14 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     </svg>
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-sky-700 text-xs">Solicitudes Sin Cotizar</span>
+            </button>
+            <button @click="irAPantalla('realizadas')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-indigo-600" fill="none" stroke-width="1.5" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-indigo-700 text-xs">Solicitudes Realizadas</span>
             </button>
             <button @click="irAPantalla('mandacotizar')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
@@ -1970,6 +1986,209 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
         </div>
     </template>
 
+    <!-- Pantalla: Solicitudes Realizadas -->
+    <template x-if="pantalla === 'realizadas'">
+        <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-indigo-700 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="exportarSolicitudesRealizadasPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarSolicitudesRealizadasExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Solicitudes Realizadas</h2>
+            </div>
+
+            <!-- Panel de Filtros Avanzados -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <!-- Folio -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Folio</label>
+                        <input type="text" x-model="realizadas.filtros.folio" @input.debounce.500ms="realizadas.paginacion.pagina = 1; cargarSolicitudesRealizadas()" placeholder="Buscar folio..."
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                    </div>
+
+                    <!-- Desde -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha Desde</label>
+                        <input type="date" x-model="realizadas.filtros.fecha_inicio" @change="realizadas.paginacion.pagina = 1; cargarSolicitudesRealizadas()"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                    </div>
+
+                    <!-- Hasta -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha Hasta</label>
+                        <input type="date" x-model="realizadas.filtros.fecha_fin" @change="realizadas.paginacion.pagina = 1; cargarSolicitudesRealizadas()"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                    </div>
+
+                    <!-- Tipo -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Tipo</label>
+                        <select x-ref="choicesTipoRealizadas" multiple>
+                            <option value="Producto">Producto</option>
+                            <option value="Servicio">Servicio</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Estado -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Estado</label>
+                        <select x-ref="choicesEstadoRealizadas" multiple>
+                            <option value="Aprobacion Pendiente">Aprobacion Pendiente</option>
+                            <option value="En espera">En espera</option>
+                            <option value="Cotizando">Cotizando</option>
+                            <option value="En revision">En revision</option>
+                            <option value="Rechazada">Rechazada</option>
+                            <option value="Dept_Rechazada">Depto Rechazada</option>
+                            <option value="Aprobada">Aprobada</option>
+                            <option value="Espera_Programacion">Espera Programacion</option>
+                            <option value="Programada">Programada</option>
+                            <option value="Por Pagar">Por Pagar</option>
+                            <option value="Pagada">Pagada</option>
+                            <option value="En Proceso de Pago">En Proceso de Pago</option>
+                            <option value="Cancelada">Cancelada</option>
+                        </select>
+                    </div>
+
+                    <!-- Razón Social -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
+                        <select x-ref="choicesRazonRealizadas" multiple>
+                            <template x-for="rs in realizadas.opciones.razon" :key="'rsr-' + rs"><option :value="rs" x-text="rs"></option></template>
+                        </select>
+                    </div>
+
+                    <!-- Complejo -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Complejo</label>
+                        <select x-ref="choicesComplejoRealizadas" multiple>
+                            <template x-for="cp in realizadas.opciones.complejo" :key="'cpr-' + cp"><option :value="cp" x-text="cp"></option></template>
+                        </select>
+                    </div>
+
+                    <!-- Departamento -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
+                        <select x-ref="choicesDeptoRealizadas" multiple>
+                            <template x-for="dp in realizadas.opciones.depto" :key="'dpr-' + dp"><option :value="dp" x-text="dp"></option></template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button @click="realizadas.limpiarFiltrosRealizadas()" class="px-4 py-1.5 bg-slate-800 text-white text-[10px] font-bold rounded-lg hover:bg-slate-900 transition-all uppercase tracking-widest">
+                        Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="min-w-full border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">
+                        <tr>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Folio</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Razón Social</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Complejo</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Departamento</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Usuario</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Fecha Solicitud</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">F. Aprob. Jefe</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Estado</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Tipo</th>
+                            <th class="border border-slate-200 px-3 py-2 text-right">Costo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        <template x-if="realizadas.cargando">
+                            <tr>
+                                <td colspan="10" class="text-center py-12 text-gray-500 italic">Cargando solicitudes...</td>
+                            </tr>
+                        </template>
+                        <template x-if="!realizadas.cargando && realizadas.datos.length === 0">
+                            <tr>
+                                <td colspan="10" class="text-center py-12 text-gray-400 italic">No se encontraron solicitudes realizadas.</td>
+                            </tr>
+                        </template>
+                        <template x-for="s in realizadas.datos" :key="'real-' + s.ID_Solicitud">
+                            <tr class="text-xs border-b border-slate-100 transition-colors hover:bg-sky-50/40">
+                                <td class="px-2 py-2 text-center font-mono font-bold text-blue-800" x-text="s.No_Folio"></td>
+                                <td class="px-3 py-2 text-left font-bold text-gray-800" x-text="s.RazonSocial"></td>
+                                <td class="px-3 py-2 text-left" x-text="s.Complejo"></td>
+                                <td class="px-3 py-2 text-left" x-text="s.Departamento"></td>
+                                <td class="px-3 py-2 text-left" x-text="s.Usuario"></td>
+                                <td class="px-3 py-2 text-center text-gray-600" x-text="(s.FechaSolicitud || '').slice(0, 16)"></td>
+                                <td class="px-3 py-2 text-center" x-text="(s.FechaAprobacionJefe || '').slice(0, 16) || '—'"></td>
+                                <td class="px-3 py-2 text-center">
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide"
+                                          :class="colorEstadoRealizadas(s.Estado)"
+                                          x-text="s.Estado"></span>
+                                </td>
+                                <td class="px-3 py-2 text-center text-gray-600" x-text="s.Tipo"></td>
+                                <td class="px-3 py-2 text-right font-bold text-gray-800" x-text="formatearMoneda(s.CostoTotal)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot x-show="!realizadas.cargando && realizadas.datos.length > 0" class="bg-slate-100">
+                        <tr>
+                            <td colspan="9" class="px-3 py-3 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Total General:</td>
+                            <td class="px-3 py-3 text-right font-black text-slate-800" x-text="formatearMoneda(realizadas.totales.costo_total)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Resumen -->
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" x-show="!realizadas.cargando && realizadas.totales.cantidad > 0">
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-indigo-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Solicitudes</span>
+                    <span class="text-lg font-black text-indigo-700" x-text="realizadas.totales.cantidad"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-green-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Pagadas</span>
+                    <span class="text-lg font-black text-green-700" x-text="realizadas.datos.filter(s => s.Estado === 'Pagada').length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-red-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Rechazadas / Canceladas</span>
+                    <span class="text-lg font-black text-red-700" x-text="realizadas.datos.filter(s => ['Rechazada', 'Dept_Rechazada', 'Cancelada'].includes(s.Estado)).length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-slate-800 rounded-lg">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Costo Total</span>
+                    <span class="text-lg font-black text-white" x-text="formatearMoneda(realizadas.totales.costo_total)"></span>
+                </div>
+            </div>
+
+            <!-- Controles de Paginación -->
+            <div class="flex justify-between items-center mt-4" x-show="realizadas.paginacion.total_paginas > 1">
+                <span class="text-xs text-gray-600 font-medium">
+                    Página <span x-text="realizadas.paginacion.pagina"></span> de <span x-text="realizadas.paginacion.total_paginas"></span>
+                </span>
+                <div class="flex items-center gap-1">
+                    <button @click="irPaginaRealizadas(1)" :disabled="realizadas.paginacion.pagina === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                    <button @click="irPaginaRealizadas(realizadas.paginacion.pagina - 1)" :disabled="realizadas.paginacion.pagina === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+                    <span class="px-3 py-1 border rounded bg-indigo-600 text-white text-xs font-bold" x-text="realizadas.paginacion.pagina"></span>
+                    <button @click="irPaginaRealizadas(realizadas.paginacion.pagina + 1)" :disabled="realizadas.paginacion.pagina === realizadas.paginacion.total_paginas"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                    <button @click="irPaginaRealizadas(realizadas.paginacion.total_paginas)" :disabled="realizadas.paginacion.pagina === realizadas.paginacion.total_paginas"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
     <!-- Pantalla: Solicitudes Mandadas a Cotizar -->
     <template x-if="pantalla === 'mandacotizar'">
         <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
@@ -2497,6 +2716,18 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha Inicio Pago</label>
+                        <input type="date" x-model="filtroFechaInicioPagosRealizados" @change="cargarPagosRealizados()"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha Fin Pago</label>
+                        <input type="date" x-model="filtroFechaFinPagosRealizados" @change="cargarPagosRealizados()"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-sky-400 bg-white">
+                    </div>
+
+                    <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
                         <select x-ref="choicesRazonPagosRealizados" multiple>
                             <template x-for="rs in opcionesRazonesPagosRealizados" :key="'rs-r-' + rs"><option :value="rs" x-text="rs"></option></template>
@@ -2509,7 +2740,9 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             <template x-for="cp in opcionesComplejosPagosRealizados" :key="'cp-r-' + cp"><option :value="cp" x-text="cp"></option></template>
                         </select>
                     </div>
+                </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="flex flex-col gap-1">
                         <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
                         <select x-ref="choicesDeptosPagosRealizados" multiple>
@@ -2517,7 +2750,29 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                         </select>
                     </div>
 
-                    <div class="hidden md:block"></div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Usuario</label>
+                        <select x-ref="choicesUsuarioPagosRealizados" multiple>
+                            <template x-for="us in opcionesUsuariosPagosRealizados" :key="'us-r-' + us"><option :value="us" x-text="us"></option></template>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Forma de Pago</label>
+                        <select x-ref="choicesFormaPagoPagosRealizados" multiple>
+                            <option value="Contado">Contado</option>
+                            <option value="Crédito">Crédito</option>
+                            <option value="En Espera">En Espera</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Tipo</label>
+                        <select x-ref="choicesTipoPagosRealizados" multiple>
+                            <option value="Producto">Producto</option>
+                            <option value="Servicio">Servicio</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="flex justify-end mt-4">

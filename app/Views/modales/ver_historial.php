@@ -174,7 +174,7 @@
                 <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">F. Autorización</th>
                 <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">F. Programación</th>
                 <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Fecha Carga Comprobante</th>
-                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">F. Pago Real</th>
+                <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">F. Pago Bancario</th>
                 <th class="border px-4 py-2 whitespace-nowrap sticky top-0 z-20 bg-gray-100">Metodo de pago</th>
                 <th class="border px-4 py-2 whitespace-nowrap text-center sticky top-0 right-0 bg-gray-100 z-30 border-l" style="box-shadow: -4px 0 6px rgba(0,0,0,0.08), inset -1px 0 0 #d1d5db;">Acción</th>
             </tr>

@@ -80,6 +80,18 @@ function registrarComponenteReportePresupuesto() {
             choicesComplejoSinCoti: null,
             choicesDeptoSinCoti: null,
             choicesTipoSinCoti: null,
+            // ============ SOLICITUDES REALIZADAS (server-side) ============
+            realizadas: {
+                datos: [],
+                totales: { cantidad: 0, costo_total: 0 },
+                paginacion: { pagina: 1, por_pagina: 15, total_registros: 0, total_paginas: 0 },
+                filtros: { folio: '', fecha_inicio: '', fecha_fin: '', estado: [], razon: [], complejo: [], depto: [], tipo: [] },
+                opciones: { razon: [], complejo: [], depto: [] },
+                choices: { estado: null, razon: null, complejo: null, depto: null, tipo: null },
+                cargando: false,
+                error: false,
+                mensaje: ''
+            },
 
             // Solicitudes mandadas a cotizar
             // OJO: el filtro de estado arranca VACIO a proposito (a diferencia del hermano,
@@ -143,6 +155,8 @@ function registrarComponenteReportePresupuesto() {
             filtrosUsuarioPagosRealizados: [],
             filtrosFormaPagoPagosRealizados: [],
             filtrosTipoPagosRealizados: [],
+            filtroFechaInicioPagosRealizados: '',
+            filtroFechaFinPagosRealizados: '',
             currentPagePagosRealizados: 1,
             rowsPerPagePagosRealizados: 15,
             choicesRazonPagosRealizados: null,
@@ -182,6 +196,11 @@ function registrarComponenteReportePresupuesto() {
                 if (this.$el) {
                     this.razonesSociales = JSON.parse(this.$el.dataset.razonesJson || '[]');
                     this.todosPlaces     = JSON.parse(this.$el.dataset.placesJson || '[]');
+                    // Catalogo completo de departamentos (para Solicitudes Realizadas).
+                    this.catalogoDepartamentos = JSON.parse(this.$el.dataset.departamentosJson || '[]');
+                    this.realizadas.opciones.razon    = [...new Set(this.razonesSociales.map(r => (r.Nombre ?? r)).filter(Boolean))];
+                    this.realizadas.opciones.complejo = [...new Set(this.todosPlaces.map(p => (p.Nombre_Corto ?? p)).filter(Boolean))];
+                    this.realizadas.opciones.depto    = [...this.catalogoDepartamentos].filter(Boolean);
                 }
 
                 const now = new Date();
@@ -374,6 +393,10 @@ function registrarComponenteReportePresupuesto() {
                         }
                         if (nueva === 'sincotizar') {
                             this.cargarSolicitudesSinCotizar();
+                        }
+                        if (nueva === 'realizadas') {
+                            this.realizadas.paginacion.pagina = 1;
+                            this.cargarSolicitudesRealizadas();
                         }
                         if (nueva === 'mandacotizar') {
                             this.cargarSolicitudesMandaCoti();
@@ -995,6 +1018,190 @@ function registrarComponenteReportePresupuesto() {
                 }
             },
 
+            // ============ SOLICITUDES REALIZADAS ============
+            // A diferencia de los reportes hermanos, aqui TODOS los filtros y la
+            // paginacion se resuelven en el servidor: el componente nunca recibe
+            // el universo completo, solo la pagina pedida.
+
+            /** Serializa los filtros activos a query string (CSV para los multi-select). */
+            _queryStringRealizadas() {
+                const f = this.realizadas.filtros;
+                const p = new URLSearchParams();
+                if (f.folio) p.set('folio', f.folio);
+                if (f.fecha_inicio) p.set('fecha_inicio', f.fecha_inicio);
+                if (f.fecha_fin) p.set('fecha_fin', f.fecha_fin);
+                ['estado', 'razon', 'complejo', 'depto', 'tipo'].forEach(k => {
+                    if (Array.isArray(f[k]) && f[k].length) p.set(k, f[k].join(','));
+                });
+                p.set('page', String(this.realizadas.paginacion.pagina));
+                p.set('per_page', String(this.realizadas.paginacion.por_pagina));
+                return p.toString();
+            },
+
+            async cargarSolicitudesRealizadas() {
+                const r = this.realizadas;
+                r.cargando = true;
+                r.error = false;
+                try {
+                    const res = await fetch(`${BASE_URL}api/solicitudes/realizadas?${this._queryStringRealizadas()}`);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    r.datos = Array.isArray(data.datos) ? data.datos : [];
+                    r.totales = data.totales || { cantidad: 0, costo_total: 0 };
+                    r.paginacion = data.paginacion || { pagina: 1, por_pagina: 15, total_registros: 0, total_paginas: 0 };
+                    this.$nextTick(() => this.initChoicesRealizadas());
+                } catch (e) {
+                    console.error('Error cargando solicitudes realizadas:', e);
+                    r.datos = [];
+                    r.totales = { cantidad: 0, costo_total: 0 };
+                    r.mensaje = 'Error de conexión al cargar las solicitudes realizadas.';
+                    r.error = true;
+                } finally {
+                    r.cargando = false;
+                }
+            },
+
+            initChoicesRealizadas() {
+                if (typeof Choices === 'undefined') return;
+
+                const r = this.realizadas;
+                const config = { removeItemButton: true, itemSelectText: '', allowHTML: true, shouldSort: false, searchPlaceholderValue: 'Buscar...' };
+
+                // Cada multi-select escribe su seleccion en filtros[k] y recarga
+                // la pagina 1 del servidor. Sin preseleccion: vacio = sin filtro.
+                const initOne = (ref, key) => {
+                    const el = this.$refs[ref];
+                    if (!el) return;
+                    if (r.choices[key]) {
+                        r.choices[key].destroy();
+                        r.choices[key] = null;
+                    }
+                    const inst = new Choices(el, config);
+                    r.choices[key] = inst;
+                    el.addEventListener('change', () => {
+                        r.filtros[key] = inst.getValue(true).map(String);
+                        r.paginacion.pagina = 1;
+                        this.cargarSolicitudesRealizadas();
+                    });
+                };
+
+                initOne('choicesEstadoRealizadas', 'estado');
+                initOne('choicesRazonRealizadas', 'razon');
+                initOne('choicesComplejoRealizadas', 'complejo');
+                initOne('choicesDeptoRealizadas', 'depto');
+                initOne('choicesTipoRealizadas', 'tipo');
+            },
+
+            colorEstadoRealizadas(estado) {
+                if (['Cancelada', 'Rechazada', 'Dept_Rechazada'].includes(estado)) return 'bg-red-100 text-red-700';
+                if (estado === 'Aprobacion Pendiente') return 'bg-amber-100 text-amber-800';
+                if (['En espera', 'Cotizando', 'En revision'].includes(estado)) return 'bg-sky-100 text-sky-800';
+                if (['Aprobada', 'Espera_Programacion', 'Programada'].includes(estado)) return 'bg-green-100 text-green-700';
+                if (['Por Pagar', 'En Proceso de Pago'].includes(estado)) return 'bg-orange-100 text-orange-700';
+                if (estado === 'Pagada') return 'bg-emerald-100 text-emerald-700';
+                return 'bg-gray-100 text-gray-600';
+            },
+
+            irPaginaRealizadas(page) {
+                const p = this.realizadas.paginacion;
+                if (page < 1 || (p.total_paginas > 0 && page > p.total_paginas)) return;
+                p.pagina = page;
+                this.cargarSolicitudesRealizadas();
+            },
+
+            limpiarFiltrosRealizadas() {
+                const r = this.realizadas;
+                r.filtros = { folio: '', fecha_inicio: '', fecha_fin: '', estado: [], razon: [], complejo: [], depto: [], tipo: [] };
+                r.paginacion.pagina = 1;
+                Object.keys(r.choices).forEach(k => {
+                    if (r.choices[k]) {
+                        r.choices[k].setChoiceByValue([]);
+                        r.choices[k] = null;
+                    }
+                });
+                this.cargarSolicitudesRealizadas();
+            },
+
+            /**
+             * Los exports NO reciben las filas del navegador: mandan los filtros y
+             * el backend re-consulta el conjunto completo, de modo que el archivo
+             * nunca se desincroniza de lo que muestra la pantalla.
+             */
+            _payloadExportRealizadas() {
+                return {
+                    nombreEmpresa: window.APP_NOMBRE_EMPRESA || '',
+                    filtros: {
+                        folio: this.realizadas.filtros.folio,
+                        fecha_inicio: this.realizadas.filtros.fecha_inicio,
+                        fecha_fin: this.realizadas.filtros.fecha_fin,
+                        estado: this.realizadas.filtros.estado,
+                        razon: this.realizadas.filtros.razon,
+                        complejo: this.realizadas.filtros.complejo,
+                        depto: this.realizadas.filtros.depto,
+                        tipo: this.realizadas.filtros.tipo
+                    }
+                };
+            },
+
+            async _descargarRealizadas(url, nombreArchivo) {
+                const r = this.realizadas;
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando archivo de Solicitudes Realizadas...', 'info', 0) : null;
+                try {
+                    const res = await fetch(`${BASE_URL}${url}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this._payloadExportRealizadas())
+                    });
+
+                    if (!res.ok) {
+                        let detalle = 'No se pudo generar el archivo.';
+                        try {
+                            const ej = await res.json();
+                            if (ej && ej.message) detalle = ej.message;
+                        } catch (_) { /* respuesta no-JSON */ }
+                        throw new Error(detalle);
+                    }
+
+                    const blob = await res.blob();
+                    const href = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = href;
+                    a.download = nombreArchivo;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(href);
+                } catch (e) {
+                    console.error('Error exportando Solicitudes Realizadas:', e);
+                    alert(e.message || 'Error al generar el archivo.');
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            exportarSolicitudesRealizadasExcel() {
+                if (this.realizadas.totales.cantidad === 0) {
+                    alert('No hay datos para exportar.');
+                    return;
+                }
+                return this._descargarRealizadas(
+                    'api/solicitudes/realizadas/exportar-datos',
+                    `solicitudes_realizadas_${new Date().toISOString().split('T')[0]}.xlsx`
+                );
+            },
+
+            exportarSolicitudesRealizadasPdf() {
+                if (this.realizadas.totales.cantidad === 0) {
+                    alert('No hay datos para exportar.');
+                    return;
+                }
+                return this._descargarRealizadas(
+                    'api/solicitudes/realizadas/exportar-pdf',
+                    `solicitudes_realizadas_${new Date().toISOString().split('T')[0]}.pdf`
+                );
+            },
+
             // ============ SOLICITUDES MANDADAS A COTIZAR ============
 
             async cargarSolicitudesMandaCoti() {
@@ -1266,7 +1473,11 @@ function registrarComponenteReportePresupuesto() {
                 this.pagosRealizados = [];
                 this.currentPagePagosRealizados = 1;
                 try {
-                    const res = await fetch(`${BASE_URL}api/reportes/pagos-realizados`);
+                    const params = new URLSearchParams();
+                    if (this.filtroFechaInicioPagosRealizados) params.set('fecha_inicio', this.filtroFechaInicioPagosRealizados);
+                    if (this.filtroFechaFinPagosRealizados) params.set('fecha_fin', this.filtroFechaFinPagosRealizados);
+                    const queryString = params.toString() ? '?' + params.toString() : '';
+                    const res = await fetch(`${BASE_URL}api/reportes/pagos-realizados${queryString}`);
                     if (res.ok) {
                         const data = await res.json();
                         this.pagosRealizados = Array.isArray(data.datos) ? data.datos : [];
@@ -1395,7 +1606,10 @@ function registrarComponenteReportePresupuesto() {
                 this.filtrosUsuarioPagosRealizados = [];
                 this.filtrosFormaPagoPagosRealizados = [];
                 this.filtrosTipoPagosRealizados = [];
+                this.filtroFechaInicioPagosRealizados = '';
+                this.filtroFechaFinPagosRealizados = '';
                 this.currentPagePagosRealizados = 1;
+                this.cargarPagosRealizados();
             },
 
             abrirModalFechaCorteRealizados(tipo) {
@@ -1438,6 +1652,8 @@ function registrarComponenteReportePresupuesto() {
                     const payload = {
                         datos,
                         fechaCorte,
+                        fecha_inicio: this.filtroFechaInicioPagosRealizados || '',
+                        fecha_fin: this.filtroFechaFinPagosRealizados || '',
                         nombreEmpresa: window.APP_NOMBRE_EMPRESA || '',
                         filtros: {
                             razonesSociales: (this.filtrosRazonPagosRealizados || []).join(', '),
@@ -1482,6 +1698,8 @@ function registrarComponenteReportePresupuesto() {
                     const payload = {
                         datos,
                         fechaCorte,
+                        fecha_inicio: this.filtroFechaInicioPagosRealizados || '',
+                        fecha_fin: this.filtroFechaFinPagosRealizados || '',
                         nombreEmpresa: window.APP_NOMBRE_EMPRESA || '',
                         filtros: {
                             razonesSociales: (this.filtrosRazonPagosRealizados || []).join(', '),
