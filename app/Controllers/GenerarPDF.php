@@ -656,12 +656,33 @@ class GenerarPDF extends BaseController
 
     public static function _importPdfPages(PDF $pdf, string $pathForImport, string $title): void
     {
-        $pageCount = $pdf->setSourceFile($pathForImport);
-        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-            $templateId = $pdf->importPage($pageNo);
-            $size = $pdf->getTemplateSize($templateId);
-            $pdf->AddPage($size['width'] > $size['height'] ? 'L' : 'P', $size);
-            $pdf->useTemplate($templateId);
+        try {
+            $pageCount = $pdf->setSourceFile($pathForImport);
+            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                $templateId = $pdf->importPage($pageNo);
+                $size = $pdf->getTemplateSize($templateId);
+                $pdf->AddPage($size['width'] > $size['height'] ? 'L' : 'P', $size);
+                $pdf->useTemplate($templateId);
+            }
+        } catch (\Throwable $e) {
+            // Fallback: intentar convertir con Ghostscript si está disponible
+            if (GhostscriptProcessor::isAvailable()) {
+                $converted = self::_convertPdfForFpdi($pathForImport, $title);
+                if ($converted['success'] && $converted['path'] && file_exists($converted['path'])) {
+                    $pageCount = $pdf->setSourceFile($converted['path']);
+                    for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                        $templateId = $pdf->importPage($pageNo);
+                        $size = $pdf->getTemplateSize($templateId);
+                        $pdf->AddPage($size['width'] > $size['height'] ? 'L' : 'P', $size);
+                        $pdf->useTemplate($templateId);
+                    }
+                    @unlink($converted['path']);
+                    $pdf->Title($title, 0, -35, 0, 0, 'C');
+                    return;
+                }
+                @unlink($converted['path'] ?? null);
+            }
+            throw $e;
         }
 
         $pdf->Title($title, 0, -35, 0, 0, 'C');
