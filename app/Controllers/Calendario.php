@@ -444,6 +444,7 @@ class Calendario extends ResourceController
             $allowedMimes = [
                 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
                 'image/bmp', 'image/tiff',
+                'application/pdf',
             ];
             $maxSize = 10 * 1024 * 1024; // 10MB
 
@@ -735,6 +736,7 @@ class Calendario extends ResourceController
         $allowedMimes = [
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
             'image/bmp', 'image/tiff',
+            'application/pdf',
         ];
         if (!in_array($mime, $allowedMimes)) {
             return $this->failNotFound('Vista previa no disponible para este tipo de archivo');
@@ -823,7 +825,13 @@ class Calendario extends ResourceController
                 $pdf->Image($filePath, 10, $pdf->GetY(), $w * $ratio, $h * $ratio);
             } elseif ($isPdf) {
                 // Reutilizar método estático de GenerarPDF para importar páginas
-                \App\Controllers\GenerarPDF::_importPdfPages($pdf, $filePath, mb_convert_encoding($a['nombre_archivo'], 'ISO-8859-1', 'UTF-8'));
+                try {
+                    \App\Controllers\GenerarPDF::_importPdfPages($pdf, $filePath, mb_convert_encoding($a['nombre_archivo'], 'ISO-8859-1', 'UTF-8'));
+                } catch (\Throwable $e) {
+                    log_message('warning', '[Calendario][EvidenciasPDF] Error importando PDF ' . $a['nombre_archivo'] . ': ' . $e->getMessage());
+                    $pdf->SetFont('Arial', 'I', 10);
+                    $pdf->Cell(0, 10, '[Error al insertar este PDF: ' . mb_convert_encoding($a['nombre_archivo'], 'ISO-8859-1', 'UTF-8') . ']', 0, 1, 'C');
+                }
             }
         }
 

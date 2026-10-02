@@ -252,10 +252,11 @@ $iconUrl = "/icons/icons.svg?v=$version";
 
                     <div class="mb-3" x-show="!soloLectura && eventForm.estatus !== 'cancelado'">
                         <label class="block text-xs font-medium text-carbon-600 mb-1">Adjuntar archivos</label>
-                        <input type="file" x-ref="archivosInput" multiple @change="subirArchivos"
-                               class="w-full border border-carbon-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0"
-                               :disabled="subiendoArchivos">
-                        <p class="text-xs text-gray-400 mt-1">Imágenes (JPG, PNG, GIF, WebP, BMP, TIFF) máx. 10 MB c/u</p>
+<input type="file" x-ref="archivosInput" multiple @change="subirArchivos"
+                                class="w-full border border-carbon-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none min-h-[44px] sm:min-h-0"
+                                accept="image/*,application/pdf"
+                                :disabled="subiendoArchivos">
+                        <p class="text-xs text-gray-400 mt-1">Imágenes (JPG, PNG, GIF, WebP, BMP, TIFF) o PDF, máx. 10 MB c/u</p>
                     </div>
 
                     <!-- Lista individual (colapsable) -->
