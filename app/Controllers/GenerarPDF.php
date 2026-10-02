@@ -665,7 +665,7 @@ class GenerarPDF extends BaseController
                 $pdf->useTemplate($templateId);
             }
         } catch (\Throwable $e) {
-            // Fallback: intentar convertir con Ghostscript si está disponible
+            // Fallback 1: intentar convertir con Ghostscript si está disponible
             if (GhostscriptProcessor::isAvailable()) {
                 $converted = self::_convertPdfForFpdi($pathForImport, $title);
                 if ($converted['success'] && $converted['path'] && file_exists($converted['path'])) {
@@ -682,7 +682,24 @@ class GenerarPDF extends BaseController
                 }
                 @unlink($converted['path'] ?? null);
             }
-            throw $e;
+            // Fallback 2: rasterizar a imagen con Ghostscript (ultimo recurso)
+            if (GhostscriptProcessor::isAvailable()) {
+                $rasterized = GhostscriptProcessor::rasterizePdfToImages($pathForImport, sys_get_temp_dir(), 150);
+                if ($rasterized['success'] && !empty($rasterized['files'])) {
+                    foreach ($rasterized['files'] as $imgPath) {
+                        $pdf->AddPage();
+                        $pdf->Image($imgPath, 10, 10, 190);
+                        @unlink($imgPath);
+                    }
+                    $pdf->Title($title, 0, -35, 0, 0, 'C');
+                    return;
+                }
+            }
+            // PDF incompatible (incluso con Ghostscript): no romper el consolidado
+            log_message('error', '[EvidenciasPDF] PDF incompatible, se omite: ' . $title . ' | ' . $e->getMessage());
+            $pdf->AddPage();
+            $pdf->SetFont('Arial', 'I', 10);
+            $pdf->Cell(0, 10, '[PDF no compatible - omitido: ' . $title . ']', 0, 1, 'C');
         }
 
         $pdf->Title($title, 0, -35, 0, 0, 'C');

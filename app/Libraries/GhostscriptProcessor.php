@@ -56,6 +56,62 @@ class GhostscriptProcessor
         ];
     }
 
+    public static function rasterizePdfToImages(string $inputPath, string $outputDir, int $dpi = 150): array
+    {
+        $binary = self::resolveBinary();
+        if ($binary === null) {
+            return [
+                'success' => false,
+                'message' => 'No se encontro Ghostscript en el sistema.',
+                'files' => [],
+            ];
+        }
+
+        $outputPattern = $outputDir . DIRECTORY_SEPARATOR . 'page_%03d.png';
+        $command = implode(' ', [
+            escapeshellarg($binary),
+            '-dSAFER',
+            '-dBATCH',
+            '-dNOPAUSE',
+            '-sDEVICE=png16m',
+            '-r' . $dpi,
+            '-dGraphicsAlphaBits=4',
+            '-dTextAlphaBits=4',
+            '-sOutputFile=' . escapeshellarg($outputPattern),
+            escapeshellarg($inputPath),
+        ]);
+
+        $output = [];
+        $code = 1;
+        @exec($command . ' 2>&1', $output, $code);
+
+        if ($code !== 0) {
+            return [
+                'success' => false,
+                'message' => 'Ghostscript no pudo rasterizar el PDF.',
+                'code' => $code,
+                'output' => implode("\n", $output),
+                'files' => [],
+            ];
+        }
+
+        $files = glob($outputDir . DIRECTORY_SEPARATOR . 'page_*.png');
+        if (empty($files)) {
+            return [
+                'success' => false,
+                'message' => 'Ghostscript no genero archivos de imagen.',
+                'files' => [],
+            ];
+        }
+
+        sort($files);
+        return [
+            'success' => true,
+            'message' => 'Rasterizacion completada.',
+            'files' => $files,
+        ];
+    }
+
     public static function resolveBinary(): ?string
     {
         foreach (self::candidateBinaries() as $candidate) {
