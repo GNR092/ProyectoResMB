@@ -688,7 +688,7 @@ class GenerarPDF extends BaseController
         $pdf->Title($title, 0, -35, 0, 0, 'C');
     }
 
-    private function _convertPdfForFpdi(string $filePath, string $fileName): array
+    private static function _convertPdfForFpdi(string $filePath, string $fileName): array
     {
         if (!GhostscriptProcessor::isAvailable()) {
             log_message(
