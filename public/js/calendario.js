@@ -645,7 +645,7 @@ function calendarioApp() {
         },
 
         styleEvent(info) {
-            const color = info.event.extendedProps.color || info.event.backgroundColor || '#FF5722';
+            const color = info.event.extendedProps.estatus === 'evidencia' ? '#6DE800' : (info.event.extendedProps.color || info.event.backgroundColor || '#FF5722');
             const isMobile = window.innerWidth < 640;
             info.el.style.backgroundColor = color;
             info.el.style.borderColor = color;

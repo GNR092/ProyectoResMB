@@ -638,8 +638,8 @@ class Calendario extends ResourceController
             'title'           => $title,
             'start'           => $e['fecha_inicio'],
             'end'             => $e['fecha_fin'],
-            'backgroundColor' => $e['color_evento'],
-            'borderColor'     => $e['color_evento'],
+            'backgroundColor' => $estatus === 'evidencia' ? '#6DE800' : $e['color_evento'],
+            'borderColor'     => $estatus === 'evidencia' ? '#6DE800' : $e['color_evento'],
             'classNames'      => $estatus === 'cancelado' ? ['ev-cancelado'] : [],
             'extendedProps'   => [
                 'color'            => $e['color_evento'],
