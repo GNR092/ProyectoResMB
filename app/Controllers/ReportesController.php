@@ -2211,6 +2211,495 @@ $cols[] = chr(65 + $i);
         ]);
     }
 
+    // ============================================================
+    // REPORTE: SOLICITUDES MANDADAS A COTIZAR
+    // ============================================================
+
+    /**
+     * Obtiene las solicitudes que fueron mandadas a cotizar.
+     *
+     * El universo es la UNION de dos conjuntos, y ninguna de sus partes filtra por
+     * el estado ACTUAL de la solicitud: una requisicion enviada a cotizar sigue
+     * apareciendo aunque hoy este en 'Cotizada', 'Aprobada', 'Programada' o
+     * 'Rechazada'.
+     *
+     *   1. CON EVENTO DE BITACORA (conjunto 1)
+     *      Solicitudes con 'APROBAR_Y_COTIZAR' en estado 'exito'.
+     *      Origen = 'Evento'. FechaMandaCotizar = MIN(bitacora.fecha_hora).
+     *      Cubre toda requisicion que paso por Api::aprobarYCotizar(), sin importar
+     *      en que estado haya acabado.
+     *
+     *   2. SIN EVENTO DE BITACORA (conjunto 2) -- brecha de cobertura
+     *      Estas requisiciones nunca pasaron por aprobarYCotizar(), asi que no
+     *      generan el evento. Se cubren con DOS subconjuntos:
+     *        2a. 'Estado actual': sigue en 'En espera' / 'Cotizando'. Aun no
+     *            registro ninguna transicion de salida.
+     *        2b. 'Historico': tiene una transicion de SALIDA registrada. Se detecta
+     *            porque SolicitudModel corre AuditTrait (SolicitudModel.php:59-60),
+     *            que deja un ACTUALIZAR con el estado previo en valores_antiguos.
+     *            Sin 2b, estas requisiciones desaparecerian del reporte en cuanto
+     *            avanzaran de estado, y no aparecerian en NINGUN periodo.
+     *
+     * FECHA DE LOS CONJUNTOS 2a/2b: NO se usa Solicitud.Fecha salvo como ultimo
+     * recurso, porque es la fecha de CREACION y no la de envio a cotizacion. Datos
+     * reales de la BD que lo demuestran (solicitud MBSP-1): se creo el 2026-09-21
+     * y paso 'En espera' -> 'Cotizando' el 2026-09-22, un dia despues.
+     *   - Si existe la transicion de ENTRADA (valores_nuevos.Estado pasa a
+     *     'En espera'/'Cotizando'), se usa su MIN(fecha_hora): es el instante
+     *     exacto en que se mando a cotizar.
+     *   - Si no existe (requisicion creada por un jefe de departamento, que nace
+     *     YA en estado de cotizacion -- Archivo.php:219-224 -- y por tanto nunca
+     *     genera una transicion), se cae a Solicitud.Fecha a medianoche. Aqui si es
+     *     exacta en el dia, pero con precision de dia y no de hora.
+     *
+     * Solo lectura: no crea, altera ni borra ninguna tabla, columna o indice.
+     *
+     * @return \CodeIgniter\RESTful\ResourcePresenter
+     */
+    public function getSolicitudesMandaCotizar()
+    {
+        $solicitudModel = new SolicitudModel();
+        $productoModel  = new SolicitudProductModel();
+        $servicioModel  = new SolicitudServiciosModel();
+        $bitacoraModel  = new BitacoraModel();
+
+        $vacio = [
+            'datos'   => [],
+            'totales' => ['cantidad' => 0, 'costo_total' => 0, 'con_evento' => 0, 'sin_evento' => 0],
+        ];
+
+        // --- CONJUNTO 1: con evento de bitacora APROBAR_Y_COTIZAR ---
+        // MIN(fecha_hora) + GROUP BY se mantiene aunque el duplicado sea estructuralmente
+        // imposible (Api::aprobarYCotizar rechaza con 400 si Estado !== Aprobacion_pendiente,
+        // Api.php:1203-1205, y nada devuelve una solicitud a Aprobacion Pendiente):
+        // es defensa idempotente ante cualquier reintento futuro.
+        // NO usar selectMin(): escaparia "fecha_hora" y el alias seria invalido en PostgreSQL.
+        $mapaEvento = [];
+        $eventos = $bitacoraModel
+            ->select('solicitud_id, MIN(fecha_hora) AS fecha_manda_cotizar')
+            ->where('tipo_accion', 'APROBAR_Y_COTIZAR')
+            ->where('estado', 'exito')
+            ->where('solicitud_id IS NOT NULL', null, false)
+            ->groupBy('solicitud_id')
+            ->findAll();
+
+        foreach ($eventos as $ev) {
+            $sid = (int) ($ev['solicitud_id'] ?? 0);
+            if ($sid > 0) {
+                // fecha_hora es "timestamp without time zone": trae microsegundos
+                // (2026-09-28 13:33:13.253512). Se recortan a 19 caracteres para
+                // igualar el formato 'YYYY-MM-DD HH:MM:SS' del contrato.
+                $mapaEvento[$sid] = substr((string) ($ev['fecha_manda_cotizar'] ?? ''), 0, 19);
+            }
+        }
+
+        // --- CONJUNTO 2: sin evento, pero que pasaron (o siguen) por estado de cotizacion ---
+        // Se arma con DOS subconjuntos para no perder requisiciones que ya avanzaron:
+        //   2a. Actualmente en 'En espera' / 'Cotizando'. Origen = 'Estado actual'.
+        //   2b. Tienen un ACTUALIZAR cuyo valores_antiguos contiene un estado previo
+        //       de cotizacion: ya salieron de esos estados. Origen = 'Historico'.
+        //       Solo AuditTrait los deja (SolicitudModel.php:59-60), y es el mismo
+        //       truco que getSolicitudesSinCotizar() usa con 'Aprobacion Pendiente'
+        //       (este archivo, L2156-2173). Sin 2b, estas requisiciones desaparecerian
+        //       del reporte en cuanto avanzaran de estado.
+
+        // 2a) estado actual
+        $idsSinEvento = array_map('intval', array_column(
+            $solicitudModel->select('ID_Solicitud')
+                ->whereIn('Estado', [Status::En_espera, 'Cotizando'])
+                ->findAll(),
+            'ID_Solicitud'
+        ));
+
+// 2b) transicion historica de SALIDA. Solo lectura sobre bitacora.
+        // La ENTRADA usa valores_nuevos; la SALIDA usa valores_antiguos. La extraccion
+        // del campo 'Estado' dentro del JSON es distinta por driver:
+        //   PostgreSQL ->  "valores_antiguos"->>'Estado'
+        //   MySQLi     ->  JSON_UNQUOTE(JSON_EXTRACT(`valores_antiguos`,'$.Estado'))
+        // Se replica el patron de app/Libraries/Rest.php:2993-2998. Se comparan por
+        // igualdad sobre la clave extraida, NO con LIKE sobre el JSON completo, para
+        // ser exactos y no depender de como el driver serialice las columnas JSON.
+        // whereIn con $escape=false porque la expresion es cruda: sin eso el Query
+        // Builder protegeria el identificador y la deformaria. PERO $escape=false
+        // desactiva tambien el escapado de los valores (emitiria IN (En espera,Cotizando)
+        // sin comillas), por eso la lista se escapa a mano con $db->escape() antes.
+        // (CI4 4.7 no tiene whereRaw.)
+        $dbConexion = \Config\Database::connect();
+        $dbDriver = $dbConexion->DBDriver;
+        if ($dbDriver === 'Postgre') {
+            $estadoPrevioExpr = '"valores_antiguos"->>\'Estado\'';
+            $estadoNuevoExpr  = '"valores_nuevos"->>\'Estado\'';
+        } else {
+            $estadoPrevioExpr = 'JSON_UNQUOTE(JSON_EXTRACT(`valores_antiguos`, \'$.Estado\'))';
+            $estadoNuevoExpr  = 'JSON_UNQUOTE(JSON_EXTRACT(`valores_nuevos`, \'$.Estado\'))';
+        }
+        $estadosCotizacion = $dbConexion->escape([Status::En_espera, 'Cotizando']);
+
+        $transiciones = $bitacoraModel->select('solicitud_id')
+            ->where('tipo_accion', 'ACTUALIZAR')
+            ->where('solicitud_id IS NOT NULL', null, false)
+            ->whereIn($estadoPrevioExpr, $estadosCotizacion, false)
+            ->groupBy('solicitud_id')
+            ->findAll();
+
+        // Ids con transicion historica registrada (subconjunto 2b). Se guardan aparte
+        // porque 'Origen' distingue 2a ('Estado actual') de 2b ('Historico').
+        $idsHistoricoRaw = array_values(array_unique(array_filter(
+            array_map('intval', array_column($transiciones, 'solicitud_id'))
+        )));
+
+        // 2b-bis) Momento exacto de ENTRADA a cotizacion: el ACTUALIZAR cuyo
+        // valores_nuevos.Estado pasa a 'En espera'/'Cotizando'. Es la fecha real de
+        // envio a cotizar (Solicitud.Fecha es la de creacion y puede ser otro dia).
+        // Se consulta para todo el conjunto 2, no solo 2b: una solicitud que sigue en
+        // 'Cotizando' (2a) tambien tiene entrada, y asi ambas quedan con hora exacta.
+        // MIN(fecha_hora) porque una solicitud podria re-entrar; se toma la primera.
+        $entradas = $bitacoraModel->select('solicitud_id, MIN(fecha_hora) AS fecha_entrada')
+            ->where('tipo_accion', 'ACTUALIZAR')
+            ->where('modulo', 'Solicitud')
+            ->where('solicitud_id IS NOT NULL', null, false)
+            ->whereIn($estadoNuevoExpr, $estadosCotizacion, false)
+            ->groupBy('solicitud_id')
+            ->findAll();
+
+        // fecha_hora trae microsegundos: se recortan a 19 para igualar el formato
+        // 'YYYY-MM-DD HH:MM:SS' del contrato.
+        $mapaEntrada = [];
+        foreach ($entradas as $en) {
+            $sid = (int) ($en['solicitud_id'] ?? 0);
+            if ($sid > 0) {
+                $mapaEntrada[$sid] = substr((string) ($en['fecha_entrada'] ?? ''), 0, 19);
+            }
+        }
+
+        $idsSinEvento = array_values(array_unique(array_merge($idsSinEvento, $idsHistoricoRaw)));
+
+        // Excluir las que ya tienen evento (set 1 manda sobre el origen).
+        if (!empty($mapaEvento)) {
+            $idsSinEvento = array_values(array_diff($idsSinEvento, array_map('intval', array_keys($mapaEvento))));
+        }
+        $idsPorEstado = $idsSinEvento;
+
+        // --- Fusion de ambos conjuntos: una sola fila por solicitud ---
+        $ids = array_values(array_unique(array_merge(array_keys($mapaEvento), $idsPorEstado)));
+        if (empty($ids)) {
+            return $this->respond($vacio);
+        }
+
+        $solicitudes = $solicitudModel
+            ->select('Solicitud.*, Departamentos.Nombre as DepartamentoNombre, Places.Nombre_Corto as ComplejoNombre, Razon_Social.Nombre as RazonSocialNombre, Usuarios.Nombre as UsuarioNombre')
+            ->join('Departamentos', 'Departamentos.ID_Dpto = Solicitud.ID_Dpto', 'left')
+            // OJO: el complejo sale del DEPARTAMENTO, no de Solicitud.ID_UnidadOperativa.
+            ->join('Places', 'Places.ID_Place = Departamentos.ID_Place', 'left')
+            ->join('Razon_Social', 'Razon_Social.ID_RazonSocial = Solicitud.ID_RazonSocial', 'left')
+            ->join('Usuarios', 'Usuarios.ID_Usuario = Solicitud.ID_Usuario', 'left')
+            ->whereIn('Solicitud.ID_Solicitud', $ids)
+            ->orderBy('Solicitud.ID_Solicitud', 'DESC')
+            ->findAll();
+
+        if (empty($solicitudes)) {
+            return $this->respond($vacio);
+        }
+
+        // --- Costo total por solicitud (misma formula que getSolicitudesSinCotizar) ---
+        $costos = array_fill_keys($ids, 0.0);
+
+        $rows = $productoModel->select('ID_Solicitud, Cantidad, Importe')->whereIn('ID_Solicitud', $ids)->findAll();
+        foreach ($rows as $r) {
+            $costos[$r['ID_Solicitud']] += (float) $r['Cantidad'] * (float) $r['Importe'];
+        }
+
+        $rows = $servicioModel->select('ID_Solicitud, Importe')->whereIn('ID_Solicitud', $ids)->findAll();
+        foreach ($rows as $r) {
+            $costos[$r['ID_Solicitud']] += (float) $r['Importe'];
+        }
+
+        $datos = [];
+        $totalGeneral = 0.0;
+        $conEvento = 0;
+        $sinEvento = 0;
+        $idsHistorico = array_flip($idsHistoricoRaw);
+
+        foreach ($solicitudes as $sol) {
+            $id = (int) $sol['ID_Solicitud'];
+
+            $montoBase = $costos[$id] ?? 0;
+            $ivaVal    = $sol['IVA'] ?? false;
+            $ivaOn     = ($ivaVal === 't' || $ivaVal === '1' || $ivaVal === 1 || $ivaVal === true);
+            $costo     = round($montoBase * ($ivaOn ? 1.16 : 1.0), 2);
+            $totalGeneral += $costo;
+
+            $tipo = (int) ($sol['Tipo'] ?? SolicitudTipo::Cotizacion);
+
+            if (isset($mapaEvento[$id])) {
+                $origen = 'Evento';
+                $fechaMandaCotizar = $mapaEvento[$id];
+                $conEvento++;
+            } else {
+                // Subconjunto 2a (sigue en estado de cotizacion) vs 2b (ya avanzo, pero
+                // existe una transicion de salida registrada en bitacora).
+                $origen = isset($idsHistorico[$id]) ? 'Historico' : 'Estado actual';
+                // Fecha real de envio a cotizacion: la transicion de ENTRADA
+                // (valores_nuevos.Estado pasa a 'En espera'/'Cotizando'). Solicitud.Fecha
+                // es la de CREACION y puede caer en otro dia, asi que solo se usa como
+                // fallback para requisiciones creadas por jefes que nacen ya en estado de
+                // cotizacion y nunca generan transicion (Archivo.php:219-224).
+                if (isset($mapaEntrada[$id])) {
+                    $fechaMandaCotizar = $mapaEntrada[$id];
+                } else {
+                    // Solicitud.Fecha es un "date" (2026-09-21, 10 caracteres). Se normaliza a
+                    // medianoche para respetar el formato 'YYYY-MM-DD HH:MM:SS' del contrato y para
+                    // que el filtro de periodo por comparacion de strings sea inclusivo en ambos extremos.
+                    $fechaMandaCotizar = substr((string) ($sol['Fecha'] ?? ''), 0, 10) . ' 00:00:00';
+                }
+                $sinEvento++;
+            }
+
+            $datos[] = [
+                'ID_Solicitud'      => $id,
+                'No_Folio'          => $sol['No_Folio'] ?? 'N/A',
+                'RazonSocial'       => $sol['RazonSocialNombre'] ?? 'N/A',
+                'Complejo'          => $sol['ComplejoNombre'] ?? 'N/A',
+                'Departamento'     => $sol['DepartamentoNombre'] ?? 'N/A',
+                'Usuario'           => $sol['UsuarioNombre'] ?? 'N/A',
+                'FechaSolicitud'    => $sol['Fecha'] ?? null,
+                'FechaMandaCotizar' => $fechaMandaCotizar,
+                'Origen'            => $origen,
+                'Estado'            => $sol['Estado'] ?? 'N/A',
+                'Tipo'              => in_array($tipo, [SolicitudTipo::NoCotizacion, SolicitudTipo::Cotizacion], true)
+                    ? 'Producto' : 'Servicio',
+                'CostoTotal'        => $costo,
+            ];
+        }
+
+        return $this->respond([
+            'datos'   => $datos,
+            'totales' => [
+                'cantidad'    => count($datos),
+                'costo_total' => round($totalGeneral, 2),
+                'con_evento'  => $conEvento,
+                'sin_evento'  => $sinEvento,
+            ],
+        ]);
+    }
+
+    /**
+     * Exporta a Excel (XLSX) las solicitudes mandadas a cotizar.
+     *
+     * Recibe { datos, filtros, nombreEmpresa }. No recalcula ni re-filtra nada:
+     * escribe exactamente el arreglo 'datos' que le envio el frontend.
+     */
+    public function exportarSolicitudesMandaCotizarXlsx()
+    {
+        try {
+            $json = $this->request->getJSON(true);
+            $datos = $json['datos'] ?? [];
+            $nombreEmpresa = $json['nombreEmpresa'] ?? 'Grupo MBM';
+            $fechaHoy = date('d/m/Y H:i:s');
+
+            if (empty($datos)) {
+                return $this->fail('No hay datos para generar el Excel');
+            }
+
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Solicitudes Mandadas a Cotizar');
+
+            $sheet->setCellValue('A1', $nombreEmpresa);
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $sheet->setCellValue('A2', 'REPORTE DE SOLICITUDES MANDADAS A COTIZAR');
+            $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12);
+            $sheet->setCellValue('A3', 'Fecha de creación: ' . $fechaHoy);
+            $sheet->getStyle('A3')->getFont()->setItalic(true)->setSize(10);
+
+            $headers = ['Folio', 'Razón Social', 'Complejo', 'Departamento', 'Usuario Solicitante', 'Fecha Solicitud', 'F. Manda Cotizar', 'Origen', 'Estado', 'Tipo', 'Costo Total'];
+
+            $cols = [];
+            for ($i = 0; $i < count($headers); $i++) {
+                $cols[] = $this->getColumnLetter($i);
+            }
+
+            $headerStyle = [
+                'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F2937']],
+            ];
+            $borderStyle = [
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'E5E7EB']]],
+            ];
+
+            foreach ($headers as $i => $h) {
+                $sheet->setCellValue($cols[$i] . '5', $h);
+                $sheet->getStyle($cols[$i] . '5')->applyFromArray($headerStyle);
+                $sheet->getColumnDimension($cols[$i])->setAutoSize(true);
+            }
+
+            $row = 6;
+            $totalGeneral = 0;
+            foreach ($datos as $v) {
+                $total = (float) ($v['CostoTotal'] ?? 0);
+                $totalGeneral += $total;
+
+                $sheet->setCellValue($cols[0] . $row, $v['No_Folio'] ?? '');
+                $sheet->setCellValue($cols[1] . $row, $v['RazonSocial'] ?? '');
+                $sheet->setCellValue($cols[2] . $row, $v['Complejo'] ?? '');
+                $sheet->setCellValue($cols[3] . $row, $v['Departamento'] ?? '');
+                $sheet->setCellValue($cols[4] . $row, $v['Usuario'] ?? '');
+                $sheet->setCellValue($cols[5] . $row, $v['FechaSolicitud'] ?? '');
+                $sheet->setCellValue($cols[6] . $row, $v['FechaMandaCotizar'] ?? '');
+                $sheet->setCellValue($cols[7] . $row, $v['Origen'] ?? '');
+                $sheet->setCellValue($cols[8] . $row, $v['Estado'] ?? '');
+                $sheet->setCellValue($cols[9] . $row, $v['Tipo'] ?? '');
+                $sheet->setCellValue($cols[10] . $row, $total);
+                $sheet->getStyle($cols[10] . $row)->getNumberFormat()->setFormatCode('$#,##0.00');
+                $sheet->getStyle($cols[0] . $row . ':' . $cols[10] . $row)->applyFromArray($borderStyle);
+                $row++;
+            }
+
+            $sheet->setCellValue($cols[9] . ($row + 1), 'TOTAL GENERAL');
+            $sheet->getStyle($cols[9] . ($row + 1))->getFont()->setBold(true);
+            $sheet->getStyle($cols[9] . ($row + 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->setCellValue($cols[10] . ($row + 1), $totalGeneral);
+            $sheet->getStyle($cols[10] . ($row + 1))->getFont()->setBold(true);
+            $sheet->getStyle($cols[10] . ($row + 1))->getNumberFormat()->setFormatCode('$#,##0.00');
+
+            $writer = new Xlsx($spreadsheet);
+            $this->response->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            $this->response->setHeader('Content-Disposition', 'attachment; filename="solicitudes_manda_cotizar_' . date('Ymd') . '.xlsx"');
+            $writer->save('php://output');
+            exit;
+
+        } catch (\Throwable $e) {
+            log_message('error', '[exportarSolicitudesMandaCotizarXlsx] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
+    /**
+     * Exporta a PDF las solicitudes mandadas a cotizar.
+     *
+     * Recibe { datos, filtros, nombreEmpresa }. No recalcula ni re-filtra nada:
+     * dibuja exactamente el arreglo 'datos' que le envio el frontend.
+     */
+    public function exportarSolicitudesMandaCotizarPdf()
+    {
+        try {
+            $json   = $this->request->getJSON(true);
+            $datos  = $json['datos'] ?? [];
+            $filtros = $json['filtros'] ?? [];
+            $nombreEmpresa = $json['nombreEmpresa'] ?? 'Grupo MBM';
+            $fechaHoy = date('d/m/Y H:i:s');
+
+            if (empty($datos)) {
+                return $this->fail('No hay datos para generar el PDF');
+            }
+
+            $pdf = new PDF('L', 'mm', 'Letter');
+            $pdf->AliasNbPages();
+            $pdf->SetAutoPageBreak(false);
+            $pdf->setHeaderTitle('REPORTE SOLICITUDES MANDADAS A COTIZAR');
+            $pdf->AddPage();
+
+            $pdf->SetFont('Arial', 'B', 12);
+            $pdf->SetTextColor(18, 18, 18);
+            $pdf->Cell(0, 7, $this->_iso('REPORTE DE SOLICITUDES MANDADAS A COTIZAR'), 0, 1, 'L');
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetTextColor(90, 90, 90);
+            $pdf->Cell(0, 4, $this->_iso('Empresa: ' . $nombreEmpresa), 0, 1, 'L');
+
+            $filtrosStr = [];
+            if (!empty($filtros['desde']) || !empty($filtros['hasta'])) {
+                $filtrosStr[] = 'Fecha Manda Cotizar: ' . ($filtros['desde'] ?? '...') . ' a ' . ($filtros['hasta'] ?? '...');
+            }
+            if (!empty($filtros['estados'])) {
+                $filtrosStr[] = 'Estados: ' . (is_array($filtros['estados']) ? implode(', ', $filtros['estados']) : $filtros['estados']);
+            }
+            if (!empty($filtros['origenes'])) {
+                $filtrosStr[] = 'Origen: ' . (is_array($filtros['origenes']) ? implode(', ', $filtros['origenes']) : $filtros['origenes']);
+            }
+            if (!empty($filtros['razonesSociales'])) {
+                $filtrosStr[] = 'Razón Social: ' . (is_array($filtros['razonesSociales']) ? implode(', ', $filtros['razonesSociales']) : $filtros['razonesSociales']);
+            }
+            if (!empty($filtros['complejos'])) {
+                $filtrosStr[] = 'Complejo: ' . (is_array($filtros['complejos']) ? implode(', ', $filtros['complejos']) : $filtros['complejos']);
+            }
+            if (!empty($filtros['departamentos'])) {
+                $filtrosStr[] = 'Departamentos: ' . (is_array($filtros['departamentos']) ? implode(', ', $filtros['departamentos']) : $filtros['departamentos']);
+            }
+            if (!empty($filtros['tipos'])) {
+                $filtrosStr[] = 'Tipo: ' . (is_array($filtros['tipos']) ? implode(', ', $filtros['tipos']) : $filtros['tipos']);
+            }
+            if (!empty($filtros['folios'])) {
+                $filtrosStr[] = 'Folio: ' . (is_array($filtros['folios']) ? implode(', ', $filtros['folios']) : $filtros['folios']);
+            }
+            $pdf->Cell(0, 4, $this->_iso('Filtros: ' . (empty($filtrosStr) ? 'Ninguno' : implode(' | ', $filtrosStr))), 0, 1, 'L');
+            $pdf->Cell(0, 4, $this->_iso('Generado: ' . $fechaHoy), 0, 1, 'L');
+            $pdf->Ln(2);
+
+            $headers = ['Folio', 'Razón Social', 'Complejo', 'Departamento', 'Usuario', 'Fecha Solic.', 'F. Manda Cotizar', 'Origen', 'Estado', 'Tipo', 'Costo Total'];
+            $colW    = [22, 30, 24, 28, 28, 20, 24, 22, 22, 16, 24];
+            $lineH   = 5;
+
+            $pdf->SetWidths($colW);
+            $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetDrawColor(229, 231, 235);
+            $totalGeneral = 0;
+
+            foreach ($datos as $item) {
+                $importe = (float) ($item['CostoTotal'] ?? 0);
+                $totalGeneral += $importe;
+
+                $cells = [
+                    $item['No_Folio'] ?? 'N/A',
+                    $item['RazonSocial'] ?? 'N/A',
+                    $item['Complejo'] ?? 'N/A',
+                    $item['Departamento'] ?? 'N/A',
+                    $item['Usuario'] ?? 'N/A',
+                    $item['FechaSolicitud'] ?? 'N/A',
+                    $item['FechaMandaCotizar'] ?? 'N/A',
+                    $item['Origen'] ?? 'N/A',
+                    $item['Estado'] ?? 'N/A',
+                    $item['Tipo'] ?? 'N/A',
+                    '$' . number_format($importe, 2),
+                ];
+
+                $lineCounts = [];
+                foreach ($cells as $i => $c) {
+                    $lineCounts[$i] = $pdf->NbLines($colW[$i], $this->_iso($c));
+                }
+                $h = max($lineCounts) * $lineH;
+
+                if ($pdf->GetY() + $h > $pdf->getPageBreakTrigger()) {
+                    $pdf->AddPage();
+                    $this->_dibujarCabeceraOscura($pdf, $colW, $headers, $lineH);
+                    $pdf->SetFont('Arial', '', 8);
+                    $pdf->SetTextColor(0, 0, 0);
+                    $pdf->SetDrawColor(229, 231, 235);
+                }
+
+                $aligns = [];
+                foreach ($cells as $i => $v) {
+                    $aligns[$i] = ($i === 10) ? 'R' : 'L';
+                }
+                $pdf->SetX(8);
+                $pdf->drawTableRow($colW, array_map(fn($v) => $this->_iso((string) $v), $cells), $aligns, $lineH, false);
+            }
+
+            $this->_dibujarTotalGeneral($pdf, $colW, 'TOTAL: $' . number_format($totalGeneral, 2));
+
+            $this->response->setHeader('Content-Type', 'application/pdf');
+            $pdf->Output('D', 'solicitudes_manda_cotizar_' . date('Ymd') . '.pdf');
+            exit;
+
+        } catch (\Throwable $e) {
+            log_message('error', '[exportarSolicitudesMandaCotizarPdf] ' . $e->getMessage());
+            return $this->failServerError($e->getMessage());
+        }
+    }
+
     /**
      * Exporta a Excel las solicitudes sin cotizar.
      */

@@ -101,6 +101,14 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                 </div>
                 <span class="font-bold text-gray-700 group-hover:text-sky-700 text-xs">Solicitudes Sin Cotizar</span>
             </button>
+            <button @click="irAPantalla('mandacotizar')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+                <div class="mb-2 group-hover:scale-110 transition-transform">
+                    <svg class="size-8 text-orange-600" fill="none" stroke-width="1.5" stroke="currentColor">
+                        <use xlink:href="<?= $iconUrl ?>#cotizacion"></use>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-700 group-hover:text-orange-700 text-xs">Solicitudes Mandadas a Cotizar</span>
+            </button>
             <button @click="irAPantalla('pagos_pendientes')" class="flex flex-col items-center p-4 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/70 transition-all duration-150 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
                 <div class="mb-2 group-hover:scale-110 transition-transform">
                     <svg class="size-8 text-emerald-600" fill="none" stroke-width="1.5" stroke="currentColor">
@@ -1956,6 +1964,212 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                     <button @click="cambiarPaginaSinCoti(currentPageSinCoti + 1)" :disabled="currentPageSinCoti === totalPagesSinCoti"
                             class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
                     <button @click="cambiarPaginaSinCoti(totalPagesSinCoti)" :disabled="currentPageSinCoti === totalPagesSinCoti"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Pantalla: Solicitudes Mandadas a Cotizar -->
+    <template x-if="pantalla === 'mandacotizar'">
+        <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
+                <button @click="irAPantalla('menu')" class="text-base text-black hover:text-orange-600 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center bg-gray-100/[0.05] border border-gold-metallic/20 rounded-full overflow-hidden shadow-sm">
+                        <a @click="exportarSolicitudesMandaCotiPdf()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-rose-600 hover:bg-rose-600 hover:text-white transition-all border-r border-gold-metallic/20 flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            PDF
+                        </a>
+                        <a @click="exportarSolicitudesMandaCotiExcel()" class="cursor-pointer px-5 py-2.5 text-[10px] font-black text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2 group">
+                            <svg class="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            EXCEL
+                        </a>
+                    </div>
+                </div>
+                <h2 class="text-xl font-bold text-gray-800">Solicitudes Mandadas a Cotizar</h2>
+            </div>
+
+            <!-- Panel de Filtros Avanzados -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <!-- Folio -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Folio</label>
+                        <input type="text" x-model="filtroTextoFolioMandaCoti" placeholder="Buscar folio..."
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+                    </div>
+
+                    <!-- Desde -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha Manda Cotizar Desde</label>
+                        <input type="date" x-model="filtroFechaDesdeMandaCoti" @change="currentPageMandaCoti = 1"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+                    </div>
+
+                    <!-- Hasta -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Fecha Manda Cotizar Hasta</label>
+                        <input type="date" x-model="filtroFechaHastaMandaCoti" @change="currentPageMandaCoti = 1"
+                               class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-amber-400 bg-white">
+                    </div>
+
+                    <!-- Tipo -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Tipo</label>
+                        <select x-ref="choicesTipoMandaCoti" multiple>
+                            <template x-for="tp in opcionesTiposMandaCoti" :key="'tp-' + tp"><option :value="tp" x-text="tp"></option></template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <!-- Estado (dinamico) -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Estado</label>
+                        <select x-ref="choicesEstadoMandaCoti" multiple>
+                            <template x-for="es in opcionesEstadosMandaCoti" :key="'es-' + es"><option :value="es" x-text="es"></option></template>
+                        </select>
+                    </div>
+
+                    <!-- Origen (dinamico) -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Origen</label>
+                        <select x-ref="choicesOrigenMandaCoti" multiple>
+                            <template x-for="or in opcionesOrigenesMandaCoti" :key="'or-' + or"><option :value="or" x-text="or"></option></template>
+                        </select>
+                    </div>
+
+                    <!-- Razón Social -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Razón Social</label>
+                        <select x-ref="choicesRazonMandaCoti" multiple>
+                            <template x-for="rs in opcionesRazonesMandaCoti" :key="'rs-' + rs"><option :value="rs" x-text="rs"></option></template>
+                        </select>
+                    </div>
+
+                    <!-- Complejo -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Complejo</label>
+                        <select x-ref="choicesComplejoMandaCoti" multiple>
+                            <template x-for="cp in opcionesComplejosMandaCoti" :key="'cp-' + cp"><option :value="cp" x-text="cp"></option></template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Departamento -->
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase ml-1 tracking-wide">Departamento</label>
+                        <select x-ref="choicesDeptoMandaCoti" multiple>
+                            <template x-for="dp in opcionesDeptosMandaCoti" :key="'dp-' + dp"><option :value="dp" x-text="dp"></option></template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button @click="limpiarFiltrosMandaCoti()" class="px-4 py-1.5 bg-slate-800 text-white text-[10px] font-bold rounded-lg hover:bg-slate-900 transition-all uppercase tracking-widest">
+                        Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                <table class="min-w-full border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 uppercase text-[9px] font-bold">
+                        <tr>
+                            <th class="border border-slate-200 px-2 py-2 text-center">Folio</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Razón Social</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Complejo</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Departamento</th>
+                            <th class="border border-slate-200 px-3 py-2 text-left">Usuario</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Fecha Solicitud</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">F. Manda Cotizar</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Origen</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Estado</th>
+                            <th class="border border-slate-200 px-3 py-2 text-center">Tipo</th>
+                            <th class="border border-slate-200 px-3 py-2 text-right">Costo Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white">
+                        <template x-if="cargandoMandaCoti">
+                            <tr>
+                                <td colspan="11" class="text-center py-12 text-gray-500 italic">Cargando solicitudes mandadas a cotizar...</td>
+                            </tr>
+                        </template>
+                        <template x-if="!cargandoMandaCoti && paginatedMandaCoti.length === 0">
+                            <tr>
+                                <td colspan="11" class="text-center py-12 text-gray-400 italic">No se encontraron solicitudes mandadas a cotizar.</td>
+                            </tr>
+                        </template>
+                        <template x-for="(s, index) in paginatedMandaCoti" :key="'mandacoti-' + s.ID_Solicitud">
+                            <tr class="text-xs border-b border-slate-100 transition-colors hover:bg-orange-50/70">
+                                <td class="px-2 py-2 text-center font-mono font-bold text-blue-800" x-text="s.No_Folio"></td>
+                                <td class="px-3 py-2 text-left font-bold text-gray-800" x-text="s.RazonSocial"></td>
+                                <td class="px-3 py-2 text-left" x-text="s.Complejo"></td>
+                                <td class="px-3 py-2 text-left" x-text="s.Departamento"></td>
+                                <td class="px-3 py-2 text-left" x-text="s.Usuario"></td>
+                                <td class="px-3 py-2 text-center text-gray-600" x-text="(s.FechaSolicitud || '').slice(0, 16)"></td>
+                                <td class="px-3 py-2 text-center" x-text="(s.FechaMandaCotizar || '').slice(0, 19) || '—'"></td>
+                                <td class="px-3 py-2 text-center">
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide"
+                                          :class="s.Origen === 'Evento' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+                                          x-text="s.Origen"></span>
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide"
+                                          :class="s.Estado === 'Cotizada' || s.Estado === 'Aprobada' || s.Estado === 'En revision' ? 'bg-emerald-100 text-emerald-800' : (s.Estado === 'En espera' || s.Estado === 'Cotizando' ? 'bg-sky-100 text-sky-800' : (s.Estado === 'Cancelada' || s.Estado === 'Rechazada' || s.Estado === 'Dept_Rechazada' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'))"
+                                          x-text="s.Estado"></span>
+                                </td>
+                                <td class="px-3 py-2 text-center text-gray-600" x-text="s.Tipo"></td>
+                                <td class="px-3 py-2 text-right font-bold text-gray-800" x-text="formatearMoneda(s.CostoTotal)"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot x-show="!cargandoMandaCoti && solicitudesMandaCotiFiltradas.length > 0" class="bg-slate-100">
+                        <tr>
+                            <td colspan="10" class="px-3 py-3 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Total General:</td>
+                            <td class="px-3 py-3 text-right font-black text-slate-800" x-text="formatearMoneda(totalCostoMandaCoti)"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Resumen: tarjetas propias de este reporte (las del hermano no aplican aqui) -->
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" x-show="!cargandoMandaCoti && solicitudesMandaCotiFiltradas.length > 0">
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-orange-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Solicitudes</span>
+                    <span class="text-lg font-black text-orange-700" x-text="solicitudesMandaCotiFiltradas.length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-emerald-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Con Evento (Bitácora)</span>
+                    <span class="text-lg font-black text-emerald-700" x-text="solicitudesMandaCotiFiltradas.filter(s =&gt; s.Origen === 'Evento').length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-amber-500">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Sin Evento (Bitácora)</span>
+                    <span class="text-lg font-black text-amber-700" x-text="solicitudesMandaCotiFiltradas.filter(s =&gt; s.Origen !== 'Evento').length"></span>
+                </div>
+                <div class="flex flex-col p-3 bg-slate-800 rounded-lg">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Costo Total</span>
+                    <span class="text-lg font-black text-white" x-text="formatearMoneda(totalCostoMandaCoti)"></span>
+                </div>
+            </div>
+
+            <!-- Controles de Paginación -->
+            <div class="flex justify-between items-center mt-4" x-show="totalPagesMandaCoti > 1">
+                <span class="text-xs text-gray-600 font-medium">
+                    Página <span x-text="currentPageMandaCoti"></span> de <span x-text="totalPagesMandaCoti"></span>
+                </span>
+                <div class="flex items-center gap-1">
+                    <button @click="cambiarPaginaMandaCoti(1)" :disabled="currentPageMandaCoti === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&laquo;</button>
+                    <button @click="cambiarPaginaMandaCoti(currentPageMandaCoti - 1)" :disabled="currentPageMandaCoti === 1"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&lsaquo;</button>
+                    <span class="px-3 py-1 border rounded bg-orange-600 text-white text-xs font-bold" x-text="currentPageMandaCoti"></span>
+                    <button @click="cambiarPaginaMandaCoti(currentPageMandaCoti + 1)" :disabled="currentPageMandaCoti === totalPagesMandaCoti"
+                            class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
+                    <button @click="cambiarPaginaMandaCoti(totalPagesMandaCoti)" :disabled="currentPageMandaCoti === totalPagesMandaCoti"
                             class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
                 </div>
             </div>

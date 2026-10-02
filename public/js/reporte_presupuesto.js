@@ -81,6 +81,31 @@ function registrarComponenteReportePresupuesto() {
             choicesDeptoSinCoti: null,
             choicesTipoSinCoti: null,
 
+            // Solicitudes mandadas a cotizar
+            // OJO: el filtro de estado arranca VACIO a proposito (a diferencia del hermano,
+            // que usa ['Aprobacion Pendiente','En espera']). Este reporte debe incluir
+            // tambien las solicitudes que ya salieron de la etapa de cotizacion.
+            solicitudesMandaCoti: [],
+            totalesMandaCoti: { cantidad: 0, costo_total: 0, con_evento: 0, sin_evento: 0 },
+            cargandoMandaCoti: false,
+            filtroTextoFolioMandaCoti: '',
+            filtroFechaDesdeMandaCoti: '',
+            filtroFechaHastaMandaCoti: '',
+            filtrosEstadoMandaCoti: [],
+            filtrosRazonMandaCoti: [],
+            filtrosComplejoMandaCoti: [],
+            filtrosDeptoMandaCoti: [],
+            filtrosTipoMandaCoti: [],
+            filtrosOrigenMandaCoti: [],
+            currentPageMandaCoti: 1,
+            rowsPerPageMandaCoti: 15,
+            choicesRazonMandaCoti: null,
+            choicesComplejoMandaCoti: null,
+            choicesDeptoMandaCoti: null,
+            choicesTipoMandaCoti: null,
+            choicesEstadoMandaCoti: null,
+            choicesOrigenMandaCoti: null,
+
             // Reporte Pagos Pendientes
             pagosPendientes: [],
             totalesPagosPend: { cantidad: 0, total_general: 0, saldo_total: 0 },
@@ -272,6 +297,24 @@ function registrarComponenteReportePresupuesto() {
                 this.filtrosTipoSinCoti = [];
                 this.currentPageSinCoti = 1;
 
+                this.solicitudesMandaCoti = [];
+                this.totalesMandaCoti = { cantidad: 0, costo_total: 0, con_evento: 0, sin_evento: 0 };
+                this.cargandoMandaCoti = false;
+                this.filtroTextoFolioMandaCoti = '';
+                this.filtroFechaDesdeMandaCoti = '';
+                this.filtroFechaHastaMandaCoti = '';
+                this.filtrosEstadoMandaCoti = [];
+                this.filtrosRazonMandaCoti = [];
+                this.filtrosComplejoMandaCoti = [];
+                this.filtrosDeptoMandaCoti = [];
+                this.filtrosTipoMandaCoti = [];
+                this.filtrosOrigenMandaCoti = [];
+                this.currentPageMandaCoti = 1;
+                ['choicesRazonMandaCoti', 'choicesComplejoMandaCoti', 'choicesDeptoMandaCoti',
+                    'choicesTipoMandaCoti', 'choicesEstadoMandaCoti', 'choicesOrigenMandaCoti'].forEach(c => {
+                    if (this[c]) { try { this[c].destroy(); } catch (e) { /* noop */ } this[c] = null; }
+                });
+
                 this.pagosPendientes = [];
                 this.totalesPagosPend = { cantidad: 0, total_general: 0, saldo_total: 0 };
                 this.filtroTextoFolioPagosPend = '';
@@ -331,6 +374,9 @@ function registrarComponenteReportePresupuesto() {
                         }
                         if (nueva === 'sincotizar') {
                             this.cargarSolicitudesSinCotizar();
+                        }
+                        if (nueva === 'mandacotizar') {
+                            this.cargarSolicitudesMandaCoti();
                         }
                         if (nueva === 'pagos_pendientes') {
                             this.cargarPagosPendientes();
@@ -943,6 +989,270 @@ function registrarComponenteReportePresupuesto() {
                     }
                 } catch (e) {
                     console.error('Error exportarSolicitudesSinCotizarPdf:', e);
+                    alert('Error al generar el PDF.');
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            // ============ SOLICITUDES MANDADAS A COTIZAR ============
+
+            async cargarSolicitudesMandaCoti() {
+                // OJO: la ruta no admite query string, se trazan los filtros en el cliente.
+                this.cargandoMandaCoti = true;
+                this.solicitudesMandaCoti = [];
+                this.currentPageMandaCoti = 1;
+                try {
+                    const res = await fetch(`${BASE_URL}api/solicitudes/manda-cotizar`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.solicitudesMandaCoti = Array.isArray(data.datos) ? data.datos : [];
+                        this.totalesMandaCoti = data.totales
+                            || { cantidad: 0, costo_total: 0, con_evento: 0, sin_evento: 0 };
+                        this.$nextTick(() => this.initChoicesMandaCoti());
+                    } else {
+                        console.error('Error al cargar las solicitudes mandadas a cotizar:', await res.text());
+                        this.mensaje = 'Error al cargar las solicitudes mandadas a cotizar.';
+                        this.error = true;
+                    }
+                } catch (e) {
+                    console.error('Error cargando solicitudes mandadas a cotizar:', e);
+                    this.mensaje = 'Error de conexión.';
+                    this.error = true;
+                } finally {
+                    this.cargandoMandaCoti = false;
+                }
+            },
+
+            initChoicesMandaCoti() {
+                if (typeof Choices === 'undefined') return;
+
+                const config = { removeItemButton: true, itemSelectText: '', allowHTML: true, shouldSort: false, searchPlaceholderValue: 'Buscar...' };
+
+                const initOne = (ref, prop, choicesProp) => {
+                    const el = this.$refs[ref];
+                    if (!el) return;
+                    if (this[choicesProp]) this[choicesProp].destroy();
+                    this[choicesProp] = new Choices(el, config);
+                    el.addEventListener('change', () => {
+                        this[prop] = this[choicesProp].getValue(true).map(String);
+                        this.currentPageMandaCoti = 1;
+                    });
+                };
+
+                initOne('choicesRazonMandaCoti', 'filtrosRazonMandaCoti', 'choicesRazonMandaCoti');
+                initOne('choicesComplejoMandaCoti', 'filtrosComplejoMandaCoti', 'choicesComplejoMandaCoti');
+                initOne('choicesDeptoMandaCoti', 'filtrosDeptoMandaCoti', 'choicesDeptoMandaCoti');
+                initOne('choicesTipoMandaCoti', 'filtrosTipoMandaCoti', 'choicesTipoMandaCoti');
+                initOne('choicesEstadoMandaCoti', 'filtrosEstadoMandaCoti', 'choicesEstadoMandaCoti');
+                initOne('choicesOrigenMandaCoti', 'filtrosOrigenMandaCoti', 'choicesOrigenMandaCoti');
+            },
+
+            // --- Opciones dinamicas derivadas de los datos cargados ---
+
+            get opcionesRazonesMandaCoti() {
+                return [...new Set(this.solicitudesMandaCoti.map(s => s.RazonSocial).filter(Boolean))];
+            },
+
+            get opcionesComplejosMandaCoti() {
+                return [...new Set(this.solicitudesMandaCoti.map(s => s.Complejo).filter(Boolean))];
+            },
+
+            get opcionesDeptosMandaCoti() {
+                return [...new Set(this.solicitudesMandaCoti.map(s => s.Departamento).filter(Boolean))];
+            },
+
+            get opcionesEstadosMandaCoti() {
+                return [...new Set(this.solicitudesMandaCoti.map(s => s.Estado).filter(Boolean))];
+            },
+
+            get opcionesTiposMandaCoti() {
+                return [...new Set(this.solicitudesMandaCoti.map(s => s.Tipo).filter(Boolean))];
+            },
+
+            get opcionesOrigenesMandaCoti() {
+                return [...new Set(this.solicitudesMandaCoti.map(s => s.Origen).filter(Boolean))];
+            },
+
+            // OJO: el filtro de periodo se hace por COMPARACION DE STRINGS, nunca con new Date().
+            // 'YYYY-MM-DD HH:MM:SS' no es una fecha conforme ES2020: Safari devuelve Invalid Date
+            // y las comparaciones contra NaN dan false, por lo que las filas se colarian sin
+            // filtrar, en silencio. Como el formato es de longitud fija, el orden lexicografico
+            // equivale al cronologico.
+            get solicitudesMandaCotiFiltradas() {
+                const source = Array.isArray(this.solicitudesMandaCoti) ? this.solicitudesMandaCoti : [];
+
+                const searchFolio = (this.filtroTextoFolioMandaCoti || '').trim().toLowerCase();
+                const desde = this.filtroFechaDesdeMandaCoti || '';
+                const hasta = this.filtroFechaHastaMandaCoti || '';
+                const selEstados = (this.filtrosEstadoMandaCoti || []).map(String);
+                const selRazones = (this.filtrosRazonMandaCoti || []).map(String);
+                const selComplejos = (this.filtrosComplejoMandaCoti || []).map(String);
+                const selDeptos = (this.filtrosDeptoMandaCoti || []).map(String);
+                const selTipos = (this.filtrosTipoMandaCoti || []).map(String);
+                const selOrigenes = (this.filtrosOrigenMandaCoti || []).map(String);
+
+                const filtered = source.filter(s => {
+                    if (selEstados.length > 0 && !selEstados.includes(String(s.Estado))) return false;
+                    if (selRazones.length > 0 && !selRazones.includes(String(s.RazonSocial))) return false;
+                    if (selComplejos.length > 0 && !selComplejos.includes(String(s.Complejo))) return false;
+                    if (selDeptos.length > 0 && !selDeptos.includes(String(s.Departamento))) return false;
+                    if (selTipos.length > 0 && !selTipos.includes(String(s.Tipo))) return false;
+                    if (selOrigenes.length > 0 && !selOrigenes.includes(String(s.Origen))) return false;
+
+                    if (searchFolio && !(s.No_Folio || '').toLowerCase().includes(searchFolio)) return false;
+
+                    const f = (s.FechaMandaCotizar || '').slice(0, 19);
+                    if (desde && f < desde + ' 00:00:00') return false;
+                    if (hasta && f > hasta + ' 23:59:59') return false;
+
+                    return true;
+                });
+
+                // Orden descendente por fecha de envio a cotizar. localeCompare sobre este
+                // formato equivale al orden cronologico. Array.sort es estable (ES2019), asi que
+                // los empates conservan el orderBy del servidor: resultado determinista.
+                return filtered.sort((a, b) => (b.FechaMandaCotizar || '').localeCompare(a.FechaMandaCotizar || ''));
+            },
+
+            get totalPagesMandaCoti() {
+                return Math.ceil(this.solicitudesMandaCotiFiltradas.length / this.rowsPerPageMandaCoti) || 1;
+            },
+
+            get paginatedMandaCoti() {
+                const filtrados = this.solicitudesMandaCotiFiltradas;
+                const start = (this.currentPageMandaCoti - 1) * this.rowsPerPageMandaCoti;
+                return filtrados.slice(start, start + this.rowsPerPageMandaCoti);
+            },
+
+            get totalCostoMandaCoti() {
+                return this.solicitudesMandaCotiFiltradas.reduce((acc, s) => acc + (parseFloat(s.CostoTotal) || 0), 0);
+            },
+
+            cambiarPaginaMandaCoti(page) {
+                if (page < 1 || page > this.totalPagesMandaCoti) return;
+                this.currentPageMandaCoti = page;
+            },
+
+            limpiarFiltrosMandaCoti() {
+                ['choicesEstadoMandaCoti', 'choicesRazonMandaCoti', 'choicesComplejoMandaCoti',
+                    'choicesDeptoMandaCoti', 'choicesTipoMandaCoti', 'choicesOrigenMandaCoti'].forEach(r => {
+                    if (this[r]) this[r].removeActiveItems();
+                });
+                this.filtroTextoFolioMandaCoti = '';
+                this.filtroFechaDesdeMandaCoti = '';
+                this.filtroFechaHastaMandaCoti = '';
+                // Vuelve a VACIO: este reporte no preselecciona estados (a diferencia del hermano).
+                this.filtrosEstadoMandaCoti = [];
+                this.filtrosRazonMandaCoti = [];
+                this.filtrosComplejoMandaCoti = [];
+                this.filtrosDeptoMandaCoti = [];
+                this.filtrosTipoMandaCoti = [];
+                this.filtrosOrigenMandaCoti = [];
+                this.currentPageMandaCoti = 1;
+            },
+
+            _payloadFiltrosMandaCoti() {
+                return {
+                    desde: this.filtroFechaDesdeMandaCoti,
+                    hasta: this.filtroFechaHastaMandaCoti,
+                    estados: (this.filtrosEstadoMandaCoti || []).join(', '),
+                    razonesSociales: (this.filtrosRazonMandaCoti || []).join(', '),
+                    complejos: (this.filtrosComplejoMandaCoti || []).join(', '),
+                    departamentos: (this.filtrosDeptoMandaCoti || []).join(', '),
+                    tipos: (this.filtrosTipoMandaCoti || []).join(', '),
+                    origenes: (this.filtrosOrigenMandaCoti || []).join(', '),
+                    folios: (this.filtroTextoFolioMandaCoti || '').trim()
+                };
+            },
+
+            _nombreEmpresaMandaCoti() {
+                // window.APP_NOMBRE_EMPRESA no esta definido en ninguna vista del proyecto, asi que
+                // siempre resuelve a undefined. Si mandamos '' el controlador NO cae a su valor
+                // por defecto (?? solo dispara con null) y el encabezado saldria vacio.
+                // Mismo valor por defecto que usa el backend.
+                return window.APP_NOMBRE_EMPRESA || 'Grupo MBM';
+            },
+
+            async exportarSolicitudesMandaCotiExcel() {
+                const filteredData = this.solicitudesMandaCotiFiltradas;
+                if (filteredData.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando Excel de Solicitudes Mandadas a Cotizar...', 'info', 0) : null;
+                try {
+                    // Se envia exactamente el subconjunto filtrado: el exportador no re-filtra.
+                    const payload = {
+                        datos: filteredData,
+                        filtros: this._payloadFiltrosMandaCoti(),
+                        nombreEmpresa: this._nombreEmpresaMandaCoti()
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/solicitudes/manda-cotizar/exportar-datos`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `solicitudes_manda_cotizar_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert("Error al generar el archivo Excel.");
+                    }
+                } catch (e) {
+                    console.error("Error exportarSolicitudesMandaCotiExcel:", e);
+                    alert("Error al generar el Excel.");
+                } finally {
+                    if (notif && typeof notif.click === 'function') notif.click();
+                }
+            },
+
+            async exportarSolicitudesMandaCotiPdf() {
+                const filteredData = this.solicitudesMandaCotiFiltradas;
+                if (filteredData.length === 0) {
+                    alert("No hay datos para exportar.");
+                    return;
+                }
+
+                const notif = typeof mostrarNotificacion !== 'undefined'
+                    ? mostrarNotificacion('Generando PDF de Solicitudes Mandadas a Cotizar...', 'info', 0) : null;
+                try {
+                    const payload = {
+                        datos: filteredData,
+                        filtros: this._payloadFiltrosMandaCoti(),
+                        nombreEmpresa: this._nombreEmpresaMandaCoti()
+                    };
+
+                    const res = await fetch(`${BASE_URL}api/solicitudes/manda-cotizar/exportar-pdf`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `solicitudes_manda_cotizar_${new Date().toISOString().split('T')[0]}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        alert('No se pudo generar el PDF.');
+                    }
+                } catch (e) {
+                    console.error('Error exportarSolicitudesMandaCotiPdf:', e);
                     alert('Error al generar el PDF.');
                 } finally {
                     if (notif && typeof notif.click === 'function') notif.click();

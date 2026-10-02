@@ -271,6 +271,11 @@ if (!file_exists($installerLockFile)) {
         $routes->post('api/solicitudes/sin-cotizar/exportar-datos', 'ReportesController::exportarSolicitudesSinCotizarJson');
         $routes->post('api/solicitudes/sin-cotizar/exportar-pdf', 'ReportesController::exportarSolicitudesSinCotizarPdf');
 
+        // Rutas API Solicitudes Mandadas a Cotizar
+        $routes->get('api/solicitudes/manda-cotizar', 'ReportesController::getSolicitudesMandaCotizar');
+        $routes->post('api/solicitudes/manda-cotizar/exportar-datos', 'ReportesController::exportarSolicitudesMandaCotizarXlsx');
+        $routes->post('api/solicitudes/manda-cotizar/exportar-pdf', 'ReportesController::exportarSolicitudesMandaCotizarPdf');
+
         // Rutas API Reporte Pagos Pendientes
         $routes->get('api/reportes/pagos-pendientes', 'ReportesController::getPagosPendientesReporte');
         $routes->post('api/reportes/pagos-pendientes/exportar-datos', 'ReportesController::exportarPagosPendientesJson');
