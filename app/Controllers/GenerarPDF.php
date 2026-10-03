@@ -731,7 +731,7 @@ class GenerarPDF extends BaseController
         $outputPath = $tempFile . '.pdf';
 
         log_message('info', '[Ghostscript] Iniciando conversion de ' . $fileName . ' a PDF 1.4');
-        $result = GhostscriptProcessor::convertToFpdiCompatible($filePath, $outputPath);
+        $result = GhostscriptProcessor::normalizePdfForFpdi($filePath, $outputPath);
 
         if (!$result['success']) {
             log_message(

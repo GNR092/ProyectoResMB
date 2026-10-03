@@ -112,6 +112,22 @@ class GhostscriptProcessor
         ];
     }
 
+    public static function normalizePdfForFpdi(string $inputPath, string $outputPath): array
+    {
+        $result = self::convertToFpdiCompatible($inputPath, $outputPath);
+        if ($result['success'] && file_exists($outputPath)) {
+            try {
+                $pdf = new \App\Libraries\PDF();
+                $pdf->setSourceFile($outputPath);
+                return ['success' => true, 'path' => $outputPath];
+            } catch (\Throwable $e) {
+                @unlink($outputPath);
+                return ['success' => false, 'message' => 'Resultado no compatible FPDI: ' . $e->getMessage()];
+            }
+        }
+        return $result;
+    }
+
     public static function resolveBinary(): ?string
     {
         foreach (self::candidateBinaries() as $candidate) {

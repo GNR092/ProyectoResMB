@@ -431,6 +431,10 @@ class Calendario extends ResourceController
             $uploadedFiles = [$uploadedFiles];
         }
 
+        // Configurar límites para procesamiento de PDFs
+        set_time_limit(120);
+        ini_set('memory_limit', '256M');
+
         $saved = [];
         $errors = [];
 
@@ -469,6 +473,44 @@ class Calendario extends ResourceController
             }
 
             if ($file->move($uploadPath, $newName)) {
+                $filePath = $uploadPath . $newName;
+                $originalName = $file->getClientName();
+
+                // NUEVO: Validar y normalizar PDFs
+                if (strtolower($ext) === 'pdf') {
+                    $analysis = \App\Libraries\PdfValidator::analyze($filePath);
+
+                    // PDF encriptado -> RECHAZAR
+                    if ($analysis['isEncrypted']) {
+                        @unlink($filePath);
+                        $errors[] = $originalName . ': PDF encriptado no permitido. Desencripte antes de subir.';
+                        continue;
+                    }
+
+                    // PDF incompatible -> Normalizar si Ghostscript disponible
+                    if (!$analysis['isFpdiCompatible']) {
+                        if (\App\Libraries\GhostscriptProcessor::isAvailable()) {
+                            $tempOut = tempnam(sys_get_temp_dir(), 'pdf_norm_') . '.pdf';
+                            $result = \App\Libraries\GhostscriptProcessor::normalizePdfForFpdi($filePath, $tempOut);
+
+                            if ($result['success'] && file_exists($tempOut)) {
+                                @unlink($filePath);
+                                rename($tempOut, $filePath);
+                                log_message('info', '[Upload] PDF normalizado a 1.4: ' . $originalName);
+                            } else {
+                                @unlink($filePath);
+                                @unlink($tempOut ?? '');
+                                $errors[] = $originalName . ': PDF incompatible y no se pudo normalizar: ' . ($result['message'] ?? 'error desconocido');
+                                continue;
+                            }
+                        } else {
+                            @unlink($filePath);
+                            $errors[] = $originalName . ': PDF incompatible (requiere Ghostscript para normalizar).';
+                            continue;
+                        }
+                    }
+                }
+
                 $inserted = $this->archivosModel->insert([
                     'id_evento'      => $id,
                     'nombre_archivo' => $newName,
@@ -477,8 +519,8 @@ class Calendario extends ResourceController
                 if ($inserted) {
                     $saved[] = $newName;
                 } else {
-                    unlink($uploadPath . $newName);
-                    $errors[] = $file->getClientName() . ': Error al registrar en BD';
+                    unlink($filePath);
+                    $errors[] = $originalName . ': Error al registrar en BD';
                 }
             } else {
                 $errors[] = $file->getClientName() . ': Error al guardar';
