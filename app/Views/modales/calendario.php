@@ -4,6 +4,8 @@ $version = file_exists($iconPath) ? filemtime($iconPath) : time();
 $iconUrl = "/icons/icons.svg?v=$version";
 ?>
 <style>
+/* Evita parpadeo de los paneles/modalales antes de que Alpine los oculte */
+[x-cloak] { display: none !important; }
 /* Eventos cancelados: gris + tachado */
 .fc .ev-cancelado {
     background-color: #9ca3af !important;
@@ -281,6 +283,13 @@ $iconUrl = "/icons/icons.svg?v=$version";
                                         <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                         Descargar
                                     </button>
+                                    <button type="button" @click="confirmarEliminarArchivo(a)" x-show="!soloLectura"
+                                            title="Eliminar evidencia"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition min-h-[36px] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            :disabled="subiendoArchivos || eliminandoArchivo">
+                                        <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        Eliminar
+                                    </button>
                                 </div>
                             </div>
                         </template>
@@ -294,6 +303,43 @@ $iconUrl = "/icons/icons.svg?v=$version";
                     <p x-show="!mostrarEvidenciasIndividuales && archivos.length === 0" class="text-xs text-gray-400 text-center py-4">Sin evidencias adjuntas</p>
                 </div>
             </form>
+        </div>
+    </div>
+    </template>
+
+    <!-- Confirmacion eliminar evidencia — teletransportada a body para quedar por encima del modal de evento -->
+    <template x-teleport="body">
+    <div x-show="archivoAEliminar" x-cloak x-transition.opacity
+         class="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4"
+         @click.self="cancelarEliminarArchivo()"
+         @click.stop>
+        <div class="bg-white rounded-xl shadow-xl p-5 sm:p-6 w-full max-w-md mx-auto" role="alertdialog" aria-modal="true">
+            <div class="flex items-start gap-3 mb-4">
+                <span class="shrink-0 flex items-center justify-center size-8 rounded-full bg-red-100 text-red-600">
+                    <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.74-3L13.74 4a2 2 0 00-3.48 0l-7.06 12a2 2 0 001.74 3z"/></svg>
+                </span>
+                <div class="min-w-0">
+                    <h3 class="text-base font-semibold text-carbon-900">Eliminar evidencia</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Esta accion quedara registrada en la bitacora</p>
+                </div>
+            </div>
+            <p class="text-sm text-carbon-700 mb-1">Se eliminara el archivo:</p>
+            <p class="text-sm font-medium text-carbon-900 break-words mb-3" x-text="archivoAEliminar?.nombre_archivo"></p>
+            <p class="text-xs text-gray-500 mb-5" x-show="archivos.length === 1">
+                Es la unica evidencia del evento: el estatus regresara a "Pendiente".
+            </p>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="cancelarEliminarArchivo()"
+                        class="px-4 py-2 text-sm font-medium text-carbon-700 bg-white border border-carbon-300 rounded-lg hover:bg-carbon-50 transition disabled:opacity-50">
+                    Cancelar
+                </button>
+                <button type="button" @click="ejecutarEliminarArchivo()"
+                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        :disabled="eliminandoArchivo">
+                    <svg x-show="eliminandoArchivo" class="size-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                    <span x-text="eliminandoArchivo ? 'Eliminando...' : 'Si, eliminar'"></span>
+                </button>
+            </div>
         </div>
     </div>
     </template>

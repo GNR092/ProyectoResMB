@@ -123,6 +123,7 @@ if (!file_exists($installerLockFile)) {
             $routes->get('eventos/(:segment)/archivos', 'Calendario::getArchivos/$1');
             $routes->get('eventos/(:segment)/archivos/(:num)/download', 'Calendario::downloadArchivo/$1/$2');
             $routes->get('eventos/(:segment)/archivos/(:num)/preview', 'Calendario::previewArchivo/$1/$2');
+            $routes->delete('eventos/(:segment)/archivos/(:num)', 'Calendario::deleteArchivo/$1/$2');
             $routes->get('eventos/(:segment)/evidencias-pdf', 'Calendario::generarEvidenciasPdf/$1');
         });
 

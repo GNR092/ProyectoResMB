@@ -824,6 +824,101 @@ class Calendario extends ResourceController
     }
 
     /**
+     * Elimina una evidencia adjunta a un evento.
+     * Si era la ultima evidencia y el evento estaba en estatus "evidencia",
+     * el estatus regresa a "pendiente".
+     * DELETE api/calendario/eventos/{id}/archivos/{id_archivo}
+     */
+    public function deleteArchivo($id = null, $idArchivo = null)
+    {
+        if (!$this->puedeEditarAgenda()) {
+            return $this->failForbidden('Solo Compras puede eliminar evidencias');
+        }
+        $rol = $this->rolCalendario();
+        $userId = session('id');
+        $id = is_numeric($id) ? (int)$id : $id;
+        if ($rol === 'admin') {
+            $evento = $this->model->find($id);
+        } else {
+            $evento = $this->model->delUsuario((int)$userId)->find($id);
+        }
+        if (!$evento) {
+            $evento = $rol === 'admin'
+                ? $this->model->find($id)
+                : $this->model->where('ID_Usuario', (int)$userId)->where('id', $id)->first();
+            if (!$evento) return $this->failNotFound('Evento no encontrado');
+        }
+
+        $idArchivo = is_numeric($idArchivo) ? (int)$idArchivo : $idArchivo;
+        $archivo = $this->archivosModel->find($idArchivo);
+        if (!$archivo || $archivo['id_evento'] != $id) {
+            return $this->failNotFound('Archivo no encontrado');
+        }
+
+        $estatusActual = (string)($evento['estatus'] ?? 'pendiente');
+        $solicitudId = $evento['ID_Solicitud'] ?? null;
+        $nombreArchivo = (string)$archivo['nombre_archivo'];
+
+        // Auditoria base para cualquier desenlace
+        $auditar = function (string $estado, array $extra = []) use ($id, $idArchivo, $nombreArchivo, $archivo, $solicitudId) {
+            \CodeIgniter\Events\Events::trigger('auditoria', [
+                'tipo_accion'   => $estado === 'exito'
+                    ? 'ELIMINAR_ARCHIVO_AGENDA'
+                    : 'FALLO_ELIMINAR_ARCHIVO_AGENDA',
+                'clasificacion' => 'Calendario',
+                'modulo'        => 'eventos_calendario',
+                'solicitud_id'  => $solicitudId,
+                'estado'        => $estado,
+                'valores_antiguos' => [
+                    'id_archivo'     => $idArchivo,
+                    'id_evento'      => $id,
+                    'nombre_archivo' => $nombreArchivo,
+                    'nombre_usuario' => $archivo['nombre_usuario'] ?? null,
+                    'fecha_subida'   => $archivo['fecha_subida'] ?? null,
+                ],
+                'valores_nuevos' => $extra,
+            ]);
+        };
+
+        // 1) Borrar primero el registro: si el unlink falla queda un archivo huerfano en disco
+        //    (inocuo, limpiable), nunca un registro apuntando a un archivo inexistente.
+        if (!$this->archivosModel->delete($idArchivo)) {
+            $auditar('fallido', ['error' => 'No se pudo eliminar el registro en BD']);
+            return $this->failServerError('No se pudo eliminar el registro de la evidencia');
+        }
+
+        // 2) Borrar el archivo fisico. basename() evita rutas fuera de uploads/eventos
+        $filePath = WRITEPATH . 'uploads/eventos/' . basename($nombreArchivo);
+        if (file_exists($filePath) && !@unlink($filePath)) {
+            log_message('error', '[Calendario::deleteArchivo] Registro ' . $idArchivo
+                . ' eliminado pero no se pudo borrar el archivo fisico: ' . $filePath);
+        }
+
+        // 3) Si ya no quedan evidencias y el evento estaba en "evidencia", vuelve a "pendiente"
+        $restantes = (int)$this->archivosModel->where('id_evento', $id)->countAllResults();
+        $estatusNuevo = $estatusActual;
+        if ($restantes === 0 && $estatusActual === 'evidencia') {
+            $estatusNuevo = 'pendiente';
+            $this->model->update($id, ['estatus' => 'pendiente']);
+        }
+
+        $auditar('exito', [
+            'estatus_evento'       => $estatusNuevo,
+            'evidencias_restantes' => $restantes,
+        ]);
+
+        return $this->respond([
+            'success' => true,
+            'message' => 'Evidencia eliminada',
+            'data'    => [
+                'estatus'   => $estatusNuevo,
+                'restantes' => $restantes,
+                'evento'    => $this->formatEvent($this->model->find($id)),
+            ],
+        ], HttpStatus::OK);
+    }
+
+    /**
      * Genera PDF consolidado con todas las evidencias del evento
      * GET api/calendario/eventos/{id}/evidencias-pdf
      */

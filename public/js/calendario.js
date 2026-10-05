@@ -87,6 +87,8 @@ function calendarioApp() {
         subiendoArchivos: false,
         mostrarEvidenciasIndividuales: false,
         mostrarArchivados: false,
+        archivoAEliminar: null,
+        eliminandoArchivo: false,
 
         async init() {
             this.renderCalendar();
@@ -766,12 +768,19 @@ function calendarioApp() {
         nextWeek() { if (calendar) calendar.next(); },
 
         closeEventModal() {
+            // Si el dialogo de eliminar evidencia esta abierto, Escape solo cierra ese dialogo
+            if (this.archivoAEliminar) {
+                this.archivoAEliminar = null;
+                return;
+            }
             this.returnToEventModal = false;
             this.showEventModal = false;
             this.soloLectura = false;
             this.eventForm = { id: '', title: '', start: '', end: '', color: randomColor(), ID_Solicitud: '', estatus: 'pendiente' };
             this.archivos = [];
             this.subiendoArchivos = false;
+            this.archivoAEliminar = null;
+            this.eliminandoArchivo = false;
             document.body.style.overflow = '';
             if (calendar) calendar.unselect();
         },
@@ -1035,6 +1044,78 @@ function calendarioApp() {
 
         verArchivo(archivo) {
             window.open(archivo.url_preview, '_blank');
+        },
+
+        confirmarEliminarArchivo(archivo) {
+            if (!archivo?.id_archivo) return;
+            this.archivoAEliminar = archivo;
+        },
+
+        cancelarEliminarArchivo() {
+            if (this.eliminandoArchivo) return;
+            this.archivoAEliminar = null;
+        },
+
+        async ejecutarEliminarArchivo() {
+            const archivo = this.archivoAEliminar;
+            const idEvento = this.eventForm.id;
+            if (!archivo || this.eliminandoArchivo) return;
+
+            this.eliminandoArchivo = true;
+            try {
+                const res = await fetch(`${BASE_URL}api/calendario/eventos/${idEvento}/archivos/${archivo.id_archivo}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token-name"]')?.content || '',
+                    },
+                });
+                const json = await res.json().catch(() => ({}));
+
+                if (!res.ok || !json.success) {
+                    const msg = json.messages
+                        ? Object.values(json.messages).join(' ')
+                        : (json.message || 'No se pudo eliminar la evidencia');
+                    mostrarNotificacion(msg, 'error');
+                    return;
+                }
+
+                this.archivoAEliminar = null;
+                this.archivos = this.archivos.filter((a) => a.id_archivo !== archivo.id_archivo);
+                this.mostrarEvidenciasIndividuales = this.archivos.length > 0;
+
+                const datos = json.data || {};
+                // selectedEvent es el EventApi de FullCalendar: se actualiza in-place,
+                // nunca se reemplaza por el objeto plano que devuelve la API.
+                if (selectedEvent && typeof selectedEvent.setExtendedProp === 'function') {
+                    if (datos.estatus) {
+                        selectedEvent.setExtendedProp('estatus', datos.estatus);
+                    }
+                    if (Array.isArray(datos.evento?.extendedProps?.archivos)) {
+                        selectedEvent.setExtendedProp('archivos', datos.evento.extendedProps.archivos);
+                    }
+                    // Repintar: el backend ya calcula los colores segun el estatus resultante
+                    if (datos.evento?.backgroundColor) {
+                        selectedEvent.setProp('backgroundColor', datos.evento.backgroundColor);
+                        selectedEvent.setProp('borderColor', datos.evento.borderColor);
+                    }
+                }
+                if (datos.estatus) {
+                    this.eventForm.estatus = datos.estatus;
+                }
+
+                mostrarNotificacion(
+                    datos.restantes > 0
+                        ? `Evidencia eliminada (${datos.restantes} restante${datos.restantes === 1 ? '' : 's'})`
+                        : 'Evidencia eliminada. El evento vuelve a Pendiente',
+                    'success'
+                );
+            } catch (e) {
+                console.error('ejecutarEliminarArchivo', e);
+                mostrarNotificacion('Error de conexion al eliminar la evidencia', 'error');
+            } finally {
+                this.eliminandoArchivo = false;
+            }
         },
 
         generarEvidenciasPdf() {
