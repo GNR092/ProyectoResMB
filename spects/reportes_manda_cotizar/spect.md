@@ -119,6 +119,23 @@ sesión, `GET api/solicitudes/manda-cotizar` responde redirección/401 y no emit
 únicamente mediante `irAPantalla('mandacotizar')` desde la rejilla interna de
 `ReportePresupuesto.php`.
 
+### CA-16 — El detalle de la requisición abierto desde el reporte es de solo lectura
+*Comprobación:* la fila invoca `mostrarDetalleMandaCoti(s)`, que compone el detalle con
+`generarDetallesSolicitudHTML(data, { soloLectura: true })`. Ese flag suprime el único control que
+muta datos: la campana de WhatsApp (`toggleWhatsAppDetails()`). **No** se replica el botón
+"Cancelar Requisición" que el historial añade en `mbscript.js:1720-1728`. En Network, la vista de
+detalle sólo debe emitir peticiones `GET` (`api/solicitud/details/{id}` y los enlaces de archivo).
+
+### CA-17 — El botón de volver regresa al reporte, no a otra pantalla
+*Comprobación:* `#div-ver-mandacoti` incluye "← Volver al reporte" → `regresarAMandaCoti()`, que sólo
+alterna la clase `hidden` entre `#div-ver-mandacoti` y `#div-manda-coti`. No invoca `irAPantalla()`
+ni `abrirModal()`, de modo que los filtros, el orden y la página del reporte se conservan al volver.
+
+### CA-18 — El resumen muestra únicamente Total Solicitudes y Costo Total
+*Comprobación:* el grid del resumen es `sm:grid-cols-2` y contiene 2 tarjetas; se retiraron
+"Con Evento (Bitácora)" y "Sin Evento (Bitácora)". La columna `Origen` de la tabla **se conserva**
+(CA-4), por lo que el origen sigue siendo consultable por fila.
+
 ---
 
 ## 2. Invariantes (INV)
@@ -171,6 +188,11 @@ El módulo no requiere ninguna tabla, columna ni índice nuevo. Si en el futuro 
 persisting el "estado de enviar a cotizar" explícito, eso sería un módulo nuevo con su propio
 ciclo SDD, no una extensión de éste.
 
+### INV-10 — El detalle abierto desde el reporte no puede mutar nada
+Desde la vista de reportes una requisición sólo se puede **leer**. Ningún control embebido en el
+detalle escribe en la base de datos ni dispara acciones de negocio. Los enlaces de archivo, el
+expediente PDF y la descarga ZIP se consideran lectura: son peticiones `GET`.
+
 ---
 
 ## 3. Tabla riesgo → mitigación
@@ -191,3 +213,6 @@ ciclo SDD, no una extensión de éste.
 | R-12 | Necesidad de una clase Tailwind inexistente en `public/css/styless.css` | El estilo no llega a producción | Sólo se reutilizan clases ya presentes en el archivo; si hiciera falta una nueva, `npm run build:product` + commit del CSS compilado y constancia en el reporte. |
 | R-13 | El nombre del exportador hermano (`...Json()`) genera XLSX | Confusión al replicar | El nuestro se llama deliberadamente `...Xlsx()` (`plan.md` §2). |
 | R-14 | El botón de menú nuevo queda "vacío" si falta alguno de los registros de cableado | pantalla en blanco | Al vivir **dentro** del modal existente sólo hacen falta 2 registros: `MenuOptions.php`/`Home.php`/`Modales.php`/`mbscript.js` **no** se tocan (CA-15). Verificado en CA-12. |
+| R-15 | El generador compartido `generarDetallesSolicitudHTML` incluye la campana de WhatsApp, que **sí** muta datos (`toggleWhatsAppDetails()`) | El detalle exponía un control de escritura dentro de una vista declarada de solo lectura | Bandera `opciones.soloLectura` con **default `false`**: los 5 callers existentes (`calendario.js:798`, `mbscript.js:1693, 1808, 2781, 3012`) mantienen su comportamiento (CA-16). |
+| R-16 | `generarDetallesSolicitudHTML` vive en `public/js/utils.js`, compartido por 5 vistas | Un cambio de firma rompería el resto del ERP | Firma retrocompatible: el 2.º parámetro es opcional y con default. Verificado con `node --check` y revisión de los 5 call-sites (ninguno modificado). |
+| R-17 | El detalle se monta con `getElementById` sobre contenedores que viven dentro de `x-if="pantalla === 'mandacotizar'"` | Si el bloque quedara fuera del `template`, los contenedores no existirían y el detalle no se pintaría | Los dos contenedores (`#div-ver-mandacoti`, `#detalles-mandacoti-solicitud`) están **dentro** del `x-if`; `mostrarDetalleMandaCoti()` valida el contenedor destino y hace `return` si falta. Patrón calcado de la pantalla "movimientos". |

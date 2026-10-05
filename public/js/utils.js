@@ -503,9 +503,14 @@ function GetMetodoPago(metodo) {
 /**
  * Genera el HTML para mostrar los detalles de una solicitud.
  * @param {object} data - Objeto con los datos de la solicitud.
+ * @param {object} [opciones] - Opciones de render.
+ * @param {boolean} [opciones.soloLectura=false] - Suprime los controles que mutan datos (campana de WhatsApp).
  * @returns {string} - Cadena de texto con el HTML.
  */
-function generarDetallesSolicitudHTML(data) {
+function generarDetallesSolicitudHTML(data, opciones = {}) {
+  // opciones.soloLectura = true oculta los controles que mutan datos (p. ej. campana de WhatsApp)
+  const soloLectura = opciones.soloLectura === true;
+
   // 1. Formateo y sanitización de datos básicos
   const montoFormateado = formatearMoneda(data.cotizacion?.Total || 0);
   const metodoPago = GetMetodoPago(data.MetodoPago);
@@ -549,7 +554,7 @@ function generarDetallesSolicitudHTML(data) {
 
   const isWA = data.notificaciones_whatsapp === 't' || data.notificaciones_whatsapp === true || data.notificaciones_whatsapp == 1;
   
-  const whatsappButtonHtml = showWhatsApp ? `
+  const whatsappButtonHtml = (showWhatsApp && !soloLectura) ? `
         <!-- Botón WhatsApp arriba a la derecha -->
         <div class="absolute top-2 right-2 flex items-center gap-1">
             <label class="text-[9px] font-bold text-gray-400 uppercase">WhatsApp</label>

@@ -2191,7 +2191,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
 
     <!-- Pantalla: Solicitudes Mandadas a Cotizar -->
     <template x-if="pantalla === 'mandacotizar'">
-        <div class="animate-fadeIn bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+        <div class="animate-fadeIn">
+            <div id="div-manda-coti" class="bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
                 <button @click="irAPantalla('menu')" class="text-base text-black hover:text-orange-600 flex items-center gap-1 font-semibold mb-2 md:mb-0">&larr; Volver al menú</button>
                 <div class="flex flex-col gap-2">
@@ -2323,7 +2324,8 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             </tr>
                         </template>
                         <template x-for="(s, index) in paginatedMandaCoti" :key="'mandacoti-' + s.ID_Solicitud">
-                            <tr class="text-xs border-b border-slate-100 transition-colors hover:bg-orange-50/70">
+                            <tr class="text-xs border-b border-slate-100 transition-colors hover:bg-orange-50/70 cursor-pointer"
+                                @click="mostrarDetalleMandaCoti(s)">
                                 <td class="px-2 py-2 text-center font-mono font-bold text-blue-800" x-text="s.No_Folio"></td>
                                 <td class="px-3 py-2 text-left font-bold text-gray-800" x-text="s.RazonSocial"></td>
                                 <td class="px-3 py-2 text-left" x-text="s.Complejo"></td>
@@ -2356,18 +2358,10 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
             </div>
 
             <!-- Resumen: tarjetas propias de este reporte (las del hermano no aplican aqui) -->
-            <div class="mt-8 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" x-show="!cargandoMandaCoti && solicitudesMandaCotiFiltradas.length > 0">
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200" x-show="!cargandoMandaCoti && solicitudesMandaCotiFiltradas.length > 0">
                 <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-orange-500">
                     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Solicitudes</span>
                     <span class="text-lg font-black text-orange-700" x-text="solicitudesMandaCotiFiltradas.length"></span>
-                </div>
-                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-emerald-500">
-                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Con Evento (Bitácora)</span>
-                    <span class="text-lg font-black text-emerald-700" x-text="solicitudesMandaCotiFiltradas.filter(s =&gt; s.Origen === 'Evento').length"></span>
-                </div>
-                <div class="flex flex-col p-3 bg-white rounded-lg border-l-4 border-amber-500">
-                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Sin Evento (Bitácora)</span>
-                    <span class="text-lg font-black text-amber-700" x-text="solicitudesMandaCotiFiltradas.filter(s =&gt; s.Origen !== 'Evento').length"></span>
                 </div>
                 <div class="flex flex-col p-3 bg-slate-800 rounded-lg">
                     <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Costo Total</span>
@@ -2390,6 +2384,21 @@ $iconUrl = base_url("icons/icons.svg?v=$version");
                             class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&rsaquo;</button>
                     <button @click="cambiarPaginaMandaCoti(totalPagesMandaCoti)" :disabled="currentPageMandaCoti === totalPagesMandaCoti"
                             class="px-2 py-1 border border-slate-300 rounded bg-white text-gray-700 hover:bg-slate-100 disabled:opacity-50 text-xs font-bold">&raquo;</button>
+                </div>
+            </div>
+            </div>
+            <!-- /div-manda-coti -->
+
+            <!-- CONTENEDOR SECUNDARIO: Ver Detalles Completos (solo lectura) -->
+            <div id="div-ver-mandacoti" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800">Detalles de la Solicitud</h3>
+                    <button @click="regresarAMandaCoti()"
+                            class="text-base text-black hover:text-orange-600 flex items-center gap-1 font-semibold transition-colors">&larr; Volver al reporte</button>
+                </div>
+                <div id="detalles-mandacoti-solicitud"
+                    class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm min-h-[50vh]">
+                    <!-- Renderizado dinamico desde JS, en modo solo lectura -->
                 </div>
             </div>
         </div>

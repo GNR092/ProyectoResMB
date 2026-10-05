@@ -2483,6 +2483,56 @@ function registrarComponenteReportePresupuesto() {
                 if (divVencimientos) divVencimientos.classList.remove('hidden');
             },
 
+            async mostrarDetalleMandaCoti(solicitud) {
+                const idSolicitud = solicitud && solicitud.ID_Solicitud;
+                if (!idSolicitud) return;
+
+                const divMandaCoti = document.getElementById('div-manda-coti');
+                const divVer = document.getElementById('div-ver-mandacoti');
+                const detallesContainer = document.getElementById('detalles-mandacoti-solicitud');
+
+                if (!detallesContainer) return;
+
+                if (divMandaCoti) divMandaCoti.classList.add('hidden');
+                if (divVer) divVer.classList.remove('hidden');
+
+                detallesContainer.innerHTML = '<p class="text-center p-8 text-gray-500">Cargando detalles...</p>';
+
+                try {
+                    const data = await SendDataEnd(`api/solicitud/details/${idSolicitud}`);
+                    if (data.error) throw new Error(data.error);
+
+                    let html = generarDetallesSolicitudHTML(data, { soloLectura: true });
+
+                    html += generarComentariosHtml(data);
+
+                    html += generarProductosServiciosHTML(data);
+
+                    if (data.ComentariosUser) {
+                        html += `
+                            <div class="mt-6 p-4 border rounded-lg bg-gray-100 border-gray-800">
+                                <h4 class="text-md font-bold text-gray-800 mb-2">Comentarios o referencias</h4>
+                                <p class="text-gray-800 whitespace-pre-wrap">${data.ComentariosUser}</p>
+                            </div>`;
+                    }
+
+                    html += generarSeccionAdjuntos(data);
+
+                    detallesContainer.innerHTML = html;
+                } catch (error) {
+                    console.error('Error al cargar detalles de solicitud mandada a cotizar:', error);
+                    detallesContainer.innerHTML = `<p class="text-center p-8 text-red-500 font-bold">No se pudieron cargar los detalles: ${error.message}</p>`;
+                }
+            },
+
+            regresarAMandaCoti() {
+                const divVer = document.getElementById('div-ver-mandacoti');
+                const divMandaCoti = document.getElementById('div-manda-coti');
+
+                if (divVer) divVer.classList.add('hidden');
+                if (divMandaCoti) divMandaCoti.classList.remove('hidden');
+            },
+
             limpiarFiltrosMovimientos() {
                 this.filtroTextoMovimientos = '';
                 this.idPlace = [];
