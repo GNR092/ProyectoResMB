@@ -18,9 +18,10 @@ class NormalizarPdfsEvidencias extends BaseCommand
     protected $description =
         'Normaliza PDFs de evidencias de la Agenda de Salidas a PDF 1.4 compatible con FPDI. ' .
         'Usa Ghostscript para convertir PDFs incompatibles. ' .
-        'Ejemplos: --dry-run --only-incompatible --ids=1,2,3';
+        'Tambien corrige extensiones incorrectas (imagenes guardadas como .pdf). ' .
+        'Ejemplos: --dry-run --only-incompatible --ids=1,2,3 --fix-extensions';
 
-    protected $usage = 'normalizar:pdfs-evidencias [--ids=1,2,3] [--limit=N] [--offset=N] [--dry-run] [--only-incompatible] [--skip-encrypted]';
+    protected $usage = 'normalizar:pdfs-evidencias [--ids=1,2,3] [--limit=N] [--offset=N] [--dry-run] [--only-incompatible] [--skip-encrypted] [--fix-extensions]';
 
     protected $options = [
         '--ids' => 'IDs de evento separados por coma. Ejemplo: --ids=10,11,12',
@@ -29,6 +30,7 @@ class NormalizarPdfsEvidencias extends BaseCommand
         '--dry-run' => 'Solo analiza y reporta, no modifica archivos',
         '--only-incompatible' => 'Procesa solo PDFs incompatibles con FPDI',
         '--skip-encrypted' => 'Omite PDFs encriptados (no falla, solo salta y reporta)',
+        '--fix-extensions' => 'Detecta y corrige imagenes guardadas con extension .pdf (renombra a .jpg/.png/etc y actualiza BD)',
     ];
 
     public function run(array $params)
@@ -38,6 +40,7 @@ class NormalizarPdfsEvidencias extends BaseCommand
         $dryRun = (bool) CLI::getOption('dry-run');
         $onlyIncompatible = (bool) CLI::getOption('only-incompatible');
         $skipEncrypted = (bool) CLI::getOption('skip-encrypted');
+        $fixExtensions = (bool) CLI::getOption('fix-extensions');
         [$eventIds, $invalidIds, $idsOptionProvided] = $this->resolveIdsOption($params);
 
         if ($limit < 0 || $offset < 0) {
@@ -110,6 +113,8 @@ class NormalizarPdfsEvidencias extends BaseCommand
             'encriptados_intentados' => 0,
             'desencriptados_ok' => 0,
             'fallaron_desencriptar' => 0,
+            'extensiones_corregidas' => 0,
+            'extensiones_ya_correctas' => 0,
         ];
 
         $backupDir = WRITEPATH . 'backups' . DIRECTORY_SEPARATOR . 'eventos' . DIRECTORY_SEPARATOR . date('Y-m-d_H-i-s');
@@ -136,6 +141,55 @@ class NormalizarPdfsEvidencias extends BaseCommand
             }
 
             $totales['total_analizados']++;
+
+            // --- FIX EXTENSIONS: Detectar y corregir imagenes guardadas como .pdf ---
+            if ($fixExtensions && strtolower(pathinfo($nombreArchivo, PATHINFO_EXTENSION)) === 'pdf') {
+                $realMime = @mime_content_type($fullPath);
+                $extMap = [
+                    'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif',
+                    'image/webp' => 'webp', 'image/bmp' => 'bmp', 'image/tiff' => 'tiff',
+                ];
+                if (isset($extMap[$realMime])) {
+                    $correctExt = $extMap[$realMime];
+                    $newName = preg_replace('/\.pdf$/i', '.' . $correctExt, $nombreArchivo);
+                    $newPath = WRITEPATH . 'uploads' . DIRECTORY_SEPARATOR . 'eventos' . DIRECTORY_SEPARATOR . $newName;
+
+                    if ($dryRun) {
+                        CLI::write(
+                            "  [ID:$idArchivo] Evento:$idEvento | $nombreArchivo -> $newName | EXTENSION INCORRECTA ($realMime) [DRY-RUN]",
+                            'yellow',
+                        );
+                        $totales['extensiones_corregidas']++;
+                        // En dry-run, continuar con el nombre original para el resto del analisis
+                    } else {
+                        if (rename($fullPath, $newPath)) {
+                            // Actualizar BD
+                            $model->update($idArchivo, ['nombre_archivo' => $newName]);
+                            CLI::write(
+                                "  [ID:$idArchivo] Evento:$idEvento | $nombreArchivo -> $newName | EXTENSION CORREGIDA ($realMime -> .$correctExt)",
+                                'green',
+                            );
+                            $totales['extensiones_corregidas']++;
+                            // Actualizar variables para el resto del procesamiento
+                            $nombreArchivo = $newName;
+                            $fullPath = $newPath;
+                        } else {
+                            CLI::write(
+                                "  [ID:$idArchivo] Evento:$idEvento | $nombreArchivo | ERROR al renombrar",
+                                'red',
+                            );
+                        }
+                    }
+                    continue; // Saltar validacion PDF ya que no es PDF real
+                } elseif ($realMime === 'application/pdf') {
+                    $totales['extensiones_ya_correctas']++;
+                } else {
+                    CLI::write(
+                        "  [ID:$idArchivo] Evento:$idEvento | $nombreArchivo | TIPO DESCONOCIDO: $realMime",
+                        'yellow',
+                    );
+                }
+            }
 
             // Sanear preambulo previo a %PDF- antes de analizar.
             // En dry-run solo se detecta; el archivo nunca se modifica.
@@ -303,12 +357,14 @@ class NormalizarPdfsEvidencias extends BaseCommand
         CLI::write(str_repeat('=', 55), 'white');
         CLI::write('RESUMEN', 'white');
         CLI::write(str_repeat('=', 55), 'white');
-        CLI::write('Total analizados:      ' . $totales['total_analizados']);
-        CLI::write('Ya compatibles:        ' . $totales['ya_compatibles'], 'green');
-        CLI::write('Archivos invalidos:    ' . $totales['archivos_invalidos'], $totales['archivos_invalidos'] > 0 ? 'red' : 'white');
-        CLI::write('Ilegibles para FPDI:   ' . $totales['ilegibles_fpdi'], $totales['ilegibles_fpdi'] > 0 ? 'red' : 'white');
-        CLI::write('Con preambulo:         ' . $totales['con_preambulo'], $totales['con_preambulo'] > 0 ? 'yellow' : 'white');
-        CLI::write('Preambulo eliminado:   ' . $totales['preambulo_eliminado'], $totales['preambulo_eliminado'] > 0 ? 'green' : 'white');
+        CLI::write('Total analizados:           ' . $totales['total_analizados']);
+        CLI::write('Extensiones ya correctas:   ' . $totales['extensiones_ya_correctas'], 'green');
+        CLI::write('Extensiones corregidas:     ' . $totales['extensiones_corregidas'], $totales['extensiones_corregidas'] > 0 ? 'green' : 'white');
+        CLI::write('Ya compatibles (PDF):       ' . $totales['ya_compatibles'], 'green');
+        CLI::write('Archivos invalidos (PDF):   ' . $totales['archivos_invalidos'], $totales['archivos_invalidos'] > 0 ? 'red' : 'white');
+        CLI::write('Ilegibles para FPDI:        ' . $totales['ilegibles_fpdi'], $totales['ilegibles_fpdi'] > 0 ? 'red' : 'white');
+        CLI::write('Con preambulo:              ' . $totales['con_preambulo'], $totales['con_preambulo'] > 0 ? 'yellow' : 'white');
+        CLI::write('Preambulo eliminado:        ' . $totales['preambulo_eliminado'], $totales['preambulo_eliminado'] > 0 ? 'green' : 'white');
 
         if ($dryRun) {
             CLI::write('Pendientes (dry-run):  ' . $totales['normalizables'], 'cyan');

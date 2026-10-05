@@ -453,8 +453,9 @@ class Calendario extends ResourceController
             $maxSize = 10 * 1024 * 1024; // 10MB
 
             // getMimeType() detecta el tipo en el servidor (más seguro que el MIME del cliente)
-            if (!in_array($file->getMimeType(), $allowedMimes)) {
-                $errors[] = $file->getClientName() . ': Tipo de archivo no permitido';
+            $realMime = $file->getMimeType();
+            if (!in_array($realMime, $allowedMimes)) {
+                $errors[] = $file->getClientName() . ': Tipo de archivo no permitido (' . $realMime . ')';
                 continue;
             }
             if ($file->getSize() > $maxSize) {
@@ -462,8 +463,17 @@ class Calendario extends ResourceController
                 continue;
             }
 
-            // Generar nombre único
-            $ext = $file->getClientExtension();
+            // Generar nombre único con EXTENSIÓN CORRECTA según MIME REAL (no la del cliente)
+            $extMap = [
+                'image/jpeg' => 'jpg',
+                'image/png'  => 'png',
+                'image/gif'  => 'gif',
+                'image/webp' => 'webp',
+                'image/bmp'  => 'bmp',
+                'image/tiff' => 'tiff',
+                'application/pdf' => 'pdf',
+            ];
+            $ext = $extMap[$realMime] ?? 'bin';
             $newName = 'evento_' . $id . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
 
             // Mover a writable/uploads/eventos/
