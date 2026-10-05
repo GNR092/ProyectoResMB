@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Libraries\GhostscriptProcessor;
+use App\Libraries\PdfSanitizer;
 use App\Libraries\PdfValidator;
 use App\Models\EventoArchivosModel;
 use CodeIgniter\CLI\BaseCommand;
@@ -97,10 +98,15 @@ class NormalizarPdfsEvidencias extends BaseCommand
         $totales = [
             'total_analizados' => 0,
             'ya_compatibles' => 0,
+            'normalizables' => 0,
             'normalizados_ok' => 0,
             'fallaron_normalizacion' => 0,
             'encriptados_saltados' => 0,
             'archivos_faltantes' => 0,
+            'archivos_invalidos' => 0,
+            'ilegibles_fpdi' => 0,
+            'con_preambulo' => 0,
+            'preambulo_eliminado' => 0,
             'encriptados_intentados' => 0,
             'desencriptados_ok' => 0,
             'fallaron_desencriptar' => 0,
@@ -131,6 +137,44 @@ class NormalizarPdfsEvidencias extends BaseCommand
 
             $totales['total_analizados']++;
 
+            // Sanear preambulo previo a %PDF- antes de analizar.
+            // En dry-run solo se detecta; el archivo nunca se modifica.
+            $headerOffset = PdfSanitizer::detectHeaderOffset($fullPath);
+
+            if ($headerOffset < 0) {
+                $totales['archivos_invalidos']++;
+                CLI::write(
+                    "  [ID:$idArchivo] Evento:$idEvento | $nombreArchivo | INVALIDO (sin encabezado %PDF-)",
+                    'red',
+                );
+                continue;
+            }
+
+            if ($headerOffset > 0) {
+                $totales['con_preambulo']++;
+                CLI::write(
+                    "  [ID:$idArchivo] Evento:$idEvento | $nombreArchivo | PREAMBULO: $headerOffset bytes antes de %PDF-",
+                    'yellow',
+                );
+
+                if ($dryRun) {
+                    CLI::write("    -> [DRY-RUN] Se eliminarian $headerOffset bytes de preambulo", 'cyan');
+                    $totales['normalizables']++;
+                    continue;
+                }
+
+                $sanitize = PdfSanitizer::stripPreamble($fullPath);
+
+                if (!$sanitize['success']) {
+                    $totales['fallaron_normalizacion']++;
+                    CLI::write('    -> Fallo al sanear: ' . $sanitize['message'], 'red');
+                    continue;
+                }
+
+                $totales['preambulo_eliminado']++;
+                CLI::write("    -> Preambulo eliminado: {$sanitize['removedBytes']} bytes", 'green');
+            }
+
             $analysis = PdfValidator::analyze($fullPath);
 
             $esIncompatible = !$analysis['isFpdiCompatible'];
@@ -141,10 +185,23 @@ class NormalizarPdfsEvidencias extends BaseCommand
                 if ($onlyIncompatible) {
                     continue;
                 }
-                CLI::write(
-                    "  [ID:$idArchivo] Evento:$idEvento | $nombreArchivo | YA COMPATIBLE (v{$analysis['version']})",
-                    'green',
-                );
+
+                // La version declarada no basta: confirmar que FPDI lo lee.
+                $importCheck = PdfValidator::canImportWithFpdi($fullPath);
+
+                if ($importCheck['success']) {
+                    CLI::write(
+                        "  [ID:$idArchivo] Evento:$idEvento | $nombreArchivo | YA COMPATIBLE (v{$analysis['version']}, {$importCheck['pages']} pagina(s))",
+                        'green',
+                    );
+                } else {
+                    $totales['ilegibles_fpdi']++;
+                    CLI::write(
+                        "  [ID:$idArchivo] Evento:$idEvento | $nombreArchivo | ILEGIBLE (v{$analysis['version']} pero FPDI no lo lee: {$importCheck['message']})",
+                        'red',
+                    );
+                }
+
                 continue;
             }
 
@@ -197,8 +254,8 @@ class NormalizarPdfsEvidencias extends BaseCommand
                 }
 
                 if ($dryRun) {
-                    CLI::write('    -> [DRY-RUN] Se normalizaria con Ghostscript a PDF 1.4', 'cyan');
-                    $totales['normalizados_ok']++;
+                    CLI::write('    -> [DRY-RUN] Se intentaria normalizar con Ghostscript a PDF 1.4', 'cyan');
+                    $totales['normalizables']++;
                     continue;
                 }
 
@@ -206,6 +263,17 @@ class NormalizarPdfsEvidencias extends BaseCommand
                 $result = GhostscriptProcessor::normalizePdfForFpdi($fullPath, $tempOut);
 
                 if ($result['success'] && file_exists($tempOut)) {
+                    // Verificar con el mismo lector que usa el PDF consolidado
+                    $verify = PdfValidator::canImportWithFpdi($tempOut);
+
+                    if (!$verify['success']) {
+                        $totales['fallaron_normalizacion']++;
+                        CLI::write('    -> Normalizado pero FPDI no lo puede leer: ' . $verify['message'], 'red');
+                        CLI::write('    -> Se conserva el original intacto', 'yellow');
+                        @unlink($tempOut);
+                        continue;
+                    }
+
                     // Backup original
                     $backupPath = $backupDir . DIRECTORY_SEPARATOR . $nombreArchivo;
                     copy($fullPath, $backupPath);
@@ -215,10 +283,18 @@ class NormalizarPdfsEvidencias extends BaseCommand
                     rename($tempOut, $fullPath);
 
                     $totales['normalizados_ok']++;
-                    CLI::write('    -> Normalizado OK (backup en ' . basename($backupDir) . ')', 'green');
+                    CLI::write('    -> Normalizado OK, ' . $verify['pages'] . ' pagina(s) verificada(s) con FPDI (backup en ' . basename($backupDir) . ')', 'green');
                 } else {
                     $totales['fallaron_normalizacion']++;
                     CLI::write('    -> Fallo normalizacion: ' . ($result['message'] ?? 'error desconocido'), 'red');
+
+                    if (!empty($result['output'])) {
+                        CLI::write('    -> Salida de Ghostscript:', 'red');
+                        foreach (explode("\n", trim($result['output'])) as $lineGs) {
+                            CLI::write('       ' . $lineGs, 'light_gray');
+                        }
+                    }
+
                     @unlink($tempOut ?? '');
                 }
             }
@@ -229,7 +305,17 @@ class NormalizarPdfsEvidencias extends BaseCommand
         CLI::write(str_repeat('=', 55), 'white');
         CLI::write('Total analizados:      ' . $totales['total_analizados']);
         CLI::write('Ya compatibles:        ' . $totales['ya_compatibles'], 'green');
-        CLI::write('Normalizados OK:       ' . $totales['normalizados_ok'], $totales['normalizados_ok'] > 0 ? 'green' : 'white');
+        CLI::write('Archivos invalidos:    ' . $totales['archivos_invalidos'], $totales['archivos_invalidos'] > 0 ? 'red' : 'white');
+        CLI::write('Ilegibles para FPDI:   ' . $totales['ilegibles_fpdi'], $totales['ilegibles_fpdi'] > 0 ? 'red' : 'white');
+        CLI::write('Con preambulo:         ' . $totales['con_preambulo'], $totales['con_preambulo'] > 0 ? 'yellow' : 'white');
+        CLI::write('Preambulo eliminado:   ' . $totales['preambulo_eliminado'], $totales['preambulo_eliminado'] > 0 ? 'green' : 'white');
+
+        if ($dryRun) {
+            CLI::write('Pendientes (dry-run):  ' . $totales['normalizables'], 'cyan');
+        } else {
+            CLI::write('Normalizados OK:       ' . $totales['normalizados_ok'], $totales['normalizados_ok'] > 0 ? 'green' : 'white');
+        }
+
         CLI::write('Fallaron normalizacion: ' . $totales['fallaron_normalizacion'], $totales['fallaron_normalizacion'] > 0 ? 'red' : 'white');
         CLI::write('Encriptados saltados:  ' . $totales['encriptados_saltados'], 'yellow');
         CLI::write('Archivos faltantes:    ' . $totales['archivos_faltantes'], $totales['archivos_faltantes'] > 0 ? 'red' : 'white');

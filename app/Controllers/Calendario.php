@@ -478,6 +478,19 @@ class Calendario extends ResourceController
 
                 // NUEVO: Validar y normalizar PDFs
                 if (strtolower($ext) === 'pdf') {
+                    // Sanear preambulo previo a %PDF-: Ghostscript no lo tolera
+                    $sanitize = \App\Libraries\PdfSanitizer::stripPreamble($filePath);
+
+                    if (!$sanitize['success']) {
+                        @unlink($filePath);
+                        $errors[] = $originalName . ': PDF invalido, ' . $sanitize['message'];
+                        continue;
+                    }
+
+                    if ($sanitize['removedBytes'] > 0) {
+                        log_message('info', '[Upload] PDF saneado: ' . $originalName . ' (' . $sanitize['removedBytes'] . ' bytes de preambulo eliminados)');
+                    }
+
                     $analysis = \App\Libraries\PdfValidator::analyze($filePath);
 
                     // PDF encriptado -> RECHAZAR
@@ -508,6 +521,16 @@ class Calendario extends ResourceController
                             $errors[] = $originalName . ': PDF incompatible (requiere Ghostscript para normalizar).';
                             continue;
                         }
+                    }
+
+                    // Puerta funcional: el PDF debe ser realmente importable por FPDI,
+                    // que es el mismo lector que usa el PDF consolidado.
+                    $importCheck = \App\Libraries\PdfValidator::canImportWithFpdi($filePath);
+
+                    if (!$importCheck['success']) {
+                        @unlink($filePath);
+                        $errors[] = $originalName . ': PDF no se puede leer para el consolidado: ' . $importCheck['message'];
+                        continue;
                     }
                 }
 
