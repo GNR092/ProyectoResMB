@@ -40,6 +40,14 @@ if (!file_exists($installerLockFile)) {
     $routes->post('api/auth/logout', 'ApiAuth::logout');
     $routes->match(['options'], 'api/auth/(:any)', 'ApiAuth::options/$1');
 
+    // API externa de solo lectura (réplica ver historial, app móvil) - públicas con Bearer token
+    $routes->get('api/ext/historial', 'ApiExternal::historial');
+    $routes->get('api/ext/solicitud/details/(:num)', 'ApiExternal::solicitudDetails/$1');
+    $routes->get('api/ext/providers', 'ApiExternal::providers');
+    $routes->get('api/ext/razones', 'ApiExternal::razones');
+    $routes->get('api/ext/departments', 'ApiExternal::departments');
+    $routes->match(['options'], 'api/ext/(:any)', 'ApiExternal::options/$1');
+
     /*
      **
      * Proteccion de rutas para evitar que se mande o filtre información sensible

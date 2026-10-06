@@ -31,6 +31,11 @@ class MantenimientoFilter implements FilterInterface
             return;
         }
 
+        // API externa de solo lectura (app móvil): tampoco depende de mantenimiento
+        if (str_starts_with($currentUri, '/api/ext')) {
+            return;
+        }
+
         $config = $this->getConfig();
 
         if (!$config || !($config['activado'] ?? false)) {
