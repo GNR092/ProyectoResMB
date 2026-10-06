@@ -22,26 +22,28 @@ class ChangeUsuarioFKToSetNull extends Migration
         $driver = $this->db->DBDriver; // 'Postgre' o 'MySQLi'
 
         foreach ($this->targetTables as $table => $column) {
-            if (! $this->db->tableExists($table)) {
+            // El nombre real puede variar en mayúsculas/minúsculas según driver/instalación
+            $realTable = $this->resolveTableName($table);
+            if ($realTable === null) {
                 continue; // Tabla no existe en esta instalación
             }
 
-            if (! $this->db->fieldExists($column, $table)) {
+            if (! $this->db->fieldExists($column, $realTable)) {
                 continue; // Columna no existe
             }
 
             // 1. Hacer columna NULLABLE (compatible ambos drivers)
-            $this->makeColumnNullable($table, $column, $driver);
+            $this->makeColumnNullable($realTable, $column, $driver);
 
             // 2. Obtener nombre real de FK existente (compatibilidad MySQL/PostgreSQL)
-            $fkName = $this->findForeignKeyName($table, $column, 'Usuarios', 'ID_Usuario');
+            $fkName = $this->findForeignKeyName($realTable, $column, 'Usuarios', 'ID_Usuario');
             
             if ($fkName) {
                 // 3. Dropear FK antigua
-                $this->dropForeignKey($table, $fkName, $driver);
+                $this->dropForeignKey($realTable, $fkName, $driver);
 
                 // 4. Crear FK nueva con SET NULL
-                $this->createForeignKey($table, $column, $fkName, $driver);
+                $this->createForeignKey($realTable, $column, $fkName, $driver);
             }
         }
     }
@@ -51,15 +53,67 @@ class ChangeUsuarioFKToSetNull extends Migration
         $driver = $this->db->DBDriver;
 
         foreach ($this->targetTables as $table => $column) {
-            if (! $this->db->tableExists($table)) continue;
+            $realTable = $this->resolveTableName($table);
+            if ($realTable === null) continue;
 
-            $fkName = $this->findForeignKeyName($table, $column, 'Usuarios', 'ID_Usuario');
+            $fkName = $this->findForeignKeyName($realTable, $column, 'Usuarios', 'ID_Usuario');
             
             if ($fkName) {
-                $this->dropForeignKey($table, $fkName, $driver);
-                $this->createForeignKey($table, $column, $fkName, $driver, 'CASCADE');
+                $this->dropForeignKey($realTable, $fkName, $driver);
+                $this->createForeignKey($realTable, $column, $fkName, $driver, 'CASCADE');
             }
         }
+    }
+
+    /**
+     * Nombres que difieren del esquema real en algunas instalaciones (p.ej. MariaDB).
+     */
+    private $tableAliases = [
+        'ApiToken' => 'User_Tokens',
+    ];
+
+    /**
+     * Resuelve el nombre real de la tabla en el driver activo,
+     * tolerando diferencias de mayúsculas/minúsculas y snake_case.
+     */
+    private function resolveTableName(string $table): ?string
+    {
+        $driver = $this->db->DBDriver;
+
+        $candidates = [$table];
+        if (isset($this->tableAliases[$table])) {
+            $candidates[] = $this->tableAliases[$table];
+        }
+
+        foreach ($candidates as $candidate) {
+            if ($driver === 'Postgre') {
+                $row = $this->db->query(
+                    "SELECT tablename FROM pg_tables
+                     WHERE schemaname = current_schema()
+                       AND (LOWER(tablename) = LOWER(?) OR REPLACE(LOWER(tablename), '_', '') = REPLACE(LOWER(?), '_', ''))",
+                    [$candidate, $candidate]
+                )->getRow();
+
+                if ($row) {
+                    return $row->tablename;
+                }
+
+                continue;
+            }
+
+            $row = $this->db->query(
+                "SELECT TABLE_NAME FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND (LOWER(TABLE_NAME) = LOWER(?) OR REPLACE(LOWER(TABLE_NAME), '_', '') = REPLACE(LOWER(?), '_', ''))",
+                [$candidate, $candidate]
+            )->getRow();
+
+            if ($row) {
+                return $row->TABLE_NAME ?? $row->table_name ?? null;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -67,25 +121,42 @@ class ChangeUsuarioFKToSetNull extends Migration
      */
     private function makeColumnNullable(string $table, string $column, string $driver): void
     {
-        $fields = $this->db->getFieldData($table);
-        foreach ($fields as $field) {
-            if ($field->name === $column && ! $field->nullable) {
-                if ($driver === 'Postgre') {
+        if ($driver === 'Postgre') {
+            $fields = $this->db->getFieldData($table);
+            foreach ($fields as $field) {
+                if ($field->name === $column && ! $field->nullable) {
                     $this->db->query("ALTER TABLE \"{$table}\" ALTER COLUMN \"{$column}\" DROP NOT NULL");
-                } else {
-                    // MySQL: usar Forge para mantener tipo exacto
-                    $this->forge->modifyColumn($table, [
-                        $column => [
-                            'type'       => $field->type,
-                            'constraint' => $field->constraint,
-                            'unsigned'   => $field->unsigned,
-                            'null'       => true,
-                        ]
-                    ]);
+                    break;
                 }
-                break;
             }
+
+            return;
         }
+
+        // MySQL: reconstruir la definición desde information_schema para preservar
+        // tipo exacto, longitud y UNSIGNED (getFieldData no expone constraint/unsigned).
+        $colInfo = $this->db->query(
+            "SELECT COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+            [$table, $column]
+        )->getRow();
+
+        if ($colInfo === null) {
+            return; // Columna no existe
+        }
+
+        $columnType = $colInfo->COLUMN_TYPE ?? $colInfo->column_type ?? null;
+        $nullable   = strtoupper($colInfo->IS_NULLABLE ?? $colInfo->is_nullable ?? 'NO');
+
+        if ($columnType === null || $nullable === 'YES') {
+            return; // No hay nada que hacer
+        }
+
+        $this->db->query(
+            'ALTER TABLE ' . $this->db->escapeIdentifiers($table)
+            . ' MODIFY ' . $this->db->escapeIdentifiers($column)
+            . ' ' . $columnType . ' NULL'
+        );
     }
 
     /**
