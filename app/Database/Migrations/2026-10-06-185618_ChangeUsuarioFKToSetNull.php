@@ -111,7 +111,7 @@ class ChangeUsuarioFKToSetNull extends Migration
                   AND kcu_ref.column_name = ?
             ";
             $result = $this->db->query($sql, [$table, $column, $refTable, $refColumn])->getRow();
-            return $result ? $result->constraint_name : null;
+            return $result ? ($result->constraint_name ?? $result->CONSTRAINT_NAME ?? null) : null;
         } else {
             // MySQL
             $sql = "
@@ -124,7 +124,7 @@ class ChangeUsuarioFKToSetNull extends Migration
                   AND REFERENCED_COLUMN_NAME = ?
             ";
             $result = $this->db->query($sql, [$table, $column, $refTable, $refColumn])->getRow();
-            return $result ? $result->CONSTRAINT_NAME : null;
+            return $result ? ($result->CONSTRAINT_NAME ?? $result->constraint_name ?? null) : null;
         }
     }
 
