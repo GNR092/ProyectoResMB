@@ -34,6 +34,12 @@ if (!file_exists($installerLockFile)) {
     // API Token Generation
     $routes->post('api/gentoken', 'Api::gentoken');
 
+    // API Auth externa (app híbrida móvil, solo pruebas) - públicas, sin sesión web
+    $routes->post('api/auth/login', 'ApiAuth::login');
+    $routes->get('api/auth/me', 'ApiAuth::me');
+    $routes->post('api/auth/logout', 'ApiAuth::logout');
+    $routes->match(['options'], 'api/auth/(:any)', 'ApiAuth::options/$1');
+
     /*
      **
      * Proteccion de rutas para evitar que se mande o filtre información sensible

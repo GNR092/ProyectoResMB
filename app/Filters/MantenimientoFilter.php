@@ -26,6 +26,11 @@ class MantenimientoFilter implements FilterInterface
             return;
         }
 
+        // API Auth externa (app móvil): no depende de sesión web ni mantenimiento
+        if (str_starts_with($currentUri, '/api/auth')) {
+            return;
+        }
+
         $config = $this->getConfig();
 
         if (!$config || !($config['activado'] ?? false)) {
