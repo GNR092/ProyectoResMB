@@ -609,15 +609,13 @@ class Rest
             };
         };
 
-        // COUNT query: LEFT JOINs + WHERE para replicar semántica INNER JOIN (solo solicitudes con Cotización Y OrdenCompra)
+        // COUNT query: misma semántica que DATA (incluye solicitudes sin Cotización/OC).
+        // Se cuenta DISTINCT para no duplicar por JOIN 1:N con Cotizacion/OrdenCompra.
         // Compatible PostgreSQL + MySQL: sin subquery, solo condiciones WHERE
         $applyFiltersCount = $makeApplyFilters('OrdenCompra.Estado');
-        $countBuilder = $solicitudModel->select('COUNT(*) as total');
+        $countBuilder = $solicitudModel->select('COUNT(DISTINCT Solicitud.ID_Solicitud) as total');
         $baseJoins($countBuilder);
         $applyFiltersCount($countBuilder);
-        // Replicar INNER JOIN semántica: solo contar si EXISTE Cotizacion Y OrdenCompra
-        $countBuilder->where('Cotizacion.ID_Cotizacion IS NOT NULL')
-                     ->where('OrdenCompra.ID_OrdenCompra IS NOT NULL');
         $total = (int) $countBuilder->get()->getRow()->total;
 
         // DATA query: LEFT JOINs directos (acceso a campos Cotización, incluye solicitudes sin OC)
