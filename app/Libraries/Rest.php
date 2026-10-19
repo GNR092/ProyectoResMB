@@ -557,7 +557,7 @@ class Rest
                     $provs = is_array($filters['proveedores']) ? $filters['proveedores'] : explode(',', $filters['proveedores']);
                     $provs = array_filter(array_map('trim', $provs));
                     if (!empty($provs)) {
-                        $query->whereIn('Proveedor.RazonSocial', $provs);
+                        $query->whereIn('Proveedor.ID_Proveedor', array_map('intval', $provs));
                     }
                 }
 
