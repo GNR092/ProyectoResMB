@@ -474,9 +474,35 @@ class Rest
                   ->join('OrdenCompra', 'OrdenCompra.ID_Cotizacion = Cotizacion.ID_Cotizacion', 'left');
         };
 
+        // Filtro de proveedores: acepta ID_Proveedor (control maestro) o RazonSocial
+        // (historial, calendario y API móvil). Los nombres se resuelven a IDs para
+        // poder filtrar siempre por la clave primaria.
+        $proveedorIds = [];
+        if (!empty($filters['proveedores'])) {
+            $provs = is_array($filters['proveedores']) ? $filters['proveedores'] : explode(',', $filters['proveedores']);
+            $provs = array_filter(array_map('trim', $provs));
+            if (!empty($provs)) {
+                $ids     = array_values(array_filter(array_map('intval', $provs), fn($v) => $v > 0));
+                $nombres = array_values(array_filter($provs, fn($v) => !is_numeric($v)));
+
+                if (!empty($nombres)) {
+                    $filas = $this->db->table('Proveedor')
+                        ->select('ID_Proveedor')
+                        ->whereIn('RazonSocial', $nombres)
+                        ->get()
+                        ->getResultArray();
+                    foreach ($filas as $fila) {
+                        $ids[] = (int) $fila['ID_Proveedor'];
+                    }
+                }
+
+                $proveedorIds = array_values(array_unique($ids));
+            }
+        }
+
         // Factoría de filtros: recibe el nombre de la columna OC estado según el join usado
-        $makeApplyFilters = function (string $ocEstadoCol) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException) {
-            return function ($query) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException, $ocEstadoCol) {
+        $makeApplyFilters = function (string $ocEstadoCol) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException, $proveedorIds) {
+            return function ($query) use ($declinedStatuses, $excludedStatuses, $onlyDeclined, $filters, $deptId, $userId, $isException, $ocEstadoCol, $proveedorIds) {
                 $selectedEstado = $filters['estado'] ?? '';
 
                 if ($onlyDeclined) {
@@ -553,26 +579,8 @@ class Rest
                     $query->where('Solicitud.MetodoPago', $filters['metodo']);
                 }
 
-                if (!empty($filters['proveedores'])) {
-                    $provs = is_array($filters['proveedores']) ? $filters['proveedores'] : explode(',', $filters['proveedores']);
-                    $provs = array_filter(array_map('trim', $provs));
-                    if (!empty($provs)) {
-                        // Formato dual: el control maestro envía ID_Proveedor; historial,
-                        // calendario y la API móvil envían RazonSocial. Se aceptan ambos.
-                        $ids   = array_values(array_filter(array_map('intval', $provs), fn($v) => $v > 0));
-                        $names = array_values(array_filter($provs, fn($v) => !is_numeric($v)));
-
-                        $query->groupStart();
-                        if (!empty($ids)) {
-                            $query->orWhereIn('Proveedor.ID_Proveedor', $ids);
-                            // Un nombre puramente numérico también debe coincidir por texto
-                            $query->orWhereIn('Proveedor.RazonSocial', array_values(array_filter($provs, 'is_numeric')));
-                        }
-                        if (!empty($names)) {
-                            $query->orWhereIn('Proveedor.RazonSocial', $names);
-                        }
-                        $query->groupEnd();
-                    }
+                if (!empty($proveedorIds)) {
+                    $query->whereIn('Proveedor.ID_Proveedor', $proveedorIds);
                 }
 
                 if (!empty($filters['razones_sociales'])) {
@@ -627,7 +635,7 @@ class Rest
         // Se cuenta DISTINCT para no duplicar por JOIN 1:N con Cotizacion/OrdenCompra.
         // Compatible PostgreSQL + MySQL: sin subquery, solo condiciones WHERE
         $applyFiltersCount = $makeApplyFilters('OrdenCompra.Estado');
-        $countBuilder = $solicitudModel->select('COUNT(DISTINCT Solicitud.ID_Solicitud) as total');
+        $countBuilder = $solicitudModel->select('COUNT(DISTINCT ' . $this->db->protectIdentifiers('Solicitud.ID_Solicitud') . ') as total');
         $baseJoins($countBuilder);
         $applyFiltersCount($countBuilder);
         $total = (int) $countBuilder->get()->getRow()->total;
