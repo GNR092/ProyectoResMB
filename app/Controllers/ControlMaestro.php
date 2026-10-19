@@ -440,14 +440,23 @@ class ControlMaestro extends BaseController
                         }
                     }
 
-                    // 2. PROCESAR FACTURA
-                    if ($f = $this->request->getFile('File_Factura')) {
-                        if ($f->isValid() && !$f->hasMoved()) {
-                            $n = "Factura-{$id_solicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$rnd}.".$f->getClientExtension();
-                            $f->move(WRITEPATH.'uploads/facturas/', $n, true);
-
+                    // 2. PROCESAR FACTURA(S) - Múltiples archivos
+                    $allFiles = $this->request->getFiles();
+                    if (isset($allFiles['File_Factura'])) {
+                        $facturaFiles = is_array($allFiles['File_Factura']) ? $allFiles['File_Factura'] : [$allFiles['File_Factura']];
+                        $tmpN = []; $cnt = 0;
+                        foreach ($facturaFiles as $ff) {
+                            if ($ff->isValid() && !$ff->hasMoved()) {
+                                $n = "Factura-{$id_solicitud}-{$idCotizacion}-{$idOrdenCompra}-{$idProveedor}-{$rnd}-{$cnt}." . $ff->getClientExtension();
+                                if ($ff->move(WRITEPATH . 'uploads/facturas/', $n, true)) {
+                                    $tmpN[] = $n;
+                                    $cnt++;
+                                }
+                            }
+                        }
+                        if (!empty($tmpN)) {
                             $this->db->table('OrdenCompra')->where('ID_OrdenCompra', $idOrdenCompra)->update([
-                                'File_Factura' => $n
+                                'File_Factura' => implode(',', $tmpN)
                             ]);
                         }
                     }

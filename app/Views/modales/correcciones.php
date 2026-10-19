@@ -42,6 +42,12 @@
             <option value="1">Crédito</option>
         </select>
 
+        <div class="flex items-center gap-2">
+            <select id="filtro-proveedor-maestro" class="border border-gray-300 p-2 rounded w-full md:w-auto text-sm" multiple>
+                <option value="">Todos los proveedores</option>
+            </select>
+        </div>
+
         <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
             <select id="filtro-razon-social-maestro" class="border border-gray-300 p-2 rounded w-full text-sm" multiple>
                 <option value="">Todas las razones sociales</option>

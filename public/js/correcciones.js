@@ -5,6 +5,7 @@
 
 let choicesDeptoMaestro = null;
 let choicesRazonMaestro = null;
+let choicesProveedorMaestro = null;
 
 function initControlMaestro() {
     const tabla = document.getElementById('tabla-maestro');
@@ -13,6 +14,7 @@ function initControlMaestro() {
     // Cache de elementos DOM para evitar búsquedas repetitivas y mejorar el rendimiento
     const filtroDeptoEl = document.getElementById('filtroDepartamentoMaestro');
     const filtroRazonEl = document.getElementById('filtro-razon-social-maestro');
+    const filtroProveedorEl = document.getElementById('filtro-proveedor-maestro');
     const wrapperDepto = document.getElementById('wrapper-depto-maestro');
     const inputFolio = document.getElementById('filtro-folio-maestro');
     const inputFecha = document.getElementById('filtro-fecha-maestro');
@@ -24,6 +26,7 @@ function initControlMaestro() {
     // Destruir instancias previas para evitar duplicados al reabrir el modal (gestión de memoria)
     if (choicesDeptoMaestro) { choicesDeptoMaestro.destroy(); choicesDeptoMaestro = null; }
     if (choicesRazonMaestro) { choicesRazonMaestro.destroy(); choicesRazonMaestro = null; }
+    if (choicesProveedorMaestro) { choicesProveedorMaestro.destroy(); choicesProveedorMaestro = null; }
 
     // 1. Configurar Selectores Avanzados (Choices.js)
     if (filtroDeptoEl) {
@@ -45,6 +48,29 @@ function initControlMaestro() {
             itemSelectText: '',
             noResultsText: 'No se encontraron resultados',
         });
+    }
+
+    if (filtroProveedorEl) {
+        choicesProveedorMaestro = new Choices(filtroProveedorEl, {
+            removeItemButton: true,
+            placeholder: true,
+            placeholderValue: 'Todos los proveedores',
+            itemSelectText: '',
+            noResultsText: 'No se encontraron proveedores',
+            searchEnabled: true,
+            shouldSort: false,
+        });
+
+        SendDataEnd('api/providers/all')
+            .then(res => {
+                const proveedores = Array.isArray(res) ? res : (res.data || []);
+                const choices = proveedores.map(p => ({
+                    value: String(p.ID_Proveedor),
+                    label: p.RazonSocial
+                }));
+                choicesProveedorMaestro.setChoices(choices, 'value', 'label', true);
+            })
+            .catch(err => console.warn('Error cargando proveedores:', err));
     }
 
     // --- Lógica de dependencia: Razón Social -> Departamento ---
@@ -143,6 +169,9 @@ function initControlMaestro() {
 
             const deptosSeleccionados = choicesDeptoMaestro ? choicesDeptoMaestro.getValue(true) : [];
             if (deptosSeleccionados.length > 0) params.departamentos = deptosSeleccionados;
+
+            const proveedoresSeleccionados = choicesProveedorMaestro ? choicesProveedorMaestro.getValue(true) : [];
+            if (proveedoresSeleccionados.length > 0) params.proveedores = proveedoresSeleccionados;
 
             if (
                 typeof USER_DEPT_NAME !== 'undefined' &&
@@ -557,7 +586,7 @@ function _renderSeccionArchivos(data, sol, orden, coti, ui) {
         <div class="${ui.classArchivos} grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t border-gray-100">
             <div><label class="block text-xs font-bold text-green-600 mb-2">Cargar Cotización</label><input type="file" name="cotizacion_files[]" id="file-cotizacion" class="hidden" accept="image/*,.pdf" multiple onchange="window.handleFileSelect(this, 'cotizacion')"><button type="button" onclick="document.getElementById('file-cotizacion').click()" class="w-full bg-white border border-green-300 text-green-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-cotizacion" class="mt-2"></div></div>
             <div><label class="block text-xs font-bold text-blue-600 mb-2">Cargar Ficha Pago</label><input type="file" name="File_Comprobante" id="file-comprobante" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'comprobante')"><button type="button" onclick="document.getElementById('file-comprobante').click()" class="w-full bg-white border border-blue-300 text-blue-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-comprobante" class="mt-2"></div></div>
-            <div><label class="block text-xs font-bold text-indigo-600 mb-2">Cargar Factura</label><input type="file" name="File_Factura" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-factura" class="mt-2"></div></div>
+            <div><label class="block text-xs font-bold text-indigo-600 mb-2">Cargar Factura</label><input type="file" name="File_Factura[]" id="file-factura" class="hidden" accept="image/*,.pdf,.xml" multiple onchange="window.handleFileSelect(this, 'factura')"><button type="button" onclick="document.getElementById('file-factura').click()" class="w-full bg-white border border-indigo-300 text-indigo-600 text-xs font-bold py-2 px-4 rounded shadow-sm">📂 Seleccionar</button><div id="preview-factura" class="mt-2"></div></div>
             <div id="container-upload-complemento" class="${sol.MetodoPago == 1 ? '' : 'hidden'}">
                 <label class="block text-xs font-bold text-orange-600 mb-2">Cargar Complemento</label>
                 <input type="file" name="File_Complemento" id="file-complemento" class="hidden" accept="image/*,.pdf,.xml" onchange="window.handleFileSelect(this, 'complemento')">
