@@ -557,7 +557,21 @@ class Rest
                     $provs = is_array($filters['proveedores']) ? $filters['proveedores'] : explode(',', $filters['proveedores']);
                     $provs = array_filter(array_map('trim', $provs));
                     if (!empty($provs)) {
-                        $query->whereIn('Proveedor.ID_Proveedor', array_map('intval', $provs));
+                        // Formato dual: el control maestro envía ID_Proveedor; historial,
+                        // calendario y la API móvil envían RazonSocial. Se aceptan ambos.
+                        $ids   = array_values(array_filter(array_map('intval', $provs), fn($v) => $v > 0));
+                        $names = array_values(array_filter($provs, fn($v) => !is_numeric($v)));
+
+                        $query->groupStart();
+                        if (!empty($ids)) {
+                            $query->orWhereIn('Proveedor.ID_Proveedor', $ids);
+                            // Un nombre puramente numérico también debe coincidir por texto
+                            $query->orWhereIn('Proveedor.RazonSocial', array_values(array_filter($provs, 'is_numeric')));
+                        }
+                        if (!empty($names)) {
+                            $query->orWhereIn('Proveedor.RazonSocial', $names);
+                        }
+                        $query->groupEnd();
                     }
                 }
 
