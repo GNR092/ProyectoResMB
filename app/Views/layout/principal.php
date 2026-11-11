@@ -21,6 +21,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     <!-- FullCalendar Standard Bundle (incluye core, interaction, daygrid, timegrid, list, multimonth) -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.21/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.21/locales/es.global.min.js"></script>
+    <script src="<?= base_url('js/lottie.min.js') ?>"></script>
 
     <script>
         window.BASE_URL = "<?= base_url() ?>";
