@@ -107,6 +107,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     </header>
 
     <main class="flex-1 relative p-6 overflow-auto bg-[#D9D9D9]">
+        <div id="seasonal-decoration-root" aria-hidden="true" inert></div>
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
             <img src="<?= base_url(
                 'images/logo.png',
@@ -142,6 +143,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
     $iconVersion = file_exists($iconPath) ? filemtime($iconPath) : time();
     ?>
     const ICON_SVG_VERSION = "<?= $iconVersion ?>";
+    window.SEASONAL_ASSET_VERSION = "<?= getAppVersion() ?>";
 </script>
 <script>
     (function () {
@@ -192,6 +194,7 @@ $version = file_exists($stylessPath) ? filemtime($stylessPath) : time();
 ) ?>" defer></script>
 <script src="<?= base_url() ?>js/bitacora.js?v=<?= file_exists(FCPATH . 'js/bitacora.js') ? filemtime(FCPATH . 'js/bitacora.js') : time() ?>" defer></script>
 <script src="<?= base_url() ?>js/migraciones.js?v=<?= file_exists(FCPATH . 'js/migraciones.js') ? filemtime(FCPATH . 'js/migraciones.js') : time() ?>" defer></script>
+<script src="<?= base_url() ?>js/seasonal-manager.js?v=<?= getAppVersion() ?>" defer></script>
     <script type="module" src="<?= base_url() ?>js/calendario.js?v=<?= filemtime(FCPATH . 'js/calendario.js') ?>"></script>
 </body>
 

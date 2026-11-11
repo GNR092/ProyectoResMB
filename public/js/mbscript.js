@@ -60,7 +60,7 @@ function abrirModal(opcion) {
   const modal = document.getElementById('modal-general')
   const titulo = document.getElementById('modal-title')
   const contenido = document.getElementById('modal-contenido')
-  const modalBox = titulo.parentElement
+  const modalBox = contenido.parentElement
 
   const modalesAnchos = ['reportes', 'ver_historial', 'correcciones', 'lista_pagos', 'ReportePresupuesto', 'bitacora', 'catalogo_productos', 'calendario']
 
